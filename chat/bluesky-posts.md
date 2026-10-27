@@ -2439,3 +2439,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** bowtie inlays across the seam, pressed in from the top → diff (joint.butterfly.js, docs/print-prep.md "Try it: butterfly keys across the wing", docs/screenshots/split-butterfly-keys.png); printed flat → diff (printPrep.js bed normal) and e2e minZ ≈ 0 check; auto or tap placement → diff (splitSheet.js, CutPlaneOverlay path) and e2e `a hand-placed Butterfly snaps…` passing this session
 **To Add:** docs/screenshots/split-butterfly-keys.png
+
+## 2026-10-27T14:55:00Z — Tenons and magnets for split pieces
+
+**Post:** Two more ways to join a split part in WarpCad. Tenons: a flat stadium-shaped key in a slot in both pieces, so one key stops sliding and twisting. Magnets: pockets in both faces so a model comes apart on purpose, with the buy list and polarity rule in assembly.txt. #CAD #3DPrinting Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** flat stadium key in a slot in each piece, stops sliding and twisting → diff (joint.tenon.js, docs/print-prep.md); magnet pockets in both faces, comes apart on purpose → diff (joint.magnet.js, docs/print-prep.md); buy list and polarity rule → driven this session, magnets assembly.txt read (4 × magnets 6 × 3 mm, mark-out / mark-in)
+**To Add:** docs/screenshots/split-joint-picker.png

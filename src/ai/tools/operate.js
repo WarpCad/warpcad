@@ -36,6 +36,7 @@ import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kern
 import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_PLACEMENTS, PLACEMENT_KINDS } from '../../core/kernel/split.js'
 import { DOWEL_STOCKS } from '../../core/kernel/recipes/joint.dowel.js'
 import { BUTTERFLY_SIDES } from '../../core/kernel/recipes/joint.butterfly.js'
+import { MAGNET_SIZES } from '../../core/kernel/recipes/joint.magnet.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
@@ -300,10 +301,12 @@ export const OPERATIONS = Object.freeze({
     'Split one body into two printable pieces across an axis plane, with a joint so they go back together. ' +
       'Joints: pins (pins printed on piece A into sockets in B; the default), tongue (a rib and groove, for thin sections), ' +
       'dowel (a socket in both pieces and a separate dowel: printed lying down, so stronger than a pin, or bought, steel or 1.75 mm filament, via jointOptions.stock), ' +
-      'butterfly (bowtie keys let into pockets across the seam on an outer surface, pressed in from outside after the pieces meet; the only joint that resists pull-apart without glue; printed flat), or none. ' +
+      'butterfly (bowtie keys let into pockets across the seam on an outer surface, pressed in from outside after the pieces meet; the only joint that resists pull-apart without glue; printed flat), ' +
+      'tenon (a flat stadium-shaped key in a mortise in both pieces, like a Domino; one stops both sliding and twisting; printed flat), ' +
+      `magnets (disc-magnet pockets in both faces, nothing printed; the pieces come apart on purpose; two magnets per pocket pair to buy; common sizes ${MAGNET_SIZES.map((size) => `${size.diameterMm}×${size.thicknessMm}`).join(', ')} mm), or none. ` +
       'A side of the cut face is named in its own frame: u-/u+/v-/v+ are the low/high side along the face’s first/second axis (for a cut across x, u is y and v is z, so v+ is the top). ' +
-      'Or give placements to put connectors at chosen face positions: pins, tongue, wedge, screwBoss (a bolt-through boss), dowel and butterfly (a point on the edge of the face); pins, tongue, dowel and butterfly may leave uMm/vMm out to be placed by the search. ' +
-      'The body becomes a group of named parts: A, B, then any printed dowels or butterfly keys as key parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
+      'Or give placements to put connectors at chosen face positions: pins, tongue, wedge, screwBoss (a bolt-through boss), dowel, butterfly (a point on the edge of the face), tenon and magnet; pins, tongue, dowel, butterfly, tenon and magnet may leave uMm/vMm out to be placed by the search. ' +
+      'The body becomes a group of named parts: A, B, then any printed dowels, butterfly keys or tenons as key parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
     objectSchema(
       {
         axis: { ...AXIS, description: 'The cut plane’s normal.' },
@@ -312,7 +315,7 @@ export const OPERATIONS = Object.freeze({
           type: 'string',
           enum: [...JOINT_TYPES],
           description:
-            'pins (default), tongue (for thin sections), dowel (strong in shear; needs material on both sides of the cut), butterfly (locks against pull-apart; keys on an outer surface), or none. Ignored when placements is given.',
+            'pins (default), tongue (for thin sections), dowel (strong in shear; needs material on both sides of the cut), butterfly (locks against pull-apart; keys on an outer surface), tenon (one flat key stops sliding and twisting), magnets (comes apart on purpose; magnets to buy), or none. Ignored when placements is given.',
         },
         jointOptions: objectSchema(
           {
@@ -323,7 +326,13 @@ export const OPERATIONS = Object.freeze({
             },
             sizeMm: {
               type: 'number',
-              description: 'For joint dowel: the diameter in millimetres, 2 to 10. For joint butterfly: the key’s waist in millimetres, 3 to 20 (ends twice that, 4× long). Leave out to let the search size it.',
+              description:
+                'For joint dowel: the diameter in millimetres, 2 to 10. For joint butterfly: the key’s waist in millimetres, 3 to 20 (ends twice that, 4× long). ' +
+                'For joint tenon: its width (the long side of the stadium) in millimetres, 6 to 30, at least twice its thickness. For joint magnets: the magnet’s diameter in millimetres, 2 to 25, with thicknessMm. Leave out to let the search size it.',
+            },
+            thicknessMm: {
+              type: 'number',
+              description: 'For joint tenon: its thickness in millimetres, 3 to 8. For joint magnets: the magnet’s thickness in millimetres, 1 to 10, given together with sizeMm.',
             },
             count: { type: 'integer', description: `For joint butterfly: how many keys, 1 to ${MAX_PLACEMENTS}; default one per ~50 mm of the straight edge they sit along.` },
             side: {
@@ -335,7 +344,7 @@ export const OPERATIONS = Object.freeze({
             through: { type: 'boolean', description: 'For joint butterfly: keys that run the full thickness of a thin wall, instead of a depthMm.' },
           },
           [],
-          'Options for joint dowel or butterfly only.'
+          'Options for joint dowel, butterfly, tenon or magnets only.'
         ),
         clearanceMm: { type: 'number', description: `Gap per side between pin and socket, in millimetres. Default ${DEFAULT_JOINT_CLEARANCE_MM}.` },
         names: {
@@ -353,13 +362,17 @@ export const OPERATIONS = Object.freeze({
             'Hand-placed connectors instead of joint. uMm/vMm are millimetres along the cut face’s two axes: for a cut across x they are y and z, across y z and x, across z x and y.',
           items: objectSchema(
             {
-              kind: { type: 'string', enum: [...PLACEMENT_KINDS], description: 'pins, tongue, wedge, screwBoss, dowel or butterfly.' },
+              kind: { type: 'string', enum: [...PLACEMENT_KINDS], description: 'pins, tongue, wedge, screwBoss, dowel, butterfly, tenon or magnet.' },
               uMm: {
                 type: 'number',
-                description: 'Position along the face’s first axis, millimetres; leave out with vMm for a search (pins, tongue, dowel, butterfly). A butterfly’s position is a point on the edge of the face.',
+                description: 'Position along the face’s first axis, millimetres; leave out with vMm for a search (pins, tongue, dowel, butterfly, tenon, magnet). A butterfly’s position is a point on the edge of the face.',
               },
               vMm: { type: 'number', description: 'Position along the face’s second axis, millimetres.' },
-              sizeMm: { type: 'number', description: 'A pin’s or dowel’s diameter, a tongue’s or wedge’s width, a screw boss’s screw size, a butterfly’s waist, in millimetres.' },
+              sizeMm: {
+                type: 'number',
+                description: 'A pin’s or dowel’s diameter, a tongue’s or wedge’s width, a screw boss’s screw size, a butterfly’s waist, a tenon’s width, a magnet’s diameter, in millimetres.',
+              },
+              thicknessMm: { type: 'number', description: 'A tenon’s thickness (3 to 8), or a magnet’s (1 to 10, with its sizeMm), in millimetres.' },
               lengthMm: { type: 'number', description: 'A tongue’s rib length in millimetres, at least twice its width.' },
               insertMm: { type: 'number', description: 'A screw boss’s heat-set insert bore in millimetres; leave out for a self-tapping screw.' },
               stock: { type: 'string', enum: [...DOWEL_STOCKS], description: 'A dowel’s: printed (default), steel or filament.' },

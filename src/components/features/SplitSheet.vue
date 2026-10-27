@@ -9,11 +9,12 @@
  *   written out in the store (`JOINT_CHOICES`, `TODO/core-075`), a native `<select>` with
  *   `<optgroup>`s so iOS shows it as a wheel with headings — with its one-line use under it and
  *   its own fields (a dowel's diameter; what bought dowels are; butterfly keys' Keys, Side,
- *   Depth and Cut right through, `TODO/core-075` stage 2), Clearance (mm, per side). The offset is also the cut plane in
+ *   Depth and Cut right through, `TODO/core-075` stage 2; a tenon's width and thickness, a magnet's
+ *   size — Auto, a common size or Custom — stage 3), Clearance (mm, per side). The offset is also the cut plane in
  *   the viewport (`CutPlaneOverlay.vue`) — drag its handle and this number follows.
  * - **Feedback before Apply**: each piece's name and fit verdict against the project's build
- *   volume, then any key parts the joint makes (`Dowel × 2`) with theirs, and **You'll also
- *   need** for bought hardware; a problem that would make Apply fail (Apply disabled, the reason shown); a warning
+ *   volume, then any key parts the joint makes (`Dowel × 2`, `Tenon × 2`) with theirs, and **You'll also
+ *   need** for bought hardware (`4 × magnets 6 × 3 mm`); a problem that would make Apply fail (Apply disabled, the reason shown); a warning
  *   that would not (zero clearance).
  * - **After Apply**: the sheet closes, the body is still selected, and the Inspector lists the
  *   two new parts and its fit badge. A kernel refusal (no room for a pin, not watertight)
@@ -23,7 +24,7 @@
  * - **Small screens**: a bottom sheet at phone width, every control a 44 px (`--tap`) target,
  *   16 px inputs so iOS does not zoom on focus.
  */
-import { onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
@@ -31,6 +32,7 @@ import {
   CONNECTOR_KINDS,
   CONNECTOR_LABELS,
   JOINT_CHOICES,
+  MAGNET_CHOICES,
   NO_JOINT_CHOICE,
   SPLIT_AXES,
   STOCK_LABELS,
@@ -78,6 +80,13 @@ function autoNumber(event) {
   const value = Number(text)
   return text === '' || !Number.isFinite(value) ? null : value
 }
+
+/** Whether the Magnet size field shows: for the Magnets joint, or while placing magnets by hand. */
+const showMagnetSize = computed(
+  () =>
+    (!sheet.manual && sheet.joint === 'magnets') ||
+    (sheet.manual && (sheet.connectorKind === 'magnet' || sheet.markers.some((marker) => marker.kind === 'magnet')))
+)
 
 /** @param {readonly number[]} size */
 const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × ')} mm`
@@ -210,6 +219,77 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         </label>
       </template>
 
+      <template v-if="!sheet.manual && sheet.joint === 'tenon'">
+        <label class="split__field">
+          Tenon width (mm)
+          <input
+            class="split__input"
+            type="number"
+            step="0.5"
+            min="6"
+            max="30"
+            inputmode="decimal"
+            placeholder="Auto"
+            data-testid="split-tenon-width"
+            :value="sheet.tenonWidthMm ?? ''"
+            @change="sheet.tenonWidthMm = autoNumber($event)"
+          />
+        </label>
+        <label class="split__field">
+          Tenon thickness (mm)
+          <input
+            class="split__input"
+            type="number"
+            step="0.5"
+            min="3"
+            max="8"
+            inputmode="decimal"
+            placeholder="Auto"
+            data-testid="split-tenon-thickness"
+            :value="sheet.tenonThicknessMm ?? ''"
+            @change="sheet.tenonThicknessMm = autoNumber($event)"
+          />
+        </label>
+      </template>
+      <template v-if="!sheet.manual && showMagnetSize">
+        <label class="split__field">
+          Magnet size
+          <select v-model="sheet.magnetSize" class="split__input" data-testid="split-magnet-size">
+            <option v-for="choice in MAGNET_CHOICES" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
+          </select>
+        </label>
+        <template v-if="sheet.magnetSize === 'custom'">
+          <label class="split__field">
+            Magnet diameter (mm)
+            <input
+              class="split__input"
+              type="number"
+              step="0.5"
+              min="2"
+              max="25"
+              inputmode="decimal"
+              data-testid="split-magnet-diameter"
+              :value="sheet.magnetDiameterMm ?? ''"
+              @change="sheet.magnetDiameterMm = autoNumber($event)"
+            />
+          </label>
+          <label class="split__field">
+            Magnet thickness (mm)
+            <input
+              class="split__input"
+              type="number"
+              step="0.5"
+              min="1"
+              max="10"
+              inputmode="decimal"
+              data-testid="split-magnet-thickness"
+              :value="sheet.magnetThicknessMm ?? ''"
+              @change="sheet.magnetThicknessMm = autoNumber($event)"
+            />
+          </label>
+        </template>
+      </template>
+
       <label class="split__toggle">
         <input
           type="checkbox"
@@ -248,6 +328,11 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
               <circle r="2.5" class="split__glyph--solid" />
             </g>
             <path v-else-if="kind === 'butterfly'" d="M-8 -6 L0 -2 L8 -6 L8 6 L0 2 L-8 6 Z" class="split__glyph--solid" />
+            <rect v-else-if="kind === 'tenon'" x="-8" y="-4" width="16" height="8" rx="4" class="split__glyph--ring" />
+            <g v-else-if="kind === 'magnet'">
+              <circle r="6" class="split__glyph--ring" />
+              <path d="M-6 0 A6 6 0 0 1 6 0 Z" class="split__glyph--solid" />
+            </g>
             <circle v-else r="6" class="split__glyph--ring" />
           </svg>
           <span class="split__kind-label">{{ CONNECTOR_LABELS[kind] }}</span>
@@ -278,6 +363,44 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           <option v-for="(label, value) in STOCK_LABELS" :key="value" :value="value">{{ label }}</option>
         </select>
       </label>
+      <template v-if="sheet.manual && showMagnetSize">
+        <label class="split__field">
+          Magnet size
+          <select v-model="sheet.magnetSize" class="split__input" data-testid="split-magnet-size">
+            <option v-for="choice in MAGNET_CHOICES" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
+          </select>
+        </label>
+        <template v-if="sheet.magnetSize === 'custom'">
+          <label class="split__field">
+            Magnet diameter (mm)
+            <input
+              class="split__input"
+              type="number"
+              step="0.5"
+              min="2"
+              max="25"
+              inputmode="decimal"
+              data-testid="split-magnet-diameter"
+              :value="sheet.magnetDiameterMm ?? ''"
+              @change="sheet.magnetDiameterMm = autoNumber($event)"
+            />
+          </label>
+          <label class="split__field">
+            Magnet thickness (mm)
+            <input
+              class="split__input"
+              type="number"
+              step="0.5"
+              min="1"
+              max="10"
+              inputmode="decimal"
+              data-testid="split-magnet-thickness"
+              :value="sheet.magnetThicknessMm ?? ''"
+              @change="sheet.magnetThicknessMm = autoNumber($event)"
+            />
+          </label>
+        </template>
+      </template>
       <p v-if="sheet.manual && sheet.notice" class="split__problem" role="status" data-testid="split-notice">
         {{ sheet.notice }}
       </p>
@@ -534,7 +657,9 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 }
 
 .split__kind {
-  flex: 1;
+  flex: 1 1 auto;
+  /* Seven kinds (stage 3): the row wraps rather than squeezing a button below its own content. */
+  min-width: max-content;
   display: flex;
   align-items: center;
   justify-content: center;

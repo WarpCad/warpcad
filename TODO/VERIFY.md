@@ -36,6 +36,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-075 stage 3 — loose tenons and disc magnets (2026-10-27 14:50)
+
+Everything checkable without a printer was driven: sheet, refusals, zip contents, BOM, phone layout.
+These need a printer and magnets in hand, and the starting sizes in the TODO say they are confirmed by
+a test print.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Print `plank-tenon-x2.stl` flat on the owner's printer at 0.2 mm clearance: does the chamfered side print clean without supports, and does the tenon go into both mortises with a push fit (not slop, not a hammer)? | Open | |
+| 2 | Glue a real 6 × 3 mm magnet into a pocket: does it sit flush with the cut face, and do the pieces attract with the `assembly.txt` mark-out / mark-in rule? | Open | |
+| 3 | At 390 px the Place connectors kind row is seven icon-only buttons (Post, Wedge, Screw boss, Dowel, Butterfly, Tenon, Magnet). Is each one recognisable from its glyph on a real phone, or does it need a label? | Open | |
+
 ### core-075 stage 2 — Butterfly keys (2026-10-27 13:43)
 
 Stage 2 of 4 is built; the 1:4 wing slope gives about 0.8 mm of pull-apart play at 0.2 mm clearance (0.2 x sqrt 17), and the 0.2 mm default has not been checked on a printer.

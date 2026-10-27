@@ -287,3 +287,41 @@ describe('print prep for butterfly keys (TODO/core-075 stage 2)', () => {
     expect(text).toMatch(/into the pockets across the seam from the bottom/)
   })
 })
+
+describe('print prep for tenons and magnets (TODO/core-075 stage 3)', () => {
+  /** A 300 × 120 × 10 mm plank split at 150 mm. @param {Record<string, any>} params */
+  const plankSplit = (params) =>
+    splitWithJoint(primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] }), {
+      axis: 'x',
+      offsetMm: 150,
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+      ...params,
+    })
+
+  it('one STL for the identical tenons, named with the count, laid on its big face; assembly.txt says how many', () => {
+    const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: plankSplit({ joint: 'tenon' }) }])
+    const names = result.files.map((file) => file.filename)
+    expect(names).toEqual(['plank-a.stl', 'plank-b.stl', 'plank-tenon-x2.stl', 'assembly.txt'])
+    expect(result.files[2]).toMatchObject({ role: 'key', count: 2, mayNeedSupports: false })
+    const entries = readZip(result.bytes)
+    const keyStl = stlStats(entries[2].bytes)
+    expect(keyStl.unmatched).toBe(0)
+    expect(keyStl.minZ).toBeCloseTo(0, 3)
+    const text = new TextDecoder().decode(entries[3].bytes)
+    expect(text).toMatch(/plank-tenon-x2\.stl: print 2 × Tenon 41\.6 × 14 × 3\.5 mm, flat side down/)
+    expect(text).toMatch(/Plank A and Plank B, along X: push Plank key 1, Plank key 2 into the sockets in Plank A, then slide Plank B on along X/)
+    expect(text).toMatch(/Nothing to buy/)
+  })
+
+  it('magnets: no key file; assembly.txt lists the magnets to buy and the polarity rule', () => {
+    const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: plankSplit({ joint: 'magnets' }) }])
+    expect(result.files.map((file) => file.filename)).toEqual(['plank-a.stl', 'plank-b.stl', 'assembly.txt'])
+    const text = new TextDecoder().decode(readZip(result.bytes)[2].bytes)
+    expect(text).toMatch(/Hardware to buy:\n\s+4 × magnets 6 × 3 mm/)
+    expect(text).toMatch(/4 magnets 6 × 3 mm, 2 for the pockets in each piece/)
+    expect(text).toMatch(/Stack them so they hold together and mark the top face of the stack/)
+    expect(text).toMatch(/Glue every magnet in Plank A mark-out .* and every magnet in Plank B mark-in/)
+    expect(text).toMatch(/push Plank B against Plank A along X until the cut faces meet/)
+  })
+})

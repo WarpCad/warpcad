@@ -4,7 +4,10 @@
  * auto-placed joint: pins, tongues, wedges and screw bosses, each at a face position the
  * person chose — or, for pins and tongues, left to the search to find, clear of the others.
  * `TODO/core-075` adds loose dowels and **butterfly keys**; a butterfly's position is a point on
- * (or near) the cut face's outline, and its side, when not given, is the nearest edge's.
+ * (or near) the cut face's outline, and its side, when not given, is the nearest edge's. Stage 3
+ * adds **tenons** (`joint.tenon.js`) and **magnets** (`joint.magnet.js`), both searchable and
+ * both hand-placeable; a size a tenon or magnet placement leaves out is the search's first on
+ * this face.
  *
  * ## One check, two callers
  *
@@ -43,6 +46,7 @@ import {
   nearestSide,
 } from './joint.butterfly.js'
 import { DOWEL_MAX_DIAMETER_MM, DOWEL_MIN_DIAMETER_MM, dowelJoint, dowelMisfit, dowelsAt } from './joint.dowel.js'
+import { defaultMagnet, magnetJoint, magnetMisfit, magnetsAt } from './joint.magnet.js'
 import { PIN_MAX_DIAMETER_MM, PIN_MIN_DIAMETER_MM, pinJoint, pinMisfit, pinsAt } from './joint.pins.js'
 import { SCREW_BOSS_WALL_MM, screwBossAt, screwBossMisfit } from './joint.screwBoss.js'
 import {
@@ -53,6 +57,7 @@ import {
   tongueGrooveJoint,
   tongueMisfit,
 } from './joint.tongueGroove.js'
+import { defaultTenon, tenonCandidates, tenonJoint, tenonMisfit, tenonsAt } from './joint.tenon.js'
 import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM, wedgeAt, wedgeMisfit } from './joint.wedge.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
@@ -66,7 +71,7 @@ import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM, wedgeAt, wedgeMisfit } from './
  * checked against the solid. `uMm`/`vMm` are `null` for a search entry.
  *
  * @typedef {object} Placement
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet'} kind
  * @property {number | null} uMm
  * @property {number | null} vMm
  * @property {number | null} sizeMm `null` for the kind's default at this face.
@@ -76,6 +81,8 @@ import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM, wedgeAt, wedgeMisfit } from './
  * @property {'u-' | 'u+' | 'v-' | 'v+' | null} [side] A butterfly's surface; `null` for the nearest edge's.
  * @property {number | null} [depthMm] A butterfly's depth; `null` for its default.
  * @property {boolean} [through] A butterfly that runs the full thickness.
+ * @property {number | null} [thicknessMm] A tenon's or a magnet's thickness (`TODO/core-075`
+ *   stage 3); `null` for its default.
  */
 
 /** A refusal of one placement; the op prefixes its own name. */
@@ -98,7 +105,9 @@ const AXIS_NAMES = /** @type {const} */ (['x', 'y', 'z'])
  * The default size of a kind on a face of this narrower side — for pins, tongues, wedges and
  * dowels the size the search starts at (35 % of the narrower side, clamped to the kind's
  * range). Exported for the Split sheet's pieces list (`TODO/core-075`), which sizes a tapped
- * dowel the way Apply will.
+ * dowel the way Apply will. A tenon's is its width on a face whose long side is not the limit
+ * (a hand placement sizes it on the real face, `joint.tenon.js`'s `defaultTenon`); a magnet's
+ * its diameter (`defaultMagnet`).
  *
  * @param {Placement['kind']} kind
  * @param {number} minorMm
@@ -113,6 +122,8 @@ export function defaultSize(kind, minorMm) {
   if (kind === 'dowel') return start(DOWEL_MIN_DIAMETER_MM, DOWEL_MAX_DIAMETER_MM)
   // A butterfly's waist starts at the face's narrower side: on a 10 mm plank, a 40 mm key.
   if (kind === 'butterfly') return Math.min(BUTTERFLY_MAX_WIDTH_MM, Math.max(BUTTERFLY_MIN_WIDTH_MM, minorMm))
+  if (kind === 'tenon') return tenonCandidates(Infinity, minorMm)[0]?.widthMm ?? 6
+  if (kind === 'magnet') return defaultMagnet(minorMm).diameterMm
   return DEFAULT_SCREW_MM
 }
 
@@ -193,7 +204,11 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements, soli
         ? pinJoint(args)
         : placement.kind === 'dowel'
           ? dowelJoint({ ...args, stock: placement.stock ?? 'printed' })
-          : placement.kind === 'butterfly'
+          : placement.kind === 'tenon'
+            ? tenonJoint(args)
+            : placement.kind === 'magnet'
+              ? magnetJoint(args)
+              : placement.kind === 'butterfly'
             ? butterflyJoint({
                 face: face(),
                 clearanceMm,
@@ -202,16 +217,11 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements, soli
                 depthMm: placement.depthMm ?? null,
                 through: placement.through ?? false,
               })
-            : tongueGrooveJoint(args)
+              : tongueGrooveJoint(args)
     if (geometry === null) {
-      const what =
-        placement.kind === 'pins'
-          ? 'a pin'
-          : placement.kind === 'dowel'
-            ? 'a dowel'
-            : placement.kind === 'butterfly'
-              ? 'a butterfly key'
-              : 'a tongue'
+      /** @type {Record<string, string>} */
+      const words = { pins: 'a pin', dowel: 'a dowel', butterfly: 'a butterfly key', tenon: 'a tenon', magnet: 'a magnet' }
+      const what = words[placement.kind] ?? 'a tongue'
       throw new PlacementRefusal(
         `${label(index, placement.kind, null)}: the search found no room for ${what} ` +
           'on the cut face clear of the other connectors — place it by hand, or remove it'
@@ -246,7 +256,15 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements, soli
  */
 function keysAndHardware(parts) {
   const keys = parts.flatMap((part) => part.keys ?? [])
-  const hardware = parts.flatMap((part) => part.hardware ?? [])
+  /** @type {NonNullable<JointGeometry['hardware']>} */
+  const hardware = []
+  for (const item of parts.flatMap((part) => part.hardware ?? [])) {
+    // Magnets of one size are one line to buy, however many placements asked for them
+    // (`TODO/core-075` stage 3). Dowels keep the line per placement they always had.
+    const same = item.item === 'magnet' ? hardware.find((other) => other.item === 'magnet' && other.label === item.label) : undefined
+    if (same) same.count += item.count
+    else hardware.push({ ...item })
+  }
   return { ...(keys.length > 0 ? { keys } : {}), ...(hardware.length > 0 ? { hardware } : {}) }
 }
 
@@ -347,6 +365,21 @@ function buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, 
     const stock = placement.stock ?? 'printed'
     misfit = dowelMisfit({ ...common, diameterMm: sizeMm, stock, centre: at })
     build = () => dowelsAt({ field, clearanceMm, diameterMm: sizeMm, stock, centres: [at], source: 'placed' })
+  } else if (placement.kind === 'tenon') {
+    const size = defaultTenon(field, placement.sizeMm, placement.thicknessMm ?? null)
+    const tenon = { ...at, widthMm: size.widthMm, thicknessMm: size.thicknessMm, alongU }
+    socket = 'mortise'
+    misfit = tenonMisfit({ ...common, tenon })
+    build = () => tenonsAt({ field, clearanceMm, tenons: [tenon], source: 'placed' })
+  } else if (placement.kind === 'magnet') {
+    const minorMm = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
+    const size =
+      placement.sizeMm !== null && placement.thicknessMm != null
+        ? { diameterMm: placement.sizeMm, thicknessMm: placement.thicknessMm }
+        : defaultMagnet(minorMm)
+    socket = 'pocket'
+    misfit = magnetMisfit({ ...common, ...size, centre: at })
+    build = () => magnetsAt({ field, clearanceMm, ...size, centres: [at], source: 'placed' })
   } else if (placement.kind === 'wedge') {
     const wedge = { ...at, widthMm: sizeMm, alongU }
     misfit = wedgeMisfit({ ...common, wedge })

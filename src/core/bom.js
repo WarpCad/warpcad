@@ -27,7 +27,9 @@
  * A split with **Steel or filament dowels** needs things bought that are not bodies: the body
  * summary carries them as `hardware` (from the split group's part metadata, `hardwareOf`), and
  * each becomes a line — `Steel dowel pin Ø4 × 10 mm` or `1.75 mm filament Ø1.75 × 4.5 mm
- * lengths`. Printed dowels are not listed: they are printed parts, in the Print pieces zip.
+ * lengths`. Printed dowels are not listed: they are printed parts, in the Print pieces zip. A
+ * split with **Magnets** (stage 3) lists them the same way: `Magnets 6 × 3 mm`, counted two per
+ * pocket pair (one in each piece).
  *
  * @module core/bom
  */
@@ -147,6 +149,7 @@ function tallyOf(body) {
  * @returns {{ label: string, detail: string }}
  */
 function hardwareLine(item) {
+  if (item.item === 'magnet') return { label: 'Magnets', detail: `${item.diameterMm} × ${item.thicknessMm} mm` }
   if (item.stock === 'filament') return { label: '1.75 mm filament', detail: `Ø${item.diameterMm} × ${item.lengthMm} mm lengths` }
   return { label: 'Steel dowel pin', detail: `Ø${item.diameterMm} × ${item.lengthMm} mm` }
 }
@@ -164,7 +167,7 @@ export function tallyBom(bodies) {
   for (const body of bodies) {
     for (const item of body.hardware ?? []) {
       const { label, detail } = hardwareLine(item)
-      const key = `stock.${item.item}|${item.stock}|${detail}`
+      const key = item.item === 'magnet' ? `stock.magnet|${detail}` : `stock.${item.item}|${item.stock}|${detail}`
       const row = rows.get(key)
       if (row) row.count += item.count
       else rows.set(key, { key, op: 'modify.splitWithJoint', label, detail, count: item.count })

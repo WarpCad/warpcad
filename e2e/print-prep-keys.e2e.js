@@ -178,8 +178,8 @@ test('Dowels from the grouped Joint list: key rows before Apply, key parts after
   // The Joint list is grouped, by hand, with the stage-1 entries under their headings.
   const joint = page.getByTestId('split-joint')
   await expect(joint.locator('optgroup')).toHaveCount(3)
-  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels'])
-  await expect(joint.locator('optgroup[label="Hardware you buy"] option')).toHaveText(['Steel or filament dowels'])
+  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels', 'Tenons'])
+  await expect(joint.locator('optgroup[label="Hardware you buy"] option')).toHaveText(['Magnets', 'Steel or filament dowels'])
   await expect(joint.locator('optgroup[label="Printed into the pieces"] option')).toHaveText(['Pins and sockets', 'Tongue and groove'])
 
   await joint.selectOption('dowel')
@@ -292,7 +292,7 @@ test('Butterfly keys (stage 2): key rows before Apply, key parts after, and Prin
   await page.getByTestId('split-offset').fill('150')
 
   const joint = page.getByTestId('split-joint')
-  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels'])
+  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels', 'Tenons'])
   await joint.selectOption('butterfly')
   await expect(page.getByTestId('split-joint-use')).toContainText(/from outside/)
 
@@ -364,4 +364,81 @@ test('a hand-placed Butterfly snaps to the cut-face outline and lands as a key p
   expect(record.params.placements).toEqual([expect.objectContaining({ kind: 'butterfly', side: expect.stringMatching(/^[uv][+-]$/) })])
   await showInspector(page)
   await expect(page.getByTestId('inspector-parts')).toContainText('Plank key 1')
+})
+
+test('Tenons (stage 3): key rows before Apply, key parts after, and Print pieces writes one tenon file', async ({ page }) => {
+  await seedPlank(page)
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  await page.getByTestId('split-joint').selectOption('tenon')
+
+  const keyRow = page.getByTestId('split-key-fit')
+  await expect(keyRow).toHaveCount(1)
+  await expect(keyRow).toContainText(/Tenon × \d/)
+  await expect(keyRow).toHaveAttribute('data-fit', 'fits')
+  const count = Number(await keyRow.getAttribute('data-count'))
+  expect(count).toBeGreaterThanOrEqual(1)
+
+  await page.getByTestId('split-apply').click()
+  await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+  await showInspector(page)
+  const parts = page.getByTestId('inspector-parts')
+  for (let n = 1; n <= count; n += 1) await expect(parts).toContainText(`Plank key ${n}`)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params).toMatchObject({ joint: 'tenon', names: ['Plank A', 'Plank B'] })
+
+  await page.getByTestId('file-menu-button').click()
+  await page.getByTestId('file-export').click()
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-print-pieces').click()])
+  const entries = unzip(readFileSync(await download.path()))
+  expect(entries.map((entry) => entry.name)).toEqual(['plank-a.stl', 'plank-b.stl', `plank-tenon-x${count}.stl`, 'assembly.txt'])
+  expect(stlStats(entries[2].bytes).minZ, 'the tenon lies on the bed').toBeCloseTo(0, 2)
+  expect(entries[3].bytes.toString('utf8')).toContain(`plank-tenon-x${count}.stl: print ${count} ×`)
+})
+
+test('a hand-placed Magnet shows under You’ll also need and lands in the Bill of materials', async ({ page }) => {
+  await seedPlank(page)
+  await page.getByTestId('gizmo-view-right').click()
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  await page.getByTestId('split-manual-joints').check()
+  await expect(page.getByTestId('split-connector-kind')).toBeVisible()
+  await expect(page.getByTestId('connector-marker').first()).toBeVisible()
+  await expect(page.getByTestId('split-manual-hint')).toHaveAttribute('data-face-view', 'usable')
+  await zoomToFace(page)
+  await waitForStablePlane(page)
+
+  const markers = page.getByTestId('connector-marker')
+  while ((await markers.count()) > 0) {
+    const box = await markers.first().locator('.marker__hit').boundingBox()
+    if (!box) throw new Error('marker has no box')
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(markers.first()).toHaveAttribute('data-selected', 'true')
+    await page.getByTestId('connector-marker-remove').first().dispatchEvent('pointerdown', { button: 0 })
+  }
+  await expect(page.getByTestId('split-hardware')).toHaveCount(0)
+
+  await page.getByTestId('split-connector-kind-magnet').click()
+  await expect(page.getByTestId('split-connector-kind-magnet')).toHaveAttribute('aria-checked', 'true')
+  await page.getByTestId('split-magnet-size').selectOption({ index: 1 })
+
+  const tap = await faceToClient(page, -8, 6)
+  await page.mouse.click(tap.x, tap.y)
+  await expect(markers).toHaveCount(1)
+  await expect(markers.first()).toHaveAttribute('data-kind', 'magnet')
+  await expect(markers.first()).toHaveAttribute('data-state', 'ok')
+  await expect(page.getByTestId('split-hardware')).toHaveText(/You'll also need: 2 × magnets \d+ × \d+ mm/)
+  await expect(page.getByTestId('split-key-fit')).toHaveCount(0)
+
+  await page.getByTestId('split-apply').click()
+  await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params.placements).toEqual([expect.objectContaining({ kind: 'magnet' })])
+
+  await showInspector(page)
+  const row = page.getByTestId('bom-row').filter({ hasText: 'Magnets' })
+  await expect(row).toHaveCount(1)
+  await expect(row.getByTestId('bom-count')).toHaveText('× 2')
 })

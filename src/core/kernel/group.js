@@ -93,7 +93,7 @@ const { booleans, measurements, primitives, transforms } = modeling
  *   outward normal of the face it prints on (`bedNormal`, in the part's frame as built — a
  *   later rotation makes it stale, so `printPrep.js`'s `layFlat` checks it before trusting
  *   it), the two pieces it `joins`, and the `axis` they go together along.
- * - `role: 'piece'` — a piece that needs bought `hardware` (steel pins, filament).
+ * - `role: 'piece'` — a piece that needs bought `hardware` (steel pins, filament, magnets).
  *
  * @typedef {object} PartMeta
  * @property {'key' | 'piece'} role
@@ -101,6 +101,7 @@ const { booleans, measurements, primitives, transforms } = modeling
  * @property {string} [shape]
  * @property {string} [label]
  * @property {number} [sizeMm]
+ * @property {number} [thicknessMm] A tenon's thickness across its width (`TODO/core-075` stage 3).
  * @property {Vec3Mm} [bedNormal]
  * @property {Vec3Mm} [insert] The direction a key moves to seat (`TODO/core-075`: a butterfly key
  *   is pressed in from outside, square to the surface it sits on); absent for a key that goes
@@ -114,12 +115,13 @@ const { booleans, measurements, primitives, transforms } = modeling
  * Something to buy to assemble a split (`TODO/core-075`).
  *
  * @typedef {object} HardwareItem
- * @property {'dowel'} item
- * @property {'steel' | 'filament'} stock
+ * @property {'dowel' | 'magnet'} item A bought dowel, or a disc magnet (stage 3).
+ * @property {'steel' | 'filament'} [stock] A dowel's.
  * @property {number} diameterMm
- * @property {number} lengthMm
+ * @property {number} [lengthMm] A dowel's.
+ * @property {number} [thicknessMm] A magnet's.
  * @property {number} count
- * @property {string} label e.g. `steel dowel pin Ø4 × 10 mm`.
+ * @property {string} label e.g. `steel dowel pin Ø4 × 10 mm`, `magnets 6 × 3 mm`.
  * @property {[string, string]} joins
  * @property {'x' | 'y' | 'z'} axis
  */

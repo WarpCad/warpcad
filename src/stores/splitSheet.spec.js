@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
-import { useSplitSheetStore } from './splitSheet.js'
+import { CONNECTOR_KINDS, CONNECTOR_LABELS, JOINT_CHOICES, MAGNET_CHOICES, useSplitSheetStore } from './splitSheet.js'
 
 /**
  * The Split sheet's state and rules (`TODO/io-007`): what it opens with, the record Apply
@@ -310,5 +310,108 @@ describe('Split sheet — butterfly keys (TODO/core-075 stage 2)', () => {
     await sheet.settled()
     expect(sheet.markers).toEqual([expect.objectContaining({ kind: 'butterfly', uMm: -30, vMm: 10, side: 'v+' })])
     await vi.waitFor(() => expect(sheet.keyRows.map((row) => row.name)).toEqual(['Butterfly key']), { timeout: 10000 })
+  })
+})
+
+describe('Split sheet — tenons and magnets (TODO/core-075 stage 3)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  /** The docs' plank: 300 × 120 × 10 mm, split across X at 150. */
+  function plankSheet() {
+    setActivePinia(createPinia())
+    const documentStore = useDocumentStore()
+    const selection = useSelectionStore()
+    documentStore.append(
+      { id: 'plank', op: 'primitive.cuboid', name: 'Plank', params: { size: [300, 120, 10], center: [150, 0, 5] } },
+      { origin: 'local' }
+    )
+    selection.select('plank')
+    const sheet = useSplitSheetStore()
+    sheet.open()
+    return { documentStore, sheet }
+  }
+
+  it('the grouped Joint list has Tenons under keys to print and Magnets under hardware to buy; the kind row has both', () => {
+    const groups = Object.fromEntries(JOINT_CHOICES.map((group) => [group.heading, group.choices.map((choice) => choice.label)]))
+    expect(groups['Separate keys to print']).toEqual(['Butterfly keys', 'Dowels', 'Tenons'])
+    expect(groups['Hardware you buy']).toEqual(['Magnets', 'Steel or filament dowels'])
+    expect(CONNECTOR_KINDS).toEqual(['pins', 'wedge', 'screwBoss', 'dowel', 'butterfly', 'tenon', 'magnet'])
+    expect([CONNECTOR_LABELS.tenon, CONNECTOR_LABELS.magnet]).toEqual(['Tenon', 'Magnet'])
+    expect(MAGNET_CHOICES.map((choice) => choice.label)).toEqual([
+      'Auto',
+      '6 × 2 mm',
+      '6 × 3 mm',
+      '8 × 3 mm',
+      '10 × 2 mm',
+      '10 × 3 mm',
+      '12 × 3 mm',
+      'Custom',
+    ])
+  })
+
+  it('Tenons: its use line, the tenon rows before Apply, and Apply writes width and thickness as jointOptions', async () => {
+    const { sheet, documentStore } = plankSheet()
+    sheet.jointChoice = 'tenon'
+    expect(sheet.joint).toBe('tenon')
+    expect(sheet.jointUse).toMatch(/one stops sliding and twisting/)
+    await vi.waitFor(() => expect(sheet.keyRows).toHaveLength(1), { timeout: 10000 })
+    expect(sheet.keyRows[0]).toMatchObject({ name: 'Tenon', count: 2, sizeMm: [41.6, 14, 3.5], verdict: 'fits' })
+    expect(sheet.hardwareRows).toEqual([])
+    sheet.tenonWidthMm = 20
+    sheet.tenonThicknessMm = 4
+    await vi.waitFor(() => expect(sheet.keyRows[0]?.sizeMm).toEqual([59.6, 20, 4]), { timeout: 10000 })
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params).toMatchObject({ joint: 'tenon', jointOptions: { sizeMm: 20, thicknessMm: 4 } })
+    const body = documentStore.bodies.find((candidate) => candidate.id === 'plank')
+    expect(body?.partNames).toEqual(['Plank A', 'Plank B', 'Plank key 1', 'Plank key 2'])
+  })
+
+  it('Magnets: You’ll also need lists two per pocket pair; a common or custom size is written as jointOptions', async () => {
+    const { sheet, documentStore } = plankSheet()
+    sheet.jointChoice = 'magnets'
+    expect(sheet.jointUse).toMatch(/pull apart and snap back/)
+    await vi.waitFor(() => expect(sheet.hardwareRows).toEqual(['4 × magnets 6 × 3 mm']), { timeout: 10000 })
+    expect(sheet.keyRows).toEqual([])
+    sheet.magnetSize = '6x2'
+    await vi.waitFor(() => expect(sheet.hardwareRows).toEqual(['4 × magnets 6 × 2 mm']), { timeout: 10000 })
+    sheet.magnetSize = 'custom'
+    sheet.magnetDiameterMm = 5
+    sheet.magnetThicknessMm = 2
+    await vi.waitFor(() => expect(sheet.hardwareRows).toEqual(['4 × magnets 5 × 2 mm']), { timeout: 10000 })
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params).toMatchObject({ joint: 'magnets', jointOptions: { sizeMm: 5, thicknessMm: 2 } })
+    const body = documentStore.bodies.find((candidate) => candidate.id === 'plank')
+    expect(body?.hardware).toEqual([expect.objectContaining({ item: 'magnet', count: 4, label: 'magnets 5 × 2 mm' })])
+  })
+
+  it('a magnet that does not fit the section says so before Apply, by the kernel’s reason', async () => {
+    const { sheet } = plankSheet()
+    sheet.jointChoice = 'magnets'
+    sheet.magnetSize = '10x3'
+    await vi.waitFor(() => expect(sheet.problem).toMatch(/finds no room for a magnet/), { timeout: 10000 })
+    expect(sheet.canApply).toBe(false)
+  })
+
+  it('placing by hand: a tapped Magnet takes the sheet’s size and updates You’ll also need; a tapped Tenon is a key row', async () => {
+    const { sheet, documentStore } = plankSheet()
+    sheet.jointChoice = 'magnets'
+    sheet.magnetSize = '6x2'
+    await sheet.setManual(true)
+    expect(sheet.connectorKind).toBe('magnet')
+    sheet.markers = []
+    expect(await sheet.addMarker(40, 5)).toBe(true)
+    await sheet.settled()
+    await vi.waitFor(() => expect(sheet.hardwareRows).toEqual(['2 × magnets 6 × 2 mm']), { timeout: 10000 })
+    // With the new magnet still selected, choosing a kind would turn it into a tenon.
+    sheet.selectMarker(null)
+    await sheet.chooseKind('tenon')
+    expect(await sheet.addMarker(-30, 5)).toBe(true)
+    await sheet.settled()
+    await vi.waitFor(() => expect(sheet.keyRows.map((row) => `${row.name} × ${row.count}`)).toEqual(['Tenon × 1']), { timeout: 10000 })
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params?.placements).toEqual([
+      { kind: 'magnet', uMm: 40, vMm: 5, sizeMm: 6, thicknessMm: 2 },
+      { kind: 'tenon', uMm: -30, vMm: 5 },
+    ])
   })
 })

@@ -158,3 +158,34 @@ describe('butterfly keys from a split (TODO/core-075 stage 2)', () => {
     expect(rows.filter((row) => row.key.startsWith('stock.'))).toEqual([])
   })
 })
+
+describe('magnets from a split (TODO/core-075 stage 3)', () => {
+  /** @param {Record<string, any>} [jointOptions] */
+  const splitPlank = (jointOptions) =>
+    splitWithJoint(modeling.primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'magnets',
+      ...(jointOptions ? { jointOptions } : {}),
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+    })
+
+  it('counts a split’s magnets — two per pocket pair — as one line per size, across bodies', () => {
+    const hardware = hardwareOf(splitPlank())
+    expect(hardware).toEqual([expect.objectContaining({ item: 'magnet', diameterMm: 6, thicknessMm: 3, count: 4 })])
+    const body = { op: 'primitive.cuboid', params: { size: [300, 120, 10] }, hardware }
+    expect(tallyBom([body, body])).toEqual([
+      { key: 'stock.magnet|6 × 3 mm', op: 'modify.splitWithJoint', label: 'Magnets', detail: '6 × 3 mm', count: 8 },
+    ])
+  })
+
+  it('a different size is its own line', () => {
+    const small = { op: 'primitive.cuboid', params: {}, hardware: hardwareOf(splitPlank({ sizeMm: 6, thicknessMm: 2 })) }
+    const usual = { op: 'primitive.cuboid', params: {}, hardware: hardwareOf(splitPlank()) }
+    expect(tallyBom([small, usual]).map((row) => `${row.count} × ${row.label} ${row.detail}`)).toEqual([
+      '4 × Magnets 6 × 2 mm',
+      '4 × Magnets 6 × 3 mm',
+    ])
+  })
+})

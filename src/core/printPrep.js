@@ -37,6 +37,10 @@
  * `assembly.txt`: the pieces, how many of each key to print and which way down, what to buy,
  * and which pieces go together along which axis — and, for a butterfly key, that the pieces go
  * together first and the keys are pressed in from outside, from the side they sit on.
+ * A loose tenon (stage 3) is a key like a dowel: `plank-tenon-x2.stl`, laid on its big flat face
+ * by its `bedNormal`. **Magnets** print nothing; `assembly.txt` lists them to buy and gives the
+ * polarity rule — stack them, mark the stack's outward face, glue every magnet in piece A
+ * mark-out and every magnet in piece B mark-in.
  *
  * ## Refusals
  *
@@ -301,7 +305,14 @@ export function exportPrintPieces(bodies) {
       }
     }
     for (const item of note.hardware) {
-      note.joins.push({ joins: item.joins, axis: item.axis, keys: [], label: item.label, count: item.count })
+      note.joins.push({
+        joins: item.joins,
+        axis: item.axis,
+        keys: [],
+        label: item.label,
+        count: item.count,
+        ...(item.item === 'magnet' ? { magnets: true } : {}),
+      })
     }
     for (const { piece, count } of toWrite) {
       if (!piece.solid.polygons.some((polygon) => polygon.vertices.length >= 3)) {
@@ -366,8 +377,9 @@ export function exportPrintPieces(bodies) {
  * @property {{ filename: string, name: string }[]} pieces
  * @property {{ filename: string, count: number, label: string }[]} keys
  * @property {import('./kernel/group.js').HardwareItem[]} hardware
- * @property {{ joins: [string, string], axis: string, keys: string[], label: string, count?: number, insert?: Vec3Mm }[]} joins
+ * @property {{ joins: [string, string], axis: string, keys: string[], label: string, count?: number, insert?: Vec3Mm, magnets?: boolean }[]} joins
  *   `insert`: the direction a key is pressed in, for a key that goes in from outside (a butterfly).
+ *   `magnets`: bought magnets, half in each piece, which need the polarity rule.
  */
 
 /**
@@ -423,6 +435,17 @@ export function assemblyText(notes) {
       note.joins.forEach((join, index) => {
         const [a, b] = join.joins
         const along = join.axis.toUpperCase()
+        if (join.magnets) {
+          const each = Math.floor((join.count ?? 0) / 2)
+          lines.push(
+            `    ${index + 1}. ${a} and ${b}, along ${along}: ${join.count ?? ''} ${join.label}, ${each} for the pockets in each piece. ` +
+              'Stack them so they hold together and mark the top face of the stack: every marked face is then the same pole.',
+            `       Glue every magnet in ${a} mark-out (the mark facing the cut face) and every magnet in ${b} mark-in ` +
+              `(the mark down in its pocket), so facing magnets attract. Let the glue set, then push ${b} against ${a} along ${along} until the cut faces meet.`,
+            `       Magnets come apart on purpose: pull the pieces straight apart along ${along}.`
+          )
+          return
+        }
         if (join.insert) {
           lines.push(
             `    ${index + 1}. ${a} and ${b}, along ${along}: push ${b} against ${a} along ${along} until the cut faces meet, ` +

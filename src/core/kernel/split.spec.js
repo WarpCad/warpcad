@@ -88,7 +88,7 @@ describe('modify.splitWithJoint — the registry entry', () => {
   })
 
   it('offers the joint types a record may name (TODO/core-075 stage 1 adds the loose dowel)', () => {
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'none'])
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'none'])
     expect(DEFAULT_JOINT_CLEARANCE_MM).toBeCloseTo(0.2, 9)
   })
 })
@@ -175,8 +175,8 @@ describe('splitWithJoint — refusals and warnings', () => {
 
   it('an unknown axis or joint type is refused by name', () => {
     expect(() => splitWithJoint(bar(), { axis: 'w', offsetMm: 150 })).toThrow(/axis must be one of x, y, z/)
-    expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'dovetail' })).toThrow(
-      /joint must be one of pins, tongue, dowel, butterfly, none, got "dovetail"/
+    expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'glue-gun' })).toThrow(
+      /joint must be one of pins, tongue, dowel, butterfly, tenon, magnets, none, got "glue-gun"/
     )
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, clearanceMm: -0.1 })).toThrow(/clearanceMm/)
   })
@@ -267,9 +267,9 @@ describe('splitWithJoint — hand-placed connectors (TODO/core-059)', () => {
   const pieceVolumes = (result) => result.names.map((/** @type {string} */ name) => volumeOf(result.parts[name]))
 
   it('lists the connector kinds a placement may ask for (TODO/core-075 adds the dowel)', () => {
-    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly'])
+    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly', 'tenon', 'magnet'])
     // Placements are a separate input from the joint list.
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'none'])
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'none'])
   })
 
   it('a pin placed by hand is sized by the same rule as a searched one: Ø5 stands 10 mm proud', () => {
@@ -457,7 +457,7 @@ describe('splitWithJoint — hand-placed connectors that do not fit are refused 
   })
 
   it('malformed placements are refused by name', () => {
-    expect(() => split([{ kind: 'rivet', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss, dowel, butterfly, got "rivet"/)
+    expect(() => split([{ kind: 'rivet', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss, dowel, butterfly, tenon, magnet, got "rivet"/)
     expect(() => split([{ kind: 'pins', uMm: 0 }])).toThrow(/placement 1.*uMm and vMm/)
     expect(() => split([{ kind: 'wedge' }])).toThrow(/placement 1 \(wedge\).*needs uMm and vMm/)
     expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 9 }])).toThrow(/placement 1.*sizeMm.*2 to 8/)
@@ -577,7 +577,9 @@ describe('splitWithJoint — key parts across repeated splits (TODO/core-075 sta
     expect(() => splitWithJoint(plank(), { ...base, joint: 'pins', jointOptions: { stock: 'steel' } })).toThrow(
       /jointOptions is only for joint dowel/
     )
-    expect(() => splitWithJoint(plank(), { ...base, joint: 'tenon' })).toThrow(/joint must be one of pins, tongue, dowel, butterfly, none, got "tenon"/)
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'glue-gun' })).toThrow(
+      /joint must be one of pins, tongue, dowel, butterfly, tenon, magnets, none, got "glue-gun"/
+    )
   })
 })
 
@@ -593,6 +595,22 @@ describe('splitWithJoint — today’s records fold byte-identically (TODO/core-
       const group = splitWithJoint(bar300(), params)
       expect(Object.keys(group)).toEqual(keys)
       expect([...group.names]).toEqual(names)
+      for (const name of names) {
+        const { bytes } = exportBodies([{ id: name, name, geometry: group.parts[name] }], 'stl')
+        expect(await sha256(bytes), name).toBe(want[name])
+      }
+    })
+  }
+
+  // Stage 3 (tenon, magnets) must leave the stage-1 and stage-2 joints exactly as they were:
+  // these were recorded from the code before stage 3, keys and metadata included.
+  for (const label of ['dowel', 'dowel-steel', 'butterfly']) {
+    it(`a ${label} split: the same parts, metadata and STL bytes as before stage 3`, async () => {
+      const { params, keys, names, sha256: want, meta } = /** @type {any} */ (golden)[label]
+      const group = splitWithJoint(bar300(), params)
+      expect(Object.keys(group)).toEqual(keys)
+      expect([...group.names]).toEqual(names)
+      expect(JSON.parse(JSON.stringify(group.meta ?? null))).toEqual(meta)
       for (const name of names) {
         const { bytes } = exportBodies([{ id: name, name, geometry: group.parts[name] }], 'stl')
         expect(await sha256(bytes), name).toBe(want[name])
@@ -697,5 +715,112 @@ describe('splitWithJoint — butterfly keys across repeated splits and the face 
     const geometry = /** @type {any} */ (loaded.bodies()[0].geometry)
     expect(keysOf(geometry)).toEqual(['Plank key 1', 'Plank key 2'])
     expect(partMetaOf(geometry, 'Plank key 1')).toMatchObject({ role: 'key', kind: 'butterfly', bedNormal: [0, 0, -1] })
+  })
+})
+
+describe('splitWithJoint — tenons and magnets in placement lists and the face preview (TODO/core-075 stage 3)', () => {
+  /** A 300 × 120 × 10 mm plank. */
+  const plank = () => primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] })
+  /** @param {any} group */
+  const keysOf = (group) => group.names.filter((/** @type {string} */ name) => partMetaOf(group, name)?.role === 'key')
+
+  it('the face preview seeds tenons and magnets with their sizes, and resolves a hand placement’s defaults', () => {
+    const tenons = previewSplitFace(plank(), { axis: 'x', offsetMm: 150, seed: 'tenon' })
+    expect(tenons.autoError).toBe('')
+    expect(tenons.auto).toHaveLength(2)
+    for (const entry of tenons.auto) expect(entry).toMatchObject({ kind: 'tenon', vMm: 5, sizeMm: 14, thicknessMm: 3.5 })
+    const magnets = previewSplitFace(plank(), { axis: 'x', offsetMm: 150, seed: 'magnets', seedOptions: { sizeMm: 6, thicknessMm: 2 } })
+    expect(magnets.auto).toEqual([
+      expect.objectContaining({ kind: 'magnet', sizeMm: 6, thicknessMm: 2, vMm: 5 }),
+      expect.objectContaining({ kind: 'magnet', sizeMm: 6, thicknessMm: 2, vMm: 5 }),
+    ])
+    const tooBig = previewSplitFace(plank(), { axis: 'x', offsetMm: 150, seed: 'magnets', seedOptions: { sizeMm: 10, thicknessMm: 3 } })
+    expect(tooBig.autoError).toMatch(/finds no room for a magnet/)
+    const placed = previewSplitFace(plank(), {
+      axis: 'x',
+      offsetMm: 150,
+      placements: [
+        { kind: 'tenon', uMm: 0, vMm: 5 },
+        { kind: 'magnet', uMm: 40, vMm: 5 },
+      ],
+    })
+    expect(placed.verdicts).toEqual([
+      { ok: true, reason: '' },
+      { ok: true, reason: '' },
+    ])
+    expect(placed.resolved).toEqual([
+      expect.objectContaining({ kind: 'tenon', sizeMm: 14, thicknessMm: 3.5 }),
+      expect.objectContaining({ kind: 'magnet', sizeMm: 6, thicknessMm: 3 }),
+    ])
+  })
+
+  it('a tenon search keeps clear of a hand-placed magnet, and the magnets are bought on piece A', () => {
+    const result = splitWithJoint(plank(), {
+      axis: 'x',
+      offsetMm: 150,
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+      placements: [{ kind: 'magnet', uMm: 0, vMm: 5, sizeMm: 6, thicknessMm: 3 }, { kind: 'tenon' }],
+    })
+    const keys = keysOf(result)
+    expect(keys.length).toBeGreaterThanOrEqual(1)
+    for (const name of keys) {
+      expect(partMetaOf(result, name)?.kind).toBe('tenon')
+      const [min, max] = boundsOf(result.parts[name])
+      // The magnet's pocket and wall reach 4.4 mm either side of y = 0; no tenon comes near it.
+      expect(min[1] > 4.4 || max[1] < -4.4, name).toBe(true)
+    }
+    expect(partMetaOf(result, 'Plank A')?.hardware).toEqual([expect.objectContaining({ item: 'magnet', count: 2 })])
+  })
+
+  it('the metadata is derived from the record at fold time: tenons and magnets survive the project file round trip', () => {
+    const local = { origin: 'local' }
+    const document = createDocument({ resolution: 'normal' })
+    document.append({ id: 'plank', op: 'primitive.cuboid', name: 'Plank', params: { size: [300, 120, 10], center: [0, 0, 5] } }, local)
+    document.append(
+      {
+        id: 'split-1',
+        op: 'modify.splitWithJoint',
+        target: 'plank',
+        supersedes: 'plank',
+        params: { axis: 'x', offsetMm: 100, joint: 'tenon', clearanceMm: 0.2, names: ['Plank A', 'Plank B'] },
+      },
+      local
+    )
+    document.append(
+      {
+        id: 'split-2',
+        op: 'modify.splitWithJoint',
+        target: 'split-1',
+        supersedes: 'split-1',
+        params: { axis: 'x', offsetMm: 200, joint: 'magnets', clearanceMm: 0.2, names: ['Plank B', 'Plank C'] },
+      },
+      local
+    )
+    const text = serializeProject(document)
+    expect(text).not.toContain('bedNormal')
+    expect(text).not.toContain('hardware')
+    const loaded = createDocument({ resolution: 'normal' })
+    const parsed = parseProject(text)
+    loaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    const geometry = /** @type {any} */ (loaded.bodies()[0].geometry)
+    expect(keysOf(geometry)).toEqual(['Plank key 1', 'Plank key 2'])
+    expect(partMetaOf(geometry, 'Plank key 1')).toMatchObject({ role: 'key', kind: 'tenon', thicknessMm: 3.5, bedNormal: [0, 0, -1] })
+    expect(partMetaOf(geometry, 'Plank B')?.hardware).toEqual([
+      expect.objectContaining({ item: 'magnet', count: 4, joins: ['Plank B', 'Plank C'], axis: 'x' }),
+    ])
+  })
+
+  it('tenon and magnet placement fields are checked by name', () => {
+    const base = { axis: 'x', offsetMm: 150, clearanceMm: 0.2 }
+    expect(() => splitWithJoint(plank(), { ...base, placements: [{ kind: 'magnet', sizeMm: 6, thicknessMm: 3 }] })).toThrow(
+      /placement 1 \(magnet\): the search picks its own size/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, placements: [{ kind: 'tenon', uMm: 0, vMm: 5, stock: 'steel' }] })).toThrow(
+      /placement 1 \(tenon\): stock is only for a dowel/
+    )
+    expect(() =>
+      splitWithJoint(plank(), { ...base, placements: [{ kind: 'tenon', uMm: 0, vMm: 5, sizeMm: 10, thicknessMm: 6 }] })
+    ).toThrow(/placement 1 \(tenon\): a tenon's width must be at least twice its thickness/)
   })
 })

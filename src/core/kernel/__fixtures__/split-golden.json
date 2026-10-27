@@ -89,5 +89,182 @@
       "Bar A": "20def2228f8d311172e5b641eca56ee98305a4ea2175a8c4aad03ca42adc1cd2",
       "Bar B": "8de7d16e843683dd8556d00e00bed9f8485708fe71d05bc82d257d134e3182b1"
     }
+  },
+  "dowel": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "dowel",
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors",
+      "meta"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B",
+      "Bar key 1",
+      "Bar key 2"
+    ],
+    "sha256": {
+      "Bar A": "facadda83b212dcd9e899c994d70eff53208c628dc45bf9f0f6244ddbdc892a5",
+      "Bar B": "99efb9c0c93830686cf226335e87ed5389ba30ba0cf419e99781e2e2bddc5bee",
+      "Bar key 1": "9d3c36d6e0d842a3146df67ca5570001bc0c9dc6618cee6ebefc3792d0754cec",
+      "Bar key 2": "63857540d0aa88048bb2535625c1b5b0eb629c82a8b508df79fc8a8aeca8ff62"
+    },
+    "meta": {
+      "Bar key 1": {
+        "role": "key",
+        "kind": "dowel",
+        "shape": "dowel-7x20.6",
+        "label": "Dowel Ø7 × 20.6 mm",
+        "sizeMm": 7,
+        "bedNormal": [
+          0,
+          0,
+          -1
+        ],
+        "joins": [
+          "Bar A",
+          "Bar B"
+        ],
+        "axis": "x"
+      },
+      "Bar key 2": {
+        "role": "key",
+        "kind": "dowel",
+        "shape": "dowel-7x20.6",
+        "label": "Dowel Ø7 × 20.6 mm",
+        "sizeMm": 7,
+        "bedNormal": [
+          0,
+          0,
+          -1
+        ],
+        "joins": [
+          "Bar A",
+          "Bar B"
+        ],
+        "axis": "x"
+      }
+    }
+  },
+  "dowel-steel": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "dowel",
+      "jointOptions": {
+        "stock": "steel"
+      },
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors",
+      "meta"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B"
+    ],
+    "sha256": {
+      "Bar A": "0494c36b4c42d7a31cd5decd4f90e9f5246403ac8ae44aaf9a9def34f476b896",
+      "Bar B": "43e01e1b3bfd7c6db1a93a5266530f5bed6cd19f64618a82ad2478ad62d18755"
+    },
+    "meta": {
+      "Bar A": {
+        "role": "piece",
+        "hardware": [
+          {
+            "item": "dowel",
+            "stock": "steel",
+            "diameterMm": 6,
+            "lengthMm": 16,
+            "count": 2,
+            "label": "steel dowel pin Ø6 × 16 mm",
+            "joins": [
+              "Bar A",
+              "Bar B"
+            ],
+            "axis": "x"
+          }
+        ]
+      }
+    }
+  },
+  "butterfly": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "butterfly",
+      "jointOptions": {
+        "side": "v+",
+        "depthMm": 5
+      },
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors",
+      "meta"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B",
+      "Bar key 1"
+    ],
+    "sha256": {
+      "Bar A": "4b8fbd2838bf6d296a1453b65cb7c9009e5e190bbab7530e8173ab139d5e29a7",
+      "Bar B": "c10b2c850284ca0f3d49a0d4efd6e6db8b155cb73db2c267c0cb66646c876576",
+      "Bar key 1": "765588609dc54add45b1230ec1f73f4cd93bd9583768d1672559fd62132cc1c1"
+    },
+    "meta": {
+      "Bar key 1": {
+        "role": "key",
+        "kind": "butterfly",
+        "shape": "butterfly-6.45x5-1dd4e164",
+        "label": "Butterfly key 25.8 × 12.9 × 5 mm",
+        "sizeMm": 6.450000000000001,
+        "bedNormal": [
+          0,
+          0,
+          -1
+        ],
+        "insert": [
+          0,
+          0,
+          -1
+        ],
+        "joins": [
+          "Bar A",
+          "Bar B"
+        ],
+        "axis": "x"
+      }
+    }
   }
 }

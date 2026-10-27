@@ -391,8 +391,10 @@ describe('modify.splitWithJoint — the AI can ask for every stage-1 joint (TODO
   })
 
   it('refuses an unknown joint or placement kind by name', () => {
-    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'tenon' }).join(' ')).toMatch(/joint.*pins.*tongue.*dowel.*butterfly.*none/)
-    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'magnet' }] }).join(' ')).toMatch(
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'glue-gun' }).join(' ')).toMatch(
+      /joint.*pins.*tongue.*dowel.*butterfly.*tenon.*magnets.*none/
+    )
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'rivet' }] }).join(' ')).toMatch(
       /placements\[0\]\.kind.*pins.*tongue.*wedge.*screwBoss.*dowel/
     )
     expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, jointOptions: { stock: 'gold' } }).join(' ')).toMatch(/stock.*printed.*steel.*filament/)
@@ -451,7 +453,7 @@ describe('modify.splitWithJoint — the AI can ask for butterfly keys (TODO/core
   })
 
   it('refuses an unknown placement kind or side by name, listing butterfly', () => {
-    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'magnet' }] }).join(' ')).toMatch(
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'rivet' }] }).join(' ')).toMatch(
       /placements\[0\]\.kind.*pins.*tongue.*wedge.*screwBoss.*dowel.*butterfly/
     )
     expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'butterfly', jointOptions: { side: 'top' } }).join(' ')).toMatch(
@@ -477,5 +479,58 @@ describe('modify.splitWithJoint — the AI can ask for butterfly keys (TODO/core
       'modify.splitWithJoint'
     )
     expect(record.params).toMatchObject({ joint: 'butterfly', jointOptions: { side: 'v+', depthMm: 5 } })
+  })
+})
+
+describe('modify.splitWithJoint — the AI can ask for tenons and magnets (TODO/core-075 stage 3)', () => {
+  const spec = OPERATIONS['modify.splitWithJoint']
+
+  it('accepts joint tenon and joint magnets with their jointOptions, and tenon and magnet placements', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'tenon' })).toEqual([])
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'tenon', jointOptions: { sizeMm: 20, thicknessMm: 5 } })).toEqual([])
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'magnets' })).toEqual([])
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'magnets', jointOptions: { sizeMm: 6, thicknessMm: 3 } })).toEqual([])
+    expect(
+      checkInput(spec.params, {
+        axis: 'x',
+        offsetMm: 150,
+        placements: [
+          { kind: 'tenon', uMm: 0, vMm: 5, sizeMm: 14, thicknessMm: 3.5 },
+          { kind: 'magnet', uMm: 40, vMm: 5, sizeMm: 6, thicknessMm: 3 },
+          { kind: 'tenon' },
+          { kind: 'magnet' },
+        ],
+      })
+    ).toEqual([])
+  })
+
+  it('refuses an unknown joint or placement kind by name, listing tenon and magnets', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'glue-gun' }).join(' ')).toMatch(/joint.*tenon.*magnets.*none/)
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'rivet' }] }).join(' ')).toMatch(
+      /placements\[0\]\.kind.*butterfly.*tenon.*magnet/
+    )
+  })
+
+  it('says in its description what tenons and magnets are for, and the magnet sizes', () => {
+    const words = JSON.stringify(spec.params) + spec.description
+    expect(words).toMatch(/tenon/)
+    expect(words).toMatch(/twist/)
+    expect(words).toMatch(/magnets/)
+    expect(words).toMatch(/apart on purpose/)
+    expect(words).toMatch(/6×3/)
+    expect(words).toMatch(/thicknessMm/)
+  })
+
+  it('builds a record that carries tenon or magnet jointOptions as given, and the kernel takes it', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const id = place(document, 'primitive.cuboid', { x: 0, y: 0 }, { size: [300, 120, 10] })
+    const operand = { id, ref: id, terminal: id }
+    const record = spec.build(
+      document,
+      /** @type {any} */ ([operand]),
+      { axis: 'x', offsetMm: 150, joint: 'magnets', jointOptions: { sizeMm: 6, thicknessMm: 3 } },
+      'modify.splitWithJoint'
+    )
+    expect(record.params).toMatchObject({ joint: 'magnets', jointOptions: { sizeMm: 6, thicknessMm: 3 } })
   })
 })

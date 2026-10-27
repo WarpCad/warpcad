@@ -11,8 +11,13 @@ status: open
 
 > **Progress (2026-10-27).** Stage 1 (loose and stock dowels, key-part plumbing) shipped in `220b02d`.
 > Stage 2 (butterfly keys, axis-aligned in v1, one STL per distinct key with the count in its name)
-> shipped in the commit that follows it. Stages 3 (tenon, magnets) and 4 (seam profiles) remain, so
-> this file stays open. Docs: `docs/print-prep.md` "Try it: butterfly keys across the wing".
+> shipped in `85d80fe`. Stage 3 (loose tenons and disc magnets) shipped in the commit that follows it:
+> a tenon is a flat stadium key with its bed-side round ends chamfered 45° so it prints without
+> supports (the mortise stays the full stadium), width at least twice its thickness; a magnet pocket is
+> the magnet plus clearance in both faces, no key part, two magnets bought per pocket pair, with a
+> polarity rule in `assembly.txt`. Stage 4 (seam profiles: sliding dovetail, puzzle tabs, half lap,
+> finger joint, and the real-bounds fit check) remains, so this file stays open. Docs:
+> `docs/print-prep.md` "Try it: a tenon and magnets across the wing".
 
 ## Goal
 

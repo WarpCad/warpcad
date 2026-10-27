@@ -37,6 +37,13 @@
  * tap in Place connectors snaps to the nearest edge of the cut face's outline (the kernel's
  * `FacePreview.outline`), and the marker carries that edge's side.
  *
+ * **Tenons** (stage 3) sit under *Separate keys to print* with **Tenon width** and **Tenon
+ * thickness** (each Auto or mm); **Magnets** under *Hardware you buy* with **Magnet size** — Auto,
+ * the common disc sizes, or Custom with its own diameter and thickness ({@link MAGNET_CHOICES}).
+ * The magnet size also applies to every Magnet marker in Place connectors, as the dowel stock
+ * does to dowel markers. Tenons are key rows in the pieces list; magnets are a **You'll also
+ * need** line, two per pocket pair.
+ *
  * Offsets are millimetres **from the body's minimum face** along the axis — Bisect's rule, so
  * the two sheets read the same.
  *
@@ -56,6 +63,8 @@ import {
   snapToOutline,
 } from '../core/kernel/recipes/joint.butterfly.js'
 import { describeDowel } from '../core/kernel/recipes/joint.dowel.js'
+import { MAGNET_SIZES, describeMagnet } from '../core/kernel/recipes/joint.magnet.js'
+import { describeTenon } from '../core/kernel/recipes/joint.tenon.js'
 import { defaultSize } from '../core/kernel/recipes/joint.placements.js'
 import { packGeometry } from '../core/kernel/transport.js'
 import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_JOINT_CLEARANCE_MM, splitWarnings } from '../core/kernel/split.js'
@@ -74,6 +83,8 @@ export const JOINT_LABELS = Object.freeze({
   tongue: 'Tongue and groove',
   dowel: 'Dowels',
   butterfly: 'Butterfly keys',
+  tenon: 'Tenons',
+  magnets: 'Magnets',
   none: 'No joint',
 })
 
@@ -81,7 +92,7 @@ export const JOINT_LABELS = Object.freeze({
  * One entry of the Joint list: the `<option>` value, its visible text, and the one line under
  * the list saying what it is for.
  *
- * @typedef {{ value: 'pins' | 'tongue' | 'butterfly' | 'dowel' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
+ * @typedef {{ value: 'pins' | 'tongue' | 'butterfly' | 'dowel' | 'tenon' | 'magnets' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
  */
 
 /**
@@ -103,11 +114,13 @@ export const JOINT_CHOICES = /** @type {readonly { heading: string, choices: rea
     choices: Object.freeze([
       { value: 'butterfly', label: 'Butterfly keys', use: 'Locks the pieces together from outside; print the keys flat' },
       { value: 'dowel', label: 'Dowels', use: 'A socket in each piece and a dowel printed lying down, stronger than a pin; glue or press-fit' },
+      { value: 'tenon', label: 'Tenons', use: 'A flat key in a slot in each piece; one stops sliding and twisting. Print it flat' },
     ]),
   }),
   Object.freeze({
     heading: 'Hardware you buy',
     choices: Object.freeze([
+      { value: 'magnets', label: 'Magnets', use: 'Disc-magnet pockets in both faces, so the pieces pull apart and snap back; buy the magnets' },
       { value: 'dowel-stock', label: 'Steel or filament dowels', use: 'Sockets sized for bought steel pins or 1.75 mm filament; nothing extra to print' },
     ]),
   }),
@@ -116,15 +129,30 @@ export const JOINT_CHOICES = /** @type {readonly { heading: string, choices: rea
 /** No joint: a plain cut, listed after the groups. */
 export const NO_JOINT_CHOICE = Object.freeze(/** @type {JointChoice} */ ({ value: 'none', label: 'No joint', use: 'A plain cut; glue the faces or join them some other way' }))
 
+/**
+ * The Magnet size list (`TODO/core-075` stage 3): Auto (the largest common size that fits), the
+ * common disc sizes, then Custom.
+ *
+ * @type {readonly { value: string, label: string }[]}
+ */
+export const MAGNET_CHOICES = Object.freeze([
+  { value: 'auto', label: 'Auto' },
+  ...MAGNET_SIZES.map((size) => ({ value: `${size.diameterMm}x${size.thicknessMm}`, label: `${size.diameterMm} × ${size.thicknessMm} mm` })),
+  { value: 'custom', label: 'Custom' },
+])
+
 /** What a bought dowel can be, in the sheet's words. */
 export const STOCK_LABELS = Object.freeze({ printed: 'Printed', steel: 'Steel pin', filament: '1.75 mm filament' })
 
 /**
  * What the Place connectors kind picker offers (`TODO/ui-067`), as the kernel's placement
  * kinds. A tongue is not offered — the search can seed one, and it stays on the face as a
- * marker, but a hand placement is a post, a wedge, a screw boss, a dowel or a butterfly key.
+ * marker, but a hand placement is a post, a wedge, a screw boss, a dowel, a butterfly key, a
+ * tenon or a magnet.
  */
-export const CONNECTOR_KINDS = Object.freeze(/** @type {const} */ (['pins', 'wedge', 'screwBoss', 'dowel', 'butterfly']))
+export const CONNECTOR_KINDS = Object.freeze(
+  /** @type {const} */ (['pins', 'wedge', 'screwBoss', 'dowel', 'butterfly', 'tenon', 'magnet'])
+)
 
 /** What each connector kind is called in the sheet. */
 export const CONNECTOR_LABELS = Object.freeze({
@@ -134,6 +162,8 @@ export const CONNECTOR_LABELS = Object.freeze({
   screwBoss: 'Screw boss',
   dowel: 'Dowel',
   butterfly: 'Butterfly',
+  tenon: 'Tenon',
+  magnet: 'Magnet',
 })
 
 /**
@@ -142,7 +172,7 @@ export const CONNECTOR_LABELS = Object.freeze({
  *
  * @typedef {object} Marker
  * @property {string} id
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet'} kind
  * @property {number} uMm
  * @property {number} vMm
  * @property {number} [sizeMm] Left out for the kind's default size.
@@ -150,7 +180,11 @@ export const CONNECTOR_LABELS = Object.freeze({
  * @property {'u-' | 'u+' | 'v-' | 'v+'} [side] A butterfly's surface: the outline edge it snapped to.
  * @property {number} [depthMm] A butterfly's depth, when the search gave one.
  * @property {boolean} [through]
+ * @property {number} [thicknessMm] A tenon's or a magnet's, when the search gave one.
  */
+
+/** The joints whose own search the sheet runs before Apply, and which carry `jointOptions`. */
+const KEYED_JOINTS = Object.freeze(/** @type {string[]} */ (['dowel', 'butterfly', 'tenon', 'magnets']))
 
 /** A dragged plane snaps to this step, mm, so a drag lands on a number a person can read. */
 export const DRAG_STEP_MM = 0.5
@@ -167,7 +201,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   const bodyId = ref(/** @type {string | null} */ (null))
   const axis = ref(/** @type {Axis} */ ('x'))
   const offsetMm = ref(/** @type {number | null} */ (0))
-  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'none'} */ ('pins'))
+  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'none'} */ ('pins'))
   /** What a dowel is made of (`TODO/core-075`): the automatic joint's and every dowel marker's. */
   const stock = ref(/** @type {'printed' | 'steel' | 'filament'} */ ('printed'))
   /** A dowel diameter the person typed, mm, or `null` for the search's own. */
@@ -180,6 +214,32 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   const butterflyDepthMm = ref(/** @type {number | null} */ (null))
   /** Keys that run the full thickness of a thin wall. */
   const butterflyThrough = ref(false)
+  /** A tenon width the person typed (`TODO/core-075` stage 3), mm, or `null` for Auto. */
+  const tenonWidthMm = ref(/** @type {number | null} */ (null))
+  /** A tenon thickness, mm, or `null` for Auto. */
+  const tenonThicknessMm = ref(/** @type {number | null} */ (null))
+  /** The Magnet size list's value: `auto`, a common size (`6x3`), or `custom`. */
+  const magnetSize = ref('auto')
+  /** A custom magnet's diameter, mm. */
+  const magnetDiameterMm = ref(/** @type {number | null} */ (null))
+  /** A custom magnet's thickness, mm. */
+  const magnetThicknessMm = ref(/** @type {number | null} */ (null))
+
+  /**
+   * The magnet the sheet asks for, or `null` for Auto (and for a Custom size not yet typed in
+   * full) — what the magnets joint's options and every Magnet marker carry.
+   */
+  const magnetChoice = computed(() => {
+    if (magnetSize.value === 'custom') {
+      const d = magnetDiameterMm.value
+      const t = magnetThicknessMm.value
+      return typeof d === 'number' && Number.isFinite(d) && typeof t === 'number' && Number.isFinite(t)
+        ? { sizeMm: d, thicknessMm: t }
+        : null
+    }
+    const preset = MAGNET_SIZES.find((size) => `${size.diameterMm}x${size.thicknessMm}` === magnetSize.value)
+    return preset ? { sizeMm: preset.diameterMm, thicknessMm: preset.thicknessMm } : null
+  })
 
   /**
    * The Joint list's value: the kernel's joint, with `dowel` split by {@link stock} into the
@@ -194,7 +254,14 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       } else if (value === 'dowel-stock') {
         joint.value = 'dowel'
         if (stock.value === 'printed') stock.value = 'steel'
-      } else if (value === 'pins' || value === 'tongue' || value === 'butterfly' || value === 'none') {
+      } else if (
+        value === 'pins' ||
+        value === 'tongue' ||
+        value === 'butterfly' ||
+        value === 'tenon' ||
+        value === 'magnets' ||
+        value === 'none'
+      ) {
         joint.value = value
       }
     },
@@ -216,7 +283,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   /** Whether the person is placing connectors by hand instead of the automatic search. */
   const manual = ref(false)
   /** The kind a tap on the face drops. */
-  const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} */ ('pins'))
+  const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet'} */ ('pins'))
   const markers = ref(/** @type {Marker[]} */ ([]))
   const selectedMarkerId = ref(/** @type {string | null} */ (null))
   /** The cut face as the kernel last described it — a plain object, never walked reactively. */
@@ -338,10 +405,13 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   )
 
   /** The inputs as one string, so a refusal is shown only for the inputs it refused. */
-  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
+  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${sizedKey.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
 
   /** The butterfly fields as one string. */
   const butterflyKey = computed(() => `${butterflyCount.value}|${butterflySide.value}|${butterflyDepthMm.value}|${butterflyThrough.value}`)
+
+  /** The tenon and magnet fields as one string (stage 3). */
+  const sizedKey = computed(() => `${tenonWidthMm.value}|${tenonThicknessMm.value}|${JSON.stringify(magnetChoice.value)}`)
 
   /** The Side list for the current axis: an X cut's `v+` is the Top. */
   const butterflySides = computed(() => BUTTERFLY_SIDES.map((value) => ({ value, label: butterflySideLabel(axisIndex.value, value) })))
@@ -398,17 +468,32 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
 
   /**
    * The placements a marker list stands for, as the record carries them. A dowel marker takes
-   * the sheet's {@link stock}; filament has one size, so it carries none.
+   * the sheet's {@link stock}; filament has one size, so it carries none. A magnet marker takes
+   * the sheet's magnet size when one is chosen (stage 3), and keeps its own on Auto.
    */
   const placementsOf = (/** @type {Marker[]} */ list) =>
     list.map(({ id: _id, ...placement }) => {
+      if (placement.kind === 'magnet') {
+        const chosen = magnetChoice.value
+        return chosen === null ? { ...placement } : { ...placement, ...chosen }
+      }
       if (placement.kind !== 'dowel' || stock.value === 'printed') return { ...placement }
       const { sizeMm: _size, ...rest } = placement
       return { ...(stock.value === 'filament' ? rest : placement), stock: stock.value }
     })
 
-  /** The dowel or butterfly joint's options as a record carries them — `undefined` when there are none. */
+  /** The dowel, butterfly, tenon or magnets joint's options as a record carries them — `undefined` when there are none. */
   const jointOptions = computed(() => {
+    if (joint.value === 'tenon') {
+      /** @type {{ sizeMm?: number, thicknessMm?: number }} */
+      const options = {}
+      const width = tenonWidthMm.value
+      const thickness = tenonThicknessMm.value
+      if (typeof width === 'number' && Number.isFinite(width)) options.sizeMm = width
+      if (typeof thickness === 'number' && Number.isFinite(thickness)) options.thicknessMm = thickness
+      return Object.keys(options).length > 0 ? options : undefined
+    }
+    if (joint.value === 'magnets') return magnetChoice.value === null ? undefined : { ...magnetChoice.value }
     if (joint.value === 'butterfly') {
       /** @type {{ count?: number, side?: string, depthMm?: number, through?: boolean }} */
       const options = {}
@@ -444,13 +529,13 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   )
   /** The inputs the automatic key search depends on. */
   const autoKey = computed(() =>
-    isOpen.value && !manual.value && (joint.value === 'dowel' || joint.value === 'butterfly')
-      ? `${joint.value}|${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${documentStore.version}`
+    isOpen.value && !manual.value && KEYED_JOINTS.includes(joint.value)
+      ? `${joint.value}|${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${sizedKey.value}|${documentStore.version}`
       : ''
   )
   watch(autoKey, async (key) => {
     if (key === '' || !Number.isFinite(cutMm.value)) return
-    const answer = await ask(planChannel, [], /** @type {'dowel' | 'butterfly'} */ (joint.value))
+    const answer = await ask(planChannel, [], /** @type {'dowel' | 'butterfly' | 'tenon' | 'magnets'} */ (joint.value))
     if (answer === null || key !== autoKey.value) return
     autoKeys.value = answer.face
       ? {
@@ -497,6 +582,34 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   })
 
   /**
+   * Resolved entries of one kind: as the kernel resolved the markers when placing by hand, else
+   * the automatic search's when it is the joint asked for (stage 3: tenons, magnets).
+   *
+   * @param {'tenon' | 'magnet'} kind
+   * @param {'tenon' | 'magnets'} jointName
+   * @returns {import('../core/kernel/split.js').PlacementParams[]}
+   */
+  function resolvedOf(kind, jointName) {
+    if (manual.value) {
+      const preview = face.value
+      if (!preview || preview.resolved === null || validatedKey.value !== placementKey.value) return []
+      return preview.resolved.filter((entry) => entry.kind === kind)
+    }
+    if (joint.value !== jointName || autoKeys.value.key !== autoKey.value) return []
+    return autoKeys.value.entries
+  }
+
+  /** The tenons a split would make (stage 3). */
+  const plannedTenons = computed(() =>
+    resolvedOf('tenon', 'tenon').map((entry) => ({ sizeMm: entry.sizeMm ?? 6, thicknessMm: entry.thicknessMm ?? 3 }))
+  )
+
+  /** The magnet pocket pairs a split would cut (stage 3): two magnets to buy for each. */
+  const plannedMagnets = computed(() =>
+    resolvedOf('magnet', 'magnets').map((entry) => ({ sizeMm: entry.sizeMm ?? 6, thicknessMm: entry.thicknessMm ?? 3 }))
+  )
+
+  /**
    * The key parts a split would make, one row per size: `Dowel × 2`, its size lying on the bed,
    * and its fit — what the pieces list shows under the pieces.
    */
@@ -516,6 +629,13 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       if (row) row.count += 1
       else rows.set(words.keyLabel, { name: 'Butterfly key', title: words.keyLabel, count: 1, sizeMm: words.keySizeMm })
     }
+    const clearance = clearanceMm.value ?? DEFAULT_JOINT_CLEARANCE_MM
+    for (const tenon of plannedTenons.value) {
+      const words = describeTenon(tenon.sizeMm, tenon.thicknessMm, clearance)
+      const row = rows.get(words.keyLabel)
+      if (row) row.count += 1
+      else rows.set(words.keyLabel, { name: 'Tenon', title: words.keyLabel, count: 1, sizeMm: words.keySizeMm })
+    }
     return [...rows.values()].map((row) => ({ ...row, ...fitVerdict(row.sizeMm, documentStore.buildVolume) }))
   })
 
@@ -528,10 +648,15 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       const { hardwareLabel } = describeDowel(dowel.sizeMm, dowel.clearance, dowel.stock)
       lines.set(hardwareLabel, (lines.get(hardwareLabel) ?? 0) + 1)
     }
+    // A magnet in each face: two to buy per pocket pair.
+    for (const magnet of plannedMagnets.value) {
+      const { hardwareLabel } = describeMagnet(magnet.sizeMm, magnet.thicknessMm)
+      lines.set(hardwareLabel, (lines.get(hardwareLabel) ?? 0) + 2)
+    }
     return [...lines.entries()].map(([label, count]) => `${count} × ${label}`)
   })
 
-  /** Why the automatic dowel or butterfly search found nothing, while it is the joint asked for. */
+  /** Why the automatic dowel, butterfly, tenon or magnet search found nothing, while it is the joint asked for. */
   const autoKeyError = computed(() => (autoKeys.value.key !== '' && autoKeys.value.key === autoKey.value ? autoKeys.value.error : ''))
 
   /** The inputs a face preview depends on, as one string. */
@@ -547,7 +672,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    *
    * @param {import('../core/kernel/evaluationClient.js').EvaluationChannel} channel
    * @param {Marker[]} list
-   * @param {'pins' | 'tongue' | 'dowel' | 'butterfly' | null} seed
+   * @param {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | null} seed
    * @returns {Promise<{ face?: import('../core/kernel/split.js').FacePreview, error?: string } | null>}
    *   `null` when a newer request on the channel overtook this one.
    */
@@ -565,7 +690,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
         clearanceMm: clearanceMm.value ?? DEFAULT_JOINT_CLEARANCE_MM,
         placements: placementsOf(list),
         seed,
-        ...((seed === 'dowel' || seed === 'butterfly') && seed === joint.value && jointOptions.value !== undefined
+        ...(seed !== null && KEYED_JOINTS.includes(seed) && seed === joint.value && jointOptions.value !== undefined
           ? { seedOptions: { ...jointOptions.value } }
           : {}),
       },
@@ -630,7 +755,9 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * @returns {Promise<void>}
    */
   async function seedFromSearch() {
-    const seed = joint.value === 'tongue' || joint.value === 'dowel' || joint.value === 'butterfly' ? joint.value : 'pins'
+    const seed = /** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets'} */ (
+      joint.value === 'tongue' || KEYED_JOINTS.includes(joint.value) ? joint.value : 'pins'
+    )
     const answer = await ask(faceChannel, [], seed)
     if (answer === null) return
     if (!answer.face) {
@@ -649,6 +776,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       ...(entry.side === undefined ? {} : { side: entry.side }),
       ...(entry.depthMm === undefined ? {} : { depthMm: entry.depthMm }),
       ...(entry.through === true ? { through: true } : {}),
+      ...(entry.thicknessMm === undefined ? {} : { thicknessMm: entry.thicknessMm }),
     }))
     notice.value = answer.face.auto.length === 0 ? (answer.face.autoError || 'The search found no room — tap the cut face to place one') : ''
     selectedMarkerId.value = null
@@ -680,6 +808,8 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     markers.value = []
     if (joint.value === 'dowel') connectorKind.value = 'dowel'
     if (joint.value === 'butterfly') connectorKind.value = 'butterfly'
+    if (joint.value === 'tenon') connectorKind.value = 'tenon'
+    if (joint.value === 'magnets') connectorKind.value = 'magnet'
     await seedFromSearch()
     await settled()
   }
@@ -822,7 +952,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * Choose a kind from the picker: it is what a tap drops next, and, with a marker selected,
    * what that marker becomes (at its own position, refused where the new kind does not fit).
    *
-   * @param {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
+   * @param {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet'} kind
    * @returns {Promise<boolean>}
    */
   async function chooseKind(kind) {
@@ -861,6 +991,11 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     butterflySide.value = null
     butterflyDepthMm.value = null
     butterflyThrough.value = false
+    tenonWidthMm.value = null
+    tenonThicknessMm.value = null
+    magnetSize.value = 'auto'
+    magnetDiameterMm.value = null
+    magnetThicknessMm.value = null
     clearanceMm.value = DEFAULT_JOINT_CLEARANCE_MM
     autoKeys.value = { key: '', entries: [], error: '', spans: [0, 0] }
     resetManual()
@@ -950,7 +1085,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
             axis: axis.value,
             offsetMm: offsetMm.value,
             joint: joint.value,
-            ...((joint.value === 'dowel' || joint.value === 'butterfly') && jointOptions.value !== undefined
+            ...(KEYED_JOINTS.includes(joint.value) && jointOptions.value !== undefined
               ? { jointOptions: { ...jointOptions.value } }
               : {}),
             clearanceMm: joint.value === 'none' ? 0 : clearanceMm.value,
@@ -984,6 +1119,11 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     butterflyDepthMm,
     butterflyThrough,
     butterflySides,
+    tenonWidthMm,
+    tenonThicknessMm,
+    magnetSize,
+    magnetDiameterMm,
+    magnetThicknessMm,
     keyRows,
     hardwareRows,
     autoKeyError,

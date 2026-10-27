@@ -30,6 +30,11 @@
  *    seam on an outer surface: the pocket is cut from both pieces, the key — clipped to the
  *    uncut solid — is a key part, pressed in from outside (`jointOptions`: count, side, depth,
  *    waist, through).
+ *    A **loose tenon** (stage 3, `recipes/joint.tenon.js`) is a flat stadium-shaped key in a
+ *    mortise in both pieces, its long axis along the face's longer side (`jointOptions`: width
+ *    `sizeMm`, `thicknessMm`). **Magnets** (`recipes/joint.magnet.js`) cut a disc-magnet pocket in
+ *    both faces and print nothing: the magnets are hardware to buy, two per pocket pair
+ *    (`jointOptions`: diameter `sizeMm` and `thicknessMm`, together).
  * 4. Returns a **group of two named parts**, A then B — `["Wing A", "Wing B"]` when the record
  *    carries those `names` (the Split sheet passes the body's own name plus a letter) — so each
  *    piece stays addressable and the group tools, the Inspector's parts list and Export → Print
@@ -60,7 +65,7 @@
 
 import { add, bisect, boundsOf, createGroup, hasNamedParts, hiddenNamesOf, partMetaOf, toGeom3 } from './group.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
-import { JOINT_WALL_MM, clearanceField, clearanceTo } from './recipes/joint.common.js'
+import { JOINT_WALL_MM, clearanceField, clearanceTo, faceAxes } from './recipes/joint.common.js'
 import {
   BUTTERFLY_DEPTH_RANGE_MM,
   BUTTERFLY_MAX_WIDTH_MM,
@@ -85,6 +90,14 @@ import {
   pinJoint,
   pinSizing,
 } from './recipes/joint.pins.js'
+import {
+  MAGNET_MAX_DIAMETER_MM,
+  MAGNET_MAX_THICKNESS_MM,
+  MAGNET_MIN_DIAMETER_MM,
+  MAGNET_MIN_THICKNESS_MM,
+  MAGNET_SIZES,
+  magnetJoint,
+} from './recipes/joint.magnet.js'
 import { DEFAULT_SCREW_MM, PlacementRefusal, placedJoint } from './recipes/joint.placements.js'
 import { INSERT_MAX_RATIO, SCREW_MAX_MM, SCREW_MIN_MM } from './recipes/joint.screwBoss.js'
 import {
@@ -93,6 +106,15 @@ import {
   TONGUE_MIN_WIDTH_MM,
   tongueGrooveJoint,
 } from './recipes/joint.tongueGroove.js'
+import {
+  TENON_MAX_THICKNESS_MM,
+  TENON_MAX_WIDTH_MM,
+  TENON_MIN_THICKNESS_MM,
+  TENON_MIN_WIDTH_MM,
+  tenonCandidates,
+  tenonJoint,
+  tenonReachMm,
+} from './recipes/joint.tenon.js'
 import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM } from './recipes/joint.wedge.js'
 import modeling from '@jscad/modeling'
 
@@ -108,12 +130,14 @@ const { booleans } = modeling
 const OP = 'modify.splitWithJoint'
 
 /** The joint types, in the order the Split sheet lists them. */
-export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'dowel', 'butterfly', 'none']))
+export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'none']))
 
 /** The fields `jointOptions` may carry, per joint type (`TODO/core-075`). */
 const JOINT_OPTION_FIELDS = Object.freeze({
   dowel: Object.freeze(['stock', 'sizeMm']),
   butterfly: Object.freeze(['count', 'side', 'depthMm', 'sizeMm', 'through']),
+  tenon: Object.freeze(['sizeMm', 'thicknessMm']),
+  magnets: Object.freeze(['sizeMm', 'thicknessMm']),
 })
 
 /**
@@ -132,7 +156,12 @@ const AXES = /** @type {const} */ (['x', 'y', 'z'])
  * The connector kinds a hand placement may ask for (`TODO/core-059`) — a separate list from
  * {@link JOINT_TYPES}, which is what the Split sheet's joint picker offers.
  */
-export const PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly']))
+export const PLACEMENT_KINDS = Object.freeze(
+  /** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly', 'tenon', 'magnet'])
+)
+
+/** The placement kinds the search can place when a placement leaves out its position. */
+const SEARCHABLE_KINDS = Object.freeze(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnet'])
 
 /** The most connectors one split may place — a hard limit, as every tool-call input has. */
 export const MAX_PLACEMENTS = 16
@@ -145,16 +174,26 @@ const SIZE_RANGE_MM = Object.freeze({
   screwBoss: [SCREW_MIN_MM, SCREW_MAX_MM],
   dowel: [DOWEL_MIN_DIAMETER_MM, DOWEL_MAX_DIAMETER_MM],
   butterfly: [BUTTERFLY_MIN_WIDTH_MM, BUTTERFLY_MAX_WIDTH_MM],
+  tenon: [TENON_MIN_WIDTH_MM, TENON_MAX_WIDTH_MM],
+  magnet: [MAGNET_MIN_DIAMETER_MM, MAGNET_MAX_DIAMETER_MM],
+})
+
+/** Each kind's `thicknessMm` range, mm (`TODO/core-075` stage 3): a tenon's, a magnet's. */
+const THICKNESS_RANGE_MM = Object.freeze({
+  tenon: [TENON_MIN_THICKNESS_MM, TENON_MAX_THICKNESS_MM],
+  magnet: [MAGNET_MIN_THICKNESS_MM, MAGNET_MAX_THICKNESS_MM],
 })
 
 /**
  * @typedef {object} SplitParams
  * @property {'x' | 'y' | 'z'} axis The cut plane's normal.
  * @property {number} offsetMm Where the plane crosses the axis, from the body's minimum face.
- * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'none'} [joint] Default `pins`.
- * @property {{ stock?: 'printed' | 'steel' | 'filament', sizeMm?: number, count?: number, side?: 'u-' | 'u+' | 'v-' | 'v+', depthMm?: number, through?: boolean }} [jointOptions]
+ * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'none'} [joint] Default `pins`.
+ * @property {{ stock?: 'printed' | 'steel' | 'filament', sizeMm?: number, count?: number, side?: 'u-' | 'u+' | 'v-' | 'v+', depthMm?: number, through?: boolean, thicknessMm?: number }} [jointOptions]
  *   The joint's own sizes (`TODO/core-075`): for `dowel`, what it is made of and its diameter;
- *   for `butterfly`, how many keys, which side of the face, how deep (or `through`) and the waist.
+ *   for `butterfly`, how many keys, which side of the face, how deep (or `through`) and the waist;
+ *   for `tenon`, its width (`sizeMm`) and thickness; for `magnets`, the magnet's diameter
+ *   (`sizeMm`) and thickness, given together.
  * @property {number} [clearanceMm] Per side, default {@link DEFAULT_JOINT_CLEARANCE_MM}.
  * @property {[string, string]} [names] Piece A's and piece B's part names.
  * @property {PlacementParams[]} [placements] Hand-placed connectors (`TODO/core-059`); when
@@ -168,11 +207,13 @@ const SIZE_RANGE_MM = Object.freeze({
  * both out on `pins` or `tongue` to let the search place it, clear of the rest.
  *
  * @typedef {object} PlacementParams
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet'} kind
  * @property {number} [uMm]
  * @property {number} [vMm]
  * @property {number} [sizeMm] A pin's diameter, a tongue's width, a wedge's width at its wide
- *   end, a screw boss's screw size. Default: the search's starting size; M3 for a screw boss.
+ *   end, a screw boss's screw size, a tenon's width, a magnet's diameter. Default: the search's
+ *   starting size; M3 for a screw boss.
+ * @property {number} [thicknessMm] A tenon's thickness; a magnet's (with its `sizeMm`).
  * @property {number} [lengthMm] A tongue's rib length, at least twice its width; default 4×.
  * @property {number} [insertMm] A screw boss's heat-set insert bore; leave out for a
  *   self-tapping screw.
@@ -233,14 +274,15 @@ function readPlacement(entry, index) {
     throw new Error(`${named}: give both uMm and vMm, or neither to let the search place it`)
   }
   const searched = uMm === null
-  if (searched && kind !== 'pins' && kind !== 'tongue' && kind !== 'dowel' && kind !== 'butterfly') {
-    throw new Error(`${named} needs uMm and vMm — only pins, tongue, dowel and butterfly can be placed by the search`)
+  if (searched && !SEARCHABLE_KINDS.includes(kind)) {
+    throw new Error(`${named} needs uMm and vMm — only ${SEARCHABLE_KINDS.join(', ')} can be placed by the search`)
   }
   const sizeMm = finite('sizeMm')
   const lengthMm = finite('lengthMm')
   const insertMm = finite('insertMm')
-  if (searched && (sizeMm !== null || lengthMm !== null)) {
-    throw new Error(`${named}: the search picks its own size — give uMm and vMm to set sizeMm or lengthMm`)
+  const thicknessMm = finite('thicknessMm')
+  if (searched && (sizeMm !== null || lengthMm !== null || thicknessMm !== null)) {
+    throw new Error(`${named}: the search picks its own size — give uMm and vMm to set sizeMm, lengthMm or thicknessMm`)
   }
   if (sizeMm !== null) {
     const [low, high] = SIZE_RANGE_MM[kind]
@@ -274,6 +316,11 @@ function readPlacement(entry, index) {
   for (const field of ['side', 'depthMm', 'through']) {
     if (raw[field] !== undefined && kind !== 'butterfly') throw new Error(`${named}: ${field} is only for a butterfly`)
   }
+  if (kind === 'tenon' || kind === 'magnet') {
+    checkThickness(kind, sizeMm, thicknessMm, named, '')
+    return { kind, uMm, vMm, sizeMm, lengthMm, insertMm, thicknessMm }
+  }
+  if (thicknessMm !== null) throw new Error(`${named}: thicknessMm is only for a tenon or a magnet`)
   if (kind === 'dowel') {
     const stock = /** @type {'printed' | 'steel' | 'filament'} */ (raw.stock ?? 'printed')
     return { kind, uMm, vMm, sizeMm, lengthMm, insertMm, stock }
@@ -283,6 +330,36 @@ function readPlacement(entry, index) {
     return { kind, uMm, vMm, sizeMm, lengthMm, insertMm, side, depthMm, through }
   }
   return { kind, uMm, vMm, sizeMm, lengthMm, insertMm }
+}
+
+/**
+ * A tenon's or a magnet's thickness, checked with its size (`TODO/core-075` stage 3): in range,
+ * a tenon at least twice as wide as it is thick, a magnet's two sizes given together.
+ *
+ * @param {'tenon' | 'magnet'} kind
+ * @param {number | null} sizeMm Already range-checked.
+ * @param {number | null} thicknessMm
+ * @param {string} named What to call the source in a refusal.
+ * @param {string} prefix `jointOptions.` or `''`.
+ */
+function checkThickness(kind, sizeMm, thicknessMm, named, prefix) {
+  if (thicknessMm !== null) {
+    const [low, high] = THICKNESS_RANGE_MM[kind]
+    if (thicknessMm < low || thicknessMm > high) {
+      throw new Error(`${named}: ${prefix}thicknessMm must be ${low} to ${high} mm, got ${thicknessMm}`)
+    }
+  }
+  if (kind === 'magnet' && (sizeMm === null) !== (thicknessMm === null)) {
+    throw new Error(
+      `${named}: give ${prefix}sizeMm and ${prefix}thicknessMm together (the magnet's diameter and thickness), or neither for ` +
+        `the largest common size that fits (${MAGNET_SIZES.map((size) => `${size.diameterMm} × ${size.thicknessMm}`).join(', ')} mm)`
+    )
+  }
+  if (kind === 'tenon' && sizeMm !== null && thicknessMm !== null && sizeMm < 2 * thicknessMm) {
+    throw new Error(
+      `${named}: a tenon's width must be at least twice its thickness, got ${prefix}sizeMm ${sizeMm} and ${prefix}thicknessMm ${thicknessMm}`
+    )
+  }
 }
 
 /**
@@ -321,6 +398,7 @@ function readButterflyFields(raw, named, prefix) {
  * @property {'u-' | 'u+' | 'v-' | 'v+' | null} side
  * @property {number | null} depthMm
  * @property {boolean} through
+ * @property {number | null} [thicknessMm] A tenon's or a magnet's (stage 3).
  */
 
 /**
@@ -344,6 +422,7 @@ function readJointOptions(given, joint) {
     if (!fields.includes(key)) throw new Error(`${OP}: jointOptions has no field ${JSON.stringify(key)} (it takes ${fields.join(', ')})`)
   }
   if (joint === 'butterfly') return readButterflyOptions(raw)
+  if (joint === 'tenon' || joint === 'magnets') return readSizedOptions(raw, joint === 'tenon' ? 'tenon' : 'magnet', none)
   const stock = raw.stock ?? 'printed'
   if (!DOWEL_STOCKS.includes(/** @type {any} */ (stock))) {
     throw new Error(`${OP}: jointOptions.stock must be one of ${DOWEL_STOCKS.join(', ')}, got ${JSON.stringify(raw.stock)}`)
@@ -358,6 +437,31 @@ function readJointOptions(given, joint) {
     sizeMm = raw.sizeMm
   }
   return { ...none, stock: /** @type {'printed' | 'steel' | 'filament'} */ (stock), sizeMm }
+}
+
+/**
+ * A tenon's or a magnets joint's `jointOptions` (`TODO/core-075` stage 3): `sizeMm` (a tenon's
+ * width, a magnet's diameter) and `thicknessMm`.
+ *
+ * @param {Record<string, unknown>} raw
+ * @param {'tenon' | 'magnet'} kind
+ * @param {JointOptions} none
+ * @returns {JointOptions}
+ */
+function readSizedOptions(raw, kind, none) {
+  /** @param {'sizeMm' | 'thicknessMm'} key @param {readonly number[]} range */
+  const ranged = (key, [low, high]) => {
+    const value = raw[key]
+    if (value === undefined) return null
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high) {
+      throw new Error(`${OP}: jointOptions.${key} must be ${low} to ${high} mm, got ${JSON.stringify(value)}`)
+    }
+    return value
+  }
+  const sizeMm = ranged('sizeMm', SIZE_RANGE_MM[kind])
+  const thicknessMm = ranged('thicknessMm', THICKNESS_RANGE_MM[kind])
+  checkThickness(kind, sizeMm, thicknessMm, OP, 'jointOptions.')
+  return { ...none, sizeMm, thicknessMm }
 }
 
 /**
@@ -388,7 +492,7 @@ function readButterflyOptions(raw) {
 
 /**
  * @param {Record<string, any>} params
- * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: JointOptions }}
+ * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: JointOptions }}
  */
 function readParams(params) {
   const axisIndex = AXES.indexOf(params?.axis)
@@ -533,7 +637,7 @@ export function planJoint(value, params) {
  * `sockets` cut from piece B. `connectors` says where each one is.
  *
  * @typedef {object} JointPlan
- * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'placements' | 'none'} kind
+ * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'placements' | 'none'} kind
  * @property {Geom3[]} pins
  * @property {Geom3[]} sockets
  * @property {Geom3[]} holes
@@ -557,6 +661,8 @@ function planOn(solid, lower, upper, read, cutMm) {
   if (read.joint === 'none') return { kind: 'none', pins: [], sockets: [], holes: [], connectors: [], summary: 'no joint' }
   if (read.joint === 'dowel') return planDowels(solid, lower, upper, read, cutMm)
   if (read.joint === 'butterfly') return planButterflies(solid, read, cutMm)
+  if (read.joint === 'tenon') return planTenons(solid, lower, upper, read, cutMm)
+  if (read.joint === 'magnets') return planMagnets(solid, lower, upper, read, cutMm)
   const reach = read.joint === 'pins' ? PIN_MAX_REACH_MM : TONGUE_MAX_REACH_MM
   const widest = read.joint === 'pins' ? PIN_MAX_DIAMETER_MM / 2 : TONGUE_MAX_WIDTH_MM / 2
   const field = clearanceField(solid, read.axisIndex, cutMm, {
@@ -594,6 +700,93 @@ function dowelField(solid, axisIndex, cutMm, clearanceMm) {
     maxBelowMm: DOWEL_MAX_REACH_MM + clearanceMm,
     maxClearMm: Math.hypot(DOWEL_MAX_DIAMETER_MM / 2 + clearanceMm + JOINT_WALL_MM, 10),
   })
+}
+
+/**
+ * A field sampled on both sides of the face (`TODO/core-075` stage 3), deep enough for `reachMm`
+ * and wide enough to tell a `radiusMm` socket's wall.
+ *
+ * @param {Geom3} solid
+ * @param {number} axisIndex
+ * @param {number} cutMm
+ * @param {number} clearanceMm
+ * @param {number} reachMm
+ * @param {number} radiusMm
+ */
+function twoSidedField(solid, axisIndex, cutMm, clearanceMm, reachMm, radiusMm) {
+  return clearanceField(solid, axisIndex, cutMm, {
+    maxDepthMm: reachMm + clearanceMm,
+    maxBelowMm: reachMm + clearanceMm,
+    maxClearMm: Math.hypot(radiusMm + clearanceMm + JOINT_WALL_MM, 10),
+  })
+}
+
+/**
+ * How deep a tenon search on this face must sample: the widest tenon it will try's mortise.
+ *
+ * @param {Geom3} solid
+ * @param {number} axisIndex
+ * @param {number | null} widthMm
+ * @param {number | null} thicknessMm
+ * @returns {number}
+ */
+function tenonSearchReach(solid, axisIndex, widthMm, thicknessMm) {
+  const [min, max] = boundsOf(solid)
+  const [u, v] = faceAxes(axisIndex)
+  const spans = [max[u] - min[u], max[v] - min[v]]
+  const widths = tenonCandidates(Math.max(...spans), Math.min(...spans), widthMm, thicknessMm).map((size) => size.widthMm)
+  return tenonReachMm(Math.max(TENON_MIN_WIDTH_MM, ...widths))
+}
+
+/** The thickest common magnet, mm — how deep a magnet search samples when no size is asked for. */
+const COMMON_MAGNET_THICKNESS_MM = Math.max(...MAGNET_SIZES.map((size) => size.thicknessMm))
+/** The widest common magnet, mm. */
+const COMMON_MAGNET_DIAMETER_MM = Math.max(...MAGNET_SIZES.map((size) => size.diameterMm))
+
+/**
+ * Loose tenons found by the search (`TODO/core-075` stage 3).
+ *
+ * @param {Geom3} solid
+ * @param {Geom3} lower
+ * @param {Geom3} upper
+ * @param {ReturnType<typeof readParams>} read
+ * @param {number} cutMm
+ * @returns {JointPlan}
+ */
+function planTenons(solid, lower, upper, read, cutMm) {
+  const { sizeMm, thicknessMm = null } = read.jointOptions
+  const reach = tenonSearchReach(solid, read.axisIndex, sizeMm, thicknessMm)
+  const field = twoSidedField(solid, read.axisIndex, cutMm, read.clearanceMm, reach, TENON_MAX_THICKNESS_MM / 2)
+  const plan = tenonJoint({ field, lower, upper, clearanceMm: read.clearanceMm, widthMm: sizeMm, thicknessMm })
+  if (plan) return plan
+  const thinnest = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
+  throw new Error(
+    `${OP}: no room for a tenon on the cut face (it is ${fmt(thinnest)} mm across at its narrowest, and a tenon needs a mortise ` +
+      `1.5× its width deep with a ${JOINT_WALL_MM} mm wall in both pieces) — cut further from an end, or choose Dowels`
+  )
+}
+
+/**
+ * Magnet pockets found by the search (`TODO/core-075` stage 3).
+ *
+ * @param {Geom3} solid
+ * @param {Geom3} lower
+ * @param {Geom3} upper
+ * @param {ReturnType<typeof readParams>} read
+ * @param {number} cutMm
+ * @returns {JointPlan}
+ */
+function planMagnets(solid, lower, upper, read, cutMm) {
+  const { sizeMm, thicknessMm = null } = read.jointOptions
+  const reach = (thicknessMm ?? COMMON_MAGNET_THICKNESS_MM) + 1 + JOINT_WALL_MM
+  const field = twoSidedField(solid, read.axisIndex, cutMm, read.clearanceMm, reach, (sizeMm ?? COMMON_MAGNET_DIAMETER_MM) / 2)
+  const plan = magnetJoint({ field, lower, upper, clearanceMm: read.clearanceMm, diameterMm: sizeMm, thicknessMm })
+  if (plan) return plan
+  const thinnest = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
+  throw new Error(
+    `${OP}: no room for a magnet on the cut face (it is ${fmt(thinnest)} mm across at its narrowest, and a magnet needs its pocket ` +
+      `with a ${JOINT_WALL_MM} mm wall and floor in both pieces) — cut further from an end, or choose a smaller magnet`
+  )
 }
 
 /**
@@ -662,17 +855,51 @@ function planPlaced(solid, lower, upper, read, placements, cutMm) {
 
 /**
  * The field a placement list is checked and searched on. A list with a dowel needs the deeper,
- * two-sided field a dowel search reads; any other list gets exactly the field it always had.
+ * two-sided field a dowel search reads; a list with a tenon or a magnet (stage 3) a two-sided
+ * field as deep as every kind in it needs; any other list gets exactly the field it always had.
  *
  * @param {Geom3} solid
  * @param {number} axisIndex
  * @param {number} cutMm
  * @param {number} clearanceMm
- * @param {readonly { kind: string }[]} placements
- * @param {boolean} [dowelSeed] A face preview seeding from the dowel search.
+ * @param {readonly { kind: string, thicknessMm?: number | null, sizeMm?: number | null }[]} placements
+ * @param {string | null} [seed] A face preview's seed: the joint whose search it runs.
+ * @param {JointOptions | null} [seedOptions] That search's options.
  */
-function placementField(solid, axisIndex, cutMm, clearanceMm, placements, dowelSeed = false) {
-  if (dowelSeed || placements.some((placement) => placement.kind === 'dowel')) {
+function placementField(solid, axisIndex, cutMm, clearanceMm, placements, seed = null, seedOptions = null) {
+  const has = (/** @type {string} */ kind) => placements.some((placement) => placement.kind === kind)
+  const tenon = seed === 'tenon' || has('tenon')
+  const magnet = seed === 'magnets' || has('magnet')
+  if (tenon || magnet) {
+    let reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
+    let radius = Math.max(PIN_MAX_DIAMETER_MM, TONGUE_MAX_WIDTH_MM) / 2
+    if (seed === 'dowel' || has('dowel')) {
+      reach = Math.max(reach, DOWEL_MAX_REACH_MM)
+      radius = Math.max(radius, DOWEL_MAX_DIAMETER_MM / 2)
+    }
+    if (tenon) {
+      const options = seed === 'tenon' ? seedOptions : null
+      reach = Math.max(reach, tenonSearchReach(solid, axisIndex, options?.sizeMm ?? null, options?.thicknessMm ?? null))
+      radius = Math.max(radius, TENON_MAX_THICKNESS_MM / 2)
+    }
+    if (magnet) {
+      const options = seed === 'magnets' ? seedOptions : null
+      const thickest = Math.max(
+        COMMON_MAGNET_THICKNESS_MM,
+        options?.thicknessMm ?? 0,
+        ...placements.map((placement) => (placement.kind === 'magnet' ? (placement.thicknessMm ?? 0) : 0))
+      )
+      const widest = Math.max(
+        COMMON_MAGNET_DIAMETER_MM,
+        options?.sizeMm ?? 0,
+        ...placements.map((placement) => (placement.kind === 'magnet' ? (placement.sizeMm ?? 0) : 0))
+      )
+      reach = Math.max(reach, thickest + 1 + JOINT_WALL_MM)
+      radius = Math.max(radius, widest / 2)
+    }
+    return twoSidedField(solid, axisIndex, cutMm, clearanceMm, reach, radius)
+  }
+  if (seed === 'dowel' || has('dowel')) {
     return dowelField(solid, axisIndex, cutMm, clearanceMm)
   }
   const reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
@@ -843,6 +1070,9 @@ function placementOf(connector) {
     ...(connector.kind === 'butterfly' && connector.side !== undefined ? { side: connector.side } : {}),
     ...(connector.kind === 'butterfly' && connector.depthMm !== undefined && connector.through !== true ? { depthMm: mm(connector.depthMm) } : {}),
     ...(connector.through === true ? { through: true } : {}),
+    ...((connector.kind === 'tenon' || connector.kind === 'magnet') && connector.thicknessMm !== undefined
+      ? { thicknessMm: mm(connector.thicknessMm) }
+      : {}),
   }
 }
 
@@ -850,8 +1080,8 @@ function placementOf(connector) {
  * Preview a split's cut face for hand placement.
  *
  * @param {Geom3 | Group} value The uncut body.
- * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | 'butterfly' | null, seedOptions?: SplitParams['jointOptions'] }} params
- *   `seedOptions` are a `dowel` or `butterfly` seed's `jointOptions` (`TODO/core-075`).
+ * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | null, seedOptions?: SplitParams['jointOptions'] }} params
+ *   `seedOptions` are a `dowel`, `butterfly`, `tenon` or `magnets` seed's `jointOptions` (`TODO/core-075`).
  * @returns {FacePreview}
  * @throws {Error} The op's own refusal for a cut that is outside the body, crosses several
  *   parts or is not watertight.
@@ -861,7 +1091,9 @@ export function previewSplitFace(value, params) {
   const read = readParams({ ...rest, joint: 'pins' })
   const placements = given.length === 0 ? [] : given.map((entry, index) => readPlacement(entry, index))
   const { cutMm, piece, lower, upper } = cut(value, read)
-  const field = placementField(piece.solid, read.axisIndex, cutMm, read.clearanceMm, placements, seed === 'dowel')
+  const options =
+    seed === 'dowel' || seed === 'butterfly' || seed === 'tenon' || seed === 'magnets' ? readJointOptions(seedOptions, seed) : null
+  const field = placementField(piece.solid, read.axisIndex, cutMm, read.clearanceMm, placements, seed, options)
 
   const { radiusMm, socketRadiusMm, socketDepthMm } = pinSizing(PIN_MIN_DIAMETER_MM, read.clearanceMm)
   const wallNeed = Math.hypot(socketRadiusMm + JOINT_WALL_MM, field.depthStepMm / 2)
@@ -876,7 +1108,6 @@ export function previewSplitFace(value, params) {
   const face = butterflyFace(piece.solid, read.axisIndex, cutMm)
   if (seed !== null) {
     const args = { field, lower, upper, clearanceMm: read.clearanceMm }
-    const options = seed === 'dowel' || seed === 'butterfly' ? readJointOptions(seedOptions, seed) : null
     const plan =
       seed === 'pins'
         ? pinJoint(args)
@@ -884,9 +1115,15 @@ export function previewSplitFace(value, params) {
           ? dowelJoint({ ...args, stock: options.stock, sizeMm: options.sizeMm })
           : seed === 'butterfly' && options !== null
             ? butterflyJoint({ face, clearanceMm: read.clearanceMm, ...options })
-            : tongueGrooveJoint(args)
+            : seed === 'tenon' && options !== null
+              ? tenonJoint({ ...args, widthMm: options.sizeMm, thicknessMm: options.thicknessMm ?? null })
+              : seed === 'magnets' && options !== null
+                ? magnetJoint({ ...args, diameterMm: options.sizeMm, thicknessMm: options.thicknessMm ?? null })
+                : tongueGrooveJoint(args)
     if (plan === null) {
-      const what = seed === 'pins' ? 'pin' : seed === 'dowel' ? 'dowel' : seed === 'butterfly' ? 'butterfly key' : 'tongue'
+      /** @type {Record<string, string>} */
+      const words = { pins: 'pin', dowel: 'dowel', butterfly: 'butterfly key', tenon: 'tenon', magnets: 'magnet' }
+      const what = words[seed] ?? 'tongue'
       autoError = `${OP}: the automatic search finds no room for a ${what} on this cut face`
     } else {
       auto = plan.connectors.map(placementOf)

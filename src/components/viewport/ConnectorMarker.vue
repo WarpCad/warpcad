@@ -3,7 +3,8 @@
 /**
  * One connector marker on the Split sheet's cut plane (`TODO/ui-067`): a glyph per kind —
  * disc for a post, diamond for a wedge, ring for a screw boss, ring-and-dot for a dowel
- * (`TODO/core-075`), a bowtie for a butterfly key, a short bar for a tongue the
+ * (`TODO/core-075`), a bowtie for a butterfly key, a hollow stadium for a tenon and a hollow
+ * disc with one pole filled for a magnet (stage 3), a short bar for a tongue the
  * search seeded — at a screen position the overlay computes, with a 28 px hit area behind the
  * smaller glyph (the touch-target rule `io-007` set for the offset handle).
  *
@@ -150,6 +151,22 @@ function onContext(event) {
       class="marker__glyph marker__glyph--solid"
       d="M-9 -7 L0 -2.5 L9 -7 L9 7 L0 2.5 L-9 7 Z"
     />
+    <!-- A tenon (TODO/core-075 stage 3) seen end-on: a hollow stadium, its rounded ends telling it
+         from a seeded tongue's solid bar. -->
+    <rect
+      v-else-if="kind === 'tenon'"
+      class="marker__glyph marker__glyph--ring"
+      x="-9"
+      y="-4.5"
+      width="18"
+      height="9"
+      rx="4.5"
+    />
+    <!-- A magnet: a hollow disc with one pole filled, so it never reads as a screw boss's ring. -->
+    <g v-else-if="kind === 'magnet'">
+      <circle class="marker__glyph marker__glyph--ring" r="7" />
+      <path class="marker__glyph marker__glyph--solid" d="M-5.5 0 A5.5 5.5 0 0 1 5.5 0 Z" />
+    </g>
     <rect v-else class="marker__glyph marker__glyph--solid" x="-9" y="-4" width="18" height="8" rx="2" />
     <circle v-if="selected" class="marker__selection" r="12" />
     <g

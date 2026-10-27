@@ -3512,3 +3512,16 @@ Place them with Auto (one per 50 mm of seam) or tick Place connectors by hand an
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** pocket straddles seam, press in from outside → diff (joint.butterfly.js, docs/print-prep.md); own part and own file, laid flat → diff (split.js key parts, printPrep.js) and e2e zip contents this session; clipped to uncut solid, grown pocket cut from both → diff (joint.common.js clipToSolid, joint.butterfly.js); one per 50 mm → diff (search) and docs example; snaps to edge → e2e this session; 0.2 mm unverified → docs/print-prep.md note and TODO/VERIFY.md entry
 **To Add:** docs/screenshots/split-butterfly-keys.png
+
+## 2026-10-27T14:55:00Z — Tenons and magnets for split pieces
+
+**Post:** WarpCad's Split sheet gains two more joints. A tenon is a flat key with round ends, set into a matching slot in both cut faces, like a Domino joint. One tenon stops a twist that would otherwise need two dowels. It is its own part and its own file in Print pieces, laid flat. The side that goes down has its round ends chamfered at 45 degrees, so it prints without supports while the slot stays the full shape.
+
+Magnets are the other end of the range: a disc pocket in both faces, open at the cut, nothing extra to print. The sheet lists what to buy, the Bill of materials counts the magnets, and assembly.txt gives the polarity rule so the pieces attract instead of repel and still come apart on purpose.
+
+Driving it on a 300 by 120 by 10 mm plank gave two tenons, each 41.6 by 14 by 3.5 mm, and four 6 by 3 mm magnets. The starting sizes and the 0.2 mm clearance have not been checked against a test print yet. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Domino-like slot in both faces, own part and file, laid flat → diff (joint.tenon.js, printPrep.js, docs/print-prep.md); 45 degree chamfer on the bed side → diff (tenonProfile in joint.tenon.js, docs/print-prep.md); magnet pocket, no key part, BOM count, polarity rule → diff (joint.magnet.js, bom.js, printPrep.js) and driven this session (BOM row "Magnets 6 × 3 mm × 4", assembly.txt); plank sizes and counts → driven this session on the dev server (sheet row "Tenon × 2, 41.6 × 14 × 3.5 mm", STL bbox 41.6 × 14.0 × 3.5); sizes unchecked → TODO/VERIFY.md entry and docs/print-prep.md
+**To Add:** docs/screenshots/split-joint-picker.png

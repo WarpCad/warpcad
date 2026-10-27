@@ -54,9 +54,9 @@ reassemble, place them yourself. With the wing split at offset 150:
 1. Turn the view to face the cut: in the view cube press **X** (camera on +X). On a tablet the
    Split sheet covers the cube, so do this first, or drag the view round with a finger.
 2. Open **Split…**, set the offset, and tick **Place connectors by hand**. The **Joint** list is replaced
-   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**, **Dowel**, **Butterfly**), and the cut plane
+   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**, **Dowel**, **Butterfly**, **Tenon**, **Magnet**), and the cut plane
    shows what the automatic search found as markers: a disc for a post, a diamond for a wedge, a
-   ring for a screw boss, a ring with a dot for a dowel. Red patches on the plane are where nothing
+   ring for a screw boss, a ring with a dot for a dowel, a hollow stadium for a tenon, a hollow disc with one half filled for a magnet. Red patches on the plane are where nothing
    fits. Picking **Dowel** adds a **Dowels are** list (**Printed**, **Steel pin**, **1.75 mm
    filament**); bought dowels show under the pieces as **You'll also need**.
 3. Press **Screw boss**, then **tap the plane** where you want one. It appears as a ring if it
@@ -85,12 +85,29 @@ for.
 | **Pins and sockets** (*printed into the pieces*) | sliding across the cut, twisting (with two pins) | yes, to stop it pulling apart | if not glued | nothing | thick parts that print with the cut face up |
 | **Tongue and groove** (*printed into the pieces*) | sliding across the cut | yes | if not glued | nothing | thin sections: a trailing edge, a panel |
 | **Butterfly keys** (*separate keys to print*) | pulling apart, sliding across the cut | no: the only joint here that locks without glue | with a pry, if not glued | one printed bowtie key per pocket | flat signs, planks and beams: pieces you can push together first and lock from the outside |
+| **Tenons** (*separate keys to print*) | sliding across the cut, twisting (one is enough) | yes | if not glued | one printed flat stadium-shaped key per mortise pair | thin sections where one dowel would not stop a twist: planks, panels |
 | **Dowels** (*separate keys to print*) | sliding across the cut, twisting (with two) | yes, or a press fit | if not glued | one printed dowel per socket pair | beams and anything that prints on its cut face, where a pin printed upright would snap |
 | **Steel or filament dowels** (*hardware you buy*) | as dowels, and stronger | yes, or a press fit | if not glued | steel dowel pins, or 1.75 mm filament cut to length | the strongest joint for the least printing |
+| **Magnets** (*hardware you buy*) | light pulling apart | no, glue the magnets in | yes, on purpose | disc magnets, two per pocket pair | display models, lids, transport splits; pair with dowels for location |
 | **No joint** | nothing | yes | no | nothing | parts you will glue or bolt some other way |
 
 A dowel needs a socket and a wall in **both** pieces, so a cut close to the end of a part may have
 room for pins but not for dowels; the sheet then says *no room for a dowel* before you press Apply.
+
+A tenon is a flat key with round ends, set into a matching mortise in **both** cut faces, like a
+Domino joint. Leave **Tenon width** and **Tenon thickness** blank (**Auto**) and the search picks a
+size that fits the face, and places two end to end along the long side when they fit. The width is at
+least twice the thickness. **Print pieces** lays each tenon on its big flat side; the side that goes
+down has its round ends chamfered at 45° so it prints without supports, and the mortise is still the
+full stadium.
+
+**Magnets** cut a disc pocket in both cut faces, open at the cut, and print nothing extra. Choose
+**Magnet size** (6 × 2, 6 × 3, 8 × 3, 10 × 2, 10 × 3 or 12 × 3 mm, diameter × thickness, or
+**Custom**), or leave **Auto**. A pocket is the magnet plus the clearance on every side, and each
+face keeps at least a 1.2 mm floor behind it, so a 6 × 3 magnet needs a section about 10 mm thick.
+Two magnets are bought per pocket pair. `assembly.txt` gives the polarity rule: stack the magnets
+and mark the top face of the stack, glue every magnet in piece A mark-out, and every magnet in piece
+B mark-in, so the pieces attract.
 
 A butterfly key sits in a bowtie-shaped pocket that straddles the seam on an outer face. Its
 wings slope 1 : 4, so the pocket grows by 0.2 mm × √17, about 0.8 mm, of play along the cut axis at the
@@ -129,7 +146,7 @@ A later split refuses a plane that would cut through a key, by the key's name.
    (**Auto**) and **Clearance per side** at **0.2**. Under the pieces the list now reads
    **Dowel × 2**, `12.2 × 4.2 × 3.4 mm`, **fits**.
 
-   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove), Separate keys to print (Butterfly keys, Dowels; Dowels selected), Hardware you buy (Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
+   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove), Separate keys to print (Butterfly keys, Dowels, Tenons; Dowels selected), Hardware you buy (Magnets, Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
 
 3. Press **Apply**. The Parts list shows **Wing A**, **Wing B**, **Wing key 1** and **Wing key 2**.
 4. **File ▾ → Export…** and press **Print pieces (.zip)**. The zip holds `wing-a.stl`,
@@ -158,6 +175,20 @@ A later split refuses a plane that would cut through a key, by the key's name.
 5. Print the key, push Wing A and Wing B together along X, then press the key
    into its pocket from the top. To place one yourself, tick **Place connectors by hand**, pick
    **Butterfly**, and tap near an edge of the cut face: the key snaps to the nearest edge.
+
+### Try it: a tenon and magnets across the wing
+
+1. With the 300 × 40 × 12 mm **Wing** selected, press **Split…**, set **Axis** to **X** and
+   **Offset** to **150**.
+2. Set **Joint** to **Tenons** (under *Separate keys to print*). Leave the width and thickness on
+   **Auto**. The list reads **Tenon × 2** or **Tenon × 1**, with its size, `fits`.
+3. Press **Apply**, then **File ▾ → Export… → Print pieces**. The zip holds `wing-a.stl`,
+   `wing-b.stl`, `wing-tenon-x2.stl` (the count is in the name) and `assembly.txt`. Print the tenon
+   flat, press it into Wing A's mortises, then slide Wing B on along X.
+4. For a joint that comes apart, undo, and set **Joint** to **Magnets** (under *Hardware you buy*)
+   instead. The sheet says **You'll also need: 2 × magnets 6 × 3 mm** (the size depends on the
+   face) and the Inspector's [Bill of materials](bill-of-materials.md) lists them. To place one
+   yourself, tick **Place connectors by hand**, pick **Magnet**, and tap the plane.
 
 To buy dowels instead, choose **Steel or filament dowels** and set **Dowels are** to **Steel pin**
 or **1.75 mm filament**: the sockets are sized for them, nothing extra is printed, the sheet says
