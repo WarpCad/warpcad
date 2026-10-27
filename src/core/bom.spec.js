@@ -142,3 +142,19 @@ describe('stock dowels from a split (TODO/core-075 stage 1)', () => {
     expect(tallyBom([{ op: 'primitive.cuboid', params: {}, hardware: hardwareOf(printed) }])).toEqual([])
   })
 })
+
+describe('butterfly keys from a split (TODO/core-075 stage 2)', () => {
+  it('need nothing bought: they are printed parts, in the Print pieces zip, not BOM lines', () => {
+    const group = splitWithJoint(modeling.primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'butterfly',
+      jointOptions: { side: 'v+', depthMm: 5 },
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+    })
+    expect(hardwareOf(group)).toEqual([])
+    const rows = tallyBom([{ op: 'primitive.cuboid', params: { size: [300, 120, 10] }, hardware: hardwareOf(group) }])
+    expect(rows.filter((row) => row.key.startsWith('stock.'))).toEqual([])
+  })
+})

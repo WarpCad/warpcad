@@ -102,6 +102,9 @@ const { booleans, measurements, primitives, transforms } = modeling
  * @property {string} [label]
  * @property {number} [sizeMm]
  * @property {Vec3Mm} [bedNormal]
+ * @property {Vec3Mm} [insert] The direction a key moves to seat (`TODO/core-075`: a butterfly key
+ *   is pressed in from outside, square to the surface it sits on); absent for a key that goes
+ *   in along the cut axis with the pieces.
  * @property {[string, string]} [joins]
  * @property {'x' | 'y' | 'z'} [axis]
  * @property {readonly HardwareItem[]} [hardware]

@@ -3,6 +3,8 @@
  * A split's joint built from a hand-given list of connectors (`TODO/core-059`) rather than one
  * auto-placed joint: pins, tongues, wedges and screw bosses, each at a face position the
  * person chose — or, for pins and tongues, left to the search to find, clear of the others.
+ * `TODO/core-075` adds loose dowels and **butterfly keys**; a butterfly's position is a point on
+ * (or near) the cut face's outline, and its side, when not given, is the nearest edge's.
  *
  * ## One check, two callers
  *
@@ -31,6 +33,15 @@
  */
 
 import { JOINT_WALL_MM, footprintsOverlap, solidAt } from './joint.common.js'
+import {
+  BUTTERFLY_MAX_WIDTH_MM,
+  BUTTERFLY_MIN_WIDTH_MM,
+  butterfliesAt,
+  butterflyFace,
+  butterflyJoint,
+  butterflyMisfit,
+  nearestSide,
+} from './joint.butterfly.js'
 import { DOWEL_MAX_DIAMETER_MM, DOWEL_MIN_DIAMETER_MM, dowelJoint, dowelMisfit, dowelsAt } from './joint.dowel.js'
 import { PIN_MAX_DIAMETER_MM, PIN_MIN_DIAMETER_MM, pinJoint, pinMisfit, pinsAt } from './joint.pins.js'
 import { SCREW_BOSS_WALL_MM, screwBossAt, screwBossMisfit } from './joint.screwBoss.js'
@@ -55,13 +66,16 @@ import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM, wedgeAt, wedgeMisfit } from './
  * checked against the solid. `uMm`/`vMm` are `null` for a search entry.
  *
  * @typedef {object} Placement
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
  * @property {number | null} uMm
  * @property {number | null} vMm
  * @property {number | null} sizeMm `null` for the kind's default at this face.
  * @property {number | null} lengthMm A tongue's rib length; `null` for its default.
  * @property {number | null} insertMm A screw boss's insert bore; `null` for self-tapping.
  * @property {'printed' | 'steel' | 'filament'} [stock] A dowel's (`TODO/core-075`); default printed.
+ * @property {'u-' | 'u+' | 'v-' | 'v+' | null} [side] A butterfly's surface; `null` for the nearest edge's.
+ * @property {number | null} [depthMm] A butterfly's depth; `null` for its default.
+ * @property {boolean} [through] A butterfly that runs the full thickness.
  */
 
 /** A refusal of one placement; the op prefixes its own name. */
@@ -97,6 +111,8 @@ export function defaultSize(kind, minorMm) {
   if (kind === 'tongue') return start(TONGUE_MIN_WIDTH_MM, TONGUE_MAX_WIDTH_MM)
   if (kind === 'wedge') return start(WEDGE_MIN_WIDTH_MM, WEDGE_MAX_WIDTH_MM)
   if (kind === 'dowel') return start(DOWEL_MIN_DIAMETER_MM, DOWEL_MAX_DIAMETER_MM)
+  // A butterfly's waist starts at the face's narrower side: on a 10 mm plank, a 40 mm key.
+  if (kind === 'butterfly') return Math.min(BUTTERFLY_MAX_WIDTH_MM, Math.max(BUTTERFLY_MIN_WIDTH_MM, minorMm))
   return DEFAULT_SCREW_MM
 }
 
@@ -110,9 +126,16 @@ export function defaultSize(kind, minorMm) {
  * @param {Geom3} args.upper Piece B.
  * @param {number} args.clearanceMm
  * @param {Placement[]} args.placements At least one.
+ * @param {Geom3} [args.solid] The **uncut** solid — needed for a butterfly key, which is
+ *   clipped to it (`TODO/core-075`).
  * @returns {JointGeometry}
  */
-export function placedJoint({ field, lower, upper, clearanceMm, placements }) {
+export function placedJoint({ field, lower, upper, clearanceMm, placements, solid }) {
+  /** The butterfly's view of the face, made only when a list has one. */
+  const face = () => {
+    if (solid === undefined) throw new Error('placedJoint: a butterfly key needs the uncut solid')
+    return butterflyFace(solid, field.axisIndex, field.cutMm)
+  }
   const uName = AXIS_NAMES[field.u]
   const vName = AXIS_NAMES[field.v]
   const minorMm = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
@@ -142,7 +165,10 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements }) {
       )
     }
     const sizeMm = placement.sizeMm ?? defaultSize(placement.kind, minorMm)
-    const geometry = buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, alongU, name })
+    const geometry =
+      placement.kind === 'butterfly'
+        ? buildButterfly({ face: face(), clearanceMm, placement, at, sizeMm, name })
+        : buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, alongU, name })
     for (const connector of geometry.connectors) {
       for (const other of placed) {
         if (footprintsOverlap(other.connector.footprint, connector.footprint)) {
@@ -167,9 +193,25 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements }) {
         ? pinJoint(args)
         : placement.kind === 'dowel'
           ? dowelJoint({ ...args, stock: placement.stock ?? 'printed' })
-          : tongueGrooveJoint(args)
+          : placement.kind === 'butterfly'
+            ? butterflyJoint({
+                face: face(),
+                clearanceMm,
+                keepOut,
+                side: placement.side ?? null,
+                depthMm: placement.depthMm ?? null,
+                through: placement.through ?? false,
+              })
+            : tongueGrooveJoint(args)
     if (geometry === null) {
-      const what = placement.kind === 'pins' ? 'a pin' : placement.kind === 'dowel' ? 'a dowel' : 'a tongue'
+      const what =
+        placement.kind === 'pins'
+          ? 'a pin'
+          : placement.kind === 'dowel'
+            ? 'a dowel'
+            : placement.kind === 'butterfly'
+              ? 'a butterfly key'
+              : 'a tongue'
       throw new PlacementRefusal(
         `${label(index, placement.kind, null)}: the search found no room for ${what} ` +
           'on the cut face clear of the other connectors — place it by hand, or remove it'
@@ -228,6 +270,40 @@ export function assertSeparate(entries, label) {
       }
     }
   }
+}
+
+/**
+ * Check and build one hand-placed butterfly key (`TODO/core-075`): on the side it was given, or
+ * the side of the outline edge nearest it.
+ *
+ * @param {object} args
+ * @param {import('./joint.butterfly.js').ButterflyFace} args.face
+ * @param {number} args.clearanceMm
+ * @param {Placement} args.placement
+ * @param {{ uMm: number, vMm: number }} args.at
+ * @param {number} args.sizeMm
+ * @param {string} args.name
+ * @returns {JointGeometry}
+ */
+function buildButterfly({ face, clearanceMm, placement, at, sizeMm, name }) {
+  const side = placement.side ?? nearestSide(face, at.uMm, at.vMm)
+  if (side === null) throw new PlacementRefusal(`${name} is not near the cut face's outline — a butterfly key sits on an outer surface`)
+  const key = { ...at, widthMm: sizeMm, side, depthMm: placement.depthMm ?? null, through: placement.through ?? false }
+  const misfit = butterflyMisfit({ face, clearanceMm, key })
+  if (misfit === null) return butterfliesAt({ face, clearanceMm, keys: [key], source: 'placed' })
+  if (misfit === 'off') {
+    throw new PlacementRefusal(`${name} has no outer surface on that side of the cut face — tap on the edge of the face`)
+  }
+  if (misfit === 'floor') {
+    throw new PlacementRefusal(
+      `${name}: its pocket would leave less than a ${JOINT_WALL_MM} mm floor, or break through the far side — ` +
+        'make it shallower, move it off a hole, or cut it right through (through)'
+    )
+  }
+  throw new PlacementRefusal(
+    `${name}: its pocket and ${JOINT_WALL_MM} mm wall would break out of the side of a piece — ` +
+      'move it away from an end, a corner or a hole, or make it smaller'
+  )
 }
 
 /**

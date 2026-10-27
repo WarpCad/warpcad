@@ -178,7 +178,7 @@ test('Dowels from the grouped Joint list: key rows before Apply, key parts after
   // The Joint list is grouped, by hand, with the stage-1 entries under their headings.
   const joint = page.getByTestId('split-joint')
   await expect(joint.locator('optgroup')).toHaveCount(3)
-  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Dowels'])
+  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels'])
   await expect(joint.locator('optgroup[label="Hardware you buy"] option')).toHaveText(['Steel or filament dowels'])
   await expect(joint.locator('optgroup[label="Printed into the pieces"] option')).toHaveText(['Pins and sockets', 'Tongue and groove'])
 
@@ -281,4 +281,87 @@ test('a hand-placed Dowel of bought steel shows under You’ll also need, and la
   const row = page.getByTestId('bom-row').filter({ hasText: 'Steel dowel pin' })
   await expect(row).toHaveCount(1)
   await expect(row.getByTestId('bom-count')).toHaveText('× 1')
+})
+
+test('Butterfly keys (stage 2): key rows before Apply, key parts after, and Print pieces writes one key file and assembly.txt', async ({
+  page,
+}) => {
+  await seedPlank(page)
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+
+  const joint = page.getByTestId('split-joint')
+  await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels'])
+  await joint.selectOption('butterfly')
+  await expect(page.getByTestId('split-joint-use')).toContainText(/from outside/)
+
+  const keyRow = page.getByTestId('split-key-fit')
+  await expect(keyRow).toHaveCount(1)
+  await expect(keyRow).toContainText(/Butterfly key × \d/)
+  await expect(keyRow).toHaveAttribute('data-fit', 'fits')
+  const count = Number(await keyRow.getAttribute('data-count'))
+  expect(count).toBeGreaterThanOrEqual(1)
+
+  await page.getByTestId('split-apply').click()
+  await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+
+  await showInspector(page)
+  const parts = page.getByTestId('inspector-parts')
+  await expect(parts).toContainText('Plank A')
+  await expect(parts).toContainText('Plank B')
+  for (let n = 1; n <= count; n += 1) await expect(parts).toContainText(`Plank key ${n}`)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params).toMatchObject({ joint: 'butterfly', names: ['Plank A', 'Plank B'] })
+
+  await page.getByTestId('file-menu-button').click()
+  await page.getByTestId('file-export').click()
+  await expect(page.getByTestId('export-popover')).toBeVisible()
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-print-pieces').click()])
+  const entries = unzip(readFileSync(await download.path()))
+  expect(entries.map((entry) => entry.name)).toEqual(['plank-a.stl', 'plank-b.stl', `plank-butterfly-key-x${count}.stl`, 'assembly.txt'])
+  const key = stlStats(entries[2].bytes)
+  expect(key.triangles).toBeGreaterThan(0)
+  expect(key.minZ, 'the key lies on the bed').toBeCloseTo(0, 2)
+  const text = entries[3].bytes.toString('utf8')
+  expect(text).toContain(`plank-butterfly-key-x${count}.stl: print ${count} ×`)
+  expect(text).toMatch(/press Plank key 1/)
+})
+
+test('a hand-placed Butterfly snaps to the cut-face outline and lands as a key part', async ({ page }) => {
+  await seedPlank(page)
+  await page.getByTestId('gizmo-view-right').click()
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  await page.getByTestId('split-manual-joints').check()
+  await expect(page.getByTestId('split-manual-hint')).toHaveAttribute('data-face-view', 'usable')
+  await zoomToFace(page)
+  await waitForStablePlane(page)
+
+  const markers = page.getByTestId('connector-marker')
+  while ((await markers.count()) > 0) {
+    const box = await markers.first().locator('.marker__hit').boundingBox()
+    if (!box) throw new Error('marker has no box')
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(markers.first()).toHaveAttribute('data-selected', 'true')
+    await page.getByTestId('connector-marker-remove').first().dispatchEvent('pointerdown', { button: 0 })
+  }
+
+  await page.getByTestId('split-connector-kind-butterfly').click()
+  await expect(page.getByTestId('split-connector-kind-butterfly')).toHaveAttribute('aria-checked', 'true')
+  // Near the top edge, a little off centre: the middle of the face is the plane's drag handle,
+  // and the key (24 mm across its ends) must keep clear of the plank's sides.
+  const tap = await faceToClient(page, -6, 9)
+  await page.mouse.click(tap.x, tap.y)
+  await expect(markers).toHaveCount(1)
+  await expect(markers.first()).toHaveAttribute('data-kind', 'butterfly')
+  await expect(page.getByTestId('split-key-fit')).toContainText(/Butterfly key × 1/)
+
+  await page.getByTestId('split-apply').click()
+  await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params.placements).toEqual([expect.objectContaining({ kind: 'butterfly', side: expect.stringMatching(/^[uv][+-]$/) })])
+  await showInspector(page)
+  await expect(page.getByTestId('inspector-parts')).toContainText('Plank key 1')
 })

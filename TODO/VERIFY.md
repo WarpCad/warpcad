@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-075 stage 2 — Butterfly keys (2026-10-27 13:43)
+
+Stage 2 of 4 is built; the 1:4 wing slope gives about 0.8 mm of pull-apart play at 0.2 mm clearance (0.2 x sqrt 17), and the 0.2 mm default has not been checked on a printer.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Print the plank's `plank-butterfly-key-x2.stl` and press a key into its pocket on the owner's printer: does it go in by hand, and does it hold? | Open | |
+| 2 | The bowtie marker glyph for a hand-placed Butterfly does not rotate to match the edge it snapped to; judge whether that reads clearly on a phone | Open | |
+
+
 ### ui-089 — Hide and show from the Objects list (2026-10-26 21:16)
 
 The e2e covers that the eye hides, the hidden piece is not clickable, the hide survives a reload and Show all brings it back. What only a person can judge is how it looks.

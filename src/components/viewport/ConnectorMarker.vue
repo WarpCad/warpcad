@@ -3,7 +3,7 @@
 /**
  * One connector marker on the Split sheet's cut plane (`TODO/ui-067`): a glyph per kind —
  * disc for a post, diamond for a wedge, ring for a screw boss, ring-and-dot for a dowel
- * (`TODO/core-075`), a short bar for a tongue the
+ * (`TODO/core-075`), a bowtie for a butterfly key, a short bar for a tongue the
  * search seeded — at a screen position the overlay computes, with a 28 px hit area behind the
  * smaller glyph (the touch-target rule `io-007` set for the offset handle).
  *
@@ -143,6 +143,13 @@ function onContext(event) {
       <circle class="marker__glyph marker__glyph--ring" r="6" />
       <circle class="marker__glyph marker__glyph--solid" r="2.5" />
     </g>
+    <!-- A butterfly key (TODO/core-075 stage 2): a bowtie, its waist on the outline edge it
+         snapped to. -->
+    <path
+      v-else-if="kind === 'butterfly'"
+      class="marker__glyph marker__glyph--solid"
+      d="M-9 -7 L0 -2.5 L9 -7 L9 7 L0 2.5 L-9 7 Z"
+    />
     <rect v-else class="marker__glyph marker__glyph--solid" x="-9" y="-4" width="18" height="8" rx="2" />
     <circle v-if="selected" class="marker__selection" r="12" />
     <g

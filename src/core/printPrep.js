@@ -32,10 +32,11 @@
  *
  * ## Keys and `assembly.txt` (`TODO/core-075`)
  *
- * Identical key parts share one file, the count in its name (`plank-dowel-x4.stl`) — a
- * slicer makes the copies. When any body has keys or bought hardware, the zip also carries
+ * Identical key parts share one file, the count in its name (`plank-dowel-x4.stl`,
+ * `plank-butterfly-key-x2.stl`) — a slicer makes the copies. When any body has keys or bought hardware, the zip also carries
  * `assembly.txt`: the pieces, how many of each key to print and which way down, what to buy,
- * and which pieces go together along which axis.
+ * and which pieces go together along which axis — and, for a butterfly key, that the pieces go
+ * together first and the keys are pressed in from outside, from the side they sit on.
  *
  * ## Refusals
  *
@@ -289,7 +290,15 @@ export function exportPrintPieces(bodies) {
     for (const [shape, group] of keyShapes) {
       void shape
       const meta = /** @type {import('./kernel/group.js').PartMeta} */ (group[0].meta)
-      if (meta.joins) note.joins.push({ joins: meta.joins, axis: meta.axis ?? 'x', keys: group.map((piece) => piece.name), label: meta.label ?? 'key' })
+      if (meta.joins) {
+        note.joins.push({
+          joins: meta.joins,
+          axis: meta.axis ?? 'x',
+          keys: group.map((piece) => piece.name),
+          label: meta.label ?? 'key',
+          ...(meta.insert ? { insert: meta.insert } : {}),
+        })
+      }
     }
     for (const item of note.hardware) {
       note.joins.push({ joins: item.joins, axis: item.axis, keys: [], label: item.label, count: item.count })
@@ -311,7 +320,7 @@ export function exportPrintPieces(bodies) {
       const laid = layFlat(repaired, isKey && piece.meta?.bedNormal ? { bedNormal: piece.meta.bedNormal } : {})
       const result = exportBodies([{ id: body.id, name: piece.name, geometry: laid.solid }], 'stl')
       const filename = isKey
-        ? unique(`${slugifyName(body.name)}-${slugifyName(piece.meta?.kind ?? 'key')}-x${count}`)
+        ? unique(`${slugifyName(body.name)}-${keyFileWord(piece.meta?.kind)}-x${count}`)
         : unique(slugifyName(piece.name))
       files.push({
         filename,
@@ -357,8 +366,37 @@ export function exportPrintPieces(bodies) {
  * @property {{ filename: string, name: string }[]} pieces
  * @property {{ filename: string, count: number, label: string }[]} keys
  * @property {import('./kernel/group.js').HardwareItem[]} hardware
- * @property {{ joins: [string, string], axis: string, keys: string[], label: string, count?: number }[]} joins
+ * @property {{ joins: [string, string], axis: string, keys: string[], label: string, count?: number, insert?: Vec3Mm }[]} joins
+ *   `insert`: the direction a key is pressed in, for a key that goes in from outside (a butterfly).
  */
+
+/**
+ * What a key's file is called after its kind (`TODO/core-075`): `dowel`, `butterfly-key`.
+ *
+ * @param {string | undefined} kind
+ * @returns {string}
+ */
+function keyFileWord(kind) {
+  if (kind === 'butterfly') return 'butterfly-key'
+  return slugifyName(kind ?? 'key')
+}
+
+/**
+ * Where a key pressed in along `insert` comes from, in a person's words: moving down (−Z) it
+ * comes from the top.
+ *
+ * @param {Vec3Mm} insert
+ * @returns {string}
+ */
+function fromWhere(insert) {
+  const axis = [0, 1, 2].reduce((best, i) => (Math.abs(insert[i]) > Math.abs(insert[best]) ? i : best), 0)
+  const from = /** @type {const} */ ([
+    ['the right', 'the left'],
+    ['the back', 'the front'],
+    ['the top', 'the bottom'],
+  ])
+  return from[axis][insert[axis] < 0 ? 0 : 1]
+}
 
 /**
  * `assembly.txt` (`TODO/core-075`): plain text a person reads at the printer and the bench.
@@ -385,6 +423,14 @@ export function assemblyText(notes) {
       note.joins.forEach((join, index) => {
         const [a, b] = join.joins
         const along = join.axis.toUpperCase()
+        if (join.insert) {
+          lines.push(
+            `    ${index + 1}. ${a} and ${b}, along ${along}: push ${b} against ${a} along ${along} until the cut faces meet, ` +
+              `then press ${join.keys.join(', ')} into the pockets across the seam from ${fromWhere(join.insert)}.`,
+            '       Dry-fit first: a key should press in by hand. For a permanent joint, put a little glue in each pocket.'
+          )
+          return
+        }
         const what =
           join.keys.length > 0
             ? `push ${join.keys.join(', ')} into the sockets in ${a}`

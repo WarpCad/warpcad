@@ -9,6 +9,11 @@ depends: []
 status: open
 ---
 
+> **Progress (2026-10-27).** Stage 1 (loose and stock dowels, key-part plumbing) shipped in `220b02d`.
+> Stage 2 (butterfly keys, axis-aligned in v1, one STL per distinct key with the count in its name)
+> shipped in the commit that follows it. Stages 3 (tenon, magnets) and 4 (seam profiles) remain, so
+> this file stays open. Docs: `docs/print-prep.md` "Try it: butterfly keys across the wing".
+
 ## Goal
 
 **In user terms:** split a part too big for the bed, print every piece **and every key that joins

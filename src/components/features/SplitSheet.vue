@@ -8,7 +8,8 @@
  * - **Fields**: Axis (X/Y/Z), Offset from the minimum face (mm), Joint — a grouped list
  *   written out in the store (`JOINT_CHOICES`, `TODO/core-075`), a native `<select>` with
  *   `<optgroup>`s so iOS shows it as a wheel with headings — with its one-line use under it and
- *   its own fields (a dowel's diameter; what bought dowels are), Clearance (mm, per side). The offset is also the cut plane in
+ *   its own fields (a dowel's diameter; what bought dowels are; butterfly keys' Keys, Side,
+ *   Depth and Cut right through, `TODO/core-075` stage 2), Clearance (mm, per side). The offset is also the cut plane in
  *   the viewport (`CutPlaneOverlay.vue`) — drag its handle and this number follows.
  * - **Feedback before Apply**: each piece's name and fit verdict against the project's build
  *   volume, then any key parts the joint makes (`Dowel × 2`) with theirs, and **You'll also
@@ -64,6 +65,18 @@ function onDowelSize(event) {
   const text = /** @type {HTMLInputElement} */ (event.target).value.trim()
   const value = Number(text)
   sheet.dowelSizeMm = text === '' || !Number.isFinite(value) ? null : value
+}
+
+/**
+ * A whole-number or decimal field where blank means Auto.
+ *
+ * @param {Event} event
+ * @returns {number | null}
+ */
+function autoNumber(event) {
+  const text = /** @type {HTMLInputElement} */ (event.target).value.trim()
+  const value = Number(text)
+  return text === '' || !Number.isFinite(value) ? null : value
 }
 
 /** @param {readonly number[]} size */
@@ -148,6 +161,55 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         />
       </label>
 
+      <template v-if="!sheet.manual && sheet.joint === 'butterfly'">
+        <label class="split__field">
+          Keys
+          <input
+            class="split__input"
+            type="number"
+            step="1"
+            min="1"
+            max="16"
+            inputmode="numeric"
+            placeholder="Auto"
+            data-testid="split-butterfly-count"
+            :value="sheet.butterflyCount ?? ''"
+            @change="sheet.butterflyCount = autoNumber($event)"
+          />
+        </label>
+        <label class="split__field">
+          Side
+          <select
+            class="split__input"
+            data-testid="split-butterfly-side"
+            :value="sheet.butterflySide ?? ''"
+            @change="sheet.butterflySide = /** @type {any} */ (/** @type {HTMLSelectElement} */ ($event.target).value || null)"
+          >
+            <option value="">Auto</option>
+            <option v-for="side in sheet.butterflySides" :key="side.value" :value="side.value">{{ side.label }}</option>
+          </select>
+        </label>
+        <label class="split__field">
+          Depth (mm)
+          <input
+            class="split__input"
+            type="number"
+            step="0.5"
+            min="1"
+            inputmode="decimal"
+            placeholder="Auto"
+            data-testid="split-butterfly-depth"
+            :disabled="sheet.butterflyThrough"
+            :value="sheet.butterflyDepthMm ?? ''"
+            @change="sheet.butterflyDepthMm = autoNumber($event)"
+          />
+        </label>
+        <label class="split__toggle">
+          <input v-model="sheet.butterflyThrough" type="checkbox" data-testid="split-butterfly-through" />
+          Cut right through
+        </label>
+      </template>
+
       <label class="split__toggle">
         <input
           type="checkbox"
@@ -185,6 +247,7 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
               <circle r="6" class="split__glyph--ring" />
               <circle r="2.5" class="split__glyph--solid" />
             </g>
+            <path v-else-if="kind === 'butterfly'" d="M-8 -6 L0 -2 L8 -6 L8 6 L0 2 L-8 6 Z" class="split__glyph--solid" />
             <circle v-else r="6" class="split__glyph--ring" />
           </svg>
           <span class="split__kind-label">{{ CONNECTOR_LABELS[kind] }}</span>
@@ -200,8 +263,13 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           Turn the view to face the cut plane to place connectors.
         </template>
         <template v-else>
-          Tap the cut plane to drop a {{ CONNECTOR_LABELS[sheet.connectorKind].toLowerCase() }}; drag a marker to move
-          it. Red areas have no room.
+          <template v-if="sheet.connectorKind === 'butterfly'">
+            Tap near an edge of the cut plane to drop a butterfly key on that face; it snaps to the edge.
+          </template>
+          <template v-else>
+            Tap the cut plane to drop a {{ CONNECTOR_LABELS[sheet.connectorKind].toLowerCase() }}; drag a marker to move
+            it. Red areas have no room.
+          </template>
         </template>
       </p>
       <label v-if="sheet.manual && (sheet.connectorKind === 'dowel' || sheet.markers.some((m) => m.kind === 'dowel'))" class="split__field">

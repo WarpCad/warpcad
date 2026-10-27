@@ -35,6 +35,7 @@ import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, mirrorRotationDeg } from '../../core/k
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_PLACEMENTS, PLACEMENT_KINDS } from '../../core/kernel/split.js'
 import { DOWEL_STOCKS } from '../../core/kernel/recipes/joint.dowel.js'
+import { BUTTERFLY_SIDES } from '../../core/kernel/recipes/joint.butterfly.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
@@ -298,9 +299,11 @@ export const OPERATIONS = Object.freeze({
     'split',
     'Split one body into two printable pieces across an axis plane, with a joint so they go back together. ' +
       'Joints: pins (pins printed on piece A into sockets in B; the default), tongue (a rib and groove, for thin sections), ' +
-      'dowel (a socket in both pieces and a separate dowel: printed lying down, so stronger than a pin, or bought, steel or 1.75 mm filament, via jointOptions.stock), or none. ' +
-      'Or give placements to put connectors at chosen face positions: pins, tongue, wedge, screwBoss (a bolt-through boss) and dowel; pins, tongue and dowel may leave uMm/vMm out to be placed by the search. ' +
-      'The body becomes a group of named parts: A, B, then any printed dowels as key parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
+      'dowel (a socket in both pieces and a separate dowel: printed lying down, so stronger than a pin, or bought, steel or 1.75 mm filament, via jointOptions.stock), ' +
+      'butterfly (bowtie keys let into pockets across the seam on an outer surface, pressed in from outside after the pieces meet; the only joint that resists pull-apart without glue; printed flat), or none. ' +
+      'A side of the cut face is named in its own frame: u-/u+/v-/v+ are the low/high side along the face’s first/second axis (for a cut across x, u is y and v is z, so v+ is the top). ' +
+      'Or give placements to put connectors at chosen face positions: pins, tongue, wedge, screwBoss (a bolt-through boss), dowel and butterfly (a point on the edge of the face); pins, tongue, dowel and butterfly may leave uMm/vMm out to be placed by the search. ' +
+      'The body becomes a group of named parts: A, B, then any printed dowels or butterfly keys as key parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
     objectSchema(
       {
         axis: { ...AXIS, description: 'The cut plane’s normal.' },
@@ -308,7 +311,8 @@ export const OPERATIONS = Object.freeze({
         joint: {
           type: 'string',
           enum: [...JOINT_TYPES],
-          description: 'pins (default), tongue (for thin sections), dowel (strongest; needs material on both sides of the cut), or none. Ignored when placements is given.',
+          description:
+            'pins (default), tongue (for thin sections), dowel (strong in shear; needs material on both sides of the cut), butterfly (locks against pull-apart; keys on an outer surface), or none. Ignored when placements is given.',
         },
         jointOptions: objectSchema(
           {
@@ -317,10 +321,21 @@ export const OPERATIONS = Object.freeze({
               enum: [...DOWEL_STOCKS],
               description: 'For joint dowel: printed (default, a key part to print), steel (buy steel dowel pins) or filament (cut lengths of 1.75 mm filament).',
             },
-            sizeMm: { type: 'number', description: 'For joint dowel: the diameter in millimetres, 2 to 10; leave out to let the search size it.' },
+            sizeMm: {
+              type: 'number',
+              description: 'For joint dowel: the diameter in millimetres, 2 to 10. For joint butterfly: the key’s waist in millimetres, 3 to 20 (ends twice that, 4× long). Leave out to let the search size it.',
+            },
+            count: { type: 'integer', description: `For joint butterfly: how many keys, 1 to ${MAX_PLACEMENTS}; default one per ~50 mm of the straight edge they sit along.` },
+            side: {
+              type: 'string',
+              enum: [...BUTTERFLY_SIDES],
+              description: 'For joint butterfly: which outer surface the keys sit on (u-/u+/v-/v+, see the tool description); default the longest straight edge.',
+            },
+            depthMm: { type: 'number', description: 'For joint butterfly: the keys’ depth from the surface in millimetres; default half the wall, at least 3 mm.' },
+            through: { type: 'boolean', description: 'For joint butterfly: keys that run the full thickness of a thin wall, instead of a depthMm.' },
           },
           [],
-          'Options for joint dowel only.'
+          'Options for joint dowel or butterfly only.'
         ),
         clearanceMm: { type: 'number', description: `Gap per side between pin and socket, in millimetres. Default ${DEFAULT_JOINT_CLEARANCE_MM}.` },
         names: {
@@ -338,13 +353,19 @@ export const OPERATIONS = Object.freeze({
             'Hand-placed connectors instead of joint. uMm/vMm are millimetres along the cut face’s two axes: for a cut across x they are y and z, across y z and x, across z x and y.',
           items: objectSchema(
             {
-              kind: { type: 'string', enum: [...PLACEMENT_KINDS], description: 'pins, tongue, wedge, screwBoss or dowel.' },
-              uMm: { type: 'number', description: 'Position along the face’s first axis, millimetres; leave out with vMm for a search (pins, tongue, dowel).' },
+              kind: { type: 'string', enum: [...PLACEMENT_KINDS], description: 'pins, tongue, wedge, screwBoss, dowel or butterfly.' },
+              uMm: {
+                type: 'number',
+                description: 'Position along the face’s first axis, millimetres; leave out with vMm for a search (pins, tongue, dowel, butterfly). A butterfly’s position is a point on the edge of the face.',
+              },
               vMm: { type: 'number', description: 'Position along the face’s second axis, millimetres.' },
-              sizeMm: { type: 'number', description: 'A pin’s or dowel’s diameter, a tongue’s or wedge’s width, a screw boss’s screw size, in millimetres.' },
+              sizeMm: { type: 'number', description: 'A pin’s or dowel’s diameter, a tongue’s or wedge’s width, a screw boss’s screw size, a butterfly’s waist, in millimetres.' },
               lengthMm: { type: 'number', description: 'A tongue’s rib length in millimetres, at least twice its width.' },
               insertMm: { type: 'number', description: 'A screw boss’s heat-set insert bore in millimetres; leave out for a self-tapping screw.' },
               stock: { type: 'string', enum: [...DOWEL_STOCKS], description: 'A dowel’s: printed (default), steel or filament.' },
+              side: { type: 'string', enum: [...BUTTERFLY_SIDES], description: 'A butterfly’s surface (u-/u+/v-/v+); default the nearest edge’s.' },
+              depthMm: { type: 'number', description: 'A butterfly’s depth from the surface, millimetres.' },
+              through: { type: 'boolean', description: 'A butterfly that runs the full thickness of a thin wall.' },
             },
             ['kind']
           ),

@@ -54,7 +54,7 @@ reassemble, place them yourself. With the wing split at offset 150:
 1. Turn the view to face the cut: in the view cube press **X** (camera on +X). On a tablet the
    Split sheet covers the cube, so do this first, or drag the view round with a finger.
 2. Open **Split…**, set the offset, and tick **Place connectors by hand**. The **Joint** list is replaced
-   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**, **Dowel**), and the cut plane
+   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**, **Dowel**, **Butterfly**), and the cut plane
    shows what the automatic search found as markers: a disc for a post, a diamond for a wedge, a
    ring for a screw boss, a ring with a dot for a dowel. Red patches on the plane are where nothing
    fits. Picking **Dowel** adds a **Dowels are** list (**Printed**, **Steel pin**, **1.75 mm
@@ -84,12 +84,20 @@ for.
 |---|---|---|---|---|---|
 | **Pins and sockets** (*printed into the pieces*) | sliding across the cut, twisting (with two pins) | yes, to stop it pulling apart | if not glued | nothing | thick parts that print with the cut face up |
 | **Tongue and groove** (*printed into the pieces*) | sliding across the cut | yes | if not glued | nothing | thin sections: a trailing edge, a panel |
+| **Butterfly keys** (*separate keys to print*) | pulling apart, sliding across the cut | no: the only joint here that locks without glue | with a pry, if not glued | one printed bowtie key per pocket | flat signs, planks and beams: pieces you can push together first and lock from the outside |
 | **Dowels** (*separate keys to print*) | sliding across the cut, twisting (with two) | yes, or a press fit | if not glued | one printed dowel per socket pair | beams and anything that prints on its cut face, where a pin printed upright would snap |
 | **Steel or filament dowels** (*hardware you buy*) | as dowels, and stronger | yes, or a press fit | if not glued | steel dowel pins, or 1.75 mm filament cut to length | the strongest joint for the least printing |
 | **No joint** | nothing | yes | no | nothing | parts you will glue or bolt some other way |
 
 A dowel needs a socket and a wall in **both** pieces, so a cut close to the end of a part may have
 room for pins but not for dowels; the sheet then says *no room for a dowel* before you press Apply.
+
+A butterfly key sits in a bowtie-shaped pocket that straddles the seam on an outer face. Its
+wings slope 1 : 4, so the pocket grows by 0.2 mm × √17, about 0.8 mm, of play along the cut axis at the
+default clearance; glue the key if you want that gone. A key reaches the outside, so it is clipped
+to the part: on a curved face its top follows the surface. The pocket's floor keeps at least
+1.2 mm of material unless you tick **Cut right through**. In this version a key goes in straight
+along one axis (**Side** is Auto, or Front, Back, Bottom or Top for an X cut), even on a slanted edge.
 
 ## Printing and assembling keys
 
@@ -98,7 +106,8 @@ A printed dowel is its own part, a **key**: after **Apply** the Parts list shows
 assembled part. Hide a piece to see them ([Hide and show](selection-and-inspector.md#hide-and-show)).
 A later split refuses a plane that would cut through a key, by the key's name.
 
-- **Orientation.** Each dowel has one flat along its length (a fifth of its diameter deep), and
+- **Orientation.** A butterfly key is laid on its big flat face, waist in the bed plane, so the
+  narrow waist is held by layers running along it, the strong way. Each dowel has one flat along its length (a fifth of its diameter deep), and
   **Print pieces** lays it on that flat, so it prints lying down with its layers running along it
   (the strong way) and cannot roll. The socket stays round; the flat leaves room for glue.
 - **One file per size.** Identical keys share one STL with the count in its name,
@@ -120,7 +129,7 @@ A later split refuses a plane that would cut through a key, by the key's name.
    (**Auto**) and **Clearance per side** at **0.2**. Under the pieces the list now reads
    **Dowel × 2**, `12.2 × 4.2 × 3.4 mm`, **fits**.
 
-   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove), Separate keys to print (Dowels, selected), Hardware you buy (Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
+   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove), Separate keys to print (Butterfly keys, Dowels; Dowels selected), Hardware you buy (Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
 
 3. Press **Apply**. The Parts list shows **Wing A**, **Wing B**, **Wing key 1** and **Wing key 2**.
 4. **File ▾ → Export…** and press **Print pieces (.zip)**. The zip holds `wing-a.stl`,
@@ -130,6 +139,25 @@ A later split refuses a plane that would cut through a key, by the key's name.
 
 5. Print two copies of `wing-dowel-x2.stl`, push them into the sockets in Wing A, then slide
    Wing B on along X.
+
+### Try it: butterfly keys across the wing
+
+1. With the 300 × 40 × 12 mm **Wing** selected, press **Split…**, set **Axis** to **X** and
+   **Offset** to **150**.
+2. Set **Joint** to **Butterfly keys** (under *Separate keys to print*). Leave **Keys** at **Auto**
+   and **Side** at **Auto**, which picks the top face; leave **Clearance per side** at **0.2**. The
+   list reads **Butterfly key × 1** with its size, `fits`: the seam is 40 mm wide, and Auto places one key per
+   50 mm of seam.
+
+   ![The Wing after Apply: a bowtie key let into the top face across the seam](./screenshots/split-butterfly-keys.png)
+
+3. Press **Apply**. A bowtie inlay appears across the seam on the top face, and the Parts list
+   shows **Wing A**, **Wing B** and **Wing key 1**.
+4. **File ▾ → Export… → Print pieces**. The zip holds `wing-a.stl`, `wing-b.stl`,
+   `wing-butterfly-key-x1.stl` and `assembly.txt`.
+5. Print the key, push Wing A and Wing B together along X, then press the key
+   into its pocket from the top. To place one yourself, tick **Place connectors by hand**, pick
+   **Butterfly**, and tap near an edge of the cut face: the key snaps to the nearest edge.
 
 To buy dowels instead, choose **Steel or filament dowels** and set **Dowels are** to **Steel pin**
 or **1.75 mm filament**: the sockets are sized for them, nothing extra is printed, the sheet says

@@ -56,7 +56,7 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  * connector again by hand.
  *
  * @typedef {object} Connector
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
  * @property {'search' | 'placed'} source
  * @property {number} uMm Centre on the face, document millimetres along the field's `u` axis.
  * @property {number} vMm
@@ -67,12 +67,15 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  * @property {number} [heightMm] How far a tongue, wedge or screw boss stands proud.
  * @property {number} [insertMm] A screw boss's heat-set insert bore, when it has one.
  * @property {'printed' | 'steel' | 'filament'} [stock] A dowel's (`TODO/core-075`).
+ * @property {number} [depthMm] A butterfly key's depth from the surface (`TODO/core-075`).
+ * @property {'u-' | 'u+' | 'v-' | 'v+'} [side] The surface a butterfly key sits on.
+ * @property {boolean} [through] A butterfly key that runs the full thickness.
  * @property {Footprint} footprint Its socket plus wall on the face.
  */
 
 /**
  * @typedef {object} JointGeometry
- * @property {'pins' | 'tongue' | 'dowel' | 'placements'} kind `placements` when built from a hand-given
+ * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'placements'} kind `placements` when built from a hand-given
  *   list (`TODO/core-059`), which may mix kinds.
  * @property {Geom3[]} pins Unioned onto piece A. Each is sunk {@link JOINT_EMBED_MM} into A.
  * @property {Geom3[]} sockets Subtracted from piece B. Each starts {@link JOINT_EMBED_MM}
@@ -81,7 +84,7 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  *   boss's bore through A and its own boss. Empty for pins, tongues and wedges.
  * @property {Connector[]} connectors In the order their pins and sockets are listed.
  * @property {{ solid: Geom3, meta: import('../group.js').PartMeta }[]} [keys] Separate key
- *   parts, assembled in their sockets (`TODO/core-075`: a printed dowel). Absent for none.
+ *   parts, assembled in their sockets (`TODO/core-075`: a printed dowel, a butterfly key). Absent for none.
  * @property {Omit<import('../group.js').HardwareItem, 'joins' | 'axis'>[]} [hardware] What to
  *   buy (`TODO/core-075`: steel pins, filament). Absent for none.
  * @property {string} summary One line for a person: what was made and how big.

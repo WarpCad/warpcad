@@ -2430,3 +2430,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** socket in both faces, separate pin → diff (joint.dowel.js header); prints lying down on a flat → diff (docs/print-prep.md "Orientation", printPrep.js); steel or 1.75 mm filament → diff (DOWEL_STOCKS, docs/print-prep.md)
 **To Add:** docs/screenshots/split-joint-picker.png
+
+## 2026-10-27T13:50:00Z — Butterfly keys for split pieces
+
+**Post:** Split a long part in WarpCad and lock the halves with butterfly keys: bowtie inlays across the seam that you print flat and press in from the top. No glue needed to stop the pieces pulling apart. Place them automatically or tap the cut face. #CAD #3DPrinting Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** bowtie inlays across the seam, pressed in from the top → diff (joint.butterfly.js, docs/print-prep.md "Try it: butterfly keys across the wing", docs/screenshots/split-butterfly-keys.png); printed flat → diff (printPrep.js bed normal) and e2e minZ ≈ 0 check; auto or tap placement → diff (splitSheet.js, CutPlaneOverlay path) and e2e `a hand-placed Butterfly snaps…` passing this session
+**To Add:** docs/screenshots/split-butterfly-keys.png

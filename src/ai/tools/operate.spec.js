@@ -391,7 +391,7 @@ describe('modify.splitWithJoint — the AI can ask for every stage-1 joint (TODO
   })
 
   it('refuses an unknown joint or placement kind by name', () => {
-    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'butterfly' }).join(' ')).toMatch(/joint.*pins.*tongue.*dowel.*none/)
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'tenon' }).join(' ')).toMatch(/joint.*pins.*tongue.*dowel.*butterfly.*none/)
     expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'magnet' }] }).join(' ')).toMatch(
       /placements\[0\]\.kind.*pins.*tongue.*wedge.*screwBoss.*dowel/
     )
@@ -424,5 +424,58 @@ describe('modify.splitWithJoint — the AI can ask for every stage-1 joint (TODO
     )
     expect(placed.params?.placements).toEqual([{ kind: 'dowel' }])
     expect(placed.params?.joint).toBeUndefined()
+  })
+})
+
+describe('modify.splitWithJoint — the AI can ask for butterfly keys (TODO/core-075 stage 2)', () => {
+  const spec = OPERATIONS['modify.splitWithJoint']
+
+  it('accepts joint butterfly with its jointOptions, and a butterfly placement', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'butterfly' })).toEqual([])
+    expect(
+      checkInput(spec.params, {
+        axis: 'x',
+        offsetMm: 150,
+        joint: 'butterfly',
+        jointOptions: { count: 2, side: 'v+', depthMm: 5, sizeMm: 8 },
+      })
+    ).toEqual([])
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'butterfly', jointOptions: { through: true } })).toEqual([])
+    expect(
+      checkInput(spec.params, {
+        axis: 'x',
+        offsetMm: 150,
+        placements: [{ kind: 'butterfly', uMm: 0, vMm: 10, side: 'v+', depthMm: 5, sizeMm: 8 }, { kind: 'butterfly' }],
+      })
+    ).toEqual([])
+  })
+
+  it('refuses an unknown placement kind or side by name, listing butterfly', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'magnet' }] }).join(' ')).toMatch(
+      /placements\[0\]\.kind.*pins.*tongue.*wedge.*screwBoss.*dowel.*butterfly/
+    )
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'butterfly', jointOptions: { side: 'top' } }).join(' ')).toMatch(
+      /side.*u-.*u\+.*v-.*v\+/
+    )
+  })
+
+  it('says in its description what butterfly keys are for and how a side is named', () => {
+    const words = JSON.stringify(spec.params) + spec.description
+    expect(words).toMatch(/butterfly/)
+    expect(words).toMatch(/pull-apart|pull apart/)
+    expect(words).toMatch(/v\+/)
+  })
+
+  it('builds a record that carries butterfly jointOptions as given', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const id = place(document, 'primitive.cuboid', { x: 0, y: 0 }, { size: [300, 120, 10] })
+    const operand = { id, ref: id, terminal: id }
+    const record = spec.build(
+      document,
+      /** @type {any} */ ([operand]),
+      { axis: 'x', offsetMm: 150, joint: 'butterfly', jointOptions: { side: 'v+', depthMm: 5 } },
+      'modify.splitWithJoint'
+    )
+    expect(record.params).toMatchObject({ joint: 'butterfly', jointOptions: { side: 'v+', depthMm: 5 } })
   })
 })

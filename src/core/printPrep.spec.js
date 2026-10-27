@@ -245,3 +245,45 @@ describe('print prep for split keys (TODO/core-075 stage 1)', () => {
     expect(result.files.map((file) => file.filename)).toEqual(['wing-a.stl', 'wing-b.stl'])
   })
 })
+
+describe('print prep for butterfly keys (TODO/core-075 stage 2)', () => {
+  /** The docs' "Try it": a 300 × 120 × 10 mm plank split at 150 mm with two butterfly keys on top. */
+  const plankButterflies = () =>
+    splitWithJoint(primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'butterfly',
+      jointOptions: { side: 'v+', depthMm: 5 },
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+    })
+
+  it('one STL for the two identical keys, named with the count, laid on its floor; and assembly.txt says how they go in', () => {
+    const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: plankButterflies() }])
+    const names = result.files.map((file) => file.filename)
+    expect(names).toEqual(['plank-a.stl', 'plank-b.stl', 'plank-butterfly-key-x2.stl', 'assembly.txt'])
+    expect(result.files[2]).toMatchObject({ role: 'key', count: 2 })
+    const entries = readZip(result.bytes)
+    const keyStl = stlStats(entries[2].bytes)
+    expect(keyStl.unmatched).toBe(0)
+    expect(keyStl.minZ).toBeCloseTo(0, 3)
+    const text = new TextDecoder().decode(entries[3].bytes)
+    expect(text).toMatch(/plank-butterfly-key-x2\.stl: print 2 × Butterfly key 40 × 20 × 5 mm, flat side down/)
+    expect(text).toMatch(/Plank A and Plank B, along X: push Plank B against Plank A along X until the cut faces meet, then press Plank key 1, Plank key 2 into the pockets across the seam from the top/)
+    expect(text).toMatch(/Nothing to buy/)
+  })
+
+  it('keys on the bottom are pressed in from the bottom', () => {
+    const group = splitWithJoint(primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'butterfly',
+      jointOptions: { side: 'v-', depthMm: 4 },
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+    })
+    const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: group }])
+    const text = new TextDecoder().decode(readZip(result.bytes).at(-1)?.bytes)
+    expect(text).toMatch(/into the pockets across the seam from the bottom/)
+  })
+})

@@ -29,24 +29,26 @@
  * @module core/kernel/recipes/joint.wedge
  */
 
-import { JOINT_BASE_DEPTH_MM, JOINT_EMBED_MM, JOINT_WALL_MM, contains, outlinePrismAlong } from './joint.common.js'
+import {
+  JOINT_BASE_DEPTH_MM,
+  JOINT_EMBED_MM,
+  JOINT_WALL_MM,
+  contains,
+  offsetTrapezoid,
+  outlinePrismAlong,
+  trapezoidOutline,
+} from './joint.common.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('./joint.common.js').ClearanceField} ClearanceField */
 /** @typedef {import('./joint.common.js').Footprint} Footprint */
 /** @typedef {import('./joint.pins.js').JointGeometry} JointGeometry */
+/** @typedef {import('./joint.common.js').Trapezoid} Trapezoid */
 
 /** Narrowest wedge (at its wide end), mm. */
 export const WEDGE_MIN_WIDTH_MM = 1
 /** Widest wedge, mm. */
 export const WEDGE_MAX_WIDTH_MM = 10
-
-/**
- * A trapezoid on the face: `wideMm` across at one end, `narrowMm` at the other, `lengthMm`
- * between them.
- *
- * @typedef {{ wideMm: number, narrowMm: number, lengthMm: number }} Trapezoid
- */
 
 /**
  * @param {number} value
@@ -65,48 +67,9 @@ export function wedgeSizing(widthMm) {
   return { wideMm: widthMm, narrowMm: widthMm / 2, lengthMm: 3 * widthMm, heightMm: clamp(1.5 * widthMm, 2, 8) }
 }
 
-/**
- * A trapezoid grown by `byMm` square to every side (a mitred offset), which is again a
- * trapezoid with the same slope: its ends move out by `byMm`, its slanted sides by `byMm`
- * along their own normals.
- *
- * @param {Trapezoid} trapezoid
- * @param {number} byMm
- * @returns {Trapezoid}
- */
-export function offsetTrapezoid({ wideMm, narrowMm, lengthMm }, byMm) {
-  if (!(byMm >= 0)) throw new Error(`a trapezoid offset must be zero or more, got ${byMm}`)
-  if (!(lengthMm > 0)) throw new Error(`a trapezoid needs a positive length, got ${lengthMm}`)
-  // Half-width change per millimetre along, from the wide end to the narrow.
-  const slope = (narrowMm - wideMm) / (2 * lengthMm)
-  const sideGrowth = byMm * Math.hypot(1, slope)
-  return {
-    wideMm: wideMm + 2 * (sideGrowth - slope * byMm),
-    narrowMm: narrowMm + 2 * (sideGrowth + slope * byMm),
-    lengthMm: lengthMm + 2 * byMm,
-  }
-}
-
-/**
- * A trapezoid's outline about its centre, counter-clockwise in `(u, v)`, running along `u` or
- * `v` with its wide end at the low end.
- *
- * @param {Trapezoid} trapezoid
- * @param {boolean} alongU
- * @returns {[number, number][]}
- */
-export function trapezoidOutline({ wideMm, narrowMm, lengthMm }, alongU) {
-  const half = lengthMm / 2
-  /** @type {[number, number][]} along, across */
-  const corners = [
-    [-half, -wideMm / 2],
-    [half, -narrowMm / 2],
-    [half, narrowMm / 2],
-    [-half, wideMm / 2],
-  ]
-  // Along v is a quarter turn, which keeps the winding.
-  return alongU ? corners : corners.map(([along, across]) => [-across, along])
-}
+// The mitred offset and the trapezoid outline now live in `joint.common.js` (`TODO/core-075`,
+// the butterfly's grown pocket uses them too); re-exported here, unchanged.
+export { offsetTrapezoid, trapezoidOutline }
 
 /**
  * The wedge's socket plus wall on the face: the bounding rectangle of its outline offset by

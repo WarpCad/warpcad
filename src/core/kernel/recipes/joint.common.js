@@ -114,9 +114,12 @@ export function prismAlong(axisIndex, fromMm, toMm, uMm, vMm, section) {
  * @param {number} uMm
  * @param {number} vMm
  * @param {[number, number][]} outline
+ * @param {number[][]} [pieces] For a **non-convex** outline (`TODO/core-075`: the butterfly's
+ *   bowtie), the outline's corner indices split into convex pieces, each counter-clockwise; the
+ *   caps are built from them, the sides from the outline. Left out, the outline is one convex cap.
  * @returns {Geom3}
  */
-export function outlinePrismAlong(axisIndex, fromMm, toMm, uMm, vMm, outline) {
+export function outlinePrismAlong(axisIndex, fromMm, toMm, uMm, vMm, outline, pieces) {
   if (outline.length < 3) throw new Error(`a prism outline needs at least three corners, got ${outline.length}`)
   if (!(toMm > fromMm)) throw new Error(`a prism needs a positive length along its axis, got ${fromMm} to ${toMm} mm`)
   const [u, v] = faceAxes(axisIndex)
@@ -132,12 +135,171 @@ export function outlinePrismAlong(axisIndex, fromMm, toMm, uMm, vMm, outline) {
   const bottom = outline.map((corner) => at(corner, fromMm))
   const top = outline.map((corner) => at(corner, toMm))
   /** @type {Vec3Mm[][]} */
-  const faces = [[...bottom].reverse(), top]
+  const faces =
+    pieces === undefined
+      ? [[...bottom].reverse(), top]
+      : pieces.flatMap((piece) => [piece.map((i) => bottom[i]).reverse(), piece.map((i) => top[i])])
   for (let i = 0; i < outline.length; i += 1) {
     const j = (i + 1) % outline.length
     faces.push([bottom[i], bottom[j], top[j], top[i]])
   }
   return geometries.geom3.create(faces.map((vertices) => geometries.poly3.create(vertices)))
+}
+
+/**
+ * A trapezoid on the face: `wideMm` across at one end, `narrowMm` at the other, `lengthMm`
+ * between them (`TODO/core-059`'s wedge; `TODO/core-075`'s butterfly wings).
+ *
+ * @typedef {{ wideMm: number, narrowMm: number, lengthMm: number }} Trapezoid
+ */
+
+/**
+ * A trapezoid grown by `byMm` square to every side (a mitred offset), which is again a
+ * trapezoid with the same slope: its ends move out by `byMm`, its slanted sides by `byMm`
+ * along their own normals. Lifted out of `joint.wedge.js` unchanged (`TODO/core-075`), which
+ * re-exports it.
+ *
+ * @param {Trapezoid} trapezoid
+ * @param {number} byMm
+ * @returns {Trapezoid}
+ */
+export function offsetTrapezoid({ wideMm, narrowMm, lengthMm }, byMm) {
+  if (!(byMm >= 0)) throw new Error(`a trapezoid offset must be zero or more, got ${byMm}`)
+  if (!(lengthMm > 0)) throw new Error(`a trapezoid needs a positive length, got ${lengthMm}`)
+  // Half-width change per millimetre along, from the wide end to the narrow.
+  const slope = (narrowMm - wideMm) / (2 * lengthMm)
+  const sideGrowth = byMm * Math.hypot(1, slope)
+  return {
+    wideMm: wideMm + 2 * (sideGrowth - slope * byMm),
+    narrowMm: narrowMm + 2 * (sideGrowth + slope * byMm),
+    lengthMm: lengthMm + 2 * byMm,
+  }
+}
+
+/**
+ * A trapezoid's outline about its centre, counter-clockwise in `(u, v)`, running along `u` or
+ * `v` with its wide end at the low end.
+ *
+ * @param {Trapezoid} trapezoid
+ * @param {boolean} alongU
+ * @returns {[number, number][]}
+ */
+export function trapezoidOutline({ wideMm, narrowMm, lengthMm }, alongU) {
+  const half = lengthMm / 2
+  /** @type {[number, number][]} along, across */
+  const corners = [
+    [-half, -wideMm / 2],
+    [half, -narrowMm / 2],
+    [half, narrowMm / 2],
+    [-half, wideMm / 2],
+  ]
+  // Along v is a quarter turn, which keeps the winding.
+  return alongU ? corners : corners.map(([along, across]) => [-across, along])
+}
+
+/**
+ * The **grown pocket** outline (`TODO/core-075`): a counter-clockwise polygon — convex or
+ * not — grown by `byMm` square to every side, a mitred offset. Each side's line moves out by
+ * `byMm` along its own outward normal and consecutive lines are intersected, so the gap
+ * between a key and its pocket is `byMm` everywhere, on a slanted side as on a square one,
+ * and a reflex corner (a butterfly's waist) moves out by the same rule. On a trapezoid it is
+ * exactly {@link offsetTrapezoid}.
+ *
+ * @param {[number, number][]} outline Counter-clockwise, no two consecutive sides parallel.
+ * @param {number} byMm
+ * @returns {[number, number][]}
+ */
+export function offsetOutline(outline, byMm) {
+  if (!(byMm >= 0)) throw new Error(`an outline offset must be zero or more, got ${byMm}`)
+  const n = outline.length
+  if (byMm === 0) return outline.map(([u, v]) => /** @type {[number, number]} */ ([u, v]))
+  const lines = outline.map(([pu, pv], i) => {
+    const [qu, qv] = outline[(i + 1) % n]
+    const du = qu - pu
+    const dv = qv - pv
+    const length = Math.hypot(du, dv)
+    // Counter-clockwise: outward is to the right of the direction of travel.
+    return { pu: pu + (dv / length) * byMm, pv: pv - (du / length) * byMm, du, dv }
+  })
+  return outline.map((_, i) => {
+    const a = lines[(i + n - 1) % n]
+    const b = lines[i]
+    const det = a.du * b.dv - a.dv * b.du
+    if (Math.abs(det) < 1e-12) return /** @type {[number, number]} */ ([b.pu, b.pv])
+    const t = ((b.pu - a.pu) * b.dv - (b.pv - a.pv) * b.du) / det
+    return /** @type {[number, number]} */ ([a.pu + a.du * t, a.pv + a.dv * t])
+  })
+}
+
+/**
+ * **Clip to the uncut solid** (`TODO/core-075`): a joint feature that deliberately reaches the
+ * outer surface — a butterfly key — is its nominal shape intersected with the solid, so on a
+ * curved surface its top follows the surface exactly. Containment ({@link contains}) cannot be
+ * its check; only the part meant to be enclosed (a pocket's floor) still needs a wall.
+ *
+ * @param {Geom3} solid The **uncut** solid.
+ * @param {Geom3} nominal
+ * @returns {Geom3}
+ */
+export function clipToSolid(solid, nominal) {
+  return booleans.intersect(solid, nominal)
+}
+
+/**
+ * One edge of the cut face's outline, in face millimetres `(u, v)` (`TODO/core-075`).
+ *
+ * @typedef {object} OutlineSegment
+ * @property {[number, number]} a
+ * @property {[number, number]} b
+ * @property {[number, number]} normal Unit, in the face, pointing out of the solid.
+ */
+
+/** Distance from the plane under which a vertex counts as on it, mm. */
+const ON_PLANE_MM = 1e-7
+
+/**
+ * The cut face's outline: where the solid's surface crosses the plane `axis = cutMm`, as edges
+ * in the face's `(u, v)` frame with their outward normals (`TODO/core-075`) — what a butterfly
+ * tap snaps to and what the butterfly search walks along. A polygon that crosses the plane gives
+ * one edge; one that touches it along an edge gives that edge only from the side below the
+ * plane, so an edge is never counted twice.
+ *
+ * @param {Geom3} solid
+ * @param {number} axisIndex
+ * @param {number} cutMm
+ * @returns {{ u: number, v: number, segments: OutlineSegment[] }}
+ */
+export function sectionOutline(solid, axisIndex, cutMm) {
+  const [u, v] = faceAxes(axisIndex)
+  /** @type {OutlineSegment[]} */
+  const segments = []
+  for (const polygon of geometries.geom3.toPolygons(solid)) {
+    const { vertices } = polygon
+    const d = vertices.map((vertex) => vertex[axisIndex] - cutMm)
+    const above = d.some((value) => value > ON_PLANE_MM)
+    const below = d.some((value) => value < -ON_PLANE_MM)
+    if (!below || (!above && d.filter((value) => Math.abs(value) <= ON_PLANE_MM).length < 2)) continue
+    /** @type {[number, number][]} */
+    const points = []
+    for (let i = 0; i < vertices.length; i += 1) {
+      const j = (i + 1) % vertices.length
+      const p = vertices[i]
+      const q = vertices[j]
+      if (Math.abs(d[i]) <= ON_PLANE_MM) points.push([p[u], p[v]])
+      else if (Math.abs(d[j]) > ON_PLANE_MM && d[i] * d[j] < 0) {
+        const t = d[i] / (d[i] - d[j])
+        points.push([p[u] + (q[u] - p[u]) * t, p[v] + (q[v] - p[v]) * t])
+      }
+    }
+    if (points.length < 2) continue
+    const [a, b] = points
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1e-9) continue
+    const plane = geometries.poly3.plane(polygon)
+    const length = Math.hypot(plane[u], plane[v])
+    if (!(length > 1e-9)) continue
+    segments.push({ a, b, normal: [plane[u] / length, plane[v] / length] })
+  }
+  return { u, v, segments }
 }
 
 /**

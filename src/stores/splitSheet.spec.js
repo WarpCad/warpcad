@@ -247,3 +247,68 @@ describe('Split sheet — Place connectors (TODO/ui-067)', () => {
     expect(made.sheet.markers).toEqual([])
   })
 })
+
+describe('Split sheet — butterfly keys (TODO/core-075 stage 2)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  /** The docs' plank: 300 × 120 × 10 mm, split across X at 150. */
+  function plankSheet() {
+    setActivePinia(createPinia())
+    const documentStore = useDocumentStore()
+    const selection = useSelectionStore()
+    documentStore.append(
+      { id: 'plank', op: 'primitive.cuboid', name: 'Plank', params: { size: [300, 120, 10], center: [150, 0, 5] } },
+      { origin: 'local' }
+    )
+    selection.select('plank')
+    const sheet = useSplitSheetStore()
+    sheet.open()
+    return { documentStore, sheet }
+  }
+
+  it('Butterfly keys is a Joint choice with its own use line, and Side names the faces of an X cut', () => {
+    const { sheet } = plankSheet()
+    sheet.jointChoice = 'butterfly'
+    expect(sheet.joint).toBe('butterfly')
+    expect(sheet.jointUse).toBe('Locks the pieces together from outside; print the keys flat')
+    expect(sheet.butterflySides).toEqual([
+      { value: 'u-', label: 'Front' },
+      { value: 'u+', label: 'Back' },
+      { value: 'v-', label: 'Bottom' },
+      { value: 'v+', label: 'Top' },
+    ])
+  })
+
+  it('lists the keys before Apply, and Apply writes the side and depth as jointOptions', async () => {
+    const { sheet, documentStore } = plankSheet()
+    sheet.jointChoice = 'butterfly'
+    sheet.butterflySide = 'v+'
+    sheet.butterflyDepthMm = 5
+    await vi.waitFor(() => expect(sheet.keyRows).toHaveLength(1), { timeout: 10000 })
+    expect(sheet.keyRows[0]).toMatchObject({ name: 'Butterfly key', count: 2, sizeMm: [40, 20, 5], verdict: 'fits' })
+    expect(sheet.apply()).toBe(true)
+    const record = documentStore.raw.records.at(-1)
+    expect(record?.params).toMatchObject({ joint: 'butterfly', jointOptions: { side: 'v+', depthMm: 5 } })
+    const body = documentStore.bodies.find((candidate) => candidate.id === 'plank')
+    expect(body?.partNames).toEqual(['Plank A', 'Plank B', 'Plank key 1', 'Plank key 2'])
+  })
+
+  it('with every field on Auto, Apply writes no jointOptions', () => {
+    const { sheet, documentStore } = plankSheet()
+    sheet.jointChoice = 'butterfly'
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params?.jointOptions).toBeUndefined()
+  })
+
+  it('a Butterfly tap snaps to the nearest edge of the cut face, and the marker carries that side', async () => {
+    const { sheet } = plankSheet()
+    sheet.jointChoice = 'butterfly'
+    await sheet.setManual(true)
+    expect(sheet.connectorKind).toBe('butterfly')
+    sheet.markers = []
+    expect(await sheet.addMarker(-30, 8.6)).toBe(true)
+    await sheet.settled()
+    expect(sheet.markers).toEqual([expect.objectContaining({ kind: 'butterfly', uMm: -30, vMm: 10, side: 'v+' })])
+    await vi.waitFor(() => expect(sheet.keyRows.map((row) => row.name)).toEqual(['Butterfly key']), { timeout: 10000 })
+  })
+})

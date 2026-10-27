@@ -31,6 +31,12 @@
  * ({@link hardwareRows}, the **You'll also need** line). For the automatic joint those come
  * from the kernel's own search, off the main thread; for hand placement, from the markers.
  *
+ * **Butterfly keys** (stage 2) are their own choice under *Separate keys to print*, with
+ * **Keys** (Auto or a count), **Side** (Auto or the face's Top/Bottom/Front/… — named per axis,
+ * {@link butterflySides}), **Depth** (Auto or mm) and **Cut right through**. A **Butterfly**
+ * tap in Place connectors snaps to the nearest edge of the cut face's outline (the kernel's
+ * `FacePreview.outline`), and the marker carries that edge's side.
+ *
  * Offsets are millimetres **from the body's minimum face** along the axis — Bisect's rule, so
  * the two sheets read the same.
  *
@@ -43,6 +49,12 @@ import { computed, ref, shallowRef, watch } from 'vue'
 import { fitVerdict } from '../core/buildVolume.js'
 import { createEvaluationChannel } from '../core/kernel/evaluationClient.js'
 import { boundsOf, hasNamedParts, partMetaOf } from '../core/kernel/group.js'
+import {
+  BUTTERFLY_SIDES,
+  butterflySideLabel,
+  describeButterfly,
+  snapToOutline,
+} from '../core/kernel/recipes/joint.butterfly.js'
 import { describeDowel } from '../core/kernel/recipes/joint.dowel.js'
 import { defaultSize } from '../core/kernel/recipes/joint.placements.js'
 import { packGeometry } from '../core/kernel/transport.js'
@@ -57,13 +69,19 @@ import { useSelectionStore } from './selection.js'
 export const SPLIT_AXES = Object.freeze(/** @type {Axis[]} */ (['x', 'y', 'z']))
 
 /** What each joint type is called in the sheet. */
-export const JOINT_LABELS = Object.freeze({ pins: 'Pins and sockets', tongue: 'Tongue and groove', dowel: 'Dowels', none: 'No joint' })
+export const JOINT_LABELS = Object.freeze({
+  pins: 'Pins and sockets',
+  tongue: 'Tongue and groove',
+  dowel: 'Dowels',
+  butterfly: 'Butterfly keys',
+  none: 'No joint',
+})
 
 /**
  * One entry of the Joint list: the `<option>` value, its visible text, and the one line under
  * the list saying what it is for.
  *
- * @typedef {{ value: 'pins' | 'tongue' | 'dowel' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
+ * @typedef {{ value: 'pins' | 'tongue' | 'butterfly' | 'dowel' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
  */
 
 /**
@@ -83,6 +101,7 @@ export const JOINT_CHOICES = /** @type {readonly { heading: string, choices: rea
   Object.freeze({
     heading: 'Separate keys to print',
     choices: Object.freeze([
+      { value: 'butterfly', label: 'Butterfly keys', use: 'Locks the pieces together from outside; print the keys flat' },
       { value: 'dowel', label: 'Dowels', use: 'A socket in each piece and a dowel printed lying down, stronger than a pin; glue or press-fit' },
     ]),
   }),
@@ -103,12 +122,19 @@ export const STOCK_LABELS = Object.freeze({ printed: 'Printed', steel: 'Steel pi
 /**
  * What the Place connectors kind picker offers (`TODO/ui-067`), as the kernel's placement
  * kinds. A tongue is not offered — the search can seed one, and it stays on the face as a
- * marker, but a hand placement is a post, a wedge or a screw boss.
+ * marker, but a hand placement is a post, a wedge, a screw boss, a dowel or a butterfly key.
  */
-export const CONNECTOR_KINDS = Object.freeze(/** @type {const} */ (['pins', 'wedge', 'screwBoss', 'dowel']))
+export const CONNECTOR_KINDS = Object.freeze(/** @type {const} */ (['pins', 'wedge', 'screwBoss', 'dowel', 'butterfly']))
 
 /** What each connector kind is called in the sheet. */
-export const CONNECTOR_LABELS = Object.freeze({ pins: 'Post', tongue: 'Tongue', wedge: 'Wedge', screwBoss: 'Screw boss', dowel: 'Dowel' })
+export const CONNECTOR_LABELS = Object.freeze({
+  pins: 'Post',
+  tongue: 'Tongue',
+  wedge: 'Wedge',
+  screwBoss: 'Screw boss',
+  dowel: 'Dowel',
+  butterfly: 'Butterfly',
+})
 
 /**
  * One connector marker on the cut face: a placement the record will carry, plus the id the
@@ -116,11 +142,14 @@ export const CONNECTOR_LABELS = Object.freeze({ pins: 'Post', tongue: 'Tongue', 
  *
  * @typedef {object} Marker
  * @property {string} id
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
  * @property {number} uMm
  * @property {number} vMm
  * @property {number} [sizeMm] Left out for the kind's default size.
  * @property {number} [lengthMm]
+ * @property {'u-' | 'u+' | 'v-' | 'v+'} [side] A butterfly's surface: the outline edge it snapped to.
+ * @property {number} [depthMm] A butterfly's depth, when the search gave one.
+ * @property {boolean} [through]
  */
 
 /** A dragged plane snaps to this step, mm, so a drag lands on a number a person can read. */
@@ -138,11 +167,19 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   const bodyId = ref(/** @type {string | null} */ (null))
   const axis = ref(/** @type {Axis} */ ('x'))
   const offsetMm = ref(/** @type {number | null} */ (0))
-  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'none'} */ ('pins'))
+  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'none'} */ ('pins'))
   /** What a dowel is made of (`TODO/core-075`): the automatic joint's and every dowel marker's. */
   const stock = ref(/** @type {'printed' | 'steel' | 'filament'} */ ('printed'))
   /** A dowel diameter the person typed, mm, or `null` for the search's own. */
   const dowelSizeMm = ref(/** @type {number | null} */ (null))
+  /** How many butterfly keys (`TODO/core-075` stage 2), or `null` for Auto (one per ~50 mm). */
+  const butterflyCount = ref(/** @type {number | null} */ (null))
+  /** Which side of the cut face the keys sit on, or `null` for Auto (the longest straight edge). */
+  const butterflySide = ref(/** @type {'u-' | 'u+' | 'v-' | 'v+' | null} */ (null))
+  /** The keys' depth, mm, or `null` for Auto (half the wall, at least 3 mm). */
+  const butterflyDepthMm = ref(/** @type {number | null} */ (null))
+  /** Keys that run the full thickness of a thin wall. */
+  const butterflyThrough = ref(false)
 
   /**
    * The Joint list's value: the kernel's joint, with `dowel` split by {@link stock} into the
@@ -157,7 +194,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       } else if (value === 'dowel-stock') {
         joint.value = 'dowel'
         if (stock.value === 'printed') stock.value = 'steel'
-      } else if (value === 'pins' || value === 'tongue' || value === 'none') {
+      } else if (value === 'pins' || value === 'tongue' || value === 'butterfly' || value === 'none') {
         joint.value = value
       }
     },
@@ -179,7 +216,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   /** Whether the person is placing connectors by hand instead of the automatic search. */
   const manual = ref(false)
   /** The kind a tap on the face drops. */
-  const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss' | 'dowel'} */ ('pins'))
+  const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} */ ('pins'))
   const markers = ref(/** @type {Marker[]} */ ([]))
   const selectedMarkerId = ref(/** @type {string | null} */ (null))
   /** The cut face as the kernel last described it — a plain object, never walked reactively. */
@@ -279,7 +316,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       return `The cut plane crosses ${crossed.length} parts (${crossed.map((part) => part.name).join(', ')}) — split one part at a time`
     }
     if (manual.value) return manualProblem()
-    if (autoDowelError.value !== '') return autoDowelError.value
+    if (autoKeyError.value !== '') return autoKeyError.value
     return ''
   })
 
@@ -301,7 +338,13 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   )
 
   /** The inputs as one string, so a refusal is shown only for the inputs it refused. */
-  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
+  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
+
+  /** The butterfly fields as one string. */
+  const butterflyKey = computed(() => `${butterflyCount.value}|${butterflySide.value}|${butterflyDepthMm.value}|${butterflyThrough.value}`)
+
+  /** The Side list for the current axis: an X cut's `v+` is the Top. */
+  const butterflySides = computed(() => BUTTERFLY_SIDES.map((value) => ({ value, label: butterflySideLabel(axisIndex.value, value) })))
 
   /** The kernel's refusal, while the inputs are still the ones it refused. */
   const error = computed(() => (failure.value.key === inputKey.value ? failure.value.message : ''))
@@ -364,8 +407,19 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       return { ...(stock.value === 'filament' ? rest : placement), stock: stock.value }
     })
 
-  /** The dowel joint's options as a record carries them — `undefined` when there are none. */
+  /** The dowel or butterfly joint's options as a record carries them — `undefined` when there are none. */
   const jointOptions = computed(() => {
+    if (joint.value === 'butterfly') {
+      /** @type {{ count?: number, side?: string, depthMm?: number, through?: boolean }} */
+      const options = {}
+      const count = butterflyCount.value
+      if (typeof count === 'number' && Number.isInteger(count) && count >= 1) options.count = count
+      if (butterflySide.value !== null) options.side = butterflySide.value
+      const depth = butterflyDepthMm.value
+      if (butterflyThrough.value) options.through = true
+      else if (typeof depth === 'number' && Number.isFinite(depth)) options.depthMm = depth
+      return Object.keys(options).length > 0 ? options : undefined
+    }
     /** @type {{ stock?: string, sizeMm?: number }} */
     const options = {}
     if (stock.value !== 'printed') options.stock = stock.value
@@ -376,23 +430,36 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
 
   // --- Keys and hardware before Apply (`TODO/core-075`) ------------------------------------
   const planChannel = createEvaluationChannel('split-plan')
-  /** The automatic dowel search's result, for the inputs `key` names. */
-  const autoDowels = shallowRef(
-    /** @type {{ key: string, entries: import('../core/kernel/split.js').PlacementParams[], error: string }} */ ({ key: '', entries: [], error: '' })
+  /**
+   * The automatic dowel or butterfly search's result, for the inputs `key` names, with the cut
+   * face's extent (`spans`, mm along u and v) — a through butterfly's depth is the wall's.
+   */
+  const autoKeys = shallowRef(
+    /** @type {{ key: string, entries: import('../core/kernel/split.js').PlacementParams[], error: string, spans: [number, number] }} */ ({
+      key: '',
+      entries: [],
+      error: '',
+      spans: [0, 0],
+    })
   )
-  /** The inputs the automatic dowel search depends on. */
+  /** The inputs the automatic key search depends on. */
   const autoKey = computed(() =>
-    isOpen.value && !manual.value && joint.value === 'dowel'
-      ? `${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${documentStore.version}`
+    isOpen.value && !manual.value && (joint.value === 'dowel' || joint.value === 'butterfly')
+      ? `${joint.value}|${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${documentStore.version}`
       : ''
   )
   watch(autoKey, async (key) => {
     if (key === '' || !Number.isFinite(cutMm.value)) return
-    const answer = await ask(planChannel, [], 'dowel')
+    const answer = await ask(planChannel, [], /** @type {'dowel' | 'butterfly'} */ (joint.value))
     if (answer === null || key !== autoKey.value) return
-    autoDowels.value = answer.face
-      ? { key, entries: answer.face.auto, error: answer.face.autoError }
-      : { key, entries: [], error: answer.error ?? '' }
+    autoKeys.value = answer.face
+      ? {
+          key,
+          entries: answer.face.auto,
+          error: answer.face.autoError,
+          spans: [answer.face.uRange[1] - answer.face.uRange[0], answer.face.vRange[1] - answer.face.vRange[0]],
+        }
+      : { key, entries: [], error: answer.error ?? '', spans: [0, 0] }
   })
 
   /** The dowels a split would make or need: the markers' when placing by hand, else the search's. */
@@ -405,8 +472,28 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
         .filter((marker) => marker.kind === 'dowel')
         .map((marker) => ({ sizeMm: marker.sizeMm ?? defaultSize('dowel', minor), stock: stock.value, clearance }))
     }
-    if (joint.value !== 'dowel' || autoDowels.value.key !== autoKey.value) return []
-    return autoDowels.value.entries.map((entry) => ({ sizeMm: entry.sizeMm ?? 2, stock: stock.value, clearance }))
+    if (joint.value !== 'dowel' || autoKeys.value.key !== autoKey.value) return []
+    return autoKeys.value.entries.map((entry) => ({ sizeMm: entry.sizeMm ?? 2, stock: stock.value, clearance }))
+  })
+
+  /**
+   * The butterfly keys a split would make: as the kernel resolved the markers when placing by
+   * hand, else the search's. A through key is as deep as the face is across on its side.
+   */
+  const plannedButterflies = computed(() => {
+    /** @param {import('../core/kernel/split.js').PlacementParams} entry @param {[number, number]} spans */
+    const sized = (entry, spans) => ({
+      sizeMm: entry.sizeMm ?? 3,
+      depthMm: entry.depthMm ?? (entry.side?.[0] === 'u' ? spans[0] : spans[1]),
+    })
+    if (manual.value) {
+      const preview = face.value
+      if (!preview || preview.resolved === null || validatedKey.value !== placementKey.value) return []
+      const spans = /** @type {[number, number]} */ ([preview.uRange[1] - preview.uRange[0], preview.vRange[1] - preview.vRange[0]])
+      return preview.resolved.filter((entry) => entry.kind === 'butterfly').map((entry) => sized(entry, spans))
+    }
+    if (joint.value !== 'butterfly' || autoKeys.value.key !== autoKey.value) return []
+    return autoKeys.value.entries.map((entry) => sized(entry, autoKeys.value.spans))
   })
 
   /**
@@ -423,6 +510,12 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       if (row) row.count += 1
       else rows.set(words.keyLabel, { name: 'Dowel', title: words.keyLabel, count: 1, sizeMm: words.keySizeMm })
     }
+    for (const key of plannedButterflies.value) {
+      const words = describeButterfly(key.sizeMm, key.depthMm)
+      const row = rows.get(words.keyLabel)
+      if (row) row.count += 1
+      else rows.set(words.keyLabel, { name: 'Butterfly key', title: words.keyLabel, count: 1, sizeMm: words.keySizeMm })
+    }
     return [...rows.values()].map((row) => ({ ...row, ...fitVerdict(row.sizeMm, documentStore.buildVolume) }))
   })
 
@@ -438,8 +531,8 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     return [...lines.entries()].map(([label, count]) => `${count} × ${label}`)
   })
 
-  /** Why the automatic dowel search found nothing, while it is the joint asked for. */
-  const autoDowelError = computed(() => (autoDowels.value.key !== '' && autoDowels.value.key === autoKey.value ? autoDowels.value.error : ''))
+  /** Why the automatic dowel or butterfly search found nothing, while it is the joint asked for. */
+  const autoKeyError = computed(() => (autoKeys.value.key !== '' && autoKeys.value.key === autoKey.value ? autoKeys.value.error : ''))
 
   /** The inputs a face preview depends on, as one string. */
   const faceKey = computed(
@@ -454,7 +547,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    *
    * @param {import('../core/kernel/evaluationClient.js').EvaluationChannel} channel
    * @param {Marker[]} list
-   * @param {'pins' | 'tongue' | 'dowel' | null} seed
+   * @param {'pins' | 'tongue' | 'dowel' | 'butterfly' | null} seed
    * @returns {Promise<{ face?: import('../core/kernel/split.js').FacePreview, error?: string } | null>}
    *   `null` when a newer request on the channel overtook this one.
    */
@@ -472,7 +565,9 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
         clearanceMm: clearanceMm.value ?? DEFAULT_JOINT_CLEARANCE_MM,
         placements: placementsOf(list),
         seed,
-        ...(seed === 'dowel' && jointOptions.value !== undefined ? { seedOptions: { ...jointOptions.value } } : {}),
+        ...((seed === 'dowel' || seed === 'butterfly') && seed === joint.value && jointOptions.value !== undefined
+          ? { seedOptions: { ...jointOptions.value } }
+          : {}),
       },
     })
     if (outcome.superseded) return null
@@ -535,7 +630,8 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * @returns {Promise<void>}
    */
   async function seedFromSearch() {
-    const answer = await ask(faceChannel, [], joint.value === 'tongue' ? 'tongue' : joint.value === 'dowel' ? 'dowel' : 'pins')
+    const seed = joint.value === 'tongue' || joint.value === 'dowel' || joint.value === 'butterfly' ? joint.value : 'pins'
+    const answer = await ask(faceChannel, [], seed)
     if (answer === null) return
     if (!answer.face) {
       faceError.value = answer.error ?? ''
@@ -550,6 +646,9 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       vMm: entry.vMm ?? 0,
       ...(entry.sizeMm === undefined ? {} : { sizeMm: entry.sizeMm }),
       ...(entry.lengthMm === undefined ? {} : { lengthMm: entry.lengthMm }),
+      ...(entry.side === undefined ? {} : { side: entry.side }),
+      ...(entry.depthMm === undefined ? {} : { depthMm: entry.depthMm }),
+      ...(entry.through === true ? { through: true } : {}),
     }))
     notice.value = answer.face.auto.length === 0 ? (answer.face.autoError || 'The search found no room — tap the cut face to place one') : ''
     selectedMarkerId.value = null
@@ -580,6 +679,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     manual.value = true
     markers.value = []
     if (joint.value === 'dowel') connectorKind.value = 'dowel'
+    if (joint.value === 'butterfly') connectorKind.value = 'butterfly'
     await seedFromSearch()
     await settled()
   }
@@ -626,6 +726,21 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   }
 
   /**
+   * Where a marker of `kind` lands for a tap at `(uMm, vMm)`: there, or — for a butterfly — on
+   * the nearest edge of the cut face's outline, with that edge's side (`TODO/core-075`).
+   *
+   * @param {Marker['kind']} kind
+   * @param {number} uMm
+   * @param {number} vMm
+   * @returns {{ uMm: number, vMm: number, side?: 'u-' | 'u+' | 'v-' | 'v+' }}
+   */
+  function snapped(kind, uMm, vMm) {
+    if (kind !== 'butterfly') return { uMm, vMm }
+    const onEdge = snapToOutline(face.value?.outline ?? [], uMm, vMm)
+    return onEdge ?? { uMm, vMm }
+  }
+
+  /**
    * Drop a marker of the picked kind at a face position. Refused, with the kernel's reason,
    * where it does not fit.
    *
@@ -634,7 +749,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * @returns {Promise<boolean>}
    */
   async function addMarker(uMm, vMm) {
-    const marker = /** @type {Marker} */ ({ id: `m${(markerCount += 1)}`, kind: connectorKind.value, uMm, vMm })
+    const marker = /** @type {Marker} */ ({ id: `m${(markerCount += 1)}`, kind: connectorKind.value, ...snapped(connectorKind.value, uMm, vMm) })
     const added = await commit((current) => [...current, marker], marker.id)
     if (added) selectedMarkerId.value = marker.id
     return added
@@ -649,8 +764,12 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * @param {number} vMm
    */
   function dragMarker(id, uMm, vMm) {
+    const kind = markers.value.find((marker) => marker.id === id)?.kind ?? 'pins'
+    const at = snapped(kind, uMm, vMm)
+    uMm = at.uMm
+    vMm = at.vMm
     drag.value = { id, uMm, vMm, ok: null, reason: '' }
-    const next = markers.value.map((marker) => (marker.id === id ? { ...marker, uMm, vMm } : marker))
+    const next = markers.value.map((marker) => (marker.id === id ? { ...marker, ...at } : marker))
     void probe(next).then((answer) => {
       if (answer === null || drag.value?.id !== id || drag.value.uMm !== uMm || drag.value.vMm !== vMm) return
       const verdict = answer.verdicts[next.findIndex((marker) => marker.id === id)]
@@ -670,7 +789,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    */
   async function moveMarker(id, uMm, vMm) {
     const moved = await commit(
-      (current) => current.map((marker) => (marker.id === id ? { ...marker, uMm, vMm } : marker)),
+      (current) => current.map((marker) => (marker.id === id ? { ...marker, ...snapped(marker.kind, uMm, vMm) } : marker)),
       id
     )
     drag.value = null
@@ -703,7 +822,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * Choose a kind from the picker: it is what a tap drops next, and, with a marker selected,
    * what that marker becomes (at its own position, refused where the new kind does not fit).
    *
-   * @param {'pins' | 'wedge' | 'screwBoss' | 'dowel'} kind
+   * @param {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
    * @returns {Promise<boolean>}
    */
   async function chooseKind(kind) {
@@ -716,7 +835,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     if (!current || current.kind === kind) return true
     // A new kind starts at its own default size.
     return commit(
-      (list) => list.map((marker) => (marker.id === id ? { id: marker.id, kind, uMm: marker.uMm, vMm: marker.vMm } : marker)),
+      (list) => list.map((marker) => (marker.id === id ? { id: marker.id, kind, ...snapped(kind, marker.uMm, marker.vMm) } : marker)),
       id
     )
   }
@@ -738,8 +857,12 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     joint.value = 'pins'
     stock.value = 'printed'
     dowelSizeMm.value = null
+    butterflyCount.value = null
+    butterflySide.value = null
+    butterflyDepthMm.value = null
+    butterflyThrough.value = false
     clearanceMm.value = DEFAULT_JOINT_CLEARANCE_MM
-    autoDowels.value = { key: '', entries: [], error: '' }
+    autoKeys.value = { key: '', entries: [], error: '', spans: [0, 0] }
     resetManual()
     failure.value = { message: '', key: '' }
     isOpen.value = true
@@ -827,7 +950,9 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
             axis: axis.value,
             offsetMm: offsetMm.value,
             joint: joint.value,
-            ...(joint.value === 'dowel' && jointOptions.value !== undefined ? { jointOptions: { ...jointOptions.value } } : {}),
+            ...((joint.value === 'dowel' || joint.value === 'butterfly') && jointOptions.value !== undefined
+              ? { jointOptions: { ...jointOptions.value } }
+              : {}),
             clearanceMm: joint.value === 'none' ? 0 : clearanceMm.value,
             names: [...pieceNames.value],
           },
@@ -854,9 +979,15 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     jointUse,
     stock,
     dowelSizeMm,
+    butterflyCount,
+    butterflySide,
+    butterflyDepthMm,
+    butterflyThrough,
+    butterflySides,
     keyRows,
     hardwareRows,
-    autoDowelError,
+    autoKeyError,
+    autoDowelError: autoKeyError,
     clearanceMm,
     axisIndex,
     extent,

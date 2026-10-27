@@ -3499,3 +3499,16 @@ The default 0.2 mm clearance has not been checked against a test print yet, and 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** previous joints → TODO/FIND-core-075 "Today" text; pin orientation reasoning → diff (joint.dowel.js header); lying on a flat, one file per size, assembly.txt → diff (docs/print-prep.md, printPrep.js); steel/filament + BOM → diff (docs/bill-of-materials.md); clearance unchecked → diff (docs/print-prep.md "Clearance")
 **To Add:** docs/screenshots/print-pieces-with-keys.png
+
+## 2026-10-27T13:50:00Z — Butterfly keys for split pieces
+
+**Post:** WarpCad's Split sheet has a new joint: butterfly keys. A key is a bowtie-shaped part let into a pocket that straddles the seam on an outer face. The pieces go together first, then each key is pressed in from outside, which locks them against pulling apart without glue.
+
+Each key is its own part in the split's group and its own file in Print pieces, laid on its big flat face so the narrow waist is held by layers running along it. The key is the bowtie clipped to the uncut solid, so on a curved face its top follows the surface. The pocket is grown by the clearance and cut from both pieces.
+
+Place them with Auto (one per 50 mm of seam) or tick Place connectors by hand and tap near an edge of the cut face; the key snaps to the nearest edge. The default 0.2 mm clearance has not been checked against a test print yet. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pocket straddles seam, press in from outside → diff (joint.butterfly.js, docs/print-prep.md); own part and own file, laid flat → diff (split.js key parts, printPrep.js) and e2e zip contents this session; clipped to uncut solid, grown pocket cut from both → diff (joint.common.js clipToSolid, joint.butterfly.js); one per 50 mm → diff (search) and docs example; snaps to edge → e2e this session; 0.2 mm unverified → docs/print-prep.md note and TODO/VERIFY.md entry
+**To Add:** docs/screenshots/split-butterfly-keys.png

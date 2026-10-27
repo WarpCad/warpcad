@@ -238,6 +238,25 @@ test.describe('docs media: print prep', () => {
     await shot(page, 'print-pieces-with-keys.png', { locator: page.getByTestId('export-popover') })
   })
 
+  /** `TODO/core-075` stage 2: butterfly keys let into the top of the wing, across the seam. */
+  test('split-butterfly-keys still', async ({ page }) => {
+    await openApp(page)
+    await loadScene(page, 'long-wing.ndjson', 1)
+    await selectWing(page)
+    await page.getByTestId('op-split').click()
+    await page.getByTestId('split-offset').fill('150')
+    await page.getByTestId('split-joint').selectOption('butterfly')
+    await expect(page.getByTestId('split-key-fit')).toHaveAttribute('data-fit', 'fits')
+    await page.getByTestId('split-apply').click()
+    await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+    // Drop the selection so its gizmo is out of the picture.
+    await page.evaluate(async () => {
+      const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
+      useSelectionStore().clear()
+    })
+    await shot(page, 'split-butterfly-keys.png', { locator: page.getByTestId('viewport') })
+  })
+
   test('print-prep-split', { tag: '@movie' }, async ({ page }) => {
     await openApp(page)
     await loadScene(page, 'long-wing.ndjson', 1)

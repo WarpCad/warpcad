@@ -12,8 +12,10 @@ import { getEntry, acceptsOperandCount } from './registry.js'
 import {
   DEFAULT_JOINT_CLEARANCE_MM,
   JOINT_TYPES,
+  MAX_PLACEMENTS,
   PLACEMENT_KINDS,
   planJoint,
+  previewSplitFace,
   splitWarnings,
   splitWithJoint,
 } from './split.js'
@@ -86,7 +88,7 @@ describe('modify.splitWithJoint — the registry entry', () => {
   })
 
   it('offers the joint types a record may name (TODO/core-075 stage 1 adds the loose dowel)', () => {
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'none'])
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'none'])
     expect(DEFAULT_JOINT_CLEARANCE_MM).toBeCloseTo(0.2, 9)
   })
 })
@@ -174,7 +176,7 @@ describe('splitWithJoint — refusals and warnings', () => {
   it('an unknown axis or joint type is refused by name', () => {
     expect(() => splitWithJoint(bar(), { axis: 'w', offsetMm: 150 })).toThrow(/axis must be one of x, y, z/)
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'dovetail' })).toThrow(
-      /joint must be one of pins, tongue, dowel, none, got "dovetail"/
+      /joint must be one of pins, tongue, dowel, butterfly, none, got "dovetail"/
     )
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, clearanceMm: -0.1 })).toThrow(/clearanceMm/)
   })
@@ -265,9 +267,9 @@ describe('splitWithJoint — hand-placed connectors (TODO/core-059)', () => {
   const pieceVolumes = (result) => result.names.map((/** @type {string} */ name) => volumeOf(result.parts[name]))
 
   it('lists the connector kinds a placement may ask for (TODO/core-075 adds the dowel)', () => {
-    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss', 'dowel'])
+    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly'])
     // Placements are a separate input from the joint list.
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'none'])
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'none'])
   })
 
   it('a pin placed by hand is sized by the same rule as a searched one: Ø5 stands 10 mm proud', () => {
@@ -455,7 +457,7 @@ describe('splitWithJoint — hand-placed connectors that do not fit are refused 
   })
 
   it('malformed placements are refused by name', () => {
-    expect(() => split([{ kind: 'rivet', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss, dowel, got "rivet"/)
+    expect(() => split([{ kind: 'rivet', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss, dowel, butterfly, got "rivet"/)
     expect(() => split([{ kind: 'pins', uMm: 0 }])).toThrow(/placement 1.*uMm and vMm/)
     expect(() => split([{ kind: 'wedge' }])).toThrow(/placement 1 \(wedge\).*needs uMm and vMm/)
     expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 9 }])).toThrow(/placement 1.*sizeMm.*2 to 8/)
@@ -575,7 +577,7 @@ describe('splitWithJoint — key parts across repeated splits (TODO/core-075 sta
     expect(() => splitWithJoint(plank(), { ...base, joint: 'pins', jointOptions: { stock: 'steel' } })).toThrow(
       /jointOptions is only for joint dowel/
     )
-    expect(() => splitWithJoint(plank(), { ...base, joint: 'butterfly' })).toThrow(/joint must be one of pins, tongue, dowel, none, got "butterfly"/)
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'tenon' })).toThrow(/joint must be one of pins, tongue, dowel, butterfly, none, got "tenon"/)
   })
 })
 
@@ -597,4 +599,103 @@ describe('splitWithJoint — today’s records fold byte-identically (TODO/core-
       }
     })
   }
+})
+
+describe('splitWithJoint — butterfly keys across repeated splits and the face preview (TODO/core-075 stage 2)', () => {
+  /** A 300 × 120 × 10 mm plank. */
+  const plank = () => primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] })
+  const butterflies = { joint: 'butterfly', jointOptions: { side: 'v+', depthMm: 5 }, clearanceMm: 0.2 }
+  /** @param {any} group */
+  const keysOf = (group) => group.names.filter((/** @type {string} */ name) => partMetaOf(group, name)?.role === 'key')
+
+  it('a second split keeps the first split’s keys and numbers its own from the next free number', () => {
+    const first = splitWithJoint(plank(), { axis: 'x', offsetMm: 100, ...butterflies, names: ['Plank A', 'Plank B'] })
+    expect(keysOf(first)).toEqual(['Plank key 1', 'Plank key 2'])
+    const second = splitWithJoint(first, { axis: 'x', offsetMm: 200, ...butterflies, names: ['Plank B', 'Plank C'] })
+    expect(keysOf(second)).toEqual(['Plank key 1', 'Plank key 2', 'Plank key 3', 'Plank key 4'])
+    expect(partMetaOf(second, 'Plank key 3')).toMatchObject({ kind: 'butterfly', joins: ['Plank B', 'Plank C'] })
+    expect(partMetaOf(second, 'Plank key 1')).toMatchObject({ kind: 'butterfly', joins: ['Plank A', 'Plank B'] })
+    expect(second.names.slice(0, 3)).toEqual(['Plank A', 'Plank B', 'Plank C'])
+  })
+
+  it('a later plane through a butterfly key is refused by the key’s name', () => {
+    const first = splitWithJoint(plank(), { axis: 'x', offsetMm: 150, ...butterflies, names: ['Plank A', 'Plank B'] })
+    expect(() => splitWithJoint(first, { axis: 'x', offsetMm: 160, ...butterflies, names: ['Plank B', 'Plank C'] })).toThrow(
+      /the cut plane crosses Plank key 1 — move it clear of the keys/
+    )
+  })
+
+  it('MAX_PLACEMENTS holds for butterflies, as a placement list and as a key count', () => {
+    const many = Array.from({ length: MAX_PLACEMENTS + 1 }, (_, i) => ({ kind: 'butterfly', uMm: -55 + i * 6, vMm: 10 }))
+    expect(() => splitWithJoint(plank(), { axis: 'x', offsetMm: 150, clearanceMm: 0.2, placements: many })).toThrow(
+      new RegExp(`at most ${MAX_PLACEMENTS} connectors, got ${MAX_PLACEMENTS + 1}`)
+    )
+    expect(() =>
+      splitWithJoint(plank(), { axis: 'x', offsetMm: 150, joint: 'butterfly', jointOptions: { count: MAX_PLACEMENTS + 1 }, clearanceMm: 0.2 })
+    ).toThrow(new RegExp(`jointOptions\\.count must be a whole number from 1 to ${MAX_PLACEMENTS}, got ${MAX_PLACEMENTS + 1}`))
+  })
+
+  it('butterfly placement fields are checked by name', () => {
+    const base = { axis: 'x', offsetMm: 150, clearanceMm: 0.2 }
+    expect(() => splitWithJoint(plank(), { ...base, placements: [{ kind: 'butterfly', uMm: 0, vMm: 10, side: 'top' }] })).toThrow(
+      /placement 1 \(butterfly\): side must be one of u-, u\+, v-, v\+, got "top"/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, placements: [{ kind: 'pins', uMm: 0, vMm: 5, depthMm: 3 }] })).toThrow(
+      /placement 1 \(pins\): depthMm is only for a butterfly/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, placements: [{ kind: 'butterfly', uMm: 0, vMm: 10, sizeMm: 2 }] })).toThrow(
+      /placement 1 \(butterfly\): sizeMm must be 3 to 20 mm, got 2/
+    )
+  })
+
+  it('a butterfly search entry in a placement list keeps clear of a hand-placed dowel', () => {
+    const result = splitWithJoint(plank(), {
+      axis: 'x',
+      offsetMm: 150,
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+      placements: [{ kind: 'dowel', uMm: 0, vMm: 5, sizeMm: 4 }, { kind: 'butterfly', side: 'v+', depthMm: 4 }],
+    })
+    const kinds = keysOf(result).map((/** @type {string} */ name) => partMetaOf(result, name)?.kind)
+    expect(kinds[0]).toBe('dowel')
+    expect(kinds.slice(1).every((/** @type {string | undefined} */ kind) => kind === 'butterfly')).toBe(true)
+    expect(kinds.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('the face preview seeds butterflies with their side and depth, and carries the outline to snap taps to', () => {
+    const face = previewSplitFace(plank(), { axis: 'x', offsetMm: 150, seed: 'butterfly', seedOptions: { side: 'v+', depthMm: 5 } })
+    expect(face.autoError).toBe('')
+    expect(face.auto).toHaveLength(2)
+    for (const entry of face.auto) expect(entry).toMatchObject({ kind: 'butterfly', side: 'v+', depthMm: 5, vMm: 10 })
+    // Six numbers per edge: from (u, v), to (u, v), outward normal (u, v).
+    expect(face.outline.length % 6).toBe(0)
+    expect(face.outline.length).toBeGreaterThanOrEqual(24)
+    const verdict = previewSplitFace(plank(), { axis: 'x', offsetMm: 150, placements: [{ kind: 'butterfly', uMm: 0, vMm: 10 }] })
+    expect(verdict.verdicts).toEqual([{ ok: true, reason: '' }])
+    expect(verdict.resolved).toEqual([expect.objectContaining({ kind: 'butterfly', side: 'v+', uMm: 0, vMm: 10, depthMm: 5 })])
+  })
+
+  it('the metadata is derived from the record at fold time: it survives the project file round trip', () => {
+    const local = { origin: 'local' }
+    const document = createDocument({ resolution: 'normal' })
+    document.append({ id: 'plank', op: 'primitive.cuboid', name: 'Plank', params: { size: [300, 120, 10], center: [0, 0, 5] } }, local)
+    document.append(
+      {
+        id: 'split-1',
+        op: 'modify.splitWithJoint',
+        target: 'plank',
+        supersedes: 'plank',
+        params: { axis: 'x', offsetMm: 150, ...butterflies, names: ['Plank A', 'Plank B'] },
+      },
+      local
+    )
+    const text = serializeProject(document)
+    expect(text).not.toContain('bedNormal')
+    const loaded = createDocument({ resolution: 'normal' })
+    const parsed = parseProject(text)
+    loaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    const geometry = /** @type {any} */ (loaded.bodies()[0].geometry)
+    expect(keysOf(geometry)).toEqual(['Plank key 1', 'Plank key 2'])
+    expect(partMetaOf(geometry, 'Plank key 1')).toMatchObject({ role: 'key', kind: 'butterfly', bedNormal: [0, 0, -1] })
+  })
 })

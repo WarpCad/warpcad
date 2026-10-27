@@ -26,6 +26,10 @@
  *    A **loose dowel** (`TODO/core-075`, `recipes/joint.dowel.js`) cuts a socket in **both**
  *    pieces and adds each printed dowel as its own **key part**; a bought one (steel or
  *    filament, `jointOptions.stock`) adds no part, and is recorded as hardware to buy.
+ *    A **butterfly key** (`recipes/joint.butterfly.js`) is a bowtie let into a pocket across the
+ *    seam on an outer surface: the pocket is cut from both pieces, the key — clipped to the
+ *    uncut solid — is a key part, pressed in from outside (`jointOptions`: count, side, depth,
+ *    waist, through).
  * 4. Returns a **group of two named parts**, A then B — `["Wing A", "Wing B"]` when the record
  *    carries those `names` (the Split sheet passes the body's own name plus a letter) — so each
  *    piece stays addressable and the group tools, the Inspector's parts list and Export → Print
@@ -57,6 +61,15 @@
 import { add, bisect, boundsOf, createGroup, hasNamedParts, hiddenNamesOf, partMetaOf, toGeom3 } from './group.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
 import { JOINT_WALL_MM, clearanceField, clearanceTo } from './recipes/joint.common.js'
+import {
+  BUTTERFLY_DEPTH_RANGE_MM,
+  BUTTERFLY_MAX_WIDTH_MM,
+  BUTTERFLY_MIN_WIDTH_MM,
+  BUTTERFLY_SIDES,
+  butterflyFace,
+  butterflyJoint,
+  flatOutline,
+} from './recipes/joint.butterfly.js'
 import {
   DOWEL_MAX_DIAMETER_MM,
   DOWEL_MAX_REACH_MM,
@@ -95,10 +108,13 @@ const { booleans } = modeling
 const OP = 'modify.splitWithJoint'
 
 /** The joint types, in the order the Split sheet lists them. */
-export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'dowel', 'none']))
+export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'dowel', 'butterfly', 'none']))
 
 /** The fields `jointOptions` may carry, per joint type (`TODO/core-075`). */
-const JOINT_OPTION_FIELDS = Object.freeze({ dowel: Object.freeze(['stock', 'sizeMm']) })
+const JOINT_OPTION_FIELDS = Object.freeze({
+  dowel: Object.freeze(['stock', 'sizeMm']),
+  butterfly: Object.freeze(['count', 'side', 'depthMm', 'sizeMm', 'through']),
+})
 
 /**
  * Default clearance per side, mm — the "snug fit" the AI's printing defaults already state
@@ -116,7 +132,7 @@ const AXES = /** @type {const} */ (['x', 'y', 'z'])
  * The connector kinds a hand placement may ask for (`TODO/core-059`) — a separate list from
  * {@link JOINT_TYPES}, which is what the Split sheet's joint picker offers.
  */
-export const PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss', 'dowel']))
+export const PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly']))
 
 /** The most connectors one split may place — a hard limit, as every tool-call input has. */
 export const MAX_PLACEMENTS = 16
@@ -128,15 +144,17 @@ const SIZE_RANGE_MM = Object.freeze({
   wedge: [WEDGE_MIN_WIDTH_MM, WEDGE_MAX_WIDTH_MM],
   screwBoss: [SCREW_MIN_MM, SCREW_MAX_MM],
   dowel: [DOWEL_MIN_DIAMETER_MM, DOWEL_MAX_DIAMETER_MM],
+  butterfly: [BUTTERFLY_MIN_WIDTH_MM, BUTTERFLY_MAX_WIDTH_MM],
 })
 
 /**
  * @typedef {object} SplitParams
  * @property {'x' | 'y' | 'z'} axis The cut plane's normal.
  * @property {number} offsetMm Where the plane crosses the axis, from the body's minimum face.
- * @property {'pins' | 'tongue' | 'dowel' | 'none'} [joint] Default `pins`.
- * @property {{ stock?: 'printed' | 'steel' | 'filament', sizeMm?: number }} [jointOptions] The
- *   joint's own sizes (`TODO/core-075`): for `dowel`, what it is made of and its diameter.
+ * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'none'} [joint] Default `pins`.
+ * @property {{ stock?: 'printed' | 'steel' | 'filament', sizeMm?: number, count?: number, side?: 'u-' | 'u+' | 'v-' | 'v+', depthMm?: number, through?: boolean }} [jointOptions]
+ *   The joint's own sizes (`TODO/core-075`): for `dowel`, what it is made of and its diameter;
+ *   for `butterfly`, how many keys, which side of the face, how deep (or `through`) and the waist.
  * @property {number} [clearanceMm] Per side, default {@link DEFAULT_JOINT_CLEARANCE_MM}.
  * @property {[string, string]} [names] Piece A's and piece B's part names.
  * @property {PlacementParams[]} [placements] Hand-placed connectors (`TODO/core-059`); when
@@ -150,7 +168,7 @@ const SIZE_RANGE_MM = Object.freeze({
  * both out on `pins` or `tongue` to let the search place it, clear of the rest.
  *
  * @typedef {object} PlacementParams
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly'} kind
  * @property {number} [uMm]
  * @property {number} [vMm]
  * @property {number} [sizeMm] A pin's diameter, a tongue's width, a wedge's width at its wide
@@ -159,6 +177,9 @@ const SIZE_RANGE_MM = Object.freeze({
  * @property {number} [insertMm] A screw boss's heat-set insert bore; leave out for a
  *   self-tapping screw.
  * @property {'printed' | 'steel' | 'filament'} [stock] A dowel's; default printed.
+ * @property {'u-' | 'u+' | 'v-' | 'v+'} [side] A butterfly's surface; default the nearest edge's.
+ * @property {number} [depthMm] A butterfly's depth from the surface.
+ * @property {boolean} [through] A butterfly that runs the full thickness.
  */
 
 /**
@@ -212,8 +233,8 @@ function readPlacement(entry, index) {
     throw new Error(`${named}: give both uMm and vMm, or neither to let the search place it`)
   }
   const searched = uMm === null
-  if (searched && kind !== 'pins' && kind !== 'tongue' && kind !== 'dowel') {
-    throw new Error(`${named} needs uMm and vMm — only pins, tongue and dowel can be placed by the search`)
+  if (searched && kind !== 'pins' && kind !== 'tongue' && kind !== 'dowel' && kind !== 'butterfly') {
+    throw new Error(`${named} needs uMm and vMm — only pins, tongue, dowel and butterfly can be placed by the search`)
   }
   const sizeMm = finite('sizeMm')
   const lengthMm = finite('lengthMm')
@@ -249,20 +270,67 @@ function readPlacement(entry, index) {
       throw new Error(`${named}: filament is always ${FILAMENT_DIAMETER_MM} mm — leave sizeMm out`)
     }
   }
+  const depthMm = finite('depthMm')
+  for (const field of ['side', 'depthMm', 'through']) {
+    if (raw[field] !== undefined && kind !== 'butterfly') throw new Error(`${named}: ${field} is only for a butterfly`)
+  }
   if (kind === 'dowel') {
     const stock = /** @type {'printed' | 'steel' | 'filament'} */ (raw.stock ?? 'printed')
     return { kind, uMm, vMm, sizeMm, lengthMm, insertMm, stock }
+  }
+  if (kind === 'butterfly') {
+    const { side, through } = readButterflyFields(raw, named, '')
+    return { kind, uMm, vMm, sizeMm, lengthMm, insertMm, side, depthMm, through }
   }
   return { kind, uMm, vMm, sizeMm, lengthMm, insertMm }
 }
 
 /**
+ * A butterfly's side, depth and `through`, from a placement or `jointOptions` (`TODO/core-075`).
+ *
+ * @param {Record<string, unknown>} raw
+ * @param {string} named What to call the source in a refusal.
+ * @param {string} prefix `jointOptions.` or `''`.
+ * @returns {{ side: 'u-' | 'u+' | 'v-' | 'v+' | null, depthMm: number | null, through: boolean }}
+ */
+function readButterflyFields(raw, named, prefix) {
+  const side = raw.side ?? null
+  if (side !== null && !BUTTERFLY_SIDES.includes(/** @type {any} */ (side))) {
+    throw new Error(`${named}: ${prefix}side must be one of ${BUTTERFLY_SIDES.join(', ')}, got ${JSON.stringify(side)}`)
+  }
+  const [low, high] = BUTTERFLY_DEPTH_RANGE_MM
+  const depthMm = raw.depthMm ?? null
+  if (depthMm !== null && (typeof depthMm !== 'number' || !Number.isFinite(depthMm) || depthMm < low || depthMm > high)) {
+    throw new Error(`${named}: ${prefix}depthMm must be ${low} to ${high} mm, got ${JSON.stringify(depthMm)}`)
+  }
+  const through = raw.through ?? false
+  if (typeof through !== 'boolean') throw new Error(`${named}: ${prefix}through must be true or false, got ${JSON.stringify(through)}`)
+  if (through && depthMm !== null) throw new Error(`${named}: give ${prefix}depthMm or through, not both`)
+  return {
+    side: /** @type {'u-' | 'u+' | 'v-' | 'v+' | null} */ (side),
+    depthMm: /** @type {number | null} */ (depthMm),
+    through,
+  }
+}
+
+/**
+ * @typedef {object} JointOptions
+ * @property {'printed' | 'steel' | 'filament'} stock
+ * @property {number | null} sizeMm A dowel's diameter or a butterfly's waist.
+ * @property {number | null} count How many butterfly keys; `null` for one per ~50 mm.
+ * @property {'u-' | 'u+' | 'v-' | 'v+' | null} side
+ * @property {number | null} depthMm
+ * @property {boolean} through
+ */
+
+/**
  * @param {unknown} given
  * @param {string} joint
- * @returns {{ stock: 'printed' | 'steel' | 'filament', sizeMm: number | null }}
+ * @returns {JointOptions}
  */
 function readJointOptions(given, joint) {
-  const none = { stock: /** @type {const} */ ('printed'), sizeMm: null }
+  /** @type {JointOptions} */
+  const none = { stock: 'printed', sizeMm: null, count: null, side: null, depthMm: null, through: false }
   if (given === undefined) return none
   const fields = /** @type {Record<string, readonly string[]>} */ (JOINT_OPTION_FIELDS)[joint]
   if (fields === undefined) {
@@ -275,6 +343,7 @@ function readJointOptions(given, joint) {
   for (const key of Object.keys(raw)) {
     if (!fields.includes(key)) throw new Error(`${OP}: jointOptions has no field ${JSON.stringify(key)} (it takes ${fields.join(', ')})`)
   }
+  if (joint === 'butterfly') return readButterflyOptions(raw)
   const stock = raw.stock ?? 'printed'
   if (!DOWEL_STOCKS.includes(/** @type {any} */ (stock))) {
     throw new Error(`${OP}: jointOptions.stock must be one of ${DOWEL_STOCKS.join(', ')}, got ${JSON.stringify(raw.stock)}`)
@@ -288,12 +357,38 @@ function readJointOptions(given, joint) {
     if (stock === 'filament') throw new Error(`${OP}: filament is always ${FILAMENT_DIAMETER_MM} mm — leave jointOptions.sizeMm out`)
     sizeMm = raw.sizeMm
   }
-  return { stock: /** @type {'printed' | 'steel' | 'filament'} */ (stock), sizeMm }
+  return { ...none, stock: /** @type {'printed' | 'steel' | 'filament'} */ (stock), sizeMm }
+}
+
+/**
+ * A butterfly joint's `jointOptions` (`TODO/core-075`).
+ *
+ * @param {Record<string, unknown>} raw
+ * @returns {JointOptions}
+ */
+function readButterflyOptions(raw) {
+  let count = null
+  if (raw.count !== undefined) {
+    if (typeof raw.count !== 'number' || !Number.isInteger(raw.count) || raw.count < 1 || raw.count > MAX_PLACEMENTS) {
+      throw new Error(`${OP}: jointOptions.count must be a whole number from 1 to ${MAX_PLACEMENTS}, got ${JSON.stringify(raw.count)}`)
+    }
+    count = raw.count
+  }
+  let sizeMm = null
+  if (raw.sizeMm !== undefined) {
+    const [low, high] = SIZE_RANGE_MM.butterfly
+    if (typeof raw.sizeMm !== 'number' || !Number.isFinite(raw.sizeMm) || raw.sizeMm < low || raw.sizeMm > high) {
+      throw new Error(`${OP}: jointOptions.sizeMm must be ${low} to ${high} mm, got ${JSON.stringify(raw.sizeMm)}`)
+    }
+    sizeMm = raw.sizeMm
+  }
+  const { side, depthMm, through } = readButterflyFields(raw, OP, 'jointOptions.')
+  return { stock: 'printed', sizeMm, count, side, depthMm, through }
 }
 
 /**
  * @param {Record<string, any>} params
- * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: ReturnType<typeof readJointOptions> }}
+ * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: JointOptions }}
  */
 function readParams(params) {
   const axisIndex = AXES.indexOf(params?.axis)
@@ -345,7 +440,7 @@ export function splitWarnings(params) {
   const warnings = []
   if (params.clearanceMm === 0) {
     warnings.push(
-      'Zero clearance: a printed pin or tongue comes out slightly fatter than modelled, so with no gap the pieces may not go together. 0.2 mm is a snug fit.'
+      'Zero clearance: a printed pin, tongue or key comes out slightly fatter than modelled, so with no gap the pieces may not go together. 0.2 mm is a snug fit.'
     )
   }
   return warnings
@@ -438,7 +533,7 @@ export function planJoint(value, params) {
  * `sockets` cut from piece B. `connectors` says where each one is.
  *
  * @typedef {object} JointPlan
- * @property {'pins' | 'tongue' | 'dowel' | 'placements' | 'none'} kind
+ * @property {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'placements' | 'none'} kind
  * @property {Geom3[]} pins
  * @property {Geom3[]} sockets
  * @property {Geom3[]} holes
@@ -461,6 +556,7 @@ function planOn(solid, lower, upper, read, cutMm) {
   if (read.placements !== null) return planPlaced(solid, lower, upper, read, read.placements, cutMm)
   if (read.joint === 'none') return { kind: 'none', pins: [], sockets: [], holes: [], connectors: [], summary: 'no joint' }
   if (read.joint === 'dowel') return planDowels(solid, lower, upper, read, cutMm)
+  if (read.joint === 'butterfly') return planButterflies(solid, read, cutMm)
   const reach = read.joint === 'pins' ? PIN_MAX_REACH_MM : TONGUE_MAX_REACH_MM
   const widest = read.joint === 'pins' ? PIN_MAX_DIAMETER_MM / 2 : TONGUE_MAX_WIDTH_MM / 2
   const field = clearanceField(solid, read.axisIndex, cutMm, {
@@ -523,6 +619,25 @@ function planDowels(solid, lower, upper, read, cutMm) {
 }
 
 /**
+ * Butterfly keys found by the search (`TODO/core-075`).
+ *
+ * @param {Geom3} solid The uncut piece.
+ * @param {ReturnType<typeof readParams>} read
+ * @param {number} cutMm
+ * @returns {JointPlan}
+ */
+function planButterflies(solid, read, cutMm) {
+  const face = butterflyFace(solid, read.axisIndex, cutMm)
+  const { count, side, sizeMm, depthMm, through } = read.jointOptions
+  const plan = butterflyJoint({ face, clearanceMm: read.clearanceMm, count, side, sizeMm, depthMm, through })
+  if (plan) return plan
+  throw new Error(
+    `${OP}: no room for a butterfly key on the cut face — a key needs its pocket with a ${JOINT_WALL_MM} mm wall round it in both pieces ` +
+      `and a ${JOINT_WALL_MM} mm floor under it; make it shallower or choose through, cut further from an end, or choose another joint`
+  )
+}
+
+/**
  * The joint from a hand-given placement list (`TODO/core-059`).
  *
  * @param {Geom3} solid The uncut piece.
@@ -538,7 +653,7 @@ function planPlaced(solid, lower, upper, read, placements, cutMm) {
   // its exact containment check, and only reads the field to word a refusal.
   const field = placementField(solid, read.axisIndex, cutMm, read.clearanceMm, placements)
   try {
-    return placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements })
+    return placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements, solid })
   } catch (error) {
     if (error instanceof PlacementRefusal) throw new Error(`${OP}: ${error.message}`)
     throw error
@@ -704,14 +819,39 @@ export function splitWithJoint(value, params) {
  * @property {{ ok: boolean, reason: string }[]} verdicts One per placement given, in order.
  * @property {string} overall A refusal of the list as a whole (two placements overlapping),
  *   or `''` when every placement fits alone and together; `''` for an empty list.
+ * @property {number[]} outline The cut face's outline (`TODO/core-075`), six numbers per edge —
+ *   from `(u, v)`, to `(u, v)`, outward normal `(u, v)` — what a Butterfly tap snaps to.
+ * @property {PlacementParams[] | null} resolved Every placement as Apply would build it — a
+ *   butterfly's side and depth filled in — when the whole list fits; `null` otherwise.
  */
+
+/**
+ * A planned connector as a record's placement would carry it, rounded for a person.
+ *
+ * @param {Connector} connector
+ * @returns {PlacementParams}
+ */
+function placementOf(connector) {
+  const mm = (/** @type {number} */ value) => Number(value.toFixed(3))
+  return {
+    kind: connector.kind,
+    ...(connector.stock !== undefined && connector.stock !== 'printed' ? { stock: connector.stock } : {}),
+    uMm: mm(connector.uMm),
+    vMm: mm(connector.vMm),
+    sizeMm: mm(connector.sizeMm),
+    ...(connector.kind === 'tongue' && connector.lengthMm !== undefined ? { lengthMm: mm(connector.lengthMm) } : {}),
+    ...(connector.kind === 'butterfly' && connector.side !== undefined ? { side: connector.side } : {}),
+    ...(connector.kind === 'butterfly' && connector.depthMm !== undefined && connector.through !== true ? { depthMm: mm(connector.depthMm) } : {}),
+    ...(connector.through === true ? { through: true } : {}),
+  }
+}
 
 /**
  * Preview a split's cut face for hand placement.
  *
  * @param {Geom3 | Group} value The uncut body.
- * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | null, seedOptions?: { stock?: 'printed' | 'steel' | 'filament', sizeMm?: number } }} params
- *   `seedOptions` are a `dowel` seed's `jointOptions` (`TODO/core-075`).
+ * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | 'butterfly' | null, seedOptions?: SplitParams['jointOptions'] }} params
+ *   `seedOptions` are a `dowel` or `butterfly` seed's `jointOptions` (`TODO/core-075`).
  * @returns {FacePreview}
  * @throws {Error} The op's own refusal for a cut that is outside the body, crosses several
  *   parts or is not watertight.
@@ -733,35 +873,33 @@ export function previewSplitFace(value, params) {
   /** @type {PlacementParams[]} */
   let auto = []
   let autoError = ''
+  const face = butterflyFace(piece.solid, read.axisIndex, cutMm)
   if (seed !== null) {
     const args = { field, lower, upper, clearanceMm: read.clearanceMm }
-    const options = seed === 'dowel' ? readJointOptions(seedOptions, 'dowel') : null
+    const options = seed === 'dowel' || seed === 'butterfly' ? readJointOptions(seedOptions, seed) : null
     const plan =
       seed === 'pins'
         ? pinJoint(args)
         : seed === 'dowel' && options !== null
           ? dowelJoint({ ...args, stock: options.stock, sizeMm: options.sizeMm })
-          : tongueGrooveJoint(args)
+          : seed === 'butterfly' && options !== null
+            ? butterflyJoint({ face, clearanceMm: read.clearanceMm, ...options })
+            : tongueGrooveJoint(args)
     if (plan === null) {
-      const what = seed === 'pins' ? 'pin' : seed === 'dowel' ? 'dowel' : 'tongue'
+      const what = seed === 'pins' ? 'pin' : seed === 'dowel' ? 'dowel' : seed === 'butterfly' ? 'butterfly key' : 'tongue'
       autoError = `${OP}: the automatic search finds no room for a ${what} on this cut face`
     } else {
-      auto = plan.connectors.map((connector) => ({
-        kind: connector.kind,
-        ...(connector.stock !== undefined && connector.stock !== 'printed' ? { stock: connector.stock } : {}),
-        uMm: Number(connector.uMm.toFixed(3)),
-        vMm: Number(connector.vMm.toFixed(3)),
-        sizeMm: Number(connector.sizeMm.toFixed(3)),
-        ...(connector.kind === 'tongue' && connector.lengthMm !== undefined
-          ? { lengthMm: Number(connector.lengthMm.toFixed(3)) }
-          : {}),
-      }))
+      auto = plan.connectors.map(placementOf)
     }
   }
 
+  const solid = piece.solid
+  /** @type {JointPlan | null} */
+  let whole = null
   const verdicts = placements.map((placement, index) => {
     try {
-      placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements: [placement] })
+      const built = placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements: [placement], solid })
+      if (placements.length === 1) whole = built
       return { ok: true, reason: '' }
     } catch (error) {
       if (!(error instanceof PlacementRefusal)) throw error
@@ -771,12 +909,13 @@ export function previewSplitFace(value, params) {
   let overall = ''
   if (placements.length > 1 && verdicts.every((verdict) => verdict.ok)) {
     try {
-      placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements })
+      whole = placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements, solid })
     } catch (error) {
       if (!(error instanceof PlacementRefusal)) throw error
       overall = error.message
     }
   }
+  const resolved = whole === null ? null : /** @type {JointPlan} */ (whole).connectors.map(placementOf)
   return {
     uAxis: AXES[field.u],
     vAxis: AXES[field.v],
@@ -789,5 +928,7 @@ export function previewSplitFace(value, params) {
     autoError,
     verdicts,
     overall,
+    outline: flatOutline(face),
+    resolved,
   }
 }
