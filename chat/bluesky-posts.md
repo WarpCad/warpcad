@@ -2457,3 +2457,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** four seam joints, nothing extra printed → diff (joint.profiles.js, docs/print-prep.md); pieces list shows real length → driven this session (finger: piece A 150 to 174 mm; dovetail 156 mm; half lap on a 200 x 60 x 8 mm panel 100 to 116 mm)
 **To Add:** screenshot of the Split sheet with Half lap chosen
+
+## 2026-10-27T18:20:00Z — Share links: a whole WarpCad project inside a URL fragment
+
+**Post:** Groundwork for sending a WarpCad project as a link: the whole project, deflated and base64url-encoded, lives in the URL fragment, so no server ever sees it. The biggest example project comes to 2,303 characters. The Share button is next. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** project in the fragment, deflated + base64url → diff (shareLink.js); no server sees it → diff (docs/decisions/share-link.md; a fragment is not sent in HTTP requests); 2,303 characters for the biggest example → measure script run this session on examples/dovetail-phone-holder.ndjson (7,203 bytes raw); Share button is next → TODO/FIND-io-016 Stage 2 still open
+**To Add:** nothing until the Share sheet exists

@@ -3539,3 +3539,16 @@ The starting sizes have not been checked against a test print yet; that is the o
 **Evidence:** four joints, clip to uncut solid, grown cavity → diff (joint.profiles.js); refusal text and 12 x 40 mm → driven this session; 116 mm for a 100 mm cut → driven this session; magnets/dowels with lap → diff (split.js, SplitSheet.vue); sizes unchecked → TODO/VERIFY.md entry
 **To Add:** screenshot of a half lap seam in the viewport
 
+
+## 2026-10-27T18:20:00Z — The share-link format: a project that travels inside the URL
+
+**Post:** WarpCad has no backend, so sharing a project by link had to mean carrying the project in the link itself. The format is now decided and built: the project's NDJSON, deflated and base64url-encoded, after the # in the URL. A fragment never reaches a server, so the project stays out of hosting logs and analytics.
+
+Decoding is where the care went. A link is untrusted input, so the compressed length is capped before decoding, the decompressed size is capped while streaming (a small deflate bomb is cancelled rather than expanded), and any line that is not valid refuses the whole link instead of loading half a project. A test cuts a link at every position and checks that none of them decode.
+
+The largest example project comes out at 2,303 characters. The Share button and the recipient's read-only view are the next stage, and the message-app limits still need a check on a real phone. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** no backend → CLAUDE.md Stack (static GitHub Pages); fragment not sent to a server → docs/decisions/share-link.md; caps before and during decode, bomb cancelled, bad line refuses link → diff (shareLink.js) and shareLink.spec.js passing this session; truncation at every position → shareLink.spec.js; 2,303 characters → measure script this session; next stage and phone check outstanding → TODO/FIND-io-016, TODO/VERIFY.md
+**To Add:** nothing until the Share sheet exists

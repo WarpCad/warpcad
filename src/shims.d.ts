@@ -40,6 +40,9 @@ declare module '*?raw' {
 interface ImportMeta {
   readonly env: { readonly DEV: boolean; readonly PROD: boolean; readonly MODE: string; readonly BASE_URL: string; readonly VITE_E2E_HOOKS?: string }
   glob(pattern: string | string[]): Record<string, () => Promise<any>>
+  // The eager `?raw` form: every matching file's text, read through Vite instead of Node's `fs`
+  // (`TODO/io-016`, `shareLink.spec.js` walking the project files under `examples/` and `e2e/`).
+  glob(pattern: string | string[], options: { query: '?raw'; import: 'default'; eager: true }): Record<string, string>
   readonly hot?: {
     on(event: string, listener: (data: any) => void): void
     off(event: string, listener: (data: any) => void): void

@@ -36,6 +36,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-016 — Share a project by link, Stage 1 (2026-10-27 12:20)
+
+The format and its decision record landed without the device measurements the spec's step 0 asks for. Payload sizes are measured (largest real project: 2,303 URL characters); where a real client breaks is not.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Paste a long share URL (try the dovetail example's link, then a padded one around 6, 10 and 20 KB) into an iPhone Messages thread and a Gmail draft; record where each stops linkifying, wraps badly or truncates, then set the ceiling in `docs/decisions/share-link.md` | Open | |
+| 2 | Does `navigator.share` exist inside a Tauri WKWebView (iOS and macOS)? Record the answer for `build-018`'s probe list | Open | |
+| 3 | Does an unpadded base64url payload survive being tapped in Messages and Mail without a trailing character being eaten (`-`, `_` at the end)? | Open | |
+
+
 ### core-075 stage 4 — seam profiles: sliding dovetail, puzzle tabs, half lap, finger joint (2026-10-27 17:05)
 
 Everything checkable without a printer was driven: sheet, refusals, real piece sizes, half lap applied on a thin panel. These need a printer; the starting sizes are not confirmed by a test print.

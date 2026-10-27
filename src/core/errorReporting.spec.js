@@ -135,6 +135,16 @@ describe('scrubEvent', () => {
     expect(scrubEvent({ exception: { values: [{ type: 'ghp_', value: 'B'.repeat(36) }] } })).toBeNull()
   })
 
+  it('never lets a share link, which is a whole project, through in a URL, breadcrumb or message', () => {
+    const link = 'https://app.warpcad.com/#/share/v1/pVNNb9swDP0rBM8CBLRDDx0KFFgPG3YYsGMhULSskNEHDEmOA6P_vRSdNEm7ARuWg2lL5CN55OODS3rl'
+    const out = /** @type {any} */ (scrubEvent({ message: 'boom', request: { url: link, headers: { Referer: link } } }))
+    expect(out.request.url).toBe('https://app.warpcad.com/')
+    expect(out.request.headers.Referer).toBe('https://app.warpcad.com/')
+    expect(scrubEvent({ message: `failed to open ${link}` })).toBeNull()
+    expect(scrubEvent({ message: 'route #/share/v1/pVNNb9swDP0 failed' })).toBeNull()
+    expect(scrubBreadcrumb({ category: 'navigation', data: { to: link } })).toBeNull()
+  })
+
   it('drops an event with a URL fragment outside request.url', () => {
     expect(scrubEvent({ message: 'at https://app.warpcad.com/#/gist/abc123 failed' })).toBeNull()
     expect(scrubEvent({ message: 'route #/gist/abc123 failed' })).toBeNull()

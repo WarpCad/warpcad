@@ -9,6 +9,16 @@ depends: []
 status: open
 ---
 
+> **Progress (2026-10-27): Step 0 and Stage 1 shipped; Stage 2 is still open.** Done: `docs/decisions/share-link.md`
+> (options, rejection table, measured sizes for every project file: the largest real one is 2,303 URL
+> characters), `src/core/shareLink.js` + `shareLink.spec.js` (`encodeShareLink`, `decodeShareLink`,
+> `isShareLink`; truncation at every position, deflate bomb, hostile fixtures), and the scrubbed-share-URL
+> case in `errorReporting.spec.js`. **Not done, by design of this run:** the iPhone Messages / Gmail
+> measurement and the Tauri `navigator.share` probe (need hardware; queued in `TODO/VERIFY.md`, so the
+> 6 KB ceiling is still the estimate), and all of Stage 2: `useShareLink`, `ShareSheet`, `SharedView`,
+> autosave suspension, Replace/Merge branches, `index.html` meta, `docs/sharing.md`, the e2e spec and
+> docs media, and scenario 29. `status` stays `open`; start the next run at Stage 2.
+
 ## Goal
 
 **In user terms:** the owner has made a few projects and wants to show them to their dad, who
