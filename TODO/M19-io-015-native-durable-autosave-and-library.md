@@ -38,14 +38,14 @@ Safari or on desktop.
 
 ## Documentation
 
-- **Page**: `docs/ios-app.md`, section "Where your work is kept": the open project and My parts are
+- **Page**: `docs/native-apps.md`, section "Where your work is kept": the open project and My parts are
   kept in two places, and what *Restored your last session* means. One line in
   `docs/user-library.md` pointing there.
 - **Example**: "Place two parts and wait for the saved indicator. Delete and reinstall nothing.
   If iOS clears the app's web storage to free space, WarpCad finds the backup copy the next time
   you open it and shows *Restored your last session…*; your two parts are there."
 - **Media**: `e2e/docs/native-restore.docs.js`, a still of the toast
-  (`docs/screenshots/native-restore-toast.png`) in `docs/ios-app.md`.
+  (`docs/screenshots/native-restore-toast.png`) in `docs/native-apps.md`.
 
 ## Affected files
 

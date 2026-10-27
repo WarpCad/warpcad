@@ -32,7 +32,7 @@ instead of Xcode.
 
 ## Documentation
 
-- **Page**: `docs/ios-app.md`, a new section "Installing a test build" (TestFlight invite → install
+- **Page**: `docs/native-apps.md`, a new section "Installing a test build" (TestFlight invite → install
   TestFlight → open the invite → **Install**). Contributor steps (certificates, the release
   command) go in `warpcad-native/README.md`, not in end-user docs.
 - **Example**: "Open the TestFlight invite on your iPhone, tap **View in TestFlight**, then
@@ -50,7 +50,7 @@ instead of Xcode.
   file in the repo**.
 - `docs/decisions/release.md`: a short section on how an iOS build number relates to the web
   release version (`release-it`), e.g. the web `version` plus a monotonic build number.
-- `docs/ios-app.md`.
+- `docs/native-apps.md`.
 
 ## Proposed fix
 

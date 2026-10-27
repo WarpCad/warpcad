@@ -16,6 +16,18 @@ Run alone, the same test passes against the same baseline, so the baseline is ri
 the render is not settled when the shot is taken under load (a frame or the split preview still
 animating or tessellating).
 
+**Recurred 2026-10-26** in the full e2e run for the `b81a99b` commit gate (4284/5594 passed, this
+was the only failure): `split-sheet-manual-joints.png` differed by 15724 pixels (ratio 0.02), on
+`docs-laptop` again. Run alone straight after, `e2e/docs/print-prep.docs.js` passed 5/5 twice. The
+`shot()` helper had just been changed to pin the header version label (`b81a99b`), but this shot
+is in the viewport, not the header, and it passes alone with that change in place, so the label
+pin is not the cause. Still load-dependent and still not root-caused.
+
+**Recurred again 2026-10-27** in the full e2e run for the core-075 stage 1 commit gate (4304 passed,
+1 failed, 1313 skipped): the same shot on `docs-laptop`, 14145 pixels (ratio 0.02). That commit
+regenerated this baseline (the picker now lists **Dowel**), and the run alone straight after passed
+7/7 twice, so the new baseline is right and the load-dependence is unchanged.
+
 ## Affected files
 
 - `e2e/docs/print-prep.docs.js` (the `shot` helper and the test at `:167`)

@@ -46,7 +46,7 @@ here too.
 ## Documentation
 
 - **Page**: `docs/viewport-navigation.md`, a short section "If the 3D view goes blank". Also link
-  it from `docs/ios-app.md`.
+  it from `docs/native-apps.md`.
 - **Example**: "Switch to another app for a few minutes and come back. If the 3D view shows
   *Restoring…*, wait a moment; if it shows **Restore view**, tap it. Your parts, selection and
   undo history are kept."

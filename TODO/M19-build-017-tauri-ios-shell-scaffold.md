@@ -131,6 +131,7 @@ No new control. What the user sees changes in three places, all driven by `isNat
    cannot change once an App Store Connect record exists. App name **WarpCad**. Minimum iOS,
    macOS and Android API level: whatever Tauri 2's template sets, recorded. The identifier is shared by
    all five targets.
+   **Deferred 2026-10-26:** the owner was asked to confirm `com.warpcad.app` and deferred the answer; no decision yet. `build-019` stays blocked on it.
 3. `beforeBuildCommand`: `npm --prefix ../warpcad run build:native`, with the sibling path in
    one variable (`WARPCAD_WEB`, default `../warpcad`) so a checkout elsewhere still works. Stamp
    the bundled commit (`git -C $WARPCAD_WEB rev-parse --short HEAD`) into the build.
@@ -171,9 +172,12 @@ Do this **last**, once `warpcad-native` builds and its first commit exists. The 
    `build-018`, `build-019`, `build-020`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026`,
    `testing-011`. Also move `build-017` itself to `warpcad-native/TODO/` as a closed row in its
    `ROADMAP-DONE.md`.
-3. Rows that edit **both** repositories (`render-006`, `io-014`, `io-015`, `ai-025`, `ai-026`) move too
+3. Rows that edit **both** repositories (`render-006`, `io-014`, `io-015`, `ai-025`, `ai-026`, and
+   `build-019`, `build-020`, `testing-011`, which edit `docs/` here) move too
    but keep a `> Two repositories` banner naming the files they change in `../warpcad`. Their
    web-side changes still need this repository's gates (`npm test`, e2e, the pre-push full run).
+   End-user docs for every platform stay in `../warpcad/docs/`, never in `warpcad-native`
+   (`docs-028`, `docs/decisions/documentation.md`).
 4. Rewrite each moved file's relative links (`../` → `../../warpcad/` for docs, decisions and CLAUDE.md).
 5. In **this** repository: replace the M19 section of `TODO/ROADMAP.md` with a short pointer to
    `~/src/@WarpCad/warpcad-native/TODO/ROADMAP.md`, drop the M19 rows from Next up and the milestone

@@ -55,7 +55,7 @@ Done means, in the iOS app:
 ## Documentation
 
 - **Page**: `docs/save-load.md`, new section "In the iOS app". `docs/export.md`, one paragraph on
-  where exports go. `docs/ios-app.md` links both.
+  where exports go. `docs/native-apps.md` links both.
 - **Example**: "Tap **File ▾ → Save**, type `bracket`, tap **Save**. Open the **Files** app, tap
   **Browse → On My iPhone → WarpCad**: `bracket.ndjson` is there. Back in WarpCad, move a part and
   tap **Save** again: the same file updates. To open a project from iCloud Drive, tap

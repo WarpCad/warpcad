@@ -5,7 +5,7 @@ kind: feature
 priority: medium
 model: sonnet
 milestone: M20
-depends: [build-021, testing-012]
+depends: [build-021, docs-028]
 status: open
 ---
 

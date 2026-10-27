@@ -30,7 +30,7 @@ outside the app.
 
 ## Documentation
 
-- **Page**: `docs/ios-app.md`, adding the App Store link once it exists (until then, the TestFlight
+- **Page**: `docs/native-apps.md`, adding the App Store link once it exists (until then, the TestFlight
   section stands). `docs/privacy.md`, a section for the iOS app: what it collects (Sentry crash
   reports if a DSN is set in the native build; no analytics if `build-017`'s GA-off default holds),
   where the key and files live. The App Store's privacy-policy URL points at this page on
@@ -50,7 +50,7 @@ outside the app.
 - `warpcad-native/store/` (new): `description.md`, `keywords.txt`, `review-notes.md` (how a
   reviewer tries the app with no account, and why it is not a "repackaged website" under 4.2:
   bundled, offline, Files integration, Keychain, a local MCP server).
-- `e2e/store/*.store.js` + a Playwright project, `docs/privacy.md`, `docs/ios-app.md`.
+- `e2e/store/*.store.js` + a Playwright project, `docs/privacy.md`, `docs/native-apps.md`.
 - `docs/decisions/app-store-licensing.md` Part 2 (native and asset audits), status line.
 - `docs/decisions/native-mobile-shell.md` Question 8 (what shipped, sizes).
 
@@ -59,7 +59,11 @@ outside the app.
 1. **Owner decisions, asked together, before any build for review** (each is the owner's per the
    decision records; list the options and the record's recommendation, then wait):
    - **Help content in the binary**: ship the 89 MB of Help GIFs, ship Help without the GIFs, or
-     load Help from `app.warpcad.com` (`native-mobile-shell.md` Recommendation 7).
+     load Help from `app.warpcad.com` (`native-mobile-shell.md` Recommendation 7). What each
+     shape costs is in `docs/decisions/documentation.md`'s native-shapes table (`docs-028`).
+     Loading Help from the web also needs a version-skew line in the Help sheet ("This help is
+     for WarpCad <index version>; this app is <app version>") when the two differ: file it as a
+     follow-up row if the owner picks that shape.
    - **The prose licence** (`app-store-licensing.md`, "The prose licence"): (a) relicense the
      owner's own docs for the app copy, or (b) the app ships no Help and loads it from the web.
    - **iPad**: support iPad in this first release, or iPhone only. iPad adds screenshots and a

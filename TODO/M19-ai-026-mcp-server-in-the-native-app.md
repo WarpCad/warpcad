@@ -14,7 +14,7 @@ status: open
 > question. Its custom connectors are believed to be called from Anthropic's servers, which
 > cannot see the phone. `build-018` records the answer. If no on-phone agent can reach the server,
 > this task still builds it for the agents that can (Claude Desktop and Claude Code on a Mac on the
-> same Wi-Fi, and the macOS build of this same shell), and `docs/ios-app.md` says plainly which
+> same Wi-Fi, and the macOS build of this same shell), and `docs/native-apps.md` says plainly which
 > agents work. It must not imply the Claude iPhone app works if it does not.
 
 ## Goal
@@ -69,7 +69,7 @@ Done means the **native app itself hosts that endpoint**:
 
 ## Documentation
 
-- **Page**: `docs/mcp.md`, new section "From the iOS app". `docs/ios-app.md` links it. The section
+- **Page**: `docs/mcp.md`, new section "From the iOS app". `docs/native-apps.md` links it. The section
   states which agents can connect (from `build-018` item 10, with the date measured) and which
   cannot.
 - **Example**: "On your iPhone, open WarpCad, tap **Assistant → Live MCP access…**, choose
