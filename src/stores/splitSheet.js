@@ -44,6 +44,14 @@
  * does to dowel markers. Tenons are key rows in the pieces list; magnets are a **You'll also
  * need** line, two per pocket pair.
  *
+ * **Seam profiles** (stage 4) — **Sliding dovetail**, **Puzzle tabs**, **Half lap** and **Finger
+ * joint** — sit under *Printed into the pieces*, each with its own fields ({@link PROFILE_FIELDS}).
+ * A profile makes piece A longer than the cut offset, so for one the pieces list and its fit badges
+ * use the kernel's **real** piece bounds (`FacePreview.pieceBounds`), not the plane's offset.
+ * Profiles shape the whole seam, so they cannot be placed by hand: choosing one leaves Place
+ * connectors and {@link manualBlocked} says why — except a **Half lap**, which keeps Place
+ * connectors with only **Dowel** and **Magnet** ({@link connectorKinds}, the owner's v1 pairing).
+ *
  * Offsets are millimetres **from the body's minimum face** along the axis — Bisect's rule, so
  * the two sheets read the same.
  *
@@ -85,6 +93,10 @@ export const JOINT_LABELS = Object.freeze({
   butterfly: 'Butterfly keys',
   tenon: 'Tenons',
   magnets: 'Magnets',
+  dovetail: 'Sliding dovetail',
+  puzzle: 'Puzzle tabs',
+  lap: 'Half lap',
+  finger: 'Finger joint',
   none: 'No joint',
 })
 
@@ -92,7 +104,7 @@ export const JOINT_LABELS = Object.freeze({
  * One entry of the Joint list: the `<option>` value, its visible text, and the one line under
  * the list saying what it is for.
  *
- * @typedef {{ value: 'pins' | 'tongue' | 'butterfly' | 'dowel' | 'tenon' | 'magnets' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
+ * @typedef {{ value: 'pins' | 'tongue' | 'dovetail' | 'puzzle' | 'lap' | 'finger' | 'butterfly' | 'dowel' | 'tenon' | 'magnets' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
  */
 
 /**
@@ -107,6 +119,10 @@ export const JOINT_CHOICES = /** @type {readonly { heading: string, choices: rea
     choices: Object.freeze([
       { value: 'pins', label: 'Pins and sockets', use: 'Pins on one piece fit sockets in the other; nothing extra to print or buy' },
       { value: 'tongue', label: 'Tongue and groove', use: 'A rib and a matching groove, for sections too thin for a pin' },
+      { value: 'dovetail', label: 'Sliding dovetail', use: 'A flared rail on one piece slides into a channel in the other from one end; holds against pulling apart' },
+      { value: 'puzzle', label: 'Puzzle tabs', use: 'Jigsaw tabs through a flat panel or sign; drop one piece on the other and it locks without glue' },
+      { value: 'lap', label: 'Half lap', use: 'Each piece keeps half the thickness past the cut; lots of glue area on a thin plate' },
+      { value: 'finger', label: 'Finger joint', use: 'Alternating fingers through the thickness; the most glue area, and it lines itself up' },
     ]),
   }),
   Object.freeze({
@@ -186,6 +202,34 @@ export const CONNECTOR_LABELS = Object.freeze({
 /** The joints whose own search the sheet runs before Apply, and which carry `jointOptions`. */
 const KEYED_JOINTS = Object.freeze(/** @type {string[]} */ (['dowel', 'butterfly', 'tenon', 'magnets']))
 
+/** The seam profiles (stage 4): planned before Apply for their real piece bounds. */
+const PROFILES = Object.freeze(/** @type {string[]} */ (['dovetail', 'puzzle', 'lap', 'finger']))
+
+/** What a half lap may carry as well, placed by hand (`TODO/core-075` decision 4). */
+const LAP_CONNECTOR_KINDS = Object.freeze(/** @type {const} */ (['dowel', 'magnet']))
+
+/**
+ * Each profile's own fields, in the order the sheet shows them: the store field, its label, the
+ * `jointOptions` key and its range — blank is Auto.
+ *
+ * @type {Readonly<Record<string, readonly { field: string, testid: string, label: string, option: string, min: number, max: number, step: number }[]>>}
+ */
+export const PROFILE_FIELDS = Object.freeze({
+  dovetail: [
+    { field: 'dovetailHeightMm', testid: 'split-dovetail-height', label: 'Rail height (mm)', option: 'heightMm', min: 3, max: 8, step: 0.5 },
+    { field: 'dovetailNeckMm', testid: 'split-dovetail-neck', label: 'Neck width (mm)', option: 'sizeMm', min: 2.4, max: 30, step: 0.5 },
+  ],
+  puzzle: [
+    { field: 'puzzleCount', testid: 'split-puzzle-count', label: 'Tabs', option: 'count', min: 1, max: 16, step: 1 },
+    { field: 'puzzleNeckMm', testid: 'split-puzzle-neck', label: 'Neck width (mm)', option: 'sizeMm', min: 2, max: 20, step: 0.5 },
+  ],
+  lap: [{ field: 'lapMm', testid: 'split-lap-length', label: 'Lap length (mm)', option: 'lapMm', min: 2, max: 200, step: 1 }],
+  finger: [
+    { field: 'fingerCount', testid: 'split-finger-count', label: 'Fingers', option: 'count', min: 2, max: 31, step: 1 },
+    { field: 'fingerDepthMm', testid: 'split-finger-depth', label: 'Finger depth (mm)', option: 'depthMm', min: 2, max: 60, step: 0.5 },
+  ],
+})
+
 /** A dragged plane snaps to this step, mm, so a drag lands on a number a person can read. */
 export const DRAG_STEP_MM = 0.5
 
@@ -201,7 +245,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   const bodyId = ref(/** @type {string | null} */ (null))
   const axis = ref(/** @type {Axis} */ ('x'))
   const offsetMm = ref(/** @type {number | null} */ (0))
-  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'none'} */ ('pins'))
+  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'dovetail' | 'puzzle' | 'lap' | 'finger' | 'none'} */ ('pins'))
   /** What a dowel is made of (`TODO/core-075`): the automatic joint's and every dowel marker's. */
   const stock = ref(/** @type {'printed' | 'steel' | 'filament'} */ ('printed'))
   /** A dowel diameter the person typed, mm, or `null` for the search's own. */
@@ -224,6 +268,36 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   const magnetDiameterMm = ref(/** @type {number | null} */ (null))
   /** A custom magnet's thickness, mm. */
   const magnetThicknessMm = ref(/** @type {number | null} */ (null))
+  // Seam profiles (stage 4): each `null` for Auto.
+  const dovetailHeightMm = ref(/** @type {number | null} */ (null))
+  const dovetailNeckMm = ref(/** @type {number | null} */ (null))
+  const puzzleCount = ref(/** @type {number | null} */ (null))
+  const puzzleNeckMm = ref(/** @type {number | null} */ (null))
+  const lapMm = ref(/** @type {number | null} */ (null))
+  const fingerCount = ref(/** @type {number | null} */ (null))
+  const fingerDepthMm = ref(/** @type {number | null} */ (null))
+  /** @type {Record<string, import('vue').Ref<number | null>>} */
+  const profileRefs = { dovetailHeightMm, dovetailNeckMm, puzzleCount, puzzleNeckMm, lapMm, fingerCount, fingerDepthMm }
+
+  /** The current profile's `jointOptions`, or `undefined` with every field on Auto. */
+  const profileOptions = computed(() => {
+    const fields = PROFILE_FIELDS[joint.value]
+    if (!fields) return undefined
+    /** @type {Record<string, number>} */
+    const options = {}
+    for (const { field, option } of fields) {
+      const value = profileRefs[field].value
+      if (typeof value === 'number' && Number.isFinite(value)) options[option] = value
+    }
+    return Object.keys(options).length > 0 ? options : undefined
+  })
+
+  /** The profile the kernel is asked about with every face request, or `null`. */
+  const profileParam = computed(() =>
+    PROFILES.includes(joint.value) && (!manual.value || joint.value === 'lap')
+      ? { joint: joint.value, ...(profileOptions.value === undefined ? {} : { jointOptions: { ...profileOptions.value } }) }
+      : null
+  )
 
   /**
    * The magnet the sheet asks for, or `null` for Auto (and for a Custom size not yet typed in
@@ -257,6 +331,10 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       } else if (
         value === 'pins' ||
         value === 'tongue' ||
+        value === 'dovetail' ||
+        value === 'puzzle' ||
+        value === 'lap' ||
+        value === 'finger' ||
         value === 'butterfly' ||
         value === 'tenon' ||
         value === 'magnets' ||
@@ -282,6 +360,22 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   // --- Place connectors (`TODO/ui-067`) -------------------------------------------------
   /** Whether the person is placing connectors by hand instead of the automatic search. */
   const manual = ref(false)
+  /**
+   * Why Place connectors is not available for the joint chosen (stage 4: a whole-seam profile),
+   * or `''`.
+   */
+  const manualBlocked = computed(() =>
+    PROFILES.includes(joint.value) && joint.value !== 'lap'
+      ? `${JOINT_LABELS[/** @type {'dovetail' | 'puzzle' | 'finger'} */ (joint.value)]} shapes the whole seam, so connectors can’t be placed by hand — ` +
+        'choose Half lap to add magnets or dowels to a profile'
+      : ''
+  )
+  /** The kinds the Place connectors row offers: every kind, or a half lap's Dowel and Magnet. */
+  const connectorKinds = computed(() =>
+    /** @type {readonly ('pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet')[]} */ (
+      joint.value === 'lap' ? LAP_CONNECTOR_KINDS : CONNECTOR_KINDS
+    )
+  )
   /** The kind a tap on the face drops. */
   const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss' | 'dowel' | 'butterfly' | 'tenon' | 'magnet'} */ ('pins'))
   const markers = ref(/** @type {Marker[]} */ ([]))
@@ -405,7 +499,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   )
 
   /** The inputs as one string, so a refusal is shown only for the inputs it refused. */
-  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${sizedKey.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
+  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${sizedKey.value}|${JSON.stringify(profileOptions.value ?? null)}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
 
   /** The butterfly fields as one string. */
   const butterflyKey = computed(() => `${butterflyCount.value}|${butterflySide.value}|${butterflyDepthMm.value}|${butterflyThrough.value}`)
@@ -448,14 +542,23 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   })
 
   /**
-   * Each piece's fit, estimated from the bounding box before Apply (the joint's few
-   * millimetres are not in it — the Inspector's badge measures the real pieces after).
+   * Each piece's fit before Apply: for a seam profile, from the kernel's real piece bounds
+   * (stage 4: a lap, a finger or a tab makes A longer than the offset); otherwise estimated from
+   * the bounding box (a pin's few millimetres are not in it — the Inspector's badge measures the
+   * real pieces after).
    */
   const pieceFits = computed(() => {
     const bounds = previewBounds.value
     if (!bounds || !Number.isFinite(cutMm.value)) return []
     const index = axisIndex.value
     const names = pieceNames.value
+    const real = realPieceBounds.value
+    if (real !== null) {
+      return real.map((piece, at) => {
+        const sizeMm = /** @type {[number, number, number]} */ ([0, 1, 2].map((i) => piece[1][i] - piece[0][i]))
+        return { name: names[at], sizeMm, ...fitVerdict(sizeMm, documentStore.buildVolume) }
+      })
+    }
     const size = [0, 1, 2].map((i) => bounds[1][i] - bounds[0][i])
     const lowerLength = Math.max(0, cutMm.value - bounds[0][index])
     const upperLength = Math.max(0, bounds[1][index] - cutMm.value)
@@ -520,7 +623,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * face's extent (`spans`, mm along u and v) — a through butterfly's depth is the wall's.
    */
   const autoKeys = shallowRef(
-    /** @type {{ key: string, entries: import('../core/kernel/split.js').PlacementParams[], error: string, spans: [number, number] }} */ ({
+    /** @type {{ key: string, entries: import('../core/kernel/split.js').PlacementParams[], error: string, spans: [number, number], pieceBounds?: import('../core/kernel/split.js').FacePreview['pieceBounds'] }} */ ({
       key: '',
       entries: [],
       error: '',
@@ -529,22 +632,38 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   )
   /** The inputs the automatic key search depends on. */
   const autoKey = computed(() =>
-    isOpen.value && !manual.value && KEYED_JOINTS.includes(joint.value)
-      ? `${joint.value}|${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${sizedKey.value}|${documentStore.version}`
+    isOpen.value && !manual.value && (KEYED_JOINTS.includes(joint.value) || PROFILES.includes(joint.value))
+      ? `${joint.value}|${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${butterflyKey.value}|${sizedKey.value}|${JSON.stringify(profileOptions.value ?? null)}|${documentStore.version}`
       : ''
   )
   watch(autoKey, async (key) => {
     if (key === '' || !Number.isFinite(cutMm.value)) return
-    const answer = await ask(planChannel, [], /** @type {'dowel' | 'butterfly' | 'tenon' | 'magnets'} */ (joint.value))
+    // A profile has no search to seed: the kernel plans it for its real piece bounds (stage 4).
+    const seed = PROFILES.includes(joint.value) ? null : /** @type {'dowel' | 'butterfly' | 'tenon' | 'magnets'} */ (joint.value)
+    const answer = await ask(planChannel, [], seed)
     if (answer === null || key !== autoKey.value) return
     autoKeys.value = answer.face
       ? {
           key,
           entries: answer.face.auto,
-          error: answer.face.autoError,
+          error: answer.face.autoError || answer.face.profileError,
           spans: [answer.face.uRange[1] - answer.face.uRange[0], answer.face.vRange[1] - answer.face.vRange[0]],
+          pieceBounds: answer.face.pieceBounds,
         }
       : { key, entries: [], error: answer.error ?? '', spans: [0, 0] }
+  })
+
+  /**
+   * Pieces A's and B's real bounds for a seam profile (stage 4), for the inputs on screen, or
+   * `null` — the plane's estimate stands then.
+   */
+  const realPieceBounds = computed(() => {
+    if (!PROFILES.includes(joint.value)) return null
+    if (manual.value) {
+      const preview = face.value
+      return preview && validatedKey.value === placementKey.value ? (preview.pieceBounds ?? null) : null
+    }
+    return autoKeys.value.key !== '' && autoKeys.value.key === autoKey.value ? (autoKeys.value.pieceBounds ?? null) : null
   })
 
   /** The dowels a split would make or need: the markers' when placing by hand, else the search's. */
@@ -661,7 +780,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
 
   /** The inputs a face preview depends on, as one string. */
   const faceKey = computed(
-    () => `${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${documentStore.version}`
+    () => `${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${JSON.stringify(profileParam.value)}|${documentStore.version}`
   )
 
   /** Everything a verdict depends on: the face's inputs and the markers. */
@@ -693,6 +812,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
         ...(seed !== null && KEYED_JOINTS.includes(seed) && seed === joint.value && jointOptions.value !== undefined
           ? { seedOptions: { ...jointOptions.value } }
           : {}),
+        ...(profileParam.value === null ? {} : { profile: JSON.parse(JSON.stringify(profileParam.value)) }),
       },
     })
     if (outcome.superseded) return null
@@ -728,6 +848,15 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     if (isOpen.value && manual.value) void refresh()
   })
 
+  // Choosing a whole-seam profile leaves Place connectors (stage 4); `manualBlocked` says why.
+  watch(manualBlocked, (blocked) => {
+    if (blocked !== '' && manual.value) void setManual(false)
+  })
+  // A half lap offers only Dowel and Magnet: a kind it does not take goes back to Magnet.
+  watch(connectorKinds, (kinds) => {
+    if (!kinds.includes(connectorKind.value)) connectorKind.value = kinds.includes('magnet') ? 'magnet' : kinds[0]
+  })
+
   /** Resolves once the verdicts on screen are the ones for the markers on screen. */
   async function settled() {
     for (let round = 0; round < 50 && !(validatedKey.value === placementKey.value || !manual.value); round += 1) {
@@ -756,7 +885,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    */
   async function seedFromSearch() {
     const seed = /** @type {'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets'} */ (
-      joint.value === 'tongue' || KEYED_JOINTS.includes(joint.value) ? joint.value : 'pins'
+      joint.value === 'lap' ? 'magnets' : joint.value === 'tongue' || KEYED_JOINTS.includes(joint.value) ? joint.value : 'pins'
     )
     const answer = await ask(faceChannel, [], seed)
     if (answer === null) return
@@ -804,8 +933,10 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       validatedKey.value = ''
       return
     }
+    if (manualBlocked.value !== '') return
     manual.value = true
     markers.value = []
+    if (joint.value === 'lap') connectorKind.value = 'magnet'
     if (joint.value === 'dowel') connectorKind.value = 'dowel'
     if (joint.value === 'butterfly') connectorKind.value = 'butterfly'
     if (joint.value === 'tenon') connectorKind.value = 'tenon'
@@ -956,7 +1087,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * @returns {Promise<boolean>}
    */
   async function chooseKind(kind) {
-    if (!CONNECTOR_KINDS.includes(kind)) return false
+    if (!connectorKinds.value.includes(kind)) return false
     connectorKind.value = kind
     const id = selectedMarkerId.value
     if (id === null) return true
@@ -996,6 +1127,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     magnetSize.value = 'auto'
     magnetDiameterMm.value = null
     magnetThicknessMm.value = null
+    for (const field of Object.values(profileRefs)) field.value = null
     clearanceMm.value = DEFAULT_JOINT_CLEARANCE_MM
     autoKeys.value = { key: '', entries: [], error: '', spans: [0, 0] }
     resetManual()
@@ -1077,6 +1209,10 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
         ? {
             axis: axis.value,
             offsetMm: offsetMm.value,
+            // A half lap keeps its profile with the hand-placed magnets and dowels (stage 4).
+            ...(joint.value === 'lap'
+              ? { joint: 'lap', ...(profileOptions.value === undefined ? {} : { jointOptions: { ...profileOptions.value } }) }
+              : {}),
             clearanceMm: clearanceMm.value,
             names: [...pieceNames.value],
             placements: placementsOf(markers.value),
@@ -1088,6 +1224,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
             ...(KEYED_JOINTS.includes(joint.value) && jointOptions.value !== undefined
               ? { jointOptions: { ...jointOptions.value } }
               : {}),
+            ...(PROFILES.includes(joint.value) && profileOptions.value !== undefined ? { jointOptions: { ...profileOptions.value } } : {}),
             clearanceMm: joint.value === 'none' ? 0 : clearanceMm.value,
             names: [...pieceNames.value],
           },
@@ -1124,6 +1261,15 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     magnetSize,
     magnetDiameterMm,
     magnetThicknessMm,
+    dovetailHeightMm,
+    dovetailNeckMm,
+    puzzleCount,
+    puzzleNeckMm,
+    lapMm,
+    fingerCount,
+    fingerDepthMm,
+    manualBlocked,
+    connectorKinds,
     keyRows,
     hardwareRows,
     autoKeyError,

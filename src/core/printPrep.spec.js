@@ -325,3 +325,37 @@ describe('print prep for tenons and magnets (TODO/core-075 stage 3)', () => {
     expect(text).toMatch(/push Plank B against Plank A along X until the cut faces meet/)
   })
 })
+
+describe('print prep for seam profiles (TODO/core-075 stage 4)', () => {
+  /** @param {[number, number, number]} size @param {Record<string, any>} params */
+  const split = (size, params) =>
+    splitWithJoint(primitives.cuboid({ size, center: [150, 0, size[2] / 2] }), {
+      axis: 'x',
+      offsetMm: 150,
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+      ...params,
+    })
+
+  it('a sliding dovetail: two pieces and an assembly.txt that says which way to slide B on', () => {
+    const result = exportPrintPieces([{ id: 'beam', name: 'Plank', geometry: split([300, 20, 20], { joint: 'dovetail' }) }])
+    expect(result.files.map((file) => file.filename)).toEqual(['plank-a.stl', 'plank-b.stl', 'assembly.txt'])
+    const text = new TextDecoder().decode(readZip(result.bytes)[2].bytes)
+    expect(text).toMatch(/Plank A and Plank B: a sliding dovetail\. Line Plank B's channel up with the rail on Plank A at one end, then slide Plank B along Y/)
+    expect(text).toMatch(/it only goes on that way/)
+    expect(text).toMatch(/Nothing to buy/)
+  })
+
+  it('a half lap, puzzle tabs and fingers each say which way B goes on', () => {
+    const cases = /** @type {const} */ ([
+      ['lap', /a half lap\. Lay Plank B's step over Plank A's along Z/],
+      ['puzzle', /puzzle tabs\. Lay Plank A flat and drop Plank B onto it along Z, tabs into the sockets/],
+      ['finger', /a finger joint\. Push Plank B onto Plank A along Z, fingers into the gaps/],
+    ])
+    for (const [joint, want] of cases) {
+      const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: split([300, 120, 10], { joint }) }])
+      const text = new TextDecoder().decode(readZip(result.bytes).at(-1)?.bytes)
+      expect(text, joint).toMatch(want)
+    }
+  })
+})

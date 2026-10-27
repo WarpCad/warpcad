@@ -84,6 +84,10 @@ for.
 |---|---|---|---|---|---|
 | **Pins and sockets** (*printed into the pieces*) | sliding across the cut, twisting (with two pins) | yes, to stop it pulling apart | if not glued | nothing | thick parts that print with the cut face up |
 | **Tongue and groove** (*printed into the pieces*) | sliding across the cut | yes | if not glued | nothing | thin sections: a trailing edge, a panel |
+| **Sliding dovetail** (*printed into the pieces*) | pulling apart, sliding across the cut in every direction but along the rail | yes, to stop it sliding off the rail | by sliding it back off the rail, if not glued | nothing | beams that pull apart in use: a shelf, a long bar |
+| **Puzzle tabs** (*printed into the pieces*) | pulling apart and sliding in the plate's plane | no: they lock in the plane | by lifting one piece straight off, if not glued | nothing | flat signs, panels and tiles (plate-like sections only) |
+| **Half lap** (*printed into the pieces*) | sliding across the cut, pushing together | yes: the joint is mostly glue area | if not glued | nothing (magnets or dowels can be added) | thin plates that will be glued (plate-like sections only) |
+| **Finger joint** (*printed into the pieces*) | sliding along the seam | yes: it has the most glue area | if not glued | nothing | boxes, frames, any section you will glue and want lined up |
 | **Butterfly keys** (*separate keys to print*) | pulling apart, sliding across the cut | no: the only joint here that locks without glue | with a pry, if not glued | one printed bowtie key per pocket | flat signs, planks and beams: pieces you can push together first and lock from the outside |
 | **Tenons** (*separate keys to print*) | sliding across the cut, twisting (one is enough) | yes | if not glued | one printed flat stadium-shaped key per mortise pair | thin sections where one dowel would not stop a twist: planks, panels |
 | **Dowels** (*separate keys to print*) | sliding across the cut, twisting (with two) | yes, or a press fit | if not glued | one printed dowel per socket pair | beams and anything that prints on its cut face, where a pin printed upright would snap |
@@ -116,6 +120,56 @@ to the part: on a curved face its top follows the surface. The pocket's floor ke
 1.2 mm of material unless you tick **Cut right through**. In this version a key goes in straight
 along one axis (**Side** is Auto, or Front, Back, Bottom or Top for an X cut), even on a slanted edge.
 
+### Seam profiles: dovetail, puzzle tabs, half lap, fingers
+
+The four joints added last shape the **whole seam** instead of sitting at points on it. Each is
+printed into piece A and cut, with the clearance, out of piece B; nothing extra is printed or bought.
+
+- **Sliding dovetail** — a rail, wider at its top than at the face (15° per side), runs the full
+  length of the face's longer side on piece A; piece B has the matching channel. Piece B slides on
+  **from one end, along the rail**, the only way it goes on, and then cannot be pulled straight off.
+  **Rail height** is 3–8 mm (Auto: half the thickness) and **Neck width** at least 2.4 mm. The
+  section must be thick enough for the rail plus a 1.2 mm wall each side of the channel; a section
+  thinner than about 7 mm is refused with the sizes.
+- **Puzzle tabs** — jigsaw tabs through the whole thickness, each head twice as wide as its neck.
+  Piece B drops onto piece A through the thickness and then locks in the plate's plane.
+  **Tabs** (Auto: one per ~40 mm of seam) and **Neck width** (2–20 mm).
+- **Half lap** — piece A keeps the lower half of the thickness for **Lap length** past the cut
+  (Auto: twice the thickness, at least 10 mm), piece B the upper half. Lots of glue area, and the
+  step stops the pieces sliding while the glue sets.
+- **Finger joint** — alternating fingers through the thickness, **Finger depth** past the cut
+  (Auto: twice the thickness). **Fingers** on Auto is an odd number near the seam length over three
+  times the thickness, so both end fingers are piece A's.
+
+Puzzle tabs and a half lap need a **plate-like** section: thickness at most a quarter of the
+seam's length (a 10 mm plank 120 mm wide is plate-like; a 20 × 20 mm bar is not). On anything
+else the sheet says so before you press Apply.
+
+A profile makes piece A **longer than the offset** by how far it stands proud of the cut, so for a
+profile the pieces list shows each piece's **real** size from the planned joint, and its **fits**
+badge is judged on that — a lap can push a piece that fit by the plane alone past your bed.
+
+A profile shapes the whole seam, so it cannot be placed by hand: with a dovetail, puzzle tabs or
+fingers the **Place connectors by hand** box is greyed out, and the sheet says why. A **Half lap**
+is the exception: tick the box and the kind row offers **Dowel** and **Magnet** only. They go in the
+half of the cut face where the two pieces meet (the top half, for a lap on the bottom); a tap on
+piece A's own lap half is refused. With connectors, piece B slides onto the lap along the cut axis.
+
+### Try it: a half lap across a plank
+
+1. Place a **Cube**, set its **Size** to X 300, Y 120, Z 10 (mm) and rename it **Plank**.
+2. Select it and press **Split…**. Set **Axis** to **X** and **Offset** to **150**. The pieces
+   list reads **Plank A** `150 × 120 × 10 mm` and **Plank B** `150 × 120 × 10 mm`.
+3. Set **Joint** to **Half lap** (under *Printed into the pieces*). Leave **Lap length** blank
+   (**Auto**). Plank A now reads `170 × 120 × 10 mm`: the 20 mm lap is in its size and its fit.
+   Type **30** in **Lap length** and it reads `180 × 120 × 10 mm`.
+4. Press **Apply**, then **File ▾ → Export… → Print pieces**. The zip holds `plank-a.stl`,
+   `plank-b.stl` and `assembly.txt`, which says: *Lay Plank B's step over Plank A's along Z, so
+   the two halves overlap and both steps meet.* Glue the faces that touch.
+
+For a beam that must not pull apart, choose **Sliding dovetail** instead: `assembly.txt` then says
+which way to slide piece B onto the rail (*slide Plank B along Y … it only goes on that way*).
+
 ## Printing and assembling keys
 
 A printed dowel is its own part, a **key**: after **Apply** the Parts list shows **Wing A**,
@@ -129,9 +183,11 @@ A later split refuses a plane that would cut through a key, by the key's name.
   (the strong way) and cannot roll. The socket stays round; the flat leaves room for glue.
 - **One file per size.** Identical keys share one STL with the count in its name,
   `wing-dowel-x2.stl`: tell your slicer to print that many copies.
-- **`assembly.txt`.** When a split has keys or bought hardware, the zip also has `assembly.txt`.
-  It lists the pieces, each key file with how many to print, what to buy (or *Nothing to buy.*),
-  and for each joint which two pieces go together and along which axis.
+- **`assembly.txt`.** When a split has keys, bought hardware or a seam profile, the zip also has
+  `assembly.txt`. It lists the pieces, each key file with how many to print, what to buy (or
+  *Nothing to buy.*), and for each joint which two pieces go together and along which axis. For a
+  sliding dovetail it names the axis to slide piece B along the rail; for puzzle tabs, a half lap
+  or fingers, the axis piece B goes on along.
 - **Glue.** Dry-fit first. For a permanent joint put a little glue in each socket and on the cut
   faces, push the dowels into piece A, then slide piece B on along the cut axis.
 - **Clearance.** The dowel is 2 × clearance shorter than its two sockets and the sockets are
@@ -146,7 +202,7 @@ A later split refuses a plane that would cut through a key, by the key's name.
    (**Auto**) and **Clearance per side** at **0.2**. Under the pieces the list now reads
    **Dowel × 2**, `12.2 × 4.2 × 3.4 mm`, **fits**.
 
-   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove), Separate keys to print (Butterfly keys, Dowels, Tenons; Dowels selected), Hardware you buy (Magnets, Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
+   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove, Sliding dovetail, Puzzle tabs, Half lap, Finger joint), Separate keys to print (Butterfly keys, Dowels, Tenons; Dowels selected), Hardware you buy (Magnets, Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
 
 3. Press **Apply**. The Parts list shows **Wing A**, **Wing B**, **Wing key 1** and **Wing key 2**.
 4. **File ▾ → Export…** and press **Print pieces (.zip)**. The zip holds `wing-a.stl`,
@@ -219,8 +275,10 @@ Select a body and the Inspector shows its bounds and a fit badge:
   rib along the cut, for thin sections such as a trailing edge where a pin cannot fit), **Dowels**
   (a socket in both pieces and a printed dowel, 2-10 mm across; **Dowel diameter** blank lets the
   sheet size it), **Steel or filament dowels** (the same sockets for bought dowels; **Dowels are**
-  picks steel or filament) or **No joint** (a plain cut). On a phone the list is your browser's
-  own picker, with the group headings.
+  picks steel or filament), the seam profiles **Sliding dovetail**, **Puzzle tabs**, **Half lap**
+  and **Finger joint** (each with its own size fields; see
+  [Seam profiles](#seam-profiles-dovetail-puzzle-tabs-half-lap-fingers)) or **No joint** (a plain
+  cut). On a phone the list is your browser's own picker, with the group headings.
 - **Place connectors by hand** — replaces the **Joint** list with a kind picker and makes the cut
   plane tappable: tap to add, drag to move, **×** to remove. Posts, wedges, screw bosses and dowels can be mixed.
   The marker positions are millimetres along the cut face (for a cut across X, Y then Z); a marker's
@@ -233,9 +291,12 @@ Select a body and the Inspector shows its bounds and a fit badge:
   adjust. Setting 0 shows a warning, because the pieces would not fit together.
 - The pieces list shows each piece's size and whether it fits the build volume, then any keys the
   joint makes (**Dowel × 2** with its printed size) and **You'll also need** for anything to buy.
+  For a seam profile the sizes are the pieces' real sizes with the profile, not the plane's.
 
 A cut is refused, by name, in the sheet (and nothing is written) if the plane is outside the body,
 if pins would not fit the section (use tongue and groove), if a dowel has no room in both pieces,
+if puzzle tabs or a half lap are asked of a section that is not plate-like, if a profile would run
+past the end of piece B,
 if the body is not a closed solid, if the plane would cut through more than one part of a group,
 or if it would cut through a key (*the cut plane crosses Wing key 1 — move it clear of the keys*).
 

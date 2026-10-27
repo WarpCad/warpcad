@@ -303,7 +303,12 @@ export const OPERATIONS = Object.freeze({
       'dowel (a socket in both pieces and a separate dowel: printed lying down, so stronger than a pin, or bought, steel or 1.75 mm filament, via jointOptions.stock), ' +
       'butterfly (bowtie keys let into pockets across the seam on an outer surface, pressed in from outside after the pieces meet; the only joint that resists pull-apart without glue; printed flat), ' +
       'tenon (a flat stadium-shaped key in a mortise in both pieces, like a Domino; one stops both sliding and twisting; printed flat), ' +
-      `magnets (disc-magnet pockets in both faces, nothing printed; the pieces come apart on purpose; two magnets per pocket pair to buy; common sizes ${MAGNET_SIZES.map((size) => `${size.diameterMm}×${size.thicknessMm}`).join(', ')} mm), or none. ` +
+      `magnets (disc-magnet pockets in both faces, nothing printed; the pieces come apart on purpose; two magnets per pocket pair to buy; common sizes ${MAGNET_SIZES.map((size) => `${size.diameterMm}×${size.thicknessMm}`).join(', ')} mm), ` +
+      'or a seam profile, printed into the pieces with nothing extra: dovetail (a sliding dovetail: a flared rail along the face’s longer side on A; B slides on from one end, along the rail, and it holds against pulling apart), ' +
+      'puzzle (jigsaw tabs through a plate-like section, which is one at most a quarter as thick as it is long; the pieces drop together through the thickness and lock in the plane), ' +
+      'lap (a half lap: each piece keeps half the thickness past the cut for lapMm; plate-like sections only; much more glue area), ' +
+      'finger (alternating fingers through the thickness; the most glue area). A profile makes piece A longer than offsetMm by how far it stands proud. ' +
+      'Only a lap with placements combines a profile with connectors, and only magnet and dowel placements; the other profiles take no placements. Or none. ' +
       'A side of the cut face is named in its own frame: u-/u+/v-/v+ are the low/high side along the face’s first/second axis (for a cut across x, u is y and v is z, so v+ is the top). ' +
       'Or give placements to put connectors at chosen face positions: pins, tongue, wedge, screwBoss (a bolt-through boss), dowel, butterfly (a point on the edge of the face), tenon and magnet; pins, tongue, dowel, butterfly, tenon and magnet may leave uMm/vMm out to be placed by the search. ' +
       'The body becomes a group of named parts: A, B, then any printed dowels, butterfly keys or tenons as key parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
@@ -315,7 +320,7 @@ export const OPERATIONS = Object.freeze({
           type: 'string',
           enum: [...JOINT_TYPES],
           description:
-            'pins (default), tongue (for thin sections), dowel (strong in shear; needs material on both sides of the cut), butterfly (locks against pull-apart; keys on an outer surface), tenon (one flat key stops sliding and twisting), magnets (comes apart on purpose; magnets to buy), or none. Ignored when placements is given.',
+            'pins (default), tongue (for thin sections), dowel (strong in shear; needs material on both sides of the cut), butterfly (locks against pull-apart; keys on an outer surface), tenon (one flat key stops sliding and twisting), magnets (comes apart on purpose; magnets to buy), dovetail, puzzle, lap or finger (seam profiles), or none. Ignored when placements is given, except lap, which keeps its lap with magnet and dowel placements.',
         },
         jointOptions: objectSchema(
           {
@@ -328,23 +333,35 @@ export const OPERATIONS = Object.freeze({
               type: 'number',
               description:
                 'For joint dowel: the diameter in millimetres, 2 to 10. For joint butterfly: the key’s waist in millimetres, 3 to 20 (ends twice that, 4× long). ' +
-                'For joint tenon: its width (the long side of the stadium) in millimetres, 6 to 30, at least twice its thickness. For joint magnets: the magnet’s diameter in millimetres, 2 to 25, with thicknessMm. Leave out to let the search size it.',
+                'For joint tenon: its width (the long side of the stadium) in millimetres, 6 to 30, at least twice its thickness. For joint magnets: the magnet’s diameter in millimetres, 2 to 25, with thicknessMm. ' +
+                'For joint dovetail: the rail’s neck width at the face, 2.4 to 30 mm. For joint puzzle: each tab’s neck width, 2 to 20 mm (the head is twice that). Leave out to let the search size it.',
             },
             thicknessMm: {
               type: 'number',
               description: 'For joint tenon: its thickness in millimetres, 3 to 8. For joint magnets: the magnet’s thickness in millimetres, 1 to 10, given together with sizeMm.',
             },
-            count: { type: 'integer', description: `For joint butterfly: how many keys, 1 to ${MAX_PLACEMENTS}; default one per ~50 mm of the straight edge they sit along.` },
+            count: {
+              type: 'integer',
+              description:
+                `For joint butterfly: how many keys, 1 to ${MAX_PLACEMENTS}; default one per ~50 mm of the straight edge they sit along. ` +
+                'For joint puzzle: how many tabs, 1 to 16; default one per ~40 mm of seam. For joint finger: how many fingers, 2 to 31; default odd, about the seam over 3× the thickness.',
+            },
             side: {
               type: 'string',
               enum: [...BUTTERFLY_SIDES],
               description: 'For joint butterfly: which outer surface the keys sit on (u-/u+/v-/v+, see the tool description); default the longest straight edge.',
             },
-            depthMm: { type: 'number', description: 'For joint butterfly: the keys’ depth from the surface in millimetres; default half the wall, at least 3 mm.' },
+            depthMm: {
+              type: 'number',
+              description:
+                'For joint butterfly: the keys’ depth from the surface in millimetres; default half the wall, at least 3 mm. For joint finger: how deep the fingers run past the cut, 2 to 60 mm; default twice the thickness.',
+            },
+            heightMm: { type: 'number', description: 'For joint dovetail: how far the rail stands proud of the cut, 3 to 8 mm; default half the thickness.' },
+            lapMm: { type: 'number', description: 'For joint lap: how far each half runs past the cut, 2 to 200 mm; default twice the thickness, at least 10 mm.' },
             through: { type: 'boolean', description: 'For joint butterfly: keys that run the full thickness of a thin wall, instead of a depthMm.' },
           },
           [],
-          'Options for joint dowel, butterfly, tenon or magnets only.'
+          'Options for joint dowel, butterfly, tenon, magnets, dovetail, puzzle, lap or finger only.'
         ),
         clearanceMm: { type: 'number', description: `Gap per side between pin and socket, in millimetres. Default ${DEFAULT_JOINT_CLEARANCE_MM}.` },
         names: {
@@ -359,7 +376,7 @@ export const OPERATIONS = Object.freeze({
           minItems: 1,
           maxItems: MAX_PLACEMENTS,
           description:
-            'Hand-placed connectors instead of joint. uMm/vMm are millimetres along the cut face’s two axes: for a cut across x they are y and z, across y z and x, across z x and y.',
+            'Hand-placed connectors instead of joint — or, with joint lap, magnet and dowel placements beside the lap (a lap with placements: they must sit in the half of the face where A meets B). uMm/vMm are millimetres along the cut face’s two axes: for a cut across x they are y and z, across y z and x, across z x and y.',
           items: objectSchema(
             {
               kind: { type: 'string', enum: [...PLACEMENT_KINDS], description: 'pins, tongue, wedge, screwBoss, dowel, butterfly, tenon or magnet.' },
@@ -389,8 +406,13 @@ export const OPERATIONS = Object.freeze({
     (params) => ({
       axis: params.axis,
       offsetMm: params.offsetMm,
-      ...(params.placements === undefined ? { joint: params.joint ?? 'pins' } : { placements: params.placements }),
-      ...(params.jointOptions === undefined || params.placements !== undefined ? {} : { jointOptions: params.jointOptions }),
+      // A half lap keeps its joint (and options) with its magnet and dowel placements (`TODO/core-075` stage 4).
+      ...(params.placements === undefined
+        ? { joint: params.joint ?? 'pins' }
+        : params.joint === 'lap'
+          ? { joint: 'lap', placements: params.placements }
+          : { placements: params.placements }),
+      ...(params.jointOptions === undefined || (params.placements !== undefined && params.joint !== 'lap') ? {} : { jointOptions: params.jointOptions }),
       clearanceMm: params.clearanceMm ?? DEFAULT_JOINT_CLEARANCE_MM,
       ...(params.names === undefined ? {} : { names: params.names }),
     })

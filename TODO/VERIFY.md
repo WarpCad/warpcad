@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-075 stage 4 — seam profiles: sliding dovetail, puzzle tabs, half lap, finger joint (2026-10-27 17:05)
+
+Everything checkable without a printer was driven: sheet, refusals, real piece sizes, half lap applied on a thin panel. These need a printer; the starting sizes are not confirmed by a test print.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Print both halves of a 200 x 60 x 8 mm panel split with **Half lap** at 0.2 mm clearance: does the lap go together without sanding, and does `assembly.txt` read correctly against what is on the bench? | Open | |
+| 2 | Print a **Sliding dovetail** split: does B slide on along the rail the way `assembly.txt` says, snug but not stuck? | Open | |
+
 ### core-075 stage 3 — loose tenons and disc magnets (2026-10-27 14:50)
 
 Everything checkable without a printer was driven: sheet, refusals, zip contents, BOM, phone layout.

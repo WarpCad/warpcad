@@ -10,7 +10,10 @@
  *   `<optgroup>`s so iOS shows it as a wheel with headings — with its one-line use under it and
  *   its own fields (a dowel's diameter; what bought dowels are; butterfly keys' Keys, Side,
  *   Depth and Cut right through, `TODO/core-075` stage 2; a tenon's width and thickness, a magnet's
- *   size — Auto, a common size or Custom — stage 3), Clearance (mm, per side). The offset is also the cut plane in
+ *   size — Auto, a common size or Custom — stage 3; a seam profile's sizes — rail height and neck, tabs
+ *   and neck, lap length, fingers and depth — stage 4, `PROFILE_FIELDS`), Clearance (mm, per side).
+ *   A whole-seam profile cannot be placed by hand, so the Place connectors toggle is disabled with
+ *   the reason under it; a Half lap keeps it, with only Dowel and Magnet in the kind row. The offset is also the cut plane in
  *   the viewport (`CutPlaneOverlay.vue`) — drag its handle and this number follows.
  * - **Feedback before Apply**: each piece's name and fit verdict against the project's build
  *   volume, then any key parts the joint makes (`Dowel × 2`, `Tenon × 2`) with theirs, and **You'll also
@@ -29,11 +32,11 @@ import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import {
-  CONNECTOR_KINDS,
   CONNECTOR_LABELS,
   JOINT_CHOICES,
   MAGNET_CHOICES,
   NO_JOINT_CHOICE,
+  PROFILE_FIELDS,
   SPLIT_AXES,
   STOCK_LABELS,
   useSplitSheetStore,
@@ -87,6 +90,21 @@ const showMagnetSize = computed(
     (!sheet.manual && sheet.joint === 'magnets') ||
     (sheet.manual && (sheet.connectorKind === 'magnet' || sheet.markers.some((marker) => marker.kind === 'magnet')))
 )
+
+/** The current seam profile's own fields (stage 4), or none. */
+const profileFields = computed(() => PROFILE_FIELDS[sheet.joint] ?? [])
+
+/**
+ * One profile field's value, and setting it — blank is Auto.
+ *
+ * @param {string} field
+ * @returns {number | null}
+ */
+const profileValue = (field) => /** @type {any} */ (sheet)[field] ?? null
+/** @param {string} field @param {Event} event */
+function setProfileValue(field, event) {
+  /** @type {any} */ (sheet)[field] = autoNumber(event)
+}
 
 /** @param {readonly number[]} size */
 const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × ')} mm`
@@ -290,16 +308,38 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         </template>
       </template>
 
+      <label
+        v-for="profile in profileFields"
+        v-show="!sheet.manual || sheet.joint === 'lap'"
+        :key="profile.field"
+        class="split__field"
+      >
+        {{ profile.label }}
+        <input
+          class="split__input"
+          type="number"
+          :step="profile.step"
+          :min="profile.min"
+          :max="profile.max"
+          :inputmode="profile.step === 1 ? 'numeric' : 'decimal'"
+          placeholder="Auto"
+          :data-testid="profile.testid"
+          :value="profileValue(profile.field) ?? ''"
+          @change="setProfileValue(profile.field, $event)"
+        />
+      </label>
+
       <label class="split__toggle">
         <input
           type="checkbox"
           :checked="sheet.manual"
-          :disabled="sheet.joint === 'none' && !sheet.manual"
+          :disabled="(sheet.joint === 'none' || sheet.manualBlocked !== '') && !sheet.manual"
           data-testid="split-manual-joints"
           @change="sheet.setManual(/** @type {HTMLInputElement} */ ($event.target).checked)"
         />
         Place connectors by hand
       </label>
+      <p v-if="sheet.manualBlocked" class="split__hint" data-testid="split-manual-blocked">{{ sheet.manualBlocked }}</p>
 
       <div
         v-if="sheet.manual"
@@ -309,7 +349,7 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         data-testid="split-connector-kind"
       >
         <button
-          v-for="kind in CONNECTOR_KINDS"
+          v-for="kind in sheet.connectorKinds"
           :key="kind"
           type="button"
           role="radio"
@@ -348,7 +388,11 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           Turn the view to face the cut plane to place connectors.
         </template>
         <template v-else>
-          <template v-if="sheet.connectorKind === 'butterfly'">
+          <template v-if="sheet.joint === 'lap'">
+            With the half lap: tap the half of the cut plane where the two pieces meet to drop a
+            {{ CONNECTOR_LABELS[sheet.connectorKind].toLowerCase() }}; the other half is piece A's lap.
+          </template>
+          <template v-else-if="sheet.connectorKind === 'butterfly'">
             Tap near an edge of the cut plane to drop a butterfly key on that face; it snaps to the edge.
           </template>
           <template v-else>

@@ -2448,3 +2448,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** flat stadium key in a slot in each piece, stops sliding and twisting → diff (joint.tenon.js, docs/print-prep.md); magnet pockets in both faces, comes apart on purpose → diff (joint.magnet.js, docs/print-prep.md); buy list and polarity rule → driven this session, magnets assembly.txt read (4 × magnets 6 × 3 mm, mark-out / mark-in)
 **To Add:** docs/screenshots/split-joint-picker.png
+
+## 2026-10-27T17:10:00Z — Seam joints for split pieces: dovetail, puzzle tabs, half lap, finger
+
+**Post:** WarpCad's Split now has joints cut into the seam itself: sliding dovetail, puzzle tabs, half lap and finger joint. Nothing extra to print. The pieces list shows each piece's real length, since a lap or finger makes one longer than the cut. #CAD #3DPrinting Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** four seam joints, nothing extra printed → diff (joint.profiles.js, docs/print-prep.md); pieces list shows real length → driven this session (finger: piece A 150 to 174 mm; dovetail 156 mm; half lap on a 200 x 60 x 8 mm panel 100 to 116 mm)
+**To Add:** screenshot of the Split sheet with Half lap chosen

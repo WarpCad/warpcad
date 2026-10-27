@@ -3525,3 +3525,17 @@ Driving it on a 300 by 120 by 10 mm plank gave two tenons, each 41.6 by 14 by 3.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Domino-like slot in both faces, own part and file, laid flat → diff (joint.tenon.js, printPrep.js, docs/print-prep.md); 45 degree chamfer on the bed side → diff (tenonProfile in joint.tenon.js, docs/print-prep.md); magnet pocket, no key part, BOM count, polarity rule → diff (joint.magnet.js, bom.js, printPrep.js) and driven this session (BOM row "Magnets 6 × 3 mm × 4", assembly.txt); plank sizes and counts → driven this session on the dev server (sheet row "Tenon × 2, 41.6 × 14 × 3.5 mm", STL bbox 41.6 × 14.0 × 3.5); sizes unchecked → TODO/VERIFY.md entry and docs/print-prep.md
 **To Add:** docs/screenshots/split-joint-picker.png
+
+## 2026-10-27T17:10:00Z — Seam joints for split pieces: dovetail, puzzle tabs, half lap, finger
+
+**Post:** WarpCad's Split sheet now offers four joints cut into the seam itself: a sliding dovetail, puzzle tabs, a half lap and a finger joint. Unlike the keys and magnets added earlier today, they add no extra part. The joint is part of each piece and runs out to the outer surface, so the kernel clips it to the uncut solid and cuts a clearance-grown copy out of the other piece.
+
+Puzzle tabs and the half lap refuse a section that is not plate-like, and say why: a 12 x 40 mm face is refused by name. A half lap can still carry magnets or dowels. The pieces list now shows real piece sizes, because a lap or finger makes one piece longer than the cut offset: on a 200 x 60 x 8 mm panel the half lap makes piece A 116 mm for a 100 mm cut.
+
+The starting sizes have not been checked against a test print yet; that is the open item in the verification queue. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** four joints, clip to uncut solid, grown cavity → diff (joint.profiles.js); refusal text and 12 x 40 mm → driven this session; 116 mm for a 100 mm cut → driven this session; magnets/dowels with lap → diff (split.js, SplitSheet.vue); sizes unchecked → TODO/VERIFY.md entry
+**To Add:** screenshot of a half lap seam in the viewport
+

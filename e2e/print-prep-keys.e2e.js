@@ -7,6 +7,8 @@ import { readFileSync } from 'node:fs'
  * `/`, the running app: **Split…** → the grouped **Joint** list → **Dowels**, the key rows before
  * Apply, the key parts in the Inspector after it, **Export… → Print pieces** with the key STL
  * and `assembly.txt`, and a hand-placed **Dowel** of bought steel updating **You'll also need**.
+ * Stage 4 adds the seam profiles: choosing **Half lap** grows piece A in the pieces list by the
+ * lap (the real-bounds fit check), and the other profiles grey out hand placement with the reason.
  *
  * ## Engines and viewports, stated (`CLAUDE.md`, Browser Support / Responsive Layout)
  *
@@ -51,6 +53,23 @@ async function seedPlank(page) {
       { origin: 'local' }
     )
     api.selection.select('plank')
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+}
+
+/**
+ * A 300 × 120 × 10 mm panel, its long side along X, selected — plate-like across an X cut
+ * (10 mm thick, 120 mm of seam), so every seam profile fits it (`TODO/core-075` stage 4).
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function seedPanel(page) {
+  await store(page, (api) => {
+    api.documentStore.append(
+      { id: 'panel', op: 'primitive.cuboid', name: 'Panel', params: { size: [300, 120, 10], center: [0, 0, 5] } },
+      { origin: 'local' }
+    )
+    api.selection.select('panel')
   })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
 }
@@ -180,7 +199,14 @@ test('Dowels from the grouped Joint list: key rows before Apply, key parts after
   await expect(joint.locator('optgroup')).toHaveCount(3)
   await expect(joint.locator('optgroup[label="Separate keys to print"] option')).toHaveText(['Butterfly keys', 'Dowels', 'Tenons'])
   await expect(joint.locator('optgroup[label="Hardware you buy"] option')).toHaveText(['Magnets', 'Steel or filament dowels'])
-  await expect(joint.locator('optgroup[label="Printed into the pieces"] option')).toHaveText(['Pins and sockets', 'Tongue and groove'])
+  await expect(joint.locator('optgroup[label="Printed into the pieces"] option')).toHaveText([
+    'Pins and sockets',
+    'Tongue and groove',
+    'Sliding dovetail',
+    'Puzzle tabs',
+    'Half lap',
+    'Finger joint',
+  ])
 
   await joint.selectOption('dowel')
   await expect(page.getByTestId('split-joint-use')).toContainText(/printed lying down/)
@@ -441,4 +467,102 @@ test('a hand-placed Magnet shows under You’ll also need and lands in the Bill 
   const row = page.getByTestId('bom-row').filter({ hasText: 'Magnets' })
   await expect(row).toHaveCount(1)
   await expect(row.getByTestId('bom-count')).toHaveText('× 2')
+})
+
+test('Half lap (stage 4): the pieces list grows piece A by the lap, and Print pieces writes assembly.txt saying how it goes together', async ({
+  page,
+}) => {
+  await seedPanel(page)
+  await page.getByTestId('op-split').click()
+  const sheet = page.getByTestId('split-sheet')
+  await expect(sheet).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  const pieceA = page.getByTestId('split-piece-fit').first()
+  await expect(pieceA).toContainText('150 × 120 × 10 mm')
+
+  await page.getByTestId('split-joint').selectOption('lap')
+  await expect(page.getByTestId('split-joint-use')).toContainText(/half the thickness/)
+  await expect(page.getByTestId('split-lap-length')).toHaveValue('')
+  // The kernel plans the lap: piece A is 20 mm longer than the offset, and its fit is judged on that.
+  await expect(pieceA).toContainText('170 × 120 × 10 mm')
+  await expect(page.getByTestId('split-piece-fit').nth(1)).toContainText('150 × 120 × 10 mm')
+  await page.getByTestId('split-lap-length').fill('30')
+  await page.getByTestId('split-lap-length').blur()
+  await expect(pieceA).toContainText('180 × 120 × 10 mm')
+  await expect(pieceA).toHaveAttribute('data-fit', 'fits')
+  // A half lap keeps hand placement (magnets and dowels only).
+  await expect(page.getByTestId('split-manual-joints')).toBeEnabled()
+  await expect(page.locator('[data-testid="split-sheet"] ul[aria-label="Pieces"]')).toHaveScreenshot('split-half-lap-rows.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.03,
+  })
+
+  await page.getByTestId('split-apply').click()
+  await expect(sheet).toHaveCount(0)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params).toMatchObject({ joint: 'lap', jointOptions: { lapMm: 30 }, names: ['Panel A', 'Panel B'] })
+
+  await page.getByTestId('file-menu-button').click()
+  await page.getByTestId('file-export').click()
+  await expect(page.getByTestId('export-popover')).toBeVisible()
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-print-pieces').click()])
+  const entries = unzip(readFileSync(await download.path()))
+  expect(entries.map((entry) => entry.name)).toEqual(['panel-a.stl', 'panel-b.stl', 'assembly.txt'])
+  const text = entries[2].bytes.toString('utf8')
+  expect(text).toMatch(/Panel A and Panel B: a half lap\. Lay Panel B's step over Panel A's along Z/)
+  expect(text).toMatch(/Nothing to buy/)
+})
+
+test('the other seam profiles (stage 4): each grows piece A, greys out hand placement with the reason, and puzzle tabs refuse a bar by name', async ({
+  page,
+}) => {
+  await seedPanel(page)
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  const joint = page.getByTestId('split-joint')
+  const pieceA = page.getByTestId('split-piece-fit').first()
+  const manual = page.getByTestId('split-manual-joints')
+
+  // Sliding dovetail: a 5 mm rail on a 10 mm panel; B slides on from one end.
+  await joint.selectOption('dovetail')
+  await expect(page.getByTestId('split-joint-use')).toContainText(/slides into a channel/)
+  await expect(pieceA).toContainText('155 × 120 × 10 mm')
+  await expect(manual).toBeDisabled()
+  await expect(page.getByTestId('split-manual-blocked')).toContainText(/Sliding dovetail shapes the whole seam/)
+  await page.getByTestId('split-dovetail-height').fill('4')
+  await page.getByTestId('split-dovetail-height').blur()
+  await expect(pieceA).toContainText('154 × 120 × 10 mm')
+
+  // Puzzle tabs: three 8 mm necks with 16 mm heads, 18 mm past the cut.
+  await joint.selectOption('puzzle')
+  await expect(pieceA).toContainText('168 × 120 × 10 mm')
+  await expect(page.getByTestId('split-manual-blocked')).toContainText(/Puzzle tabs shapes the whole seam/)
+
+  // Finger joint: 20 mm deep by default, then three fingers 12 mm deep.
+  await joint.selectOption('finger')
+  await expect(pieceA).toContainText('170 × 120 × 10 mm')
+  await page.getByTestId('split-finger-depth').fill('12')
+  await page.getByTestId('split-finger-depth').blur()
+  await expect(pieceA).toContainText('162 × 120 × 10 mm')
+  await expect(page.getByTestId('split-apply')).toBeEnabled()
+  await page.getByTestId('split-apply').click()
+  await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+  const record = await store(page, (api) => api.documentStore.raw.records.at(-1))
+  expect(record.params).toMatchObject({ joint: 'finger', jointOptions: { depthMm: 12 } })
+
+  // A 40 × 12 mm section is not plate-like: puzzle tabs are refused before Apply, by name.
+  await store(page, (api) => {
+    api.documentStore.append(
+      { id: 'bar', op: 'primitive.cuboid', name: 'Bar', params: { size: [300, 40, 12], center: [0, 200, 6] } },
+      { origin: 'local' }
+    )
+    api.selection.select('bar')
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  await page.getByTestId('op-split').click()
+  await page.getByTestId('split-offset').fill('150')
+  await page.getByTestId('split-joint').selectOption('puzzle')
+  await expect(page.getByTestId('split-problem')).toContainText(/puzzle tabs need a plate-like section/)
+  await expect(page.getByTestId('split-apply')).toBeDisabled()
 })

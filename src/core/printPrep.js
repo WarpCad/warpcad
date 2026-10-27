@@ -274,7 +274,9 @@ export function exportPrintPieces(bodies) {
   for (const body of bodies) {
     const pieces = printPiecesOf(body)
     /** @type {BodyNotes} */
-    const note = { body: body.name, pieces: [], keys: [], hardware: hardwareOf(body.geometry), joins: [] }
+    const note = { body: body.name, pieces: [], keys: [], hardware: hardwareOf(body.geometry), joins: [], seams: [] }
+    // A seam profile (stage 4) rides on its piece A, so the pieces list says how they go together.
+    for (const piece of pieces) if (piece.meta?.seam) note.seams.push(piece.meta.seam)
     /** @type {Map<string, PrintPiece[]>} identical keys, by shape, in first-seen order */
     const keyShapes = new Map()
     /** @type {PrintPiece[]} */
@@ -347,7 +349,7 @@ export function exportPrintPieces(bodies) {
     }
     notes.push(note)
   }
-  if (notes.some((note) => note.keys.length > 0 || note.hardware.length > 0)) {
+  if (notes.some((note) => note.keys.length > 0 || note.hardware.length > 0 || note.seams.length > 0)) {
     const text = new TextEncoder().encode(assemblyText(notes))
     files.push({
       filename: 'assembly.txt',
@@ -380,6 +382,8 @@ export function exportPrintPieces(bodies) {
  * @property {{ joins: [string, string], axis: string, keys: string[], label: string, count?: number, insert?: Vec3Mm, magnets?: boolean }[]} joins
  *   `insert`: the direction a key is pressed in, for a key that goes in from outside (a butterfly).
  *   `magnets`: bought magnets, half in each piece, which need the polarity rule.
+ * @property {NonNullable<import('./kernel/group.js').PartMeta['seam']>[]} seams Seam profiles
+ *   (`TODO/core-075` stage 4): how each profiled pair goes together, listed first under Assembly.
  */
 
 /**
@@ -411,6 +415,38 @@ function fromWhere(insert) {
 }
 
 /**
+ * How a seam profile's pieces go together (`TODO/core-075` stage 4), as numbered `assembly.txt`
+ * lines: the direction B goes on — along the rail for a sliding dovetail, the only way it fits.
+ *
+ * @param {NonNullable<import('./kernel/group.js').PartMeta['seam']>} seam
+ * @param {number} number
+ * @returns {string[]}
+ */
+function seamLines(seam, number) {
+  const [a, b] = seam.joins
+  const along = seam.along.toUpperCase()
+  const glue = '       Dry-fit first. For a permanent joint, glue the faces that touch.'
+  if (seam.kind === 'dovetail') {
+    return [
+      `    ${number}. ${a} and ${b}: a sliding dovetail. Line ${b}'s channel up with the rail on ${a} at one end, ` +
+        `then slide ${b} along ${along} until the cut faces line up — it only goes on that way.`,
+      glue,
+    ]
+  }
+  if (seam.kind === 'puzzle') {
+    return [`    ${number}. ${a} and ${b}: puzzle tabs. Lay ${a} flat and drop ${b} onto it along ${along}, tabs into the sockets.`, glue]
+  }
+  if (seam.kind === 'lap') {
+    const how =
+      seam.along === seam.axis
+        ? `slide ${b} on along ${along} over ${a}'s lap, onto the connectors, until both steps meet`
+        : `Lay ${b}'s step over ${a}'s along ${along}, so the two halves overlap and both steps meet`
+    return [`    ${number}. ${a} and ${b}: a half lap. ${how.charAt(0).toUpperCase()}${how.slice(1)}.`, glue]
+  }
+  return [`    ${number}. ${a} and ${b}: a finger joint. Push ${b} onto ${a} along ${along}, fingers into the gaps.`, glue]
+}
+
+/**
  * `assembly.txt` (`TODO/core-075`): plain text a person reads at the printer and the bench.
  *
  * @param {BodyNotes[]} notes
@@ -430,9 +466,11 @@ export function assemblyText(notes) {
     lines.push('  Hardware to buy:')
     if (note.hardware.length === 0) lines.push('    Nothing to buy.')
     for (const item of note.hardware) lines.push(`    ${item.count} × ${item.label}`)
-    if (note.joins.length > 0) {
+    if (note.joins.length > 0 || note.seams.length > 0) {
       lines.push('  Assembly:')
-      note.joins.forEach((join, index) => {
+      note.seams.forEach((seam, index) => lines.push(...seamLines(seam, index + 1)))
+      note.joins.forEach((join, at) => {
+        const index = at + note.seams.length
         const [a, b] = join.joins
         const along = join.axis.toUpperCase()
         if (join.magnets) {

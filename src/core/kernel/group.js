@@ -109,6 +109,9 @@ const { booleans, measurements, primitives, transforms } = modeling
  * @property {[string, string]} [joins]
  * @property {'x' | 'y' | 'z'} [axis]
  * @property {readonly HardwareItem[]} [hardware]
+ * @property {import('./recipes/joint.profiles.js').SeamInfo & { joins: [string, string], axis: 'x' | 'y' | 'z' }} [seam]
+ *   On piece A of a seam-profile split (`TODO/core-075` stage 4): which profile, its sizes, and the
+ *   axis B goes on along — what `assembly.txt` tells a person.
  */
 
 /**

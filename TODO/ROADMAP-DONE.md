@@ -803,6 +803,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `core-075` | More ways to join split pieces: butterfly keys, loose dowels and tenons, dovetails, puzzle tabs, laps, fingers, magnets. Filed 2026-10-26 at the owner's request; four stages (`220b02d`, `85d80fe`, `0ae6f36`, this commit) | Feature | — | 4, 11, 17 |
 | ✅ `testing-007` | E2E specs that fail on a clean tree (colour control, selection, sketch operand, help footer). Filed 2026-10-18, closed 2026-10-26 | Finding | — | 1, 5, 10 |
 | ✅ `ui-089` | Hide and show bodies and parts from the Objects list (eye per row, Show all, `H` / `Shift+H`), saved with the project and merged per body and part, not an undo step, so either piece of a split can be seen alone. Reported 2026-10-26 while testing Split | Finding | — | 1, 5, 6, 10, 13, 17, 22 (not yet hand-driven) |
 | ✅ `ui-085` | The Library sheet scrolls sideways a few pixels in desktop Safari; the Help button's negative right margin and an `overflow-y`-only scroller. Filed 2026-10-25 | Finding | — | 1 |
@@ -1147,5 +1148,6 @@ convention going forward.
 | `ui-088` | 2026-10-26 22:00 | ~35m wall clock. Acceptance scenarios 1 and 3 and the `ui-086`/`ui-060` repros were **not hand-driven** (commit requested straight after the automated run); the position-order e2e from `ui-086` still passes. |
 | `ui-087` | 2026-10-26 23:01 | ~30m wall clock (22:37 UTC start), Stage 1 only, finished by Sonnet after a Haiku start. Re-drove scenarios 1, 3, 4, 7 by hand (real mouse; scenario 4's second operand by a synthetic Shift pointer event, the known real-mouse Shift-click gap). Full e2e not run (changed scope only). |
 | `testing-007` | 2026-10-26 23:35 | ~15m wall clock (23:21 UTC start) for this invocation; the fix itself was already in the tree from 2026-10-18. Changed-scope e2e across all 9 projects: 529 passed, 0 failed, 94 skipped. Re-drove scenarios 1, 4 and the `ui-072` repro by hand. |
+| `core-075` | 2026-10-27 17:05 | ~2h05m wall clock (15:00 UTC start) including a 1h pause the user asked for; stage 4 only, Opus agent for the code (~23m), full matrix green. Re-drove scenarios 4 (Split gating), 11 and 17 (plumbing; 11 by e2e only) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -415,3 +415,108 @@ describe('Split sheet — tenons and magnets (TODO/core-075 stage 3)', () => {
     ])
   })
 })
+
+describe('Split sheet — seam profiles and the real-bounds fit check (TODO/core-075 stage 4)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  /** @param {[number, number, number]} size */
+  function sheetOn(size) {
+    setActivePinia(createPinia())
+    const documentStore = useDocumentStore()
+    const selection = useSelectionStore()
+    documentStore.append(
+      { id: 'plank', op: 'primitive.cuboid', name: 'Plank', params: { size, center: [150, 0, size[2] / 2] } },
+      { origin: 'local' }
+    )
+    selection.select('plank')
+    const sheet = useSplitSheetStore()
+    sheet.open()
+    return { documentStore, sheet }
+  }
+
+  it('the four profiles are under Printed into the pieces, each with its own use line', () => {
+    const printed = JOINT_CHOICES.find((group) => group.heading === 'Printed into the pieces')
+    expect(printed?.choices.map((choice) => choice.label)).toEqual([
+      'Pins and sockets',
+      'Tongue and groove',
+      'Sliding dovetail',
+      'Puzzle tabs',
+      'Half lap',
+      'Finger joint',
+    ])
+    const { sheet } = sheetOn([300, 120, 10])
+    sheet.jointChoice = 'dovetail'
+    expect(sheet.joint).toBe('dovetail')
+    expect(sheet.jointUse).toMatch(/slides/)
+  })
+
+  it('Half lap: the pieces list grows piece A by the lap, from the kernel’s real bounds', async () => {
+    const { sheet } = sheetOn([300, 120, 10])
+    expect(sheet.pieceFits[0].sizeMm[0]).toBeCloseTo(150, 6)
+    sheet.jointChoice = 'lap'
+    await vi.waitFor(() => expect(sheet.pieceFits[0].sizeMm[0]).toBeCloseTo(170, 6), { timeout: 10000 })
+    expect(sheet.pieceFits[1].sizeMm[0]).toBeCloseTo(150, 6)
+    sheet.lapMm = 30
+    await vi.waitFor(() => expect(sheet.pieceFits[0].sizeMm[0]).toBeCloseTo(180, 6), { timeout: 10000 })
+  })
+
+  it('a piece the profile pushes past the bed reads too large, though the plane alone would fit', async () => {
+    // A 440 mm plank cut at 220: each half fits a 220 mm bed only on the diagonal — the lap
+    // pushes A past even that.
+    const { sheet } = sheetOn([440, 120, 10])
+    const before = sheet.pieceFits[0].verdict
+    sheet.jointChoice = 'lap'
+    sheet.lapMm = 100
+    await vi.waitFor(() => expect(sheet.pieceFits[0].sizeMm[0]).toBeCloseTo(320, 6), { timeout: 10000 })
+    expect(sheet.pieceFits[0].verdict).toBe('too-large')
+    expect(before).not.toBe('too-large')
+  })
+
+  it('Apply writes the profile and its options; a refusal shows before Apply, by the kernel’s reason', async () => {
+    const { sheet, documentStore } = sheetOn([300, 120, 10])
+    sheet.jointChoice = 'finger'
+    sheet.fingerCount = 3
+    sheet.fingerDepthMm = 12
+    await vi.waitFor(() => expect(sheet.pieceFits[0].sizeMm[0]).toBeCloseTo(162, 6), { timeout: 10000 })
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params).toMatchObject({ joint: 'finger', jointOptions: { count: 3, depthMm: 12 } })
+    const bar = sheetOn([300, 20, 20])
+    bar.sheet.jointChoice = 'puzzle'
+    await vi.waitFor(() => expect(bar.sheet.problem).toMatch(/puzzle tabs need a plate-like section/), { timeout: 10000 })
+    expect(bar.sheet.canApply).toBe(false)
+  })
+
+  it('a whole-seam profile cannot be placed by hand: choosing one leaves Place connectors and says why', async () => {
+    const { sheet } = sheetOn([300, 120, 10])
+    await sheet.setManual(true)
+    expect(sheet.manual).toBe(true)
+    sheet.jointChoice = 'dovetail'
+    await vi.waitFor(() => expect(sheet.manual).toBe(false))
+    expect(sheet.manualBlocked).toMatch(/Sliding dovetail shapes the whole seam, so connectors can’t be placed by hand/)
+    await sheet.setManual(true)
+    expect(sheet.manual).toBe(false)
+  })
+
+  it('a half lap keeps Place connectors, offering only Dowel and Magnet; Apply writes the lap with the placements', async () => {
+    const { sheet, documentStore } = sheetOn([300, 120, 24])
+    sheet.jointChoice = 'lap'
+    expect(sheet.manualBlocked).toBe('')
+    await sheet.setManual(true)
+    expect(sheet.manual).toBe(true)
+    expect(sheet.connectorKinds).toEqual(['dowel', 'magnet'])
+    expect(sheet.connectorKind).toBe('magnet')
+    sheet.markers = []
+    sheet.magnetSize = '6x3'
+    expect(await sheet.addMarker(-30, 6)).toBe(false) // A's own lap half
+    expect(await sheet.addMarker(-30, 18)).toBe(true)
+    await sheet.settled()
+    await vi.waitFor(() => expect(sheet.hardwareRows).toEqual(['2 × magnets 6 × 3 mm']), { timeout: 10000 })
+    await vi.waitFor(() => expect(sheet.pieceFits[0].sizeMm[0]).toBeCloseTo(198, 6), { timeout: 10000 })
+    expect(await sheet.chooseKind('pins')).toBe(false)
+    expect(sheet.apply()).toBe(true)
+    expect(documentStore.raw.records.at(-1)?.params).toMatchObject({
+      joint: 'lap',
+      placements: [{ kind: 'magnet', uMm: -30, vMm: 18, sizeMm: 6, thicknessMm: 3 }],
+    })
+  })
+})

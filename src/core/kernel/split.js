@@ -116,6 +116,25 @@ import {
   tenonReachMm,
 } from './recipes/joint.tenon.js'
 import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM } from './recipes/joint.wedge.js'
+import {
+  DOVETAIL_MAX_HEIGHT_MM,
+  DOVETAIL_MAX_NECK_MM,
+  DOVETAIL_MIN_HEIGHT_MM,
+  DOVETAIL_MIN_NECK_MM,
+  FINGER_MAX_COUNT,
+  FINGER_MAX_DEPTH_MM,
+  FINGER_MIN_COUNT,
+  FINGER_MIN_DEPTH_MM,
+  LAP_MAX_MM,
+  LAP_MIN_MM,
+  PROFILE_JOINTS,
+  PROFILE_LABELS,
+  PUZZLE_MAX_NECK_MM,
+  PUZZLE_MAX_TABS,
+  PUZZLE_MIN_NECK_MM,
+  ProfileRefusal,
+  profileJoint,
+} from './recipes/joint.profiles.js'
 import modeling from '@jscad/modeling'
 
 const { booleans } = modeling
@@ -130,7 +149,15 @@ const { booleans } = modeling
 const OP = 'modify.splitWithJoint'
 
 /** The joint types, in the order the Split sheet lists them. */
-export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'none']))
+export const JOINT_TYPES = Object.freeze(
+  /** @type {const} */ (['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'dovetail', 'puzzle', 'lap', 'finger', 'none'])
+)
+
+/** The joints that shape the whole seam (`TODO/core-075` stage 4, `recipes/joint.profiles.js`). */
+export { PROFILE_JOINTS }
+
+/** The placement kinds a half lap may carry as well (`TODO/core-075` decision 4). */
+export const LAP_PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['magnet', 'dowel']))
 
 /** The fields `jointOptions` may carry, per joint type (`TODO/core-075`). */
 const JOINT_OPTION_FIELDS = Object.freeze({
@@ -138,7 +165,23 @@ const JOINT_OPTION_FIELDS = Object.freeze({
   butterfly: Object.freeze(['count', 'side', 'depthMm', 'sizeMm', 'through']),
   tenon: Object.freeze(['sizeMm', 'thicknessMm']),
   magnets: Object.freeze(['sizeMm', 'thicknessMm']),
+  dovetail: Object.freeze(['sizeMm', 'heightMm']),
+  puzzle: Object.freeze(['count', 'sizeMm']),
+  lap: Object.freeze(['lapMm']),
+  finger: Object.freeze(['count', 'depthMm']),
 })
+
+/**
+ * A profile's numeric `jointOptions` and their ranges (stage 4): `[low, high, whole]`.
+ *
+ * @type {Record<string, Record<string, [number, number, boolean]>>}
+ */
+const PROFILE_OPTION_RANGES = {
+  dovetail: { sizeMm: [DOVETAIL_MIN_NECK_MM, DOVETAIL_MAX_NECK_MM, false], heightMm: [DOVETAIL_MIN_HEIGHT_MM, DOVETAIL_MAX_HEIGHT_MM, false] },
+  puzzle: { count: [1, PUZZLE_MAX_TABS, true], sizeMm: [PUZZLE_MIN_NECK_MM, PUZZLE_MAX_NECK_MM, false] },
+  lap: { lapMm: [LAP_MIN_MM, LAP_MAX_MM, false] },
+  finger: { count: [FINGER_MIN_COUNT, FINGER_MAX_COUNT, true], depthMm: [FINGER_MIN_DEPTH_MM, FINGER_MAX_DEPTH_MM, false] },
+}
 
 /**
  * Default clearance per side, mm — the "snug fit" the AI's printing defaults already state
@@ -399,6 +442,8 @@ function readButterflyFields(raw, named, prefix) {
  * @property {number | null} depthMm
  * @property {boolean} through
  * @property {number | null} [thicknessMm] A tenon's or a magnet's (stage 3).
+ * @property {number | null} [heightMm] A sliding dovetail's (stage 4).
+ * @property {number | null} [lapMm] A half lap's (stage 4).
  */
 
 /**
@@ -422,6 +467,7 @@ function readJointOptions(given, joint) {
     if (!fields.includes(key)) throw new Error(`${OP}: jointOptions has no field ${JSON.stringify(key)} (it takes ${fields.join(', ')})`)
   }
   if (joint === 'butterfly') return readButterflyOptions(raw)
+  if (PROFILE_JOINTS.includes(/** @type {any} */ (joint))) return readProfileOptions(raw, joint, none)
   if (joint === 'tenon' || joint === 'magnets') return readSizedOptions(raw, joint === 'tenon' ? 'tenon' : 'magnet', none)
   const stock = raw.stock ?? 'printed'
   if (!DOWEL_STOCKS.includes(/** @type {any} */ (stock))) {
@@ -465,6 +511,33 @@ function readSizedOptions(raw, kind, none) {
 }
 
 /**
+ * A seam profile's `jointOptions` (`TODO/core-075` stage 4): each field in its range, a count whole.
+ *
+ * @param {Record<string, unknown>} raw
+ * @param {string} joint
+ * @param {JointOptions} none
+ * @returns {JointOptions}
+ */
+function readProfileOptions(raw, joint, none) {
+  /** @type {Record<string, number>} */
+  const read = {}
+  for (const [key, [low, high, whole]] of Object.entries(PROFILE_OPTION_RANGES[joint])) {
+    const value = raw[key]
+    if (value === undefined) continue
+    const ok = typeof value === 'number' && Number.isFinite(value) && value >= low && value <= high && (!whole || Number.isInteger(value))
+    if (!ok) {
+      throw new Error(
+        whole
+          ? `${OP}: jointOptions.${key} must be a whole number from ${low} to ${high}, got ${JSON.stringify(value)}`
+          : `${OP}: jointOptions.${key} must be ${low} to ${high} mm, got ${JSON.stringify(value)}`
+      )
+    }
+    read[key] = value
+  }
+  return { ...none, sizeMm: read.sizeMm ?? null, count: read.count ?? null, depthMm: read.depthMm ?? null, heightMm: read.heightMm ?? null, lapMm: read.lapMm ?? null }
+}
+
+/**
  * A butterfly joint's `jointOptions` (`TODO/core-075`).
  *
  * @param {Record<string, unknown>} raw
@@ -492,7 +565,7 @@ function readButterflyOptions(raw) {
 
 /**
  * @param {Record<string, any>} params
- * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: JointOptions }}
+ * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | 'dovetail' | 'puzzle' | 'lap' | 'finger' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: JointOptions }}
  */
 function readParams(params) {
   const axisIndex = AXES.indexOf(params?.axis)
@@ -527,8 +600,31 @@ function readParams(params) {
     names = /** @type {[string, string]} */ ([given[0], given[1]])
   }
   const placements = readPlacements(params.placements)
+  if (placements !== null && PROFILE_JOINTS.includes(joint)) checkProfilePlacements(joint, placements)
   const jointOptions = readJointOptions(params.jointOptions, joint)
   return { axisIndex, axis: AXES[axisIndex], offsetMm, joint, clearanceMm, names, placements, jointOptions }
+}
+
+/**
+ * A seam profile with placements (`TODO/core-075` decision 4): only a half lap takes them, and only
+ * magnets and dowels — the point connectors that sit in the half of the face where A meets B.
+ *
+ * @param {string} joint
+ * @param {Placement[]} placements
+ */
+function checkProfilePlacements(joint, placements) {
+  if (joint !== 'lap') {
+    const label = PROFILE_LABELS[/** @type {'dovetail' | 'puzzle' | 'finger'} */ (joint)]
+    throw new Error(
+      `${OP}: joint ${joint} (${label.toLowerCase()}) shapes the whole seam, so it takes no placements — ` +
+        'leave placements out, or choose Half lap to add magnets or dowels'
+    )
+  }
+  placements.forEach((placement, index) => {
+    if (!LAP_PLACEMENT_KINDS.includes(/** @type {any} */ (placement.kind))) {
+      throw new Error(`${OP}: placement ${index + 1} (${placement.kind}): a half lap takes only magnets and dowels as extra connectors`)
+    }
+  })
 }
 
 /**
@@ -645,8 +741,48 @@ export function planJoint(value, params) {
  * @property {{ solid: Geom3, meta: import('./group.js').PartMeta }[]} [keys] Key parts
  *   (`TODO/core-075`), assembled.
  * @property {Omit<import('./group.js').HardwareItem, 'joins' | 'axis'>[]} [hardware] What to buy.
+ * @property {import('./recipes/joint.profiles.js').SeamInfo} [seam] A seam profile's (stage 4).
  * @property {string} summary
  */
+
+/**
+ * A seam profile (`TODO/core-075` stage 4), with a half lap's magnets and dowels when it has any.
+ * Those are checked and searched on the **lapped** pieces: the field is read from A's half and B
+ * as the lap leaves it, so a connector can only sit where A meets B.
+ *
+ * @param {Geom3} solid The uncut piece.
+ * @param {Geom3} lower
+ * @param {Geom3} upper
+ * @param {ReturnType<typeof readParams>} read
+ * @param {number} cutMm
+ * @returns {JointPlan}
+ */
+function planProfile(solid, lower, upper, read, cutMm) {
+  const kind = /** @type {'dovetail' | 'puzzle' | 'lap' | 'finger'} */ (read.joint)
+  const { sizeMm, count, depthMm, heightMm = null, lapMm = null } = read.jointOptions
+  const options = { sizeMm, count, depthMm, heightMm, lapMm }
+  const placements = read.placements
+  /** @type {ReturnType<typeof profileJoint>} */
+  let profile
+  try {
+    profile = profileJoint({ solid, axisIndex: read.axisIndex, cutMm, clearanceMm: read.clearanceMm, kind, options, withConnectors: placements !== null })
+  } catch (error) {
+    if (error instanceof ProfileRefusal) throw new Error(`${OP}: ${error.message}`)
+    throw error
+  }
+  if (placements === null) return profile
+  const lapped = booleans.subtract(upper, ...profile.sockets)
+  const contact = booleans.union(lower, lapped)
+  const placed = planPlaced(contact, lower, lapped, read, placements, cutMm)
+  return {
+    ...placed,
+    kind: profile.kind,
+    pins: [...profile.pins, ...placed.pins],
+    sockets: [...profile.sockets, ...placed.sockets],
+    seam: profile.seam,
+    summary: `${profile.summary}; ${placed.summary}`,
+  }
+}
 
 /**
  * @param {Geom3} solid The uncut piece.
@@ -657,6 +793,7 @@ export function planJoint(value, params) {
  * @returns {JointPlan}
  */
 function planOn(solid, lower, upper, read, cutMm) {
+  if (PROFILE_JOINTS.includes(/** @type {any} */ (read.joint))) return planProfile(solid, lower, upper, read, cutMm)
   if (read.placements !== null) return planPlaced(solid, lower, upper, read, read.placements, cutMm)
   if (read.joint === 'none') return { kind: 'none', pins: [], sockets: [], holes: [], connectors: [], summary: 'no joint' }
   if (read.joint === 'dowel') return planDowels(solid, lower, upper, read, cutMm)
@@ -953,9 +1090,14 @@ export function splitWithJoint(value, params) {
    * @returns {{ meta?: import('./group.js').PartMeta }}
    */
   const pieceAMeta = (before, joins) => {
-    if (hardware.length === 0) return before === undefined ? {} : { meta: before }
+    if (hardware.length === 0 && plan.seam === undefined) return before === undefined ? {} : { meta: before }
     const added = hardware.map((item) => ({ ...item, joins, axis }))
-    return { meta: { ...(before ?? {}), role: before?.role ?? 'piece', hardware: [...(before?.hardware ?? []), ...added] } }
+    /** @type {import('./group.js').PartMeta} */
+    const meta = { ...(before ?? {}), role: before?.role ?? 'piece' }
+    if (hardware.length > 0) meta.hardware = [...(before?.hardware ?? []), ...added]
+    // A seam profile says how its pieces go together (stage 4); the latest cut's is A's.
+    if (plan.seam !== undefined) meta.seam = { ...plan.seam, joins, axis }
+    return { meta }
   }
 
   /**
@@ -1050,6 +1192,10 @@ export function splitWithJoint(value, params) {
  *   from `(u, v)`, to `(u, v)`, outward normal `(u, v)` — what a Butterfly tap snaps to.
  * @property {PlacementParams[] | null} resolved Every placement as Apply would build it — a
  *   butterfly's side and depth filled in — when the whole list fits; `null` otherwise.
+ * @property {[import('./group.js').BoundsMm, import('./group.js').BoundsMm] | null} pieceBounds
+ *   Pieces A's and B's **real** bounds with the `profile` asked about (`TODO/core-075` stage 4: a
+ *   profile makes A longer than the cut offset); `null` without a profile, or when it is refused.
+ * @property {string} profileError Why the profile asked about does not fit, or `''`.
  */
 
 /**
@@ -1080,20 +1226,64 @@ function placementOf(connector) {
  * Preview a split's cut face for hand placement.
  *
  * @param {Geom3 | Group} value The uncut body.
- * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | null, seedOptions?: SplitParams['jointOptions'] }} params
+ * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | 'butterfly' | 'tenon' | 'magnets' | null, seedOptions?: SplitParams['jointOptions'], profile?: { joint: 'dovetail' | 'puzzle' | 'lap' | 'finger', jointOptions?: Record<string, number> } }} params
  *   `seedOptions` are a `dowel`, `butterfly`, `tenon` or `magnets` seed's `jointOptions` (`TODO/core-075`).
+ *   `profile` (stage 4) plans that seam profile for `pieceBounds`; with a half lap, the markers and
+ *   the seed's search are checked against the lapped pieces, as Apply builds them.
  * @returns {FacePreview}
  * @throws {Error} The op's own refusal for a cut that is outside the body, crosses several
  *   parts or is not watertight.
  */
 export function previewSplitFace(value, params) {
-  const { placements: given = [], seed = null, seedOptions, ...rest } = params
+  const { placements: given = [], seed = null, seedOptions, profile = null, ...rest } = params
   const read = readParams({ ...rest, joint: 'pins' })
   const placements = given.length === 0 ? [] : given.map((entry, index) => readPlacement(entry, index))
-  const { cutMm, piece, lower, upper } = cut(value, read)
+  const { cutMm, piece, lower, upper: uncutUpper } = cut(value, read)
   const options =
     seed === 'dowel' || seed === 'butterfly' || seed === 'tenon' || seed === 'magnets' ? readJointOptions(seedOptions, seed) : null
-  const field = placementField(piece.solid, read.axisIndex, cutMm, read.clearanceMm, placements, seed, options)
+
+  // A seam profile (stage 4): its real piece bounds, and — for a half lap — the lapped B the
+  // markers are checked against.
+  /** @type {FacePreview['pieceBounds']} */
+  let pieceBounds = null
+  let profileError = ''
+  let upper = uncutUpper
+  let fieldSolid = piece.solid
+  if (profile !== null) {
+    const kind = profile.joint
+    if (!PROFILE_JOINTS.includes(/** @type {any} */ (kind))) {
+      throw new Error(`${OP}: profile must be one of ${PROFILE_JOINTS.join(', ')}, got ${JSON.stringify(kind)}`)
+    }
+    const profileOptions = readJointOptions(profile.jointOptions, kind)
+    try {
+      const planned = profileJoint({
+        solid: piece.solid,
+        axisIndex: read.axisIndex,
+        cutMm,
+        clearanceMm: read.clearanceMm,
+        kind,
+        options: profileOptions,
+        withConnectors: placements.length > 0,
+      })
+      const [aMin, aMax] = boundsOf(lower)
+      const [fMin, fMax] = planned.pins[0].polygons.length > 0 ? boundsOf(planned.pins[0]) : [aMin, aMax]
+      pieceBounds = [
+        [
+          /** @type {import('./group.js').Vec3Mm} */ ([0, 1, 2].map((i) => Math.min(aMin[i], fMin[i]))),
+          /** @type {import('./group.js').Vec3Mm} */ ([0, 1, 2].map((i) => Math.max(aMax[i], fMax[i]))),
+        ],
+        /** @type {import('./group.js').BoundsMm} */ (boundsOf(uncutUpper)),
+      ]
+      if (kind === 'lap') {
+        upper = booleans.subtract(uncutUpper, ...planned.sockets)
+        fieldSolid = booleans.union(lower, upper)
+      }
+    } catch (error) {
+      if (!(error instanceof ProfileRefusal)) throw error
+      profileError = `${OP}: ${error.message}`
+    }
+  }
+  const field = placementField(fieldSolid, read.axisIndex, cutMm, read.clearanceMm, placements, seed, options)
 
   const { radiusMm, socketRadiusMm, socketDepthMm } = pinSizing(PIN_MIN_DIAMETER_MM, read.clearanceMm)
   const wallNeed = Math.hypot(socketRadiusMm + JOINT_WALL_MM, field.depthStepMm / 2)
@@ -1130,7 +1320,7 @@ export function previewSplitFace(value, params) {
     }
   }
 
-  const solid = piece.solid
+  const solid = fieldSolid
   /** @type {JointPlan | null} */
   let whole = null
   const verdicts = placements.map((placement, index) => {
@@ -1167,5 +1357,7 @@ export function previewSplitFace(value, params) {
     overall,
     outline: flatOutline(face),
     resolved,
+    pieceBounds,
+    profileError,
   }
 }

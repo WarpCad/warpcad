@@ -534,3 +534,46 @@ describe('modify.splitWithJoint — the AI can ask for tenons and magnets (TODO/
     expect(record.params).toMatchObject({ joint: 'magnets', jointOptions: { sizeMm: 6, thicknessMm: 3 } })
   })
 })
+
+describe('modify.splitWithJoint — the AI can ask for seam profiles (TODO/core-075 stage 4)', () => {
+  const spec = OPERATIONS['modify.splitWithJoint']
+
+  it('accepts joint dovetail, puzzle, lap and finger with their jointOptions', () => {
+    for (const [joint, jointOptions] of /** @type {const} */ ([
+      ['dovetail', { heightMm: 5, sizeMm: 4 }],
+      ['puzzle', { count: 3, sizeMm: 8 }],
+      ['lap', { lapMm: 30 }],
+      ['finger', { count: 5, depthMm: 20 }],
+    ])) {
+      expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint }), joint).toEqual([])
+      expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint, jointOptions }), joint).toEqual([])
+    }
+  })
+
+  it('refuses an unknown joint by name, listing the profiles', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'glue-gun' }).join(' ')).toMatch(/joint.*dovetail.*puzzle.*lap.*finger.*none/)
+  })
+
+  it('says in its description what each profile is for, the lap-only pairing and the dovetail’s slide', () => {
+    const words = JSON.stringify(spec.params) + spec.description
+    expect(words).toMatch(/dovetail/)
+    expect(words).toMatch(/slides on from one end/)
+    expect(words).toMatch(/plate-like/)
+    expect(words).toMatch(/lapMm/)
+    expect(words).toMatch(/heightMm/)
+    expect(words).toMatch(/lap with placements/)
+  })
+
+  it('a half lap keeps its joint alongside magnet and dowel placements; the kernel takes the record', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const id = place(document, 'primitive.cuboid', { x: 0, y: 0 }, { size: [300, 120, 24] })
+    const operand = { id, ref: id, terminal: id }
+    const params = { axis: 'x', offsetMm: 150, joint: 'lap', jointOptions: { lapMm: 40 }, placements: [{ kind: 'magnet' }] }
+    expect(checkInput(spec.params, params)).toEqual([])
+    const record = spec.build(document, /** @type {any} */ ([operand]), params, 'modify.splitWithJoint')
+    expect(record.params).toMatchObject({ joint: 'lap', jointOptions: { lapMm: 40 }, placements: [{ kind: 'magnet' }] })
+    // Any other joint with placements is still written as the placements alone.
+    const pins = spec.build(document, /** @type {any} */ ([operand]), { axis: 'x', offsetMm: 150, joint: 'pins', placements: [{ kind: 'pins' }] }, 'modify.splitWithJoint')
+    expect(pins.params?.joint).toBeUndefined()
+  })
+})

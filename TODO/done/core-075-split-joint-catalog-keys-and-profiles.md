@@ -6,7 +6,7 @@ priority: medium
 model: opus
 milestone: none — outside any milestone (filed 2026-10-26 at the owner's request)
 depends: []
-status: open
+status: done
 ---
 
 > **Progress (2026-10-27).** Stage 1 (loose and stock dowels, key-part plumbing) shipped in `220b02d`.
@@ -16,8 +16,19 @@ status: open
 > supports (the mortise stays the full stadium), width at least twice its thickness; a magnet pocket is
 > the magnet plus clearance in both faces, no key part, two magnets bought per pocket pair, with a
 > polarity rule in `assembly.txt`. Stage 4 (seam profiles: sliding dovetail, puzzle tabs, half lap,
-> finger joint, and the real-bounds fit check) remains, so this file stays open. Docs:
-> `docs/print-prep.md` "Try it: a tenon and magnets across the wing".
+> finger joint, and the real-bounds fit check) shipped in the working tree after `0ae6f36`: one
+> builder, `recipes/joint.profiles.js` (feature = nominal ∩ uncut solid onto A, cavity = mitred grow
+> by the clearance out of B), the four under *Printed into the pieces* with their own fields, piece
+> A's `PartMeta.seam` feeding `assembly.txt` (a dovetail names the axis to slide B along the rail),
+> and the pieces list and fit badges reading the kernel's real piece bounds
+> (`FacePreview.pieceBounds`) for a profile. Puzzle tabs and a half lap refuse a section that is not
+> plate-like (t > ¼ seam), by name. Decision 4 (owner): a **half lap** may carry hand-placed or
+> searched **magnets and dowels** (checked against the lapped pieces, in the half where A meets B;
+> B then slides on along the cut axis); the other profiles take no placements, and the sheet greys
+> out Place connectors with the reason. Axis-aligned only, as before. `split-golden.json` gained
+> tenon and magnets entries recorded before stage 4; no existing hash changed. The profile starting
+> sizes have not been checked against a test print. Status stays open for the lead to retire. Docs:
+> `docs/print-prep.md` "Seam profiles" and "Try it: a half lap across a plank".
 
 ## Goal
 

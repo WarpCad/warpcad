@@ -266,5 +266,106 @@
         "axis": "x"
       }
     }
+  },
+  "tenon": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "tenon",
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors",
+      "meta"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B",
+      "Bar key 1"
+    ],
+    "sha256": {
+      "Bar A": "75bbf21e694a48cacc525eb79a8a667c21537c5800ab9e30b4569549bf70dd83",
+      "Bar B": "747dcef6aa9f8bd6156b89d1004e06119d462f815b80eddd3030db5ab9ae4acd",
+      "Bar key 1": "4262d580ced80abc6d3ce79182f4302734b7be59b63d2cff966112a82bbfdf05"
+    },
+    "meta": {
+      "Bar key 1": {
+        "role": "key",
+        "kind": "tenon",
+        "shape": "tenon-12x5.25x35.6",
+        "label": "Tenon 35.6 × 12 × 5.25 mm",
+        "sizeMm": 12,
+        "thicknessMm": 5.25,
+        "bedNormal": [
+          0,
+          0,
+          -1
+        ],
+        "joins": [
+          "Bar A",
+          "Bar B"
+        ],
+        "axis": "x"
+      }
+    }
+  },
+  "magnets": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "magnets",
+      "jointOptions": {
+        "sizeMm": 6,
+        "thicknessMm": 3
+      },
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors",
+      "meta"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B"
+    ],
+    "sha256": {
+      "Bar A": "53c8057179a1ef7e913012090e33d91481ad1a0ecb8264a306f24ebb271deec2",
+      "Bar B": "d69ea7814216b4e4fae002bd2c265c1b91039921251e15f1708a2e7721f983d5"
+    },
+    "meta": {
+      "Bar A": {
+        "role": "piece",
+        "hardware": [
+          {
+            "item": "magnet",
+            "diameterMm": 6,
+            "thicknessMm": 3,
+            "count": 4,
+            "label": "magnets 6 × 3 mm",
+            "joins": [
+              "Bar A",
+              "Bar B"
+            ],
+            "axis": "x"
+          }
+        ]
+      }
+    }
   }
 }

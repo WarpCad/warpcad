@@ -88,7 +88,7 @@ describe('modify.splitWithJoint — the registry entry', () => {
   })
 
   it('offers the joint types a record may name (TODO/core-075 stage 1 adds the loose dowel)', () => {
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'none'])
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'dovetail', 'puzzle', 'lap', 'finger', 'none'])
     expect(DEFAULT_JOINT_CLEARANCE_MM).toBeCloseTo(0.2, 9)
   })
 })
@@ -176,7 +176,7 @@ describe('splitWithJoint — refusals and warnings', () => {
   it('an unknown axis or joint type is refused by name', () => {
     expect(() => splitWithJoint(bar(), { axis: 'w', offsetMm: 150 })).toThrow(/axis must be one of x, y, z/)
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'glue-gun' })).toThrow(
-      /joint must be one of pins, tongue, dowel, butterfly, tenon, magnets, none, got "glue-gun"/
+      /joint must be one of pins, tongue, dowel, butterfly, tenon, magnets, dovetail, puzzle, lap, finger, none, got "glue-gun"/
     )
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, clearanceMm: -0.1 })).toThrow(/clearanceMm/)
   })
@@ -269,7 +269,7 @@ describe('splitWithJoint — hand-placed connectors (TODO/core-059)', () => {
   it('lists the connector kinds a placement may ask for (TODO/core-075 adds the dowel)', () => {
     expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss', 'dowel', 'butterfly', 'tenon', 'magnet'])
     // Placements are a separate input from the joint list.
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'none'])
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'butterfly', 'tenon', 'magnets', 'dovetail', 'puzzle', 'lap', 'finger', 'none'])
   })
 
   it('a pin placed by hand is sized by the same rule as a searched one: Ø5 stands 10 mm proud', () => {
@@ -578,7 +578,7 @@ describe('splitWithJoint — key parts across repeated splits (TODO/core-075 sta
       /jointOptions is only for joint dowel/
     )
     expect(() => splitWithJoint(plank(), { ...base, joint: 'glue-gun' })).toThrow(
-      /joint must be one of pins, tongue, dowel, butterfly, tenon, magnets, none, got "glue-gun"/
+      /joint must be one of pins, tongue, dowel, butterfly, tenon, magnets, dovetail, puzzle, lap, finger, none, got "glue-gun"/
     )
   })
 })
@@ -606,6 +606,21 @@ describe('splitWithJoint — today’s records fold byte-identically (TODO/core-
   // these were recorded from the code before stage 3, keys and metadata included.
   for (const label of ['dowel', 'dowel-steel', 'butterfly']) {
     it(`a ${label} split: the same parts, metadata and STL bytes as before stage 3`, async () => {
+      const { params, keys, names, sha256: want, meta } = /** @type {any} */ (golden)[label]
+      const group = splitWithJoint(bar300(), params)
+      expect(Object.keys(group)).toEqual(keys)
+      expect([...group.names]).toEqual(names)
+      expect(JSON.parse(JSON.stringify(group.meta ?? null))).toEqual(meta)
+      for (const name of names) {
+        const { bytes } = exportBodies([{ id: name, name, geometry: group.parts[name] }], 'stl')
+        expect(await sha256(bytes), name).toBe(want[name])
+      }
+    })
+  }
+  // Stage 4 (seam profiles, the real-bounds fit check) must leave every earlier joint exactly as
+  // it was: tenon and magnets were recorded from the code before stage 4, metadata included.
+  for (const label of ['tenon', 'magnets']) {
+    it(`a ${label} split: the same parts, metadata and STL bytes as before stage 4`, async () => {
       const { params, keys, names, sha256: want, meta } = /** @type {any} */ (golden)[label]
       const group = splitWithJoint(bar300(), params)
       expect(Object.keys(group)).toEqual(keys)

@@ -33,7 +33,7 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-10-26 (files renamed with a milestone prefix; Milestone column added; `core-075` ranked as row 26; `io-016` share-by-link ranked as row 12).*
+*Last reviewed 2026-10-26 (files renamed with a milestone prefix; Milestone column added; `io-016` share-by-link ranked as row 12).*
 
 **Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
 (widened 2026-10-26; iOS first) that
@@ -68,7 +68,6 @@ this repository still need a green full run before they are pushed.
 | 22 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
 | 23 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
 | 24 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
-| 25 | `FIND` | [`core-075`](FIND-core-075-split-joint-catalog-keys-and-profiles.md) More ways to join split pieces: butterfly keys, dowels, tenons, dovetails, puzzle tabs, laps, fingers, magnets | Owner request 2026-10-26; no dependencies | opus |
 | 26 | `M11` | Gears (M11, runs last): `ui-057` → `ui-058` → `core-048` → `core-049` → `core-062` → `testing-002` → `docs-021` | Order from M11's suggested order | sonnet / opus |
 
 `core-065` stays parked (decided 2026-10-17: keep the Albany table for now) and is not ranked.
@@ -148,7 +147,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Findings | [`ai-029`](FIND-ai-029-mcp-prompts-as-slash-commands.md) MCP prompts `start`, `build`, `check-print` (Claude Code slash commands), plus Copy starter buttons in the Assistant | feature | medium | sonnet | ⏳ after `ai-028` |
 | Findings | [`ai-030`](FIND-ai-030-list-ops-summary-and-filter.md) `list_ops` summary and per-op filter, so learning the catalogue stops costing ~7.6k tokens a call | feature | high | sonnet | ▶ **ready** |
 | Findings | [`io-016`](FIND-io-016-share-a-project-by-link.md) Share a project by link, with a read-only Shared view for the recipient | feature | high | opus | ▶ **ready** |
-| Findings | [`core-075`](FIND-core-075-split-joint-catalog-keys-and-profiles.md) More ways to join split pieces: butterfly keys, loose dowels and tenons, dovetails, puzzle tabs, laps, fingers, magnets | feature | medium | opus | ▶ **ready** (filed 2026-10-26 at the owner's request) |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 |  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
 |  | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet; waits on `ui-062` |
@@ -310,7 +308,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `ai-029` | Three MCP prompts (`start`, `build`, `check-print`), shown as `/mcp__warpcad__…` in Claude Code, each embedding the guide; **Copy starter** buttons in the subscription and Live MCP sheets. Filed 2026-10-26 | Feature | `ai-028` | 1, 23, 25 |
 | `ai-030` | `list_ops` takes `detail: summary` (~4.1k vs 30.5k characters), `ops: [...]` and `kind`; no input unchanged; guidance names the cheap path. Filed 2026-10-26 | Feature | — | 17, 23, 24, 25, 27 |
 | `io-016` | Share a project by link (`#/share/v1/…`, the project deflated into the URL fragment) and a read-only Shared view for the recipient; gist overflow (`io-017`) and native Universal Links (`io-018`) reserved. Filed 2026-10-26 at the owner's request | Feature | — | 22, new 29 |
-| `core-075` | More ways to join split pieces: butterfly keys, loose dowels and tenons, dovetails, puzzle tabs, laps, fingers, magnets. Filed 2026-10-26 at the owner's request | Feature | — | 2, 3, 10 |
 
 ---
 
@@ -421,7 +418,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 15 | `io-016`, `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ai-027`, `ai-028`, `ai-029`, `ai-030`, `core-075`. |
+| [Findings](#findings-open-rows) | 14 | `io-016`, `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ai-027`, `ai-028`, `ai-029`, `ai-030`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family. |
 
