@@ -3565,3 +3565,16 @@ I drove it by hand in two browser contexts at laptop, tablet and phone sizes; wh
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Share, text or email, phone view, one button, pinch to zoom → diff (ShareSheet.vue, SharedView.vue, docs/sharing.md) and hand-driven this session; fragment never reaches a server → docs/decisions/share-link.md; read-only and writes nothing → autosave record byte-identical (423 chars) before and after opening a link, hand-driven; cut link shows incomplete screen → hand-driven (cuts of 1, 30, 200, 400 characters); Replace asks first, newer link offers merge → hand-driven, share-link.e2e.js; laptop, tablet and phone sizes in two contexts → hand-driven Chromium, plus WebKit at phone; real iPhone not tried, ceiling an estimate → TODO/VERIFY.md rows 1 and 7
 **To Add:** docs/screenshots/share-sheet.png and shared-view.png
+
+## 2026-10-27T20:00:00Z — A build failure turned into a bundle map
+
+**Post:** WarpCad's main JavaScript bundle grew to 2.14 MB, past Workbox's default 2 MiB precache limit, and the production build started failing. The offline install needs that file precached, so I raised the limit to 4 MiB rather than drop it from the cache.
+
+The more useful change is that every build now writes a treemap with gzip and brotli sizes, to the repo root so it never ships in dist/. It showed that about 380 kB of the bundle is geometry code (the kernel and @jscad/modeling) that only the Web Workers should need, because the op registry keeps metadata and implementations in one module. A vendor split was tried first and reverted: it made five initial JS files instead of one, which an earlier measurement had already shown loses on slow links.
+
+The fix is filed as perf-004: split the registry's metadata from its code. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebDev #Vite #PWA
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 2.14 MB, 2 MiB default, ~380 kB kernel code, registry mixes metadata and implementation, vendor split gave 5 initial files and was reverted, perf-004 filed → TODO/FIND-perf-004 and perf-003 note; 4 MiB limit, treemap with gzip/brotli, written outside dist/ → diff (vite.config.js)
+**To Add:** screenshot of stats.html

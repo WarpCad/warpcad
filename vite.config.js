@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 import { liveBridgePlugins } from './mcp/liveBridge.js'
 import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
@@ -145,6 +146,10 @@ export default defineConfig(({ command }) => ({
     warpcadHelp(),
     // `TODO/build-011`: THIRD-PARTY-NOTICES.txt beside index.html, linked from the Help footer.
     warpcadNotices(),
+    // Bundle-size treemap, written to the repo root (not `dist/`: that is deployed to Pages and
+    // matched by the PWA precache globs). Gitignored; `npm run build`, then open `stats.html`.
+    // `gzipSize`/`brotliSize` show what travels over the wire, not just the parsed size.
+    visualizer({ filename: 'stats.html', gzipSize: true, brotliSize: true, template: 'treemap' }),
     VitePWA({
       // `TODO/build-005`: a new worker installs, activates and takes control the moment it is
       // found (stated below, not left to the plugin's defaults). `src/pwa.js` intercepts the
@@ -163,6 +168,9 @@ export default defineConfig(({ command }) => ({
         // never point at hashed assets that were deleted by the deploy.
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
+        // The main bundle passed Workbox's 2 MiB default; an over-limit file is left out of the
+        // precache and the build errors. Keep it precached (offline install needs it) with headroom.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // The notices file opens in a tab of its own; the fallback must not answer it with the app.
         navigateFallbackDenylist: [/\.txt$/],
         // The plugin's default globs plus the help text and still pictures, so Help opens

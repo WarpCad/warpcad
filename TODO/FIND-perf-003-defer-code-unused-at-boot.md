@@ -31,6 +31,12 @@ the bench's `--check` passing, and the warning's chunk left alone otherwise. Thi
 fix for the >500 kB warning: the boot chunk stays ~1.8 MB, and `chunkSizeWarningLimit` must not be
 raised or silenced (perf-002 section 8).
 
+- Note (2026-10-27): the boot chunk grew past Workbox's 2 MiB precache limit and the build failed;
+  `vite.config.js` now sets `workbox.maximumFileSizeToCacheInBytes` to 4 MiB. A vendor split
+  (three / sentry / vue groups) was tried and reverted: it makes five initial JS files, the pattern
+  above that perf-002 measured as a slow-link loss. Source-map breakdown of what is in the chunk:
+  `TODO/FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md`.
+
 ## Interaction model
 
 No control is added, removed or moved. What changes is when code arrives, and the user must not be

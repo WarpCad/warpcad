@@ -2475,3 +2475,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Share, then send → diff (ShareSheet.vue, docs/sharing.md); recipient sees the model and turns it by touch → hand-driven this session (CDP touch orbit at 390x844 and 820x1180, Chromium; WebKit used a mouse fallback); no install, no account → diff (static app, docs/sharing.md); fragment so no server sees it → docs/decisions/share-link.md; Not driven: a real iPhone receiving the link in Messages (TODO/VERIFY.md row 7)
 **To Add:** docs/screenshots/share-sheet.png and shared-view.png
+
+## 2026-10-27T20:00:00Z — Bundle treemap in the build, and a Workbox limit the main bundle outgrew
+
+**Post:** WarpCad's main bundle hit 2.14 MB and tripped Workbox's 2 MiB precache limit, so the build failed. The limit is raised, and every build now writes a treemap. It showed about 380 kB of geometry code sitting in a bundle that shouldn't need it. #WebDev #Vite Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebDev #Vite
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 2.14 MB main bundle, Workbox 2 MiB limit, build failed, ~380 kB of kernel code → TODO/FIND-perf-004 and the perf-003 note (measured 2026-10-27 from the source map); limit raised, treemap on every build → diff (vite.config.js)
+**To Add:** screenshot of stats.html
