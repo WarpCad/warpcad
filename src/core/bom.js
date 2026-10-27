@@ -22,6 +22,13 @@
  * `{ type: 'socket', spec: 'm2.5' }` of one length are one line. A replay-only
  * `hardware.screw` keeps its own line and label.
  *
+ * ## Bought split hardware (`TODO/core-075`)
+ *
+ * A split with **Steel or filament dowels** needs things bought that are not bodies: the body
+ * summary carries them as `hardware` (from the split group's part metadata, `hardwareOf`), and
+ * each becomes a line — `Steel dowel pin Ø4 × 10 mm` or `1.75 mm filament Ø1.75 × 4.5 mm
+ * lengths`. Printed dowels are not listed: they are printed parts, in the Print pieces zip.
+ *
  * @module core/bom
  */
 
@@ -134,15 +141,34 @@ function tallyOf(body) {
 }
 
 /**
+ * One bought item's BOM label and detail (`TODO/core-075`).
+ *
+ * @param {import('./kernel/group.js').HardwareItem} item
+ * @returns {{ label: string, detail: string }}
+ */
+function hardwareLine(item) {
+  if (item.stock === 'filament') return { label: '1.75 mm filament', detail: `Ø${item.diameterMm} × ${item.lengthMm} mm lengths` }
+  return { label: 'Steel dowel pin', detail: `Ø${item.diameterMm} × ${item.lengthMm} mm` }
+}
+
+/**
  * Tally bodies into BOM rows, in first-placed order.
  *
- * @param {readonly { op: string, params?: Record<string, any>, repeat?: { sourceOp: string, sourceParams: Record<string, any>, members: readonly string[] } }[]} bodies
+ * @param {readonly { op: string, params?: Record<string, any>, repeat?: { sourceOp: string, sourceParams: Record<string, any>, members: readonly string[] }, hardware?: readonly import('./kernel/group.js').HardwareItem[] }[]} bodies
+ *   `hardware`: what a split body needs bought (`TODO/core-075`).
  * @returns {BomRow[]}
  */
 export function tallyBom(bodies) {
   /** @type {Map<string, BomRow>} */
   const rows = new Map()
   for (const body of bodies) {
+    for (const item of body.hardware ?? []) {
+      const { label, detail } = hardwareLine(item)
+      const key = `stock.${item.item}|${item.stock}|${detail}`
+      const row = rows.get(key)
+      if (row) row.count += item.count
+      else rows.set(key, { key, op: 'modify.splitWithJoint', label, detail, count: item.count })
+    }
     const { op, params, count } = tallyOf(body)
     if (count === 0 || !PART_NAMESPACES.includes(op.split('.')[0])) continue
     const detail = detailOf(op, params)

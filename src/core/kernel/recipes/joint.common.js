@@ -246,6 +246,9 @@ const RAY = (() => {
  *   the face, in the first half), `-1` if any is outside the solid.
  * @property {Float64Array} depthClearMm Running least distance beyond the face: entry `k` is
  *   the minimum over every sample from the face to `k` steps past it, `-1` once one is outside.
+ * @property {Float64Array} [belowClearMm] The same running least distance, sampled **under**
+ *   the face into piece A (`TODO/core-075`: a loose dowel's socket needs a wall in both
+ *   pieces). Present only when the field was built with `maxBelowMm`.
  */
 
 /**
@@ -269,9 +272,11 @@ const RAY = (() => {
  * @param {Geom3} solid The **uncut** solid.
  * @param {number} axisIndex
  * @param {number} cutMm
- * @param {{ maxDepthMm: number, maxClearMm: number, maxPoints?: number }} options
+ * @param {{ maxDepthMm: number, maxClearMm: number, maxPoints?: number, maxBelowMm?: number }} options
  *   `maxDepthMm`: how far past the face to sample; `maxClearMm`: the largest clearance any
- *   caller will ask about (a closest-point query stops looking beyond it).
+ *   caller will ask about (a closest-point query stops looking beyond it); `maxBelowMm`: how
+ *   far under the face to sample as well (`TODO/core-075`), left out for none — the field
+ *   every search before it used, unchanged.
  * @returns {ClearanceField}
  */
 export function clearanceField(solid, axisIndex, cutMm, options) {
@@ -288,6 +293,7 @@ export function clearanceField(solid, axisIndex, cutMm, options) {
   const depthStepMm = 0.5
   const depthSamples = Math.ceil(options.maxDepthMm / depthStepMm) + 1
   const baseSamples = Math.ceil(JOINT_BASE_DEPTH_MM / depthStepMm) + 1
+  const belowSamples = options.maxBelowMm === undefined ? 0 : Math.ceil(options.maxBelowMm / depthStepMm) + 1
 
   const soup = triangleSoup(solid)
   const tree = new TriangleTree(soup)
@@ -334,7 +340,22 @@ export function clearanceField(solid, axisIndex, cutMm, options) {
         }
         depthClearMm[k] = running
       }
-      points.push({ uMm, vMm, baseClearMm, depthClearMm })
+      /** @type {FacePoint} */
+      const sampled = { uMm, vMm, baseClearMm, depthClearMm }
+      if (belowSamples > 0) {
+        const belowClearMm = new Float64Array(belowSamples)
+        let below = Infinity
+        for (let k = 0; k < belowSamples; k += 1) {
+          if (below >= 0) {
+            point[axisIndex] = cutMm - Math.max(k * depthStepMm, 0.05)
+            const clear = clearAt()
+            below = clear < 0 ? -1 : Math.min(below, clear)
+          }
+          belowClearMm[k] = below
+        }
+        sampled.belowClearMm = belowClearMm
+      }
+      points.push(sampled)
     }
   }
   return { axisIndex, cutMm, u, v, uRange, vRange, stepMm, depthStepMm, columns, rows, points }
@@ -351,4 +372,20 @@ export function clearanceField(solid, axisIndex, cutMm, options) {
 export function clearanceTo(field, point, depthMm) {
   const k = Math.min(point.depthClearMm.length - 1, Math.ceil(depthMm / field.depthStepMm))
   return point.depthClearMm[k]
+}
+
+/**
+ * The least clearance from the face to `depthMm` **under** it at one field point
+ * (`TODO/core-075`), `-1` if outside — or `-1` when the field was not sampled below the face.
+ *
+ * @param {ClearanceField} field
+ * @param {FacePoint} point
+ * @param {number} depthMm
+ * @returns {number}
+ */
+export function clearanceBelow(field, point, depthMm) {
+  const below = point.belowClearMm
+  if (below === undefined) return -1
+  const k = Math.min(below.length - 1, Math.ceil(depthMm / field.depthStepMm))
+  return below[k]
 }

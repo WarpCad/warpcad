@@ -3486,3 +3486,16 @@ Two other specs got attention in the same pass: a WebKit zoom test that read its
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 1.0.0 → git log cf6c2d8 (2026-10-21); failed on all nine projects → Known-failures list from the user's run (app-header-version, 9 entries); mask keeps layout → this session's diff images; zoom baseline read pre-layout and WebGL flat read → diff and this session's failing runs (Received 10 vs before 10; colors 1)
 **To Add:** none
+
+## 2026-10-27T07:55:18-05:00 — Split with loose dowels, printed or bought
+
+**Post:** WarpCad's Split sheet used to offer pins and sockets, tongue and groove, or no joint. A pin is printed onto one piece, so when that piece prints on its cut face the pin stands upright and its layer lines cross the direction it is loaded in. The new Dowel joint cuts a socket in both pieces and makes the pin a separate part.
+
+Print pieces lays each dowel on a flat along its length so it prints lying down, writes identical dowels as one file with the count in its name (`wing-dowel-x2.stl`), and adds an `assembly.txt` listing the pieces, the files and what to buy. Or skip printing: the same sockets can be sized for a steel dowel pin or a length of 1.75 mm filament, and the Bill of materials lists them.
+
+The default 0.2 mm clearance has not been checked against a test print yet, and the docs say so. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** previous joints → TODO/FIND-core-075 "Today" text; pin orientation reasoning → diff (joint.dowel.js header); lying on a flat, one file per size, assembly.txt → diff (docs/print-prep.md, printPrep.js); steel/filament + BOM → diff (docs/bill-of-materials.md); clearance unchecked → diff (docs/print-prep.md "Clearance")
+**To Add:** docs/screenshots/print-pieces-with-keys.png

@@ -56,7 +56,7 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  * connector again by hand.
  *
  * @typedef {object} Connector
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
  * @property {'search' | 'placed'} source
  * @property {number} uMm Centre on the face, document millimetres along the field's `u` axis.
  * @property {number} vMm
@@ -66,12 +66,13 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  *   tongue's rib along the face), a wedge's along the face.
  * @property {number} [heightMm] How far a tongue, wedge or screw boss stands proud.
  * @property {number} [insertMm] A screw boss's heat-set insert bore, when it has one.
+ * @property {'printed' | 'steel' | 'filament'} [stock] A dowel's (`TODO/core-075`).
  * @property {Footprint} footprint Its socket plus wall on the face.
  */
 
 /**
  * @typedef {object} JointGeometry
- * @property {'pins' | 'tongue' | 'placements'} kind `placements` when built from a hand-given
+ * @property {'pins' | 'tongue' | 'dowel' | 'placements'} kind `placements` when built from a hand-given
  *   list (`TODO/core-059`), which may mix kinds.
  * @property {Geom3[]} pins Unioned onto piece A. Each is sunk {@link JOINT_EMBED_MM} into A.
  * @property {Geom3[]} sockets Subtracted from piece B. Each starts {@link JOINT_EMBED_MM}
@@ -79,6 +80,10 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  * @property {Geom3[]} holes Subtracted from piece A **after** the pins are unioned on — a screw
  *   boss's bore through A and its own boss. Empty for pins, tongues and wedges.
  * @property {Connector[]} connectors In the order their pins and sockets are listed.
+ * @property {{ solid: Geom3, meta: import('../group.js').PartMeta }[]} [keys] Separate key
+ *   parts, assembled in their sockets (`TODO/core-075`: a printed dowel). Absent for none.
+ * @property {Omit<import('../group.js').HardwareItem, 'joins' | 'axis'>[]} [hardware] What to
+ *   buy (`TODO/core-075`: steel pins, filament). Absent for none.
  * @property {string} summary One line for a person: what was made and how big.
  */
 

@@ -23,6 +23,20 @@
  * FDM rule. It does not know about bridging, layer height or material, so it is a hint for
  * the file list, never a verdict.
  *
+ * **A key part says which face it prints on** (`TODO/core-075`). A split's key carries a
+ * `bedNormal` in its `PartMeta` (`kernel/group.js`) — a dowel's D-flat, so it prints lying
+ * down with its layers along it. {@link layFlat}'s `bedNormal` option uses that face when the
+ * solid really has a supporting face that way (a later rotation of the body makes the stored
+ * normal stale, and then the largest flat face is used, which for a D-flat dowel is the
+ * same face anyway).
+ *
+ * ## Keys and `assembly.txt` (`TODO/core-075`)
+ *
+ * Identical key parts share one file, the count in its name (`plank-dowel-x4.stl`) — a
+ * slicer makes the copies. When any body has keys or bought hardware, the zip also carries
+ * `assembly.txt`: the pieces, how many of each key to print and which way down, what to buy,
+ * and which pieces go together along which axis.
+ *
  * ## Refusals
  *
  * Every piece goes through the same repair the STL export uses (`makeWatertight`, `io-004`)
@@ -40,7 +54,7 @@ import modeling from '@jscad/modeling'
 
 import { fitVerdict } from './buildVolume.js'
 import { ExportError, exportBodies, slugifyName } from './export.js'
-import { boundsOf, hasNamedParts, toGeom3 } from './kernel/group.js'
+import { boundsOf, hardwareOf, hasNamedParts, partMetaOf, toGeom3 } from './kernel/group.js'
 import { makeWatertight, openEdgesOf } from './kernel/watertight.js'
 import { createZip } from './zip.js'
 
@@ -63,6 +77,8 @@ export const SUPPORTS_HEURISTIC =
  * @typedef {object} PrintPiece
  * @property {string} name The part's name, or the body's for a one-piece body.
  * @property {Geom3} solid
+ * @property {import('./kernel/group.js').PartMeta} [meta] A split key's or a piece's role
+ *   (`TODO/core-075`).
  */
 
 /**
@@ -76,7 +92,10 @@ export function printPiecesOf(body) {
   if (hasNamedParts(geometry)) {
     return geometry.names
       .filter((name) => geometry.parts[name].polygons.length > 0)
-      .map((name) => ({ name, solid: geometry.parts[name] }))
+      .map((name) => {
+        const meta = partMetaOf(geometry, name)
+        return { name, solid: geometry.parts[name], ...(meta === undefined ? {} : { meta }) }
+      })
   }
   return [{ name: body.name, solid: toGeom3(geometry) }]
 }
@@ -132,7 +151,9 @@ export function bodyFit(body, volume) {
  * the origin in X and Y.
  *
  * @param {Geom3} solid
- * @param {{ bedFace?: 'largest' | 'as-placed' }} [options]
+ * @param {{ bedFace?: 'largest' | 'as-placed', bedNormal?: Vec3Mm }} [options] `bedNormal`: the
+ *   outward normal of the face to print on (`TODO/core-075`, a key's), used when the solid has
+ *   a supporting face that way; otherwise the largest flat face.
  * @returns {{ solid: Geom3, mayNeedSupports: boolean, bedFaceAreaMm2: number }}
  */
 export function layFlat(solid, options = {}) {
@@ -153,7 +174,17 @@ export function layFlat(solid, options = {}) {
   let down = [0, 0, -1]
   let bedFaceAreaMm2 = 0
   if (options.bedFace !== 'as-placed') {
-    const candidates = [...planes.values()].sort((a, b) => b.area - a.area)
+    const sorted = [...planes.values()].sort((a, b) => b.area - a.area)
+    const wanted = options.bedNormal
+    const length = wanted ? Math.hypot(wanted[0], wanted[1], wanted[2]) : 0
+    // The asked-for face first, if there is one; then every face, largest first.
+    const facing = length > 0 && wanted
+      ? sorted.filter(
+          (plane) =>
+            (plane.normal[0] * wanted[0] + plane.normal[1] * wanted[1] + plane.normal[2] * wanted[2]) / length > 1 - 1e-6
+        )
+      : []
+    const candidates = [...facing, ...sorted]
     for (const candidate of candidates) {
       const [nx, ny, nz] = candidate.normal
       const supporting = polygons.every((polygon) =>
@@ -198,6 +229,9 @@ export function layFlat(solid, options = {}) {
  * @property {number} sizeBytes
  * @property {number} triangleCount
  * @property {boolean} mayNeedSupports See {@link SUPPORTS_HEURISTIC}.
+ * @property {'piece' | 'key' | 'notes'} [role] `key` for a key file, `notes` for
+ *   `assembly.txt` (`TODO/core-075`); absent for a piece.
+ * @property {number} [count] How many to print of a key file.
  */
 
 /**
@@ -223,8 +257,44 @@ export function exportPrintPieces(bodies) {
   /** @type {(PrintPieceFile & { bytes: Uint8Array })[]} */
   const files = []
   const used = new Set()
+  /** @type {BodyNotes[]} */
+  const notes = []
+  /** @param {string} stem */
+  const unique = (stem) => {
+    let filename = `${stem}.stl`
+    for (let n = 2; used.has(filename); n += 1) filename = `${stem}-${n}.stl`
+    used.add(filename)
+    return filename
+  }
   for (const body of bodies) {
-    for (const piece of printPiecesOf(body)) {
+    const pieces = printPiecesOf(body)
+    /** @type {BodyNotes} */
+    const note = { body: body.name, pieces: [], keys: [], hardware: hardwareOf(body.geometry), joins: [] }
+    /** @type {Map<string, PrintPiece[]>} identical keys, by shape, in first-seen order */
+    const keyShapes = new Map()
+    /** @type {PrintPiece[]} */
+    const plain = []
+    for (const piece of pieces) {
+      if (piece.meta?.role === 'key' && piece.meta.shape) {
+        const same = keyShapes.get(piece.meta.shape)
+        if (same) same.push(piece)
+        else keyShapes.set(piece.meta.shape, [piece])
+      } else plain.push(piece)
+    }
+    /** @type {{ piece: PrintPiece, count: number }[]} */
+    const toWrite = [
+      ...plain.map((piece) => ({ piece, count: 1 })),
+      ...[...keyShapes.values()].map((group) => ({ piece: group[0], count: group.length })),
+    ]
+    for (const [shape, group] of keyShapes) {
+      void shape
+      const meta = /** @type {import('./kernel/group.js').PartMeta} */ (group[0].meta)
+      if (meta.joins) note.joins.push({ joins: meta.joins, axis: meta.axis ?? 'x', keys: group.map((piece) => piece.name), label: meta.label ?? 'key' })
+    }
+    for (const item of note.hardware) {
+      note.joins.push({ joins: item.joins, axis: item.axis, keys: [], label: item.label, count: item.count })
+    }
+    for (const { piece, count } of toWrite) {
       if (!piece.solid.polygons.some((polygon) => polygon.vertices.length >= 3)) {
         throw new ExportError('empty-geometry', `Cannot export "${piece.name}": it has no triangles, so the file would be empty`, piece.name)
       }
@@ -237,12 +307,12 @@ export function exportPrintPieces(bodies) {
           piece.name
         )
       }
-      const laid = layFlat(repaired)
+      const isKey = piece.meta?.role === 'key'
+      const laid = layFlat(repaired, isKey && piece.meta?.bedNormal ? { bedNormal: piece.meta.bedNormal } : {})
       const result = exportBodies([{ id: body.id, name: piece.name, geometry: laid.solid }], 'stl')
-      const stem = slugifyName(piece.name)
-      let filename = `${stem}.stl`
-      for (let n = 2; used.has(filename); n += 1) filename = `${stem}-${n}.stl`
-      used.add(filename)
+      const filename = isKey
+        ? unique(`${slugifyName(body.name)}-${slugifyName(piece.meta?.kind ?? 'key')}-x${count}`)
+        : unique(slugifyName(piece.name))
       files.push({
         filename,
         pieceName: piece.name,
@@ -250,8 +320,24 @@ export function exportPrintPieces(bodies) {
         sizeBytes: result.bytes.byteLength,
         triangleCount: result.triangleCount,
         mayNeedSupports: laid.mayNeedSupports,
+        ...(isKey ? { role: /** @type {const} */ ('key'), count } : {}),
       })
+      if (isKey) note.keys.push({ filename, count, label: piece.meta?.label ?? piece.name })
+      else note.pieces.push({ filename, name: piece.name })
     }
+    notes.push(note)
+  }
+  if (notes.some((note) => note.keys.length > 0 || note.hardware.length > 0)) {
+    const text = new TextEncoder().encode(assemblyText(notes))
+    files.push({
+      filename: 'assembly.txt',
+      pieceName: '',
+      bytes: text,
+      sizeBytes: text.byteLength,
+      triangleCount: 0,
+      mayNeedSupports: false,
+      role: 'notes',
+    })
   }
   const bytes = createZip(files.map((file) => ({ name: file.filename, bytes: file.bytes })))
   return {
@@ -261,4 +347,55 @@ export function exportPrintPieces(bodies) {
     files: files.map(({ bytes: _bytes, ...file }) => file),
     heuristic: SUPPORTS_HEURISTIC,
   }
+}
+
+/**
+ * What one body contributes to `assembly.txt`.
+ *
+ * @typedef {object} BodyNotes
+ * @property {string} body
+ * @property {{ filename: string, name: string }[]} pieces
+ * @property {{ filename: string, count: number, label: string }[]} keys
+ * @property {import('./kernel/group.js').HardwareItem[]} hardware
+ * @property {{ joins: [string, string], axis: string, keys: string[], label: string, count?: number }[]} joins
+ */
+
+/**
+ * `assembly.txt` (`TODO/core-075`): plain text a person reads at the printer and the bench.
+ *
+ * @param {BodyNotes[]} notes
+ * @returns {string}
+ */
+export function assemblyText(notes) {
+  const lines = ['WarpCad print pieces: assembly', '']
+  for (const note of notes) {
+    lines.push(note.body, '  Pieces to print:')
+    for (const piece of note.pieces) lines.push(`    ${piece.filename}: ${piece.name}`)
+    if (note.keys.length > 0) {
+      lines.push('  Keys to print:')
+      for (const key of note.keys) {
+        lines.push(`    ${key.filename}: print ${key.count} × ${key.label}, flat side down (the file is already laid that way)`)
+      }
+    }
+    lines.push('  Hardware to buy:')
+    if (note.hardware.length === 0) lines.push('    Nothing to buy.')
+    for (const item of note.hardware) lines.push(`    ${item.count} × ${item.label}`)
+    if (note.joins.length > 0) {
+      lines.push('  Assembly:')
+      note.joins.forEach((join, index) => {
+        const [a, b] = join.joins
+        const along = join.axis.toUpperCase()
+        const what =
+          join.keys.length > 0
+            ? `push ${join.keys.join(', ')} into the sockets in ${a}`
+            : `push ${join.count ?? ''} ${join.label} into the sockets in ${a}`.replace(/  +/g, ' ')
+        lines.push(
+          `    ${index + 1}. ${a} and ${b}, along ${along}: ${what}, then slide ${b} on along ${along} until the cut faces meet.`,
+          '       Dry-fit first. For a permanent joint, put a little glue in each socket and on the cut faces.'
+        )
+      })
+    }
+    lines.push('')
+  }
+  return lines.join('\n')
 }

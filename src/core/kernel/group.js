@@ -78,7 +78,73 @@ const { booleans, measurements, primitives, transforms } = modeling
  *   parts that have one (TODO/core-026). An uncoloured part is simply absent. Every
  *   function here that rebuilds a group carries this map, so a moved or resized washer
  *   is still gray.
+ * @property {Readonly<Record<string, PartMeta>>} [meta] What a part *is* beyond its shape
+ *   (`TODO/core-075`): a split's key part, or the bought hardware a piece needs. Present only
+ *   when some part has an entry, so a group built before it existed is unchanged. Derived by
+ *   the op that made the part at fold time — never stored in the project file.
  */
+
+/**
+ * One part's role in a split joint (`TODO/core-075`). Plain data, so it crosses the worker
+ * boundary (`transport.js`) as-is.
+ *
+ * - `role: 'key'` — a separate part that joins two pieces and is printed on its own: its
+ *   `kind`, a `shape` id equal for keys that can share one file, a `label`, its `sizeMm`, the
+ *   outward normal of the face it prints on (`bedNormal`, in the part's frame as built — a
+ *   later rotation makes it stale, so `printPrep.js`'s `layFlat` checks it before trusting
+ *   it), the two pieces it `joins`, and the `axis` they go together along.
+ * - `role: 'piece'` — a piece that needs bought `hardware` (steel pins, filament).
+ *
+ * @typedef {object} PartMeta
+ * @property {'key' | 'piece'} role
+ * @property {string} [kind]
+ * @property {string} [shape]
+ * @property {string} [label]
+ * @property {number} [sizeMm]
+ * @property {Vec3Mm} [bedNormal]
+ * @property {[string, string]} [joins]
+ * @property {'x' | 'y' | 'z'} [axis]
+ * @property {readonly HardwareItem[]} [hardware]
+ */
+
+/**
+ * Something to buy to assemble a split (`TODO/core-075`).
+ *
+ * @typedef {object} HardwareItem
+ * @property {'dowel'} item
+ * @property {'steel' | 'filament'} stock
+ * @property {number} diameterMm
+ * @property {number} lengthMm
+ * @property {number} count
+ * @property {string} label e.g. `steel dowel pin Ø4 × 10 mm`.
+ * @property {[string, string]} joins
+ * @property {'x' | 'y' | 'z'} axis
+ */
+
+/**
+ * `{ meta }` when the map has an entry, `{}` otherwise — so a group with no metadata keeps
+ * exactly the shape it always had (`TODO/core-075`'s byte-identical fold).
+ *
+ * @param {Readonly<Record<string, PartMeta>> | undefined} meta
+ * @returns {{ meta?: Readonly<Record<string, PartMeta>> }}
+ */
+function metaField(meta) {
+  return meta !== undefined && Object.keys(meta).length > 0 ? { meta: Object.freeze({ ...meta }) } : {}
+}
+
+/**
+ * The metadata map without some part names.
+ *
+ * @param {Readonly<Record<string, PartMeta>> | undefined} meta
+ * @param {(name: string) => boolean} keep
+ * @returns {Record<string, PartMeta>}
+ */
+function filterMeta(meta, keep) {
+  /** @type {Record<string, PartMeta>} */
+  const out = {}
+  for (const [name, entry] of Object.entries(meta ?? {})) if (keep(name)) out[name] = entry
+  return out
+}
 
 /**
  * One part's colour: `0xRRGGBB` and an alpha in `(0, 1]`, always materialised (1 when
@@ -429,6 +495,44 @@ export function hiddenNamesOf(group) {
 }
 
 /**
+ * One part's metadata (`TODO/core-075`), or `undefined` for a solid, an unknown part or a
+ * part with none. The sibling of {@link hiddenNamesOf}: the one place a UI or an export asks
+ * what a part is.
+ *
+ * @param {unknown} value
+ * @param {string} partName
+ * @returns {PartMeta | undefined}
+ */
+export function partMetaOf(value, partName) {
+  if (!isGroup(value)) return undefined
+  const meta = value.meta
+  return meta !== undefined && Object.hasOwn(meta, partName) ? meta[partName] : undefined
+}
+
+/**
+ * The visible parts that are a split's key parts, in group order (`TODO/core-075`).
+ *
+ * @param {unknown} value
+ * @returns {string[]}
+ */
+export function keyNamesOf(value) {
+  if (!isGroup(value)) return []
+  return value.names.filter((name) => partMetaOf(value, name)?.role === 'key')
+}
+
+/**
+ * Every bought item a body's parts need, in part order (`TODO/core-075`): what the Bill of
+ * Materials and Print pieces' `assembly.txt` list.
+ *
+ * @param {unknown} value
+ * @returns {HardwareItem[]}
+ */
+export function hardwareOf(value) {
+  if (!isGroup(value) || value.meta === undefined) return []
+  return Object.keys(value.parts).flatMap((name) => [...(partMetaOf(value, name)?.hardware ?? [])])
+}
+
+/**
  * Whether a body's geometry can be addressed part-by-part: a {@link Group} with at least
  * one **named** (visible) part and no holes.
  *
@@ -519,6 +623,8 @@ export function combine(group, pieces, options = {}) {
  * @param {number} [options.color] The part's `0xRRGGBB` colour (TODO/core-026) — V1's
  *   `.color(...)` on the object being added, carried the same way `hidden` is.
  * @param {number} [options.colorAlpha] Its alpha in `(0, 1]`; defaults to 1.
+ * @param {PartMeta} [options.meta] The part's role (`TODO/core-075`); re-adding a name
+ *   without one clears it, as it does a colour.
  * @returns {Group}
  */
 export function add(group, object, partName, options = {}) {
@@ -546,6 +652,9 @@ export function add(group, object, partName, options = {}) {
     colors[partName] = Object.freeze({ color: options.color, alpha: options.colorAlpha ?? 1 })
   }
 
+  const meta = filterMeta(group.meta, (name) => name !== partName)
+  if (options.meta !== undefined) meta[partName] = Object.freeze({ ...options.meta })
+
   const names = options.hidden ? group.names : [...group.names, partName]
   return Object.freeze({
     name: group.name,
@@ -553,6 +662,7 @@ export function add(group, object, partName, options = {}) {
     parts: Object.freeze(parts),
     holes: group.holes,
     colors: Object.freeze(colors),
+    ...metaField(meta),
   })
 }
 
@@ -571,6 +681,7 @@ export function addHole(group, geometry) {
     parts: group.parts,
     holes: Object.freeze([...group.holes, geometry]),
     colors: group.colors,
+    ...metaField(group.meta),
   })
 }
 
@@ -599,6 +710,7 @@ export function pick(group, pieces) {
     parts: Object.freeze(parts),
     holes: group.holes,
     colors: Object.freeze(colors),
+    ...metaField(filterMeta(group.meta, (name) => names.includes(name))),
   })
 }
 
@@ -647,6 +759,7 @@ export function removePart(value, partName) {
     parts: Object.freeze(parts),
     holes: value.holes,
     colors: Object.freeze(colors),
+    ...metaField(filterMeta(value.meta, (name) => name !== partName)),
   })
 }
 
@@ -684,6 +797,7 @@ export function mapGeometry(value, fn) {
       parts: Object.freeze(parts),
       holes: Object.freeze(value.holes.map(fn)),
       colors: value.colors ?? NO_COLORS,
+      ...metaField(value.meta),
     })
   )
 }
@@ -707,6 +821,7 @@ export function translate(group, vectorMm) {
     parts: Object.freeze(parts),
     holes: Object.freeze(group.holes.map((hole) => transforms.translate(vectorMm, hole))),
     colors: group.colors ?? NO_COLORS,
+    ...metaField(group.meta),
   })
 }
 
@@ -834,6 +949,7 @@ function scaleAboutCentroid(value, factors) {
     parts: Object.freeze(parts),
     holes: Object.freeze(value.holes.map(apply)),
     colors: value.colors ?? NO_COLORS,
+    // No `meta` (TODO/core-075): a resized key no longer fits the socket its label names.
   })
 }
 

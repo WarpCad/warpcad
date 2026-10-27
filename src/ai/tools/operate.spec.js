@@ -11,6 +11,7 @@ import { fakeRegistry } from './__fixtures__/fakeRegistry.js'
 import { makeContext } from './__fixtures__/context.js'
 import { createToolRegistry } from './index.js'
 import { NOT_OFFERED, OPERATIONS, operableOps } from './operate.js'
+import { checkInput } from './schema.js'
 
 const LOCAL = { origin: 'local' }
 
@@ -371,5 +372,57 @@ describe('group.snap orientation — the description names the side calcSnap act
       expect(movedMin[2]).toBeCloseTo(bigMax[2], 9)
       expect(movedCentre).toBeGreaterThan(bigCentre)
     }
+  })
+})
+
+describe('modify.splitWithJoint — the AI can ask for every stage-1 joint (TODO/core-075)', () => {
+  const spec = OPERATIONS['modify.splitWithJoint']
+
+  it('accepts a dowel joint with its jointOptions, and hand placements including a dowel', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'dowel' })).toEqual([])
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'dowel', jointOptions: { stock: 'steel', sizeMm: 4 } })).toEqual([])
+    expect(
+      checkInput(spec.params, {
+        axis: 'x',
+        offsetMm: 150,
+        placements: [{ kind: 'dowel', uMm: 0, vMm: 0, sizeMm: 4, stock: 'filament' }, { kind: 'wedge', uMm: 5, vMm: 0 }, { kind: 'pins' }],
+      })
+    ).toEqual([])
+  })
+
+  it('refuses an unknown joint or placement kind by name', () => {
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, joint: 'butterfly' }).join(' ')).toMatch(/joint.*pins.*tongue.*dowel.*none/)
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, placements: [{ kind: 'magnet' }] }).join(' ')).toMatch(
+      /placements\[0\]\.kind.*pins.*tongue.*wedge.*screwBoss.*dowel/
+    )
+    expect(checkInput(spec.params, { axis: 'x', offsetMm: 150, jointOptions: { stock: 'gold' } }).join(' ')).toMatch(/stock.*printed.*steel.*filament/)
+  })
+
+  it('says in its description when to use each joint, and that placements reach wedges and screw bosses', () => {
+    const words = JSON.stringify(spec.params) + spec.description
+    expect(words).toMatch(/dowel/)
+    expect(words).toMatch(/screwBoss/)
+    expect(words).toMatch(/steel/)
+  })
+
+  it('builds a record that carries placements and jointOptions as given', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const id = place(document, 'primitive.cuboid', { x: 0, y: 0 }, { size: [300, 20, 20] })
+    const operand = { id, ref: id, terminal: id }
+    const record = spec.build(
+      document,
+      /** @type {any} */ ([operand]),
+      { axis: 'x', offsetMm: 150, joint: 'dowel', jointOptions: { stock: 'steel' } },
+      'modify.splitWithJoint'
+    )
+    expect(record.params).toMatchObject({ axis: 'x', offsetMm: 150, joint: 'dowel', jointOptions: { stock: 'steel' } })
+    const placed = spec.build(
+      document,
+      /** @type {any} */ ([operand]),
+      { axis: 'x', offsetMm: 150, placements: [{ kind: 'dowel' }] },
+      'modify.splitWithJoint'
+    )
+    expect(placed.params?.placements).toEqual([{ kind: 'dowel' }])
+    expect(placed.params?.joint).toBeUndefined()
   })
 })

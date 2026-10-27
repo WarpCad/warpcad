@@ -54,9 +54,11 @@ reassemble, place them yourself. With the wing split at offset 150:
 1. Turn the view to face the cut: in the view cube press **X** (camera on +X). On a tablet the
    Split sheet covers the cube, so do this first, or drag the view round with a finger.
 2. Open **Split…**, set the offset, and tick **Place connectors by hand**. The **Joint** list is replaced
-   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**), and the cut plane shows what
-   the automatic search found as markers: a disc for a post, a diamond for a wedge, a ring for a
-   screw boss. Red patches on the plane are where nothing fits.
+   by a **Connector kind** row (**Post**, **Wedge**, **Screw boss**, **Dowel**), and the cut plane
+   shows what the automatic search found as markers: a disc for a post, a diamond for a wedge, a
+   ring for a screw boss, a ring with a dot for a dowel. Red patches on the plane are where nothing
+   fits. Picking **Dowel** adds a **Dowels are** list (**Printed**, **Steel pin**, **1.75 mm
+   filament**); bought dowels show under the pieces as **You'll also need**.
 3. Press **Screw boss**, then **tap the plane** where you want one. It appears as a ring if it
    fits. A tap where it does not fit is turned back, and the sheet says why, for example
    *placement 2 (screwBoss at y = 19.7, z = 6 mm): its socket and 1.2-2 mm wall would break out of
@@ -68,9 +70,71 @@ reassemble, place them yourself. With the wing split at offset 150:
 5. Press **Apply**. It stays dimmed, with the reason, until at least one connector fits. Untick
    **Place connectors by hand** at any time to go back to the automatic joint.
 
-![The Split sheet with Place connectors on: the Post, Wedge and Screw boss picker, and the wing's cut face with its connector markers](./screenshots/split-sheet-manual-joints.png)
+![The Split sheet with Place connectors on: the Post, Wedge, Screw boss and Dowel picker, and the wing's cut face with its connector markers](./screenshots/split-sheet-manual-joints.png)
 
 ![Picking Screw boss, dragging a marker 10 mm along the cut face, a drag toward the rim turning red and snapping back with its reason, then Apply](./media/print-prep-manual-joint.gif)
+
+## Choosing a joint
+
+The **Joint** list is grouped by what you end up with: joints printed into the pieces, separate
+keys you print as well, and hardware you buy. The line under the list says what the choice is
+for.
+
+| Joint | Resists | Glue? | Comes apart? | Extra to print or buy | Best for |
+|---|---|---|---|---|---|
+| **Pins and sockets** (*printed into the pieces*) | sliding across the cut, twisting (with two pins) | yes, to stop it pulling apart | if not glued | nothing | thick parts that print with the cut face up |
+| **Tongue and groove** (*printed into the pieces*) | sliding across the cut | yes | if not glued | nothing | thin sections: a trailing edge, a panel |
+| **Dowels** (*separate keys to print*) | sliding across the cut, twisting (with two) | yes, or a press fit | if not glued | one printed dowel per socket pair | beams and anything that prints on its cut face, where a pin printed upright would snap |
+| **Steel or filament dowels** (*hardware you buy*) | as dowels, and stronger | yes, or a press fit | if not glued | steel dowel pins, or 1.75 mm filament cut to length | the strongest joint for the least printing |
+| **No joint** | nothing | yes | no | nothing | parts you will glue or bolt some other way |
+
+A dowel needs a socket and a wall in **both** pieces, so a cut close to the end of a part may have
+room for pins but not for dowels; the sheet then says *no room for a dowel* before you press Apply.
+
+## Printing and assembling keys
+
+A printed dowel is its own part, a **key**: after **Apply** the Parts list shows **Wing A**,
+**Wing B**, **Wing key 1**, **Wing key 2**, and each key sits in its sockets so the view shows the
+assembled part. Hide a piece to see them ([Hide and show](selection-and-inspector.md#hide-and-show)).
+A later split refuses a plane that would cut through a key, by the key's name.
+
+- **Orientation.** Each dowel has one flat along its length (a fifth of its diameter deep), and
+  **Print pieces** lays it on that flat, so it prints lying down with its layers running along it
+  (the strong way) and cannot roll. The socket stays round; the flat leaves room for glue.
+- **One file per size.** Identical keys share one STL with the count in its name,
+  `wing-dowel-x2.stl`: tell your slicer to print that many copies.
+- **`assembly.txt`.** When a split has keys or bought hardware, the zip also has `assembly.txt`.
+  It lists the pieces, each key file with how many to print, what to buy (or *Nothing to buy.*),
+  and for each joint which two pieces go together and along which axis.
+- **Glue.** Dry-fit first. For a permanent joint put a little glue in each socket and on the cut
+  faces, push the dowels into piece A, then slide piece B on along the cut axis.
+- **Clearance.** The dowel is 2 × clearance shorter than its two sockets and the sockets are
+  wider by the clearance per side. 0.2 mm is a starting point that has not yet been checked
+  against a test print: print one dowel joint and adjust.
+
+### Try it: dowels across the wing
+
+1. With the 300 × 40 × 12 mm **Wing** selected, press **Split…**, set **Axis** to **X** and
+   **Offset** to **150**.
+2. Set **Joint** to **Dowels** (under *Separate keys to print*). Leave **Dowel diameter** blank
+   (**Auto**) and **Clearance per side** at **0.2**. Under the pieces the list now reads
+   **Dowel × 2**, `12.2 × 4.2 × 3.4 mm`, **fits**.
+
+   ![The Split sheet with the Joint list open: Printed into the pieces (Pins and sockets, Tongue and groove), Separate keys to print (Dowels, selected), Hardware you buy (Steel or filament dowels), No joint; below it Wing A, Wing B and Dowel × 2, all fits](./screenshots/split-joint-picker.png)
+
+3. Press **Apply**. The Parts list shows **Wing A**, **Wing B**, **Wing key 1** and **Wing key 2**.
+4. **File ▾ → Export…** and press **Print pieces (.zip)**. The zip holds `wing-a.stl`,
+   `wing-b.stl`, `wing-dowel-x2.stl` and `assembly.txt`.
+
+   ![The Export panel after Print pieces: wing-a.stl, wing-b.stl, wing-dowel-x2.stl and assembly.txt with their sizes](./screenshots/print-pieces-with-keys.png)
+
+5. Print two copies of `wing-dowel-x2.stl`, push them into the sockets in Wing A, then slide
+   Wing B on along X.
+
+To buy dowels instead, choose **Steel or filament dowels** and set **Dowels are** to **Steel pin**
+or **1.75 mm filament**: the sockets are sized for them, nothing extra is printed, the sheet says
+what to buy under **You'll also need** (for example *2 × steel dowel pin Ø4 × 10 mm*), and the
+Inspector's [Bill of materials](bill-of-materials.md) lists them.
 
 ## The build volume
 
@@ -91,11 +155,15 @@ Select a body and the Inspector shows its bounds and a fit badge:
 - **Axis** and **Offset from the minimum face** — the cut plane's position, measured from the body's
   lowest face on that axis. Drag the handle (a 44 px touch target) or type; both change the same
   number.
-- **Joint** — **Pins and sockets** (round pins on one piece, matching sockets on the other, 2-8 mm across),
-  **Tongue and groove** (a rib along the cut, for thin sections such as a trailing edge where a pin
-  cannot fit) or **No joint** (a plain cut).
+- **Joint** — a grouped list (see [Choosing a joint](#choosing-a-joint)): **Pins and sockets**
+  (round pins on one piece, matching sockets on the other, 2-8 mm across), **Tongue and groove** (a
+  rib along the cut, for thin sections such as a trailing edge where a pin cannot fit), **Dowels**
+  (a socket in both pieces and a printed dowel, 2-10 mm across; **Dowel diameter** blank lets the
+  sheet size it), **Steel or filament dowels** (the same sockets for bought dowels; **Dowels are**
+  picks steel or filament) or **No joint** (a plain cut). On a phone the list is your browser's
+  own picker, with the group headings.
 - **Place connectors by hand** — replaces the **Joint** list with a kind picker and makes the cut
-  plane tappable: tap to add, drag to move, **×** to remove. Posts, wedges and screw bosses can be mixed.
+  plane tappable: tap to add, drag to move, **×** to remove. Posts, wedges, screw bosses and dowels can be mixed.
   The marker positions are millimetres along the cut face (for a cut across X, Y then Z); a marker's
   bore or wall must stay inside both pieces. A **screw boss** is drilled from the far face of piece A
   through to the boss, so it is refused where that bore would leave piece A before reaching it; there is
@@ -104,11 +172,13 @@ Select a body and the Inspector shows its bounds and a fit badge:
 - **Clearance per side** — the gap left around the joint so it goes together after printing.
   The default 0.2 mm is a starting point, not a measurement of your printer: print a test and
   adjust. Setting 0 shows a warning, because the pieces would not fit together.
-- The pieces list shows each piece's size and whether it fits the build volume.
+- The pieces list shows each piece's size and whether it fits the build volume, then any keys the
+  joint makes (**Dowel × 2** with its printed size) and **You'll also need** for anything to buy.
 
 A cut is refused, by name, in the sheet (and nothing is written) if the plane is outside the body,
-if pins would not fit the section (use tongue and groove), if the body is not a closed solid, or
-if the plane would cut through more than one part of a group.
+if pins would not fit the section (use tongue and groove), if a dowel has no room in both pieces,
+if the body is not a closed solid, if the plane would cut through more than one part of a group,
+or if it would cut through a key (*the cut plane crosses Wing key 1 — move it clear of the keys*).
 
 **Splitting again.** Select the group, press **Split…** again and cut at a second offset: only the
 part the plane crosses is cut and gains the next letter (**Wing C**). Do it as many times as the
@@ -121,6 +191,8 @@ part needs.
 is on the bed, centred on the origin of its own file, so it opens ready to slice. A piece marked
 **may need supports** has a face pointing downward more than 45° from vertical; that is a rule of
 thumb, not a promise, so check it in your slicer. A body that is not a closed solid is refused by
-name rather than exported for the slicer to repair.
+name rather than exported for the slicer to repair. A split's keys are written one file per size,
+laid on their flat, and the zip gains `assembly.txt` (see
+[Printing and assembling keys](#printing-and-assembling-keys)).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

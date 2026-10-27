@@ -2421,3 +2421,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** package.json at 1.0.0 → git log cf6c2d8 (2026-10-21); label wider, hint shifted → diff of the failing run's actual vs expected PNG this session; mask moves with the element → Playwright mask paints the element's own box (this session's failing run); fix → diff (app-header-version.e2e.js, docs/support.js)
 **To Add:** none
+
+## 2026-10-27T07:55:18-05:00 — Split with loose dowels, printed or bought
+
+**Post:** WarpCad's Split sheet can now join pieces with a loose dowel: a socket in both cut faces and a separate pin that prints lying down, so its layers run along it. Or buy it: steel pin or 1.75 mm filament. #CAD #3DPrinting Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** socket in both faces, separate pin → diff (joint.dowel.js header); prints lying down on a flat → diff (docs/print-prep.md "Orientation", printPrep.js); steel or 1.75 mm filament → diff (DOWEL_STOCKS, docs/print-prep.md)
+**To Add:** docs/screenshots/split-joint-picker.png

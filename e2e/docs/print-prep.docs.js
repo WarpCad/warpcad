@@ -198,6 +198,46 @@ test.describe('docs media: print prep', () => {
     await shot(page, 'print-pieces-popover.png', { locator: page.getByTestId('export-popover') })
   })
 
+  /**
+   * `TODO/core-075` stage 1: the grouped Joint list. A native `<select>`'s drop-down is drawn by
+   * the browser outside the page, so no screenshot can catch it open; for the picture only, the
+   * select is given a `size` so the page draws the same options and group headings as a list.
+   */
+  test('split-joint-picker still', async ({ page }) => {
+    await openApp(page)
+    await loadScene(page, 'long-wing.ndjson', 1)
+    await selectWing(page)
+    await page.getByTestId('op-split').click()
+    await expect(page.getByTestId('split-sheet')).toBeVisible()
+    await page.getByTestId('split-offset').fill('150')
+    const joint = page.getByTestId('split-joint')
+    await joint.selectOption('dowel')
+    await expect(page.getByTestId('split-key-fit')).toHaveAttribute('data-fit', 'fits')
+    await joint.evaluate((select) => {
+      select.size = select.options.length + select.querySelectorAll('optgroup').length
+    })
+    await shot(page, 'split-joint-picker.png', { locator: page.getByTestId('split-sheet') })
+  })
+
+  test('print-pieces-with-keys still', async ({ page }) => {
+    await openApp(page)
+    await loadScene(page, 'long-wing.ndjson', 1)
+    await selectWing(page)
+    await page.getByTestId('op-split').click()
+    await page.getByTestId('split-offset').fill('150')
+    await page.getByTestId('split-joint').selectOption('dowel')
+    await expect(page.getByTestId('split-key-fit')).toHaveAttribute('data-fit', 'fits')
+    await page.getByTestId('split-apply').click()
+    await expect(page.getByTestId('split-sheet')).toHaveCount(0)
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('file-export').click()
+    await expect(page.getByTestId('export-popover')).toBeVisible()
+    await page.getByTestId('export-print-pieces').click()
+    await expect(page.getByTestId('export-print-piece').last()).toHaveAttribute('data-filename', 'assembly.txt')
+    await expect(page.getByTestId('export-print-piece').nth(2)).toHaveAttribute('data-filename', /^wing-dowel-x\d\.stl$/)
+    await shot(page, 'print-pieces-with-keys.png', { locator: page.getByTestId('export-popover') })
+  })
+
   test('print-prep-split', { tag: '@movie' }, async ({ page }) => {
     await openApp(page)
     await loadScene(page, 'long-wing.ndjson', 1)

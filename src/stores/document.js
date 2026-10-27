@@ -23,7 +23,7 @@ import { applyMergeUndo } from '../core/mergeUndo.js'
 import { appendRepeat as appendRepeatRecord, detachRepeat as detachRepeatRecords } from '../core/repeat.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
-import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup } from '../core/kernel/group.js'
+import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { packGeometry } from '../core/kernel/transport.js'
 import { useSelectionStore } from './selection.js'
@@ -71,6 +71,10 @@ import { useSelectionStore } from './selection.js'
  * @property {string[]} [viewHiddenParts] `TODO/ui-089`: the parts the user hid, as
  *   `Body.viewHiddenParts` reports them. Absent when none. Not {@link BodySummary.hiddenPartNames},
  *   which are a recipe's own helper parts.
+ * @property {string[]} [keyPartNames] `TODO/core-075`: the split key parts among
+ *   {@link BodySummary.partNames}. Absent when none.
+ * @property {import('../core/kernel/group.js').HardwareItem[]} [hardware] `TODO/core-075`: what a
+ *   split body needs bought (steel pins, filament) — what the Bill of materials lists. Absent when none.
  */
 /**
  * A body's measurements as far as they are known **right now**, without running a
@@ -142,6 +146,19 @@ function requestMeasurements(list, channel, onLanded) {
 }
 
 /**
+ * A split body's key parts and bought hardware (`TODO/core-075`), only when it has any — so
+ * every other body's summary keeps exactly the shape it had.
+ *
+ * @param {unknown} geometry
+ * @returns {{ keyPartNames?: string[], hardware?: import('../core/kernel/group.js').HardwareItem[] }}
+ */
+function hardwareAndKeys(geometry) {
+  const keys = keyNamesOf(geometry)
+  const hardware = hardwareOf(geometry)
+  return { ...(keys.length > 0 ? { keyPartNames: keys } : {}), ...(hardware.length > 0 ? { hardware } : {}) }
+}
+
+/**
  * One evaluated body as the plain, non-geometry summary the DOM and the specs
  * read.
  *
@@ -180,6 +197,7 @@ export function summarizeBody(body) {
     ...(body.colorOverrides !== undefined ? { colorOverrides: body.colorOverrides } : {}),
     partNames: composite ? [...geometry.names] : [],
     hiddenPartNames: composite ? [...hiddenNamesOf(geometry)] : [],
+    ...hardwareAndKeys(geometry),
     ...(body.repeat !== undefined ? { repeat: body.repeat } : {}),
     ...(body.viewHidden === true ? { viewHidden: body.viewHidden } : {}),
     ...(body.viewHiddenParts !== undefined ? { viewHiddenParts: [...body.viewHiddenParts] } : {}),

@@ -32,6 +32,10 @@ Each line is one distinct part and how many of it you have, e.g. `Bolt / screw M
   the part you'd buy.
 - **Kit parts** (Board, Board Frame, Anchor) show their width × height.
 - **Raspberry Pi** boards show the model.
+- **Bought dowels from a split** appear when you split with **Steel or filament dowels**
+  ([Printing a part that is bigger than your printer](print-prep.md#choosing-a-joint)):
+  `Steel dowel pin Ø4 × 10 mm  × 2`, or `1.75 mm filament Ø1.75 × 4.5 mm lengths  × 2`. Dowels you
+  print are not listed: they are in the Print pieces zip.
 - Plain shapes (cube, cylinder, sphere, text labels) never appear.
 
 The list updates as you work — placing, changing a part's size in the Inspector, deleting,

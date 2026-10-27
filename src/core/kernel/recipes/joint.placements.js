@@ -31,6 +31,7 @@
  */
 
 import { JOINT_WALL_MM, footprintsOverlap, solidAt } from './joint.common.js'
+import { DOWEL_MAX_DIAMETER_MM, DOWEL_MIN_DIAMETER_MM, dowelJoint, dowelMisfit, dowelsAt } from './joint.dowel.js'
 import { PIN_MAX_DIAMETER_MM, PIN_MIN_DIAMETER_MM, pinJoint, pinMisfit, pinsAt } from './joint.pins.js'
 import { SCREW_BOSS_WALL_MM, screwBossAt, screwBossMisfit } from './joint.screwBoss.js'
 import {
@@ -54,12 +55,13 @@ import { WEDGE_MAX_WIDTH_MM, WEDGE_MIN_WIDTH_MM, wedgeAt, wedgeMisfit } from './
  * checked against the solid. `uMm`/`vMm` are `null` for a search entry.
  *
  * @typedef {object} Placement
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
  * @property {number | null} uMm
  * @property {number | null} vMm
  * @property {number | null} sizeMm `null` for the kind's default at this face.
  * @property {number | null} lengthMm A tongue's rib length; `null` for its default.
  * @property {number | null} insertMm A screw boss's insert bore; `null` for self-tapping.
+ * @property {'printed' | 'steel' | 'filament'} [stock] A dowel's (`TODO/core-075`); default printed.
  */
 
 /** A refusal of one placement; the op prefixes its own name. */
@@ -79,19 +81,22 @@ function fmt(mm) {
 const AXIS_NAMES = /** @type {const} */ (['x', 'y', 'z'])
 
 /**
- * The default size of a kind on a face of this narrower side — for pins, tongues and wedges
- * the size the search starts at (35 % of the narrower side, clamped to the kind's range).
+ * The default size of a kind on a face of this narrower side — for pins, tongues, wedges and
+ * dowels the size the search starts at (35 % of the narrower side, clamped to the kind's
+ * range). Exported for the Split sheet's pieces list (`TODO/core-075`), which sizes a tapped
+ * dowel the way Apply will.
  *
  * @param {Placement['kind']} kind
  * @param {number} minorMm
  * @returns {number}
  */
-function defaultSize(kind, minorMm) {
+export function defaultSize(kind, minorMm) {
   /** @param {number} low @param {number} high */
   const start = (low, high) => Math.min(high, Math.max(low, minorMm * 0.35))
   if (kind === 'pins') return start(PIN_MIN_DIAMETER_MM, PIN_MAX_DIAMETER_MM)
   if (kind === 'tongue') return start(TONGUE_MIN_WIDTH_MM, TONGUE_MAX_WIDTH_MM)
   if (kind === 'wedge') return start(WEDGE_MIN_WIDTH_MM, WEDGE_MAX_WIDTH_MM)
+  if (kind === 'dowel') return start(DOWEL_MIN_DIAMETER_MM, DOWEL_MAX_DIAMETER_MM)
   return DEFAULT_SCREW_MM
 }
 
@@ -157,10 +162,16 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements }) {
     if (placement.uMm !== null && placement.vMm !== null) return
     const keepOut = placed.map((entry) => entry.connector.footprint)
     const args = { field, lower, upper, clearanceMm, keepOut }
-    const geometry = placement.kind === 'pins' ? pinJoint(args) : tongueGrooveJoint(args)
+    const geometry =
+      placement.kind === 'pins'
+        ? pinJoint(args)
+        : placement.kind === 'dowel'
+          ? dowelJoint({ ...args, stock: placement.stock ?? 'printed' })
+          : tongueGrooveJoint(args)
     if (geometry === null) {
+      const what = placement.kind === 'pins' ? 'a pin' : placement.kind === 'dowel' ? 'a dowel' : 'a tongue'
       throw new PlacementRefusal(
-        `${label(index, placement.kind, null)}: the search found no room for ${placement.kind === 'pins' ? 'a pin' : 'a tongue'} ` +
+        `${label(index, placement.kind, null)}: the search found no room for ${what} ` +
           'on the cut face clear of the other connectors — place it by hand, or remove it'
       )
     }
@@ -179,8 +190,22 @@ export function placedJoint({ field, lower, upper, clearanceMm, placements }) {
     sockets: parts.flatMap((part) => part.sockets),
     holes: parts.flatMap((part) => part.holes),
     connectors: parts.flatMap((part) => part.connectors),
+    ...keysAndHardware(parts),
     summary: parts.map((part) => part.summary).join('; '),
   }
+}
+
+/**
+ * The key parts and bought hardware of several joint pieces, only when there are any
+ * (`TODO/core-075`) — so a placement list of today's kinds builds exactly what it did.
+ *
+ * @param {JointGeometry[]} parts
+ * @returns {Pick<JointGeometry, 'keys' | 'hardware'>}
+ */
+function keysAndHardware(parts) {
+  const keys = parts.flatMap((part) => part.keys ?? [])
+  const hardware = parts.flatMap((part) => part.hardware ?? [])
+  return { ...(keys.length > 0 ? { keys } : {}), ...(hardware.length > 0 ? { hardware } : {}) }
 }
 
 /**
@@ -222,7 +247,7 @@ export function assertSeparate(entries, label) {
  */
 function buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, alongU, name }) {
   const common = { field, lower, upper, clearanceMm }
-  /** @type {'wall' | 'base' | 'bore' | null} */
+  /** @type {'wall' | 'wallA' | 'base' | 'bore' | null} */
   let misfit
   /** @type {() => JointGeometry} */
   let build
@@ -242,6 +267,10 @@ function buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, 
     socket = 'groove'
     misfit = tongueMisfit({ ...common, rib })
     build = () => tongueAt({ field, clearanceMm, rib, source: 'placed' })
+  } else if (placement.kind === 'dowel') {
+    const stock = placement.stock ?? 'printed'
+    misfit = dowelMisfit({ ...common, diameterMm: sizeMm, stock, centre: at })
+    build = () => dowelsAt({ field, clearanceMm, diameterMm: sizeMm, stock, centres: [at], source: 'placed' })
   } else if (placement.kind === 'wedge') {
     const wedge = { ...at, widthMm: sizeMm, alongU }
     misfit = wedgeMisfit({ ...common, wedge })
@@ -259,6 +288,11 @@ function buildPlaced({ field, lower, upper, clearanceMm, placement, at, sizeMm, 
     const wallMm = placement.kind === 'screwBoss' ? `${JOINT_WALL_MM}–${SCREW_BOSS_WALL_MM}` : `${JOINT_WALL_MM}`
     throw new PlacementRefusal(
       `${name}: its ${socket} and ${wallMm} mm wall would break out of piece B — move it away from the edge or a hole, or make it smaller`
+    )
+  }
+  if (misfit === 'wallA') {
+    throw new PlacementRefusal(
+      `${name}: its ${socket} and ${JOINT_WALL_MM} mm wall would break out of piece A — move it away from the edge or a hole, or make it smaller`
     )
   }
   if (misfit === 'base') {

@@ -21,6 +21,16 @@
  *   part's name and gives the new piece the next free letter (`Wing C`). A kernel refusal
  *   stays in the sheet, by name; nothing is written.
  *
+ * ## Joints that make parts, or need parts bought (`TODO/core-075`, stage 1)
+ *
+ * The **Joint** control is a grouped list written out by hand here ({@link JOINT_CHOICES}) —
+ * never built by iterating the kernel's `PLACEMENT_KINDS` (`CLAUDE.md`'s creation-vs-operation
+ * rule). **Dowels** and **Steel or filament dowels** are both the kernel's `dowel` joint, told
+ * apart by {@link stock}. Before Apply the sheet lists the key parts a split will make
+ * ({@link keyRows}: `Dowel × 2 — 9.6 × 3.5 × 2.8 mm — fits`) and what to buy
+ * ({@link hardwareRows}, the **You'll also need** line). For the automatic joint those come
+ * from the kernel's own search, off the main thread; for hand placement, from the markers.
+ *
  * Offsets are millimetres **from the body's minimum face** along the axis — Bisect's rule, so
  * the two sheets read the same.
  *
@@ -32,7 +42,9 @@ import { computed, ref, shallowRef, watch } from 'vue'
 
 import { fitVerdict } from '../core/buildVolume.js'
 import { createEvaluationChannel } from '../core/kernel/evaluationClient.js'
-import { boundsOf, hasNamedParts } from '../core/kernel/group.js'
+import { boundsOf, hasNamedParts, partMetaOf } from '../core/kernel/group.js'
+import { describeDowel } from '../core/kernel/recipes/joint.dowel.js'
+import { defaultSize } from '../core/kernel/recipes/joint.placements.js'
 import { packGeometry } from '../core/kernel/transport.js'
 import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_JOINT_CLEARANCE_MM, splitWarnings } from '../core/kernel/split.js'
 import { useDocumentStore } from './document.js'
@@ -45,17 +57,58 @@ import { useSelectionStore } from './selection.js'
 export const SPLIT_AXES = Object.freeze(/** @type {Axis[]} */ (['x', 'y', 'z']))
 
 /** What each joint type is called in the sheet. */
-export const JOINT_LABELS = Object.freeze({ pins: 'Pins and sockets', tongue: 'Tongue and groove', none: 'No joint' })
+export const JOINT_LABELS = Object.freeze({ pins: 'Pins and sockets', tongue: 'Tongue and groove', dowel: 'Dowels', none: 'No joint' })
+
+/**
+ * One entry of the Joint list: the `<option>` value, its visible text, and the one line under
+ * the list saying what it is for.
+ *
+ * @typedef {{ value: 'pins' | 'tongue' | 'dowel' | 'dowel-stock' | 'none', label: string, use: string }} JointChoice
+ */
+
+/**
+ * The Joint list, grouped and in order — written out by hand (`TODO/core-075`). Each group is
+ * an `<optgroup>`; **No joint** stands alone after them.
+ *
+ * @type {readonly { heading: string, choices: readonly JointChoice[] }[]}
+ */
+export const JOINT_CHOICES = /** @type {readonly { heading: string, choices: readonly JointChoice[] }[]} */ (Object.freeze([
+  Object.freeze({
+    heading: 'Printed into the pieces',
+    choices: Object.freeze([
+      { value: 'pins', label: 'Pins and sockets', use: 'Pins on one piece fit sockets in the other; nothing extra to print or buy' },
+      { value: 'tongue', label: 'Tongue and groove', use: 'A rib and a matching groove, for sections too thin for a pin' },
+    ]),
+  }),
+  Object.freeze({
+    heading: 'Separate keys to print',
+    choices: Object.freeze([
+      { value: 'dowel', label: 'Dowels', use: 'A socket in each piece and a dowel printed lying down, stronger than a pin; glue or press-fit' },
+    ]),
+  }),
+  Object.freeze({
+    heading: 'Hardware you buy',
+    choices: Object.freeze([
+      { value: 'dowel-stock', label: 'Steel or filament dowels', use: 'Sockets sized for bought steel pins or 1.75 mm filament; nothing extra to print' },
+    ]),
+  }),
+]))
+
+/** No joint: a plain cut, listed after the groups. */
+export const NO_JOINT_CHOICE = Object.freeze(/** @type {JointChoice} */ ({ value: 'none', label: 'No joint', use: 'A plain cut; glue the faces or join them some other way' }))
+
+/** What a bought dowel can be, in the sheet's words. */
+export const STOCK_LABELS = Object.freeze({ printed: 'Printed', steel: 'Steel pin', filament: '1.75 mm filament' })
 
 /**
  * What the Place connectors kind picker offers (`TODO/ui-067`), as the kernel's placement
  * kinds. A tongue is not offered — the search can seed one, and it stays on the face as a
  * marker, but a hand placement is a post, a wedge or a screw boss.
  */
-export const CONNECTOR_KINDS = Object.freeze(/** @type {const} */ (['pins', 'wedge', 'screwBoss']))
+export const CONNECTOR_KINDS = Object.freeze(/** @type {const} */ (['pins', 'wedge', 'screwBoss', 'dowel']))
 
 /** What each connector kind is called in the sheet. */
-export const CONNECTOR_LABELS = Object.freeze({ pins: 'Post', tongue: 'Tongue', wedge: 'Wedge', screwBoss: 'Screw boss' })
+export const CONNECTOR_LABELS = Object.freeze({ pins: 'Post', tongue: 'Tongue', wedge: 'Wedge', screwBoss: 'Screw boss', dowel: 'Dowel' })
 
 /**
  * One connector marker on the cut face: a placement the record will carry, plus the id the
@@ -63,7 +116,7 @@ export const CONNECTOR_LABELS = Object.freeze({ pins: 'Post', tongue: 'Tongue', 
  *
  * @typedef {object} Marker
  * @property {string} id
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
  * @property {number} uMm
  * @property {number} vMm
  * @property {number} [sizeMm] Left out for the kind's default size.
@@ -85,7 +138,37 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   const bodyId = ref(/** @type {string | null} */ (null))
   const axis = ref(/** @type {Axis} */ ('x'))
   const offsetMm = ref(/** @type {number | null} */ (0))
-  const joint = ref(/** @type {'pins' | 'tongue' | 'none'} */ ('pins'))
+  const joint = ref(/** @type {'pins' | 'tongue' | 'dowel' | 'none'} */ ('pins'))
+  /** What a dowel is made of (`TODO/core-075`): the automatic joint's and every dowel marker's. */
+  const stock = ref(/** @type {'printed' | 'steel' | 'filament'} */ ('printed'))
+  /** A dowel diameter the person typed, mm, or `null` for the search's own. */
+  const dowelSizeMm = ref(/** @type {number | null} */ (null))
+
+  /**
+   * The Joint list's value: the kernel's joint, with `dowel` split by {@link stock} into the
+   * list's two entries.
+   */
+  const jointChoice = computed({
+    get: () => (joint.value === 'dowel' ? (stock.value === 'printed' ? 'dowel' : 'dowel-stock') : joint.value),
+    set: (value) => {
+      if (value === 'dowel') {
+        joint.value = 'dowel'
+        stock.value = 'printed'
+      } else if (value === 'dowel-stock') {
+        joint.value = 'dowel'
+        if (stock.value === 'printed') stock.value = 'steel'
+      } else if (value === 'pins' || value === 'tongue' || value === 'none') {
+        joint.value = value
+      }
+    },
+  })
+
+  /** The one line under the Joint list. */
+  const jointUse = computed(() => {
+    const value = jointChoice.value
+    const found = [...JOINT_CHOICES.flatMap((group) => group.choices), NO_JOINT_CHOICE].find((choice) => choice.value === value)
+    return found?.use ?? ''
+  })
   const clearanceMm = ref(/** @type {number | null} */ (DEFAULT_JOINT_CLEARANCE_MM))
   /** The kernel's refusal from the last Apply, and the inputs it refused. */
   const failure = ref({ message: '', key: '' })
@@ -96,7 +179,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   /** Whether the person is placing connectors by hand instead of the automatic search. */
   const manual = ref(false)
   /** The kind a tap on the face drops. */
-  const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss'} */ ('pins'))
+  const connectorKind = ref(/** @type {'pins' | 'wedge' | 'screwBoss' | 'dowel'} */ ('pins'))
   const markers = ref(/** @type {Marker[]} */ ([]))
   const selectedMarkerId = ref(/** @type {string | null} */ (null))
   /** The cut face as the kernel last described it — a plain object, never walked reactively. */
@@ -153,9 +236,22 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     if (!geometry || !hasNamedParts(geometry) || !Number.isFinite(cutMm.value)) return null
     const index = axisIndex.value
     return geometry.names
-      .filter((name) => geometry.parts[name].polygons.length > 0)
+      .filter((name) => geometry.parts[name].polygons.length > 0 && partMetaOf(geometry, name)?.role !== 'key')
       .map((name) => ({ name, bounds: /** @type {BoundsMm} */ (boundsOf(geometry.parts[name])) }))
       .filter(({ bounds }) => bounds[0][index] < cutMm.value - 1e-6 && bounds[1][index] > cutMm.value + 1e-6)
+  })
+
+  /** A split key part the plane would cut through, or `null` — the kernel refuses that by name. */
+  const crossedKey = computed(() => {
+    const geometry = liveBody()?.geometry
+    if (!geometry || !hasNamedParts(geometry) || !Number.isFinite(cutMm.value)) return null
+    const index = axisIndex.value
+    const hit = geometry.names.find((name) => {
+      if (partMetaOf(geometry, name)?.role !== 'key') return false
+      const [min, max] = boundsOf(geometry.parts[name])
+      return min[index] < cutMm.value - 1e-6 && max[index] > cutMm.value + 1e-6
+    })
+    return hit ?? null
   })
 
   /** What would make Apply fail, said before Apply — the kernel's own words where it can. */
@@ -176,11 +272,14 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
       return `Clearance must be between 0 and ${MAX_JOINT_CLEARANCE_MM} mm`
     }
     const crossed = crossedParts.value
+    const key = crossedKey.value
+    if (key !== null) return `The cut plane crosses ${key} — move it clear of the keys`
     if (crossed && crossed.length === 0) return 'The cut plane passes between parts and crosses none of them'
     if (crossed && crossed.length > 1) {
       return `The cut plane crosses ${crossed.length} parts (${crossed.map((part) => part.name).join(', ')}) — split one part at a time`
     }
     if (manual.value) return manualProblem()
+    if (autoDowelError.value !== '') return autoDowelError.value
     return ''
   })
 
@@ -202,7 +301,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   )
 
   /** The inputs as one string, so a refusal is shown only for the inputs it refused. */
-  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
+  const inputKey = computed(() => `${bodyId.value}|${axis.value}|${offsetMm.value}|${joint.value}|${stock.value}|${dowelSizeMm.value}|${clearanceMm.value}|${manual.value}|${JSON.stringify(placementsOf(markers.value))}`)
 
   /** The kernel's refusal, while the inputs are still the ones it refused. */
   const error = computed(() => (failure.value.key === inputKey.value ? failure.value.message : ''))
@@ -254,9 +353,93 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
   })
 
 
-  /** The placements a marker list stands for, as the record carries them. */
+  /**
+   * The placements a marker list stands for, as the record carries them. A dowel marker takes
+   * the sheet's {@link stock}; filament has one size, so it carries none.
+   */
   const placementsOf = (/** @type {Marker[]} */ list) =>
-    list.map(({ id: _id, ...placement }) => ({ ...placement }))
+    list.map(({ id: _id, ...placement }) => {
+      if (placement.kind !== 'dowel' || stock.value === 'printed') return { ...placement }
+      const { sizeMm: _size, ...rest } = placement
+      return { ...(stock.value === 'filament' ? rest : placement), stock: stock.value }
+    })
+
+  /** The dowel joint's options as a record carries them — `undefined` when there are none. */
+  const jointOptions = computed(() => {
+    /** @type {{ stock?: string, sizeMm?: number }} */
+    const options = {}
+    if (stock.value !== 'printed') options.stock = stock.value
+    const size = dowelSizeMm.value
+    if (stock.value !== 'filament' && typeof size === 'number' && Number.isFinite(size)) options.sizeMm = size
+    return Object.keys(options).length > 0 ? options : undefined
+  })
+
+  // --- Keys and hardware before Apply (`TODO/core-075`) ------------------------------------
+  const planChannel = createEvaluationChannel('split-plan')
+  /** The automatic dowel search's result, for the inputs `key` names. */
+  const autoDowels = shallowRef(
+    /** @type {{ key: string, entries: import('../core/kernel/split.js').PlacementParams[], error: string }} */ ({ key: '', entries: [], error: '' })
+  )
+  /** The inputs the automatic dowel search depends on. */
+  const autoKey = computed(() =>
+    isOpen.value && !manual.value && joint.value === 'dowel'
+      ? `${bodyId.value}|${axis.value}|${offsetMm.value}|${clearanceMm.value}|${stock.value}|${dowelSizeMm.value}|${documentStore.version}`
+      : ''
+  )
+  watch(autoKey, async (key) => {
+    if (key === '' || !Number.isFinite(cutMm.value)) return
+    const answer = await ask(planChannel, [], 'dowel')
+    if (answer === null || key !== autoKey.value) return
+    autoDowels.value = answer.face
+      ? { key, entries: answer.face.auto, error: answer.face.autoError }
+      : { key, entries: [], error: answer.error ?? '' }
+  })
+
+  /** The dowels a split would make or need: the markers' when placing by hand, else the search's. */
+  const plannedDowels = computed(() => {
+    const clearance = clearanceMm.value ?? DEFAULT_JOINT_CLEARANCE_MM
+    if (manual.value) {
+      const preview = face.value
+      const minor = preview ? Math.min(preview.uRange[1] - preview.uRange[0], preview.vRange[1] - preview.vRange[0]) : 0
+      return markers.value
+        .filter((marker) => marker.kind === 'dowel')
+        .map((marker) => ({ sizeMm: marker.sizeMm ?? defaultSize('dowel', minor), stock: stock.value, clearance }))
+    }
+    if (joint.value !== 'dowel' || autoDowels.value.key !== autoKey.value) return []
+    return autoDowels.value.entries.map((entry) => ({ sizeMm: entry.sizeMm ?? 2, stock: stock.value, clearance }))
+  })
+
+  /**
+   * The key parts a split would make, one row per size: `Dowel × 2`, its size lying on the bed,
+   * and its fit — what the pieces list shows under the pieces.
+   */
+  const keyRows = computed(() => {
+    /** @type {Map<string, { name: string, title: string, count: number, sizeMm: [number, number, number] }>} */
+    const rows = new Map()
+    for (const dowel of plannedDowels.value) {
+      if (dowel.stock !== 'printed') continue
+      const words = describeDowel(dowel.sizeMm, dowel.clearance, 'printed')
+      const row = rows.get(words.keyLabel)
+      if (row) row.count += 1
+      else rows.set(words.keyLabel, { name: 'Dowel', title: words.keyLabel, count: 1, sizeMm: words.keySizeMm })
+    }
+    return [...rows.values()].map((row) => ({ ...row, ...fitVerdict(row.sizeMm, documentStore.buildVolume) }))
+  })
+
+  /** What a split needs bought, one line each: `2 × steel dowel pin Ø4 × 10 mm`. */
+  const hardwareRows = computed(() => {
+    /** @type {Map<string, number>} */
+    const lines = new Map()
+    for (const dowel of plannedDowels.value) {
+      if (dowel.stock === 'printed') continue
+      const { hardwareLabel } = describeDowel(dowel.sizeMm, dowel.clearance, dowel.stock)
+      lines.set(hardwareLabel, (lines.get(hardwareLabel) ?? 0) + 1)
+    }
+    return [...lines.entries()].map(([label, count]) => `${count} × ${label}`)
+  })
+
+  /** Why the automatic dowel search found nothing, while it is the joint asked for. */
+  const autoDowelError = computed(() => (autoDowels.value.key !== '' && autoDowels.value.key === autoKey.value ? autoDowels.value.error : ''))
 
   /** The inputs a face preview depends on, as one string. */
   const faceKey = computed(
@@ -271,7 +454,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    *
    * @param {import('../core/kernel/evaluationClient.js').EvaluationChannel} channel
    * @param {Marker[]} list
-   * @param {'pins' | 'tongue' | null} seed
+   * @param {'pins' | 'tongue' | 'dowel' | null} seed
    * @returns {Promise<{ face?: import('../core/kernel/split.js').FacePreview, error?: string } | null>}
    *   `null` when a newer request on the channel overtook this one.
    */
@@ -289,6 +472,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
         clearanceMm: clearanceMm.value ?? DEFAULT_JOINT_CLEARANCE_MM,
         placements: placementsOf(list),
         seed,
+        ...(seed === 'dowel' && jointOptions.value !== undefined ? { seedOptions: { ...jointOptions.value } } : {}),
       },
     })
     if (outcome.superseded) return null
@@ -351,7 +535,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * @returns {Promise<void>}
    */
   async function seedFromSearch() {
-    const answer = await ask(faceChannel, [], joint.value === 'tongue' ? 'tongue' : 'pins')
+    const answer = await ask(faceChannel, [], joint.value === 'tongue' ? 'tongue' : joint.value === 'dowel' ? 'dowel' : 'pins')
     if (answer === null) return
     if (!answer.face) {
       faceError.value = answer.error ?? ''
@@ -395,6 +579,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     }
     manual.value = true
     markers.value = []
+    if (joint.value === 'dowel') connectorKind.value = 'dowel'
     await seedFromSearch()
     await settled()
   }
@@ -518,7 +703,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
    * Choose a kind from the picker: it is what a tap drops next, and, with a marker selected,
    * what that marker becomes (at its own position, refused where the new kind does not fit).
    *
-   * @param {'pins' | 'wedge' | 'screwBoss'} kind
+   * @param {'pins' | 'wedge' | 'screwBoss' | 'dowel'} kind
    * @returns {Promise<boolean>}
    */
   async function chooseKind(kind) {
@@ -551,7 +736,10 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     axis.value = SPLIT_AXES[longest]
     offsetMm.value = size[longest] / 2
     joint.value = 'pins'
+    stock.value = 'printed'
+    dowelSizeMm.value = null
     clearanceMm.value = DEFAULT_JOINT_CLEARANCE_MM
+    autoDowels.value = { key: '', entries: [], error: '' }
     resetManual()
     failure.value = { message: '', key: '' }
     isOpen.value = true
@@ -639,6 +827,7 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
             axis: axis.value,
             offsetMm: offsetMm.value,
             joint: joint.value,
+            ...(joint.value === 'dowel' && jointOptions.value !== undefined ? { jointOptions: { ...jointOptions.value } } : {}),
             clearanceMm: joint.value === 'none' ? 0 : clearanceMm.value,
             names: [...pieceNames.value],
           },
@@ -661,6 +850,13 @@ export const useSplitSheetStore = defineStore('splitSheet', () => {
     axis,
     offsetMm,
     joint,
+    jointChoice,
+    jointUse,
+    stock,
+    dowelSizeMm,
+    keyRows,
+    hardwareRows,
+    autoDowelError,
     clearanceMm,
     axisIndex,
     extent,

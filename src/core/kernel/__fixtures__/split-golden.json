@@ -1,0 +1,93 @@
+{
+  "pins": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "pins",
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B"
+    ],
+    "sha256": {
+      "Bar A": "401bf10b7eed04abc3e502eff0d6fc7243b05c992b77c1784757c9bf3d572a0b",
+      "Bar B": "bf4771dc769649ed013fbb695fef63257bc47b55064bd803e48dd06e1760ab93"
+    }
+  },
+  "tongue": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "joint": "tongue",
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B"
+    ],
+    "sha256": {
+      "Bar A": "f5cbc93ddd210c88c19e771c165d9e71090ec06002a14692a5ffdbbeb952de4f",
+      "Bar B": "d624413a7328161240b7805d6270598596ce5e85d3852cd777fbd2cfdd6797c7"
+    }
+  },
+  "placements": {
+    "params": {
+      "axis": "x",
+      "offsetMm": 150,
+      "clearanceMm": 0.2,
+      "names": [
+        "Bar A",
+        "Bar B"
+      ],
+      "placements": [
+        {
+          "kind": "screwBoss",
+          "uMm": 0,
+          "vMm": 0,
+          "sizeMm": 3
+        },
+        {
+          "kind": "pins"
+        }
+      ]
+    },
+    "keys": [
+      "name",
+      "names",
+      "parts",
+      "holes",
+      "colors"
+    ],
+    "names": [
+      "Bar A",
+      "Bar B"
+    ],
+    "sha256": {
+      "Bar A": "20def2228f8d311172e5b641eca56ee98305a4ea2175a8c4aad03ca42adc1cd2",
+      "Bar B": "8de7d16e843683dd8556d00e00bed9f8485708fe71d05bc82d257d134e3182b1"
+    }
+  }
+}

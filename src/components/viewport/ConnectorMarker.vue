@@ -2,7 +2,8 @@
 <script setup>
 /**
  * One connector marker on the Split sheet's cut plane (`TODO/ui-067`): a glyph per kind —
- * disc for a post, diamond for a wedge, ring for a screw boss, a short bar for a tongue the
+ * disc for a post, diamond for a wedge, ring for a screw boss, ring-and-dot for a dowel
+ * (`TODO/core-075`), a short bar for a tongue the
  * search seeded — at a screen position the overlay computes, with a 28 px hit area behind the
  * smaller glyph (the touch-target rule `io-007` set for the offset handle).
  *
@@ -136,6 +137,12 @@ function onContext(event) {
     <circle v-if="kind === 'pins'" class="marker__glyph marker__glyph--solid" r="6" />
     <path v-else-if="kind === 'wedge'" class="marker__glyph marker__glyph--solid" d="M0 -8 L8 0 L0 8 L-8 0 Z" />
     <circle v-else-if="kind === 'screwBoss'" class="marker__glyph marker__glyph--ring" r="7" />
+    <!-- A dowel (TODO/core-075) seen end-on: a ring with its pin's centre, so it never reads
+         as a screw boss's plain ring. -->
+    <g v-else-if="kind === 'dowel'">
+      <circle class="marker__glyph marker__glyph--ring" r="6" />
+      <circle class="marker__glyph marker__glyph--solid" r="2.5" />
+    </g>
     <rect v-else class="marker__glyph marker__glyph--solid" x="-9" y="-4" width="18" height="8" rx="2" />
     <circle v-if="selected" class="marker__selection" r="12" />
     <g

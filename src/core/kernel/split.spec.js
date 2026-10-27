@@ -2,7 +2,12 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { boundsOf, isGroup, volumeOf } from './group.js'
+import { boundsOf, isGroup, mapGeometry, partMetaOf, removePart, translate, volumeOf } from './group.js'
+import { packGeometry, unpackGeometry } from './transport.js'
+import { exportBodies } from '../export.js'
+import { createDocument } from '../document.js'
+import { parseProject, serializeProject } from '../project.js'
+import golden from './__fixtures__/split-golden.json'
 import { getEntry, acceptsOperandCount } from './registry.js'
 import {
   DEFAULT_JOINT_CLEARANCE_MM,
@@ -80,8 +85,8 @@ describe('modify.splitWithJoint — the registry entry', () => {
     expect(result.names).toEqual(['Wing A', 'Wing B'])
   })
 
-  it('offers the three joint types the Split sheet lists', () => {
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'none'])
+  it('offers the joint types a record may name (TODO/core-075 stage 1 adds the loose dowel)', () => {
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'none'])
     expect(DEFAULT_JOINT_CLEARANCE_MM).toBeCloseTo(0.2, 9)
   })
 })
@@ -169,7 +174,7 @@ describe('splitWithJoint — refusals and warnings', () => {
   it('an unknown axis or joint type is refused by name', () => {
     expect(() => splitWithJoint(bar(), { axis: 'w', offsetMm: 150 })).toThrow(/axis must be one of x, y, z/)
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, joint: 'dovetail' })).toThrow(
-      /joint must be one of pins, tongue, none/
+      /joint must be one of pins, tongue, dowel, none, got "dovetail"/
     )
     expect(() => splitWithJoint(bar(), { axis: 'x', offsetMm: 150, clearanceMm: -0.1 })).toThrow(/clearanceMm/)
   })
@@ -259,10 +264,10 @@ describe('splitWithJoint — hand-placed connectors (TODO/core-059)', () => {
   /** @param {any} result */
   const pieceVolumes = (result) => result.names.map((/** @type {string} */ name) => volumeOf(result.parts[name]))
 
-  it('lists the four connector kinds a placement may ask for', () => {
-    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss'])
-    // The Split sheet's own joint list is unchanged: placements are a separate input.
-    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'none'])
+  it('lists the connector kinds a placement may ask for (TODO/core-075 adds the dowel)', () => {
+    expect(PLACEMENT_KINDS).toEqual(['pins', 'tongue', 'wedge', 'screwBoss', 'dowel'])
+    // Placements are a separate input from the joint list.
+    expect(JOINT_TYPES).toEqual(['pins', 'tongue', 'dowel', 'none'])
   })
 
   it('a pin placed by hand is sized by the same rule as a searched one: Ø5 stands 10 mm proud', () => {
@@ -450,7 +455,7 @@ describe('splitWithJoint — hand-placed connectors that do not fit are refused 
   })
 
   it('malformed placements are refused by name', () => {
-    expect(() => split([{ kind: 'dowel', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss/)
+    expect(() => split([{ kind: 'rivet', uMm: 0, vMm: 0 }])).toThrow(/kind must be one of pins, tongue, wedge, screwBoss, dowel, got "rivet"/)
     expect(() => split([{ kind: 'pins', uMm: 0 }])).toThrow(/placement 1.*uMm and vMm/)
     expect(() => split([{ kind: 'wedge' }])).toThrow(/placement 1 \(wedge\).*needs uMm and vMm/)
     expect(() => split([{ kind: 'pins', uMm: 0, vMm: 0, sizeMm: 9 }])).toThrow(/placement 1.*sizeMm.*2 to 8/)
@@ -487,4 +492,109 @@ describe('splitWithJoint — multi-split is N applications', () => {
       /crosses 2 parts.*Front.*Back/
     )
   })
+})
+
+describe('splitWithJoint — key parts across repeated splits (TODO/core-075 stage 1)', () => {
+  /** A 300 × 120 × 10 mm plank. */
+  const plank = () => primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] })
+  const dowels = { joint: 'dowel', clearanceMm: 0.2 }
+  /** @param {any} group */
+  const keysOf = (group) => group.names.filter((/** @type {string} */ name) => partMetaOf(group, name)?.role === 'key')
+
+  it('a second split keeps the first split’s keys and numbers its own from the next free number', () => {
+    const first = splitWithJoint(plank(), { axis: 'x', offsetMm: 100, ...dowels, names: ['Plank A', 'Plank B'] })
+    const firstKeys = keysOf(first)
+    expect(firstKeys.length).toBeGreaterThanOrEqual(1)
+    // 200 mm crosses only Plank B (100 → 300), well clear of the first split's dowels.
+    const second = splitWithJoint(first, { axis: 'x', offsetMm: 200, ...dowels, names: ['Plank B', 'Plank C'] })
+    const secondKeys = keysOf(second)
+    expect(secondKeys.slice(0, firstKeys.length)).toEqual(firstKeys)
+    const added = secondKeys.slice(firstKeys.length)
+    expect(added.length).toBeGreaterThanOrEqual(1)
+    expect(added).toEqual(added.map((/** @type {string} */ _, /** @type {number} */ index) => `Plank key ${firstKeys.length + index + 1}`))
+    for (const name of added) expect(partMetaOf(second, name)?.joins).toEqual(['Plank B', 'Plank C'])
+    for (const name of firstKeys) expect(partMetaOf(second, name)?.joins).toEqual(['Plank A', 'Plank B'])
+    expect(second.names.slice(0, 3)).toEqual(['Plank A', 'Plank B', 'Plank C'])
+  })
+
+  it('a later plane through a key is refused by the key’s name', () => {
+    const first = splitWithJoint(plank(), { axis: 'x', offsetMm: 150, ...dowels, names: ['Plank A', 'Plank B'] })
+    expect(() => splitWithJoint(first, { axis: 'x', offsetMm: 151, ...dowels, names: ['Plank B', 'Plank C'] })).toThrow(
+      /the cut plane crosses Plank key \d — move it clear of the keys/
+    )
+  })
+
+  it('the key metadata survives a move, the export worker’s transport and a removed sibling', () => {
+    const result = splitWithJoint(plank(), { axis: 'x', offsetMm: 150, ...dowels, names: ['Plank A', 'Plank B'] })
+    const [key] = keysOf(result)
+    const want = partMetaOf(result, key)
+    expect(partMetaOf(translate(result, [5, 0, 0]), key)).toEqual(want)
+    expect(partMetaOf(mapGeometry(result, (geometry) => geometry), key)).toEqual(want)
+    expect(partMetaOf(/** @type {any} */ (unpackGeometry(packGeometry(result))), key)).toEqual(want)
+    expect(partMetaOf(removePart(result, 'Plank B'), key)).toEqual(want)
+    expect(partMetaOf(removePart(result, key), key)).toBeUndefined()
+  })
+
+  it('the metadata is derived from the record at fold time: it survives the project file round trip', () => {
+    const local = { origin: 'local' }
+    const document = createDocument({ resolution: 'normal' })
+    document.append({ id: 'plank', op: 'primitive.cuboid', name: 'Plank', params: { size: [300, 120, 10], center: [0, 0, 5] } }, local)
+    document.append(
+      {
+        id: 'split-1',
+        op: 'modify.splitWithJoint',
+        target: 'plank',
+        supersedes: 'plank',
+        params: { axis: 'x', offsetMm: 150, joint: 'dowel', clearanceMm: 0.2, names: ['Plank A', 'Plank B'] },
+      },
+      local
+    )
+    const text = serializeProject(document)
+    // Nothing but the record's own params is written: no mesh, no metadata.
+    expect(text).not.toContain('bedNormal')
+    const loaded = createDocument({ resolution: 'normal' })
+    const parsed = parseProject(text)
+    loaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution)
+    const geometry = /** @type {any} */ (loaded.bodies()[0].geometry)
+    const keys = keysOf(geometry)
+    expect(keys.length).toBeGreaterThanOrEqual(1)
+    expect(partMetaOf(geometry, keys[0])).toMatchObject({ role: 'key', kind: 'dowel', joins: ['Plank A', 'Plank B'] })
+  })
+
+  it('jointOptions are checked by name', () => {
+    const base = { axis: 'x', offsetMm: 150, clearanceMm: 0.2 }
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'dowel', jointOptions: { stock: 'gold' } })).toThrow(
+      /jointOptions\.stock must be one of printed, steel, filament, got "gold"/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'dowel', jointOptions: { count: 3 } })).toThrow(
+      /jointOptions has no field "count"/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'dowel', jointOptions: { sizeMm: 12 } })).toThrow(
+      /jointOptions\.sizeMm must be 2 to 10 mm, got 12/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'pins', jointOptions: { stock: 'steel' } })).toThrow(
+      /jointOptions is only for joint dowel/
+    )
+    expect(() => splitWithJoint(plank(), { ...base, joint: 'butterfly' })).toThrow(/joint must be one of pins, tongue, dowel, none, got "butterfly"/)
+  })
+})
+
+describe('splitWithJoint — today’s records fold byte-identically (TODO/core-075 closed-finding regression)', () => {
+  /** @param {Uint8Array} bytes */
+  const sha256 = async (bytes) =>
+    [...new Uint8Array(await crypto.subtle.digest('SHA-256', /** @type {BufferSource} */ (bytes)))].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  const bar300 = () => primitives.cuboid({ size: [300, 20, 20], center: [150, 0, 0] })
+
+  for (const label of ['pins', 'tongue', 'placements']) {
+    it(`a ${label} split: the same group shape and the same STL bytes per piece as before stage 1`, async () => {
+      const { params, keys, names, sha256: want } = /** @type {any} */ (golden)[label]
+      const group = splitWithJoint(bar300(), params)
+      expect(Object.keys(group)).toEqual(keys)
+      expect([...group.names]).toEqual(names)
+      for (const name of names) {
+        const { bytes } = exportBodies([{ id: name, name, geometry: group.parts[name] }], 'stl')
+        expect(await sha256(bytes), name).toBe(want[name])
+      }
+    })
+  }
 })

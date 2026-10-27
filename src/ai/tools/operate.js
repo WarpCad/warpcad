@@ -33,7 +33,8 @@ import { consumesOf } from '../../core/booleanConsumes.js'
 import { RIM_ORIENTATIONS } from '../../core/kernel/fillet.js'
 import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
-import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES } from '../../core/kernel/split.js'
+import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_PLACEMENTS, PLACEMENT_KINDS } from '../../core/kernel/split.js'
+import { DOWEL_STOCKS } from '../../core/kernel/recipes/joint.dowel.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
@@ -295,13 +296,32 @@ export const OPERATIONS = Object.freeze({
   'modify.splitWithJoint': inPlaceSpec(
     'Split',
     'split',
-    'Split one body into two printable pieces across an axis plane, with a joint so they go back together: pins and sockets, or a tongue and groove for thin sections. ' +
-      'The body becomes a group of two named parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
+    'Split one body into two printable pieces across an axis plane, with a joint so they go back together. ' +
+      'Joints: pins (pins printed on piece A into sockets in B; the default), tongue (a rib and groove, for thin sections), ' +
+      'dowel (a socket in both pieces and a separate dowel: printed lying down, so stronger than a pin, or bought, steel or 1.75 mm filament, via jointOptions.stock), or none. ' +
+      'Or give placements to put connectors at chosen face positions: pins, tongue, wedge, screwBoss (a bolt-through boss) and dowel; pins, tongue and dowel may leave uMm/vMm out to be placed by the search. ' +
+      'The body becomes a group of named parts: A, B, then any printed dowels as key parts. On a body that is already split, only the part the plane crosses is cut. Refuses a body that is not watertight.',
     objectSchema(
       {
         axis: { ...AXIS, description: 'The cut plane’s normal.' },
         offsetMm: { type: 'number', description: 'Where the plane crosses the axis, in millimetres from the body’s minimum face; must be inside the body.' },
-        joint: { type: 'string', enum: [...JOINT_TYPES], description: 'pins (default), tongue (for thin sections), or none.' },
+        joint: {
+          type: 'string',
+          enum: [...JOINT_TYPES],
+          description: 'pins (default), tongue (for thin sections), dowel (strongest; needs material on both sides of the cut), or none. Ignored when placements is given.',
+        },
+        jointOptions: objectSchema(
+          {
+            stock: {
+              type: 'string',
+              enum: [...DOWEL_STOCKS],
+              description: 'For joint dowel: printed (default, a key part to print), steel (buy steel dowel pins) or filament (cut lengths of 1.75 mm filament).',
+            },
+            sizeMm: { type: 'number', description: 'For joint dowel: the diameter in millimetres, 2 to 10; leave out to let the search size it.' },
+          },
+          [],
+          'Options for joint dowel only.'
+        ),
         clearanceMm: { type: 'number', description: `Gap per side between pin and socket, in millimetres. Default ${DEFAULT_JOINT_CLEARANCE_MM}.` },
         names: {
           type: 'array',
@@ -310,13 +330,33 @@ export const OPERATIONS = Object.freeze({
           maxItems: 2,
           description: 'The two pieces’ part names, A (minimum side) then B, e.g. ["Wing A", "Wing B"]. No commas.',
         },
+        placements: {
+          type: 'array',
+          minItems: 1,
+          maxItems: MAX_PLACEMENTS,
+          description:
+            'Hand-placed connectors instead of joint. uMm/vMm are millimetres along the cut face’s two axes: for a cut across x they are y and z, across y z and x, across z x and y.',
+          items: objectSchema(
+            {
+              kind: { type: 'string', enum: [...PLACEMENT_KINDS], description: 'pins, tongue, wedge, screwBoss or dowel.' },
+              uMm: { type: 'number', description: 'Position along the face’s first axis, millimetres; leave out with vMm for a search (pins, tongue, dowel).' },
+              vMm: { type: 'number', description: 'Position along the face’s second axis, millimetres.' },
+              sizeMm: { type: 'number', description: 'A pin’s or dowel’s diameter, a tongue’s or wedge’s width, a screw boss’s screw size, in millimetres.' },
+              lengthMm: { type: 'number', description: 'A tongue’s rib length in millimetres, at least twice its width.' },
+              insertMm: { type: 'number', description: 'A screw boss’s heat-set insert bore in millimetres; leave out for a self-tapping screw.' },
+              stock: { type: 'string', enum: [...DOWEL_STOCKS], description: 'A dowel’s: printed (default), steel or filament.' },
+            },
+            ['kind']
+          ),
+        },
       },
       ['axis', 'offsetMm']
     ),
     (params) => ({
       axis: params.axis,
       offsetMm: params.offsetMm,
-      joint: params.joint ?? 'pins',
+      ...(params.placements === undefined ? { joint: params.joint ?? 'pins' } : { placements: params.placements }),
+      ...(params.jointOptions === undefined || params.placements !== undefined ? {} : { jointOptions: params.jointOptions }),
       clearanceMm: params.clearanceMm ?? DEFAULT_JOINT_CLEARANCE_MM,
       ...(params.names === undefined ? {} : { names: params.names }),
     })

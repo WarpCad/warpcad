@@ -65,6 +65,8 @@ const { geometries } = modeling
  * @property {PackedSolid[]} holes
  * @property {Record<string, import('./group.js').PartColor>} [colors] Part colours
  *   (TODO/core-026). Optional so a message packed before it existed still unpacks.
+ * @property {Record<string, import('./group.js').PartMeta>} [meta] Part metadata
+ *   (TODO/core-075): which parts are split keys, what to buy. Absent when there is none.
  */
 
 /**
@@ -132,6 +134,8 @@ export function packGeometry(geometry) {
       holes: geometry.holes.map((hole) => packSolid(hole)),
       // Plain `{ color, alpha }` objects clone as-is (TODO/core-026).
       colors: { ...geometry.colors },
+      // Plain data (TODO/core-075): Print pieces needs it on the worker side.
+      ...(geometry.meta === undefined ? {} : { meta: JSON.parse(JSON.stringify(geometry.meta)) }),
     }
   }
   return { kind: 'solid', polygons: packSolid(/** @type {Geom3} */ (geometry)) }
@@ -157,6 +161,7 @@ export function unpackGeometry(packed) {
       holes: packed.holes.map(unpackSolid),
       // A packed group from before TODO/core-026 has no colours; it comes back uncoloured.
       colors: { ...(packed.colors ?? {}) },
+      ...(packed.meta === undefined ? {} : { meta: { ...packed.meta } }),
     }
   }
   return unpackSolid(packed.polygons)

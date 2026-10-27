@@ -163,3 +163,85 @@ describe('exportPrintPieces — a zip of one STL per piece', () => {
     expect(readZip(job.bytes)).toHaveLength(2)
   })
 })
+
+describe('print prep for split keys (TODO/core-075 stage 1)', () => {
+  /** A 300 × 120 × 10 mm plank split at 150 mm with printed or bought dowels. */
+  const plankSplit = (/** @type {Record<string, any>} */ extra = {}) =>
+    splitWithJoint(primitives.cuboid({ size: [300, 120, 10], center: [150, 0, 5] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'dowel',
+      clearanceMm: 0.2,
+      names: ['Plank A', 'Plank B'],
+      ...extra,
+    })
+
+  it('layFlat with a bed normal lays a dowel on its D-flat: its axis horizontal, the flat on z = 0', () => {
+    const group = /** @type {any} */ (plankSplit())
+    const key = group.names.find((/** @type {string} */ name) => name === 'Plank key 1')
+    const meta = group.meta[key]
+    const { solid, bedFaceAreaMm2 } = layFlat(group.parts[key], { bedNormal: meta.bedNormal })
+    const [min, max] = boundsOf(solid)
+    const size = [0, 1, 2].map((i) => max[i] - min[i])
+    const diameter = meta.sizeMm
+    // Lying down: the long side is in the XY plane, and it stands its diameter less the flat.
+    expect(Math.max(size[0], size[1])).toBeGreaterThan(2 * diameter)
+    expect(size[2]).toBeCloseTo(diameter - diameter / 5, 1)
+    expect(min[2]).toBeCloseTo(0, 6)
+    expect(bedFaceAreaMm2).toBeGreaterThan(0)
+  })
+
+  it('the D-flat is the dowel’s largest flat face, so even layFlat without a normal lays it down', () => {
+    const group = /** @type {any} */ (plankSplit())
+    const { solid } = layFlat(group.parts['Plank key 1'])
+    const [min, max] = boundsOf(solid)
+    expect(max[2] - min[2]).toBeLessThan(group.meta['Plank key 1'].sizeMm)
+  })
+
+  it('a bed normal the solid has no face for falls back to the largest flat face', () => {
+    const plate = primitives.cuboid({ size: [4, 60, 100], center: [50, 50, 50] })
+    const { solid } = layFlat(plate, { bedNormal: [0.6, 0.8, 0] })
+    const [min, max] = boundsOf(solid)
+    expect(max[2] - min[2]).toBeCloseTo(4, 6)
+  })
+
+  it('Print pieces writes one STL per distinct key with the count in its name, and assembly.txt', () => {
+    const group = /** @type {any} */ (plankSplit())
+    const keys = group.names.filter((/** @type {string} */ name) => group.meta?.[name]?.role === 'key')
+    const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: group }])
+    const names = result.files.map((file) => file.filename)
+    expect(names).toEqual(['plank-a.stl', 'plank-b.stl', `plank-dowel-x${keys.length}.stl`, 'assembly.txt'])
+    const entries = readZip(result.bytes)
+    expect(entries.map((entry) => entry.name)).toEqual(names)
+    const keyStl = stlStats(entries[2].bytes)
+    expect(keyStl.unmatched).toBe(0)
+    expect(keyStl.minZ).toBeCloseTo(0, 3)
+    const text = new TextDecoder().decode(entries[3].bytes)
+    expect(text).toContain('plank-a.stl')
+    expect(text).toContain('plank-b.stl')
+    expect(text).toMatch(new RegExp(`plank-dowel-x${keys.length}\\.stl.*print ${keys.length}`))
+    expect(text).toMatch(/flat side down/)
+    expect(text).toMatch(/Plank A.*Plank B.*along X/s)
+    expect(text).toMatch(/Nothing to buy/)
+    expect(result.files[3]).toMatchObject({ filename: 'assembly.txt', sizeBytes: entries[3].bytes.byteLength })
+  })
+
+  it('bought steel dowels: no key file, and assembly.txt lists what to buy', () => {
+    const group = plankSplit({ jointOptions: { stock: 'steel' } })
+    const result = exportPrintPieces([{ id: 'plank', name: 'Plank', geometry: group }])
+    expect(result.files.map((file) => file.filename)).toEqual(['plank-a.stl', 'plank-b.stl', 'assembly.txt'])
+    const text = new TextDecoder().decode(readZip(result.bytes)[2].bytes)
+    expect(text).toMatch(/Hardware to buy:\n\s+\d+ × steel dowel pin Ø\d+ × \d+ mm/)
+  })
+
+  it('runs unchanged from packed geometry: the key metadata crosses the worker boundary', () => {
+    const job = runPrintPiecesJob({ bodies: packBodies([{ id: 'plank', name: 'Plank', geometry: plankSplit() }]) })
+    expect(job.kind).toBe('zip')
+    expect(/** @type {any} */ (job).files.map((/** @type {any} */ file) => file.filename)).toContain('assembly.txt')
+  })
+
+  it('a split with no keys and no hardware writes no assembly.txt — today’s zip, unchanged', () => {
+    const result = exportPrintPieces([{ id: 'wing', name: 'Wing', geometry: splitWing() }])
+    expect(result.files.map((file) => file.filename)).toEqual(['wing-a.stl', 'wing-b.stl'])
+  })
+})

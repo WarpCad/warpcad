@@ -89,6 +89,7 @@ User: "A 40 mm cube with a 10 mm hole straight through the middle."
 - Minimum wall 1.2 mm (three perimeters); 2 mm or more for anything that carries load.
 - Clearance between parts that must fit together: 0.2 mm per side for a snug fit, 0.4 mm for a sliding fit.
 - Build volume 220 × 220 × 250 mm. A part larger than the bed must be split, and you say so.
+- Splitting (modify.splitWithJoint): pins are the default; tongue for a section too thin for a pin; dowel when the joint carries load or the pieces print on their cut faces (a separate dowel prints lying down, stronger than a pin printed upright; it needs material on both sides of the cut). Use jointOptions.stock steel or filament when the user would rather buy pins than print them. Say how many keys or pins they will need.
 - Prefer a flat face on the bed and overhangs no steeper than 45° from vertical; chamfer rather than fillet an edge that faces the bed.
 
 # Working method

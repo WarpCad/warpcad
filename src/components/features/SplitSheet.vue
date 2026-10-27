@@ -5,11 +5,14 @@
  * selected body. Layout and fields only; every rule (defaults, what Apply writes, what is a
  * problem, what is a warning, each piece's fit) is `stores/splitSheet.js`'s.
  *
- * - **Fields**: Axis (X/Y/Z), Offset from the minimum face (mm), Joint (pins and sockets /
- *   tongue and groove / none), Clearance (mm, per side). The offset is also the cut plane in
+ * - **Fields**: Axis (X/Y/Z), Offset from the minimum face (mm), Joint — a grouped list
+ *   written out in the store (`JOINT_CHOICES`, `TODO/core-075`), a native `<select>` with
+ *   `<optgroup>`s so iOS shows it as a wheel with headings — with its one-line use under it and
+ *   its own fields (a dowel's diameter; what bought dowels are), Clearance (mm, per side). The offset is also the cut plane in
  *   the viewport (`CutPlaneOverlay.vue`) — drag its handle and this number follows.
  * - **Feedback before Apply**: each piece's name and fit verdict against the project's build
- *   volume; a problem that would make Apply fail (Apply disabled, the reason shown); a warning
+ *   volume, then any key parts the joint makes (`Dowel × 2`) with theirs, and **You'll also
+ *   need** for bought hardware; a problem that would make Apply fail (Apply disabled, the reason shown); a warning
  *   that would not (zero clearance).
  * - **After Apply**: the sheet closes, the body is still selected, and the Inspector lists the
  *   two new parts and its fit badge. A kernel refusal (no room for a pin, not watertight)
@@ -26,8 +29,10 @@ import { useOverlaysStore } from '../../stores/overlays.js'
 import {
   CONNECTOR_KINDS,
   CONNECTOR_LABELS,
-  JOINT_LABELS,
+  JOINT_CHOICES,
+  NO_JOINT_CHOICE,
   SPLIT_AXES,
+  STOCK_LABELS,
   useSplitSheetStore,
 } from '../../stores/splitSheet.js'
 
@@ -49,6 +54,17 @@ function onKeydown(event) {
 }
 onMounted(() => window.addEventListener('keydown', onKeydown, true))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
+
+/**
+ * The dowel diameter field: blank is the search's own size.
+ *
+ * @param {Event} event
+ */
+function onDowelSize(event) {
+  const text = /** @type {HTMLInputElement} */ (event.target).value.trim()
+  const value = Number(text)
+  sheet.dowelSizeMm = text === '' || !Number.isFinite(value) ? null : value
+}
 
 /** @param {readonly number[]} size */
 const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × ')} mm`
@@ -100,9 +116,36 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
       <label v-if="!sheet.manual" class="split__field">
         Joint
-        <select v-model="sheet.joint" class="split__input" data-testid="split-joint">
-          <option v-for="type in sheet.jointTypes" :key="type" :value="type">{{ JOINT_LABELS[type] }}</option>
+        <select v-model="sheet.jointChoice" class="split__input" data-testid="split-joint">
+          <optgroup v-for="group in JOINT_CHOICES" :key="group.heading" :label="group.heading">
+            <option v-for="choice in group.choices" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
+          </optgroup>
+          <option :value="NO_JOINT_CHOICE.value">{{ NO_JOINT_CHOICE.label }}</option>
         </select>
+      </label>
+      <p v-if="!sheet.manual" class="split__hint" data-testid="split-joint-use">{{ sheet.jointUse }}</p>
+
+      <label v-if="!sheet.manual && sheet.jointChoice === 'dowel-stock'" class="split__field">
+        Dowels are
+        <select v-model="sheet.stock" class="split__input" data-testid="split-dowel-stock">
+          <option value="steel">{{ STOCK_LABELS.steel }}</option>
+          <option value="filament">{{ STOCK_LABELS.filament }}</option>
+        </select>
+      </label>
+      <label v-if="!sheet.manual && sheet.joint === 'dowel' && sheet.stock !== 'filament'" class="split__field">
+        Dowel diameter (mm)
+        <input
+          class="split__input"
+          type="number"
+          step="0.5"
+          min="2"
+          max="10"
+          inputmode="decimal"
+          placeholder="Auto"
+          data-testid="split-dowel-size"
+          :value="sheet.dowelSizeMm ?? ''"
+          @change="onDowelSize"
+        />
       </label>
 
       <label class="split__toggle">
@@ -138,6 +181,10 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           <svg class="split__kind-glyph" viewBox="-10 -10 20 20" aria-hidden="true">
             <circle v-if="kind === 'pins'" r="6" class="split__glyph--solid" />
             <path v-else-if="kind === 'wedge'" d="M0 -8 L8 0 L0 8 L-8 0 Z" class="split__glyph--solid" />
+            <g v-else-if="kind === 'dowel'">
+              <circle r="6" class="split__glyph--ring" />
+              <circle r="2.5" class="split__glyph--solid" />
+            </g>
             <circle v-else r="6" class="split__glyph--ring" />
           </svg>
           <span class="split__kind-label">{{ CONNECTOR_LABELS[kind] }}</span>
@@ -157,6 +204,12 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           it. Red areas have no room.
         </template>
       </p>
+      <label v-if="sheet.manual && (sheet.connectorKind === 'dowel' || sheet.markers.some((m) => m.kind === 'dowel'))" class="split__field">
+        Dowels are
+        <select v-model="sheet.stock" class="split__input" data-testid="split-dowel-stock">
+          <option v-for="(label, value) in STOCK_LABELS" :key="value" :value="value">{{ label }}</option>
+        </select>
+      </label>
       <p v-if="sheet.manual && sheet.notice" class="split__problem" role="status" data-testid="split-notice">
         {{ sheet.notice }}
       </p>
@@ -186,7 +239,23 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           <span class="split__piece-size">{{ sizeText(piece.sizeMm) }}</span>
           <span class="split__badge" :data-fit="piece.verdict">{{ piece.label }}</span>
         </li>
+        <li
+          v-for="key in sheet.keyRows"
+          :key="key.title"
+          class="split__piece"
+          data-testid="split-key-fit"
+          :data-fit="key.verdict"
+          :data-count="key.count"
+          :title="key.title"
+        >
+          <span class="split__piece-name">{{ key.name }} × {{ key.count }}</span>
+          <span class="split__piece-size">{{ sizeText(key.sizeMm) }}</span>
+          <span class="split__badge" :data-fit="key.verdict">{{ key.label }}</span>
+        </li>
       </ul>
+      <p v-if="sheet.hardwareRows.length > 0" class="split__hint" data-testid="split-hardware">
+        You'll also need: {{ sheet.hardwareRows.join('; ') }}
+      </p>
 
       <p v-if="sheet.problem" class="split__problem" data-testid="split-problem">{{ sheet.problem }}</p>
       <p v-for="warning in sheet.warnings" :key="warning" class="split__warning" data-testid="split-warning">
@@ -392,6 +461,7 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
 .split__kinds {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 

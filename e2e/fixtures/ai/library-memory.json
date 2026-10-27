@@ -12,7 +12,11 @@
           "name": "create",
           "input": {
             "op": "hardware.bolt",
-            "positionMm": [0, 0, 0],
+            "positionMm": [
+              0,
+              0,
+              0
+            ],
             "params": {
               "type": "pan",
               "spec": "m4",

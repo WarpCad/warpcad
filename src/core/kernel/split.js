@@ -23,10 +23,16 @@
  *    same containment check the search confirms with, and a placement that does not fit is
  *    refused by number, kind and position. Without `placements`, the search runs exactly as
  *    it always has.
+ *    A **loose dowel** (`TODO/core-075`, `recipes/joint.dowel.js`) cuts a socket in **both**
+ *    pieces and adds each printed dowel as its own **key part**; a bought one (steel or
+ *    filament, `jointOptions.stock`) adds no part, and is recorded as hardware to buy.
  * 4. Returns a **group of two named parts**, A then B — `["Wing A", "Wing B"]` when the record
  *    carries those `names` (the Split sheet passes the body's own name plus a letter) — so each
  *    piece stays addressable and the group tools, the Inspector's parts list and Export → Print
- *    pieces all apply to it unchanged.
+ *    pieces all apply to it unchanged. Key parts follow, `<base> key 1`, `<base> key 2`, …,
+ *    assembled in their sockets, numbered on from any a previous split made; `<base>` is
+ *    piece A's name without its trailing letter (`Plank A` → `Plank`). Each carries its
+ *    `PartMeta` (`group.js`) — derived here, from the record, at fold time.
  *
  * ## Multi-split is N applications
  *
@@ -48,9 +54,17 @@
  * @module core/kernel/split
  */
 
-import { add, bisect, boundsOf, createGroup, hasNamedParts, hiddenNamesOf, toGeom3 } from './group.js'
+import { add, bisect, boundsOf, createGroup, hasNamedParts, hiddenNamesOf, partMetaOf, toGeom3 } from './group.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
 import { JOINT_WALL_MM, clearanceField, clearanceTo } from './recipes/joint.common.js'
+import {
+  DOWEL_MAX_DIAMETER_MM,
+  DOWEL_MAX_REACH_MM,
+  DOWEL_MIN_DIAMETER_MM,
+  DOWEL_STOCKS,
+  FILAMENT_DIAMETER_MM,
+  dowelJoint,
+} from './recipes/joint.dowel.js'
 import {
   PIN_MAX_DIAMETER_MM,
   PIN_MAX_REACH_MM,
@@ -81,7 +95,10 @@ const { booleans } = modeling
 const OP = 'modify.splitWithJoint'
 
 /** The joint types, in the order the Split sheet lists them. */
-export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'none']))
+export const JOINT_TYPES = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'dowel', 'none']))
+
+/** The fields `jointOptions` may carry, per joint type (`TODO/core-075`). */
+const JOINT_OPTION_FIELDS = Object.freeze({ dowel: Object.freeze(['stock', 'sizeMm']) })
 
 /**
  * Default clearance per side, mm — the "snug fit" the AI's printing defaults already state
@@ -99,7 +116,7 @@ const AXES = /** @type {const} */ (['x', 'y', 'z'])
  * The connector kinds a hand placement may ask for (`TODO/core-059`) — a separate list from
  * {@link JOINT_TYPES}, which is what the Split sheet's joint picker offers.
  */
-export const PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss']))
+export const PLACEMENT_KINDS = Object.freeze(/** @type {const} */ (['pins', 'tongue', 'wedge', 'screwBoss', 'dowel']))
 
 /** The most connectors one split may place — a hard limit, as every tool-call input has. */
 export const MAX_PLACEMENTS = 16
@@ -110,13 +127,16 @@ const SIZE_RANGE_MM = Object.freeze({
   tongue: [TONGUE_MIN_WIDTH_MM, TONGUE_MAX_WIDTH_MM],
   wedge: [WEDGE_MIN_WIDTH_MM, WEDGE_MAX_WIDTH_MM],
   screwBoss: [SCREW_MIN_MM, SCREW_MAX_MM],
+  dowel: [DOWEL_MIN_DIAMETER_MM, DOWEL_MAX_DIAMETER_MM],
 })
 
 /**
  * @typedef {object} SplitParams
  * @property {'x' | 'y' | 'z'} axis The cut plane's normal.
  * @property {number} offsetMm Where the plane crosses the axis, from the body's minimum face.
- * @property {'pins' | 'tongue' | 'none'} [joint] Default `pins`.
+ * @property {'pins' | 'tongue' | 'dowel' | 'none'} [joint] Default `pins`.
+ * @property {{ stock?: 'printed' | 'steel' | 'filament', sizeMm?: number }} [jointOptions] The
+ *   joint's own sizes (`TODO/core-075`): for `dowel`, what it is made of and its diameter.
  * @property {number} [clearanceMm] Per side, default {@link DEFAULT_JOINT_CLEARANCE_MM}.
  * @property {[string, string]} [names] Piece A's and piece B's part names.
  * @property {PlacementParams[]} [placements] Hand-placed connectors (`TODO/core-059`); when
@@ -130,7 +150,7 @@ const SIZE_RANGE_MM = Object.freeze({
  * both out on `pins` or `tongue` to let the search place it, clear of the rest.
  *
  * @typedef {object} PlacementParams
- * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss'} kind
+ * @property {'pins' | 'tongue' | 'wedge' | 'screwBoss' | 'dowel'} kind
  * @property {number} [uMm]
  * @property {number} [vMm]
  * @property {number} [sizeMm] A pin's diameter, a tongue's width, a wedge's width at its wide
@@ -138,6 +158,7 @@ const SIZE_RANGE_MM = Object.freeze({
  * @property {number} [lengthMm] A tongue's rib length, at least twice its width; default 4×.
  * @property {number} [insertMm] A screw boss's heat-set insert bore; leave out for a
  *   self-tapping screw.
+ * @property {'printed' | 'steel' | 'filament'} [stock] A dowel's; default printed.
  */
 
 /**
@@ -191,8 +212,8 @@ function readPlacement(entry, index) {
     throw new Error(`${named}: give both uMm and vMm, or neither to let the search place it`)
   }
   const searched = uMm === null
-  if (searched && kind !== 'pins' && kind !== 'tongue') {
-    throw new Error(`${named} needs uMm and vMm — only pins and tongue can be placed by the search`)
+  if (searched && kind !== 'pins' && kind !== 'tongue' && kind !== 'dowel') {
+    throw new Error(`${named} needs uMm and vMm — only pins, tongue and dowel can be placed by the search`)
   }
   const sizeMm = finite('sizeMm')
   const lengthMm = finite('lengthMm')
@@ -219,12 +240,60 @@ function readPlacement(entry, index) {
       )
     }
   }
+  if (raw.stock !== undefined) {
+    if (kind !== 'dowel') throw new Error(`${named}: stock is only for a dowel`)
+    if (!DOWEL_STOCKS.includes(/** @type {any} */ (raw.stock))) {
+      throw new Error(`${named}: stock must be one of ${DOWEL_STOCKS.join(', ')}, got ${JSON.stringify(raw.stock)}`)
+    }
+    if (raw.stock === 'filament' && sizeMm !== null) {
+      throw new Error(`${named}: filament is always ${FILAMENT_DIAMETER_MM} mm — leave sizeMm out`)
+    }
+  }
+  if (kind === 'dowel') {
+    const stock = /** @type {'printed' | 'steel' | 'filament'} */ (raw.stock ?? 'printed')
+    return { kind, uMm, vMm, sizeMm, lengthMm, insertMm, stock }
+  }
   return { kind, uMm, vMm, sizeMm, lengthMm, insertMm }
 }
 
 /**
+ * @param {unknown} given
+ * @param {string} joint
+ * @returns {{ stock: 'printed' | 'steel' | 'filament', sizeMm: number | null }}
+ */
+function readJointOptions(given, joint) {
+  const none = { stock: /** @type {const} */ ('printed'), sizeMm: null }
+  if (given === undefined) return none
+  const fields = /** @type {Record<string, readonly string[]>} */ (JOINT_OPTION_FIELDS)[joint]
+  if (fields === undefined) {
+    throw new Error(`${OP}: jointOptions is only for joint ${Object.keys(JOINT_OPTION_FIELDS).join(', ')}, got joint ${JSON.stringify(joint)}`)
+  }
+  if (given === null || typeof given !== 'object' || Array.isArray(given)) {
+    throw new Error(`${OP}: jointOptions must be an object, got ${JSON.stringify(given)}`)
+  }
+  const raw = /** @type {Record<string, unknown>} */ (given)
+  for (const key of Object.keys(raw)) {
+    if (!fields.includes(key)) throw new Error(`${OP}: jointOptions has no field ${JSON.stringify(key)} (it takes ${fields.join(', ')})`)
+  }
+  const stock = raw.stock ?? 'printed'
+  if (!DOWEL_STOCKS.includes(/** @type {any} */ (stock))) {
+    throw new Error(`${OP}: jointOptions.stock must be one of ${DOWEL_STOCKS.join(', ')}, got ${JSON.stringify(raw.stock)}`)
+  }
+  let sizeMm = null
+  if (raw.sizeMm !== undefined) {
+    const [low, high] = SIZE_RANGE_MM.dowel
+    if (typeof raw.sizeMm !== 'number' || !Number.isFinite(raw.sizeMm) || raw.sizeMm < low || raw.sizeMm > high) {
+      throw new Error(`${OP}: jointOptions.sizeMm must be ${low} to ${high} mm, got ${JSON.stringify(raw.sizeMm)}`)
+    }
+    if (stock === 'filament') throw new Error(`${OP}: filament is always ${FILAMENT_DIAMETER_MM} mm — leave jointOptions.sizeMm out`)
+    sizeMm = raw.sizeMm
+  }
+  return { stock: /** @type {'printed' | 'steel' | 'filament'} */ (stock), sizeMm }
+}
+
+/**
  * @param {Record<string, any>} params
- * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null }}
+ * @returns {{ axisIndex: number, axis: string, offsetMm: number, joint: 'pins' | 'tongue' | 'dowel' | 'none', clearanceMm: number, names: [string, string] | null, placements: Placement[] | null, jointOptions: ReturnType<typeof readJointOptions> }}
  */
 function readParams(params) {
   const axisIndex = AXES.indexOf(params?.axis)
@@ -259,7 +328,8 @@ function readParams(params) {
     names = /** @type {[string, string]} */ ([given[0], given[1]])
   }
   const placements = readPlacements(params.placements)
-  return { axisIndex, axis: AXES[axisIndex], offsetMm, joint, clearanceMm, names, placements }
+  const jointOptions = readJointOptions(params.jointOptions, joint)
+  return { axisIndex, axis: AXES[axisIndex], offsetMm, joint, clearanceMm, names, placements, jointOptions }
 }
 
 /**
@@ -291,12 +361,16 @@ export function splitWarnings(params) {
  */
 function crossedPiece(value, axisIndex, cutMm) {
   if (!hasNamedParts(value)) return { group: null, partName: null, solid: toGeom3(value) }
-  const crossed = value.names.filter((name) => {
+  const across = value.names.filter((name) => {
     const part = value.parts[name]
     if (part.polygons.length === 0) return false
     const [min, max] = boundsOf(part)
     return min[axisIndex] < cutMm - 1e-6 && max[axisIndex] > cutMm + 1e-6
   })
+  // A key is never cut (`TODO/core-075`): it would no longer fit its sockets. Say which.
+  const key = across.find((name) => partMetaOf(value, name)?.role === 'key')
+  if (key !== undefined) throw new Error(`${OP}: the cut plane crosses ${key} — move it clear of the keys`)
+  const crossed = across
   if (crossed.length === 0) {
     throw new Error(`${OP}: the cut plane at ${AXES[axisIndex]} = ${fmt(cutMm)} mm passes between parts and crosses none of them`)
   }
@@ -364,11 +438,14 @@ export function planJoint(value, params) {
  * `sockets` cut from piece B. `connectors` says where each one is.
  *
  * @typedef {object} JointPlan
- * @property {'pins' | 'tongue' | 'placements' | 'none'} kind
+ * @property {'pins' | 'tongue' | 'dowel' | 'placements' | 'none'} kind
  * @property {Geom3[]} pins
  * @property {Geom3[]} sockets
  * @property {Geom3[]} holes
  * @property {Connector[]} connectors
+ * @property {{ solid: Geom3, meta: import('./group.js').PartMeta }[]} [keys] Key parts
+ *   (`TODO/core-075`), assembled.
+ * @property {Omit<import('./group.js').HardwareItem, 'joins' | 'axis'>[]} [hardware] What to buy.
  * @property {string} summary
  */
 
@@ -383,6 +460,7 @@ export function planJoint(value, params) {
 function planOn(solid, lower, upper, read, cutMm) {
   if (read.placements !== null) return planPlaced(solid, lower, upper, read, read.placements, cutMm)
   if (read.joint === 'none') return { kind: 'none', pins: [], sockets: [], holes: [], connectors: [], summary: 'no joint' }
+  if (read.joint === 'dowel') return planDowels(solid, lower, upper, read, cutMm)
   const reach = read.joint === 'pins' ? PIN_MAX_REACH_MM : TONGUE_MAX_REACH_MM
   const widest = read.joint === 'pins' ? PIN_MAX_DIAMETER_MM / 2 : TONGUE_MAX_WIDTH_MM / 2
   const field = clearanceField(solid, read.axisIndex, cutMm, {
@@ -406,6 +484,45 @@ function planOn(solid, lower, upper, read, cutMm) {
 }
 
 /**
+ * The clearance field a dowel search needs: deep enough either side of the face for the
+ * largest socket and its wall, sampled under the face as well (`TODO/core-075`).
+ *
+ * @param {Geom3} solid
+ * @param {number} axisIndex
+ * @param {number} cutMm
+ * @param {number} clearanceMm
+ */
+function dowelField(solid, axisIndex, cutMm, clearanceMm) {
+  return clearanceField(solid, axisIndex, cutMm, {
+    maxDepthMm: DOWEL_MAX_REACH_MM + clearanceMm,
+    maxBelowMm: DOWEL_MAX_REACH_MM + clearanceMm,
+    maxClearMm: Math.hypot(DOWEL_MAX_DIAMETER_MM / 2 + clearanceMm + JOINT_WALL_MM, 10),
+  })
+}
+
+/**
+ * Loose dowels found by the search (`TODO/core-075`).
+ *
+ * @param {Geom3} solid
+ * @param {Geom3} lower
+ * @param {Geom3} upper
+ * @param {ReturnType<typeof readParams>} read
+ * @param {number} cutMm
+ * @returns {JointPlan}
+ */
+function planDowels(solid, lower, upper, read, cutMm) {
+  const field = dowelField(solid, read.axisIndex, cutMm, read.clearanceMm)
+  const { stock, sizeMm } = read.jointOptions
+  const plan = dowelJoint({ field, lower, upper, clearanceMm: read.clearanceMm, stock, sizeMm })
+  if (plan) return plan
+  const thinnest = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
+  throw new Error(
+    `${OP}: no room for a dowel on the cut face (it is ${fmt(thinnest)} mm across at its narrowest, and a dowel needs ` +
+      `a socket plus a ${JOINT_WALL_MM} mm wall in both pieces) — cut further from an end, or choose Pins and sockets`
+  )
+}
+
+/**
  * The joint from a hand-given placement list (`TODO/core-059`).
  *
  * @param {Geom3} solid The uncut piece.
@@ -419,18 +536,50 @@ function planOn(solid, lower, upper, read, cutMm) {
 function planPlaced(solid, lower, upper, read, placements, cutMm) {
   // Deep and wide enough for a pin or a tongue search either; a hand placement is decided by
   // its exact containment check, and only reads the field to word a refusal.
-  const reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
-  const widest = Math.max(PIN_MAX_DIAMETER_MM, TONGUE_MAX_WIDTH_MM) / 2
-  const field = clearanceField(solid, read.axisIndex, cutMm, {
-    maxDepthMm: reach + read.clearanceMm,
-    maxClearMm: Math.hypot(widest + read.clearanceMm + JOINT_WALL_MM, 10),
-  })
+  const field = placementField(solid, read.axisIndex, cutMm, read.clearanceMm, placements)
   try {
     return placedJoint({ field, lower, upper, clearanceMm: read.clearanceMm, placements })
   } catch (error) {
     if (error instanceof PlacementRefusal) throw new Error(`${OP}: ${error.message}`)
     throw error
   }
+}
+
+/**
+ * The field a placement list is checked and searched on. A list with a dowel needs the deeper,
+ * two-sided field a dowel search reads; any other list gets exactly the field it always had.
+ *
+ * @param {Geom3} solid
+ * @param {number} axisIndex
+ * @param {number} cutMm
+ * @param {number} clearanceMm
+ * @param {readonly { kind: string }[]} placements
+ * @param {boolean} [dowelSeed] A face preview seeding from the dowel search.
+ */
+function placementField(solid, axisIndex, cutMm, clearanceMm, placements, dowelSeed = false) {
+  if (dowelSeed || placements.some((placement) => placement.kind === 'dowel')) {
+    return dowelField(solid, axisIndex, cutMm, clearanceMm)
+  }
+  const reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
+  const widest = Math.max(PIN_MAX_DIAMETER_MM, TONGUE_MAX_WIDTH_MM) / 2
+  return clearanceField(solid, axisIndex, cutMm, {
+    maxDepthMm: reach + clearanceMm,
+    maxClearMm: Math.hypot(widest + clearanceMm + JOINT_WALL_MM, 10),
+  })
+}
+
+/**
+ * What a split's key parts are called after: piece A's name without a trailing capital letter
+ * (`Plank A` → `Plank`), so a second split's `Plank B` / `Plank C` keep the same base.
+ *
+ * @param {[string, string] | null} names
+ * @param {string} nameA
+ * @returns {string}
+ */
+function keyBase(names, nameA) {
+  if (names === null && nameA === 'A') return ''
+  const match = /^(.*\S) [A-Z]$/.exec(nameA)
+  return match ? match[1] : nameA
 }
 
 /**
@@ -450,15 +599,60 @@ export function splitWithJoint(value, params) {
   const pieceA = plan.holes.length > 0 ? booleans.subtract(joined, ...plan.holes) : joined
   const pieceB = plan.sockets.length > 0 ? booleans.subtract(upper, ...plan.sockets) : upper
 
+  const keys = plan.keys ?? []
+  const hardware = plan.hardware ?? []
+  const axis = /** @type {'x' | 'y' | 'z'} */ (read.axis)
+
+  /**
+   * Piece A's metadata: what it already had, plus the hardware this joint needs.
+   *
+   * @param {import('./group.js').PartMeta | undefined} before
+   * @param {[string, string]} joins
+   * @returns {{ meta?: import('./group.js').PartMeta }}
+   */
+  const pieceAMeta = (before, joins) => {
+    if (hardware.length === 0) return before === undefined ? {} : { meta: before }
+    const added = hardware.map((item) => ({ ...item, joins, axis }))
+    return { meta: { ...(before ?? {}), role: before?.role ?? 'piece', hardware: [...(before?.hardware ?? []), ...added] } }
+  }
+
+  /**
+   * The key parts after everything else, numbered on from any already there.
+   *
+   * @param {import('./group.js').Group} group
+   * @param {[string, string]} joins
+   */
+  const addKeys = (group, joins) => {
+    if (keys.length === 0) return group
+    const base = keyBase(read.names, joins[0])
+    const stem = base === '' ? 'key' : `${base} key`
+    const pattern = new RegExp(`^${stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} (\\d+)$`)
+    let next = 1
+    for (const name of Object.keys(group.parts)) {
+      const found = pattern.exec(name)
+      if (found) next = Math.max(next, Number(found[1]) + 1)
+    }
+    let out = group
+    for (const key of keys) {
+      let name = `${stem} ${next}`
+      while (Object.hasOwn(out.parts, name)) name = `${stem} ${(next += 1)}`
+      next += 1
+      out = add(out, key.solid, name, { meta: { ...key.meta, joins, axis } })
+    }
+    return out
+  }
+
   if (piece.group === null || piece.partName === null) {
     const [nameA, nameB] = read.names ?? ['A', 'B']
-    return add(add(createGroup('split'), pieceA, nameA), pieceB, nameB)
+    const joins = /** @type {[string, string]} */ ([nameA, nameB])
+    return addKeys(add(add(createGroup('split'), pieceA, nameA, pieceAMeta(undefined, joins)), pieceB, nameB), joins)
   }
 
   const source = piece.group
   const crossed = piece.partName
   const nameA = read.names?.[0] ?? crossed
   const nameB = read.names?.[1] ?? `${crossed} B`
+  const joins = /** @type {[string, string]} */ ([nameA, nameB])
   for (const name of [nameA, nameB]) {
     if (name !== crossed && Object.hasOwn(source.parts, name)) {
       throw new Error(`${OP}: the body already has a part named "${name}" — choose another name for the new piece`)
@@ -469,19 +663,24 @@ export function splitWithJoint(value, params) {
     const color = source.colors?.[name]
     return color ? { color: color.color, colorAlpha: color.alpha } : {}
   }
+  /** @param {string} name */
+  const metaOf = (name) => {
+    const meta = partMetaOf(source, name)
+    return meta === undefined ? {} : { meta }
+  }
   let group = createGroup(source.name)
   for (const name of source.names) {
     if (name === crossed) {
-      group = add(group, pieceA, nameA, colorOf(crossed))
+      group = add(group, pieceA, nameA, { ...colorOf(crossed), ...pieceAMeta(partMetaOf(source, crossed), joins) })
       group = add(group, pieceB, nameB, colorOf(crossed))
     } else {
-      group = add(group, source.parts[name], name, colorOf(name))
+      group = add(group, source.parts[name], name, { ...colorOf(name), ...metaOf(name) })
     }
   }
   for (const name of hiddenNamesOf(source)) {
-    group = add(group, source.parts[name], name, { hidden: true, ...colorOf(name) })
+    group = add(group, source.parts[name], name, { hidden: true, ...colorOf(name), ...metaOf(name) })
   }
-  return group
+  return addKeys(group, joins)
 }
 
 /**
@@ -511,22 +710,18 @@ export function splitWithJoint(value, params) {
  * Preview a split's cut face for hand placement.
  *
  * @param {Geom3 | Group} value The uncut body.
- * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | null }} params
+ * @param {{ axis: string, offsetMm: number, clearanceMm?: number, placements?: PlacementParams[], seed?: 'pins' | 'tongue' | 'dowel' | null, seedOptions?: { stock?: 'printed' | 'steel' | 'filament', sizeMm?: number } }} params
+ *   `seedOptions` are a `dowel` seed's `jointOptions` (`TODO/core-075`).
  * @returns {FacePreview}
  * @throws {Error} The op's own refusal for a cut that is outside the body, crosses several
  *   parts or is not watertight.
  */
 export function previewSplitFace(value, params) {
-  const { placements: given = [], seed = null, ...rest } = params
+  const { placements: given = [], seed = null, seedOptions, ...rest } = params
   const read = readParams({ ...rest, joint: 'pins' })
   const placements = given.length === 0 ? [] : given.map((entry, index) => readPlacement(entry, index))
   const { cutMm, piece, lower, upper } = cut(value, read)
-  const reach = Math.max(PIN_MAX_REACH_MM, TONGUE_MAX_REACH_MM)
-  const widest = Math.max(PIN_MAX_DIAMETER_MM, TONGUE_MAX_WIDTH_MM) / 2
-  const field = clearanceField(piece.solid, read.axisIndex, cutMm, {
-    maxDepthMm: reach + read.clearanceMm,
-    maxClearMm: Math.hypot(widest + read.clearanceMm + JOINT_WALL_MM, 10),
-  })
+  const field = placementField(piece.solid, read.axisIndex, cutMm, read.clearanceMm, placements, seed === 'dowel')
 
   const { radiusMm, socketRadiusMm, socketDepthMm } = pinSizing(PIN_MIN_DIAMETER_MM, read.clearanceMm)
   const wallNeed = Math.hypot(socketRadiusMm + JOINT_WALL_MM, field.depthStepMm / 2)
@@ -540,11 +735,20 @@ export function previewSplitFace(value, params) {
   let autoError = ''
   if (seed !== null) {
     const args = { field, lower, upper, clearanceMm: read.clearanceMm }
-    const plan = seed === 'pins' ? pinJoint(args) : tongueGrooveJoint(args)
-    if (plan === null) autoError = `${OP}: the automatic search finds no room for a ${seed === 'pins' ? 'pin' : 'tongue'} on this cut face`
-    else {
+    const options = seed === 'dowel' ? readJointOptions(seedOptions, 'dowel') : null
+    const plan =
+      seed === 'pins'
+        ? pinJoint(args)
+        : seed === 'dowel' && options !== null
+          ? dowelJoint({ ...args, stock: options.stock, sizeMm: options.sizeMm })
+          : tongueGrooveJoint(args)
+    if (plan === null) {
+      const what = seed === 'pins' ? 'pin' : seed === 'dowel' ? 'dowel' : 'tongue'
+      autoError = `${OP}: the automatic search finds no room for a ${what} on this cut face`
+    } else {
       auto = plan.connectors.map((connector) => ({
         kind: connector.kind,
+        ...(connector.stock !== undefined && connector.stock !== 'printed' ? { stock: connector.stock } : {}),
         uMm: Number(connector.uMm.toFixed(3)),
         vMm: Number(connector.vMm.toFixed(3)),
         sizeMm: Number(connector.sizeMm.toFixed(3)),

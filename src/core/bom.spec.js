@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
+import modeling from '@jscad/modeling'
+
+import { hardwareOf } from './kernel/group.js'
+import { splitWithJoint } from './kernel/split.js'
 
 import { tallyBom } from './bom.js'
 
@@ -92,5 +96,49 @@ describe('tallyBom', () => {
       ])
       expect(rows.map((row) => `${row.label} ${row.detail}`)).toEqual(['Screw M4 PanHead × 8 mm', 'Bolt / screw M4 pan × 8 mm'])
     })
+  })
+})
+
+describe('stock dowels from a split (TODO/core-075 stage 1)', () => {
+  /** @param {'steel' | 'filament'} stock */
+  const splitBar = (stock) =>
+    splitWithJoint(modeling.primitives.cuboid({ size: [300, 20, 20], center: [150, 0, 0] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'dowel',
+      jointOptions: { stock },
+      clearanceMm: 0.2,
+      names: ['Bar A', 'Bar B'],
+    })
+
+  it('counts a split’s bought steel pins as one line per size, across bodies', () => {
+    const hardware = hardwareOf(splitBar('steel'))
+    expect(hardware.length).toBe(1)
+    const [pin] = hardware
+    const body = { op: 'primitive.cuboid', params: { size: [300, 20, 20] }, hardware }
+    const rows = tallyBom([body, body])
+    expect(rows).toEqual([
+      {
+        key: `stock.dowel|steel|Ø${pin.diameterMm} × ${pin.lengthMm} mm`,
+        op: 'modify.splitWithJoint',
+        label: 'Steel dowel pin',
+        detail: `Ø${pin.diameterMm} × ${pin.lengthMm} mm`,
+        count: 2 * pin.count,
+      },
+    ])
+  })
+
+  it('lists filament as lengths to cut, and printed dowels not at all (they are in the zip)', () => {
+    const [filament] = tallyBom([{ op: 'primitive.cuboid', params: {}, hardware: hardwareOf(splitBar('filament')) }])
+    expect(filament.label).toBe('1.75 mm filament')
+    expect(filament.detail).toMatch(/^Ø1\.75 × [\d.]+ mm lengths$/)
+    const printed = splitWithJoint(modeling.primitives.cuboid({ size: [300, 20, 20], center: [150, 0, 0] }), {
+      axis: 'x',
+      offsetMm: 150,
+      joint: 'dowel',
+      clearanceMm: 0.2,
+    })
+    expect(hardwareOf(printed)).toEqual([])
+    expect(tallyBom([{ op: 'primitive.cuboid', params: {}, hardware: hardwareOf(printed) }])).toEqual([])
   })
 })
