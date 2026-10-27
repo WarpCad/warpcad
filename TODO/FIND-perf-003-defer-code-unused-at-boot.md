@@ -108,6 +108,8 @@ M.
 - **`e2e/help-deep-link.e2e.js`** (`testing-012`) stays green: a cold `/#/help/<slug>` load must still
   open Help, because the `warpcad.com` home page (M20) links every docs page that way. Deferring
   `HelpSheet` would skip its `onMounted` hash read, and those links would land on an empty viewport.
+- **`e2e/share-link.e2e.js`** (`io-016`) stays green: a cold `/#/share/v1/…` load must open the Shared
+  view, so `useShareLink`, `SharedView` and `src/core/shareLink.js` must not be deferred behind a click.
 - **Unit (Vitest)**: `src/core/errorReporting.spec.js` — `initErrorReporting` with no/blank DSN still
   returns false and installs nothing; with a DSN it resolves the dynamic import (the existing
   `vi.mock('@sentry/vue')` still applies), calls `Sentry.init` with the same options, and an error

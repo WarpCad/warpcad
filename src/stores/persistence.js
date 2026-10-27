@@ -29,6 +29,10 @@
  * - `chipText` / `chipTone` / `errorMessage` / `loadWarning` / `dismissError()` — what the chip shows.
  * - `loading` — `Opening <name>…` / `Restoring your last session…` while a load is announced
  *   and folding, `''` otherwise. The File button reads busy from it (`TODO/core-032`).
+ * - `setAutosaveSuspended(flag)` / `autosaveSuspended` — `TODO/io-016`: the Shared view sets it
+ *   while it shows someone else's project, so opening a link never writes to IndexedDB.
+ * - `projectName` — the name the project was last opened or saved under (file extension
+ *   dropped), `''` when it has none; the Share sheet's default title (`TODO/io-016`).
  *
  * ## A load is announced before it folds (`TODO/core-032`)
  *
@@ -154,6 +158,16 @@ export function afterNextPaint() {
   })
 }
 
+/**
+ * A file name as a project name: the extension dropped (`phone-stand.ndjson` → `phone-stand`).
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function nameOfFile(name) {
+  return name.replace(/\.(ndjson|json|txt)$/i, '')
+}
+
 /** What a load that has no painted frame to wait for waits on: the next microtask. */
 const noPaint = () => Promise.resolve()
 
@@ -249,6 +263,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   const loading = ref('')
   const nextPaint = deps.nextPaint ?? noPaint
+  /** `TODO/io-016`: the name the project was last opened or saved under, or `''`. */
+  const projectName = ref('')
+  /** `TODO/io-016`: whether autosave is suspended (the Shared view is showing). */
+  const autosaveSuspended = ref(false)
 
   /**
    * `TODO/ai-009`: what this session last read from, or wrote to, the file it has a handle on —
@@ -590,6 +608,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     const text = serializeProject(documentStore.raw)
     const result = await deps.files.save(text, { saveAs })
     if (result.ok && result.mode === 'native') {
+      projectName.value = nameOfFile(result.name)
       // Now in step with the file this handle points at (a Save As points it somewhere new).
       diskKnown = { text, lastModified: null }
       clearPending()
@@ -640,6 +659,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
     errorMessage.value = ''
     loadWarning.value = ''
+    projectName.value = nameOfFile(name)
     if (loaded.skipped) {
       clearNotice()
       loadWarning.value = `Opened ${name}, but ${loaded.skipped}`
@@ -755,6 +775,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     documentStore.load([], null, DEFAULT_RESOLUTION)
     deps.files.forgetHandle()
     forgetDisk()
+    projectName.value = ''
     errorMessage.value = ''
     loadWarning.value = ''
     showNotice(`New project · ${clock(Date.now())}`, SAVED_NOTICE_MS)
@@ -968,6 +989,18 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (!busy && diskWaiting.value) void mergePendingDiskChange({ force: false })
   }
 
+  /**
+   * `TODO/io-016`: suspend or resume autosave. While suspended no edit, flush or page hide writes
+   * anything — the Shared view shows someone else's project and opening a link must never touch
+   * the stored session. A write that was already scheduled goes out on resume.
+   *
+   * @param {boolean} suspended
+   */
+  function setAutosaveSuspended(suspended) {
+    autosaveSuspended.value = suspended
+    autosaver.setSuspended(suspended)
+  }
+
   function dismissError() {
     mayHaveChanged.value = false
     errorMessage.value = ''
@@ -1022,5 +1055,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
     newProject,
     dismissError,
     announce,
+    projectName,
+    autosaveSuspended,
+    setAutosaveSuspended,
   }
 })

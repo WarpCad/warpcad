@@ -123,15 +123,15 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
 ## The File menu
 
 Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
-**History** and the status light. It works the same on a laptop, a tablet and a phone: tap
+**Share** and the status light. It works the same on a laptop, a tablet and a phone: tap
 it and a menu opens under it, with three groups: the items for **this device** at the top
-(**New**, the save item, **Open…**, **Merge file…**, **Export…**), a **Design** group holding the **Resolution**
+(**New**, the save item, **Open…**, **Merge file…**, **Share…**, **Export…**), a **Design** group holding the **Resolution**
 setting and **Project settings…** (see [Design intent](design-intent.md)), and **Hosted storage**
 below the last divider. The first line of the menu repeats the
 status message in full, which is how you read it on a phone, where the status light in the bar
 is only a dot.
 
-![The File menu open: a status line, then New, Download copy, Open…, Merge file… and Export…, a Design group with Resolution: Normal… and Project settings…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
+![The File menu open: a status line, then New, Download copy, Open…, Merge file…, Share… and Export…, a Design group with Resolution: Normal… and Project settings…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
 
 Opening the menu never changes what is selected, and nothing in it is greyed out because of
 what is selected.
@@ -139,7 +139,10 @@ what is selected.
 ### Saving a file you can keep — and what the item is called
 
 A project file is a plain text file named `warpcad-project.ndjson`. It holds the same steps
-autosave keeps, so it opens on any device, and it is what you hand to somebody else.
+autosave keeps, so it opens on any device, and it is what you hand to somebody else. To show a
+project to someone who doesn't use WarpCad, send a link instead: **Share**, then **Send…** or
+**Copy link** ([Sharing a project by link](sharing.md)). They tap it and see the model, with nothing
+to open or install.
 
 What the item is *called* depends on your browser, because browsers differ in what a web page
 may do:

@@ -86,6 +86,7 @@ just clicked, not both at once).
 **Last run**: 2026-10-22 14:54 UTC (`ui-081`, uncommitted tree) — **PASS** at 760x900 on Chromium, WebKit and Firefox (real `page.mouse`, jittered 26-step drags from the Primitives section pop-out). Cube then Cylinder dropped: both remained (1 then 2), and the pop-out stayed open after each drop. Clicks on empty grid and on each body selected only that body. Console and page errors: none.
 **Last run**: 2026-10-21 UTC (`ui-084`, uncommitted tree) — **PASS** at tablet 820x1180 and 900x1000 on Chromium and WebKit (real `page.mouse`, jittered 26-step drags from the icon-rail tiles, fresh context, dev server). Cube then Cylinder dropped: both remained (1 then 2); a click on open grid cleared the selection; a click on each body selected only that body. Re-driven because the Library became a 72 px icon rail at that width. Console and page errors: none.
 **Previous run**: 2026-10-21 UTC (`ui-079` stages 1–3, uncommitted tree) — **PASS** at laptop 1440x900 and tablet 820x1180 Chromium (real `page.mouse`, jittered 26-step Library drags, dev server). Re-driven because the Operations toolbar and the Library/viewport grid changed. Laptop: Cube then Cylinder dropped, both remained (Objects 2); a click on the cube selected only Cube 1, a click on the cylinder only Cylinder 1. Tablet: both remained; a click on the cylinder selected only Cylinder 1 (cube click not separately checked). Not driven: 720 px. Console and page errors: none.
+**Re-checked**: 2026-10-27 UTC — **PASS** (`io-016`, re-driven because the Open flow gained a Merge branch). Laptop 1440x900 Chromium, jittered mouse, two contexts, fallback Download copy / Open… / Merge file…: A (Cube, Cylinder) downloaded, B opened it, added a Sphere and downloaded, A moved the Cube (X 60, header Undo `Move Cube 1`) and merged B's file: strip `Merged 1 step from …` with **Undo merge**, 3 bodies, Cube still at X 60, header Undo unchanged; **Undo merge** gave 2 bodies, header Undo unchanged. Not driven: the conflict (step 6), phone/tablet, and a reload while the merged result was present.
 **Last run**: 2026-10-20 UTC (`data-014`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 26-step Library drags, fresh context, dev server). Re-driven because `document.js` key minting changed. Cube then Cylinder dropped: both remained (1 then 2); a click on open grid left nothing selected. Console and page errors: none.
 **Last run**: 2026-10-17 UTC (`ui-072`) — **PASS** at laptop 1440x900 and phone 390x844 Chromium against the dev server (real `page.mouse` at laptop; real CDP `Input.dispatchTouchEvent` at phone, 22-30 step drags 14-34 ms apart with jitter, fresh context). Re-driven because the finding was a phone Library drag that did not register. Cube then Cylinder dropped with the Library open: both remained (1 then 2) at both widths; a tap on each selected exactly one. At phone the sheet top sat at y=366 once the Inspector tab showed, so drops had to land above it (y 215 and 330); a first attempt aimed at y=130 landed on the Operations toolbar and opened a Bisect popover, an aim miss, not a defect. Console and page errors: none.
 **Last run**: 2026-10-17 UTC (`build-011`) — **PASS** at laptop 1440x900 and phone 390x844 Chromium against the production build (`vite preview`, real `page.mouse`, jittered 26-step Library drags, fresh context). Re-driven because the build pipeline (a new emitting plugin, the Workbox fallback denylist) and the Help footer changed. Cube then Cylinder dropped: both remained (0, 1, 2 bodies) at both widths. Help opened with `?`; **Third-party notices** opened `/THIRD-PARTY-NOTICES.txt` in a new tab naming `three` and `vue`. Console and page errors: none.
@@ -4275,5 +4276,56 @@ cubes are visible, History shows rows marked **via webmcp**, and one Undo AI tur
 all. On the hosted app the Live MCP dialog points to Browser agents instead of `npm run dev`.
 
 **Last run**: 2026-10-17 UTC (`ai-024`) — **PASS** on the hosted app (old build) in Chrome with the flag, laptop width, Claude in Chrome as the agent, with `navigator.modelContext` aliased by hand: ten 10 mm cubes along X at 20 mm spacing, ten History/Objects rows, one Undo AI turn left 0 objects. Without the alias the agent found no tools. Not driven: background tab, phone/tablet, the new chip text on a real agent run. The fake-`document.modelContext` e2e (`e2e/webmcp.e2e.js`) passes at three viewports.
+
+
+### 29. Send a project to someone who has never seen WarpCad
+
+Added 2026-10-27 with `TODO/io-016` (Stage 2). Number 28 is reserved by `testing-011`. Control
+names: **Share** (`share-open`, left of **File ▾**; **File ▾ → Share…** `file-share` where the
+header has no room for it), the Share sheet (`share-sheet`: `share-name`, **Send…** `share-send`,
+**Copy link** `share-copy`, **Send the file** `share-file`), the *Link copied* toast
+(`share-toast`), the Shared view (`shared-view`: **Make my own copy to edit** `shared-copy`, **Save
+a copy of the file** `shared-save-file`), the incomplete screen (`shared-incomplete`, **Start
+WarpCad** `shared-start`) and the existing **Replace the project?** confirm (`file-open-confirm`).
+
+**Steps** (two browsers or two devices; **re-drive it by hand on a real iPhone in Safari receiving
+the link in Messages**, which is the case the whole feature is for):
+1. On device A, drag a Cube and a Sphere in. Tap **Share**. Change the name to *Phone stand*.
+2. Tap **Send…** (phone) or **Copy link** (laptop) and send the link to device B by text or email.
+3. On device B, which has **never opened WarpCad** (or a private window), tap the link.
+4. On B, turn the model with one finger, pinch to zoom, tap the model, tap **Home** in the view box.
+5. On B, tap **Make my own copy to edit**. Move the Cube.
+6. Back on A, reload. Then on a device that already has a project of its own open, tap the same
+   link and tap **Make my own copy to edit**; **Cancel**, then again with **Download yours first**
+   and **Replace**.
+7. *Drive it differently on purpose:* cut the last 30 characters off the link and open it; open
+   the link in a tab that already has A's own project open (paste it into the address bar);
+   reload B right after the model appears.
+
+**Expect**:
+- Step 1: with an empty scene **Share** was dimmed and said *Nothing to share yet*; now it opens a
+  bottom sheet (phone) or a popover under the button (laptop) with the disclosure line visible.
+- Step 2: the OS share sheet shows *Here's a model I made in WarpCad: Phone stand* and the link;
+  closing it shows nothing. **Copy link** shows *Link copied, N.N KB*.
+- Step 3: the model appears straight away, large, under *Phone stand*, with the navigation pad and
+  the view box, one big **Make my own copy to edit** button in the thumb zone, and nothing else: no
+  toolbar, History, Library, Inspector, Assistant or File menu, nothing to dismiss. The address bar
+  no longer carries the project.
+- Step 4: the model turns and zooms by touch; tapping it selects nothing and changes nothing.
+- Step 5: the full editor with both shapes; B's copy is its own project (a later **Merge file…** of
+  A's file into it is refused as a different project); edits work and autosave.
+- Step 6: A's project is unchanged. On the device with its own project, the stored session is not
+  touched by opening the link; the copy button asks **Replace the project?** first, Cancel returns
+  to the shared model, and Replace swaps in the copy only after the download started.
+- Step 7: the cut link shows *This link looks incomplete* with **Start WarpCad**, never a half-loaded
+  project or a stack trace; the same-project link offers **Merge their changes** (with **Undo merge**
+  after it) or **Open theirs instead**, never a plain Replace; the reload opens the app, not the
+  shared copy.
+- At 390 px, 820 px and 1440 px: no horizontal scroll, every action a 44 px target, the header row
+  not clipped.
+- Never: opening a link that writes to the browser's stored session, a Replace without the
+  question, a Shared view with editor chrome, or a link that loads part of a project.
+
+**Last run**: 2026-10-27 UTC (`io-016`, Stage 2) — **PASS** with one flagged gap, driven by ad-hoc Playwright scripts with jittered `page.mouse` and CDP touch, separate contexts for A and B, clipboard and `navigator.share` stubbed. Laptop 1440x900 Chromium, all seven steps: empty scene dimmed *Nothing to share yet*; Copy link toast *Link copied, 0.5 KB* and the *Here's a model I made in WarpCad: Phone stand* text; B's cold open showed the Shared view with no editor chrome and the hash cleared; orbit, zoom, taps and **Home** changed nothing selected; **Make my own copy** gave the editor with both shapes and **Merge file…** of A's file into it was refused as a different project; A unchanged after reload. Variants: a link cut by 1, 30, 200 and 400 characters showed *This link looks incomplete* with **Start WarpCad**; the same project's link in A's tab offered **Merge their changes** / **Open theirs instead** (merge gave `Merged 1 step`, **Undo merge** took it out); reload right after the model appeared opened the app with nothing stored or lost; a context with its own project kept a byte-identical autosave (423 chars) before, after and 4 s after opening the link and after Cancel, **Replace the project?** appeared, Cancel returned, Download yours first then Replace worked; a hostile-intent link loaded as inert data (`window.__pwned` undefined, no assistant). Phone 390x844 and tablet 820x1180 (Chromium CDP touch, WebKit touchscreen taps): no horizontal scroll, header not clipped, Share sheet and the Shared view's own buttons 44 px or more, Send… called `navigator.share` with the right title, text and link. **Gap, not a regression:** the Shared view's nav pad and view box are 28-38 px, the editor's existing `--tap-compact` controls (VERIFY row 6). Not driven: a real iPhone in Safari receiving the link in Messages, a real OS share sheet, WebKit pinch and touch drag (mouse fallback), Firefox.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

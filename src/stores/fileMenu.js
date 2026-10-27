@@ -24,6 +24,16 @@
  * `persistence.saveFile`, which has no route into the hosted store, connected or not, with
  * auto-push on or off.
  *
+ * ## A shared project (`TODO/io-016`)
+ *
+ * The Shared view's **Make my own copy to edit** is an Open of text that is already in hand, so it
+ * goes through this same flow ({@link requestOpenShared}) instead of a second one: the same
+ * **Replace the project?** confirm when the browser holds content (with a **Save or download yours
+ * first** route, since the Shared view has no File menu), straight in when it holds nothing. The
+ * one extra branch: a link whose project id equals the open project's is the sender re-sending an
+ * update, so it asks **Merge their changes** (`mergeIn`, with its Undo-merge toast) or **Open
+ * theirs instead**, and never offers to replace with a stranger's copy.
+ *
  * ## What "non-empty" means
  *
  * Any step in the log, not the body count: a project whose every step is suppressed has no
@@ -33,7 +43,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef, toRaw } from 'vue'
 
 import { useAlignReferenceStore } from './alignReference.js'
 import { useDocumentStore } from './document.js'
@@ -44,7 +54,19 @@ import { usePersistenceStore } from './persistence.js'
 import { useProjectSettingsStore } from './projectSettings.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
 
-/** @typedef {'open' | 'load' | 'new'} ConfirmKind */
+/** @typedef {'open' | 'load' | 'new' | 'share' | 'share-update'} ConfirmKind */
+
+/**
+ * A shared project waiting to be opened (`TODO/io-016`).
+ *
+ * @typedef {object} SharedOpenRequest
+ * @property {string} name Its title, which the chip and the merge toast name it by.
+ * @property {string} copyText The project with a **new** project id — the recipient's own copy.
+ * @property {string} theirText The project as sent, its id unchanged — Merge and Open theirs.
+ * @property {string | null} projectId The id it was sent with, `null` for a legacy project.
+ * @property {() => void} leave Leave the Shared view (resume autosave) just before the load, so
+ *   the load is the change that autosaves.
+ */
 
 export const useFileMenuStore = defineStore('fileMenu', () => {
   const documentStore = useDocumentStore()
@@ -60,6 +82,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const connectOpen = ref(false)
   /** Which replace question is showing, or `null`. @type {import('vue').Ref<ConfirmKind | null>} */
   const confirm = ref(null)
+  /** `TODO/io-016`: the shared project the `share` / `share-update` question is about. */
+  const pendingShared = shallowRef(/** @type {SharedOpenRequest | null} */ (null))
   /** Resolves the hosted store's pending "replace?" question (`TODO/io-011`). */
   let replaceAnswer = /** @type {((answer: boolean) => void) | null} */ (null)
 
@@ -198,6 +222,55 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     void persistence.mergeFile()
   }
 
+  /**
+   * **Make my own copy to edit** in the Shared view (`TODO/io-016`) — {@link requestOpen} for text
+   * already in hand. The same project as the one open here (equal ids) asks Merge or Open theirs;
+   * anything to lose asks the replace question; an empty browser opens straight away.
+   *
+   * @param {SharedOpenRequest} request
+   */
+  function requestOpenShared(request) {
+    menuOpen.value = false
+    if (persistence.loading) return
+    pendingShared.value = request
+    const liveId = toRaw(documentStore.raw).mergeState().projectId
+    if (request.projectId !== null && liveId === request.projectId) {
+      confirm.value = 'share-update'
+      return
+    }
+    if (hasContent()) {
+      confirm.value = 'share'
+      return
+    }
+    openShared('copy')
+  }
+
+  /**
+   * Land the pending shared project: as the recipient's own copy (a new project id), as theirs
+   * (the id it came with), or merged into the open project.
+   *
+   * @param {'copy' | 'theirs' | 'merge'} how
+   */
+  function openShared(how) {
+    const request = pendingShared.value
+    pendingShared.value = null
+    if (request === null) return
+    request.leave()
+    if (how === 'merge') void persistence.mergeText(request.theirText, request.name)
+    else void persistence.openText(how === 'copy' ? request.copyText : request.theirText, request.name)
+  }
+
+  /** **Merge their changes** — the `share-update` question's merge answer. */
+  function confirmMerge() {
+    if (confirm.value !== 'share-update') return
+    confirm.value = null
+    if (persistence.loading) {
+      pendingShared.value = null
+      return
+    }
+    openShared('merge')
+  }
+
   /** `Load from owner/repo`: the same replace question, then a read of the repository. */
   function requestLoad() {
     menuOpen.value = false
@@ -224,16 +297,21 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     confirm.value = null
     if (persistence.loading) {
       if (kind === 'load') settleReplace(false)
+      pendingShared.value = null
       return
     }
     if (kind === 'open') void persistence.openFile()
     else if (kind === 'load') settleReplace(true)
     else if (kind === 'new') startNewProject()
+    // `share-update`'s replace answer is **Open theirs instead**: the same project, so its id stays.
+    else if (kind === 'share') openShared('copy')
+    else if (kind === 'share-update') openShared('theirs')
   }
 
   function cancelConfirm() {
     if (confirm.value === 'load') settleReplace(false)
     confirm.value = null
+    pendingShared.value = null
   }
 
   function openConnect() {
@@ -267,6 +345,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     if (confirm.value !== null) {
       if (confirm.value === 'load') settleReplace(false)
       confirm.value = null
+      pendingShared.value = null
       return true
     }
     if (connectOpen.value) {
@@ -297,7 +376,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     requestNew,
     requestMerge,
     requestLoad,
+    requestOpenShared,
+    pendingShared,
     confirmReplace,
+    confirmMerge,
     cancelConfirm,
     openConnect,
     closeConnect,

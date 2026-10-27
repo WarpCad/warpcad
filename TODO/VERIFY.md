@@ -36,15 +36,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
-### io-016 — Share a project by link, Stage 1 (2026-10-27 12:20)
+### io-016 — Share a project by link (2026-10-27 19:15)
 
-The format and its decision record landed without the device measurements the spec's step 0 asks for. Payload sizes are measured (largest real project: 2,303 URL characters); where a real client breaks is not.
+Both stages landed and were hand-driven in headless Chromium and WebKit, but nothing here could be tried on a real phone. Payload sizes are measured (largest real project: 2,303 URL characters); where a real client breaks is not.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Paste a long share URL (try the dovetail example's link, then a padded one around 6, 10 and 20 KB) into an iPhone Messages thread and a Gmail draft; record where each stops linkifying, wraps badly or truncates, then set the ceiling in `docs/decisions/share-link.md` | Open | |
 | 2 | Does `navigator.share` exist inside a Tauri WKWebView (iOS and macOS)? Record the answer for `build-018`'s probe list | Open | |
 | 3 | Does an unpadded base64url payload survive being tapped in Messages and Mail without a trailing character being eaten (`-`, `_` at the end)? | Open | |
+| 4 | Stage 2 (2026-10-27): the link preview card Messages draws for a WarpCad share link — does it use the generic `og:title` / `og:description` / `og:image` from `index.html` (the WarpCad social preview), and does the card hide or mangle the link? | Open | |
+| 5 | Stage 2: how a share link looks and behaves in Gmail on Android (linkified whole? the Shared view opens in Chrome from the Gmail in-app browser?) | Open | |
+| 6 | Phone and tablet: the Shared view's nav pad and view box are the editor's compact 28-38 px controls, not 44 px (`--tap-compact`, unchanged by this task). Is that acceptable for someone using it for the first time with a thumb, or should the Shared view get full-size chrome? File it as its own TODO if not | Open | |
+| 7 | Scenario 29 on a real iPhone in Safari receiving the link in Messages: tap, orbit with a finger, pinch, **Make my own copy to edit** | Open | |
 
 
 ### core-075 stage 4 — seam profiles: sliding dovetail, puzzle tabs, half lap, finger joint (2026-10-27 17:05)

@@ -240,8 +240,10 @@ test.describe('undo / redo', () => {
     // so these buttons are the *only* path to undo there.
     for (const button of [undo, redo]) {
       const box = await button.boundingBox()
-      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44)
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+      // 0.01px of slack for float error only: at a fractional x Firefox's boundingBox subtracts two
+      // float32 edges and reports a 44px box as 43.99998 (the DOM's own width is exactly 44).
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01)
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01)
     }
 
     // No horizontal overflow of primary UI at any reference viewport.

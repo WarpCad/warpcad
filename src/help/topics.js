@@ -46,6 +46,8 @@ export const TOPICS = Object.freeze({
   resolution: { page: 'resolution', anchor: 'the-four-settings', title: 'Resolution' },
   'project-settings': { page: 'design-intent', anchor: 'set-your-projects-standing-instructions', title: 'Project settings' },
   hosted: { page: 'save-load', anchor: 'keeping-a-copy-in-a-github-repository', title: 'Hosted storage' },
+  // The header's Share sheet (`TODO/io-016`).
+  share: { page: 'sharing', anchor: 'send-a-project', title: 'Share' },
   // Sketching.
   sketch: { page: 'sketch-mode', anchor: 'the-four-drawing-tools', title: 'Sketch' },
   slices: { page: 'sketch-mode', anchor: 'slices', title: 'Slices' },

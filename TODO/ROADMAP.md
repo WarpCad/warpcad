@@ -55,20 +55,19 @@ this repository still need a green full run before they are pushed.
 | 9 | `M19` | [`testing-011`](M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28, the iOS app end to end, on the iPhone; free-form pass | The only check a fake Tauri boundary cannot stand in for | sonnet |
 | 10 | `M19` | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store listing, privacy, licence audits; stops at the owner's **Submit** | Ends at the Part 6 legal gate | sonnet |
 | 11 | `M20` | ▶ M20 home page: [`docs-026`](M20-docs-026-home-page-site-decision.md) → [`build-021`](M20-build-021-home-page-repo-scaffold.md) → [`testing-012`](M20-testing-012-help-deep-link-from-outside.md) → [`docs-028`](M20-docs-028-docs-home-and-published-help-contract.md) → [`docs-027`](M20-docs-027-home-page-content-and-docs-links.md) → [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) | `warpcad.com` is a parking page; the docs can only be found from inside the app. `docs-026` and `testing-012` are ready | sonnet |
-| 12 | `FIND` | ▶ [`io-016`](FIND-io-016-share-a-project-by-link.md) Share a project by link: **Share → Send…**, and the recipient taps it and sees the model, no install, no account | Owner request 2026-10-26: send projects to a non-CAD relative by text or email. Web first; its link format is the one the native app's Universal Links will open (`io-018`, after `build-017`) | opus |
-| 13 | `FIND` | ▶ [`ui-079`](FIND-ui-079-tiered-library-and-operations-panels.md) Shrink the Library and Operations panels between laptop and phone width | High; stages 1–3 are implemented per its file | opus |
-| 14 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
-| 15 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
-| 16 | `FIND` | ▶ [`ui-078`](FIND-ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | No width left after `ui-075` | sonnet |
-| 17 | `FIND` | ▶ [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note wording | Small | sonnet |
-| 18 | `FIND` | ▶ [`perf-003`](FIND-perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Faster cold start | sonnet |
-| 19 | `FIND` | ▶ [`testing-005`](FIND-testing-005-triage-verify-md-open-rows.md) Triage the ~347 open rows in `TODO/VERIFY.md` | Keeps the manual queue small | sonnet |
-| 20 | `FIND` | ▶ [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet flake under load | Low | sonnet |
-| 21 | `FIND` | ▶ [`ai-030`](FIND-ai-030-list-ops-summary-and-filter.md) and ▶ [`ai-027`](FIND-ai-027-mcp-instructions-carry-the-working-method.md) → [`ai-028`](FIND-ai-028-mcp-guide-resource.md) → [`ai-029`](FIND-ai-029-mcp-prompts-as-slash-commands.md) Teach agents WarpCad up front: a cheap `list_ops`, instructions, a guide resource, slash-command recipes and a Copy starter button | Agents relearn the tools every session; `list_ops` alone is ~7.6k tokens a call, the MCP instructions 1.1k characters against the in-app prompt's 9.8k | sonnet |
-| 22 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
-| 23 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
-| 24 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
-| 26 | `M11` | Gears (M11, runs last): `ui-057` → `ui-058` → `core-048` → `core-049` → `core-062` → `testing-002` → `docs-021` | Order from M11's suggested order | sonnet / opus |
+| 12 | `FIND` | ▶ [`ui-079`](FIND-ui-079-tiered-library-and-operations-panels.md) Shrink the Library and Operations panels between laptop and phone width | High; stages 1–3 are implemented per its file | opus |
+| 13 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
+| 14 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
+| 15 | `FIND` | ▶ [`ui-078`](FIND-ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | No width left after `ui-075` | sonnet |
+| 16 | `FIND` | ▶ [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note wording | Small | sonnet |
+| 17 | `FIND` | ▶ [`perf-003`](FIND-perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Faster cold start | sonnet |
+| 18 | `FIND` | ▶ [`testing-005`](FIND-testing-005-triage-verify-md-open-rows.md) Triage the ~347 open rows in `TODO/VERIFY.md` | Keeps the manual queue small | sonnet |
+| 19 | `FIND` | ▶ [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet flake under load | Low | sonnet |
+| 20 | `FIND` | ▶ [`ai-030`](FIND-ai-030-list-ops-summary-and-filter.md) and ▶ [`ai-027`](FIND-ai-027-mcp-instructions-carry-the-working-method.md) → [`ai-028`](FIND-ai-028-mcp-guide-resource.md) → [`ai-029`](FIND-ai-029-mcp-prompts-as-slash-commands.md) Teach agents WarpCad up front: a cheap `list_ops`, instructions, a guide resource, slash-command recipes and a Copy starter button | Agents relearn the tools every session; `list_ops` alone is ~7.6k tokens a call, the MCP instructions 1.1k characters against the in-app prompt's 9.8k | sonnet |
+| 21 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
+| 22 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
+| 23 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
+| 25 | `M11` | Gears (M11, runs last): `ui-057` → `ui-058` → `core-048` → `core-049` → `core-062` → `testing-002` → `docs-021` | Order from M11's suggested order | sonnet / opus |
 
 `core-065` stays parked (decided 2026-10-17: keep the Albany table for now) and is not ranked.
 
@@ -146,7 +145,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Findings | [`ai-028`](FIND-ai-028-mcp-guide-resource.md) The full modelling guide as the MCP resource `warpcad://guide`, one text with the in-app prompt | feature | high | sonnet | ⏳ after `ai-027` |
 | Findings | [`ai-029`](FIND-ai-029-mcp-prompts-as-slash-commands.md) MCP prompts `start`, `build`, `check-print` (Claude Code slash commands), plus Copy starter buttons in the Assistant | feature | medium | sonnet | ⏳ after `ai-028` |
 | Findings | [`ai-030`](FIND-ai-030-list-ops-summary-and-filter.md) `list_ops` summary and per-op filter, so learning the catalogue stops costing ~7.6k tokens a call | feature | high | sonnet | ▶ **ready** |
-| Findings | [`io-016`](FIND-io-016-share-a-project-by-link.md) Share a project by link, with a read-only Shared view for the recipient | feature | high | opus | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 |  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
 |  | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet; waits on `ui-062` |
@@ -307,7 +305,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `ai-028` | Serve the full modelling guide as `warpcad://guide` on both MCP servers, split out of `SYSTEM_PROMPT` so one text serves both. Filed 2026-10-26 | Feature | `ai-027` | 23, 25 (17, 18 if the chat prompt changes) |
 | `ai-029` | Three MCP prompts (`start`, `build`, `check-print`), shown as `/mcp__warpcad__…` in Claude Code, each embedding the guide; **Copy starter** buttons in the subscription and Live MCP sheets. Filed 2026-10-26 | Feature | `ai-028` | 1, 23, 25 |
 | `ai-030` | `list_ops` takes `detail: summary` (~4.1k vs 30.5k characters), `ops: [...]` and `kind`; no input unchanged; guidance names the cheap path. Filed 2026-10-26 | Feature | — | 17, 23, 24, 25, 27 |
-| `io-016` | Share a project by link (`#/share/v1/…`, the project deflated into the URL fragment) and a read-only Shared view for the recipient; gist overflow (`io-017`) and native Universal Links (`io-018`) reserved. Filed 2026-10-26 at the owner's request | Feature | — | 22, new 29 |
 
 ---
 
@@ -418,7 +415,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 14 | `io-016`, `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ai-027`, `ai-028`, `ai-029`, `ai-030`. |
+| [Findings](#findings-open-rows) | 13 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ai-027`, `ai-028`, `ai-029`, `ai-030`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family. |
 

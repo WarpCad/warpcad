@@ -110,6 +110,8 @@ toolbars. Its icon is a dark cube in a blue-white flash, with stars streaking ou
 - [Moving around the 3D view](viewport-navigation.md): orbit, pan, zoom and the orientation triad.
 - [Combining shapes](booleans.md), [Align](snap-align.md), [Fillet and Chamfer](fillet-chamfer.md): the rest of the Operations toolbar.
 - [Sketch primitives](sketch-mode.md): draw an outline and turn it into a solid.
+- [Sharing a project by link](sharing.md): tap **Share** to send your model to anyone as a link
+  they can open on their phone, with nothing to install.
 - [Using the built-in help](help.md): press the **?** in any tool's pop-up, or **File ▾ → Help and documentation**, to read about it without leaving your project.
 - [The full list of pages](README.md).
 

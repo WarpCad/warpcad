@@ -14,6 +14,8 @@
  * - **Popover**, teleported to `<body>` (the `ui-026`/`ui-028` pattern) with a click-catching
  *   backdrop, at the z-index tier the Q&A fixes (popover 31 — above the Inspector sheet 11 and
  *   the Library sheet 20; dialogs 40).
+ * - **Share…** (`TODO/io-016`) opens the header's Share sheet — the route where the Share button is
+ *   not in the row (the dev host's phone header).
  * - **Two visibly separate groups**: this device (`Save`/`Save As…`/`Download copy`, `Open…`)
  *   and, below a divider, **Hosted storage** (`Connect repository…`, or once connected `Save
  *   to` / `Load from` / `Auto-push` / `Replace token…` / `Disconnect`).
@@ -116,6 +118,8 @@ import ProjectSettingsDialog from './ProjectSettingsDialog.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
 import ResolutionPopover from './ResolutionPopover.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
+import { useDocumentStore } from '../../stores/document.js'
+import { useShareStore } from '../../stores/share.js'
 
 const menu = useFileMenuStore()
 const merge = useMergeStore()
@@ -130,6 +134,21 @@ const placement = usePlacementStore()
 const transformPreview = useTransformPreviewStore()
 const sketchEditor = useSketchEditorStore()
 const surface = useStatusSurface()
+const documentStore = useDocumentStore()
+const share = useShareStore()
+
+/** `TODO/io-016`: why **Share…** is dimmed — the Share button's own precondition — or `''`. */
+const shareReason = computed(() => (documentStore.bodies.length === 0 ? 'Nothing to share yet' : ''))
+
+/**
+ * **Share…** (`TODO/io-016`): the header's Share sheet, for where that button is not in the row (the
+ * dev host's phone header, which the Live MCP entry fills) and for anyone who looks here first.
+ */
+function requestShare() {
+  if (shareReason.value !== '') return
+  menu.closeMenu()
+  share.requestSheet()
+}
 
 // Reactive: a refused in-place write flips this to the download shape mid-session (`TODO/io-008`).
 const capabilities = computed(() => persistence.fileCapabilities)
@@ -428,6 +447,20 @@ onBeforeUnmount(() => {
               @click="reloadFromDisk()"
             >
               Reload from disk…
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-share"
+              :aria-disabled="shareReason !== '' ? 'true' : undefined"
+              :aria-describedby="shareReason !== '' ? 'file-share-reason' : undefined"
+              @click="requestShare()"
+            >
+              <span>Share…</span>
+              <span v-if="shareReason !== ''" id="file-share-reason" class="file-menu__reason" data-testid="file-share-reason">
+                {{ shareReason }}
+              </span>
             </button>
             <button
               type="button"

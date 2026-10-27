@@ -439,3 +439,97 @@ describe('createAutosaver — the synchronous mirror', () => {
     expect(await saver.restore()).toEqual({ kind: 'empty' })
   })
 })
+
+/**
+ * `TODO/io-016`: while the Shared view shows someone else's project, autosave is **suspended** —
+ * opening a link must never write to IndexedDB, so a person with a saved session loses nothing by
+ * looking. The flag is the whole change to the scheduler: no write, no mirror copy, no status.
+ */
+describe('createAutosaver — suspended (the Shared view)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-19T12:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** A mirror that records every write and clear. */
+  function countingMirror() {
+    const mirror = {
+      /** @type {any} */
+      record: null,
+      writes: 0,
+      cleared: 0,
+      /** @param {any} record */
+      write(record) {
+        mirror.writes += 1
+        mirror.record = record
+      },
+      read: () => mirror.record,
+      clear() {
+        mirror.cleared += 1
+        mirror.record = null
+      },
+    }
+    return mirror
+  }
+
+  it('starts unsuspended', () => {
+    const { saver } = autosaver({ backend: memoryBackend() })
+    expect(saver.suspended()).toBe(false)
+  })
+
+  it('ignores changes, flush() and flushSync() while suspended: nothing reaches the store or the mirror', async () => {
+    const backend = memoryBackend()
+    const mirror = countingMirror()
+    const { saver, statuses } = autosaver({ backend, mirror })
+    saver.setSuspended(true)
+    saver.notifyChange()
+    saver.notifyChange()
+    saver.flushSync()
+    await saver.flush()
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(backend.writes).toEqual([])
+    expect(mirror.writes).toBe(0)
+    expect(statuses).toEqual([])
+  })
+
+  it('holds a write that was already scheduled when it is suspended, and sends it on resume', async () => {
+    const backend = memoryBackend()
+    const { saver, setText } = autosaver({ backend })
+    setText('my last edit')
+    saver.notifyChange()
+    saver.setSuspended(true)
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(backend.writes).toEqual([])
+    saver.setSuspended(false)
+    await vi.advanceTimersByTimeAsync(600)
+    expect(backend.writes.map((record) => record.text)).toEqual(['my last edit'])
+  })
+
+  it('resuming writes nothing by itself; the next change writes the then-current text', async () => {
+    const backend = memoryBackend()
+    const { saver, setText } = autosaver({ backend })
+    saver.setSuspended(true)
+    saver.notifyChange()
+    saver.setSuspended(false)
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(backend.writes).toEqual([])
+    setText('the copy')
+    saver.notifyChange()
+    await vi.advanceTimersByTimeAsync(600)
+    expect(backend.writes.map((record) => record.text)).toEqual(['the copy'])
+  })
+
+  it('still restores while suspended (a read), and leaves a stale mirror alone instead of clearing it', async () => {
+    const backend = memoryBackend()
+    backend.stored = { text: 'saved session', savedAt: 2000 }
+    const mirror = countingMirror()
+    mirror.record = { text: 'older', savedAt: 1000 }
+    const { saver } = autosaver({ backend, mirror })
+    saver.setSuspended(true)
+    expect(await saver.restore()).toEqual({ kind: 'found', text: 'saved session', savedAt: 2000 })
+    expect(mirror.cleared).toBe(0)
+  })
+})

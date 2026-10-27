@@ -640,8 +640,10 @@ test.describe('the save-status chip in the header bar', () => {
     // push the cluster's right edge outward or wrap the header.
     expect((bar?.x ?? 0) + (bar?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) - 8)
     // Undo/Redo keep their 44px tap targets, and the chip never overlaps them.
-    expect(undo?.width).toBeGreaterThanOrEqual(44)
-    expect(redo?.width).toBeGreaterThanOrEqual(44)
+    // (0.01px of slack for float error only: Firefox's boundingBox reports a 44px box at a fractional x
+    // as 43.99998, while the DOM's own width is exactly 44.)
+    expect(undo?.width).toBeGreaterThanOrEqual(44 - 0.01)
+    expect(redo?.width).toBeGreaterThanOrEqual(44 - 0.01)
     expect((chipBox?.x ?? 0)).toBeGreaterThanOrEqual((redo?.x ?? 0) + (redo?.width ?? 0) - 1)
     expect((dot?.width ?? 0)).toBeGreaterThanOrEqual(9)
     const overflow = await page.evaluate(

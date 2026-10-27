@@ -37,6 +37,9 @@ import { startLiveBridge } from '../composables/useLiveBridge.js'
 import { startWebMcp } from '../composables/useWebMcp.js'
 import HelpEntryButton from '../components/layout/HelpEntryButton.vue'
 import HelpSheet from '../components/layout/HelpSheet.vue'
+import ShareSheet from '../components/layout/ShareSheet.vue'
+import SharedView from '../components/layout/SharedView.vue'
+import { useShareLink } from '../composables/useShareLink.js'
 import UpdateToast from '../components/layout/UpdateToast.vue'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
@@ -53,6 +56,7 @@ import { useLibraryStore } from '../stores/library.js'
 import { usePanelLayoutStore } from '../stores/panelLayout.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 import { useRepeatStore } from '../stores/repeat.js'
+import { useShareStore } from '../stores/share.js'
 import { useSketchEditorStore } from '../stores/sketchEditor.js'
 import { useTimelineStore } from '../stores/timeline.js'
 
@@ -75,6 +79,12 @@ const aiChat = useAiChatStore()
 // A blocked or empty store is an empty section, never a startup failure.
 const library = useLibraryStore()
 const appUpdate = useAppUpdateStore()
+// A share link (`TODO/io-016`), read here in `setup` — beside where Help reads `#/help/<slug>`, and
+// before `onMounted` boots storage, because opening a link suspends autosave first. While it shows,
+// the Shared view replaces the editor below; it is never code-split behind a click.
+const share = useShareStore()
+const shareLink = useShareLink()
+const sharedShowing = computed(() => share.phase !== 'off')
 /** The chat sheet's state for CSS: its height name while open, `none` otherwise (`TODO/ai-006`). */
 const chatSheet = computed(() => {
   if (assistant.view !== 'chat') return 'none'
@@ -250,15 +260,29 @@ const appBody = ref(null)
 /** @type {ResizeObserver | null} */
 let bodyObserver = null
 watch(chatSheet, (sheet) => panelLayout.setChatColumn(sheet !== 'none'), { immediate: true, flush: 'sync' })
-onMounted(() => {
-  if (!appBody.value || typeof ResizeObserver === 'undefined') return
-  bodyObserver = new ResizeObserver((entries) => {
-    const entry = entries[entries.length - 1]
-    if (entry) panelLayout.setBodyWidth(entry.contentRect.width)
-  })
-  bodyObserver.observe(appBody.value)
-})
+// Watched rather than read once on mount: behind a share link (`TODO/io-016`) the editor, and so
+// `.app__body`, first appears when the Shared view is left.
+watch(
+  appBody,
+  (body) => {
+    bodyObserver?.disconnect()
+    bodyObserver = null
+    if (!body || typeof ResizeObserver === 'undefined') return
+    bodyObserver = new ResizeObserver((entries) => {
+      const entry = entries[entries.length - 1]
+      if (entry) panelLayout.setBodyWidth(entry.contentRect.width)
+    })
+    bodyObserver.observe(body)
+  },
+  { flush: 'post' },
+)
 onBeforeUnmount(() => bodyObserver?.disconnect())
+// The editor's sheets unmount behind the Shared view; their last reported state must not outlive them.
+watch(sharedShowing, (showing) => {
+  if (!showing) return
+  inspectorSheet.value = 'none'
+  libraryOpen.value = false
+})
 
 /**
  * The grid's own track transition has run (`TODO/ui-079` stage 7): a growing panel's wide content
@@ -296,6 +320,10 @@ function onInspectorClaim() {
 
 <template>
   <div class="app" data-testid="app-root">
+    <!-- The Shared view (TODO/io-016): someone's project from a link, read-only, in place of the
+         whole editor — no toolbar, timeline, library, inspector, assistant or File menu. -->
+    <SharedView v-if="sharedShowing" @start="shareLink.leave()" />
+    <template v-else>
     <header class="app__bar" data-testid="app-header">
       <!-- The title and the version label (`TODO/ui-077`): read-only, always shown, never wraps.
            Beside the title on a laptop; stacked under it at phone width, where the row has no room
@@ -317,6 +345,8 @@ function onInspectorClaim() {
       <div class="app__document-bar" data-testid="document-bar">
         <HistoryControls />
         <TimelineToggle />
+        <!-- TODO/io-016: send the whole project as a link, left of File ▾. -->
+        <ShareSheet />
         <FileMenu />
         <HelpEntryButton />
         <SaveStatus />
@@ -391,8 +421,9 @@ function onInspectorClaim() {
     <ConnectClaudeCode />
     <!-- The Save to library… sheet and its "Saved <name>" toast (TODO/ui-055). -->
     <SaveToLibrarySheet />
+    </template>
     <!-- The in-app docs (TODO/ui-061): over every pop-up (modal tier 50/51), opened by any ? button,
-         File ▾ → Help or the ? / F1 keys. -->
+         File ▾ → Help or the ? / F1 keys. Outside the editor so a help link still works whatever shows. -->
     <HelpSheet />
   </div>
 </template>
@@ -424,6 +455,11 @@ function onInspectorClaim() {
   /* Right-aligned, and the thing that pushes it there — so the cluster stays put
      as `ui-032`/`ui-033` add controls beside it. */
   margin-left: auto;
+  /* May shrink below its content (`TODO/io-016`): the save-status chip's nowrap notice otherwise sets
+     the cluster's minimum, and a long "Opened <name> · N steps" pushed the Assistant button off the
+     820px tablet row. The hint gives way first (`.app__hint`'s shrink weight), then only the chip (to
+     its own 132px floor, ellipsised); every button keeps its size. */
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -467,6 +503,9 @@ function onInspectorClaim() {
 }
 
 .app__hint {
+  /* Gives way before the document bar does (`TODO/io-016`): shrink is weighted by size, and without
+     this the shrinkable bar would take part of the squeeze while the hint still had room. */
+  flex-shrink: 1000;
   margin: 0;
   font-size: 12px;
   color: var(--text-3);
@@ -706,6 +745,16 @@ function onInspectorClaim() {
      rather than shrunk, per the cross-cutting phone budget: title ~60px + Undo
      44 + Redo 44 + the controls still to come + gaps ≈ 320px at 390px wide. */
   .app__hint {
+    display: none;
+  }
+}
+
+/* `TODO/io-016`: the dev host's phone header also carries the Live MCP entry (`ui-075`, dev-only), and
+   with Share as well the row is 45px too wide (measured 435px at 390). There, and only there, Share
+   steps out of the row and **File ▾ → Share…** is its route — the precedent `HelpEntryButton` set.
+   A hosted copy has no Live MCP entry, so its phone header keeps Share (measured: exactly 390px). */
+@media (max-width: 480px) {
+  .app__bar:has([data-testid='live-mcp-button']) :deep(.share-root) {
     display: none;
   }
 }

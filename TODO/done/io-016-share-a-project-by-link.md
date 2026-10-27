@@ -6,18 +6,20 @@ priority: high
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-10-26 at the owner's request)
 depends: []
-status: open
+status: done
 ---
 
-> **Progress (2026-10-27): Step 0 and Stage 1 shipped; Stage 2 is still open.** Done: `docs/decisions/share-link.md`
-> (options, rejection table, measured sizes for every project file: the largest real one is 2,303 URL
-> characters), `src/core/shareLink.js` + `shareLink.spec.js` (`encodeShareLink`, `decodeShareLink`,
-> `isShareLink`; truncation at every position, deflate bomb, hostile fixtures), and the scrubbed-share-URL
-> case in `errorReporting.spec.js`. **Not done, by design of this run:** the iPhone Messages / Gmail
-> measurement and the Tauri `navigator.share` probe (need hardware; queued in `TODO/VERIFY.md`, so the
-> 6 KB ceiling is still the estimate), and all of Stage 2: `useShareLink`, `ShareSheet`, `SharedView`,
-> autosave suspension, Replace/Merge branches, `index.html` meta, `docs/sharing.md`, the e2e spec and
-> docs media, and scenario 29. `status` stays `open`; start the next run at Stage 2.
+> **Shipped (2026-10-27) in two commits: Stage 1 (`8fbe0e5`) and Stage 2.** The format, the decision record,
+> the Share sheet, the Shared view, autosave suspension and the Replace/Merge branches are in, with
+> `docs/sharing.md` and the two docs pictures. Hand-driven (scenario 29 minus the iPhone, scenario 22, and
+> the `ui-072`, Help-hash and `io-008` re-runs): no functional bug. **Not done, by design:** the
+> hardware checks (iPhone Messages / Gmail length ceiling, `navigator.share` in a Tauri WKWebView, the
+> Messages preview card, Gmail on Android, scenario 29 on a real iPhone) are `TODO/VERIFY.md` rows 1-6, so
+> the 6,000-character ceiling is still the estimate; and the **Stage 3 (`io-017`, gist overflow) and
+> Stage 4 (`io-018`, native Universal Links) task files are not written yet** (rows reserved in the
+> roadmap). Two things differ from the file as written: **Share** is icon-only below 1100 px and, on the
+> dev host's phone header only, moves into **File ▾ → Share…** (width budget, `ui-078`); and the Shared
+> view's nav pad and view box keep the editor's compact 28-38 px controls rather than 44 px (VERIFY row 6).
 
 ## Goal
 

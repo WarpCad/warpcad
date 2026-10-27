@@ -2466,3 +2466,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** project in the fragment, deflated + base64url → diff (shareLink.js); no server sees it → diff (docs/decisions/share-link.md; a fragment is not sent in HTTP requests); 2,303 characters for the biggest example → measure script run this session on examples/dovetail-phone-holder.ndjson (7,203 bytes raw); Share button is next → TODO/FIND-io-016 Stage 2 still open
 **To Add:** nothing until the Share sheet exists
+
+## 2026-10-27T19:15:00Z — Share a project by link: Share button, Shared view, one-button copy to edit
+
+**Post:** WarpCad can now send a project as a link. Tap Share, send it, and the other person sees the model on their phone and turns it with a finger. No install, no account. The project rides in the URL fragment, so no server sees it. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Share, then send → diff (ShareSheet.vue, docs/sharing.md); recipient sees the model and turns it by touch → hand-driven this session (CDP touch orbit at 390x844 and 820x1180, Chromium; WebKit used a mouse fallback); no install, no account → diff (static app, docs/sharing.md); fragment so no server sees it → docs/decisions/share-link.md; Not driven: a real iPhone receiving the link in Messages (TODO/VERIFY.md row 7)
+**To Add:** docs/screenshots/share-sheet.png and shared-view.png

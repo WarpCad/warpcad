@@ -61,6 +61,7 @@ const SURFACES = Object.freeze([
   'src/components/sketch/ScaleTool.vue',
   'src/components/layout/LibraryPanel.vue',
   'src/components/layout/SaveToLibrarySheet.vue',
+  'src/components/layout/ShareSheet.vue',
   'src/components/features/SplitSheet.vue',
   'src/components/viewport/RepeatSheet.vue',
   'src/components/ai/ChatPanel.vue',

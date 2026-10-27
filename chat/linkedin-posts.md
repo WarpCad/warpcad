@@ -3552,3 +3552,16 @@ The largest example project comes out at 2,303 characters. The Share button and 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** no backend → CLAUDE.md Stack (static GitHub Pages); fragment not sent to a server → docs/decisions/share-link.md; caps before and during decode, bomb cancelled, bad line refuses link → diff (shareLink.js) and shareLink.spec.js passing this session; truncation at every position → shareLink.spec.js; 2,303 characters → measure script this session; next stage and phone check outstanding → TODO/FIND-io-016, TODO/VERIFY.md
 **To Add:** nothing until the Share sheet exists
+
+## 2026-10-27T19:15:00Z — Share a project by link: the sender's sheet and the recipient's read-only view
+
+**Post:** WarpCad can now send a project to someone as a link. You tap Share, send it by text or email, and the other person sees your model on their phone: they turn it with a finger, pinch to zoom, and there is one button, Make my own copy to edit. Nothing to install, no account.
+
+The whole project travels inside the URL fragment, so it never reaches a server. That is also why opening a link is safe for the person who taps it: the Shared view is read-only, it writes nothing to their browser, and a link that was cut off by a mail client shows a plain "this link looks incomplete" screen instead of a half-loaded model. If they already have a project of their own open, copying the shared one asks before replacing it, and a newer link to a project they already have offers a merge.
+
+I drove it by hand in two browser contexts at laptop, tablet and phone sizes; what I could not try is a real iPhone receiving the link in Messages, so link-length limits in message apps are still an estimate. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebDev #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Share, text or email, phone view, one button, pinch to zoom → diff (ShareSheet.vue, SharedView.vue, docs/sharing.md) and hand-driven this session; fragment never reaches a server → docs/decisions/share-link.md; read-only and writes nothing → autosave record byte-identical (423 chars) before and after opening a link, hand-driven; cut link shows incomplete screen → hand-driven (cuts of 1, 30, 200, 400 characters); Replace asks first, newer link offers merge → hand-driven, share-link.e2e.js; laptop, tablet and phone sizes in two contexts → hand-driven Chromium, plus WebKit at phone; real iPhone not tried, ceiling an estimate → TODO/VERIFY.md rows 1 and 7
+**To Add:** docs/screenshots/share-sheet.png and shared-view.png

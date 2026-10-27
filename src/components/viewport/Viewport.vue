@@ -248,13 +248,20 @@ function renderSource() {
  */
 const announcedBodies = computed(() => timeline.previewBodies ?? documentStore.bodies)
 
-defineProps({
+const props = defineProps({
   /**
    * Whether a phone-width bottom sheet has pushed the nav chrome up over the canvas
    * (`TODO/ui-046`). Owned by `AppView.vue`, the only thing that can see every sheet;
    * passed straight through to `NavigationChrome`, which collapses in response.
    */
   navRaised: { type: Boolean, default: false },
+  /**
+   * `TODO/io-016`: the Shared view's read-only presentation of someone else's project, shown
+   * through Watch (`timeline.watchFork`). Only the model, the grid, the navigation chrome and
+   * the orientation gizmo: no Operations toolbar, no tool sheets, no preview outline (it is not
+   * a preview of *your* project), and the camera frames the shown model.
+   */
+  presentation: { type: Boolean, default: false },
 })
 const placement = usePlacementStore()
 const selection = useSelectionStore()
@@ -3050,7 +3057,10 @@ function decideGestureKind() {
   }
   const marqueeModifier = pressPointerType === 'mouse' && (pressCtrlKey || pressMetaKey)
   const marqueeToggle = dragMode.value === 'select'
-  if ((marqueeModifier || marqueeToggle) && !hitsBodyAt(pressStartClientX, pressStartClientY)) {
+  // Never while previewing (a History step, a Watch, `TODO/io-016`'s Shared view): the box is judged
+  // against the *live* document, so it would select bodies that are not on screen — the same reason
+  // `pickAt` returns in preview.
+  if (!timeline.previewing && (marqueeModifier || marqueeToggle) && !hitsBodyAt(pressStartClientX, pressStartClientY)) {
     marqueeAdditive = pressShiftKey
     return 'marquee'
   }
@@ -3540,10 +3550,12 @@ function onReset() {
  * drawn, measured from the geometry; with nothing drawn at all, on everything, as before.
  */
 function frameLoadedContent() {
-  const summaries = documentStore.bodies
+  // The live document, as before; only the Shared view (`TODO/io-016`) frames what is on screen,
+  // the watched project. Any other preview (a Split sheet's pieces) must not change the framing.
+  const summaries = props.presentation ? announcedBodies.value : documentStore.bodies
   if (summaries.length === 0) return
   if (summaries.some((body) => body.viewHidden || body.viewHiddenParts)) {
-    const drawn = drawnBoundsOf(documentStore.raw.bodies())
+    const drawn = drawnBoundsOf(props.presentation ? renderSource().bodies() : documentStore.raw.bodies())
     if (drawn !== null) {
       orbit.frameBounds(drawn[0], drawn[1], heightPx > 0 ? widthPx / heightPx : 1)
       scheduleRender()
@@ -3685,6 +3697,13 @@ onMounted(() => {
     // A loaded document (restore / Open), as opposed to an edit: frame it. Declared
     // after the `syncBodies` watcher so the meshes exist before the camera moves.
     watch(() => documentStore.loadRevision, frameLoadedContent),
+    // `TODO/io-016`: the Shared view's project arrives through Watch, not a load; frame it too.
+    watch(
+      () => timeline.watchRevision,
+      () => {
+        if (props.presentation) frameLoadedContent()
+      },
+    ),
     // The sketch editor (`TODO/sketch-001`). Opening it aims the camera straight at the
     // active slice and hides the edited body's own mesh behind the live preview; every
     // draft edit re-projects the outlines and asks the worker for a new preview.
@@ -3794,7 +3813,7 @@ onMounted(() => {
   // A document that already has content (a reload, a loaded file) renders on
   // mount rather than waiting for the next mutation.
   syncBodies()
-  if (documentStore.loadRevision > 0) frameLoadedContent()
+  if (documentStore.loadRevision > 0 || props.presentation) frameLoadedContent()
 })
 
 onBeforeUnmount(() => {
@@ -3889,6 +3908,7 @@ onBeforeUnmount(() => {
     :data-snapped="snapped ? 'true' : 'false'"
     :data-transforming="preview.isActive ? 'true' : 'false'"
     :data-previewing="timeline.previewing ? 'true' : 'false'"
+    :data-presentation="presentation ? 'true' : undefined"
     :data-sketch-mode="sketchMode ? 'true' : 'false'"
     :data-sketch-body="sketchEditor.bodyId ?? ''"
     :data-sketch-slice="sketchEditor.activeSlice"
@@ -3962,9 +3982,9 @@ onBeforeUnmount(() => {
     <!-- The selection *response* (TODO/ui-011): dimension lines under the
          gizmo, both attached to whatever is selected right now, both
          non-interactive so neither can swallow the click that selects. -->
-    <DimensionLines :annotations="dimensionAnnotations" />
+    <DimensionLines v-if="!presentation" :annotations="dimensionAnnotations" />
     <Gizmo
-      v-if="!timeline.previewing"
+      v-if="!timeline.previewing && !presentation"
       :annotation="gizmoAnnotation"
       :dial="dialAnnotation"
       :ruler="rulerAnnotation"
@@ -3976,15 +3996,17 @@ onBeforeUnmount(() => {
     <!-- The marquee-select rectangle (TODO/ui-024): drawn only while a
          marquee drag is in progress, above the gizmo/dimension overlays so
          it is never occluded by them mid-drag. -->
-    <MarqueeSelect :rect="marqueeRect" />
+    <MarqueeSelect v-if="!presentation" :rect="marqueeRect" />
     <!-- The dashed placement guides (TODO/ui-013): drawn only while a drag is
          being held in line with an existing item, above the selection overlays
          so the alignment being offered is never occluded mid-drag. -->
-    <SnapGuides :guides="snapGuides" />
-    <CutPlaneOverlay :annotation="cutPlaneAnnotation" />
-    <SplitSheet />
-    <!-- The Repeat panel (TODO/ui-069): open for a whole Repeat session, no backdrop. -->
-    <RepeatSheet />
+    <template v-if="!presentation">
+      <SnapGuides :guides="snapGuides" />
+      <CutPlaneOverlay :annotation="cutPlaneAnnotation" />
+      <SplitSheet />
+      <!-- The Repeat panel (TODO/ui-069): open for a whole Repeat session, no backdrop. -->
+      <RepeatSheet />
+    </template>
     <!-- The sketch editor's outlines (TODO/sketch-001): the draft's profiles, the
          live drag, and the revolve axis. Pointer-transparent, so the canvas keeps every
          gesture (ui-020 finding #1). -->
@@ -4023,9 +4045,10 @@ onBeforeUnmount(() => {
          *solids*, and the editor selects only outlines (see `pickSketchProfile`), so
          every one of them would be permanently disabled — dead chrome sitting in the one
          top-left toolbar slot the Sketch toolbar needs. -->
-    <OperationsToolbar v-if="!sketchMode" />
+    <OperationsToolbar v-if="!sketchMode && !presentation" />
     <NavigationChrome
       :drag-mode="dragMode"
+      :can-select="!presentation"
       :sketching="sketchMode"
       :raised="navRaised"
       :sketch-sheet="sketchMode && sketchEditor.panel !== ''"
@@ -4054,7 +4077,7 @@ onBeforeUnmount(() => {
    than a border so it costs the canvas no layout, and `pointer-events: none` on
    the pseudo-element so the mode indicator can never eat an orbit drag. Amber
    is the same colour the preview strip uses — one colour for one idea. */
-.viewport[data-previewing='true']::after {
+.viewport[data-previewing='true']:not([data-presentation='true'])::after {
   content: '';
   position: absolute;
   inset: 0;

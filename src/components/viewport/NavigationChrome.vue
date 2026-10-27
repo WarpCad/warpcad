@@ -36,6 +36,12 @@ const props = defineProps({
     required: true,
   },
   /**
+   * Whether the **Select** drag mode is offered (`TODO/io-016`). The Shared view shows someone
+   * else's project with nothing selectable, so a mode that drags a selection box would be a
+   * control that does nothing; it is left out there, and the rest of the pad is unchanged.
+   */
+  canSelect: { type: Boolean, default: true },
+  /**
    * Whether the sketch editor is open (`TODO/sketch-001`).
    *
    * While it is, a plain drag *draws* rather than orbits or pans, so the drag-mode row
@@ -175,6 +181,7 @@ const STEPS = Object.freeze([
           Pan
         </button>
         <button
+          v-if="canSelect"
           type="button"
           class="chrome__mode"
           :class="{ 'chrome__mode--on': dragMode === 'select' }"

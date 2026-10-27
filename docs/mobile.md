@@ -188,15 +188,19 @@ On a tablet there are no sheets, so the pad is always open. See
 ## The File menu
 
 Tap **File** in the top bar. The menu drops down over the 3D view: **New**, **Download copy**,
-**Open...**, **Merge file...**, **Export...**, **Resolution...**, and **Connect repository...** for
-GitHub storage. See [Saving and reopening your work](save-load.md), [Merging two copies of a
-project](merging.md) and [Exporting](export.md).
+**Open...**, **Merge file...**, **Share...**, **Export...**, **Resolution...**, and **Connect
+repository...** for GitHub storage. See [Saving and reopening your work](save-load.md), [Merging
+two copies of a project](merging.md), [Sharing a project by link](sharing.md) and
+[Exporting](export.md).
+
+**Share** is also in the top bar, left of **File**, as an icon: tap it, then **Send...**, to send
+the whole project as a link through your phone's own share sheet.
 
 After a merge, the strip that reports it sits across the top of the 3D view, under the top bar,
 and pushes the view down rather than covering the toolbar or the navigation pad. **Show** on it
 opens the History sheet.
 
-![The File menu open on a phone, listing New, Download copy, Open, Merge file, Export, Resolution and Connect repository.](./screenshots/file-menu-phone.png)
+![The File menu open on a phone, listing New, Download copy, Open, Merge file, Share, Export, Resolution and Connect repository.](./screenshots/file-menu-phone.png)
 
 ## Sketching
 

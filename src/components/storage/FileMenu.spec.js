@@ -269,8 +269,9 @@ describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
     await openMenu(wrapper)
     const group = document.body.querySelector('[role="group"][aria-label="This device"]')
     const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
-    // Merge file… (TODO/ui-062) sits directly under Open…; Export… stays last.
-    expect(ids).toEqual(['file-new', 'file-save', 'file-open', 'file-merge', 'file-export'])
+    // Merge file… (TODO/ui-062) sits directly under Open…; Share… (TODO/io-016) before Export…,
+    // which stays last.
+    expect(ids).toEqual(['file-new', 'file-save', 'file-open', 'file-merge', 'file-share', 'file-export'])
   })
 
   it('an empty scene: dimmed, with the reason visible AND as the accessible description', async () => {

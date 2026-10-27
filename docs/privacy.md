@@ -19,6 +19,9 @@ Google Analytics. A copy you build or run yourself has no ID and sends nothing.
   out a rough location (country and city) and then discards it.
 - **Google signals and ad personalisation are switched off** in the tag. The app asks for no
   advertising features and no cross-device tracking.
+- **A shared-project link contains the project itself**, after the `#`, and is read only in the
+  browser of the person who opens it; it is never sent to WarpCad's host or to Google Analytics
+  ([Sharing a project by link](sharing.md)).
 - **Nothing is sent from your own machine.** `npm run dev`, a local preview, `localhost`, a page
   served over plain `http`, and automated test browsers all skip it.
 

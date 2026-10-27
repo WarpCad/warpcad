@@ -33,6 +33,20 @@
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- The link preview card (TODO/io-016): every WarpCad link — a shared project included — gets
+         this one generic card. A shared project travels in the URL fragment, which no crawler sees,
+         so a per-project title or thumbnail would need a server (docs/decisions/share-link.md,
+         option C). Absolute URLs on the canonical host, which is what preview crawlers require. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="WarpCad" />
+    <meta property="og:title" content="A 3D model made in WarpCad" />
+    <meta property="og:description" content="Tap to see it in your browser. Turn it with a finger, zoom in, and make your own copy. Nothing to install, no account." />
+    <meta property="og:image" content="https://app.warpcad.com/github-social-preview.png" />
+    <meta property="og:image:alt" content="WarpCad, a parametric CAD app that runs in the browser" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="A 3D model made in WarpCad" />
+    <meta name="twitter:description" content="Tap to see it in your browser. Nothing to install, no account." />
+    <meta name="twitter:image" content="https://app.warpcad.com/github-social-preview.png" />
     <title>WarpCad</title>
   </head>
   <body>

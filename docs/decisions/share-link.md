@@ -1,7 +1,8 @@
 # Share a project by link: the project is the link
 
-Status: **accepted for Stage 1** (2026-10-27, `io-016`). Stage 2 (the two screens), Stage 3 (gist
-overflow, `io-017`) and Stage 4 (native app, `io-018`) build on this record.
+Status: **accepted for Stage 1** (2026-10-27, `io-016`); **Stage 2 built** (2026-10-27, the two
+screens — see "Stage 2 as built" below). Stage 3 (gist overflow, `io-017`) and Stage 4 (native app,
+`io-018`) build on this record.
 
 ## Decision
 
@@ -96,10 +97,70 @@ NDJSON is, by design, just a different project: a link is not signed.
 from `request.url` and the referrer; `errorReporting.spec.js` now pins that for a share URL
 specifically, because a leaked link is a leaked project.
 
+## Stage 2 as built (2026-10-27)
+
+**What the Shared view reuses from Watch (`ai-017`)** rather than adding a second read-only mode:
+the shared project is folded into a throwaway document (never the live one) and handed to
+`timeline.watchFork` as a `WatchSource` (`stores/share.js`). From Watch it gets, unchanged: the
+viewport rendering the given document instead of the live one (`timeline.previewDocument`), the
+scene list and body count following it (`timeline.previewBodies`, so the DOM and the canvas agree),
+picking off (`pickAt` returns while `timeline.previewing`, so tapping a body does nothing), no
+transform gizmo, and no drop able to append to the log. Two things Watch does not do were added:
+
+- a `presentation` prop on `Viewport.vue` hides the Operations toolbar, the tool sheets, the
+  dimension lines and the amber "previewing" outline (that outline means "a past state of *your*
+  project", which this is not), and frames the camera on the watched model when it arrives;
+- Watch ends on any whole-document load. The boot restore is awaited before the Watch starts, and
+  the share store starts it again if anything else ends it while the Shared view is up.
+
+**What it reuses from the open flow.** **Make my own copy to edit** is
+`fileMenu.requestOpenShared`, one more branch of the File menu's own Open: the existing **Replace
+the project?** confirm (`ReplaceConfirmDialog.vue`, mounted in the Shared view because the File
+menu is not) when the browser holds content, with a **Download yours first** / **Save yours first**
+button since there is no File menu to do that from; `persistence.openText` for the load, so every
+validator, the chip and the autosave that follows are Open's; and, for a link whose project id
+equals the open project's, **Merge their changes** through `persistence.mergeText` → `mergeIn` with
+its **Undo merge** strip, or **Open theirs instead**. The recipient's copy gets a fresh id from
+`createProjectId` (`src/core/replica.js`; the TODO calls it `makeProjectId`) written into the
+state line's `merge.project` (`src/core/shareCopy.js`). A legacy project (no id) keeps none: a
+document mints an id only for content it made, and synthesising a merge section here would be a
+second writer of that format.
+
+**What it reuses from Help.** `useShareLink` runs in `AppView`'s `setup`, beside where
+`HelpSheet.vue` reads `#/help/<slug>`, and clears the hash with `history.replaceState` after a
+successful load as Help does (`ui-061` item 7). Each route touches only a hash it owns; a share link
+pasted into an open tab arrives as `hashchange`.
+
+**Opening never writes.** `createAutosaver` gained one flag, `setSuspended`: while set, changes are
+ignored and `flush`/`flushSync` write nothing (store or mirror), and a stale mirror is not cleared.
+The share store sets it synchronously in `setup`, before `bootStorage` starts the restore, and
+clears it only when the Shared view is left; a write scheduled before suspending is held and sent
+on resume. `useShareLink.spec.js` fails if the stored record changes; `e2e/share-link.e2e.js` reads
+IndexedDB before and after.
+
+**Choices made where the spec left room:**
+
+- **The empty-scene reason "beside" Share** is visible beside the button at laptop width only.
+  Below 1100px the header has no room for words (measured at the 820px tablet: the label and the
+  reason pushed the Assistant button 141px off the row), so the button is an icon and a tap on it,
+  dimmed, opens the sheet with only the reason in it.
+- **The dev host's phone header** also carries the dev-only Live MCP entry (`ui-075`); with Share
+  as well the row was 435px at 390. There, and only there, Share steps out of the row and **File ▾ →
+  Share…** is its route (the `HelpEntryButton` precedent). The item is in the File menu at every
+  width. A hosted build's phone header keeps Share and measures exactly 390px in all three engines.
+- **Copy link copies the message and the link** ("the same text" Send… hands over), on two lines.
+- **The sender's note** is carried and shown if present; the sheet has no field for one, because
+  the spec's list of the sheet's controls has none.
+- **Same-project detection** compares the link's project id with the live (restored or opened)
+  project's. A recipient who made their own copy has a new id, so a later update from the sender
+  asks Replace there, not Merge: that is the "new local project" rule doing its job.
+- **The ceiling** stays the 6,000-character estimate (`SHARE_LINK_MAX_CHARS` in `ShareSheet.vue`);
+  the iPhone and Gmail measurements are still open in `TODO/VERIFY.md`. An imported-mesh project was
+  not measured in this stage either.
+
 ## What this decision does not cover
 
-The Share sheet, the Shared view, autosave suspension, the Replace/Merge branches and the hash
-routing beside `#/help/<slug>` (Stage 2); gist overflow (`io-017`); Universal Links / App Links and
-whether the `#fragment` survives into a native launch URL (`io-018`, verified in `build-018`).
+Gist overflow (`io-017`); Universal Links / App Links and whether the `#fragment` survives into a
+native launch URL (`io-018`, verified in `build-018`).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

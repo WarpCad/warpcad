@@ -102,6 +102,11 @@ nothing to install. The pages below cover what each part of the app does.
   copy in a GitHub repository, with auto-push and what happens when someone else
   changed it first; and what it says when your browser won't let WarpCad store
   anything.
+- [Sharing a project by link](sharing.md) — **Share**, left of **File ▾**: send the whole
+  project as a link in a text or an email (**Send…** on a phone, **Copy link** on a computer). The
+  person you send it to taps it and sees the model, turns it with a finger, and can **Make my own
+  copy to edit**, with nothing to install and no account; what to do if a link looks incomplete,
+  and sending an update.
 - [Merging two copies of a project](merging.md) — **File ▾ → Merge file…**: bringing the
   changes from a copy you edited somewhere else (a phone, another tab) into the project you
   have open, what the strip under the top bar counts, what a conflict is and how to fix the

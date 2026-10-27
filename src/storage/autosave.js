@@ -73,6 +73,11 @@
  *   is what survives if the page is gone before that write commits.
  * @property {() => void} clearMirror Drop the safety copy (a refused restore).
  * @property {() => void} dispose Cancel any pending write.
+ * @property {(suspended: boolean) => void} setSuspended `TODO/io-016`: while `true`, changes are
+ *   ignored and `flush`/`flushSync` write nothing (store or mirror) — the Shared view showing
+ *   someone else's project must never write. A write scheduled before suspending is held and
+ *   goes out on resume; otherwise resuming writes nothing by itself.
+ * @property {() => boolean} suspended Whether writing is suspended.
  */
 
 /** What the chip says, and what `docs/save-load.md` quotes. */
@@ -121,6 +126,8 @@ export function createAutosaver({
   let timer = null
   /** @type {Promise<void>} */
   let chain = Promise.resolve()
+  /** `TODO/io-016`: the Shared view is showing; nothing may be written. */
+  let suspended = false
 
   /**
    * @template T
@@ -206,13 +213,15 @@ export function createAutosaver({
         return { kind: 'found', text: pending.text, savedAt: pending.savedAt, fromMirror: true }
       }
       // A mirror no newer than what IndexedDB holds is stale: drop it so it can
-      // never win a later comparison against a fresher autosave.
-      if (pending !== null) mirror?.clear()
+      // never win a later comparison against a fresher autosave. Not while suspended
+      // (`TODO/io-016`): opening a share link writes nothing at all.
+      if (pending !== null && !suspended) mirror?.clear()
       if (stored === null) return { kind: 'empty' }
       return { kind: 'found', text: stored.text, savedAt: stored.savedAt }
     },
 
     notifyChange() {
+      if (suspended) return
       changeCount += 1
       if (firstChangeAt === 0) firstChangeAt = now()
       onStatus({ state: 'saving' })
@@ -221,11 +230,13 @@ export function createAutosaver({
 
     flush() {
       cancelTimer()
+      if (suspended) return chain
       chain = chain.then(writeOnce)
       return chain
     },
 
     flushSync() {
+      if (suspended) return
       if (savedCount !== changeCount && mirror) {
         try {
           mirror.write({ text: getText(), savedAt: now() })
@@ -242,6 +253,22 @@ export function createAutosaver({
 
     dispose() {
       cancelTimer()
+    },
+
+    setSuspended(next) {
+      if (next === suspended) return
+      suspended = next
+      if (next) {
+        // A write already scheduled is held, not dropped: it is the user's own edit from before
+        // the Shared view opened (a link pasted into an open tab), and it goes out on resume.
+        cancelTimer()
+        return
+      }
+      if (savedCount !== changeCount) schedule()
+    },
+
+    suspended() {
+      return suspended
     },
   }
   return autosaver
