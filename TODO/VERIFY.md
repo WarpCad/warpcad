@@ -36,15 +36,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
-### io-017 — Gist storage, Stage 1 (2026-10-28 14:00)
+### io-017 — Store and share a project as a gist (2026-10-28 14:30)
 
 Step 0 ran against real GitHub with a classic `gist` token and a fine-grained Gists-write token
-(`docs/decisions/gist-storage.md`). Two things automation there could not see.
+(`docs/decisions/gist-storage.md`); the screens were hand-driven against the fake gist API only.
+Acceptance 30, 29 and 22 cover the flows; these rows are what they could not see.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | With a fine-grained token that has **no** Gists permission, `PATCH /gists/00000000000000000000000000000000` returns 403 (not 404). `validateGistToken` relies on it; if it returns 404 a permissionless token would pass validation | Open | |
-| 2 | Real publish, read and delete of one gist from a phone with a throwaway token, once Stage 2 ships (how the link and README look in Messages and on github.com) | Open | |
+| 2 | One real publish, read and delete with a throwaway token from a real iPhone: does **Publish** put the link on the clipboard (Safari refuses a copy that follows network calls; the sheet starts the write inside the tap), is the token field above the on-screen keyboard in the bottom sheet, how the link and the gist's README look in Messages and on github.com, and do GitHub's real token-page labels match "no repository access" and "Gists: Read and write" in the docs | Open | |
+| 3 | At 390 px there is no persistent **Published** indicator (Share is under File ▾, the chip is hidden there). Decide whether a phone needs one, for example a dot on **File ▾** | Open | |
+| 4 | The "Published. Link copied" toast covers the sheet's **Share** title for about 4 s at tablet and laptop width; judge whether it bothers | Open | |
 
 ### io-016 — Share a project by link (2026-10-27 19:15)
 

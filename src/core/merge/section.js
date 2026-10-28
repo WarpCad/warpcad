@@ -11,6 +11,11 @@
  *   `lb` stamps when they equal `born` (or, for the two flags, what the state line derives);
  * - a **register** is written as its stamp alone — its value is the state line's own
  *   `rollbackAt` / `resolution` / `standingInstructions` / `buildVolume`;
+ * - the **gist** register (`TODO/io-017`) is the exception: `gist: [value | null, stamp]`, value
+ *   and stamp together, beside `project`. Not under `registers`, whose names a released build
+ *   checks and refuses when unknown; an unknown key of the section is ignored instead, so an
+ *   older tab still opens a published project (and drops the field if it saves). A clear is
+ *   written as `[null, stamp]`, so it keeps beating an older set after a reload;
  * - a **view switch** (`TODO/ui-089`) is written as its stamp alone, under `viewStamps` by body
  *   and part, its value being whether the state line's `viewHidden` lists it. A show is
  *   written too (that is what lets a later show beat an earlier hide after a reload); a hide
@@ -22,7 +27,7 @@
  */
 
 import { compareStamps } from '../replica.js'
-import { REGISTER_NAMES, LEGACY_STAMP, isLegacyStamp } from './state.js'
+import { SECTION_REGISTER_NAMES, LEGACY_STAMP, isLegacyStamp } from './state.js'
 import { keysBetween } from './positionKey.js'
 import { parseViewKey, viewHiddenMapOf } from '../visibility.js'
 
@@ -97,10 +102,15 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
 
   /** @type {Record<string, [number, string]>} */
   const registers = {}
-  for (const name of REGISTER_NAMES) {
+  for (const name of SECTION_REGISTER_NAMES) {
     const register = state.registers[name]
     if (register !== null && !isLegacyStamp(register[1])) registers[name] = encodeStamp(register[1])
   }
+
+  // `TODO/io-017`: value and stamp together; written whenever it has ever been set or cleared.
+  const gistRegister = state.registers.gist
+  /** @type {[unknown, [number, string]] | null} */
+  const gist = gistRegister === null ? null : [gistRegister[0] ?? null, encodeStamp(gistRegister[1])]
 
   /** @type {Record<string, [number, string]>} */
   const partStamps = {}
@@ -143,11 +153,13 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
     Object.keys(dead).length === 0 &&
     Object.keys(registers).length === 0 &&
     Object.keys(partStamps).length === 0 &&
-    Object.keys(viewStamps).length === 0
+    Object.keys(viewStamps).length === 0 &&
+    gist === null
   if (empty) return null
 
   return {
     ...(state.projectId !== null ? { project: state.projectId } : {}),
+    ...(gist !== null ? { gist } : {}),
     clock,
     ...(Object.keys(pos).length > 0 ? { pos } : {}),
     ...(Object.keys(stamps).length > 0 ? { stamps } : {}),

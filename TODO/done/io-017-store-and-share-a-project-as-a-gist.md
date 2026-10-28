@@ -6,22 +6,19 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-10-27 at the owner's request)
 depends: [io-016, io-002]
-status: open
+status: done
 ---
 
-> **Progress (2026-10-28): Step 0 and Stage 1 shipped; Stage 2 open.** Step 0 (real calls) is in
-> `docs/decisions/gist-storage.md` and **changes the plan**: a fine-grained token with the account
-> permission **Gists: write** can create, update and delete gists and cannot touch repositories
-> (403), so it is the recommended credential and classic `gist` the fallback. `GET /gists?per_page=1`
-> does **not** prove the permission, so validation uses a write probe (`PATCH` on an all-zero id).
-> Stage 1 built `gistLink.js`, `gistReadme.js`, `gistBackend.js` (sharing `githubHeaders`,
-> `classifyGitHubFailure`, `isWellFormedToken` with `hostedBackend.js`), `GIST_CREDENTIAL_KEY`, and
-> scrubbing of gist ids in API/raw URLs. **Stage 2 must:** add `https://gist.githubusercontent.com`
-> to production `connect-src` (files over about 1 MB come back `truncated`); build the README's raw
-> link without a pinned revision; do the two-call publish (POST then PATCH, PATCH failure is a
-> warning); enforce the interim "Update refuses if the gist changed" rule (`readGist` and compare
-> `revision`); write the `<project-slug>` helper and the wording for each `GistError` kind; show the
-> gist `description` as plain text only; and trim pasted ids before `parseGistHash`.
+> **Shipped (2026-10-28) in two commits: Step 0 and Stage 1 (`193e03c`), then Stage 2 (plumbing, screens, e2e,
+> docs); Stage 3 split off as `io-019`.** Step 0 ran real GitHub calls and
+> **changed the plan**: a fine-grained token with only the account permission **Gists: write** creates,
+> updates and deletes gists and is refused (403) on repositories, so it is the recommended credential and
+> the classic `gist` token the fallback (`docs/decisions/gist-storage.md`). `GET /gists?per_page=1` does not
+> prove the permission, so validation uses a write probe (`PATCH` on an all-zero id). The `gist` field is
+> `{id, public, lastRevision, owner}` stored as `merge.gist` (a fifth last-writer-wins register that older
+> builds ignore), and a copy never inherits it. The CSP gained exactly `https://gist.githubusercontent.com`.
+> Update **refuses** when the gist changed remotely (the interim rule); merging first is
+> `TODO/FIND-io-019-merge-before-updating-a-gist.md`. Open owner checks are in `TODO/VERIFY.md`.
 
 ## Goal
 

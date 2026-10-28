@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { test, expect } from '@playwright/test'
+
+import { fakeGitHub, routeFakeGitHub } from '../support/fakeGistApi.js'
+import { loadScene, openApp, shot } from './support.js'
+
+/**
+ * Docs media for `docs/sharing.md` (`TODO/io-017`): the Share sheet at phone width just after
+ * **Publish to a gist** — the **Short link with GitHub** group showing *Published*, with Copy gist
+ * link, Update gist, Open on GitHub and Stop sharing, and the disclosure line. Phone only,
+ * Chromium only. GitHub is the e2e fake (`e2e/support/fakeGistApi.js`): no real network and no
+ * real token. The clock in the status pill is pinned to the docs' 14:05 (UTC, the context's zone).
+ *
+ * Not an acceptance check: scenario 30 is driven by hand.
+ */
+const TOKEN = 'github_pat_DOCS_SENTINEL_not_a_real_token'
+
+test.describe('docs media: the Share sheet gist group', () => {
+  test.skip(({ viewport }) => viewport?.width !== 390, 'phone only')
+  test.use({ timezoneId: 'UTC' })
+
+  test('share-gist.png: a cube and a sphere, published as a gist', async ({ page }) => {
+    await routeFakeGitHub(page, fakeGitHub({ tokens: { [TOKEN]: { login: 'janecoder', kind: 'fine-grained', expiry: '2026-11-27 14:05:00 UTC' } } }))
+    await page.addInitScript(() => {
+      // The clipboard and the OS share sheet are the boundary; the picture shows a successful copy.
+      const copied = /** @type {string[]} */ ([])
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (/** @type {string} */ text) => copied.push(text),
+          write: async () => copied.push('copied'),
+        },
+      })
+      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+    })
+    await openApp(page)
+    await loadScene(page, 'cube-and-sphere.ndjson', 2)
+
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('gist-connect-open').scrollIntoViewIfNeeded()
+    await page.getByTestId('gist-connect-open').click()
+    await page.getByTestId('gist-connect-token').fill(TOKEN)
+    await page.getByTestId('gist-connect-submit').click()
+    await expect(page.getByTestId('gist-connect-status')).toContainText('Connected as janecoder')
+    await page.getByTestId('gist-connect-done').click()
+
+    const button = page.getByTestId('share-open')
+    if (await button.isVisible()) {
+      await button.click()
+    } else {
+      await page.getByTestId('file-menu-button').click()
+      await page.getByTestId('file-share').click()
+    }
+    await expect(page.getByTestId('share-sheet')).toBeVisible()
+    await page.getByTestId('share-name').fill('Phone stand')
+    await page.getByTestId('share-gist-publish').click()
+    await expect(page.getByTestId('share-gist-group')).toHaveAttribute('data-state', 'published')
+    // The pill's time, pinned: the docs' example says 14:05.
+    await page.evaluate(async () => {
+      const { useGistStore } = await window.__e2eImport('/src/stores/gist.js')
+      useGistStore().noteOutcome({ ok: true, publishedAt: Date.UTC(2026, 9, 27, 14, 5) })
+    })
+    await expect(page.getByTestId('share-gist-status')).toHaveText('Published · secret · 14:05')
+    // The toast is on a timer; the picture is of the sheet, not of a moment.
+    await expect(page.getByTestId('share-toast')).toHaveAttribute('data-visible', 'false', { timeout: 8000 })
+    await page.getByTestId('share-name').blur()
+    await shot(page, 'share-gist.png')
+  })
+})

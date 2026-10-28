@@ -2493,3 +2493,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** fine-grained Gists-only token creates, updates and deletes gists → real calls this session (201/200/204), docs/decisions/gist-storage.md; 403 on repositories → same run (POST /user/repos); files over about 1 MB truncated → a 2 MB file came back truncated: true with about 0.92 MB inline, docs/decisions/gist-storage.md
 **To Add:** nothing until the Share sheet has the gist group (Stage 2)
+
+## 2026-10-28T14:30:00Z — Gist sharing: publish, update, open and stop from a short link
+
+**Post:** WarpCad can now publish a project as a GitHub gist and share one short link. The recipient gets a read-only view with no account, and updating keeps the link. Tested against a fake GitHub API so far. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** publish, share one link, read-only view with no account, update keeps the link → diff (ShareGistGroup.vue, gistBackend.js, docs/sharing.md); hand-driven this session at 390x844 against the fake gist API (TODO/ACCEPTANCE.md scenario 30); Gists-only token → real calls this session, docs/decisions/gist-storage.md; tested against a fake API only → no real gist was published, TODO/VERIFY.md row 2
+**To Add:** docs/screenshots/share-gist.png

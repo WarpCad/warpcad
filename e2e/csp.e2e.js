@@ -57,11 +57,15 @@ test('the policy is present on the page the browser actually loaded', async ({ p
   expect(content).toContain('https://api.anthropic.com')
   expect(content).toContain('https://api.github.com')
   expect(content).not.toMatch(/script-src[^;]*unsafe-inline/)
-  // `TODO/build-004`: connect-src is exactly 'self', the two API hosts and — only when the build
-  // was given a Sentry DSN — that DSN's own https host. Nothing broader (no `https:`, no `*`).
+  // `TODO/build-004`: connect-src is exactly 'self', the two API hosts, the gist raw host
+  // (`TODO/io-017`: a truncated gist file's full text) and — only when the build was given a
+  // Sentry DSN — that DSN's own https host. Nothing broader (no `https:`, no `*`).
   const connect = content.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src')) ?? ''
   const sources = connect.split(/\s+/).slice(1).filter((source) => !/^wss?:/.test(source))
-  const extras = sources.filter((source) => !["'self'", 'https://api.anthropic.com', 'https://api.github.com'].includes(source))
+  expect(sources).toContain('https://gist.githubusercontent.com')
+  const extras = sources.filter(
+    (source) => !["'self'", 'https://api.anthropic.com', 'https://api.github.com', 'https://gist.githubusercontent.com'].includes(source),
+  )
   expect(sources).not.toContain('https:')
   // `TODO/build-007`: the only wildcards are Google's two single-label Analytics collection hosts,
   // and only in a build given a GA4 measurement id.

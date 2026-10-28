@@ -80,6 +80,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
+  /** `TODO/io-017`: the gist token dialog (**Connect GitHub for gists…**, or the Share sheet's button). */
+  const gistConnectOpen = ref(false)
   /** Which replace question is showing, or `null`. @type {import('vue').Ref<ConfirmKind | null>} */
   const confirm = ref(null)
   /** `TODO/io-016`: the shared project the `share` / `share-update` question is about. */
@@ -99,6 +101,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     () =>
       menuOpen.value ||
       connectOpen.value ||
+      gistConnectOpen.value ||
       confirm.value !== null ||
       exportDialog.isOpen ||
       resolutionDialog.isOpen ||
@@ -323,6 +326,16 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     connectOpen.value = false
   }
 
+  /** Open the gist token dialog (`TODO/io-017`), from File ▾ or from the Share sheet. */
+  function openGistConnect() {
+    menuOpen.value = false
+    gistConnectOpen.value = true
+  }
+
+  function closeGistConnect() {
+    gistConnectOpen.value = false
+  }
+
   /**
    * Escape: close the topmost thing this menu owns, if any.
    *
@@ -352,6 +365,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       connectOpen.value = false
       return true
     }
+    if (gistConnectOpen.value) {
+      gistConnectOpen.value = false
+      return true
+    }
     if (menuOpen.value) {
       menuOpen.value = false
       return true
@@ -362,6 +379,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   return {
     menuOpen,
     connectOpen,
+    gistConnectOpen,
     confirm,
     anyOpen,
     hasContent,
@@ -383,6 +401,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     cancelConfirm,
     openConnect,
     closeConnect,
+    openGistConnect,
+    closeGistConnect,
     dismissTopmost,
   }
 })

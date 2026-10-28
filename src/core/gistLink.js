@@ -116,6 +116,75 @@ export function isGistLink(text) {
   return at !== -1 && ROUTE_AT_START.test(text.slice(at))
 }
 
+/** A GitHub login: what `GET /user` returns (the same rule `gistBackend.js` checks). */
+const LOGIN_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
+
+/**
+ * Whether `value` is shaped like a GitHub login (an account name).
+ *
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+export function isGitHubLogin(value) {
+  return typeof value === 'string' && LOGIN_PATTERN.test(value)
+}
+
+/** Longest slug {@link gistFileName} produces, before `.ndjson`. */
+export const MAX_GIST_SLUG_CHARS = 60
+/** The file name when a project's name leaves nothing usable. */
+const FALLBACK_SLUG = 'project'
+/** A file name {@link gistRawFileUrl} accepts: ASCII that no URL needs to encode, no path. */
+const RAW_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_-]+)+$/
+
+/**
+ * The project file's name inside a published gist, `<project-slug>.ndjson` (`TODO/io-017`).
+ *
+ * The project's name is the user's own text — emoji, right-to-left scripts, slashes, anything —
+ * and a gist file name ends up in a URL path, so the slug keeps only what needs no encoding:
+ * accents are folded (`Café` → `cafe`), everything that is not `a-z` or `0-9` becomes a single
+ * hyphen, and the result is trimmed of hyphens and capped at {@link MAX_GIST_SLUG_CHARS}. A name
+ * that leaves nothing (only emoji, only Hebrew, only punctuation) falls back to `project`. Never a
+ * path, never a dot file, never `..`.
+ *
+ * @param {string} name The project's name.
+ * @returns {string} e.g. `phone-stand.ndjson`.
+ */
+export function gistFileName(name) {
+  const text = typeof name === 'string' ? name : ''
+  const slug = text
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    // Runs collapse to one hyphen, so trimming one from each end is enough.
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, MAX_GIST_SLUG_CHARS)
+    .replace(/-$/, '')
+  return `${slug === '' ? FALLBACK_SLUG : slug}.ndjson`
+}
+
+/**
+ * The README's link to the project file: `https://gist.githubusercontent.com/<login>/<id>/raw/<file>`.
+ * **Revision-free on purpose** — the `raw_url` GitHub returns pins a commit sha, so a README built
+ * from it would keep pointing at the first publish forever; this form always serves the latest.
+ *
+ * @param {string} login The gist owner's GitHub login.
+ * @param {string} id The gist id.
+ * @param {string} fileName The project file's name ({@link gistFileName}).
+ * @returns {string} A URL {@link isGistRawUrl} accepts.
+ * @throws {Error} When any part is not what it should be. The message quotes none of them.
+ */
+export function gistRawFileUrl(login, id, fileName) {
+  if (!isGitHubLogin(login)) throw new Error('Not a GitHub login')
+  if (!isGistId(id)) throw new Error('Not a GitHub gist id')
+  if (typeof fileName !== 'string' || fileName.length > 255 || !RAW_FILE_PATTERN.test(fileName)) {
+    throw new Error('Not a gist file name a link can carry')
+  }
+  const url = `https://${GIST_RAW_HOST}/${login}/${id}/raw/${fileName}`
+  if (!isGistRawUrl(url)) throw new Error('Not a gist raw link')
+  return url
+}
+
 /**
  * Whether `value` is exactly an https URL on {@link GIST_RAW_HOST} — no port, no credentials,
  * and nothing the URL parser had to re-encode (spaces, `<`, `>`). The README links to it and

@@ -72,6 +72,24 @@ so the classic `gist`-scope token is the **fallback**, accepted but not recommen
 
 Neither token can be limited to a single gist; the sheet says so in plain words.
 
+## Stage 2a as built (2026-10-28)
+
+- **The `gist` field** is `{id, public, lastRevision, owner}` and is stored as `merge.gist`
+  (`[value | null, stamp]`), a last-writer-wins register merged like the others
+  (`document-sync.md`). Setting it is not a local undo step: it records a fact about GitHub.
+- **`owner`** is the GitHub login that published it. A project received as a file otherwise
+  inherits the sender's gist and would offer an Update GitHub refuses; with `owner`, a different
+  account is offered Publish. Own-link detection also requires the owner to match the connected
+  account when one is connected.
+- **A copy never keeps the gist.** `withoutGist` (`shareCopy.js`) is applied by `withProjectId`,
+  so "Make my own copy to edit" starts a project that owns nothing.
+- **Stale reads.** The public API can serve a read up to 60 s old (`cache-control: max-age=60`),
+  so Update accepts a revision this session itself wrote; the memory does not survive a reload.
+- **Byte identity.** A Download copy taken *after* publishing contains `merge.gist`, which a file
+  cannot know before the gist exists; the published file equals a Download copy taken before.
+- **Undo merge** leaves the gist field alone. A stale `lastRevision` only makes Update refuse,
+  which is the safe direction.
+
 ## Open item
 
 The negative case of the write probe (a token with no Gists permission gets 403) is expected from

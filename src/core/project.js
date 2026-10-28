@@ -129,6 +129,17 @@
  * refuses version 2 by naming the version; this build refuses a version above 2 with the
  * "saved by a newer WarpCad" sentence, before any record is folded.
  *
+ * ## The gist a project is published as (`TODO/io-017`)
+ *
+ * `{ id, public, lastRevision, owner }` (`src/core/gistField.js`), in the merge section as
+ * `merge.gist: [value | null, stamp]` beside `merge.project` — value and stamp together, **not**
+ * a state-line field with its stamp under `merge.registers`. A released build refuses an unknown
+ * name in `registers` but ignores an unknown section key, so an older tab still opens a published
+ * project (dropping the field if it saves, which a later merge restores by last-writer-wins). It
+ * always comes with a version-2 line, since setting it writes a stamp. A file without it is
+ * byte-identical to before. Validated like every merge-section field: a malformed one refuses the
+ * file by name. A recipient's copy drops it (`shareCopy.js`'s `withoutGist`).
+ *
  * ## Refusal, not repair
  *
  * {@link parseProject} is strict where `parseNdjson` is lenient. The lenient

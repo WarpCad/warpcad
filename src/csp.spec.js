@@ -31,8 +31,22 @@ describe('index.html Content-Security-Policy', () => {
 
   const policy = directives(meta?.[1] ?? '')
 
-  it('limits connect-src to self, the Anthropic API and the GitHub API — nothing else', () => {
-    expect([...policy['connect-src']].sort()).toEqual(["'self'", 'https://api.anthropic.com', 'https://api.github.com'].sort())
+  it('limits connect-src to self, the Anthropic API, the GitHub API and the gist raw host — nothing else', () => {
+    expect([...policy['connect-src']].sort()).toEqual(
+      ["'self'", 'https://api.anthropic.com', 'https://api.github.com', 'https://gist.githubusercontent.com'].sort(),
+    )
+  })
+
+  it('allows exactly the gist raw host for a truncated gist file (TODO/io-017), never a broad source', () => {
+    // `docs/decisions/gist-storage.md`: a project file over about 1 MB comes back `truncated`,
+    // and its full text is only on `gist.githubusercontent.com`.
+    const connect = policy['connect-src']
+    expect(connect).toContain('https://gist.githubusercontent.com')
+    expect(connect).toContain('https://api.github.com')
+    expect(connect).not.toContain('https:')
+    expect(connect).not.toContain('*')
+    expect(connect.filter((source) => source.includes('*'))).toEqual([])
+    expect(connect.filter((source) => /githubusercontent/.test(source))).toEqual(['https://gist.githubusercontent.com'])
   })
 
   it('allows scripts from self only: no inline, no eval, no remote', () => {

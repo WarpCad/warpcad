@@ -50,6 +50,10 @@ encoding).
   array has; see the comparison below).
 - **Document-level values** are last-writer-wins registers: the rollback marker, the
   resolution, the standing instructions, the build volume, and each user-part definition.
+  A fifth, the **gist** the project is published as (`io-017`), is the one register whose value and
+  stamp both live in the file's `merge.gist` key rather than the state line plus
+  `merge.registers`: a released build refuses a name it does not know in `merge.registers`, but
+  ignores an unknown key in the merge section, so an older tab still opens a published project.
 - A **project id** in the state line says two files are copies of one project. Two files with
   different project ids are not merged; that case is a separate, reserved task (`io-012`).
 - **Undo** stays remove-and-rebuild (`data-003`), and a removal now leaves a tombstone so the

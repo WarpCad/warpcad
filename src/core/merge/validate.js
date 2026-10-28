@@ -22,7 +22,8 @@
  */
 
 import { isReplicaId } from '../replica.js'
-import { REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
+import { SECTION_REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
+import { normalizeGistField } from '../gistField.js'
 import { parseKey } from './positionKey.js'
 import { viewKey } from '../visibility.js'
 
@@ -60,11 +61,13 @@ export const MERGE_LIMITS = Object.freeze({
  *   derived from row order.
  * @property {Map<string, RowStamps>} stamps
  * @property {Map<string, Stamp>} dead Tombstones.
- * @property {Partial<Record<(typeof REGISTER_NAMES)[number], Stamp>>} registers
+ * @property {Partial<Record<(typeof SECTION_REGISTER_NAMES)[number], Stamp>>} registers
  * @property {Map<string, Stamp>} partStamps User-part op → the stamp that wrote its definition.
  * @property {Map<string, Stamp>} viewStamps `TODO/ui-089`: view key (`visibility.js`'s
  *   `viewKey`) → the stamp that last hid or showed that body or part. The value is the state
  *   line's `viewHidden` (listed: hidden; not listed: shown). Only bodies the file holds.
+ * @property {[import('../gistField.js').GistField | null, Stamp]} [gist] `TODO/io-017`: the gist
+ *   register, value and stamp, when the file has ever set or cleared it.
  */
 
 /** A merge section this build refuses, with a message that names the field. */
@@ -240,10 +243,30 @@ export function readMergeSection(raw, recordIds) {
   /** @type {MergeOverlay['registers']} */
   const registers = {}
   for (const name of Object.keys(registersRaw)) {
-    if (!REGISTER_NAMES.includes(/** @type {any} */ (name))) {
+    if (!SECTION_REGISTER_NAMES.includes(/** @type {any} */ (name))) {
       throw new MergeSectionError(`merge: \`registers\` names "${name.slice(0, 40)}", which is not a register`)
     }
-    registers[/** @type {(typeof REGISTER_NAMES)[number]} */ (name)] = see(readStamp(registersRaw[name], `register ${name}`))
+    registers[/** @type {(typeof SECTION_REGISTER_NAMES)[number]} */ (name)] = see(readStamp(registersRaw[name], `register ${name}`))
+  }
+
+  // `TODO/io-017`: `[value | null, stamp]`. Untrusted: the value is validated like a setGist call.
+  /** @type {MergeOverlay['gist']} */
+  let gist
+  if (raw.gist !== undefined) {
+    if (!Array.isArray(raw.gist) || raw.gist.length !== 2) {
+      throw new MergeSectionError('merge: `gist` must be [value, stamp]')
+    }
+    const stamp = see(readStamp(raw.gist[1], '`gist`'))
+    /** @type {import('../gistField.js').GistField | null} */
+    let value = null
+    if (raw.gist[0] !== null) {
+      try {
+        value = normalizeGistField(raw.gist[0])
+      } catch (error) {
+        throw new MergeSectionError(`merge: \`gist\` — ${error instanceof Error ? error.message : 'not a gist'}`)
+      }
+    }
+    gist = [value, stamp]
   }
 
   /** @type {Map<string, Stamp>} */
@@ -285,5 +308,5 @@ export function readMergeSection(raw, recordIds) {
     }
   }
 
-  return { projectId, highest, pos, stamps, dead, registers, partStamps, viewStamps }
+  return { projectId, highest, pos, stamps, dead, registers, partStamps, viewStamps, ...(gist !== undefined ? { gist } : {}) }
 }

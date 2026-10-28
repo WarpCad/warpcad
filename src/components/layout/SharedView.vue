@@ -20,23 +20,58 @@
  *   full-width button in the thumb zone; from 641px the action sits beside the title.
  *
  * Name and note arrived in a link: untrusted text, rendered as text only.
+ *
+ * ## A gist link, `#/gist/<id>` (`TODO/io-017`)
+ *
+ * The same screen, read through the gist store:
+ *
+ * - **The gist's description** (`shared-description`), as plain text — already capped and
+ *   stripped of controls (`plainGistDescription`) — when it says more than the title.
+ * - **A gist that cannot be shown** (missing, deleted, empty, rate-limited, not a project) is the
+ *   same full-screen message with **Start WarpCad**, worded by `gistMessages.js`
+ *   (`gist.linkMessage`), never the "looks incomplete" text, which is about a long link cut short.
+ * - **The owner's own link** (`gist.linkPhase === 'own-link'`): no read-only copy of their own
+ *   work. **Open it to edit** (`shared-gist-edit`) stays in the current project and merges the
+ *   gist's copy in (`mergeIn`, with its Undo-merge toast); **Make a copy** (`shared-gist-copy`)
+ *   opens it as a separate new project through the File menu's open flow. Everyone else keeps
+ *   the one button, **Make my own copy to edit**.
  */
+import { computed } from 'vue'
+
 import ReplaceConfirmDialog from '../storage/ReplaceConfirmDialog.vue'
 import Viewport from '../viewport/Viewport.vue'
+import { useGistStore } from '../../stores/gist.js'
 import { useShareStore } from '../../stores/share.js'
 
 defineEmits(['start'])
 
 const share = useShareStore()
+const gist = useGistStore()
+
+/** The link was a gist and it could not be shown: its own sentence, not the long link's. */
+const gistFailed = computed(() => gist.linkPhase === 'failed' && gist.linkMessage !== '')
+/** The person opening the link published it. */
+const ownLink = computed(() => share.phase === 'ready' && gist.linkPhase === 'own-link')
+/** The gist's description, when it adds to the title. */
+const description = computed(() => {
+  const text = gist.linkDescription
+  return text !== '' && text !== share.name ? text : ''
+})
 </script>
 
 <template>
   <section class="shared" data-testid="shared-view" :data-state="share.phase" aria-label="Shared project">
-    <div v-if="share.phase === 'incomplete'" class="shared__incomplete" data-testid="shared-incomplete" :data-reason="share.reason">
-      <h1 class="shared__incomplete-title">This link looks incomplete</h1>
-      <p class="shared__incomplete-text">
-        Ask the person who sent it to send it again, or to send the file instead.
-      </p>
+    <div v-if="share.phase === 'incomplete'" class="shared__incomplete" data-testid="shared-incomplete" :data-reason="gistFailed ? gist.linkReason : share.reason">
+      <template v-if="gistFailed">
+        <h1 class="shared__incomplete-title">Can't show this shared project</h1>
+        <p class="shared__incomplete-text" data-testid="shared-gist-message">{{ gist.linkMessage }}</p>
+      </template>
+      <template v-else>
+        <h1 class="shared__incomplete-title">This link looks incomplete</h1>
+        <p class="shared__incomplete-text">
+          Ask the person who sent it to send it again, or to send the file instead.
+        </p>
+      </template>
       <button type="button" class="shared__button shared__button--primary" data-testid="shared-start" @click="$emit('start')">
         Start WarpCad
       </button>
@@ -44,9 +79,10 @@ const share = useShareStore()
 
     <template v-else>
       <header class="shared__head">
-        <p class="shared__kicker">Shared with you · WarpCad</p>
+        <p class="shared__kicker">{{ ownLink ? 'Your published project · WarpCad' : 'Shared with you · WarpCad' }}</p>
         <h1 class="shared__title" data-testid="shared-title">{{ share.phase === 'ready' ? share.name : 'Opening…' }}</h1>
         <p v-if="share.note" class="shared__note" data-testid="shared-note">{{ share.note }}</p>
+        <p v-if="description" class="shared__note" data-testid="shared-description">{{ description }}</p>
         <p v-if="share.phase === 'ready'" class="shared__hint" data-testid="shared-hint">Drag to turn it · pinch or scroll to zoom</p>
       </header>
 
@@ -56,7 +92,16 @@ const share = useShareStore()
       </div>
 
       <div class="shared__actions">
+        <template v-if="ownLink">
+          <button type="button" class="shared__button shared__button--primary" data-testid="shared-gist-edit" @click="gist.openOwnToEdit()">
+            Open it to edit
+          </button>
+          <button type="button" class="shared__button" data-testid="shared-gist-copy" @click="gist.makeOwnCopy()">
+            Make a copy
+          </button>
+        </template>
         <button
+          v-else
           type="button"
           class="shared__button shared__button--primary"
           data-testid="shared-copy"

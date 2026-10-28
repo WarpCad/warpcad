@@ -16,26 +16,74 @@
  * - An optional **?** in the header (`helpTopic`, a key of `src/help/topics.js`): every dialog
  *   that documents a tool gets its help button by passing one string (`TODO/ui-061`).
  *
+ * - **`sheet`** (`TODO/io-017`, the gist token dialog): at phone width a **bottom sheet** instead
+ *   of the top-anchored frame, for a dialog whose spec asks for one. The keyboard rule above still
+ *   holds: while it is open the sheet is lifted by the on-screen keyboard's height (the
+ *   `visualViewport` measure `ChatPanel.vue` uses), so a focused field is never behind it. From
+ *   641px it is the ordinary dialog.
+ *
  * It owns layout only. What each dialog says and does is its own component's.
  */
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+
 import HelpButton from '../controls/HelpButton.vue'
 
-defineProps({
+const props = defineProps({
   open: { type: Boolean, default: false },
   /** The dialog's own `data-testid`. */
   testid: { type: String, required: true },
   title: { type: String, required: true },
   /** A topic id for the header's **?**; empty for a dialog with nothing to document. */
   helpTopic: { type: String, default: '' },
+  /** A bottom sheet at phone width (see the module note); the ordinary dialog from 641px. */
+  sheet: { type: Boolean, default: false },
 })
 defineEmits(['backdrop'])
+
+/** How much of the layout viewport the on-screen keyboard covers, in px; 0 where it does not. */
+const keyboardInset = ref(0)
+function measureKeyboard() {
+  const visual = window.visualViewport
+  if (!visual) return
+  keyboardInset.value = Math.max(0, Math.round(window.innerHeight - visual.height - visual.offsetTop))
+}
+function stopMeasuring() {
+  window.visualViewport?.removeEventListener('resize', measureKeyboard)
+  window.visualViewport?.removeEventListener('scroll', measureKeyboard)
+}
+watch(
+  () => props.sheet && props.open,
+  (measuring) => {
+    if (typeof window === 'undefined') return
+    stopMeasuring()
+    keyboardInset.value = 0
+    if (!measuring) return
+    window.visualViewport?.addEventListener('resize', measureKeyboard)
+    window.visualViewport?.addEventListener('scroll', measureKeyboard)
+    measureKeyboard()
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') stopMeasuring()
+})
+
+const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboardInset.value}px` } : undefined))
 </script>
 
 <template>
   <Teleport to="body">
     <template v-if="open">
       <div class="modal__backdrop" :data-testid="`${testid}-backdrop`" @click="$emit('backdrop')" />
-      <div class="modal" role="dialog" aria-modal="true" :aria-label="title" :data-testid="testid">
+      <div
+        class="modal"
+        :class="{ 'modal--sheet': sheet }"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="title"
+        :data-testid="testid"
+        :style="frameStyle"
+      >
         <div class="modal__head">
           <h2 class="modal__title">{{ title }}</h2>
           <HelpButton v-if="helpTopic" class="modal__help" :topic="helpTopic" />
@@ -96,5 +144,21 @@ defineEmits(['backdrop'])
   color: var(--text-1);
   /* A file name in a title (the disk-change dialog) can be one long unbroken word. */
   overflow-wrap: anywhere;
+}
+
+/* `sheet`, phone width: a bottom sheet, lifted above the on-screen keyboard while it is up. */
+@media (max-width: 640px) {
+  .modal--sheet {
+    top: auto;
+    right: 0;
+    bottom: var(--modal-keyboard, 0px);
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: calc(100dvh - 24px - var(--modal-keyboard, 0px));
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
 }
 </style>

@@ -23,14 +23,25 @@
  *   - **Send the file** (`share-file`), a secondary link: what **Download copy** does, by name;
  *   - the disclosure line, always visible.
  * - **Over the ceiling** ({@link SHARE_LINK_MAX_CHARS}) the sheet says the project is too big to
- *   send as a link and offers **Send the file** — never a silent failure, never a link that a mail
- *   client will cut short.
+ *   send as a link and points at the gist group (its button becomes the primary action) and
+ *   **Send the file** — never a silent failure, never a link that a mail client will cut short.
  *
  * The link's host is `SHARE_HOST`, never `location.origin` (`docs/decisions/share-link.md`).
+ *
+ * ## Short link with GitHub (`TODO/io-017`)
+ *
+ * Under the long-link controls, `ShareGistGroup.vue`: connect a gist token, publish, update, copy
+ * the short link, stop sharing. Over the ceiling the sheet points at it as the way to share. A
+ * **Published** chip beside the button (`share-gist-chip`) says the open project is published from
+ * this account, with the last publish time this session; below 1100px, where the header has no
+ * room for words, it is a dot on the button with the same words for assistive tech. The gist
+ * store's `start()` (a stored-credential read, no network) runs when this mounts.
  */
-import { computed, nextTick, onBeforeUnmount, ref, toRaw, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
+import ShareGistGroup from './ShareGistGroup.vue'
+import { useGistPublish } from '../../composables/useGistPublish.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { parseNdjson } from '../../core/ndjson.js'
 import { serializeProject } from '../../core/project.js'
@@ -38,6 +49,8 @@ import { shareFileName } from '../../core/shareCopy.js'
 import { DEFAULT_SHARE_NAME, encodeShareLink } from '../../core/shareLink.js'
 import { downloadBytes } from '../../storage/download.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useFileMenuStore } from '../../stores/fileMenu.js'
+import { useGistStore } from '../../stores/gist.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import { useShareStore } from '../../stores/share.js'
@@ -56,6 +69,16 @@ const documentStore = useDocumentStore()
 const persistence = usePersistenceStore()
 const overlays = useOverlaysStore()
 const share = useShareStore()
+const menu = useFileMenuStore()
+const gist = useGistStore()
+const gistPublish = useGistPublish()
+
+/** The header chip's words: *Published*, and the time when this session published. */
+const chipText = computed(() => {
+  if (gist.lastPublishedAt === null) return 'Published'
+  const date = new Date(gist.lastPublishedAt)
+  return `Published · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+})
 
 const open = ref(false)
 /** The title being shared (`share-name`). */
@@ -227,7 +250,10 @@ watch(
   },
 )
 
-useEscapeToClose(() => open.value, closeSheet)
+// The gist token dialog opens over the sheet; its Escape is the File menu's, not the sheet's.
+useEscapeToClose(() => open.value && !menu.gistConnectOpen, closeSheet)
+// `TODO/io-017`: which GitHub account is connected, for the gist group and the chip (no network).
+onMounted(() => void gist.start().catch(() => {}))
 watch(open, (isOpen) => overlays.setOpen('share-sheet', isOpen))
 onBeforeUnmount(() => {
   overlays.setOpen('share-sheet', false)
@@ -255,6 +281,15 @@ onBeforeUnmount(() => {
       <span class="share-button__label">Share</span>
     </button>
     <span v-if="empty" id="share-open-reason" class="share-reason" data-testid="share-reason">{{ EMPTY_REASON }}</span>
+    <span
+      v-else-if="gistPublish.published.value"
+      class="share-chip"
+      data-testid="share-gist-chip"
+      :title="`${chipText} as a GitHub gist`"
+    >
+      <span class="share-chip__dot" aria-hidden="true" />
+      <span class="share-chip__label">{{ chipText }}</span>
+    </span>
 
     <Teleport to="body">
       <template v-if="open">
@@ -286,7 +321,8 @@ onBeforeUnmount(() => {
             </label>
 
             <p v-if="tooBig" class="share-sheet__too-big" role="alert" data-testid="share-too-big">
-              This project is too big to send as a link ({{ sizeText }}). Send the file instead.
+              This project is too big to send as a link ({{ sizeText }}). Publish it as a gist below for a short
+              link, or send the file.
             </p>
             <div v-else class="share-sheet__actions">
               <button
@@ -325,7 +361,6 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="share-sheet__file"
-              :class="{ 'share-sheet__button share-sheet__button--primary': tooBig }"
               data-testid="share-file"
               @click="sendFile()"
             >
@@ -335,6 +370,8 @@ onBeforeUnmount(() => {
             <p class="share-sheet__disclosure" data-testid="share-disclosure">
               Anyone with this link can open and copy this project, including its notes. It can't be taken back.
             </p>
+
+            <ShareGistGroup :too-big="tooBig" @toast="showToast" />
           </template>
         </section>
       </template>
@@ -392,6 +429,26 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--text-3);
   white-space: nowrap;
+}
+
+/* `TODO/io-017`: published as a gist from this account. */
+.share-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--accent-secondary);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.share-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-secondary);
 }
 
 /* The click-catcher at the popover tier (File ▾'s 30/31). */
@@ -587,7 +644,22 @@ onBeforeUnmount(() => {
     padding: 0;
   }
 
+  /* The chip becomes its dot, tucked against the button's corner; the words stay for assistive tech. */
+  .share-root {
+    position: relative;
+  }
+
+  .share-chip {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    padding: 0;
+    border: 0;
+    pointer-events: none;
+  }
+
   .share-button__label,
+  .share-chip__label,
   .share-reason {
     position: absolute;
     width: 1px;

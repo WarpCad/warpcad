@@ -124,14 +124,15 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
 
 Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
 **Share** and the status light. It works the same on a laptop, a tablet and a phone: tap
-it and a menu opens under it, with three groups: the items for **this device** at the top
+it and a menu opens under it, with four groups: the items for **this device** at the top
 (**New**, the save item, **Open…**, **Merge file…**, **Share…**, **Export…**), a **Design** group holding the **Resolution**
-setting and **Project settings…** (see [Design intent](design-intent.md)), and **Hosted storage**
-below the last divider. The first line of the menu repeats the
+setting and **Project settings…** (see [Design intent](design-intent.md)), **Hosted storage**,
+and **Short links**, the GitHub token for gist links ([Two GitHub tokens, and how they
+differ](#two-github-tokens-and-how-they-differ)). The first line of the menu repeats the
 status message in full, which is how you read it on a phone, where the status light in the bar
 is only a dot.
 
-![The File menu open: a status line, then New, Download copy, Open…, Merge file…, Share… and Export…, a Design group with Resolution: Normal… and Project settings…, and a Hosted storage group with Connect repository…](./screenshots/file-menu.png)
+![The File menu open: a status line, then New, Download copy, Open…, Merge file…, Share… and Export…, a Design group with Resolution: Normal… and Project settings…, a Hosted storage group with Connect repository…, and a Short links group with Connect GitHub for gists…](./screenshots/file-menu.png)
 
 Opening the menu never changes what is selected, and nothing in it is greyed out because of
 what is selected.
@@ -345,7 +346,7 @@ A **fine-grained personal access token**, created at
    token**. It never shows the token again. A small dot appears on the **File** button to show
    the connection, and the menu now offers the rest of the hosted group:
 
-   ![The File menu once connected: Save to janecoder/enclosure-parts, Load from janecoder/enclosure-parts, Auto-push, Replace token… and Disconnect under Hosted storage](./screenshots/file-menu-connected.png)
+   ![The File menu once connected: Save to janecoder/enclosure-parts, Load from janecoder/enclosure-parts, Auto-push, Replace token… and Disconnect under Hosted storage, then Connect GitHub for gists… under Short links](./screenshots/file-menu-connected.png)
 
 WarpCad writes to the repository's **default branch** (usually `main`), and to the one file
 you named. It does not create branches, open pull requests, or touch any other file.
@@ -473,5 +474,40 @@ the browser the whole time.
   auto-push off. Your model stays exactly where it is — disconnecting is about the
   repository, not about your work.
 - Clearing site data for WarpCad removes the token too, along with the autosave.
+
+### Two GitHub tokens, and how they differ
+
+WarpCad can hold a second GitHub token, for **short links** ([Publish a project as a
+gist](sharing.md#publish-a-project-as-a-gist)). The two are separate on purpose. Each asks GitHub
+for different access, is stored on its own, and is removed on its own. Never paste one where the
+other is asked for.
+
+| | Repository token (this section) | Gist token (short links) |
+|---|---|---|
+| Connect it from | **File ▾ → Connect repository…** | **File ▾ → Connect GitHub for gists…**, or **Share → Connect GitHub for short links** |
+| Make it on GitHub as | A fine-grained token with **one repository** selected and **Contents: Read and write** | A fine-grained token with **no repository access** and only **Gists: Read and write**, or a classic token with only **gist** ticked |
+| What WarpCad does with it | Saves and loads one file in that repository | Creates, updates and deletes the gists you publish from the Share sheet |
+| What it can't do | Touch any other repository, or your gists | Touch any repository |
+| Remove it with | **File ▾ → Disconnect** | **File ▾ → GitHub gists: *your name*… → Disconnect** |
+
+**Try it: connect the gist token.**
+
+1. **File ▾ → Connect GitHub for gists…** A sheet opens with the **GitHub token** field at the top.
+2. Tap **Open GitHub's token page**. Make a fine-grained token: give it a name such as *WarpCad
+   gists* and an expiry date, give it **no repository access**, and set only the account permission
+   **Gists** to **Read and write**. Copy it.
+3. Paste it into **GitHub token** and tap **Connect**. WarpCad checks it with GitHub before storing
+   anything. A token that is wrong or expired is turned down with *GitHub rejected this token*, and
+   one without the Gists permission with *This token can't write gists*.
+4. It says *Connected as* your GitHub name, the kind of token and when it expires. Tap **Done**.
+   The File menu row now reads **GitHub gists:** and your name.
+
+A classic token with more boxes ticked than **gist** still connects, with a warning: *This token
+can do more than WarpCad needs. Make a new one with only the gist box ticked.* Neither kind of gist
+token can be limited to one gist.
+
+**Disconnect** in that sheet deletes the gist token from this browser, and leaves a repository
+token where it is (and the reverse). To cancel a token on GitHub as well, delete it on GitHub's
+token page.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

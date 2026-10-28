@@ -13,6 +13,11 @@
  * itself (`document.js`, `mintable`), and synthesising a merge section here would be a second,
  * unvalidated writer of that format.
  *
+ * **A copy never inherits the sender's gist** (`TODO/io-017`). A published project carries the
+ * gist it is published as (`merge.gist`, `src/core/gistField.js`); a recipient's copy is a new
+ * project that does not own that gist, so {@link withProjectId} drops it ({@link withoutGist}),
+ * legacy project or not. The sender's own text (Merge their changes, Open theirs instead) keeps it.
+ *
  * Pure and framework-free: records in, records out. The input is never mutated.
  *
  * @module core/shareCopy
@@ -42,16 +47,36 @@ export function projectIdOfRecords(records) {
 }
 
 /**
- * The same records with the project id replaced by `id` — a recipient's own copy. Records with
- * no id (a legacy project) come back unchanged, and so does every record but the state line.
+ * The same records without the gist they are published as (`TODO/io-017`): the state line's
+ * `merge.gist` removed, every other record the same object. Records with no gist come back as
+ * they were. The input is never mutated.
+ *
+ * @param {readonly object[]} records
+ * @returns {object[]}
+ */
+export function withoutGist(records) {
+  return records.map((record) => {
+    if (!isStateLine(record)) return record
+    const merge = /** @type {any} */ (record).merge
+    if (merge === null || typeof merge !== 'object' || !Object.hasOwn(merge, 'gist')) return record
+    const { gist: _dropped, ...rest } = /** @type {Record<string, unknown>} */ (merge)
+    return { ...record, merge: rest }
+  })
+}
+
+/**
+ * The same records with the project id replaced by `id` — a recipient's own copy — and without
+ * the sender's gist ({@link withoutGist}). Records with no id (a legacy project) keep having
+ * none, and every record but the state line is the same object.
  *
  * @param {readonly object[]} records
  * @param {string} id A fresh id (`createProjectId`, `src/core/replica.js`).
  * @returns {object[]}
  */
 export function withProjectId(records, id) {
-  if (projectIdOfRecords(records) === null) return [...records]
-  return records.map((record) => {
+  const copy = withoutGist(records)
+  if (projectIdOfRecords(copy) === null) return copy
+  return copy.map((record) => {
     if (!isStateLine(record)) return record
     const merge = /** @type {Record<string, unknown>} */ (/** @type {any} */ (record).merge)
     return { ...record, merge: { ...merge, project: id } }

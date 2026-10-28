@@ -22,6 +22,9 @@ Google Analytics. A copy you build or run yourself has no ID and sends nothing.
 - **A shared-project link contains the project itself**, after the `#`, and is read only in the
   browser of the person who opens it; it is never sent to WarpCad's host or to Google Analytics
   ([Sharing a project by link](sharing.md)).
+- **Publishing a gist sends your project to GitHub.** **Share → Publish to a gist** uploads the
+  whole project file to a gist under your GitHub account; nothing is sent to GitHub until you tap
+  it ([Publish a project as a gist](sharing.md#publish-a-project-as-a-gist)).
 - **Nothing is sent from your own machine.** `npm run dev`, a local preview, `localhost`, a page
   served over plain `http`, and automated test browsers all skip it.
 

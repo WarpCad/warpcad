@@ -73,6 +73,8 @@ const REGISTER_WORDS = Object.freeze({
   resolution: 'the design resolution',
   standingInstructions: 'the standing instructions',
   buildVolume: 'the build volume',
+  // `TODO/io-017`: the project's `gist` field — which GitHub gist it is published as.
+  gist: 'the gist link',
 })
 
 /**

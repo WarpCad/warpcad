@@ -4073,6 +4073,7 @@ in `data-013`); the status chip kept the old summary after Undo merge (fixed in 
 
 
 **Re-checked**: 2026-10-15 UTC — **PASS** (`io-011`, re-driven because the hosted store now calls the shared `persistence.mergeText`/`mergeIn`). Laptop 1440x900 and 1280x800 Chromium, real `page.mouse` jittered 24-step Library drags, two browser contexts, `api.github.com` mocked: A saved a Cube to the repository, B loaded it and added a Cylinder and saved, A dropped a Sphere and pressed Save to: strip `Merged 1 step from me/bracket` with **Undo merge**, no dialog, 3 bodies, repository holds both; **Undo merge** took the Sphere... back to 2 bodies. Console: only the expected 404/409 responses from the mocked host.
+**Re-checked**: 2026-10-28 UTC — **PASS** (`io-017`, re-driven because it changed the merge section's format with a fifth register). Laptop 1440x900 Chromium, two contexts, fallback Download copy / Open… / Merge file…: Cube and Cylinder on A, B opened A's file and added a Sphere, A published a gist, then merged B's older file: strip `Merged 1 step from b.ndjson` with **Undo merge**, 3 bodies, and A's Share sheet still offered **Update gist** (the gist survived a merge from a copy that never had one); **Undo merge** gave 2 bodies and the gist was still there; after a reload 2 bodies, no **Undo merge**, gist intact. Not driven: step 3 (moving the Cube), step 6 (the conflict), phone width.
 
 ### 23. Claude Code edits the file you have open
 
@@ -4327,5 +4328,69 @@ the link in Messages**, which is the case the whole feature is for):
   question, a Shared view with editor chrome, or a link that loads part of a project.
 
 **Last run**: 2026-10-27 UTC (`io-016`, Stage 2) — **PASS** with one flagged gap, driven by ad-hoc Playwright scripts with jittered `page.mouse` and CDP touch, separate contexts for A and B, clipboard and `navigator.share` stubbed. Laptop 1440x900 Chromium, all seven steps: empty scene dimmed *Nothing to share yet*; Copy link toast *Link copied, 0.5 KB* and the *Here's a model I made in WarpCad: Phone stand* text; B's cold open showed the Shared view with no editor chrome and the hash cleared; orbit, zoom, taps and **Home** changed nothing selected; **Make my own copy** gave the editor with both shapes and **Merge file…** of A's file into it was refused as a different project; A unchanged after reload. Variants: a link cut by 1, 30, 200 and 400 characters showed *This link looks incomplete* with **Start WarpCad**; the same project's link in A's tab offered **Merge their changes** / **Open theirs instead** (merge gave `Merged 1 step`, **Undo merge** took it out); reload right after the model appeared opened the app with nothing stored or lost; a context with its own project kept a byte-identical autosave (423 chars) before, after and 4 s after opening the link and after Cancel, **Replace the project?** appeared, Cancel returned, Download yours first then Replace worked; a hostile-intent link loaded as inert data (`window.__pwned` undefined, no assistant). Phone 390x844 and tablet 820x1180 (Chromium CDP touch, WebKit touchscreen taps): no horizontal scroll, header not clipped, Share sheet and the Shared view's own buttons 44 px or more, Send… called `navigator.share` with the right title, text and link. **Gap, not a regression:** the Shared view's nav pad and view box are 28-38 px, the editor's existing `--tap-compact` controls (VERIFY row 6). Not driven: a real iPhone in Safari receiving the link in Messages, a real OS share sheet, WebKit pinch and touch drag (mouse fallback), Firefox.
+**Re-checked**: 2026-10-28 UTC — **PASS** (`io-017`, re-driven because the Share sheet gained the gist group). Laptop 1440x900 Chromium, real jittered pointer, separate contexts: empty scene *Nothing to share yet*; **Copy link** *Link copied, 0.5 KB* (the clipboard holds the share text and the link, as before); B's cold open showed *Phone stand* with no File menu and the hash cleared; **Make my own copy** gave the editor with 2 bodies; a link cut by 30 characters showed *This link looks incomplete* with **Start WarpCad**; the same project's link in A's tab, then **Make my own copy**, asked *Merge their changes?* with **Cancel / Open theirs instead / Merge their changes**. Not driven: a real iPhone, phone width for this pass.
+
+### 30. Publish a project and open it from a short link
+
+Added 2026-10-28 with `TODO/io-017` (Stage 2). Control names: the Share sheet's **Short link with
+GitHub** group (`share-gist-group`: **Connect GitHub for short links** `share-gist-connect`, **Make it
+public** `share-gist-public`, **Publish to a gist** `share-gist-publish`, the status
+`share-gist-status`, **Copy gist link** `share-gist-copy`, **Update gist** `share-gist-update`, **Open
+on GitHub** `share-gist-page`, **Stop sharing** `share-gist-stop` and its confirm
+`share-gist-stop-confirm`, the disclosure `share-gist-disclosure`), the **Published** chip beside Share
+(`share-gist-chip`), **File ▾ → Connect GitHub for gists…** (`gist-connect-open`), the token sheet
+(`gist-connect-dialog`: `gist-connect-token`, **Connect** `gist-connect-submit`, `gist-connect-status`,
+**Disconnect** `gist-disconnect`), and in the Shared view **Open it to edit** (`shared-gist-edit`),
+**Make a copy** (`shared-gist-copy`) and the failed-link message (`shared-gist-message`).
+
+**Steps** (two browser contexts or two devices, A and B, against the **fake gist API** of
+`e2e/support/fakeGistApi.js` — route interception, sentinel tokens, no real network. A real GitHub
+account and a throwaway token are a separate, one-off by-hand check in `TODO/VERIFY.md`, not this
+scenario):
+1. On A, drag a Cube and a Sphere in. **File ▾ → Download copy** (or **Share → Send the file**) and
+   keep the file.
+2. On A, tap **Share**. Under **Short link with GitHub**, tap **Connect GitHub for short links**. Paste
+   the gist sentinel token and tap **Connect**, then **Done**.
+3. Back in the sheet, read the disclosure, leave **Make it public** unticked, and tap **Publish to a
+   gist**.
+4. On B, which has never opened WarpCad, open the copied short link.
+5. On B, tap **Make my own copy to edit**. Move the Sphere. Open B's Share sheet.
+6. On A, drag a Cylinder in. **Share → Update gist**. On B, open the short link again.
+7. On A, paste the short link into A's own address bar.
+8. On A, **Share → Stop sharing**, then confirm. On B, open the short link again.
+9. *Drive it differently on purpose:* tap **Publish to a gist** twice quickly; start a publish and
+   close the sheet before it finishes; switch the fake to `rate-limited` and open the link on B;
+   open a project whose file is over the inline limit (the fake's `truncateOver`); try it at 390 px
+   with the token sheet's field focused (on a real phone, with the on-screen keyboard up).
+
+**Expect**:
+- Step 2: the token sheet is a bottom sheet at 390 px with the token field first and the GitHub link
+  and instruction under it; after **Connect** it says *Connected as* the account, the token kind and
+  its expiry, and never shows the token again. Nothing was published.
+- Step 3: *Published. Link copied*; the clipboard holds `https://app.warpcad.com/#/gist/<id>`; the
+  group shows *Published · secret · HH:MM* with Copy gist link, Update gist, Open on GitHub and Stop
+  sharing; at laptop and tablet width a **Published** chip is beside Share (at 390 px Share is under File ▾ and there is no persistent indicator, only this status and the toast, `io-017` VERIFY row 3). The gist holds exactly the project
+  file and `README.md`; the README names both bodies and carries the link; the project file is
+  byte-identical to step 1's Download copy.
+- Step 4: the Shared view with both bodies, the title, the navigation pad and view box, one **Make my
+  own copy to edit**, and no editor chrome; the address bar no longer carries the id.
+- Step 5: B's copy is its own project: its Share sheet offers to connect or publish, never Update or
+  Stop for A's gist.
+- Step 6: *Gist updated*; the same id was patched, and B's reopened link shows three bodies.
+- Step 7: A sees **Open it to edit** and **Make a copy**, not a read-only copy; **Open it to edit**
+  returns to A's editor with all three bodies and A's project still published.
+- Step 8: the confirm says the link stops working and cached copies may remain; afterwards the chip
+  is gone, and B sees *Can't show this shared project* / *This shared project can't be found…* with
+  **Start WarpCad**, never the editor or a half-loaded project.
+- Step 9: one gist, not two; the publish finishes or fails with fixed wording, never a lost project;
+  *GitHub is busy. Try again in a few minutes.*; the truncated file loads in full; the focused token
+  field is not hidden behind the keyboard.
+- At 390 px, 820 px and 1440 px: no horizontal scroll, every action a 44 px target, the header row
+  not clipped.
+- Never: anything sent to GitHub without a tap, the token in a URL, the page, a log or an error,
+  opening a gist link that writes to the browser's stored session, a copy that owns the sender's
+  gist, or a repository token and a gist token that overwrite each other.
+
+**Last run**: 2026-10-28 UTC (`io-017`, Stage 2) — **PASS** with one flagged gap, hand-driven with an exploratory Playwright script (jittered pointer and CDP touch at 390x844, Chromium, two to four separate contexts, the fake gist API of `e2e/support/fakeGistApi.js`, a sentinel token, no real network). Steps 1-8: the token sheet was a bottom sheet with the field first and focused, a password-type field, and the token never in the DOM afterwards; Connect showed *Connected as hand-tester*, kind and expiry; **Publish** tapped twice quickly created exactly one gist, copied `…/#/gist/<id>` and showed *Published · secret · 09:13*; B's cold open showed the Shared view with no editor chrome and the hash cleared; B's **Make my own copy** gave an editor whose Share sheet offered **Connect**, not **Update** (the copy does not own A's gist); after A added a Cylinder and tapped **Update gist** a fresh context read 3 bodies from the same link; A pasting its own link got **Open it to edit** and **Make a copy** (no read-only copy) and Open it to edit gave the editor with 3 bodies; **Stop sharing** then confirm made the link show *Can't show this shared project / can't be found* with **Start WarpCad**. No request left the fake origins and the token went only to `api.github.com`. **Gap:** at 390 px the **Published** chip exists but is hidden (Share is under File ▾), so there is no persistent indicator. Not driven: the rate-limited and truncated-file modes (covered by `e2e/gist-share.e2e.js`), Firefox/WebKit, a real iPhone keyboard and clipboard.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

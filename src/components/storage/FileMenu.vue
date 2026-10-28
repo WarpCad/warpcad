@@ -92,6 +92,14 @@
  * mounted here and deferred by the same `busy` rule as the hosted conflict, and it also waits
  * for a hosted conflict that is already showing.
  *
+ * ## `Connect GitHub for gists…` (`TODO/io-017`)
+ *
+ * Its own **Short links** group under Hosted storage, because it is a second, separate GitHub
+ * credential (Gists only; the repository token is Contents on one repository). It opens
+ * `GistConnectDialog.vue`, the same dialog the Share sheet's gist group opens; once connected the
+ * row names the account. The gist store's `start()` (a stored-credential read, no network) runs
+ * when this menu mounts, so the Share sheet and the chip know the connection.
+ *
  * Every real action is a call into `stores/fileMenu.js` (when to ask), `stores/persistence.js`
  * (the local file) or `stores/hosted.js` (the repository): no persistence logic lives here.
  */
@@ -100,6 +108,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useStatusSurface } from '../../composables/useStatusSurface.js'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
+import { useGistStore } from '../../stores/gist.js'
 import { useHelpStore } from '../../stores/help.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import { useMergeStore } from '../../stores/merge.js'
@@ -114,6 +123,7 @@ import ConflictDialog from './ConflictDialog.vue'
 import DiskChangeDialog from './DiskChangeDialog.vue'
 import ConnectDialog from './ConnectDialog.vue'
 import ExportPopover from './ExportPopover.vue'
+import GistConnectDialog from './GistConnectDialog.vue'
 import ProjectSettingsDialog from './ProjectSettingsDialog.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
 import ResolutionPopover from './ResolutionPopover.vue'
@@ -136,6 +146,7 @@ const sketchEditor = useSketchEditorStore()
 const surface = useStatusSurface()
 const documentStore = useDocumentStore()
 const share = useShareStore()
+const gist = useGistStore()
 
 /** `TODO/io-016`: why **Share…** is dimmed — the Share button's own precondition — or `''`. */
 const shareReason = computed(() => (documentStore.bodies.length === 0 ? 'Nothing to share yet' : ''))
@@ -248,7 +259,7 @@ function onKeydown(event) {
   if (event.altKey) {
     if (event.code === 'KeyN' && !event.shiftKey) {
       event.preventDefault()
-      if (menu.confirm === null && !menu.connectOpen && !hosted.conflictOpen) menu.requestNew()
+      if (menu.confirm === null && !menu.connectOpen && !menu.gistConnectOpen && !hosted.conflictOpen) menu.requestNew()
     }
     return
   }
@@ -260,7 +271,9 @@ function onKeydown(event) {
   } else if (key === 'o' && !event.shiftKey) {
     event.preventDefault()
     // A dialog already asking the question is not asked twice.
-    if (menu.confirm === null && !menu.connectOpen && !hosted.conflictOpen && !persistence.diskPromptOpen) menu.requestOpen()
+    if (menu.confirm === null && !menu.connectOpen && !menu.gistConnectOpen && !hosted.conflictOpen && !persistence.diskPromptOpen) {
+      menu.requestOpen()
+    }
   }
 }
 
@@ -305,7 +318,11 @@ function disconnect() {
   void hosted.disconnect()
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  // `TODO/io-017`: restore a stored gist connection (no network) for the menu row and the Share sheet.
+  void gist.start().catch(() => {})
+})
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', measure)
@@ -578,6 +595,23 @@ onBeforeUnmount(() => {
             </template>
           </div>
 
+          <!-- TODO/io-017: a second GitHub credential, Gists only — its own group, so it is never
+               mistaken for the repository token above. -->
+          <div class="file-menu__divider" role="separator">
+            <span>Short links</span>
+          </div>
+          <div role="group" aria-label="Short links">
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item"
+              data-testid="gist-connect-open"
+              @click="menu.openGistConnect()"
+            >
+              {{ gist.connected ? `GitHub gists: ${gist.login}…` : 'Connect GitHub for gists…' }}
+            </button>
+          </div>
+
           <div class="file-menu__divider" role="separator">
             <span>Help</span>
           </div>
@@ -595,6 +629,7 @@ onBeforeUnmount(() => {
     <ProjectSettingsDialog />
     <ReplaceConfirmDialog />
     <ConnectDialog />
+    <GistConnectDialog />
     <ConflictDialog />
     <DiskChangeDialog />
   </div>

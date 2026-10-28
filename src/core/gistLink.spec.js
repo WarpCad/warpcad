@@ -1,7 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { GIST_ROUTE, gistLink, isGistId, isGistLink, parseGistHash } from './gistLink.js'
+import {
+  GIST_ROUTE,
+  MAX_GIST_SLUG_CHARS,
+  gistFileName,
+  gistLink,
+  gistRawFileUrl,
+  isGistId,
+  isGistLink,
+  isGistRawUrl,
+  parseGistHash,
+} from './gistLink.js'
 import { SHARE_HOST, isShareLink } from './shareLink.js'
 
 /**
@@ -148,5 +158,71 @@ describe('isGistLink', () => {
     expect(isGistLink('#/gists')).toBe(false)
     expect(isGistLink('')).toBe(false)
     expect(isGistLink(/** @type {any} */ (null))).toBe(false)
+  })
+})
+
+describe('gistFileName — the project file\'s name in the gist (Stage 2)', () => {
+  it('slugs a plain name: lowercase, ASCII, hyphens for runs of anything else', () => {
+    expect(gistFileName('Phone stand')).toBe('phone-stand.ndjson')
+    expect(gistFileName('  Phone   Stand  v2!! ')).toBe('phone-stand-v2.ndjson')
+    expect(gistFileName('Café Crème')).toBe('cafe-creme.ndjson')
+  })
+
+  it.each([
+    ['empty', ''],
+    ['blank', '   \t\n'],
+    ['only emoji', '📱📐'],
+    ['only right-to-left text', 'מעמד לטלפון'],
+    ['only punctuation', '../..//\\'],
+    ['not text', /** @type {any} */ (null)],
+  ])('falls back to project.ndjson for %s', (_label, name) => {
+    expect(gistFileName(name)).toBe('project.ndjson')
+  })
+
+  it('keeps the ASCII part of a mixed name and drops emoji, RTL and bidi controls', () => {
+    expect(gistFileName('Stand 📱 for Dad')).toBe('stand-for-dad.ndjson')
+    expect(gistFileName('Desk \u202Egnp.exe')).toBe('desk-gnp-exe.ndjson')
+    expect(gistFileName('Stand מעמד')).toBe('stand.ndjson')
+  })
+
+  it('never yields a path, a dot file or a name that needs encoding', () => {
+    for (const hostile of ['../../etc/passwd', '..', '.hidden', 'a/b\\c', 'name?x=1#frag', '<script>alert(1)</script>', 'C:\\Windows', '%2e%2e%2f']) {
+      const name = gistFileName(hostile)
+      expect(name).toMatch(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.ndjson$/)
+      expect(encodeURIComponent(name)).toBe(name)
+    }
+  })
+
+  it('caps the slug length and never ends it on a hyphen', () => {
+    const name = gistFileName('word '.repeat(100))
+    const stem = name.slice(0, -'.ndjson'.length)
+    expect(stem.length).toBeLessThanOrEqual(MAX_GIST_SLUG_CHARS)
+    expect(stem.endsWith('-')).toBe(false)
+  })
+})
+
+describe('gistRawFileUrl — the README\'s revision-free raw link (Stage 2)', () => {
+  it('builds https://gist.githubusercontent.com/<login>/<id>/raw/<file>, which isGistRawUrl accepts', () => {
+    const url = gistRawFileUrl('octocat', ID32, 'phone-stand.ndjson')
+    expect(url).toBe(`https://gist.githubusercontent.com/octocat/${ID32}/raw/phone-stand.ndjson`)
+    expect(isGistRawUrl(url)).toBe(true)
+    // No pinned revision: a sha segment between raw/ and the file would freeze the link.
+    expect(url).not.toMatch(/\/raw\/[0-9a-f]{40}\//)
+  })
+
+  it.each([
+    ['a login with a slash', ['octo/cat', ID32, 'p.ndjson']],
+    ['an empty login', ['', ID32, 'p.ndjson']],
+    ['a bad id', ['octocat', 'nope', 'p.ndjson']],
+    ['a file name with a path', ['octocat', ID32, '../p.ndjson']],
+    ['a file name that needs encoding', ['octocat', ID32, 'my project.ndjson']],
+  ])('refuses %s without quoting it', (_label, args) => {
+    const [login, id, file] = /** @type {[string, string, string]} */ (args)
+    expect(() => gistRawFileUrl(login, id, file)).toThrow()
+    try {
+      gistRawFileUrl(login, id, file)
+    } catch (error) {
+      expect(String(error)).not.toContain(login || '@@')
+    }
   })
 })

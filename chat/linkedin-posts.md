@@ -3593,3 +3593,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** spec assumed no fine-grained gist permission → TODO/FIND-io-017 text; Gists-only token create/update/delete → real calls this session; 403 creating a repository → same run; list call returns 200 without the permission → x-accepted-github-permissions: allows_permissionless_access=true in the same run; 2 MB file truncated with about 0.92 MB inline → same run; host check → diff (gistBackend.js isGistRawUrl); shares request code with the repository backend → diff (hostedBackend.js githubHeaders, classifyGitHubFailure, isWellFormedToken); Share sheet is Stage 2 → TODO/FIND-io-017 progress note
 **To Add:** nothing yet
+
+## 2026-10-28T14:30:00Z — Gist sharing: publish, update, open and stop from a short link
+
+**Post:** WarpCad projects can now be published as a secret GitHub gist and shared with one short link. The owner connects a fine-grained token that has only the Gists permission, taps Publish, and sends the link. Whoever opens it sees the model read-only with one button, "Make my own copy to edit", and no account is needed on that end. Updating from the same project patches the same gist, so a link already sent shows the newer version. Stop sharing deletes it.
+
+Two details took more care than the buttons. The gist id is stored in the project file as a field that older builds ignore, because the released build refuses any register name it does not know. And a copy made from someone's shared project drops that field, so it never believes it owns the sender's gist.
+
+I tested it by hand at phone width against a fake GitHub API, driving two browser contexts as the sender and the recipient. No real gist has been published from a real phone yet, and that check is still open.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** secret gist, fine-grained Gists-only token → docs/decisions/gist-storage.md (real calls); recipient read-only with one button, no account → diff (SharedView.vue) and hand-driven scenario 30; update patches the same gist → hand-driven scenario 30 (fresh context read 3 bodies from the same link); Stop sharing deletes → same run, link then shows the can't-be-found screen; id stored as a field older builds ignore → diff (src/core/merge/section.js, docs/decisions/document-sync.md: v1.1.0 refuses unknown names in merge.registers); copy drops the field → diff (shareCopy.js withoutGist) and hand-driven (B's copy offered Connect, not Update); fake API, no real phone → TODO/VERIFY.md rows 1-2
+**To Add:** docs/screenshots/share-gist.png

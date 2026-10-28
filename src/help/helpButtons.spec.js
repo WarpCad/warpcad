@@ -55,6 +55,7 @@ const SURFACES = Object.freeze([
   'src/components/storage/ResolutionPopover.vue',
   'src/components/storage/ProjectSettingsDialog.vue',
   'src/components/storage/ConnectDialog.vue',
+  'src/components/storage/GistConnectDialog.vue',
   'src/components/sketch/SketchPanelSheet.vue',
   'src/components/sketch/ReferenceImagePanel.vue',
   'src/components/sketch/TraceTool.vue',

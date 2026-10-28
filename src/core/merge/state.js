@@ -52,6 +52,9 @@
  * @property {Lww<unknown> | null} resolution
  * @property {Lww<unknown> | null} standingInstructions
  * @property {Lww<unknown> | null} buildVolume
+ * @property {Lww<unknown> | null} gist `TODO/io-017`: the gist this project is published as
+ *   (`src/core/gistField.js`), or `null` once cleared. A value travels with its stamp in the
+ *   file's `merge.gist`, not as a state-line field — see {@link SECTION_REGISTER_NAMES}.
  */
 
 /**
@@ -87,7 +90,15 @@ export function isLegacyStamp(stamp) {
 }
 
 /** The document-level registers, in their canonical order. */
-export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume'])
+export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist'])
+
+/**
+ * The registers whose **value** is a state-line field and whose stamp alone goes in the file's
+ * `merge.registers` map (`section.js`). A released build refuses a name in that map it does not
+ * know, so a register added later never goes there: `gist` (`TODO/io-017`) is written as its own
+ * `merge.gist` key, value and stamp together, which an older build simply ignores.
+ */
+export const SECTION_REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume'])
 
 /**
  * A state with nothing in it.
@@ -100,7 +111,7 @@ export function emptyMergeState(projectId = null) {
     projectId,
     entries: new Map(),
     dead: new Map(),
-    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null },
+    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null },
     parts: new Map(),
     viewHidden: new Map(),
   }

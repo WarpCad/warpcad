@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, toRaw } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { parseNdjson } from '../core/ndjson.js'
 import { parseProject, serializeProject } from '../core/project.js'
 import { encodeShareLink } from '../core/shareLink.js'
+import { GistError } from '../storage/gistBackend.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useFileMenuStore } from '../stores/fileMenu.js'
+import { setGistDependencies, useGistStore } from '../stores/gist.js'
 import { useMergeStore } from '../stores/merge.js'
 import { setPersistenceDependencies, usePersistenceStore } from '../stores/persistence.js'
 import { useShareStore } from '../stores/share.js'
 import { useTimelineStore } from '../stores/timeline.js'
-import { openShareLink, useShareLink } from './useShareLink.js'
+import { openGistLink, openShareLink, useShareLink } from './useShareLink.js'
 
 /**
  * `TODO/io-016` Stage 2 — the share route and the Shared view's three ways out, against the real
@@ -376,6 +378,372 @@ describe('hostile projects behave through a link exactly as through Open…', ()
       const shown = useTimelineStore().previewDocument()
       expect(shown?.entries.map((entry) => entry.record.id)).toEqual(openedIds)
       expect(shown?.entries.map((entry) => entry.intent ?? null)).toEqual(openedIntents)
+    }
+    scope.stop()
+  })
+})
+
+/* ------------------------------------------------------------------ io-017 */
+
+const GIST_ID = 'aa11bb22cc33dd44ee55ff6677889900'
+const OTHER_GIST_ID = 'bb22cc33dd44ee55ff66778899001122'
+const REVISION = 'c'.repeat(40)
+const GIST_HASH = `#/gist/${GIST_ID}`
+
+/**
+ * A project as a gist holds it: published by its owner, so it carries the `gist` field.
+ *
+ * @param {{ projectId?: string, gistId?: string, extra?: boolean }} [options]
+ */
+function publishedText({ projectId = 'senderproject0001', gistId = GIST_ID, extra = false } = {}) {
+  const doc = createDocument({ mintProjectId: () => projectId })
+  doc.append(CUBE, { origin: 'local' })
+  if (extra) doc.append(CYLINDER, { origin: 'local' })
+  doc.setGist({ id: gistId, public: false, lastRevision: REVISION, owner: 'octocat' }, { origin: 'gist' })
+  return serializeProject(doc)
+}
+
+/** @typedef {(options: { id: string }) => Promise<import('../storage/gistBackend.js').GistRead>} FakeRead */
+
+/**
+ * The unauthenticated gist read, faked at the boundary. Typed loosely (`any`): a `vi.fn` is not
+ * the client's exact signature, and the store under test is the typed side.
+ *
+ * @param {FakeRead} read
+ * @returns {any}
+ */
+function gistBackend(read) {
+  return {
+    validateGistToken: vi.fn(),
+    createGist: vi.fn(),
+    updateGist: vi.fn(),
+    deleteGist: vi.fn(),
+    readGist: vi.fn(read),
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {string} [description]
+ * @returns {FakeRead}
+ */
+const servedAs = (text, description = 'Phone stand') => async ({ id }) => ({
+  id,
+  description,
+  text,
+  revision: REVISION,
+  updatedAt: '2026-10-28T14:05:00Z',
+  fileName: 'phone-stand.ndjson',
+})
+
+/** @type {import('../storage/tokenStorage.js').CredentialStore} */
+const noCredentials = { read: async () => null, write: async () => {}, clear: async () => {}, close() {} }
+
+describe('the gist route at boot (io-017)', () => {
+  /** @type {any} */
+  let gistApi
+
+  beforeEach(() => {
+    gistApi = gistBackend(servedAs(publishedText({ extra: true })))
+    setGistDependencies({ backend: gistApi, credentials: noCredentials })
+  })
+
+  afterEach(() => setGistDependencies(null))
+
+  it('reads the gist with no token and shows the Shared view: both bodies, the title, the hash cleared', async () => {
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(gistApi.readGist).toHaveBeenCalledWith({ id: GIST_ID })
+    const share = useShareStore()
+    const gist = useGistStore()
+    expect(share.phase).toBe('ready')
+    expect(share.name).toBe('Phone stand')
+    expect(gist.linkPhase).toBe('shown')
+    expect(gist.linkId).toBe(GIST_ID)
+    expect(gist.linkDescription).toBe('Phone stand')
+    expect(useTimelineStore().previewBodies?.map((body) => body.id).sort()).toEqual(['cube-1', 'cyl-1'])
+    expect(useDocumentStore().raw.entries).toHaveLength(0)
+    expect(env.current).toBe('')
+    expect(env.cleared).toBe(1)
+    scope.stop()
+  })
+
+  it('suspends autosave synchronously at setup, before the boot restore can run', async () => {
+    const env = fakeEnv(GIST_HASH)
+    const scope = effectScope()
+    scope.run(() => useShareLink({ env }))
+    expect(usePersistenceStore().autosaveSuspended).toBe(true)
+    expect(useShareStore().phase).toBe('opening')
+    expect(useGistStore().linkPhase).toBe('opening')
+    await settle()
+    scope.stop()
+  })
+
+  it.each([
+    ['a trailing slash', `${GIST_HASH}/`],
+    ['surrounding whitespace (a pasted value)', `  ${GIST_HASH} \n`],
+  ])('accepts %s', async (_label, hash) => {
+    const env = fakeEnv(hash)
+    const { scope } = await boot(env)
+    expect(gistApi.readGist).toHaveBeenCalledWith({ id: GIST_ID })
+    expect(useShareStore().phase).toBe('ready')
+    scope.stop()
+  })
+
+  it.each([
+    ['rate-limited', new GistError('rate-limited', 'limited'), 'GitHub is busy. Try again in a few minutes.'],
+    ['not-found', new GistError('not-found', 'gone'), /^This shared project can't be found\./],
+    ['empty', new GistError('empty', 'empty'), /^This shared project can't be found\./],
+    ['no-project-file', new GistError('no-project-file', 'none'), /^This shared project can't be found\./],
+    ['offline', new GistError('offline', 'No network'), /^No network\./],
+  ])('a %s read shows the full-screen message, loads nothing and keeps the hash', async (kind, error, wording) => {
+    gistApi.readGist.mockImplementation(async () => {
+      throw error
+    })
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    const share = useShareStore()
+    const gist = useGistStore()
+    expect(share.phase).toBe('incomplete')
+    expect(gist.linkPhase).toBe('failed')
+    expect(gist.linkReason).toBe(kind)
+    if (typeof wording === 'string') expect(gist.linkMessage).toBe(wording)
+    else expect(gist.linkMessage).toMatch(wording)
+    expect(gist.linkMessage).not.toContain(GIST_ID)
+    expect(useTimelineStore().watching).toBe(false)
+    expect(useDocumentStore().raw.entries).toHaveLength(0)
+    expect(env.current).toBe(GIST_HASH)
+    scope.stop()
+  })
+
+  it('a gist whose project file does not load is "can\'t be opened", never a half-parsed project', async () => {
+    gistApi.readGist.mockImplementation(servedAs('{"id":"a","op":"primitive.cuboid"}\nthis is not json\n'))
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(useShareStore().phase).toBe('incomplete')
+    expect(useGistStore().linkReason).toBe('unreadable')
+    expect(useGistStore().linkMessage).toMatch(/can't be opened/)
+    expect(useTimelineStore().watching).toBe(false)
+    scope.stop()
+  })
+
+  it('a link that is not a gist id never reaches GitHub', async () => {
+    const env = fakeEnv('#/gist/../../user')
+    const { scope } = await boot(env)
+    expect(gistApi.readGist).not.toHaveBeenCalled()
+    expect(useShareStore().phase).toBe('incomplete')
+    expect(useGistStore().linkReason).toBe('invalid-link')
+    expect(useGistStore().linkMessage).toMatch(/incomplete/)
+    scope.stop()
+  })
+
+  it('Start WarpCad clears an unread gist link and returns to the editor with autosave back on', async () => {
+    gistApi.readGist.mockImplementation(async () => {
+      throw new GistError('not-found', 'gone')
+    })
+    const env = fakeEnv(GIST_HASH)
+    const { scope, route } = await boot(env)
+    route.leave()
+    expect(useShareStore().phase).toBe('off')
+    expect(useGistStore().linkPhase).toBe('off')
+    expect(env.current).toBe('')
+    expect(usePersistenceStore().autosaveSuspended).toBe(false)
+    scope.stop()
+  })
+
+  it('the gist description is untrusted: shown as one capped line of plain text, HTML and Markdown literal', async () => {
+    const hostile = '<img src=x onerror=alert(1)>\n**bold** [x](javascript:alert(1))\u202E' + 'x'.repeat(5000)
+    gistApi.readGist.mockImplementation(servedAs(publishedText(), hostile))
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    const gist = useGistStore()
+    expect(typeof gist.linkDescription).toBe('string')
+    expect(gist.linkDescription.startsWith('<img src=x onerror=alert(1)> **bold** [x](javascript:alert(1))x')).toBe(true)
+    expect(gist.linkDescription).not.toMatch(/[\n\u202E]/)
+    expect(Array.from(gist.linkDescription).length).toBeLessThanOrEqual(200)
+    expect(Array.from(useShareStore().name).length).toBeLessThanOrEqual(200)
+    scope.stop()
+  })
+
+  it('a gist link pasted into an open tab opens it; a help hash is never read as a gist and keeps its own route', async () => {
+    const env = fakeEnv('#/help/booleans')
+    const { scope } = await boot(env)
+    expect(gistApi.readGist).not.toHaveBeenCalled()
+    expect(useShareStore().phase).toBe('off')
+    expect(env.current).toBe('#/help/booleans')
+    env.navigate(GIST_HASH)
+    await settle()
+    expect(useShareStore().phase).toBe('ready')
+    expect(useGistStore().linkPhase).toBe('shown')
+    // The gist route owns `#/gist/`: a help hash arriving afterwards is not something it clears.
+    env.navigate('#/help/save-load')
+    await settle()
+    expect(env.current).toBe('#/help/save-load')
+    expect(gistApi.readGist).toHaveBeenCalledTimes(1)
+    scope.stop()
+  })
+
+  it('a newer gist link supersedes a read still in flight', async () => {
+    /** @type {(value: any) => void} */
+    let releaseFirst = () => {}
+    gistApi.readGist
+      .mockImplementationOnce(() => new Promise((resolve) => (releaseFirst = resolve)))
+      .mockImplementationOnce(servedAs(publishedText(), 'Second'))
+    const env = fakeEnv('')
+    const deps = { env, share: useShareStore(), gist: useGistStore(), restored: () => Promise.resolve() }
+    const first = openGistLink(GIST_HASH, deps)
+    const second = openGistLink(`#/gist/${OTHER_GIST_ID}`, deps)
+    await second
+    releaseFirst(await servedAs(publishedText(), 'First')({ id: GIST_ID }))
+    await first
+    expect(useShareStore().name).toBe('Second')
+    expect(useGistStore().linkId).toBe(OTHER_GIST_ID)
+  })
+})
+
+describe('opening a gist never writes (io-016 re-run, gist fixture)', () => {
+  afterEach(() => setGistDependencies(null))
+
+  it('the stored session is byte-identical after opening a gist link, flushing and hiding the page', async () => {
+    setGistDependencies({ backend: gistBackend(servedAs(publishedText())), credentials: noCredentials })
+    const session = serializeProject((() => {
+      const doc = createDocument({ mintProjectId: () => 'mineproject00001' })
+      doc.append(MINE, { origin: 'local' })
+      return doc
+    })())
+    backend.stored = { text: session, savedAt: 1000 }
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(useShareStore().phase).toBe('ready')
+    useDocumentStore().append({ ...MINE, id: 'mine-2' })
+    await usePersistenceStore().flush()
+    usePersistenceStore().onVisibilityChange('hidden')
+    await settle()
+    expect(backend.saves).toEqual([])
+    expect(backend.stored).toEqual({ text: session, savedAt: 1000 })
+    useShareStore().leave()
+    await settle()
+    expect(backend.saves).toEqual([])
+    scope.stop()
+  })
+})
+
+describe('Make my own copy to edit, from a gist', () => {
+  afterEach(() => setGistDependencies(null))
+
+  it('the copy is a new project and never inherits the sender\'s gist', async () => {
+    setGistDependencies({ backend: gistBackend(servedAs(publishedText())), credentials: noCredentials })
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    useShareStore().makeCopy()
+    await settle()
+    expect(useShareStore().phase).toBe('off')
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id)).toEqual(['cube-1'])
+    expect(toRaw(useDocumentStore().raw).gist()).toBeNull()
+    expect(liveProjectId()).not.toBe('senderproject0001')
+    scope.stop()
+  })
+})
+
+describe('the owner opening their own gist link', () => {
+  afterEach(() => setGistDependencies(null))
+
+  /** The owner's browser holds the published project; the gist has one more body from another device. */
+  function ownerSession() {
+    backend.stored = { text: publishedText(), savedAt: 1000 }
+    setGistDependencies({ backend: gistBackend(servedAs(publishedText({ extra: true }))), credentials: noCredentials })
+  }
+
+  it('is not shown as a read-only copy: the state is own-link', async () => {
+    ownerSession()
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(useGistStore().linkPhase).toBe('own-link')
+    expect(useGistStore().linkId).toBe(GIST_ID)
+    expect(env.current).toBe('')
+    scope.stop()
+  })
+
+  it('a link to a different gist than the project\'s own is the ordinary Shared view', async () => {
+    backend.stored = { text: publishedText({ gistId: OTHER_GIST_ID }), savedAt: 1000 }
+    setGistDependencies({ backend: gistBackend(servedAs(publishedText({ extra: true }))), credentials: noCredentials })
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(useGistStore().linkPhase).toBe('shown')
+    scope.stop()
+  })
+
+  it('a project carrying someone else\'s gist (a file sent by hand) is not the owner when another account is connected', async () => {
+    backend.stored = { text: publishedText(), savedAt: 1000 }
+    /** @type {import('../storage/tokenStorage.js').CredentialStore} */
+    const someoneElse = {
+      read: async () => ({ token: 'github_pat_FAKEfake_0123456789abcdefOTHER', login: 'someoneelse', tokenKind: 'fine-grained' }),
+      write: async () => {},
+      clear: async () => {},
+      close() {},
+    }
+    setGistDependencies({ backend: gistBackend(servedAs(publishedText({ extra: true }))), credentials: someoneElse })
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(useGistStore().login).toBe('someoneelse')
+    expect(useGistStore().linkPhase).toBe('shown')
+    scope.stop()
+  })
+
+  it('Open it to edit stays in the current project and merges the gist in through mergeIn', async () => {
+    ownerSession()
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id)).toEqual(['cube-1'])
+    const result = await useGistStore().openOwnToEdit()
+    await settle()
+    expect(result?.ok).toBe(true)
+    expect(useShareStore().phase).toBe('off')
+    expect(useGistStore().linkPhase).toBe('off')
+    expect(usePersistenceStore().autosaveSuspended).toBe(false)
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'cyl-1'])
+    expect(liveProjectId()).toBe('senderproject0001')
+    expect(toRaw(useDocumentStore().raw).gist()?.id).toBe(GIST_ID)
+    expect(useMergeStore().notice?.undoable).toBe(true)
+    scope.stop()
+  })
+
+  it('Make a copy asks the existing Replace question and lands a new project without the gist', async () => {
+    ownerSession()
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    const menu = useFileMenuStore()
+    useGistStore().makeOwnCopy()
+    expect(menu.confirm).toBe('share')
+    menu.confirmReplace()
+    await settle()
+    expect(useShareStore().phase).toBe('off')
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'cyl-1'])
+    expect(liveProjectId()).not.toBe('senderproject0001')
+    expect(toRaw(useDocumentStore().raw).gist()).toBeNull()
+    scope.stop()
+  })
+})
+
+describe('hostile projects behave through a gist exactly as through Open…', () => {
+  afterEach(() => setGistDependencies(null))
+
+  it.each(Object.entries(hostileFixtures))('%s', async (_path, text) => {
+    const opened = await usePersistenceStore().openText(text, 'hostile.ndjson')
+    const openedIds = useDocumentStore().raw.entries.map((entry) => entry.record.id)
+
+    setActivePinia(createPinia())
+    setPersistenceDependencies({ backend: memoryBackend(), files })
+    setGistDependencies({ backend: gistBackend(servedAs(text, 'Hostile')), credentials: noCredentials })
+    const env = fakeEnv(GIST_HASH)
+    const { scope } = await boot(env)
+    const share = useShareStore()
+    if (!opened.ok) {
+      expect(share.phase).toBe('incomplete')
+      expect(useGistStore().linkReason).toBe('unreadable')
+    } else {
+      expect(share.phase).toBe('ready')
+      expect(useTimelineStore().previewDocument()?.entries.map((entry) => entry.record.id)).toEqual(openedIds)
     }
     scope.stop()
   })

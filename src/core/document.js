@@ -352,7 +352,7 @@
  * stamp, a record stamp and stamps for the `suppressed`/`leftBroken` flags — beside the record,
  * never inside it, in a side table by record id (`metaById`), not on the entry objects, so
  * `entries` is exactly what it was for every reader that never merges. Per document:
- * tombstones (`dead`, id → stamp), four last-writer-wins registers, a stamp per user-part
+ * tombstones (`dead`, id → stamp), five last-writer-wins registers (`TODO/io-017` added `gist`), a stamp per user-part
  * definition and (`TODO/ui-089`) a stamped switch per hidden-or-shown body and part. A log no edit here has stamped — a seed, a loaded file — **derives** it:
  * position keys from row order, every stamp counter 0 under the fixed replica `legacy`, a
  * register only where the value differs from what its absence means. Deterministic, so two
@@ -381,6 +381,7 @@
  * | `setResolution` | the `resolution` register |
  * | `setStandingInstructions` | the `standingInstructions` register |
  * | `setBuildVolume` | the `buildVolume` register |
+ * | `setGist` (`TODO/io-017`) | the `gist` register |
  * | `setViewHidden`, `showAll` (`TODO/ui-089`) | the view switch of each body or part whose Hide / Show changed |
  * | user-part adoption (inside the fold of a placement) | the part's definition stamp |
  * | `undo`, `redo`, `batch` | whatever the change they make is: Undo of a placement tombstones its rows, Redo brings them back with a fresh `born` that beats the tombstone, Undo of an edit stamps the old record as a new write |
@@ -442,6 +443,7 @@ import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.
 import { conditionContextOf, conditionShapeError, describeCondition, evaluateCondition } from './condition.js'
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
+import { normalizeGistField, sameGistField } from './gistField.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { RENAME_OP, nameOverrideOf, normalizeBodyName } from './naming.js'
 import { applyAction, emptyScene } from './replay.js'
@@ -825,6 +827,11 @@ export class ReplayRejection extends Error {
  * @property {() => import('./buildVolume.js').BuildVolume} buildVolume `TODO/io-007`: the
  *   printer's build volume, a fresh copy — the default 220 × 220 × 250 mm until set.
  * @property {(volume: import('./buildVolume.js').BuildVolume, transaction: TransactionOptions) => void} setBuildVolume
+ * @property {() => import('./gistField.js').GistField | null} gist `TODO/io-017`: the gist this
+ *   project is published as, a fresh copy, or `null` when it is not.
+ * @property {(value: import('./gistField.js').GistField | null, transaction: TransactionOptions) => void} setGist
+ *   `TODO/io-017`: record (or, with `null`, clear) the gist this project is published as. An external
+ *   fact: a version bump, never an undo step.
  * @property {() => import('./visibility.js').ViewHiddenState | null} viewHidden `TODO/ui-089`:
  *   what the user hid, in the state line's shape, without stale switches (a body no record
  *   names, a part the body no longer has); `null` when nothing is hidden.
@@ -970,6 +977,7 @@ const STAMPED_MUTATORS = Object.freeze([
   'setResolution',
   'setStandingInstructions',
   'setBuildVolume',
+  'setGist',
   'setViewHidden',
   'showAll',
 ])
@@ -1602,6 +1610,14 @@ export function createDocument(options = {}) {
    */
   let buildVolume = { ...DEFAULT_BUILD_VOLUME }
   /**
+   * `TODO/io-017`: the gist this project is published as (`src/core/gistField.js`), or `null`.
+   * Project metadata like {@link buildVolume} — outside the fold and both undo stacks, a version
+   * bump when it changes — because it records an external fact (a gist exists on GitHub), which
+   * Undo cannot take back. Replaced, never mutated in place.
+   * @type {import('./gistField.js').GistField | null}
+   */
+  let gist = null
+  /**
    * `TODO/ui-089`: what the user hid in the view, as `visibility.js`'s view map (one key per
    * hidden body or part). Project metadata like {@link buildVolume} — outside the fold and both
    * undo stacks, a version bump when it changes — because it builds nothing: geometry, the
@@ -1655,7 +1671,7 @@ export function createDocument(options = {}) {
    */
   let dead = new Map()
   /** @type {import('./merge/state.js').MergeRegisters} */
-  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null }
+  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null }
   /**
    * The stamp that wrote each user-part definition this project carries, by op.
    * @type {Map<string, import('./replica.js').Stamp>}
@@ -1830,6 +1846,7 @@ export function createDocument(options = {}) {
       resolution,
       standingInstructions,
       buildVolume,
+      gist,
       partOps: new Set(userParts.keys()),
       meta: metaById,
       dead,
@@ -1926,6 +1943,7 @@ export function createDocument(options = {}) {
     if (mark.resolution !== resolution) written.push('resolution')
     if (mark.standingInstructions !== standingInstructions) written.push('standingInstructions')
     if (!sameVolume(mark.buildVolume, buildVolume)) written.push('buildVolume')
+    if (!sameGistField(mark.gist, gist)) written.push('gist')
     const newParts = [...userParts.keys()].filter((op) => !mark.partOps.has(op))
     // `TODO/ui-089`: every body or part whose Hide / Show changed, each its own switch.
     const switched =
@@ -2022,7 +2040,8 @@ export function createDocument(options = {}) {
         if (name === 'rollbackAfter') registers.rollbackAfter = [anchorOf(entries, rollbackAt, nextMeta), stamp]
         else if (name === 'resolution') registers.resolution = [resolution, stamp]
         else if (name === 'standingInstructions') registers.standingInstructions = [standingInstructions, stamp]
-        else registers.buildVolume = [{ ...buildVolume }, stamp]
+        else if (name === 'buildVolume') registers.buildVolume = [{ ...buildVolume }, stamp]
+        else registers.gist = [gist === null ? null : { ...gist }, stamp]
       }
     }
     partStamps = mark.partStamps
@@ -2065,6 +2084,8 @@ export function createDocument(options = {}) {
       resolution: resolution === 'legacy' ? null : [resolution, LEGACY_STAMP],
       standingInstructions: standingInstructions === '' ? null : [standingInstructions, LEGACY_STAMP],
       buildVolume: sameVolume(buildVolume, DEFAULT_BUILD_VOLUME) ? null : [{ ...buildVolume }, LEGACY_STAMP],
+      // `TODO/io-017`: never derived from a file — its value only ever arrives with its stamp.
+      gist: gist === null ? null : [{ ...gist }, LEGACY_STAMP],
     }
     partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
     viewStamps = new Map([...viewHidden.keys()].map((key) => [key, [true, LEGACY_STAMP]]))
@@ -2129,6 +2150,12 @@ export function createDocument(options = {}) {
           : registers.standingInstructions,
       buildVolume:
         written.buildVolume !== undefined ? [{ ...buildVolume }, written.buildVolume] : registers.buildVolume,
+      gist: registers.gist,
+    }
+    // `TODO/io-017`: the gist travels in the section as value and stamp together.
+    if (overlay.gist !== undefined) {
+      gist = overlay.gist[0] === null ? null : { ...overlay.gist[0] }
+      registers.gist = [gist === null ? null : { ...gist }, overlay.gist[1]]
     }
     partStamps = new Map(
       [...partStamps].map(([op, stamp]) => [op, overlay.partStamps.get(op) ?? stamp])
@@ -4403,6 +4430,8 @@ export function createDocument(options = {}) {
       // `TODO/ui-089`: likewise what was hidden; omitted, everything is shown. A body no loaded
       // record names is stale, and dropped here as `parseProject` drops it.
       viewHidden = loadedViewHidden
+      // `TODO/io-017`: the gist arrives only inside a version-2 file's merge section, below.
+      gist = null
       // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
       // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
@@ -4479,6 +4508,31 @@ export function createDocument(options = {}) {
         return
       }
       buildVolume = next
+      document.version += 1
+    },
+
+    gist() {
+      return gist === null ? null : { ...gist }
+    },
+
+    /**
+     * `TODO/io-017`: record the gist this project is published as, or clear it with `null`
+     * (**Stop sharing**). Origin-tagged like every mutation, validated (only the four fields are
+     * kept), and a version bump so autosave and the save-status chip follow it. Deliberately
+     * **not** an undo step: it records an external fact — the gist exists on GitHub whatever the
+     * local history does. Setting the same value is a no-op.
+     */
+    setGist(value, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.setGist: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      const next = value === null ? null : normalizeGistField(value)
+      if (sameGistField(next, gist)) return
+      gist = next
       document.version += 1
     },
 
@@ -5556,6 +5610,7 @@ export function createDocument(options = {}) {
         userParts,
         standingInstructions,
         buildVolume,
+        gist,
         layer: publishesUserParts ? projectPartsSnapshot() : null,
         projectId,
         mintable,
@@ -5639,6 +5694,9 @@ export function createDocument(options = {}) {
         standingInstructions = cleanText(merged.registers.standingInstructions?.[0] ?? '', INSTRUCTIONS_MAX_LENGTH)
         const volume = merged.registers.buildVolume?.[0]
         buildVolume = volume === undefined || volume === null ? { ...DEFAULT_BUILD_VOLUME } : normalizeBuildVolume(/** @type {any} */ (volume))
+        // `TODO/io-017`: whichever set or clear of the gist was written last.
+        const mergedGist = merged.registers.gist?.[0]
+        gist = mergedGist === undefined || mergedGist === null ? null : normalizeGistField(mergedGist)
         stampClock.observe(highestCounter(merged))
         // `TODO/data-013`: rows that came in without an id are legacy content, so this document
         // stays without one too (see `mintable`); with nothing in it, it still may mint.
@@ -5653,6 +5711,7 @@ export function createDocument(options = {}) {
         userParts = previous.userParts
         standingInstructions = previous.standingInstructions
         buildVolume = previous.buildVolume
+        gist = previous.gist
         viewHidden = previous.viewHidden
         viewStamps = previous.viewStamps
         if (previous.layer !== null) restoreProjectParts(previous.layer)

@@ -169,6 +169,24 @@ describe('the merge summary, in History rows (TODO/ui-062)', () => {
     const change = { added: ['a', 'b'], revised: ['c'], removed: [], moved: ['c', 'd'], registers: [], parts: [] }
     expect(describeMerge(change, [], NAME)).toBe(`Merged 4 steps from ${NAME} (2 added, 2 changed)`)
   })
+
+  // `TODO/io-017`: a copy whose only news is the gist it was published as (a Download copy taken
+  // after publishing on another device) is not "nothing this project doesn't already have".
+  it('pure: a merge that brings only the gist field names it', () => {
+    const change = { added: [], revised: [], removed: [], moved: [], registers: ['gist'], parts: [] }
+    expect(describeMerge(change, [], NAME)).toBe(`Merged the gist link from ${NAME}`)
+  })
+
+  it('a copy published as a gist elsewhere merges the gist link in, and says so', () => {
+    const other = copyOf(documentStore.raw)
+    other.setGist(
+      { id: 'aa11bb22cc33dd44ee55ff6677889900', public: false, lastRevision: 'a'.repeat(40), owner: 'octocat' },
+      { origin: 'gist' },
+    )
+    const result = merge.mergeIn(fileOf(other), NAME)
+    expect(result).toMatchObject({ ok: true, text: `Merged the gist link from ${NAME}` })
+    expect(documentStore.raw.gist()).toMatchObject({ id: 'aa11bb22cc33dd44ee55ff6677889900', owner: 'octocat' })
+  })
 })
 
 describe('Undo merge (TODO/ui-062)', () => {
