@@ -6,7 +6,9 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./mcp/node_modules/@types"],
+    "types": ["node"]
   },
   "include": ["src/**/*.js", "src/**/*.vue", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "e2e"]
