@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { devAllowList } from './bridge.js'
-import { createLiveHttpHandler } from './liveHttp.js'
+import { LIVE_SERVER_INSTRUCTIONS, createLiveHttpHandler } from './liveHttp.js'
 
 /**
  * Session lifetime on the dev host's `/mcp` (`TODO/ai-023`): a client that vanishes without the
@@ -84,6 +84,14 @@ describe('live /mcp session lifetime', () => {
     await client.connect(transport)
     await transport.terminateSession()
     expect(closed).toEqual(opened)
+    await client.close()
+  })
+})
+
+describe('live /mcp initialize', () => {
+  it('carries the composed instructions (TODO/ai-027)', async () => {
+    const client = await connect()
+    expect(client.getInstructions()).toBe(LIVE_SERVER_INSTRUCTIONS)
     await client.close()
   })
 })

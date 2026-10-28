@@ -125,6 +125,18 @@ follow.
 The server also offers two read-only resources, `warpcad://scene` and `warpcad://op-catalogue`,
 so a client can look at the scene or the catalogue without calling a tool.
 
+**What Claude already knows when it connects.** The server hands Claude its working method as
+soon as it connects, so you don't have to explain it: lengths are millimetres with Z up; each
+new shape is placed relative to the others (never all at the origin); *Subtract* keeps the first
+shape and a *Union* or *Group* uses up the shapes it combines; several steps can land as one
+change; and Claude checks a part (size, printability, clearance) before it says it's done. If a
+size that decides the result is missing, it asks you once instead of guessing.
+
+**Example: a cube with a hole.** Run `npm run mcp:add -- bracket.ndjson`, start Claude Code in the
+WarpCad folder, and ask *a 40 mm cube with a 10 mm hole straight through it*. Claude places the
+cube on the grid, cuts the hole with a Subtract, measures the result and tells you its size. You
+don't have to tell it the units or which shape is kept.
+
 Some Assistant tools aren't here. `capture_view` needs a graphics card to draw a picture, and the
 server has none. The selection and reference-image tools need the app on screen.
 

@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-027 — MCP instructions carry the working method (2026-10-28 17:52)
+
+The owner declined the real Claude Code before/after drive, so nothing yet shows an agent behaves better with the longer instructions. Only the text, its length (at most 1,900) and its transport delivery are tested.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In a real Claude Code on a fresh project file, ask *a 40 mm cube with a 10 mm hole straight through it*: it places the cube on the grid, subtracts, measures, and does not ask about units. Ask the ambiguous airfoil request: zero writes. | Open | |
+| 2 | The cap is still 2,048 in the current Claude Code (`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` was reported but not re-checked online). | Open | |
+
 ### ai-031 — Agents store the prompt in the project (2026-10-28 17:38)
 
 Driven with the WebMCP stand-in only (acceptance 27 row). A real agent was not run, and the timeline-row Prompt display was not built.

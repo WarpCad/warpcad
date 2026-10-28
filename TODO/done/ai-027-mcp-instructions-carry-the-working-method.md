@@ -5,9 +5,11 @@ kind: feature
 priority: high
 model: sonnet
 milestone: none — Findings table, outside the milestone plan
-depends: []
-status: open
+depends: []   # soft: item 10 is only true once `ai-031` lands
+status: done
 ---
+
+> **Shipped (2026-10-28):** as filed, with rule 10 already replaced by the `record_prompt` line because `ai-031` had landed. The live server's lease and refusal lines were merged into one and its data line shortened (rule unchanged) to fit 1,900 characters. The real Claude Code before/after drive was declined by the owner, so it was **not driven** (see `TODO/VERIFY.md`). The cap's source was not re-checked online. Typecheck was red at baseline (missing `@types/node`), unchanged by this task.
 
 ## Goal
 
@@ -60,6 +62,11 @@ Done means:
      default.
   10. Pass `request` (the user's words) and `rationale` (one line saying why) on every write. Both
       exist on MCP write tools: `rationale` comes from the registry, `request` from the transport.
+      **Correction (2026-10-28):** the WebMCP and MCP transports do not set `request` today, so an
+      agent's writes carry no prompt. `ai-031` adds `record_prompt` and fills `request` from it. Until
+      it lands, this line is aspirational; once it lands, replace it with one line: *call
+      `record_prompt` first with the user's request, as received*, and keep the composed text inside
+      the cap.
 - Each composed text is **at most 2,048 characters**, enforced by a unit test. Leave room for the
   one pointer line `ai-028` adds: aim for 1,900 or less.
 - The document data line, and the rule that nothing from a document is interpolated (decision 7),

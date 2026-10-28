@@ -439,6 +439,16 @@ Not established. Both are timing-sensitive DOM measurements taken while a sheet 
 
 Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). Open a `testing-*` finding to wait for settled geometry and status before measuring, rather than widening the 40px limit.
 
+### 2026-10-28 — An MCP agent ignores a rule that is in the server instructions
+
+**What happened:** An agent connected to a WarpCad MCP server behaved as if a rule near the end of `SERVER_INSTRUCTIONS` or `LIVE_SERVER_INSTRUCTIONS` did not exist.
+
+**Why it happened:** Claude Code cuts `InitializeResult.instructions` (and each tool description) at 2,048 characters with no warning in the model's context, so a longer text arrives as a prefix that looks complete. The number comes from Claude Code issue reports, not its docs.
+
+**Fix / Prevention:** `src/ai/mcpInstructions.spec.js` fails if either composed text passes 1,900 characters (2,048 minus the pointer line `ai-028` adds) or any MCP tool description passes 2,048. The most important rules come first in the text, because a cut loses the tail. When adding a line, shorten the server's own lines before dropping a shared rule.
+
+**Steps taken to resolve:** Measured each line, trimmed the lease and refusal lines, and added the length guard.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

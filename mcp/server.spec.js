@@ -25,6 +25,7 @@ import { boundsOf } from '../src/core/kernel/group.js'
 import { parseProject, serializeProject } from '../src/core/project.js'
 import { recordLinesOf } from '../src/core/__fixtures__/projectText.js'
 import { createProjectSession } from './projectFile.js'
+import { SERVER_INSTRUCTIONS } from './server.js'
 
 // Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
 vi.setConfig({ testTimeout: 30_000 })
@@ -91,6 +92,13 @@ async function call(client, name, args = {}) {
 const bytes = (file) => readFileSync(file)
 
 const CUBE = '{"id":"base","op":"primitive.cuboid","name":"Base","params":{"size":[40,40,4],"center":[0,0,2]}}\n'
+
+describe('initialize', () => {
+  it('carries the composed instructions (TODO/ai-027)', async () => {
+    const { client } = await connect(join(dir, 'p.ndjson'))
+    expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS)
+  })
+})
 
 describe('tools/list', () => {
   it('lists the registry’s MCP tools: no capture_view, no selection tools, analysis tools present', async () => {
