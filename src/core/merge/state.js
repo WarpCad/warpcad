@@ -69,6 +69,9 @@
  *   switch per body and per part, keyed by `src/core/visibility.js`'s `viewKey`. A show is kept
  *   as `[false, stamp]`, not dropped, so a later show beats an earlier hide in a merge. Stamped
  *   per key rather than as one register, so two replicas hiding different parts both keep theirs.
+ * @property {Map<string, import('../prompt.js').PromptEntry>} [prompts] `TODO/ai-031`: the prompts
+ *   agents were given, by id — a grow-only set merged by `joinPromptMaps` (`src/core/prompt.js`),
+ *   so it carries no stamp. Absent is the same as empty: a state built before prompts existed.
  */
 
 /**
@@ -114,6 +117,7 @@ export function emptyMergeState(projectId = null) {
     registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null },
     parts: new Map(),
     viewHidden: new Map(),
+    prompts: new Map(),
   }
 }
 
@@ -160,6 +164,7 @@ export function canonicalJSON(state) {
     }),
     parts: sortedPairs(state.parts).map(([op, [definition, stamp]]) => [op, definition, [stamp.counter, stamp.replica]]),
     viewHidden: sortedPairs(state.viewHidden).map(([key, [hidden, stamp]]) => [key, hidden, [stamp.counter, stamp.replica]]),
+    prompts: sortedPairs(state.prompts ?? new Map()).map(([id, prompt]) => [id, prompt.text, prompt.produced]),
   })
 }
 

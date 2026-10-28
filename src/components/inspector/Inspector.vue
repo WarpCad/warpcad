@@ -130,6 +130,7 @@ import ViewHiddenNote from './ViewHiddenNote.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import IntentLine from './IntentLine.vue'
+import PromptRow from './PromptRow.vue'
 import NameField from './NameField.vue'
 import FitBadge from './FitBadge.vue'
 import SaveToLibraryButton from '../layout/SaveToLibraryButton.vue'
@@ -760,6 +761,8 @@ watch([() => body.value?.id, colorPart], () => {
         <p class="inspector__count" data-testid="inspector-multi">
           {{ described.count }} selected
         </p>
+        <!-- TODO/ai-031: how many recorded prompts produced the selection — a count, no text. -->
+        <PromptRow :body-ids="selection.ids" />
         <p class="inspector__note">
           Select a single object to see its parameters. Operations that work on several
           objects at once arrive with the boolean tools.
@@ -848,6 +851,8 @@ watch([() => body.value?.id, colorPart], () => {
         <SaveToLibraryButton v-if="!body.subPart" />
         <!-- TODO/ai-003: why this body exists, when a step in its history recorded it. -->
         <IntentLine v-if="!body.subPart" :body-id="body.id" />
+        <!-- TODO/ai-031: the request an agent was given that produced this body, collapsed. -->
+        <PromptRow v-if="!body.subPart" :body-ids="[body.id]" />
         <!-- TODO/io-007: its size, and whether it fits the printer — per print piece. -->
         <FitBadge v-if="!body.subPart" :body-id="body.id" />
         <!-- A breakage committed with Leave broken (TODO/ui-052): on the body whose parts

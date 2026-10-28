@@ -58,6 +58,18 @@
  * selection, exactly as an in-app turn's do (`ai-017`): the model may look at what the user picked,
  * and never changes it.
  *
+ * ## The recorded prompt (`TODO/ai-031`)
+ *
+ * A call's tool context is built per call, so the endpoint keeps the prompt an agent recorded
+ * (`record_prompt`, or `prompt` on `apply_records`) between calls, **per transport** — a WebMCP
+ * prompt never binds an MCP client's writes. Each later call carries it as `ctx.prompt`, so the
+ * registry links what the call made to it; and it becomes the call's `request`, the text its
+ * records' intent is composed from: for WebMCP **instead of** the summary of the call's own
+ * arguments `register.js` sends, for the bridge only when the client sent no `request` of its own.
+ * A new prompt starts a new group, so each request is its own **Undo AI turn** even inside the idle
+ * gap; recording one changes no row, so it is never a group by itself, and Undo AI turn leaves
+ * it (what was asked is history). {@link TabEndpoint.reset} forgets it with the groups.
+ *
  * @module ai/bridge/tabEndpoint
  */
 
@@ -119,6 +131,7 @@ const WHO = Object.freeze({ mcp: 'MCP agent', webmcp: 'browser agent' })
  * @property {AiTurn} turn
  * @property {Change} own What its calls changed, accumulated.
  * @property {import('../tools/limits.js').Turn} budget The group's records cap.
+ * @property {string | null} promptId `TODO/ai-031`: the prompt its writes were for, when one was bound.
  */
 
 /** @returns {Change} */
@@ -197,18 +210,26 @@ export function createTabEndpoint(options) {
   /** The running chain: each call starts when the last has finished. */
   /** @type {Promise<unknown>} */
   let queue = Promise.resolve()
+  /**
+   * `TODO/ai-031`: the prompt each transport's agent recorded, carried from call to call.
+   * @type {Record<'mcp' | 'webmcp', import('../tools/index.js').PromptBinding | null>}
+   */
+  const prompts = { mcp: null, webmcp: null }
 
   /**
    * The group a write with `request` joins, or `null` for a new one.
    *
    * @param {string} request
    * @param {Required<CallVia>} via
+   * @param {string | null} promptId The prompt bound to the call, if any.
    * @returns {Group | null}
    */
-  function openGroupFor(request, via) {
+  function openGroupFor(request, via, promptId) {
     const last = groups.at(-1)
     if (last === undefined || last.origin !== via.origin || now() - last.lastAt > GROUP_IDLE_MS) return null
     if (via.groupBy === 'request' && last.request !== request) return null
+    // A new prompt is a new request, whatever the transport groups by.
+    if (last.promptId !== promptId) return null
     return last
   }
 
@@ -243,8 +264,13 @@ export function createTabEndpoint(options) {
     }
     if (live.mergeClock() !== arrived) return { error: STALE_REFUSAL }
 
-    const request = call.request ?? ''
-    const group = openGroupFor(request, via)
+    // `TODO/ai-031`: the recorded prompt, if any, carried over; for WebMCP it is the request.
+    const remembered = prompts[via.origin]
+    /** @type {import('../tools/index.js').PromptBinding | undefined} */
+    const binding = remembered === null ? undefined : { ...remembered }
+    const callRequest = via.origin === 'webmcp' ? (binding?.text ?? call.request) : (call.request ?? binding?.text)
+    const request = callRequest ?? ''
+    const group = openGroupFor(request, via, binding?.id ?? null)
     const budget = group?.budget ?? createTurn({ now, limits: { ...limits, turnMs: Infinity, stepsPerTurn: Infinity, consecutiveFailures: Infinity } })
     const perCall = createTurn({ now, limits })
     /** @type {import('../tools/limits.js').Turn} */
@@ -268,7 +294,8 @@ export function createTabEndpoint(options) {
       origin: via.origin,
       live: true,
       turn,
-      ...(call.request === undefined ? {} : { request: call.request }),
+      ...(callRequest === undefined ? {} : { request: callRequest }),
+      ...(binding === undefined ? {} : { prompt: binding }),
       ...(selection ? { selection } : {}),
       ...(capture ? { capture } : {}),
     }
@@ -276,6 +303,8 @@ export function createTabEndpoint(options) {
     const beforeState = live.mergeState()
     const before = mergeSnapshotOf(live)
     const result = tools.run(ctx, call.name, call.input)
+    // `ctx.prompt` is what the registry left bound: a recorded prompt, or the carried one with its id.
+    if (ctx.prompt !== undefined) prompts[via.origin] = { id: ctx.prompt.id, text: ctx.prompt.text }
     const afterState = live.mergeState()
     const own = diffStates(beforeState, afterState)
     if (isEmpty(own)) return result
@@ -288,6 +317,7 @@ export function createTabEndpoint(options) {
       baseState: beforeState,
       own: emptyChange(),
       budget,
+      promptId: ctx.prompt?.id ?? null,
       turn: {
         turnId: `${via.origin}-turn-${(turnCount += 1)}`,
         recordIds: [],
@@ -355,6 +385,8 @@ export function createTabEndpoint(options) {
     },
     reset() {
       groups.length = 0
+      prompts.mcp = null
+      prompts.webmcp = null
     },
   }
 }

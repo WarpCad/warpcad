@@ -465,6 +465,11 @@ Project files and gists are **untrusted input** (`ACCEPTANCE.md` scenario 8). In
 context that means anything a loaded project carries can be a prompt injection:
 
 - design-intent text (`ai-003`);
+- recorded prompts (`ai-031`): the request an agent was given, stored as its own record
+  (`src/core/prompt.js`) — capped at 4,000 characters, control and bidi characters stripped,
+  validated at load (a bad record is dropped and named, never repaired), shown by the Inspector
+  as text only, and given to a model only in the labelled `prompts` data block or a tool result,
+  never as an instruction, whoever recorded it;
 - part, body and group names;
 - the project's standing instructions;
 - text inside an attached drawing.

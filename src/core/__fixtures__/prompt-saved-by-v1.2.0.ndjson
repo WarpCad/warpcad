@@ -1,0 +1,4 @@
+{"id":"cuboid-aaaaaa-2","op":"primitive.cuboid","name":"Cube 1","params":{"size":[140,250,30],"center":[0,0,15]}}
+{"id":"cuboid-aaaaaa-3","op":"primitive.cuboid","name":"Cube 2","params":{"size":[136.8,246.8,30],"center":[0,0,16.6]}}
+{"id":"bool-aaaaaa-4","op":"boolean.subtract","name":"Subtract 1","target":"cuboid-aaaaaa-2","operands":["cuboid-aaaaaa-3"],"consumes":["cuboid-aaaaaa-2","cuboid-aaaaaa-3"]}
+{"warpcad":"project-state","version":2,"origins":{"cuboid-aaaaaa-2":"mcp","cuboid-aaaaaa-3":"mcp","bool-aaaaaa-4":"mcp"},"merge":{"project":"tqzzkxihr6x5klr2","clock":3,"pos":{"cuboid-aaaaaa-2":"2V013aaaaaa","cuboid-aaaaaa-3":"2V013aaaaaa1115aaaaaa","bool-aaaaaa-4":"2V013aaaaaa1117aaaaaa"},"stamps":{"cuboid-aaaaaa-2":{"born":[1,"aaaaaa"]},"cuboid-aaaaaa-3":{"born":[2,"aaaaaa"]},"bool-aaaaaa-4":{"born":[3,"aaaaaa"]}}}}

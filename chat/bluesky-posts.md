@@ -2502,3 +2502,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** publish, share one link, read-only view with no account, update keeps the link → diff (ShareGistGroup.vue, gistBackend.js, docs/sharing.md); hand-driven this session at 390x844 against the fake gist API (TODO/ACCEPTANCE.md scenario 30); Gists-only token → real calls this session, docs/decisions/gist-storage.md; tested against a fake API only → no real gist was published, TODO/VERIFY.md row 2
 **To Add:** docs/screenshots/share-gist.png
+
+## 2026-10-28T17:45:00Z — Agents save the request that made a part
+
+**Post:** An agent built a fan duct in WarpCad and the project file kept the three bodies but not the request. Now an agent records your words first, and the Inspector shows them under the part. Capped at 4,000 characters, shown as plain text. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** project kept bodies but not the request → TODO/done/ai-031 Goal; Inspector Prompt row → src/components/inspector/PromptRow.vue, screenshot docs/screenshots/agent-prompt-row.png; 4,000-character cap, plain text → src/core/prompt.js (PROMPT_LIMITS.maxTextLength), PromptRow.vue (no v-html)
+**To Add:** docs/screenshots/agent-prompt-row.png

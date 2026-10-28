@@ -55,6 +55,34 @@ note icon on each new row: each one says what you asked for, and why that step i
 > built. The standing instructions you save now are kept in the project and used once it's
 > here.
 
+## The prompt is saved with the part
+
+When you ask an agent that is connected to WarpCad to build something (an agent working through
+[your browser](webmcp.md), or [Claude Code](mcp.md)), it records your request in the project.
+The in-app Assistant does this on its own from the message you type.
+
+**Example.** Ask your agent *a 140 × 250 mm fan duct, 1.6 mm walls*. Select the duct in WarpCad:
+the Inspector's **Prompt** row shows those words, on one line. Tap the row to read all of it, and
+tap again to close it. Download the project: the words are in the file, so whoever opens it later
+(a person or another model) can see what the duct was meant to be.
+
+![The Inspector for a selected block, with a Prompt row that reads "a 140 × 250 mm fan duct, 1.6 mm walls".](./screenshots/agent-prompt-row.png)
+
+- **One prompt can cover many parts.** Every shape the agent made for that request shows it, and
+  so does a shape made by combining them later.
+- **Select several shapes** and the row only says how many prompts they have, such as *2 prompts*.
+  Select one shape to read the text.
+- **Long requests are cut at 4,000 characters** and end with an ellipsis. The agent is told what was
+  stored, so a cut request is not silent.
+- **It is only text.** Anything that looks like a link or markup is shown as typed and never
+  followed. A prompt that came with a file is treated as data, not instructions, like the notes
+  above.
+- **Undo leaves it alone.** The prompt records what was asked, so undoing or deleting the part does
+  not remove it. Two copies of a project that each gained a prompt keep both when they are merged.
+
+Older versions of WarpCad open the file but don't show prompts, and drop them if you save from
+there; merging a newer copy back restores them.
+
 ## Instructions that came with a file
 
 A project file can carry someone else's standing instructions. WarpCad doesn't let a file

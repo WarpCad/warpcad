@@ -24,6 +24,7 @@
 import { isReplicaId } from '../replica.js'
 import { SECTION_REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
 import { normalizeGistField } from '../gistField.js'
+import { PROMPT_LIMITS, validatePromptRecord } from '../prompt.js'
 import { parseKey } from './positionKey.js'
 import { viewKey } from '../visibility.js'
 
@@ -68,6 +69,11 @@ export const MERGE_LIMITS = Object.freeze({
  *   line's `viewHidden` (listed: hidden; not listed: shown). Only bodies the file holds.
  * @property {[import('../gistField.js').GistField | null, Stamp]} [gist] `TODO/io-017`: the gist
  *   register, value and stamp, when the file has ever set or cleared it.
+ * @property {Map<string, import('../prompt.js').PromptEntry>} [prompts] `TODO/ai-031`: the valid
+ *   prompt records, by id, when the section has a `prompts` list.
+ * @property {{ id?: string, reason: string }[]} [promptProblems] `TODO/ai-031`: each prompt record
+ *   that was **dropped**, and why — untrusted text about one request must never cost the user the
+ *   file, so a bad record is left out (and named by `project.js`'s load warning), never repaired.
  */
 
 /** A merge section this build refuses, with a message that names the field. */
@@ -308,5 +314,53 @@ export function readMergeSection(raw, recordIds) {
     }
   }
 
-  return { projectId, highest, pos, stamps, dead, registers, partStamps, viewStamps, ...(gist !== undefined ? { gist } : {}) }
+  const promptsRead = raw.prompts === undefined ? undefined : readPrompts(raw.prompts)
+
+  return {
+    projectId,
+    highest,
+    pos,
+    stamps,
+    dead,
+    registers,
+    partStamps,
+    viewStamps,
+    ...(gist !== undefined ? { gist } : {}),
+    ...(promptsRead !== undefined ? promptsRead : {}),
+  }
+}
+
+/**
+ * `TODO/ai-031`: the section's `prompts`. A value that is not a list refuses the file by name, like
+ * any malformed section field; one bad record is dropped with its reason (`validatePromptRecord`),
+ * as are a second record with an id already read and the records past the per-project cap.
+ *
+ * @param {unknown} raw
+ * @returns {{ prompts: Map<string, import('../prompt.js').PromptEntry>, promptProblems: { id?: string, reason: string }[] }}
+ * @throws {MergeSectionError} When `prompts` is not a list.
+ */
+function readPrompts(raw) {
+  if (!Array.isArray(raw)) throw new MergeSectionError('merge: `prompts` must be a list of prompt records')
+  /** @type {Map<string, import('../prompt.js').PromptEntry>} */
+  const prompts = new Map()
+  /** @type {{ id?: string, reason: string }[]} */
+  const promptProblems = []
+  const cap = PROMPT_LIMITS.maxPrompts
+  for (const item of raw.slice(0, cap)) {
+    const id = isObject(item) && typeof item.id === 'string' ? item.id.slice(0, 80) : undefined
+    const verdict = validatePromptRecord(item)
+    if (!verdict.ok) {
+      promptProblems.push({ ...(id !== undefined ? { id } : {}), reason: verdict.reason })
+      continue
+    }
+    if (prompts.has(verdict.record.id)) {
+      promptProblems.push({ id: verdict.record.id, reason: 'a prompt with this id is already in the file' })
+      continue
+    }
+    prompts.set(verdict.record.id, { text: verdict.record.text, produced: verdict.record.produced })
+  }
+  if (raw.length > cap) {
+    promptProblems.push({ reason: `the file has ${raw.length} prompts and a project holds at most ${cap}; the rest were left out` })
+  }
+  return { prompts, promptProblems }
 }

@@ -102,7 +102,7 @@ function runRepeat(ctx, input) {
   const hit = turn.canAppend(1)
   if (hit) return hit
 
-  const intent = composeIntent(ctx.request, input.rationale)
+  const intent = composeIntent(ctx.request ?? ctx.prompt?.text, input.rationale)
   const transaction = intent === undefined ? { origin } : { origin, intent }
   /** @type {string} */
   let bodyId

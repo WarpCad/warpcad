@@ -31,7 +31,16 @@
  * Every record a call appends carries the same intent: the turn's request (`ctx.request`) and
  * the call's optional one-line `rationale`, composed and capped by `src/core/intent.js`. It is
  * passed to `insertAt` on the transaction and lands on the entry beside `origin`, so the
- * records themselves are exactly what the UI would have appended.
+ * records themselves are exactly what the UI would have appended. With no request, the bound
+ * prompt's text stands in (`TODO/ai-031`, `./prompt.js`).
+ *
+ * ## `prompt` (`TODO/ai-031`)
+ *
+ * `apply_records` takes the user's request as `prompt`: it is bound to the call (`./prompt.js`
+ * `bindPrompt`), becomes the request every record's intent is composed from, and is stored —
+ * linked to every record the call made — only once the call has landed, so a refused call
+ * writes no prompt either. An empty prompt, or one over the cap, refuses the call before
+ * anything is built.
  *
  * ## Origin
  *
@@ -50,6 +59,8 @@ import { buildOperateRecords, operateInputSchema, validateOperateInput } from '.
 import { assertWriteOrigin } from './limits.js'
 import { sceneSummary } from './read.js'
 import { RATIONALE_PROPERTY, checkInput, objectSchema, splitRationale } from './schema.js'
+import { PROMPT_PROPERTY, bindPrompt, knownIds, linkProduced } from './prompt.js'
+import { preparePrompt } from '../../core/prompt.js'
 
 /** @typedef {import('./index.js').ToolContext} ToolContext */
 /** @typedef {import('../../core/kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -124,7 +135,7 @@ function resolveBatchRef(id, applied, batchStep) {
  */
 export function applySteps(ctx, steps, ops, rationale) {
   const { document, origin, turn } = ctx
-  const intent = composeIntent(ctx.request, rationale)
+  const intent = composeIntent(ctx.request ?? ctx.prompt?.text, rationale)
   const transaction = intent === undefined ? { origin } : { origin, intent }
   assertWriteOrigin(origin)
   if (steps.length === 0) return { error: 'There are no steps to apply.' }
@@ -195,6 +206,7 @@ export function createApplyRecordsTool(ops) {
         },
       },
       rationale: RATIONALE_PROPERTY,
+      prompt: PROMPT_PROPERTY,
     },
     ['steps']
   )
@@ -202,7 +214,8 @@ export function createApplyRecordsTool(ops) {
     name: 'apply_records',
     description:
       'Apply several create and operate steps as one atomic change: every step lands, or none does and the document is unchanged. ' +
-      'Use it for anything that only makes sense whole, e.g. a part and the cut that shapes it. Returns each step’s body id and the scene afterwards.',
+      'Use it for anything that only makes sense whole, e.g. a part and the cut that shapes it. Returns each step’s body id and the scene afterwards. ' +
+      'Pass `prompt` (the user’s words as received) to record the request with the change, if you have not called record_prompt for it.',
     inputSchema,
     validate: (input) => {
       // Anything that is not even `{ steps: [...] }` gets the generic checker's words.
@@ -211,8 +224,10 @@ export function createApplyRecordsTool(ops) {
       }
       const { errors: rationaleErrors } = splitRationale(input)
       if (rationaleErrors.length > 0) return rationaleErrors
-      const extra = Object.keys(input).filter((key) => key !== 'steps' && key !== 'rationale')
+      const extra = Object.keys(input).filter((key) => key !== 'steps' && key !== 'rationale' && key !== 'prompt')
       if (extra.length > 0) return [`input has unknown field ${JSON.stringify(extra[0])}`]
+      const prompt = /** @type {any} */ (input).prompt
+      if (prompt !== undefined && typeof prompt !== 'string') return ['input.prompt must be a string']
       /** @type {any[]} */
       const steps = /** @type {any} */ (input).steps
       /** @type {string[]} */
@@ -231,6 +246,24 @@ export function createApplyRecordsTool(ops) {
       return errors.slice(0, 5)
     },
     transports: ['ai', 'mcp'],
-    run: (ctx, input) => applySteps(ctx, input.steps, ops, input.rationale),
+    run: (ctx, input) => {
+      if (input.prompt !== undefined) {
+        const prepared = preparePrompt(input.prompt)
+        if (!prepared.ok) return { error: `The prompt was not recorded, so nothing was applied: ${prepared.reason}.`, reason: prepared.reason }
+        bindPrompt(ctx, prepared.text)
+        const known = knownIds(ctx.document)
+        // The prompt is this call's request: what its records' intent is composed from.
+        const result = applySteps({ ...ctx, request: prepared.text }, input.steps, ops, input.rationale)
+        if (result.error !== undefined || result.stop === true) return result
+        const problem = linkProduced(ctx, known)
+        const id = ctx.prompt?.id ?? null
+        return {
+          ...result,
+          ...(id === null ? {} : { prompt: { id, text: prepared.text, truncated: prepared.truncated } }),
+          ...(problem === undefined ? {} : { promptNotRecorded: problem }),
+        }
+      }
+      return applySteps(ctx, input.steps, ops, input.rationale)
+    },
   }
 }

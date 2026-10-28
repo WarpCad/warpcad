@@ -143,7 +143,7 @@ const DEFINE_SCHEMA = withRationale(
  */
 function transactionOf(ctx, rationale) {
   assertWriteOrigin(ctx.origin)
-  const intent = composeIntent(ctx.request, rationale)
+  const intent = composeIntent(ctx.request ?? ctx.prompt?.text, rationale)
   return intent === undefined ? { origin: ctx.origin } : { origin: ctx.origin, intent }
 }
 

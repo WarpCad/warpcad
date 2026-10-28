@@ -79,7 +79,8 @@ import { applyMergeUndo, mergeSnapshotOf, planMergeUndo } from '../core/mergeUnd
 import { counterOfId, createClock, createReplicaId } from '../core/replica.js'
 import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { assembleMessages, compactToolResult, summariseScene } from './context.js'
-import { documentDataBlock, standingInstructionsBlock } from './documentData.js'
+import { documentDataBlock, promptsBlock, standingInstructionsBlock } from './documentData.js'
+import { preparePrompt } from '../core/prompt.js'
 import { imagePart } from './image.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 import { LIMITS, createToolRegistry, createTurn, toStrictWire } from './tools/index.js'
@@ -466,6 +467,9 @@ function userContentFor(ctx, fork, userMessage, images, attachmentIds) {
   const content = []
   const instructions = standingInstructionsBlock(ctx.standingInstructions())
   if (instructions !== '') content.push({ type: 'text', text: instructions })
+  // `TODO/ai-031`: what earlier requests asked for, as data.
+  const asked = promptsBlock(fork.prompts())
+  if (asked !== '') content.push({ type: 'text', text: asked })
   // `TODO/ai-017`: what the last landing did to the model's own rows, said once, as data.
   if (ctx.landingNote !== null) content.push({ type: 'text', text: ctx.landingNote })
   // `TODO/io-007`: the printer's build volume is a project setting the user edits beside the
@@ -633,12 +637,15 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   ctx.landingNote = null
   ctx.fork = fork
   const turnStart = messages.length - 1
+  // `TODO/ai-031`: the user's message is this turn's prompt, stored with the first record it lands.
+  const prepared = preparePrompt(userMessage)
   /** @type {import('./tools/index.js').ToolContext} */
   const toolCtx = {
     document: fork,
     origin: 'ai',
     turn,
     request: userMessage,
+    ...(prepared.ok ? { prompt: { id: null, text: prepared.text } } : {}),
     ...(ctx.selection ? { selection: forkSelection(ctx.selection.ids()) } : {}),
     ...(ctx.capture ? { capture: ctx.capture } : {}),
     ...(ctx.references ? { references: ctx.references } : {}),

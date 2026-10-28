@@ -140,6 +140,16 @@
  * byte-identical to before. Validated like every merge-section field: a malformed one refuses the
  * file by name. A recipient's copy drops it (`shareCopy.js`'s `withoutGist`).
  *
+ * ## The prompts agents were given (`TODO/ai-031`)
+ *
+ * `{ id, text, produced }` records (`src/core/prompt.js`), in the merge section as
+ * `merge.prompts: [record]`, beside `merge.gist` and for the same reason: a released build ignores
+ * an unknown section key, so it still opens the file (and drops the field if it saves; merging a
+ * copy that has them restores them, since prompts merge as a grow-only set). Validated at load
+ * the way an `asset.image` is: a record that fails `validatePromptRecord` is **dropped with a
+ * warning** naming it and why ({@link PROMPT_REMOVED}), never repaired or half-loaded; a
+ * `prompts` that is not a list refuses the file by name. A file without prompts is unchanged.
+ *
  * ## Refusal, not repair
  *
  * {@link parseProject} is strict where `parseNdjson` is lenient. The lenient
@@ -164,6 +174,7 @@ import { compareStamps } from './replica.js'
 import { LEGACY_STAMP } from './merge/state.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 import { repeatReferencedIds } from './repeat.js'
+import { PROMPT_OP } from './prompt.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
@@ -375,6 +386,9 @@ function unsafeMeshReason(record) {
   const verdict = validateMeshAsset(record)
   return verdict.ok ? null : `${MESH_REMOVED} (${verdict.reason})`
 }
+
+/** What every dropped-prompt warning says after naming the prompt (`TODO/ai-031`). */
+export const PROMPT_REMOVED = "removed — it couldn't be verified as a safe prompt record"
 
 /** The start of every dropped-mesh warning. */
 export const MESH_REMOVED = "imported mesh removed — it couldn't be verified as a safe mesh"
@@ -652,6 +666,15 @@ export function parseProject(text) {
     } catch (error) {
       if (error instanceof MergeSectionError) throw new ProjectFormatError(`project-state: ${error.message}`)
       throw error
+    }
+    // `TODO/ai-031`: a prompt record that failed validation was left out; say which and why.
+    for (const problem of merge.promptProblems ?? []) {
+      const label = problem.id === undefined ? 'prompt' : `prompt ${JSON.stringify(problem.id)}`
+      warnings.push({
+        ...(problem.id !== undefined ? { id: problem.id } : {}),
+        op: PROMPT_OP,
+        message: `${label} ${PROMPT_REMOVED} (${problem.reason})`,
+      })
     }
     // A row whose tombstone is not older than its own birth is dead by the merge rule (a tie
     // goes to the tombstone), whatever the file's record lines say. Resolved, not refused: the

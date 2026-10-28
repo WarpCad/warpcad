@@ -20,6 +20,10 @@
  *   and part, its value being whether the state line's `viewHidden` lists it. A show is
  *   written too (that is what lets a later show beat an earlier hide after a reload); a hide
  *   the state line dropped as stale is not, so the two never disagree;
+ * - the **prompts** (`TODO/ai-031`, `src/core/prompt.js`) are written whole, as `prompts: [{ id,
+ *   text, produced? }]` sorted by id, beside `gist` and for the same reason: an older build ignores
+ *   an unknown section key. They carry no stamp — they merge as a grow-only set — and `produced`
+ *   is omitted when empty;
  * - an all-default document writes **no section**, so a legacy file opened and saved
  *   unchanged is byte-identical and still says version 1.
  *
@@ -146,8 +150,14 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
     }
   }
 
+  // `TODO/ai-031`: whole records, by id; a prompt that produced nothing yet omits `produced`.
+  const prompts = [...(state.prompts ?? new Map())]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([id, prompt]) => ({ id, text: prompt.text, ...(prompt.produced.length > 0 ? { produced: [...prompt.produced] } : {}) }))
+
   const empty =
     state.projectId === null &&
+    prompts.length === 0 &&
     Object.keys(pos).length === 0 &&
     Object.keys(stamps).length === 0 &&
     Object.keys(dead).length === 0 &&
@@ -167,5 +177,6 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
     ...(Object.keys(registers).length > 0 ? { registers } : {}),
     ...(Object.keys(partStamps).length > 0 ? { partStamps } : {}),
     ...(Object.keys(viewStamps).length > 0 ? { viewStamps } : {}),
+    ...(prompts.length > 0 ? { prompts } : {}),
   }
 }

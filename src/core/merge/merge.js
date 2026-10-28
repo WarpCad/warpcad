@@ -26,6 +26,9 @@
  *   key** — one body or one part — so a hide of `Cube 1 A` on one replica and of `Cylinder 1`
  *   on another both survive, and a copy that never touched visibility (an AI turn's fork)
  *   writes no stamp and so can never flip the user's choice.
+ * - **Prompts** (`TODO/ai-031`). A grow-only set by id (`joinPromptMaps`, `src/core/prompt.js`, the
+ *   one import from outside this folder and `replica.js`): both sides' prompts are kept, and one
+ *   prompt keeps the union of what it produced. A deleted body leaves its prompt.
  *
  * The result is commutative, associative and idempotent (`fuzz.spec.js`).
  *
@@ -35,6 +38,7 @@
 import { compareStamps } from '../replica.js'
 import { compareKeys } from './positionKey.js'
 import { REGISTER_NAMES } from './state.js'
+import { joinPromptMaps } from '../prompt.js'
 
 /** @typedef {import('../replica.js').Stamp} Stamp */
 /** @typedef {import('./state.js').MergeState} MergeState */
@@ -218,7 +222,7 @@ export function mergeStates(a, b) {
     viewHidden.set(key, /** @type {[boolean, Stamp]} */ (later(a.viewHidden.get(key), b.viewHidden.get(key))))
   }
 
-  return { projectId, entries, dead, registers, parts, viewHidden }
+  return { projectId, entries, dead, registers, parts, viewHidden, prompts: joinPromptMaps(a.prompts, b.prompts) }
 }
 
 /**

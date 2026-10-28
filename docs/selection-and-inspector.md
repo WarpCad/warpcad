@@ -103,6 +103,9 @@ same idea.
 **Color** — a colour swatch at the top of the panel. Click it to pick a new colour for
 the shape. See [Colouring a shape](#colouring-a-shape) below.
 
+**Prompt** — if an agent made the shape from your request, a collapsed row shows your words. Tap it
+to read all of them. See [The prompt is saved with the part](design-intent.md#the-prompt-is-saved-with-the-part).
+
 **Parameters** — the shape's own settings, which differ per shape because they are read
 from the shape's own definition rather than from a fixed form. **These are editable**:
 type a new number and press **Enter** and the shape is rebuilt at that size, staying

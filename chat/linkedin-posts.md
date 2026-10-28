@@ -3608,3 +3608,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** secret gist, fine-grained Gists-only token → docs/decisions/gist-storage.md (real calls); recipient read-only with one button, no account → diff (SharedView.vue) and hand-driven scenario 30; update patches the same gist → hand-driven scenario 30 (fresh context read 3 bodies from the same link); Stop sharing deletes → same run, link then shows the can't-be-found screen; id stored as a field older builds ignore → diff (src/core/merge/section.js, docs/decisions/document-sync.md: v1.1.0 refuses unknown names in merge.registers); copy drops the field → diff (shareCopy.js withoutGist) and hand-driven (B's copy offered Connect, not Update); fake API, no real phone → TODO/VERIFY.md rows 1-2
 **To Add:** docs/screenshots/share-gist.png
+
+## 2026-10-28T17:45:00Z — Agents save the request that made a part
+
+**Post:** A part built by an agent over WebMCP or MCP used to carry no record of the request that produced it. The in-app Assistant already recorded one; an external agent had nowhere to put it.
+
+An agent can now call record_prompt with the user's words, and WarpCad stores them as their own record in the project: capped at 4,000 characters, stripped of control and bidirectional characters, validated when the file loads, and merged by id so two copies that each add a prompt keep both. Select a part and the Inspector shows its prompt on one line; a tap opens it. It is plain text and reaches a model only inside the labelled data block.
+
+An older release still opens the file and drops the field if it saves; a merge with a newer copy restores it. That round trip is a fixture built from the v1.2.0 code. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** in-app Assistant already recorded the request, external agents did not → TODO/done/ai-031 Goal; cap, stripping, load validation, merge by id → src/core/prompt.js, src/core/merge/validate.js, src/core/documentPrompt.spec.js; Inspector row, one line, tap to open → PromptRow.vue; labelled data block → src/ai/documentData.js; older release round trip → src/core/__fixtures__/prompt-saved-by-v1.2.0.ndjson (written by v1.2.0's code, per the Opus agent's report this session)
+**To Add:** docs/screenshots/agent-prompt-row.png

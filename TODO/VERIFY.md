@@ -36,6 +36,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-031 — Agents store the prompt in the project (2026-10-28 17:38)
+
+Driven with the WebMCP stand-in only (acceptance 27 row). A real agent was not run, and the timeline-row Prompt display was not built.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real browser agent (Chrome with WebMCP) or Claude Code, ask *a 140 × 250 mm fan duct, 1.6 mm walls*; confirm the agent actually calls `record_prompt` first with your exact words, and the Inspector's Prompt row shows them. | Open | |
+| 2 | On an iPhone or iPad, select a body with a long prompt: the row wraps, the page does not scroll sideways, and tapping it opens and closes it. | Open | |
+| 3 | Decide whether the timeline (History) row should also show the prompt, as the finding's Feedback line says; if so, file it. | Open | |
+
+
 ### io-017 — Store and share a project as a gist (2026-10-28 14:30)
 
 Step 0 ran against real GitHub with a classic `gist` token and a fine-grained Gists-write token

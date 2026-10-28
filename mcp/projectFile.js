@@ -17,10 +17,11 @@
  * for the process, always later than anything it read. A **write** call does that under the lock (`lock.js`), then:
  *
  * 1. runs the tool on the in-memory document (`origin: 'mcp'`, `ctx.request` = the client's
- *    request text when it sent one);
+ *    request text when it sent one, else the prompt it recorded — `TODO/ai-031`);
  * 2. if the log did not change (a refusal, a cap, a read), **writes nothing** — the file stays
  *    byte-identical, mtime included. "Changed" is a record appended, revised in place or
- *    removed: the project-variable tools (`TODO/ai-014`) revise rows and may remove one;
+ *    removed: the project-variable tools (`TODO/ai-014`) revise rows and may remove one — or
+ *    the project's prompts changed (`record_prompt`, `TODO/ai-031`), which touches no row;
  * 3. otherwise serialises, checks the text parses back, re-checks the file has not changed
  *    since step 0 — if it has (the app saved meanwhile), re-reads and re-applies the call, up to
  *    {@link MAX_ATTEMPTS} times, then refuses with nothing written (`TODO/io-010`) — writes a
@@ -55,6 +56,7 @@ import { open, readFile, rename, stat, unlink } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
 import { LIMITS, createTurn } from '../src/ai/tools/limits.js'
+import { RECORD_PROMPT } from '../src/ai/tools/prompt.js'
 import { ReplayRejection, createDocument } from '../src/core/document.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../src/core/project.js'
 import { createReplicaId } from '../src/core/replica.js'
@@ -166,7 +168,9 @@ export function loadProjectText(text, name, replica) {
 
 /**
  * The names of the tools that write: the registry marks them by their optional `rationale`
- * (`src/ai/tools/index.js`: "Every write tool also takes an optional `rationale`").
+ * (`src/ai/tools/index.js`: "Every write tool also takes an optional `rationale`"), plus
+ * `record_prompt` (`TODO/ai-031`), which writes the prompt and nothing else — so it takes the lock
+ * but has no rationale, and so no `request` either (`server.js` adds that only beside a rationale).
  *
  * @param {ToolRegistry} tools
  * @returns {Set<string>}
@@ -175,9 +179,19 @@ export function writeToolNames(tools) {
   return new Set(
     tools
       .definitions('mcp')
-      .filter((definition) => Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale'))
+      .filter((definition) => definition.name === RECORD_PROMPT || Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale'))
       .map((definition) => definition.name)
   )
+}
+
+/**
+ * What the project's prompts say, for noticing that a call changed them (`TODO/ai-031`).
+ *
+ * @param {WarpDocument} document
+ * @returns {string}
+ */
+function promptsKey(document) {
+  return JSON.stringify(document.prompts())
 }
 
 /**
@@ -225,6 +239,14 @@ export function createProjectSession({ path, tools, limits, lock }) {
   let refusal = null
   /** @type {Promise<unknown>} */
   let queue = Promise.resolve()
+  /**
+   * `TODO/ai-031`: the prompt this session's client recorded, carried from call to call (each
+   * call builds a fresh tool context). Committed only once a call has finished, so an attempt
+   * discarded because the file changed under it never leaves a binding the file does not hold
+   * — and if one does, the registry stores it again under the same id on the next write.
+   * @type {import('../src/ai/tools/index.js').PromptBinding | null}
+   */
+  let prompt = null
 
   /**
    * Bring the in-memory document in line with the file. Throws the file's refusal.
@@ -265,15 +287,25 @@ export function createProjectSession({ path, tools, limits, lock }) {
         const known = new Set(current.entries.map((entry) => entry.record))
         const knownIds = new Set(current.entries.map((entry) => entry.record.id))
         const turn = createTurn(limits ? { limits: { ...LIMITS, ...limits } } : {})
-        const result = tools.run(
-          { document: current, origin: MCP_ORIGIN, turn, ...(request ? { request } : {}) },
-          tool,
-          input
-        )
+        const promptsBefore = promptsKey(current)
+        const effectiveRequest = request || prompt?.text
+        /** @type {import('../src/ai/tools/index.js').ToolContext} */
+        const ctx = {
+          document: current,
+          origin: MCP_ORIGIN,
+          turn,
+          ...(effectiveRequest ? { request: effectiveRequest } : {}),
+          ...(prompt !== null ? { prompt: { ...prompt } } : {}),
+        }
+        const result = tools.run(ctx, tool, input)
+        const bound = ctx.prompt === undefined ? prompt : { id: ctx.prompt.id, text: ctx.prompt.text }
         const fresh = current.entries.filter((entry) => !known.has(entry.record))
         const afterIds = new Set(current.entries.map((entry) => entry.record.id))
         const removedIds = [...knownIds].filter((id) => id !== undefined && !afterIds.has(id))
-        if (fresh.length === 0 && removedIds.length === 0) return result
+        if (fresh.length === 0 && removedIds.length === 0 && promptsKey(current) === promptsBefore) {
+          prompt = bound
+          return result
+        }
 
         const text = serializeProject(current)
         /** @param {string} message */
@@ -300,6 +332,7 @@ export function createProjectSession({ path, tools, limits, lock }) {
           return forget(`Can't write ${name}${code ? ` (${code})` : ''}. Nothing was written.`)
         }
         seen = text
+        prompt = bound
         highest = Math.max(highest, current.mergeClock())
         const timeline = current.timeline()
         /** @param {Set<unknown>} ids @returns {AppendedRows} */

@@ -336,6 +336,13 @@ reaches your project.
   write is happening) stops two servers on the same file from overwriting each other, and if the app saves the file
   while a change is running, the server reads it again and redoes the change on top.
 
+## The prompt is saved with the part
+
+Claude Code is asked to call `record_prompt` first with your request as you gave it, and the file
+keeps it. Open the file in WarpCad, select a shape Claude made, and the Inspector's **Prompt** row
+shows your words. A worked example is in
+[The prompt is saved with the part](design-intent.md#the-prompt-is-saved-with-the-part).
+
 ## What the file holds
 
 The file is plain NDJSON: one line per step, exactly as the server appended it, and — only once

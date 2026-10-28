@@ -105,6 +105,8 @@ describe('createToolRegistry', () => {
       'list_variables',
       'measure',
       'operate',
+      // ai-031: an external agent records the user's request; the in-app chat does it itself.
+      'record_prompt',
       'rename_variable',
       'repeat',
       'set_variable',
@@ -113,7 +115,7 @@ describe('createToolRegistry', () => {
     // ai-008: the image tools and save_to_library are browser-only too (attachments live in the
     // chat; a library save needs a person to tap Confirm).
     expect(tools.toolsFor('ai').map((tool) => tool.name)).toEqual(
-      [...mcp, 'capture_view', 'get_reference_image', 'get_selection', 'locate_in_image', 'save_to_library', 'select', 'set_reference_scale'].sort()
+      [...mcp.filter((name) => name !== 'record_prompt'), 'capture_view', 'get_reference_image', 'get_selection', 'locate_in_image', 'save_to_library', 'select', 'set_reference_scale'].sort()
     )
   })
 

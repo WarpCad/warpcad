@@ -444,6 +444,7 @@ import { conditionContextOf, conditionShapeError, describeCondition, evaluateCon
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { normalizeGistField, sameGistField } from './gistField.js'
+import { PROMPT_LIMITS, preparePrompt, unionProduced, validatePromptRecord } from './prompt.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { RENAME_OP, nameOverrideOf, normalizeBodyName } from './naming.js'
 import { applyAction, emptyScene } from './replay.js'
@@ -832,6 +833,18 @@ export class ReplayRejection extends Error {
  * @property {(value: import('./gistField.js').GistField | null, transaction: TransactionOptions) => void} setGist
  *   `TODO/io-017`: record (or, with `null`, clear) the gist this project is published as. An external
  *   fact: a version bump, never an undo step.
+ * @property {() => import('./prompt.js').PromptRecord[]} prompts `TODO/ai-031`: the prompts agents
+ *   were given, fresh copies, in the order they were recorded (merged ones by id).
+ * @property {(id: string) => import('./prompt.js').PromptRecord | undefined} promptOf `TODO/ai-031`:
+ *   one prompt, a fresh copy.
+ * @property {(input: { id?: string, text: unknown, produced?: readonly string[] }, transaction: TransactionOptions) => import('./prompt.js').PromptRecord} recordPrompt
+ *   `TODO/ai-031`: store the prompt an agent was given, cleaned and capped (`src/core/prompt.js`).
+ *   Throws the reason, changing nothing, for one it refuses (empty, not text, over the cap, the
+ *   project's prompt cap). With an `id` that is already stored with the same text, it adds
+ *   `produced` to it instead. What was asked is a fact: a version bump, never an undo step.
+ * @property {(id: string, ids: readonly string[], transaction: TransactionOptions) => void} addPromptProduced
+ *   `TODO/ai-031`: link record ids to a stored prompt (sorted, each once, capped). A version bump
+ *   when anything was added; never an undo step. Throws for an id that names no prompt.
  * @property {() => import('./visibility.js').ViewHiddenState | null} viewHidden `TODO/ui-089`:
  *   what the user hid, in the state line's shape, without stale switches (a body no record
  *   names, a part the body no longer has); `null` when nothing is hidden.
@@ -981,6 +994,23 @@ const STAMPED_MUTATORS = Object.freeze([
   'setViewHidden',
   'showAll',
 ])
+
+/**
+ * Throw, in the words every setter here uses, unless `transaction` carries an origin.
+ *
+ * @param {string} method
+ * @param {{ origin?: unknown } | undefined} transaction
+ * @returns {void}
+ */
+function requireOrigin(method, transaction) {
+  const origin = transaction?.origin
+  if (typeof origin !== 'string' || origin.length === 0) {
+    throw new Error(
+      `document.${method}: a transaction origin is required — ` +
+        "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+    )
+  }
+}
 
 /**
  * A merge was refused because the state is a copy of a different project
@@ -1617,6 +1647,33 @@ export function createDocument(options = {}) {
    * @type {import('./gistField.js').GistField | null}
    */
   let gist = null
+  /**
+   * `TODO/ai-031`: the prompts agents were given, by id (`src/core/prompt.js`). Project metadata
+   * like {@link gist} — outside the fold and both undo stacks, a version bump when it changes —
+   * because what was asked is a fact Undo does not take back: undoing a body leaves the prompt
+   * that produced it, as deleting one does. A grow-only set; each entry is replaced, never
+   * mutated in place.
+   * @type {Map<string, import('./prompt.js').PromptEntry>}
+   */
+  let prompts = new Map()
+  /**
+   * `TODO/ai-031`: a fresh prompt id, `prompt-<replica>-<n>`, one past this replica's highest.
+   * Deliberately **not** `nextId`: that ticks the merge clock, and recording what was asked must
+   * not shift the ids and stamps of the records written for it. Unique all the same — the replica
+   * scopes it, and a grow-only set never frees an `n`.
+   *
+   * @returns {string}
+   */
+  function nextPromptId() {
+    const prefix = `prompt-${clock.replica}-`
+    let highest = 0
+    for (const id of prompts.keys()) {
+      if (!id.startsWith(prefix)) continue
+      const n = Number(id.slice(prefix.length))
+      if (Number.isSafeInteger(n) && n > highest) highest = n
+    }
+    return `${prefix}${highest + 1}`
+  }
   /**
    * `TODO/ui-089`: what the user hid in the view, as `visibility.js`'s view map (one key per
    * hidden body or part). Project metadata like {@link buildVolume} — outside the fold and both
@@ -4439,6 +4496,8 @@ export function createDocument(options = {}) {
       // there is nothing in it, and a legacy document never mints (see `mintable`).
       projectId = null
       if (options.merge !== undefined) applyMergeOverlay(options.merge)
+      // `TODO/ai-031`: the prompts arrive only inside a version-2 file's merge section, validated.
+      prompts = new Map(options.merge?.prompts ?? [])
       mintable = projectId === null && nextEntries.length === 0 && (options.merge?.dead.size ?? 0) === 0
       for (const entry of nextEntries) clock.observe(counterOfId(entry.record.id))
       undoStack.length = 0
@@ -4533,6 +4592,48 @@ export function createDocument(options = {}) {
       const next = value === null ? null : normalizeGistField(value)
       if (sameGistField(next, gist)) return
       gist = next
+      document.version += 1
+    },
+
+    prompts() {
+      return [...prompts].map(([id, prompt]) => ({ id, text: prompt.text, produced: [...prompt.produced] }))
+    },
+
+    promptOf(id) {
+      const prompt = prompts.get(id)
+      return prompt === undefined ? undefined : { id, text: prompt.text, produced: [...prompt.produced] }
+    },
+
+    recordPrompt(input, transaction) {
+      requireOrigin('recordPrompt', transaction)
+      const prepared = preparePrompt(input?.text)
+      if (!prepared.ok) throw new Error(`document.recordPrompt: ${prepared.reason}`)
+      const id = input.id ?? nextPromptId()
+      const verdict = validatePromptRecord({ id, text: prepared.text, produced: [...new Set(input.produced ?? [])] })
+      if (!verdict.ok) throw new Error(`document.recordPrompt: ${verdict.reason}`)
+      const existing = prompts.get(id)
+      if (existing !== undefined) {
+        if (existing.text !== verdict.record.text) throw new Error(`document.recordPrompt: a different prompt already has the id "${id}"`)
+        document.addPromptProduced(id, verdict.record.produced, transaction)
+        return /** @type {import('./prompt.js').PromptRecord} */ (document.promptOf(id))
+      }
+      if (prompts.size >= PROMPT_LIMITS.maxPrompts) {
+        throw new Error(`document.recordPrompt: a project holds at most ${PROMPT_LIMITS.maxPrompts} prompts`)
+      }
+      prompts = new Map(prompts).set(id, { text: verdict.record.text, produced: verdict.record.produced })
+      document.version += 1
+      return { ...verdict.record, produced: [...verdict.record.produced] }
+    },
+
+    addPromptProduced(id, ids, transaction) {
+      requireOrigin('addPromptProduced', transaction)
+      const prompt = prompts.get(id)
+      if (prompt === undefined) throw new Error(`document.addPromptProduced: there is no prompt "${id}"`)
+      const verdict = validatePromptRecord({ id, text: prompt.text, produced: [...new Set(ids)].slice(0, PROMPT_LIMITS.maxProduced) })
+      if (!verdict.ok) throw new Error(`document.addPromptProduced: ${verdict.reason}`)
+      const produced = unionProduced(prompt.produced, verdict.record.produced)
+      if (produced.length === prompt.produced.length) return
+      prompts = new Map(prompts).set(id, { text: prompt.text, produced })
       document.version += 1
     },
 
@@ -5568,6 +5669,7 @@ export function createDocument(options = {}) {
         registers: { ...registers },
         parts: new Map([...userParts].map(([op, definition]) => [op, [definition, partStamps.get(op) ?? LEGACY_STAMP]])),
         viewHidden: new Map(viewStamps),
+        prompts: new Map(prompts),
       }
     },
 
@@ -5611,6 +5713,7 @@ export function createDocument(options = {}) {
         standingInstructions,
         buildVolume,
         gist,
+        prompts,
         layer: publishesUserParts ? projectPartsSnapshot() : null,
         projectId,
         mintable,
@@ -5697,6 +5800,8 @@ export function createDocument(options = {}) {
         // `TODO/io-017`: whichever set or clear of the gist was written last.
         const mergedGist = merged.registers.gist?.[0]
         gist = mergedGist === undefined || mergedGist === null ? null : normalizeGistField(mergedGist)
+        // `TODO/ai-031`: both sides' prompts, as one grow-only set.
+        prompts = merged.prompts ?? new Map()
         stampClock.observe(highestCounter(merged))
         // `TODO/data-013`: rows that came in without an id are legacy content, so this document
         // stays without one too (see `mintable`); with nothing in it, it still may mint.
@@ -5712,6 +5817,7 @@ export function createDocument(options = {}) {
         standingInstructions = previous.standingInstructions
         buildVolume = previous.buildVolume
         gist = previous.gist
+        prompts = previous.prompts
         viewHidden = previous.viewHidden
         viewStamps = previous.viewStamps
         if (previous.layer !== null) restoreProjectParts(previous.layer)

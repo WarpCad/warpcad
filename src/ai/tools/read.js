@@ -28,6 +28,7 @@
 import { recipeColorOf } from '../../core/colorOverride.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import { latestIntentOf } from '../../core/intent.js'
+import { promptsForBody } from '../../core/prompt.js'
 import { objectSchema } from './schema.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
@@ -185,6 +186,19 @@ export function sceneSummary(document) {
 }
 
 /**
+ * `TODO/ai-031`: `{ prompts }` for a body some prompt produced, `{}` otherwise, so a body made by
+ * hand carries no empty field.
+ *
+ * @param {import('../../core/document.js').WarpDocument} document
+ * @param {string} bodyId
+ * @returns {{ prompts?: { id: string, text: string }[] }}
+ */
+function withPrompts(document, bodyId) {
+  const prompts = promptsForBody(document, bodyId)
+  return prompts.length === 0 ? {} : { prompts: prompts.map((prompt) => ({ id: prompt.id, text: prompt.text })) }
+}
+
+/**
  * `value` with `intent` added when there is one (`TODO/ai-003`), unchanged otherwise, so a
  * body or row without intent carries no empty field.
  *
@@ -270,7 +284,8 @@ export function createReadTools() {
     {
       name: 'describe_body',
       description:
-        'Describe one body by id: everything describe_scene says, plus the params it was built with, its centre position (mm) and rotation (degrees).',
+        'Describe one body by id: everything describe_scene says, plus the params it was built with, its centre position (mm) and rotation (degrees), ' +
+        'and the prompts that produced it (the user’s requests recorded with record_prompt), when there are any.',
       inputSchema: objectSchema({ id: { type: 'string', description: 'A body id from describe_scene.' } }, ['id']),
       transports: ['ai', 'mcp'],
       run: (ctx, input) => {
@@ -285,6 +300,8 @@ export function createReadTools() {
           params: body.params,
           positionMm: round3([(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]),
           rotationDeg: round3(body.rotationDeg),
+          // `TODO/ai-031`: data like intent — the transport wraps every result in <document_data>.
+          ...withPrompts(ctx.document, body.id),
         }
       },
     },

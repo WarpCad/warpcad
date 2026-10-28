@@ -32,7 +32,8 @@
  * | `create` | yes | Place one body: `{ op, positionMm, params? }`. Zero-operand Library ops only. |
  * | `operate` | yes | One operation: `{ op, operands: [{ id, pieces? }], params? }`. Refused by name on a wrong operand count or an id that is not a body on screen. |
  * | `repeat` | yes | `{ source, seedBody, seedPart, targets }`: one linked `pattern.repeat` (`TODO/core-061`) — the source's own steps re-aimed from `seedPart` at each target, as one new body. Refused in core's words; at most 64 targets. |
- * | `apply_records` | yes | `{ steps: [{ create } \| { operate }] }` as one atomic change; a step names an earlier step's body as `@n`. |
+ * | `apply_records` | yes | `{ steps: [{ create } \| { operate }], prompt? }` as one atomic change; a step names an earlier step's body as `@n`. `prompt` records the request with it (`ai-031`). |
+ * | `record_prompt` | yes (the prompt only) | MCP and WebMCP (`ai-031`). `{ prompt }`: the user's request, in their words, stored in the project and linked to every record written for it afterwards; echoes `{ id, text, truncated }`. Called once, first. |
  * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
  * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
  * | `check_clearance` | no | `{ a, b }`: the smallest gap between two bodies and the closest points, or the volume they share when they interpenetrate. |
@@ -50,8 +51,16 @@
  * | `delete_variable` | yes | `{ name, keepValues? }`: refused with `usedBy` while anything reads it, unless `keepValues` rewrites the bindings to literals first. |
  *
  * Every write tool also takes an optional `rationale`: one line saying why. With the turn's
- * request (`ctx.request`) it is saved as each new record's design intent (`TODO/ai-003`),
- * which `get_timeline`, `describe_scene` and `describe_body` return as `intent`.
+ * request (`ctx.request`, or else the bound prompt's text) it is saved as each new record's
+ * design intent (`TODO/ai-003`), which `get_timeline`, `describe_scene` and `describe_body`
+ * return as `intent`.
+ *
+ * ## The prompt (`TODO/ai-031`)
+ *
+ * After every call, {@link ToolRegistry.run} links the records the call added to the context's
+ * bound prompt (`ctx.prompt`, `./prompt.js`), storing that prompt first if it was not yet. So
+ * every write tool, on every transport, says which request it was made for — a boolean's result
+ * included — without any tool knowing about prompts. `describe_body` returns a body's prompts.
  *
  * The variable tools are not kernel ops: `var.define` is never in `list_ops`, and `create` /
  * `apply_records` cannot write one (`docs/decisions/project-variables.md`). Their writes are
@@ -101,6 +110,7 @@ import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
 import { createPrintabilityTool } from './printability.js'
 import { createReadTools } from './read.js'
 import { createRepeatTool } from './repeat.js'
+import { createRecordPromptTool, knownIds, linkProduced } from './prompt.js'
 import { checkInput, objectSchema, paramsSchemaFor } from './schema.js'
 import { createVariableTools } from './variables.js'
 
@@ -172,6 +182,15 @@ export const WEBMCP_WITHHELD = Object.freeze(['capture_view'])
  *   recorded.
  * @property {boolean} [live] `TODO/ai-012`: an `mcp` call running in the open tab (the live
  *   bridge), which may also use {@link LIVE_BROWSER_TOOLS}. Origin stays `mcp`.
+ * @property {PromptBinding} [prompt] `TODO/ai-031`: the prompt this context's writes are for.
+ *   The registry links every record a call adds to it, storing it first while `id` is `null`;
+ *   `record_prompt` replaces it. A transport that builds a context per call carries it over.
+ */
+
+/**
+ * @typedef {object} PromptBinding
+ * @property {string | null} id The stored prompt's id; `null` until something is written for it.
+ * @property {string} text The prompt, cleaned (`src/core/prompt.js`).
  */
 
 /**
@@ -277,6 +296,7 @@ export function createToolRegistry(options = {}) {
       createPrintabilityTool(),
       createClearanceTool(),
       createRepeatTool(),
+      createRecordPromptTool(),
       createCaptureTool(),
       ...createImageTools(),
       createSaveToLibraryTool(),
@@ -312,6 +332,7 @@ export function createToolRegistry(options = {}) {
       // A WebMCP call always runs in the open tab.
       const options = { live: ctx.live === true || transport === 'webmcp' }
       const tool = tools.find((candidate) => candidate.name === name)
+      const known = knownIds(ctx.document)
       /** @type {Record<string, any>} */
       let result
       if (!tool) {
@@ -322,6 +343,9 @@ export function createToolRegistry(options = {}) {
         const errors = tool.validate ? tool.validate(input) : checkInput(tool.inputSchema, input)
         result = errors.length > 0 ? { error: 'invalid input', reason: errors.join('; ') } : tool.run(ctx, input)
       }
+      // `TODO/ai-031`: whatever the call added is linked to the bound prompt. A refused call added nothing.
+      const problem = linkProduced(ctx, known)
+      if (problem !== undefined) result = { ...result, promptNotRecorded: problem }
 
       // A cap hit inside the tool (a records cap) has already stopped the turn.
       if (result.stop === true) return result
