@@ -50,6 +50,11 @@ const publisher = useGistPublish()
 
 /** **Make it public**, before the first publish only. */
 const makePublic = ref(false)
+/**
+ * **Include prompts in the README** (`TODO/io-022`), on by default. Unticked, the README leaves the
+ * prompts out; the project file keeps them either way.
+ */
+const includePrompts = ref(true)
 const confirmingStop = ref(false)
 /** The last action's fixed-wording failure, for this opening of the sheet. */
 const errorText = ref('')
@@ -62,6 +67,13 @@ const published = computed(() => publisher.published.value)
 const busy = computed(() => publisher.busy.value)
 const isPublic = computed(() => (published.value ? field.value?.public === true : makePublic.value))
 const disclosure = computed(() => (isPublic.value ? PUBLIC_DISCLOSURE : SECRET_DISCLOSURE))
+const promptNote = computed(() => {
+  const count = publisher.promptCount.value
+  const noun = count === 1 ? 'prompt' : 'prompts'
+  return includePrompts.value
+    ? `${count} ${noun} will be in the README. The project file has them either way.`
+    : 'Left out of the README. The project file still has them.'
+})
 
 const busyText = computed(() => {
   if (gist.publishState === 'publishing') return 'Publishing to GitHub…'
@@ -138,7 +150,7 @@ async function publish() {
   /** @type {(value: string | null) => void} */
   let deliver = () => {}
   const copied = copyWhenReady(new Promise((resolve) => (deliver = resolve)))
-  const result = await publisher.publish({ public: makePublic.value, name: props.name })
+  const result = await publisher.publish({ public: makePublic.value, name: props.name, prompts: includePrompts.value })
   deliver(result.ok ? result.link : null)
   if (!result.ok) {
     void copied.catch(() => {})
@@ -162,7 +174,7 @@ async function publish() {
 async function update() {
   if (!publisher.canUpdate.value) return
   errorText.value = ''
-  const result = await publisher.update({ name: props.name })
+  const result = await publisher.update({ name: props.name, prompts: includePrompts.value })
   if (!result.ok) {
     errorText.value = result.message
     return
@@ -284,6 +296,14 @@ async function stop() {
       >
         Stop sharing
       </button>
+    </template>
+
+    <template v-if="gist.connected && publisher.promptCount.value > 0">
+      <label class="share-gist__check">
+        <input v-model="includePrompts" type="checkbox" data-testid="share-gist-prompts" :disabled="busy" />
+        <span>Include prompts in the README</span>
+      </label>
+      <p class="share-gist__note" data-testid="share-gist-prompts-note">{{ promptNote }}</p>
     </template>
 
     <p v-if="busyText" class="share-gist__busy" role="status" data-testid="share-gist-busy">{{ busyText }}</p>

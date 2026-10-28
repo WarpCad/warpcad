@@ -572,3 +572,60 @@ describe('File ▾ → Save to gist (io-021): an update with no name keeps the g
     scope.stop()
   })
 })
+
+/** `TODO/io-022` — the prompts the README's **How this was made** lists, and the checkbox that leaves them out. */
+describe('publish — how this was made (the prompts)', () => {
+  /** Record a prompt the way an agent's write does: origin-tagged, naming the records it produced. */
+  function recordPrompt(text, produced) {
+    toRaw(useDocumentStore().raw).recordPrompt({ text, produced }, { origin: 'mcp' })
+    useDocumentStore().refresh()
+  }
+
+  it('lists the prompt with the names of the bodies it produced, and counts it for the sheet', async () => {
+    buildProject()
+    recordPrompt('a 140 × 250 mm fan duct, 1.6 mm walls', ['cube-1'])
+    const { scope, api } = mount()
+    expect(api.promptCount.value).toBe(1)
+    await api.publish()
+
+    const created = backend.createGist.mock.calls[0][0].files['README.md']
+    expect(created).toContain('## How this was made')
+    expect(created).toContain('> a 140 × 250 mm fan duct, 1\\.6 mm walls')
+    expect(created).toContain('- Made: Base')
+    expect(created).not.toContain('Made: Base, Back plate')
+    scope.stop()
+  })
+
+  it('leaves the section out when the checkbox is unticked, and the project file keeps the prompt', async () => {
+    buildProject()
+    recordPrompt('a fan duct', ['cube-1'])
+    const { scope, api } = mount()
+    await api.publish({ prompts: false })
+
+    expect(backend.createGist.mock.calls[0][0].files['README.md']).not.toContain('How this was made')
+    expect(backend.updateGist.mock.calls[0][0].files['README.md']).not.toContain('How this was made')
+    expect(backend.createGist.mock.calls[0][0].files['phone-stand.ndjson']).toContain('a fan duct')
+    scope.stop()
+  })
+
+  it('a prompt that produced no body is listed without a Made line', async () => {
+    buildProject()
+    recordPrompt('a plain request', ['not-a-body'])
+    const { scope, api } = mount()
+    await api.publish()
+
+    const readme = backend.updateGist.mock.calls[0][0].files['README.md']
+    expect(readme).toContain('> a plain request')
+    expect(readme).not.toContain('Made:')
+    scope.stop()
+  })
+
+  it('a project with no prompts has no section, and the count is zero', async () => {
+    buildProject()
+    const { scope, api } = mount()
+    expect(api.promptCount.value).toBe(0)
+    await api.publish()
+    expect(backend.updateGist.mock.calls[0][0].files['README.md']).not.toContain('How this was made')
+    scope.stop()
+  })
+})

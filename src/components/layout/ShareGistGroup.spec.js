@@ -4,7 +4,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { nextTick, toRaw } from 'vue'
 
 import { gistLink } from '../../core/gistLink.js'
 import { gistMessage } from '../../core/gistMessages.js'
@@ -234,5 +234,50 @@ describe('ShareGistGroup', () => {
     expect(q('share-gist-other-owner')).not.toBeNull()
     expect(q('share-gist-publish')).not.toBeNull()
     expect(q('share-gist-update')).toBeNull()
+  })
+
+  it('Include prompts in the README is on by default, shown only with prompts, and its note counts them', async () => {
+    await useGistStore().connect(TOKEN)
+    const documentStore = useDocumentStore()
+    render()
+    await flush()
+    expect(q('share-gist-prompts')).toBeNull()
+
+    toRaw(documentStore.raw).recordPrompt({ text: 'a fan duct', produced: ['cube-1'] }, { origin: 'mcp' })
+    documentStore.refresh()
+    await flush()
+    expect(q('share-gist-prompts').checked).toBe(true)
+    expect(q('share-gist-prompts-note').textContent).toBe('1 prompt will be in the README. The project file has them either way.')
+  })
+
+  it('unticking it publishes without the prompts in the README, and the project file keeps them', async () => {
+    await useGistStore().connect(TOKEN)
+    const documentStore = useDocumentStore()
+    toRaw(documentStore.raw).recordPrompt({ text: 'a fan duct', produced: ['cube-1'] }, { origin: 'mcp' })
+    documentStore.refresh()
+    render()
+    await flush()
+    q('share-gist-prompts').click()
+    await nextTick()
+    expect(q('share-gist-prompts-note').textContent).toBe('Left out of the README. The project file still has them.')
+    q('share-gist-publish').click()
+    await flush()
+
+    const created = backend.createGist.mock.calls[0][0]
+    expect(created.files['README.md']).not.toContain('How this was made')
+    const projectFile = Object.entries(created.files).find(([name]) => name !== 'README.md')
+    expect(projectFile[1]).toContain('a fan duct')
+  })
+
+  it('ticked, the published README lists the prompt under How this was made', async () => {
+    await useGistStore().connect(TOKEN)
+    const documentStore = useDocumentStore()
+    toRaw(documentStore.raw).recordPrompt({ text: 'a fan duct', produced: ['cube-1'] }, { origin: 'mcp' })
+    documentStore.refresh()
+    render()
+    await flush()
+    q('share-gist-publish').click()
+    await flush()
+    expect(backend.updateGist.mock.calls.at(-1)[0].files['README.md']).toContain('> a fan duct')
   })
 })

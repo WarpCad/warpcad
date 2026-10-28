@@ -112,6 +112,11 @@ export function useGistPublish(options = {}) {
   const published = computed(() => gistField.value !== null && gist.connected && gistField.value.owner === gist.login)
   const busy = computed(() => gist.publishState !== 'idle')
   const hasBodies = computed(() => documentStore.bodies.length > 0)
+  /** The stored prompts, for the Share sheet's **Include prompts in the README** note (`TODO/io-022`). */
+  const promptCount = computed(() => {
+    void documentStore.version
+    return toRaw(documentStore.raw).prompts().length
+  })
   /** **Publish to a gist** can run: connected, something to publish, not already published here. */
   const canPublish = computed(() => gist.connected && hasBodies.value && !published.value && !busy.value)
   /** **Update gist** can run. */
@@ -129,6 +134,23 @@ export function useGistPublish(options = {}) {
 
   /** The body names the README lists, in timeline order. */
   const bodyNames = () => documentStore.bodies.map((body) => body.name)
+
+  /**
+   * The prompts the README's **How this was made** section lists (`TODO/io-022`): each prompt's text
+   * and the names of the bodies it produced, in timeline order. A produced id that is not a body (a
+   * sketch step, a boolean's operand) is not named.
+   *
+   * @returns {{ text: string, bodies: string[] }[]}
+   */
+  function promptsForReadme() {
+    const bodies = documentStore.bodies
+    return toRaw(documentStore.raw)
+      .prompts()
+      .map((prompt) => ({
+        text: prompt.text,
+        bodies: bodies.filter((body) => prompt.produced.includes(body.id)).map((body) => body.name),
+      }))
+  }
 
   /** The gist's description: the project's name as one plain line. @param {string} name */
   const descriptionOf = (name) => plainGistDescription(name) || DEFAULT_SHARE_NAME
@@ -159,8 +181,9 @@ export function useGistPublish(options = {}) {
    * **Publish to a gist**: a new gist with the project file and its README, secret unless
    * `public` is exactly `true`.
    *
-   * @param {{ public?: boolean, name?: string }} [choice] `name` — the Share sheet's Name, the gist's
-   *   title; without it the project's own name is used.
+   * @param {{ public?: boolean, name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's
+   *   Name, the gist's title; without it the project's own name is used. `prompts: false` leaves the
+   *   prompts out of the README (the file keeps them); anything else lists them.
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
   async function publish(choice = {}) {
@@ -174,7 +197,7 @@ export function useGistPublish(options = {}) {
     const name = choice.name ?? persistence.projectName
     const fileName = gistFileName(name)
     const publishedAt = now()
-    const readme = { name, note: '', bodies: bodyNames(), publishedAt }
+    const readme = { name, note: '', bodies: bodyNames(), prompts: choice.prompts === false ? [] : promptsForReadme(), publishedAt }
     const isPublic = choice.public === true
 
     await gist.start()
@@ -227,9 +250,9 @@ export function useGistPublish(options = {}) {
    * **Update gist**: the same gist, a new revision — refused, writing nothing, when the gist is
    * not at the revision this project last published.
    *
-   * @param {{ name?: string }} [choice] `name` — the Share sheet's Name (see {@link publish});
-   *   without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own title, and only a
-   *   gist with none takes the project's name.
+   * @param {{ name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's Name (see
+   *   {@link publish}); without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own
+   *   title, and only a gist with none takes the project's name. `prompts` as for {@link publish}.
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
   async function update(choice = {}) {
@@ -265,6 +288,7 @@ export function useGistPublish(options = {}) {
         name,
         note: '',
         bodies: bodyNames(),
+        prompts: choice.prompts === false ? [] : promptsForReadme(),
         publishedAt,
         id: current.id,
         rawUrl: gistRawFileUrl(current.owner, current.id, fileName),
@@ -328,5 +352,5 @@ export function useGistPublish(options = {}) {
     return shortLink.value
   }
 
-  return { gistField, published, busy, canPublish, canUpdate, shortLink, pageUrl, publish, update, stop, link }
+  return { gistField, published, busy, canPublish, canUpdate, promptCount, shortLink, pageUrl, publish, update, stop, link }
 }

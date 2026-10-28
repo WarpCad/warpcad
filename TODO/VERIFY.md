@@ -36,6 +36,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-022 — Prompts in the gist README (2026-10-28 21:49 UTC)
+
+GitHub's own rendering of the **How this was made** section is not something a test can see: block quotes, the `&#64;` mention break, and the "and N more" line on a real github.com page. Only a human on the published gist can check that.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open a gist published with a prompt on github.com: the quote renders as a quote, `@name` shows as text and does not link to a profile, and nothing else on the page changed. | Open | |
+
 ### io-021 — File ▾ → Save as gist… (2026-10-28 21:19 UTC)
 
 Hand-driven by an agent on Chromium at 1440 and 390 px; the scripted e2e specs cover the flow itself. Two things only a person can judge: how the toast sits over the Operations toolbar for a few seconds at laptop width, and whether the "Saving…" chip flash after Save as gist reads as noise on a real phone.

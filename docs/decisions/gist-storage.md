@@ -119,4 +119,11 @@ GitHub's documentation but was not observed. A by-hand check is queued in `TODO/
 - **Share-sheet saves also update the chip**, because both entry points share `useGistPublish`.
 - **Failure placement.** A refused Save to gist (e.g. `changed-remotely`) opens the dialog on its update step with the `gistMessages.js` wording and a retry button. Nothing is written.
 
+## The prompts in the README (`TODO/io-022`)
+
+- **A reversal, on purpose.** `src/core/gistReadme.js` said intent text and the AI conversation are deliberately not in the README, because the README is the part that gets skimmed and indexed. The owner has decided the prompts that made a project belong there, so a reader on github.com sees the requests. This reverses that exclusion for **prompts only**. Standing instructions, intent text and the conversation stay out.
+- **On by default, one tick to leave out.** **Include prompts in the README** is on by default, and its note counts the prompts. Unticking it hides them from the README, not from the file: the `.ndjson` always carries them, so the note says so.
+- **Public gists list them.** A public gist is listed on GitHub for anyone to read, so the disclosure under the group already says that, and the docs say to check the box first.
+- **Still data, never markup.** Each prompt is cleaned, capped and escaped like a body name, and an `@name` is broken (`&#64;`) so a prompt notifies no one. The section caps at 20 prompts and 6,000 characters in all, then counts the rest.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

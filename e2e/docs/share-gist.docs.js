@@ -66,4 +66,37 @@ test.describe('docs media: the Share sheet gist group', () => {
     await page.getByTestId('share-name').blur()
     await shot(page, 'share-gist.png')
   })
+
+  test('gist-prompts.png: the Include prompts in the README box and its note, before publishing', async ({ page }) => {
+    await routeFakeGitHub(page, fakeGitHub({ tokens: { [TOKEN]: { login: 'janecoder', kind: 'fine-grained', expiry: '2026-11-27 14:05:00 UTC' } } }))
+    await openApp(page)
+    await loadScene(page, 'cube-and-sphere.ndjson', 2)
+    // The request that made the first body, as an agent's write records it.
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.raw.recordPrompt({ text: 'a 140 × 250 mm fan duct, 1.6 mm walls', produced: [store.bodies[0].id] }, { origin: 'mcp' })
+      store.refresh()
+    })
+
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('gist-connect-open').scrollIntoViewIfNeeded()
+    await page.getByTestId('gist-connect-open').click()
+    await page.getByTestId('gist-connect-token').fill(TOKEN)
+    await page.getByTestId('gist-connect-submit').click()
+    await expect(page.getByTestId('gist-connect-status')).toContainText('Connected as janecoder')
+    await page.getByTestId('gist-connect-done').click()
+
+    const button = page.getByTestId('share-open')
+    if (await button.isVisible()) {
+      await button.click()
+    } else {
+      await page.getByTestId('file-menu-button').click()
+      await page.getByTestId('file-share').click()
+    }
+    await expect(page.getByTestId('share-sheet')).toBeVisible()
+    await expect(page.getByTestId('share-gist-prompts')).toBeChecked()
+    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('1 prompt will be in the README. The project file has them either way.')
+    await shot(page, 'gist-prompts.png')
+  })
 })

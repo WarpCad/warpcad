@@ -693,6 +693,46 @@ test.describe('store and share a project as a GitHub gist', () => {
     expect(renamed?.files['README.md']).toContain('# Desk stand')
   })
 
+  test('10. the prompts that made the project are in the README under How this was made, until the box is unticked (io-022)', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [10, 10, 2], center: [0, 0, 1] } })
+      store.raw.recordPrompt({ text: 'a 140 × 250 mm fan duct, 1.6 mm walls', produced: ['base'] }, { origin: 'mcp' })
+      store.refresh()
+    })
+    await expectBodyCount(page, 1)
+
+    await openShareSheet(page, input)
+    await tap(input, page.getByTestId('share-gist-connect'))
+    await connectInDialog(page, input, GIST_TOKEN)
+    await expect(page.getByTestId('share-gist-prompts')).toBeChecked()
+    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('1 prompt will be in the README. The project file has them either way.')
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
+    const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
+    const id = /** @type {string} */ (copied).slice(-32)
+    expect(fake.gists.get(id)?.files['README.md']).toContain('## How this was made')
+    expect(fake.gists.get(id)?.files['README.md']).toContain('> a 140 × 250 mm fan duct, 1\\.6 mm walls')
+    expect(fake.gists.get(id)?.files['README.md']).toContain('- Made: Base')
+
+    // Untick, then update: the README drops the section, and the project file still has the prompt.
+    await tap(input, page.getByTestId('share-gist-prompts'))
+    await expect(page.getByTestId('share-gist-prompts')).not.toBeChecked()
+    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('Left out of the README. The project file still has them.')
+    await tap(input, page.getByTestId('share-gist-update'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
+    const updated = fake.gists.get(id)
+    expect(updated?.files['README.md']).not.toContain('How this was made')
+    const file = Object.entries(updated?.files ?? {}).find(([name]) => name !== 'README.md')
+    expect(String(file?.[1])).toContain('a 140 × 250 mm fan duct')
+  })
+
   test('the repository token and the gist token never overwrite each other through the UI', async ({ page }, info) => {
     const fake = newFake()
     await openApp(page, fake)

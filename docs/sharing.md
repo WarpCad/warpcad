@@ -144,6 +144,28 @@ is only there before the first publish.
 A small **Published** mark appears beside **Share** while the open project is published from
 your account. On a phone it's a dot on the Share button.
 
+### How this was made: the prompts in the README
+
+When the project has the requests that made its shapes in it (a request an agent was given, see
+[the AI partner](ai-partner.md)), the gist's README gains a **How this was made** section. Each request is
+a quote, with the shapes it made under it, oldest first, so a reader on github.com sees what the
+part was meant to be without opening WarpCad.
+
+Under **Short link with GitHub** the box **Include prompts in the README** is on by default. Its
+note says how many prompts the README will carry. Untick it to keep them out of the README: the
+project file still has them, so the gist's file is the same either way.
+
+![The Share sheet on a phone before publishing: Short link with GitHub has Make it public unticked and Publish to a gist, then Include prompts in the README ticked, with the note 1 prompt will be in the README, and the line about who can read a secret gist.](./screenshots/gist-prompts.png)
+
+A **public** gist is listed on GitHub for anyone to read, and that includes these prompts. Check the
+box before you publish a project whose requests you would not show to strangers.
+
+**Example.** Ask your agent for *a 140 × 250 mm fan duct, 1.6 mm walls*. Open your project, tap
+**Share**, and tap **Publish to a gist**. On github.com, open the gist: under **How this was made** is
+*a 140 × 250 mm fan duct, 1.6 mm walls*, with *Made: Base, Lip* under it, the names of the shapes it
+produced. To keep the requests out, untick **Include prompts in the README** before you publish, or
+before **Update gist** the next time.
+
 ### Update it, copy the link, or stop sharing
 
 Once a project is published, the group in the Share sheet offers:

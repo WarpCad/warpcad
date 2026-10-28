@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { gistLink } from './gistLink.js'
 import {
   MAX_LISTED_BODIES,
+  MAX_LISTED_PROMPTS,
   MAX_BODY_NAME_CHARS,
   MAX_NAME_CHARS,
   MAX_NOTE_CHARS,
+  MAX_PROMPT_CHARS,
   escapeMarkdownText,
   formatPublishedAt,
   gistReadme,
@@ -199,6 +201,105 @@ describe('gistReadme — names and note are inert text', () => {
 
   it('treats a blank body name as unnamed rather than an empty list entry', () => {
     expect(gistReadme(input({ bodies: ['', '  ', 'Base'] }))).toContain('- 3 bodies: (unnamed), (unnamed), Base\n')
+  })
+})
+
+/** `TODO/io-022` — the prompts that made the project, in a **How this was made** section. */
+describe('gistReadme — how this was made (the prompts)', () => {
+  const PROMPTS = [
+    { text: 'a 140 × 250 mm fan duct, 1.6 mm walls', bodies: ['Base', 'Lip'] },
+    { text: 'add a mounting flange', bodies: ['Flange'] },
+  ]
+
+  it('lists each prompt as a block quote with the bodies it produced, after the bodies', () => {
+    expect(gistReadme(input({ prompts: PROMPTS }))).toBe(
+      [
+        '# Phone stand',
+        '',
+        '> A stand for a phone, 70° angle, for the desk\\.',
+        '',
+        `**[Open in WarpCad](${gistLink(ID)})** — nothing to install, no account.`,
+        '',
+        '- 4 bodies: Base, Back plate, Lip, Cable notch',
+        '- Last published 2026-10-27 14:05 UTC',
+        `- Project file: [phone\\-stand\\.ndjson](<${RAW}>)`,
+        '',
+        '## How this was made',
+        '',
+        '> a 140 × 250 mm fan duct, 1\\.6 mm walls',
+        '',
+        '- Made: Base, Lip',
+        '',
+        '> add a mounting flange',
+        '',
+        '- Made: Flange',
+        '',
+        'Made with WarpCad. This page is generated; edits are overwritten when the project is published again.',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('omits the section for an empty prompt list, and when no prompts are given', () => {
+    expect(gistReadme(input({ prompts: [] }))).toBe(gistReadme(input()))
+    expect(gistReadme(input())).not.toContain('How this was made')
+  })
+
+  it('leaves out the Made line for a prompt whose bodies are gone, and says so for the rest', () => {
+    const text = gistReadme(input({ prompts: [{ text: 'a plain request', bodies: [] }] }))
+    expect(text).toContain('## How this was made\n\n> a plain request\n\nMade with WarpCad')
+  })
+
+  it('keeps a prompt inert: a link, an image, a mention and bidi controls are text', () => {
+    const hostile = '[x](javascript:alert(1)) <img src=x onerror=alert(1)> ask @octocat ‮reversed'
+    const text = gistReadme(input({ prompts: [{ text: hostile, bodies: [] }] }))
+    expect(text).not.toContain('](javascript:')
+    expect(text).not.toContain('<img')
+    expect(text).not.toContain('@octocat')
+    expect(text).toContain('&#64;octocat')
+    expect(text).not.toContain('‮')
+  })
+
+  it('breaks a mention in a produced body name too, so nobody is notified', () => {
+    const text = gistReadme(input({ prompts: [{ text: 'a stand', bodies: ['@octocat plate'] }] }))
+    expect(text).toContain('- Made: &#64;octocat plate')
+  })
+
+  it('quotes every line of a multi-line prompt and never lets a line start a heading', () => {
+    const text = gistReadme(input({ prompts: [{ text: 'first line\n===\n\nlast', bodies: [] }] }))
+    expect(text).toContain('> first line\n> \\===\n>\n> last')
+  })
+
+  it(`lists at most ${MAX_LISTED_PROMPTS} prompts, then says how many more`, () => {
+    const many = Array.from({ length: 25 }, (_, index) => ({ text: `prompt ${index}`, bodies: [] }))
+    const text = gistReadme(input({ prompts: many }))
+    expect(text).toContain('> prompt 19')
+    expect(text).not.toContain('> prompt 20')
+    expect(text).toContain('- and 5 more')
+  })
+
+  it('caps the whole section, cutting the prompt that crosses the limit and counting the rest', () => {
+    const long = 'x'.repeat(4000)
+    const prompts = [{ text: long, bodies: [] }, { text: long, bodies: [] }, { text: 'tail', bodies: [] }]
+    // No note, so every `> ` line is a prompt's and the count is the section's alone.
+    const text = gistReadme(input({ note: '', prompts }))
+    const sent = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
+    expect([...sent].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
+    expect(text).not.toContain('> tail')
+    expect(text).toContain('- and 1 more')
+  })
+
+  it('drops a blank prompt rather than listing an empty quote', () => {
+    const text = gistReadme(input({ prompts: [{ text: '   ', bodies: [] }, { text: 'real', bodies: [] }] }))
+    expect(text).toContain('## How this was made\n\n> real\n')
+    expect(text).not.toContain('more')
+  })
+
+  it('is deterministic, and reads only the text and bodies of each prompt', () => {
+    const smuggled = /** @type {any} */ ([{ text: 'a', bodies: [], instructions: 'INTENT-SENTINEL', id: 'x' }])
+    const first = gistReadme(input({ prompts: smuggled }))
+    expect(first).toBe(gistReadme(input({ prompts: smuggled })))
+    expect(first).not.toContain('INTENT-SENTINEL')
   })
 })
 
