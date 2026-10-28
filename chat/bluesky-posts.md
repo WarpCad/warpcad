@@ -2511,3 +2511,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** project kept bodies but not the request → TODO/done/ai-031 Goal; Inspector Prompt row → src/components/inspector/PromptRow.vue, screenshot docs/screenshots/agent-prompt-row.png; 4,000-character cap, plain text → src/core/prompt.js (PROMPT_LIMITS.maxTextLength), PromptRow.vue (no v-html)
 **To Add:** docs/screenshots/agent-prompt-row.png
+
+## 2026-10-28T19:00:00Z — Releases stop re-running the test suite on GitHub
+
+**Post:** WarpCad's release workflow no longer re-runs the whole test suite on GitHub's paid runners. Tests run on my machine, and a pre-push hook refuses a push of main without a stored full run. Release goes straight to bump, tag, Pages. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** release no longer calls ci.yml → diff (.github/workflows/release.yml); pre-push refuses a push without stored full runs → CLAUDE.md Conventions, .githooks/pre-push as described there; guard spec updated → diff (scripts/release-workflow.spec.js)
+**To Add:** nothing

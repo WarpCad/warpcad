@@ -22,7 +22,7 @@ Thanks for helping. Before you open a pull request:
    Store, which needs a grant to relicense. The CLA is that grant; you keep your copyright, and the
    public repository stays AGPL-3.0-or-later (see [`LICENSING.md`](LICENSING.md#distribution-under-other-terms)).
 4. New source and prose files need an SPDX marker — run `node scripts/spdx.mjs --fix` after
-   `git add`ing them. The release's CI run (`ci.yml`) checks `npm run spdx` and `npm run licenses`; run them before you push.
+   `git add`ing them. No workflow runs them on release, so run `npm run spdx` and `npm run licenses` before you push.
 5. Do not add code, assets or prompts copied from a source whose license is incompatible with
    AGPL-3.0 or CC BY-SA 4.0 (proprietary, "non-commercial", SSPL, and similar).
 6. No third-party logo or brand image goes into the repository without a licence check, and a new
@@ -65,7 +65,7 @@ so `--no-verify` skips that too.
 A push to `main` runs no workflow and deploys nothing. Pages is built only by a release
 (`docs/decisions/release.md`):
 
-1. Push `main` first (see Pushing above). The release runs `ci.yml` itself and stops if it fails.
+1. Push `main` first (see Pushing above). The release runs no tests of its own; the pre-push gate is the check.
 2. **Actions → Release → Run workflow**, pick `patch`, `minor` or `major`. The first release is
    `major` (`0.0.0` to `1.0.0`).
 3. The run bumps `package.json`, adds a section to `CHANGELOG.md` from the Conventional Commit

@@ -51,10 +51,10 @@ describe('release.yml', () => {
     expect(Object.entries(perms).filter(([, v]) => v === 'write').map(([k]) => k)).toEqual(['contents'])
   })
 
-  it('runs ci.yml as a called workflow first, then release-it non-interactively', () => {
+  it('runs no tests of its own (they run locally, gated by pre-push), then release-it non-interactively', () => {
     const text = read('.github/workflows/release.yml')
-    expect(release.jobs.test.uses).toBe('./.github/workflows/ci.yml')
-    expect(release.jobs.release.needs).toBe('test')
+    expect(Object.values(release.jobs).some((j) => j.uses === './.github/workflows/ci.yml')).toBe(false)
+    expect(release.jobs.release.needs).toBeUndefined()
     expect(text).toMatch(/release-it .*--ci/)
   })
 

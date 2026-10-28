@@ -359,7 +359,7 @@ Also independent of the open Stack decisions:
   pushed commit (`.todo-progress/_runs.json`, written by the progress reporters on every run, so a
   run started by hand records itself). Failing tests do not block a push but each must be named in a
   `Known-failures:` commit trailer (`node scripts/todo-progress.mjs stamp attest` prints them).
-  `release.yml` runs `ci.yml` itself. See `CONTRIBUTING.md` "Pushing".
+  `release.yml` runs no tests (they cost Actions minutes); the local gate is the only one. See `CONTRIBUTING.md` "Pushing".
 - **Types**: every exported function has a JSDoc signature. `npm run typecheck`
   (`tsc --noEmit`) is a test stage and a CI gate — a type error is a failing build.
 - **Always mock at the boundary**: the kernel worker, WebGL contexts, the File System

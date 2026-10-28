@@ -3621,3 +3621,16 @@ An older release still opens the file and drops the field if it saves; a merge w
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** in-app Assistant already recorded the request, external agents did not → TODO/done/ai-031 Goal; cap, stripping, load validation, merge by id → src/core/prompt.js, src/core/merge/validate.js, src/core/documentPrompt.spec.js; Inspector row, one line, tap to open → PromptRow.vue; labelled data block → src/ai/documentData.js; older release round trip → src/core/__fixtures__/prompt-saved-by-v1.2.0.ndjson (written by v1.2.0's code, per the Opus agent's report this session)
 **To Add:** docs/screenshots/agent-prompt-row.png
+
+## 2026-10-28T19:00:00Z — Releases stop re-running the test suite on GitHub
+
+**Post:** The release workflow used to call the CI workflow first and wait for it before tagging. I removed that job.
+
+The tests already run on my machine, and a pre-push hook refuses a push of main unless a full unit run and a full e2e run are stored for that commit. Running them again on hosted runners was paying twice for the same check. Release now goes straight to the version bump, the tag and the Pages deploy.
+
+The trade is that the hook is the only gate: skipping it with --no-verify skips the check. CI-only checks for SPDX markers and licences now have to be run by hand before a release. A spec that parses release.yml now fails if a job calling ci.yml comes back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** release called ci.yml first → diff (removed `test` job); hook gates on stored full unit and e2e runs → CLAUDE.md Conventions; --no-verify skips it → CONTRIBUTING.md Pushing; spdx/licences now manual → diff (CONTRIBUTING.md); guard spec → diff (scripts/release-workflow.spec.js)
+**To Add:** nothing

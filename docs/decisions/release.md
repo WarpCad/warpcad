@@ -41,9 +41,9 @@ outside the production licence check; `yaml` (ISC) joins them for the workflow g
 
 ## How it fits together
 
-- `release.yml` (`workflow_dispatch`, `bump` input): first calls `ci.yml` as a
-  `workflow_call` (CI no longer runs on push, `TODO/build-014`, so the release pays for one clean-room
-  run), and only if that passes checks out `main`, runs `release-it --ci --increment <bump>`, then calls
+- `release.yml` (`workflow_dispatch`, `bump` input): checks out `main` and runs no
+  tests: they run locally and `.githooks/pre-push` refuses a push of `main` without a stored full run,
+  so no Actions minutes are spent on them (`ci.yml` stays as a manual `workflow_dispatch`). It runs `release-it --ci --increment <bump>`, then calls
   `pages.yml` with the new tag. The release job has `contents: write` and nothing else.
 - `pages.yml` accepts `workflow_call` and `workflow_dispatch`, each with a `ref`; it builds that ref.
   It has no `workflow_run` trigger, so a merge deploys nothing.

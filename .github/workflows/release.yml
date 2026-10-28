@@ -20,13 +20,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Never tag a commit that failed its own tests. ci.yml no longer runs on push (TODO/build-014), so
-  # the release pays for one clean-room run itself.
-  test:
-    uses: ./.github/workflows/ci.yml
-
+  # No test job: the tests run locally and .githooks/pre-push refuses a push of main without a stored
+  # full unit and e2e run, so Actions minutes are not spent re-running them here.
   release:
-    needs: test
     runs-on: ubuntu-latest
     # contents: write pushes the bump commit and tag and creates the release. Nothing else is granted.
     permissions:
@@ -52,7 +48,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           # `npm ci` ran `prepare`, which points core.hooksPath at .githooks. That pre-push gate wants
-          # a stored local test run and would refuse release-it's push; the `test` job above is this
+          # a stored local test run and would refuse release-it's push; the local pre-push run is this
           # release's gate, so hooks are switched off here.
           git config core.hooksPath /dev/null
           npx release-it --ci --increment "${{ inputs.bump }}"
