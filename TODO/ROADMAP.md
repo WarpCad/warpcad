@@ -100,6 +100,8 @@ this repository still need a green full run before they are pushed.
   app, price and age rating, and the Part 6 legal review in `docs/decisions/app-store-licensing.md`. The
   submission itself is yours.
 
+**Deferred 2026-10-27:** start `build-017` (the Tauri scaffold) next? — parked, no decision yet.
+
 - **Owner steps on `build-016`** (dual licence): Part 4 (repository settings) and Part 6 (review) are still open in
   `TODO/VERIFY.md`. The row is marked done, so these are tracked only there.
 
