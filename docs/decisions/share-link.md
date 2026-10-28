@@ -160,7 +160,7 @@ IndexedDB before and after.
 
 ## What this decision does not cover
 
-Gist overflow (`io-017`); Universal Links / App Links and whether the `#fragment` survives into a
+Gist storage and sharing (`io-017`, `TODO/FIND-io-017-store-and-share-a-project-as-a-gist.md`); Universal Links / App Links and whether the `#fragment` survives into a
 native launch URL (`io-018`, verified in `build-018`).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

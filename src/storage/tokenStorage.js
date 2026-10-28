@@ -56,6 +56,9 @@ export const CREDENTIAL_STORE_NAME = 'credentials'
 /** The key this task's hosted-git connection is stored under. */
 export const HOSTED_CREDENTIAL_KEY = 'hosted-git'
 
+/** The gist token's key (`TODO/io-017`): its own record, revocable apart from the repository token. */
+export const GIST_CREDENTIAL_KEY = 'github-gist'
+
 /**
  * @typedef {object} CredentialStore
  * @property {(key: string) => Promise<Record<string, any> | null>} read Never rejects.

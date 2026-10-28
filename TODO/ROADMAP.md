@@ -68,6 +68,7 @@ this repository still need a green full run before they are pushed.
 | 21 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
 | 22 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
 | 23 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
+| 24 | `FIND` | [`io-017`](FIND-io-017-store-and-share-a-project-as-a-gist.md) Store and share a project as a GitHub gist (short link, generated README, gist-only token) | Medium; step 0 first: confirm a fine-grained token cannot create gists, and stop for the owner if a broader token is needed | opus |
 | 25 | `M11` | Gears (M11, runs last): `ui-057` → `ui-058` → `core-048` → `core-049` → `core-062` → `testing-002` → `docs-021` | Order from M11's suggested order | sonnet / opus |
 
 `core-065` stays parked (decided 2026-10-17: keep the Albany table for now) and is not ranked.
@@ -129,6 +130,7 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | M20 — Home page | [`docs-027`](M20-docs-027-home-page-content-and-docs-links.md) The home page: hero, what it does, every docs page linked into Help from `help/index.json`, source, support | feature | medium | sonnet | ⏳ after `build-021`, `docs-028` |
 | M20 — Home page | [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) Verify the domain, move `warpcad.com` DNS off Squarespace, enforce HTTPS; `app` untouched. Owner steps | feature | medium | sonnet | ⏳ after `docs-027` |
 | M18 — Launch | [`core-065`](M18-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ⏸ **parked** (decided 2026-10-17: keep the Albany table for now) |
+| Findings | [`io-017`](FIND-io-017-store-and-share-a-project-as-a-gist.md) Store and share a project as a GitHub gist: short link, generated README, project file, gist-only token (supersedes `io-016`'s reserved Stage 3) | feature | medium | opus | ▶ **ready** (step 0 verifies a fine-grained token cannot create gists; filed 2026-10-27) |
 | Findings | [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | finding | medium | sonnet | ▶ **ready** (found 2026-10-24 by the `ui-083` commit gate) |
 | Findings | [`ui-090`](FIND-ui-090-objects-section-hides-show-all-when-a-body-is-selected.md) The Objects section collapses while a body is selected, hiding its "N hidden · Show all" line exactly when a split piece has just been hidden; keep the summary in the header | finding | medium | sonnet | ▶ **ready** (found 2026-10-26 by the `ui-089` hand pass) |
 | Findings | [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro with the phone header entry | feature | medium | sonnet | ▶ **ready** after `ui-075` |
@@ -416,7 +418,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 13 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ai-027`, `ai-028`, `ai-029`, `ai-030`. |
+| [Findings](#findings-open-rows) | 14 | `io-017`, `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `testing-005`, `ui-079`, `testing-009`, `ai-027`, `ai-028`, `ai-029`, `ai-030`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family. |
 

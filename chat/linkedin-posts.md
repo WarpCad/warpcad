@@ -3578,3 +3578,18 @@ The fix is filed as perf-004: split the registry's metadata from its code. Built
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 2.14 MB, 2 MiB default, ~380 kB kernel code, registry mixes metadata and implementation, vendor split gave 5 initial files and was reverted, perf-004 filed → TODO/FIND-perf-004 and perf-003 note; 4 MiB limit, treemap with gzip/brotli, written outside dist/ → diff (vite.config.js)
 **To Add:** screenshot of stats.html
+
+## 2026-10-28T12:49:12Z — Gist storage: measured GitHub first, then built the link, README and client
+
+**Post:** Before writing any code for sharing a WarpCad project as a GitHub gist, I ran the real calls. The task spec assumed fine-grained tokens could not touch gists. They can: a token with only the Gists permission created, updated and deleted a secret gist, and was refused (403) when it tried to create a repository.
+
+Two other results changed the design. The obvious "is this token valid?" call returns 200 even for a token with no gist permission, so validation uses a write probe on an all-zero gist id that writes nothing. And a 2 MB project file comes back from the API marked truncated with about 0.92 MB of content, so the reader has to follow the raw URL, and only if its host is exactly gist.githubusercontent.com.
+
+Stage 1 is in: the link format, the generated README, and a client that shares its request code with the existing repository backend. The Share sheet is Stage 2. The measurements are in docs/decisions/gist-storage.md.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** spec assumed no fine-grained gist permission → TODO/FIND-io-017 text; Gists-only token create/update/delete → real calls this session; 403 creating a repository → same run; list call returns 200 without the permission → x-accepted-github-permissions: allows_permissionless_access=true in the same run; 2 MB file truncated with about 0.92 MB inline → same run; host check → diff (gistBackend.js isGistRawUrl); shares request code with the repository backend → diff (hostedBackend.js githubHeaders, classifyGitHubFailure, isWellFormedToken); Share sheet is Stage 2 → TODO/FIND-io-017 progress note
+**To Add:** nothing yet

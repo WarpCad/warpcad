@@ -5,7 +5,7 @@
  * Inert without `VITE_SENTRY_DSN`. The privacy rules live in {@link scrubEvent} and
  * {@link scrubBreadcrumb} only, not at call sites: no request bodies, no extras, no key-shaped
  * strings (the Anthropic key and GitHub token in `src/storage/tokenStorage.js`), no URL hash
- * fragments (`#/gist/<id>`), no replay, no tracing.
+ * fragments (`#/gist/<id>`) and no gist id in an API or raw URL, no replay, no tracing.
  *
  * @module core/errorReporting
  */
@@ -15,6 +15,12 @@ import * as Sentry from '@sentry/vue'
 const KEY_PATTERN = /sk-ant-[A-Za-z0-9_-]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}/
 /** A URL carrying a fragment, a relative `/#/route`, or a bare `#/route` hash fragment. */
 const FRAGMENT_PATTERN = /[a-z][a-z0-9+.-]*:\/\/[^\s#"']*#[^\s"']+|(?:^|[\s"'(\/])#\/[\w-]|\/#[\w-]/i
+/**
+ * A gist named by id on the API, the raw host or the gist site (`TODO/io-017`). The id is a
+ * bearer capability for a secret gist, so a fetch breadcrumb or message naming one is dropped,
+ * exactly as a `#/gist/<id>` fragment is. `POST /gists` names no id and is kept.
+ */
+const GIST_PATH_PATTERN = /api\.github\.com\/gists\/[0-9a-f]|gist\.githubusercontent\.com\/|gist\.github\.com\/[\w-]/i
 /** Request headers that can carry credentials. */
 const SECRET_HEADERS = new Set(['x-api-key', 'authorization', 'cookie', 'set-cookie', 'proxy-authorization'])
 /** Integrations that record the screen or time the frame path; never enabled. */
@@ -79,7 +85,7 @@ export function containsSecret(text) {
 }
 
 /**
- * Whether anything inside `value` is a key or a URL fragment. Strings are tested one by one and
+ * Whether anything inside `value` is a key, a URL fragment or a gist named by id. Strings are tested one by one and
  * also joined, so a key split across two adjacent fields is still caught; a false positive only
  * drops one event, which is the safe direction.
  *
@@ -88,7 +94,7 @@ export function containsSecret(text) {
  */
 function leaksPrivateText(value) {
   const strings = stringsIn(value)
-  if (strings.some((text) => KEY_PATTERN.test(text) || FRAGMENT_PATTERN.test(text))) return true
+  if (strings.some((text) => KEY_PATTERN.test(text) || FRAGMENT_PATTERN.test(text) || GIST_PATH_PATTERN.test(text))) return true
   return KEY_PATTERN.test(strings.join(''))
 }
 

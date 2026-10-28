@@ -2484,3 +2484,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 2.14 MB main bundle, Workbox 2 MiB limit, build failed, ~380 kB of kernel code → TODO/FIND-perf-004 and the perf-003 note (measured 2026-10-27 from the source map); limit raised, treemap on every build → diff (vite.config.js)
 **To Add:** screenshot of stats.html
+
+## 2026-10-28T12:49:12Z — Gist storage: measured GitHub first, then built the link, README and client
+
+**Post:** Before building gist sharing for WarpCad I tried it for real. A fine-grained token with only the Gists permission can create, update and delete gists, and gets a 403 on repositories. Files over about 1 MB come back truncated. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** fine-grained Gists-only token creates, updates and deletes gists → real calls this session (201/200/204), docs/decisions/gist-storage.md; 403 on repositories → same run (POST /user/repos); files over about 1 MB truncated → a 2 MB file came back truncated: true with about 0.92 MB inline, docs/decisions/gist-storage.md
+**To Add:** nothing until the Share sheet has the gist group (Stage 2)

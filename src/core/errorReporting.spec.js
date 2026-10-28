@@ -145,6 +145,36 @@ describe('scrubEvent', () => {
     expect(scrubBreadcrumb({ category: 'navigation', data: { to: link } })).toBeNull()
   })
 
+  it('never lets a gist link through: the id is a bearer capability for a secret gist (TODO/io-017)', () => {
+    const id = '0123456789abcdef0123456789abcdef'
+    const link = `https://app.warpcad.com/#/gist/${id}`
+    const out = /** @type {any} */ (scrubEvent({ message: 'boom', request: { url: link, headers: { Referer: link } } }))
+    expect(out.request.url).toBe('https://app.warpcad.com/')
+    expect(out.request.headers.Referer).toBe('https://app.warpcad.com/')
+    expect(JSON.stringify(out)).not.toContain(id)
+    expect(scrubEvent({ message: `failed to open ${link}` })).toBeNull()
+    expect(scrubEvent({ message: `route #/gist/${id} failed` })).toBeNull()
+    expect(scrubBreadcrumb({ category: 'navigation', data: { from: '/', to: `/#/gist/${id}` } })).toBeNull()
+    expect(scrubBreadcrumb({ category: 'navigation', data: { to: link } })).toBeNull()
+  })
+
+  it('drops a fetch breadcrumb or event naming a gist by id on the API or the raw host (TODO/io-017)', () => {
+    const id = '0123456789abcdef0123456789abcdef'
+    for (const url of [
+      `https://api.github.com/gists/${id}`,
+      `https://api.github.com/gists/${id.slice(0, 20)}`,
+      `https://gist.githubusercontent.com/octo/${id}/raw/abc/phone.ndjson`,
+      `https://gist.github.com/${id}`,
+      `https://gist.github.com/octo/${id}`,
+    ]) {
+      expect(scrubBreadcrumb({ category: 'fetch', data: { url, method: 'GET', status_code: 200 } })).toBeNull()
+      expect(scrubEvent({ message: 'boom', breadcrumbs: [{ category: 'fetch', data: { url } }] })).toEqual({ message: 'boom', breadcrumbs: [] })
+      expect(scrubEvent({ message: `GET ${url} failed` })).toBeNull()
+    }
+    // Creating a gist names no id yet; the breadcrumb is harmless and kept.
+    expect(scrubBreadcrumb({ category: 'fetch', data: { url: 'https://api.github.com/gists', method: 'POST', status_code: 201 } })).not.toBeNull()
+  })
+
   it('drops an event with a URL fragment outside request.url', () => {
     expect(scrubEvent({ message: 'at https://app.warpcad.com/#/gist/abc123 failed' })).toBeNull()
     expect(scrubEvent({ message: 'route #/gist/abc123 failed' })).toBeNull()

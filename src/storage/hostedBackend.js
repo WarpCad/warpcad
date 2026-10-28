@@ -79,17 +79,23 @@ export function autoPushCommitMessage(at) {
  * A hosted-storage failure, normalised. `message` is always this module's own
  * wording and is safe to show the user as-is — it never contains the token and
  * never quotes the host's response body.
+ *
+ * Generic over its `kind` so the gist client (`gistBackend.js`, `TODO/io-017`)
+ * can extend it with its own kinds and still be a `HostedError` to
+ * `instanceof` checks and {@link isTransient}.
+ *
+ * @template {string} [K=HostedFailureKind]
  */
 export class HostedError extends Error {
   /**
-   * @param {HostedFailureKind} kind
+   * @param {K} kind
    * @param {string} message
    * @param {{ status?: number, retryAfterMs?: number }} [details]
    */
   constructor(kind, message, { status, retryAfterMs } = {}) {
     super(message)
     this.name = 'HostedError'
-    /** @type {HostedFailureKind} */
+    /** @type {K} */
     this.kind = kind
     /** @type {number | undefined} */
     this.status = status
@@ -99,7 +105,7 @@ export class HostedError extends Error {
 }
 
 /** Kinds a retry could plausibly fix (the scheduler's backoff path). */
-export function isTransient(/** @type {HostedError} */ error) {
+export function isTransient(/** @type {HostedError<string>} */ error) {
   return error.kind === 'offline' || error.kind === 'server' || error.kind === 'rate-limited'
 }
 
@@ -181,10 +187,92 @@ function checkPath(value) {
  * @returns {string}
  */
 function checkToken(value) {
-  if (typeof value !== 'string' || value.trim().length === 0 || /[^\x21-\x7e]/.test(value)) {
+  if (!isWellFormedToken(value)) {
     throw new HostedError('invalid', 'That does not look like an access token')
   }
   return value
+}
+
+/* ------------------------------------------------ shared GitHub request core */
+// What the gist client (`gistBackend.js`, `TODO/io-017`) shares with this one,
+// and nothing more: the token shape check, the header set, and status
+// classification. Not shared: the client factory and its origin option (the
+// gist client has one fixed origin), base64 (gists take plain text), the
+// transport wrapper and every user-facing message (each client words its own
+// failures — "nothing was written" is wrong for a read).
+
+/**
+ * Whether `value` could be a GitHub token: printable ASCII with no whitespace,
+ * so it can never split a header (CR/LF injection) or hide in one.
+ *
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+export function isWellFormedToken(value) {
+  return typeof value === 'string' && value.trim().length > 0 && !/[^\x21-\x7e]/.test(value)
+}
+
+/**
+ * The REST headers for `api.github.com`. With a token, the token goes in
+ * `Authorization` — the one place it ever appears; never a query string, which
+ * lands in server logs and `Referer` headers. Without one (an unauthenticated
+ * gist read) there is no `Authorization` at all.
+ *
+ * @param {string | null} token
+ * @param {Record<string, string>} [extra]
+ * @returns {Record<string, string>}
+ */
+export function githubHeaders(token, extra = {}) {
+  return {
+    ...(token === null ? {} : { Authorization: `Bearer ${token}` }),
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    ...extra,
+  }
+}
+
+/**
+ * @param {any} response
+ * @returns {number | undefined}
+ */
+function retryAfterMsOf(response) {
+  const after = Number(response.headers?.get?.('retry-after'))
+  if (Number.isFinite(after) && after > 0) return after * 1000
+  const reset = Number(response.headers?.get?.('x-ratelimit-reset'))
+  if (Number.isFinite(reset) && reset > 0) return Math.max(0, reset * 1000 - Date.now())
+  return undefined
+}
+
+/**
+ * @typedef {'unauthorized' | 'rate-limited' | 'forbidden' | 'not-found' | 'conflict'
+ *   | 'server' | 'malformed'} GitHubFailureClass
+ */
+
+/**
+ * Classify a non-OK GitHub response. The body is read for **classification
+ * only** (GitHub's secondary rate limit says so only in the body) and is never
+ * returned: the caller words the failure itself.
+ *
+ * @param {any} response
+ * @returns {Promise<{ kind: GitHubFailureClass, status: number, retryAfterMs?: number }>}
+ */
+export async function classifyGitHubFailure(response) {
+  let hint = ''
+  try {
+    hint = (await response.text()).slice(0, 400).toLowerCase()
+  } catch {
+    /* an unreadable body classifies as whatever the status says */
+  }
+  const status = response.status
+  if (status === 401) return { kind: 'unauthorized', status }
+  if (status === 429 || (status === 403 && (response.headers?.get?.('x-ratelimit-remaining') === '0' || hint.includes('rate limit')))) {
+    return { kind: 'rate-limited', status, retryAfterMs: retryAfterMsOf(response) }
+  }
+  if (status === 403) return { kind: 'forbidden', status }
+  if (status === 404) return { kind: 'not-found', status }
+  if (status === 409 || status === 422) return { kind: 'conflict', status }
+  if (status >= 500) return { kind: 'server', status }
+  return { kind: 'malformed', status }
 }
 
 /**
@@ -249,32 +337,7 @@ export function createHostedClient({
 
   const checkConnection = validateConnection
 
-  /**
-   * @param {string} token
-   * @param {object} [extra]
-   */
-  function headers(token, extra = {}) {
-    return {
-      // The one place the credential appears. Never a query string: those land in
-      // server logs and `Referer` headers.
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...extra,
-    }
-  }
-
-  /**
-   * @param {any} response
-   * @returns {number | undefined}
-   */
-  function retryAfterMs(response) {
-    const after = Number(response.headers?.get?.('retry-after'))
-    if (Number.isFinite(after) && after > 0) return after * 1000
-    const reset = Number(response.headers?.get?.('x-ratelimit-reset'))
-    if (Number.isFinite(reset) && reset > 0) return Math.max(0, reset * 1000 - Date.now())
-    return undefined
-  }
+  const headers = githubHeaders
 
   /**
    * Turn a non-OK response into a `HostedError`. The body is read for
@@ -284,42 +347,33 @@ export function createHostedClient({
    * @returns {Promise<HostedError>}
    */
   async function failureOf(response) {
-    let hint = ''
-    try {
-      hint = (await response.text()).slice(0, 400).toLowerCase()
-    } catch {
-      /* an unreadable body classifies as whatever the status says */
+    const { kind, status, retryAfterMs } = await classifyGitHubFailure(response)
+    switch (kind) {
+      case 'unauthorized':
+        return new HostedError('unauthorized', 'GitHub rejected this token', { status })
+      case 'rate-limited': {
+        const minutes = retryAfterMs === undefined ? null : Math.max(1, Math.round(retryAfterMs / 60000))
+        return new HostedError(
+          'rate-limited',
+          minutes === null ? 'Rate limited — try again shortly' : `Rate limited — try again in ${minutes} minute${minutes === 1 ? '' : 's'}`,
+          { status, retryAfterMs },
+        )
+      }
+      case 'forbidden':
+        return new HostedError(
+          'forbidden',
+          'This token does not have permission to write to that repository (it needs Contents: read and write)',
+          { status },
+        )
+      case 'not-found':
+        return new HostedError('not-found', 'Repository not found, or the token has no access to it', { status })
+      case 'conflict':
+        return new HostedError('conflict', 'The repository copy changed since you last loaded or saved it', { status })
+      case 'server':
+        return new HostedError('server', 'GitHub is having trouble right now — nothing was written', { status })
+      default:
+        return new HostedError('malformed', `GitHub answered unexpectedly (status ${status})`, { status })
     }
-    const status = response.status
-    if (status === 401) {
-      return new HostedError('unauthorized', 'GitHub rejected this token', { status })
-    }
-    if (status === 429 || (status === 403 && (response.headers?.get?.('x-ratelimit-remaining') === '0' || hint.includes('rate limit')))) {
-      const wait = retryAfterMs(response)
-      const minutes = wait === undefined ? null : Math.max(1, Math.round(wait / 60000))
-      return new HostedError(
-        'rate-limited',
-        minutes === null ? 'Rate limited — try again shortly' : `Rate limited — try again in ${minutes} minute${minutes === 1 ? '' : 's'}`,
-        { status, retryAfterMs: wait },
-      )
-    }
-    if (status === 403) {
-      return new HostedError(
-        'forbidden',
-        'This token does not have permission to write to that repository (it needs Contents: read and write)',
-        { status },
-      )
-    }
-    if (status === 404) {
-      return new HostedError('not-found', 'Repository not found, or the token has no access to it', { status })
-    }
-    if (status === 409 || status === 422) {
-      return new HostedError('conflict', 'The repository copy changed since you last loaded or saved it', { status })
-    }
-    if (status >= 500) {
-      return new HostedError('server', 'GitHub is having trouble right now — nothing was written', { status })
-    }
-    return new HostedError('malformed', `GitHub answered unexpectedly (status ${status})`, { status })
   }
 
   /**

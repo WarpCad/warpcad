@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CREDENTIAL_DB_NAME,
   CREDENTIAL_STORE_NAME,
+  GIST_CREDENTIAL_KEY,
   HOSTED_CREDENTIAL_KEY,
   createCredentialStore,
 } from './tokenStorage.js'
@@ -114,5 +115,45 @@ describe('the credential store', () => {
     const store = createCredentialStore({ open })
     data.set(HOSTED_CREDENTIAL_KEY, 'not a record')
     await expect(store.read(HOSTED_CREDENTIAL_KEY)).resolves.toBeNull()
+  })
+})
+
+describe('the gist credential (TODO/io-017) beside the hosted-git one (TODO/io-002)', () => {
+  const GIST_TOKEN = 'ghp_FAKEgistSENTINEL0123456789abcdefABCD'
+
+  it('is its own key, distinct from the hosted repository token', () => {
+    expect(GIST_CREDENTIAL_KEY).toBe('github-gist')
+    expect(GIST_CREDENTIAL_KEY).not.toBe(HOSTED_CREDENTIAL_KEY)
+  })
+
+  it('stores both side by side without either overwriting the other', async () => {
+    const { open } = fakeIdb()
+    const store = createCredentialStore({ open })
+    await store.write(HOSTED_CREDENTIAL_KEY, { token: TOKEN, owner: 'octo', repo: 'parts' })
+    await store.write(GIST_CREDENTIAL_KEY, { token: GIST_TOKEN, login: 'octo' })
+    await expect(store.read(HOSTED_CREDENTIAL_KEY)).resolves.toEqual({ token: TOKEN, owner: 'octo', repo: 'parts' })
+    await expect(store.read(GIST_CREDENTIAL_KEY)).resolves.toEqual({ token: GIST_TOKEN, login: 'octo' })
+  })
+
+  it('Disconnect really deletes the gist token and leaves the repository token intact', async () => {
+    const { open, data } = fakeIdb()
+    const store = createCredentialStore({ open })
+    await store.write(HOSTED_CREDENTIAL_KEY, { token: TOKEN })
+    await store.write(GIST_CREDENTIAL_KEY, { token: GIST_TOKEN })
+    await store.clear(GIST_CREDENTIAL_KEY)
+    await expect(store.read(GIST_CREDENTIAL_KEY)).resolves.toBeNull()
+    await expect(store.read(HOSTED_CREDENTIAL_KEY)).resolves.toEqual({ token: TOKEN })
+    expect([...data.values()].some((value) => JSON.stringify(value).includes(GIST_TOKEN))).toBe(false)
+  })
+
+  it('and the other way round: disconnecting the repository leaves the gist token intact', async () => {
+    const { open, data } = fakeIdb()
+    const store = createCredentialStore({ open })
+    await store.write(HOSTED_CREDENTIAL_KEY, { token: TOKEN })
+    await store.write(GIST_CREDENTIAL_KEY, { token: GIST_TOKEN })
+    await store.clear(HOSTED_CREDENTIAL_KEY)
+    await expect(store.read(HOSTED_CREDENTIAL_KEY)).resolves.toBeNull()
+    await expect(store.read(GIST_CREDENTIAL_KEY)).resolves.toEqual({ token: GIST_TOKEN })
+    expect([...data.values()].some((value) => JSON.stringify(value).includes(TOKEN))).toBe(false)
   })
 })

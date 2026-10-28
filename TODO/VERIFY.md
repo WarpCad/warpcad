@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-017 — Gist storage, Stage 1 (2026-10-28 14:00)
+
+Step 0 ran against real GitHub with a classic `gist` token and a fine-grained Gists-write token
+(`docs/decisions/gist-storage.md`). Two things automation there could not see.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a fine-grained token that has **no** Gists permission, `PATCH /gists/00000000000000000000000000000000` returns 403 (not 404). `validateGistToken` relies on it; if it returns 404 a permissionless token would pass validation | Open | |
+| 2 | Real publish, read and delete of one gist from a phone with a throwaway token, once Stage 2 ships (how the link and README look in Messages and on github.com) | Open | |
+
 ### io-016 — Share a project by link (2026-10-27 19:15)
 
 Both stages landed and were hand-driven in headless Chromium and WebKit, but nothing here could be tried on a real phone. Payload sizes are measured (largest real project: 2,303 URL characters); where a real client breaks is not.
