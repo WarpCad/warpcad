@@ -36,6 +36,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-020 — Gist title follows the Share sheet's Name (2026-10-28 19:28 UTC)
+
+The E2E for this runs against the fake gist API, so the real GitHub title and file list are only
+checked by hand. Scenario 30 already queues the real-account check; this row is the rename case.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real gist (secret, your account): never-saved project, type *Fan Duct* in **Name**, **Publish to a gist**; then type *Desk stand* and **Update gist**. On github.com the gist title and file list show *Desk stand* and no `fan-duct` file. | Open | |
+
 ### ai-027 — MCP instructions carry the working method (2026-10-28 17:52)
 
 The owner declined the real Claude Code before/after drive, so nothing yet shows an agent behaves better with the longer instructions. Only the text, its length (at most 1,900) and its transport delivery are tested.

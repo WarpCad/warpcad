@@ -488,3 +488,57 @@ describe('nothing is uploaded on its own', () => {
     scope.stop()
   })
 })
+
+/*
+ * `TODO/io-020`: the Share sheet's Name is the gist's title. The sheet passes it in; the project
+ * was never saved, so `persistence.projectName` is empty here.
+ */
+describe('the Share sheet\'s name is the gist\'s title (io-020)', () => {
+  function unsavedProject() {
+    buildProject()
+    usePersistenceStore().projectName = ''
+  }
+
+  it('publish({ name }) names the file, the README heading and the description, though the project was never saved', async () => {
+    unsavedProject()
+    const { scope, api } = mount()
+    await api.publish({ name: 'Fan Duct' })
+
+    const created = backend.createGist.mock.calls[0][0]
+    expect(created.description).toBe('Fan Duct')
+    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'fan-duct.ndjson'])
+    expect(created.files['README.md']).toContain('# Fan Duct')
+    expect(backend.updateGist.mock.calls[0][0].files['README.md']).toContain('# Fan Duct')
+    scope.stop()
+  })
+
+  it('a sheet name changed between publish and update renames the description, README and file, and removes the old file', async () => {
+    unsavedProject()
+    const { scope, api } = mount()
+    await api.publish({ name: 'Fan Duct' })
+    backend.createGist.mockClear()
+    backend.updateGist.mockClear()
+    backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
+    // The gist as GitHub has it: the file the publish above created.
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'fan-duct.ndjson' })
+
+    await api.update({ name: 'Desk stand' })
+    const patched = backend.updateGist.mock.calls[0][0]
+    expect(patched.description).toBe('Desk stand')
+    expect(patched.files['fan-duct.ndjson']).toBeNull()
+    expect(typeof patched.files['desk-stand.ndjson']).toBe('string')
+    expect(patched.files['README.md']).toContain('# Desk stand')
+    scope.stop()
+  })
+
+  it('a blank sheet name publishes as Untitled, never an empty title', async () => {
+    unsavedProject()
+    const { scope, api } = mount()
+    await api.publish({ name: '   ' })
+
+    const created = backend.createGist.mock.calls[0][0]
+    expect(created.description).toBe('Untitled')
+    expect(created.files['README.md']).toContain('# Untitled')
+    scope.stop()
+  })
+})

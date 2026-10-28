@@ -150,7 +150,8 @@ export function useGistPublish(options = {}) {
    * **Publish to a gist**: a new gist with the project file and its README, secret unless
    * `public` is exactly `true`.
    *
-   * @param {{ public?: boolean }} [choice]
+   * @param {{ public?: boolean, name?: string }} [choice] `name` — the Share sheet's Name, the gist's
+   *   title; without it the project's own name is used.
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
   async function publish(choice = {}) {
@@ -161,7 +162,7 @@ export function useGistPublish(options = {}) {
     if (!hasBodies.value) return done(fail('no-bodies', 'publish'))
     const loadAt = documentStore.loadRevision
     const text = serializeProject(toRaw(documentStore.raw))
-    const name = persistence.projectName
+    const name = choice.name ?? persistence.projectName
     const fileName = gistFileName(name)
     const publishedAt = now()
     const readme = { name, note: '', bodies: bodyNames(), publishedAt }
@@ -215,9 +216,10 @@ export function useGistPublish(options = {}) {
    * **Update gist**: the same gist, a new revision — refused, writing nothing, when the gist is
    * not at the revision this project last published.
    *
+   * @param {{ name?: string }} [choice] `name` — the Share sheet's Name (see {@link publish}).
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
-  async function update() {
+  async function update(choice = {}) {
     if (busy.value) return fail('busy', 'update')
     gist.setPublishState('updating')
     await gist.start()
@@ -240,7 +242,7 @@ export function useGistPublish(options = {}) {
 
     const loadAt = documentStore.loadRevision
     const text = serializeProject(toRaw(documentStore.raw))
-    const name = persistence.projectName
+    const name = choice.name ?? persistence.projectName
     const fileName = gistFileName(name)
     const publishedAt = now()
     /** @type {Record<string, string | null>} */

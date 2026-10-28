@@ -90,6 +90,21 @@ Neither token can be limited to a single gist; the sheet says so in plain words.
 - **Undo merge** leaves the gist field alone. A stale `lastRevision` only makes Update refuse,
   which is the safe direction.
 
+## The gist's name (`TODO/io-020`)
+
+- **One source of truth: the Share sheet's Name.** The sheet's `share-name` field is what the owner
+  sees and calls "the recipient's title", so publish and update take it (`choice.name`) and the gist's
+  description, README heading and file name all come from it. `ShareGistGroup` receives it from
+  `ShareSheet` as a prop.
+- **The project's own name is only the fallback** for a caller that passes no name. It is not written
+  back when a gist is published. The finding's first choice (write the sheet's name back as the
+  project's name) was not taken: it would rename the project file's slug on every publish and touch the
+  autosaved document from the Share sheet, which the sheet otherwise never does. Reopening the sheet on
+  a never-saved project therefore offers *Untitled* again, while the gist keeps the name it was given;
+  the next update with that name keeps the gist and file in step.
+- **Blank is never empty.** A blank Name publishes as `Untitled`, the same fallback the README and
+  description already had.
+
 ## Open item
 
 The negative case of the write probe (a token with no Gists permission gets 403) is expected from

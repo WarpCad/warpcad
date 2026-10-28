@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
               Anyone with this link can open and copy this project, including its notes. It can't be taken back.
             </p>
 
-            <ShareGistGroup :too-big="tooBig" @toast="showToast" />
+            <ShareGistGroup :too-big="tooBig" :name="shareName" @toast="showToast" />
           </template>
         </section>
       </template>

@@ -34,6 +34,8 @@ import { useGistStore } from '../../stores/gist.js'
 const props = defineProps({
   /** The long link is over its ceiling: the gist is the way to share this project. */
   tooBig: { type: Boolean, default: false },
+  /** The Share sheet's Name: the gist's title, file name and README heading (`TODO/io-020`). */
+  name: { type: String, default: '' },
 })
 const emit = defineEmits(['toast'])
 
@@ -136,7 +138,7 @@ async function publish() {
   /** @type {(value: string | null) => void} */
   let deliver = () => {}
   const copied = copyWhenReady(new Promise((resolve) => (deliver = resolve)))
-  const result = await publisher.publish({ public: makePublic.value })
+  const result = await publisher.publish({ public: makePublic.value, name: props.name })
   deliver(result.ok ? result.link : null)
   if (!result.ok) {
     void copied.catch(() => {})
@@ -160,7 +162,7 @@ async function publish() {
 async function update() {
   if (!publisher.canUpdate.value) return
   errorText.value = ''
-  const result = await publisher.update()
+  const result = await publisher.update({ name: props.name })
   if (!result.ok) {
     errorText.value = result.message
     return

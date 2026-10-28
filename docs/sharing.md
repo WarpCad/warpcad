@@ -123,7 +123,9 @@ It can't reach your repositories. WarpCad keeps it in this browser only, separat
 2. Tap **Share**. Under **Short link with GitHub**, read the line at the bottom of the group:
    *A secret gist is not private: anyone with the link can read it, including this project's
    notes and instructions. Publishing sends the whole project to GitHub.*
-3. Tap **Publish to a gist**. When it's done a note says *Published. Link copied*: the short link
+3. Check **Name**. It is the gist's title: the gist, its README and its file are all called what is
+   typed there. Type *Fan Duct* in **Name** and tap **Publish to a gist**: the gist is called *Fan Duct*.
+4. Tap **Publish to a gist**. When it's done a note says *Published. Link copied*: the short link
    is on your clipboard, ready to paste.
 
 ![The Share sheet on a phone after publishing: Short link with GitHub shows Published, secret, 14:05, with Copy gist link, Update gist, Open on GitHub and Stop sharing, the line about who can read a secret gist, and the GitHub account it uses.](./screenshots/share-gist.png)
@@ -148,7 +150,8 @@ Once a project is published, the group in the Share sheet offers:
 
 - **Copy gist link** puts the short link on the clipboard again.
 - **Update gist** publishes the project as it is now, to the same gist. Anyone who opens the link
-  afterwards sees the new version. If the gist changed somewhere else since you last published it
+  afterwards sees the new version. Change **Name** and tap **Update gist** to rename the gist too:
+  change it to *Desk stand* and the gist, its README and its file become *Desk stand*. If the gist changed somewhere else since you last published it
   (you updated it from another device, or edited it on GitHub), WarpCad doesn't overwrite it. It
   says *This gist changed since you last published it. Open its link first, then update.* Open
   the link on this device, choose **Open it to edit**, then update.

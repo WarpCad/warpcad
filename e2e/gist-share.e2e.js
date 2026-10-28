@@ -430,8 +430,8 @@ test.describe('store and share a project as a GitHub gist', () => {
     const gist = fake.gists.get(id)
     expect(gist?.public).toBe(false)
     expect(gist?.owner).toBe(LOGIN)
-    // Exactly two files: the project (an unnamed project's slug is `project`) and its README.
-    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'project.ndjson'])
+    // Exactly two files: the project (named by the sheet's Name, `Untitled` for a never-saved project) and its README.
+    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'untitled.ndjson'])
     const readme = gist?.files['README.md'] ?? ''
     for (const name of names) expect(readme).toContain(name)
     expect(readme).toContain(`https://app.warpcad.com/#/gist/${id}`)
@@ -649,6 +649,48 @@ test.describe('store and share a project as a GitHub gist', () => {
     } finally {
       await context.close()
     }
+  })
+
+  test('9. a never-saved project: the Share sheet\'s Name is the gist\'s title, and Update renames it (io-020)', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [10, 10, 2], center: [0, 0, 1] } })
+      store.append({ id: 'plate', op: 'primitive.cuboid', name: 'Back plate', params: { size: [10, 2, 8], center: [0, -4, 5] } })
+    })
+    await expectBodyCount(page, 2)
+
+    await openShareSheet(page, input)
+    await tap(input, page.getByTestId('share-gist-connect'))
+    await connectInDialog(page, input, GIST_TOKEN)
+    await expect(page.getByTestId('share-gist-publish')).toBeEnabled()
+
+    // Nothing is saved, so the sheet offers Untitled; the owner types the title.
+    await page.getByTestId('share-name').fill('Fan Duct')
+    await page.getByTestId('share-name').blur()
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
+    const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
+    const id = /** @type {string} */ (copied).slice(-32)
+    const gist = fake.gists.get(id)
+    expect(gist?.description).toBe('Fan Duct')
+    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'fan-duct.ndjson'])
+    expect(gist?.files['README.md']).toContain('# Fan Duct')
+
+    // Rename in the same sheet and update: the gist follows the Name, and the old file goes.
+    await page.getByTestId('share-name').fill('Desk stand')
+    await page.getByTestId('share-name').blur()
+    await tap(input, page.getByTestId('share-gist-update'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
+    const renamed = fake.gists.get(id)
+    expect(renamed?.description).toBe('Desk stand')
+    expect(Object.keys(renamed?.files ?? {}).sort()).toEqual(['README.md', 'desk-stand.ndjson'])
+    expect(renamed?.files['README.md']).toContain('# Desk stand')
   })
 
   test('the repository token and the gist token never overwrite each other through the UI', async ({ page }, info) => {
