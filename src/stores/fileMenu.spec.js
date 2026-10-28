@@ -3,10 +3,14 @@
 // @ts-nocheck — drives duck-typed fakes of the storage boundary; the modules under test are
 // fully typed and checked by `npm run typecheck`.
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toRaw } from 'vue'
 
+import { gistMessage } from '../core/gistMessages.js'
+import { GistError } from '../storage/gistBackend.js'
 import { useDocumentStore } from './document.js'
 import { useFileMenuStore } from './fileMenu.js'
+import { setGistDependencies, useGistStore } from './gist.js'
 import { setHostedDependencies, useHostedStore } from './hosted.js'
 import { setPersistenceDependencies, usePersistenceStore } from './persistence.js'
 
@@ -267,5 +271,248 @@ describe('useFileMenuStore', () => {
     menu.openConnect()
     expect(menu.dismissTopmost()).toBe(true)
     expect(menu.connectOpen).toBe(false)
+  })
+})
+
+/**
+ * `TODO/io-021` — **File ▾ → Save as gist…**: a second entry point to `useGistPublish`. The first
+ * save creates the gist (`publish()`) and makes it the project's save target; once the project has
+ * a gist from this account the item reads **Save to gist** and saves straight to it (`update()`).
+ * Only the gist client and the credential store are faked.
+ */
+describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
+  const GIST_TOKEN = 'github_pat_FAKEfake_0123456789abcdefGIST'
+  const ID = 'aa11bb22cc33dd44ee55ff6677889900'
+  const REV1 = '1'.repeat(40)
+  const REV2 = '2'.repeat(40)
+  const REV3 = '3'.repeat(40)
+
+  let files
+  let gistBackend
+
+  function memoryCredentials() {
+    const records = new Map()
+    return {
+      async read(key) {
+        return records.get(key) ?? null
+      },
+      async write(key, record) {
+        records.set(key, { ...record })
+      },
+      async clear(key) {
+        records.delete(key)
+      },
+      close() {},
+    }
+  }
+
+  function fakeGistBackend() {
+    return {
+      validateGistToken: vi.fn(async () => ({ login: 'octocat', expiresAt: null, broaderThanNeeded: false, tokenKind: 'fine-grained' })),
+      createGist: vi.fn(async () => ({ id: ID, revision: REV1, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
+      updateGist: vi.fn(async () => ({ id: ID, revision: REV2, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
+      deleteGist: vi.fn(async () => {}),
+      readGist: vi.fn(async () => ({ id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })),
+    }
+  }
+
+  beforeEach(async () => {
+    setActivePinia(createPinia())
+    files = fakeFiles()
+    gistBackend = fakeGistBackend()
+    setPersistenceDependencies({
+      backend: { async load() { return null }, async save() {}, async keepUnreadable() {} },
+      files,
+    })
+    setHostedDependencies({
+      client: fakeClient(),
+      credentials: { async read() { return null }, async write() {}, async clear() {}, close() {} },
+    })
+    setGistDependencies({ backend: gistBackend, credentials: memoryCredentials() })
+  })
+
+  afterEach(() => {
+    setGistDependencies(null)
+  })
+
+  async function connect() {
+    await useGistStore().connect(GIST_TOKEN)
+  }
+
+  const gistField = () => toRaw(useDocumentStore().raw).gist()
+
+  it('an empty project: the item is dimmed with its reason, and pressing it does nothing', async () => {
+    await connect()
+    const menu = useFileMenuStore()
+    expect(menu.gistSaveLabel).toBe('Save as gist…')
+    expect(menu.gistSaveReason).toBe('Nothing to save yet')
+    menu.openMenu()
+    menu.requestSaveAsGist()
+    expect(menu.gistSaveOpen).toBe(false)
+    expect(gistBackend.createGist).not.toHaveBeenCalled()
+  })
+
+  it('with bodies and no gist: the item opens the dialog and closes the menu, sending nothing', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    expect(menu.gistSaveReason).toBe('')
+    expect(menu.gistSaveLabel).toBe('Save as gist…')
+    menu.openMenu()
+    menu.requestSaveAsGist()
+    expect(menu.menuOpen).toBe(false)
+    expect(menu.gistSaveOpen).toBe(true)
+    expect(menu.anyOpen).toBe(true)
+    expect(gistBackend.createGist).not.toHaveBeenCalled()
+    expect(gistBackend.updateGist).not.toHaveBeenCalled()
+  })
+
+  it('the dialog\'s Save creates the gist (publish), sets the field, closes, and toasts with the link', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    const result = await menu.saveAsGist({ name: 'Bracket', public: false })
+    expect(result.ok).toBe(true)
+    expect(gistBackend.createGist).toHaveBeenCalledTimes(1)
+    expect(gistBackend.createGist.mock.calls[0][0]).toMatchObject({ description: 'Bracket', public: false })
+    expect(gistField()).toMatchObject({ id: ID, owner: 'octocat', public: false })
+    expect(menu.gistSaveOpen).toBe(false)
+    expect(menu.gistSaveToast).toEqual({ text: 'Saved to gist: Bracket', link: `https://app.warpcad.com/#/gist/${ID}` })
+    // Now the project's save target: the same item saves to it.
+    expect(menu.gistSaveLabel).toBe('Save to gist')
+  })
+
+  it('Public is sent only when chosen', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: true })
+    expect(gistBackend.createGist.mock.calls[0][0].public).toBe(true)
+  })
+
+  it('Save to gist saves straight to the same gist (update — a PATCH, no new gist, no dialog)', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: false })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: '', revision: REV2, updatedAt: null, fileName: 'bracket.ndjson' })
+    gistBackend.updateGist.mockClear()
+    gistBackend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
+    useDocumentStore().append(cube('cube-2'))
+
+    menu.openMenu()
+    menu.requestSaveAsGist()
+    expect(menu.menuOpen).toBe(false)
+    expect(menu.gistSaveOpen).toBe(false)
+    await vi.waitFor(() => expect(gistBackend.updateGist).toHaveBeenCalledTimes(1))
+    expect(gistBackend.createGist).toHaveBeenCalledTimes(1)
+    // The gist keeps its title: the name it was created under, not the never-saved project's ''.
+    expect(gistBackend.updateGist.mock.calls[0][0]).toMatchObject({ id: ID, description: 'Bracket' })
+    expect(Object.keys(gistBackend.updateGist.mock.calls[0][0].files).sort()).toEqual(['README.md', 'bracket.ndjson'])
+    await vi.waitFor(() => expect(gistField().lastRevision).toBe(REV3))
+    expect(menu.gistSaveToast).toEqual({ text: 'Saved to gist: Bracket', link: `https://app.warpcad.com/#/gist/${ID}` })
+  })
+
+  it('a failed create writes nothing: the field stays unset, the dialog stays open with the gist wording', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    gistBackend.createGist.mockRejectedValueOnce(new GistError('offline', 'Failed to fetch'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    const result = await menu.saveAsGist({ name: 'Bracket', public: false })
+    expect(result.ok).toBe(false)
+    expect(gistField()).toBeNull()
+    expect(menu.gistSaveOpen).toBe(true)
+    expect(menu.gistSaveError).toBe(gistMessage('offline', 'publish'))
+    expect(menu.gistSaveToast).toBeNull()
+    expect(menu.gistSaveLabel).toBe('Save as gist…')
+  })
+
+  it('Save to gist refuses a gist changed elsewhere (changed-remotely): nothing written, the reason in the dialog', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: false })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: '', revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })
+    gistBackend.updateGist.mockClear()
+
+    menu.requestSaveAsGist()
+    await vi.waitFor(() => expect(menu.gistSaveError).toBe(gistMessage('changed-remotely', 'update')))
+    expect(gistBackend.updateGist).not.toHaveBeenCalled()
+    expect(menu.gistSaveOpen).toBe(true)
+    expect(gistField().lastRevision).toBe(REV2)
+  })
+
+  it('not connected, with a gist field: Save to gist opens the dialog (its connect step), sending nothing', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: false })
+    await useGistStore().disconnect()
+    gistBackend.updateGist.mockClear()
+
+    expect(menu.gistSaveLabel).toBe('Save to gist')
+    menu.requestSaveAsGist()
+    expect(menu.gistSaveOpen).toBe(true)
+    expect(gistBackend.updateGist).not.toHaveBeenCalled()
+  })
+
+  it('a gist published from another account is not this project\'s save target: Save as gist… makes a new one', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    toRaw(useDocumentStore().raw).setGist({ id: ID, public: false, lastRevision: REV1, owner: 'someone-else' }, { origin: 'gist' })
+    useDocumentStore().refresh()
+    expect(useFileMenuStore().gistSaveLabel).toBe('Save as gist…')
+  })
+
+  it('Ctrl/Cmd+S (saveLocal) stays local with a gist target: no gist call', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: false })
+    gistBackend.readGist.mockClear()
+    gistBackend.updateGist.mockClear()
+    gistBackend.createGist.mockClear()
+    menu.saveLocal()
+    await vi.waitFor(() => expect(files.saves).toHaveLength(1))
+    expect(gistBackend.readGist).not.toHaveBeenCalled()
+    expect(gistBackend.updateGist).not.toHaveBeenCalled()
+    expect(gistBackend.createGist).not.toHaveBeenCalled()
+  })
+
+  it('the chip: Saved to gist · hh:mm, then how far behind the gist is, never a silent save', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    const persistence = usePersistenceStore()
+    expect(persistence.chipText).not.toMatch(/gist/i)
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: false })
+    expect(persistence.chipText).toMatch(/^Saved to gist · \d\d:\d\d$/)
+    expect(persistence.chipTone).toBe('saved')
+
+    useDocumentStore().append(cube('cube-2'))
+    expect(persistence.chipText).toBe('Gist: 1 change not saved')
+    useDocumentStore().append(cube('cube-3'))
+    expect(persistence.chipText).toBe('Gist: 2 changes not saved')
+    expect(gistBackend.updateGist).toHaveBeenCalledTimes(1) // the README patch of the create, nothing since
+  })
+
+  it('Escape closes the dialog; the token dialog over it closes first', async () => {
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    menu.openGistConnect()
+    expect(menu.dismissTopmost()).toBe(true)
+    expect(menu.gistConnectOpen).toBe(false)
+    expect(menu.gistSaveOpen).toBe(true)
+    expect(menu.dismissTopmost()).toBe(true)
+    expect(menu.gistSaveOpen).toBe(false)
   })
 })

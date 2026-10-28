@@ -42,6 +42,14 @@
  * records an external fact) — then the store's `refresh()` so autosave and the chip follow it. A
  * project replaced while a call was in flight (Open, New, a share copy) never gets the field.
  *
+ * ## Two entry points, one implementation (`TODO/io-021`)
+ *
+ * The Share sheet's gist group and **File ▾ → Save as gist… / Save to gist**
+ * (`stores/fileMenu.js`) both call these same three functions. A publish or update that sets the
+ * field on the open project tells the persistence store (`noteGistSaved`), so the save chip reads
+ * *Saved to gist · 14:05* and then how many changes the gist is behind; nothing saves to the gist
+ * by itself.
+ *
  * @module composables/useGistPublish
  */
 
@@ -69,9 +77,10 @@ const README = 'README.md'
 /**
  * A successful publish or update. `warning`: `readme` — published, but the README patch failed;
  * `project-changed` — the gist was written, but the project was replaced meanwhile, so the field
- * was not set on the new one.
  *
- * @typedef {{ ok: true, id: string, link: string, revision: string, warning?: 'readme' | 'project-changed' }} GistPublishOk
+ * was not set on the new one. `name` is the gist's title as written (`TODO/io-021`'s toast names it).
+ *
+ * @typedef {{ ok: true, id: string, link: string, revision: string, name: string, warning?: 'readme' | 'project-changed' }} GistPublishOk
  */
 
 /**
@@ -188,7 +197,7 @@ export function useGistPublish(options = {}) {
     gist.rememberRevision(created.id, created.revision)
     const link = gistLink(created.id)
     if (documentStore.loadRevision !== loadAt) {
-      return done({ ok: true, id: created.id, link, revision: created.revision, warning: 'project-changed' }, { publishedAt })
+      return done({ ok: true, id: created.id, link, revision: created.revision, name, warning: 'project-changed' }, { publishedAt })
     }
     /** @type {GistField} */
     const field = { id: created.id, public: isPublic, lastRevision: created.revision, owner }
@@ -203,12 +212,14 @@ export function useGistPublish(options = {}) {
       })
       gist.rememberRevision(created.id, patched.revision)
       if (documentStore.loadRevision !== loadAt) {
-        return done({ ok: true, id: created.id, link, revision: patched.revision, warning: 'project-changed' }, { publishedAt })
+        return done({ ok: true, id: created.id, link, revision: patched.revision, name, warning: 'project-changed' }, { publishedAt })
       }
       setField({ ...field, lastRevision: patched.revision })
-      return done({ ok: true, id: created.id, link, revision: patched.revision }, { publishedAt })
+      persistence.noteGistSaved(publishedAt)
+      return done({ ok: true, id: created.id, link, revision: patched.revision, name }, { publishedAt })
     } catch {
-      return done({ ok: true, id: created.id, link, revision: created.revision, warning: 'readme' }, { publishedAt })
+      if (documentStore.loadRevision === loadAt) persistence.noteGistSaved(publishedAt)
+      return done({ ok: true, id: created.id, link, revision: created.revision, name, warning: 'readme' }, { publishedAt })
     }
   }
 
@@ -216,7 +227,9 @@ export function useGistPublish(options = {}) {
    * **Update gist**: the same gist, a new revision — refused, writing nothing, when the gist is
    * not at the revision this project last published.
    *
-   * @param {{ name?: string }} [choice] `name` — the Share sheet's Name (see {@link publish}).
+   * @param {{ name?: string }} [choice] `name` — the Share sheet's Name (see {@link publish});
+   *   without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own title, and only a
+   *   gist with none takes the project's name.
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
   async function update(choice = {}) {
@@ -242,7 +255,7 @@ export function useGistPublish(options = {}) {
 
     const loadAt = documentStore.loadRevision
     const text = serializeProject(toRaw(documentStore.raw))
-    const name = choice.name ?? persistence.projectName
+    const name = choice.name ?? (plainGistDescription(remote.description) || persistence.projectName)
     const fileName = gistFileName(name)
     const publishedAt = now()
     /** @type {Record<string, string | null>} */
@@ -271,10 +284,11 @@ export function useGistPublish(options = {}) {
     gist.rememberRevision(current.id, updated.revision)
     const link = gistLink(current.id)
     if (documentStore.loadRevision !== loadAt) {
-      return done({ ok: true, id: current.id, link, revision: updated.revision, warning: 'project-changed' }, { publishedAt })
+      return done({ ok: true, id: current.id, link, revision: updated.revision, name, warning: 'project-changed' }, { publishedAt })
     }
     setField({ ...current, lastRevision: updated.revision })
-    return done({ ok: true, id: current.id, link, revision: updated.revision }, { publishedAt })
+    persistence.noteGistSaved(publishedAt)
+    return done({ ok: true, id: current.id, link, revision: updated.revision, name }, { publishedAt })
   }
 
   /**

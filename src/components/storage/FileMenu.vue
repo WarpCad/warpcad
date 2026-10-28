@@ -100,6 +100,14 @@
  * row names the account. The gist store's `start()` (a stored-credential read, no network) runs
  * when this menu mounts, so the Share sheet and the chip know the connection.
  *
+ * ## `Save as gist…` / `Save to gist` (`TODO/io-021`)
+ *
+ * Directly under `Save As…` (under the one `Download copy` where that is all there is):
+ * `file-save-as-gist`. It reads `Save as gist…` and opens `SaveAsGistDialog.vue` (name, Secret /
+ * Public, or the connect step) until the project has a gist from this account, then `Save to
+ * gist` and saves to it at once. Dimmed with its reason printed under it, like `Export…`, when
+ * there is nothing to save. Ctrl/Cmd+S is untouched by it: still the local save, never GitHub.
+ *
  * Every real action is a call into `stores/fileMenu.js` (when to ask), `stores/persistence.js`
  * (the local file) or `stores/hosted.js` (the repository): no persistence logic lives here.
  */
@@ -127,6 +135,7 @@ import GistConnectDialog from './GistConnectDialog.vue'
 import ProjectSettingsDialog from './ProjectSettingsDialog.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
 import ResolutionPopover from './ResolutionPopover.vue'
+import SaveAsGistDialog from './SaveAsGistDialog.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useShareStore } from '../../stores/share.js'
@@ -259,7 +268,7 @@ function onKeydown(event) {
   if (event.altKey) {
     if (event.code === 'KeyN' && !event.shiftKey) {
       event.preventDefault()
-      if (menu.confirm === null && !menu.connectOpen && !menu.gistConnectOpen && !hosted.conflictOpen) menu.requestNew()
+      if (menu.confirm === null && !menu.connectOpen && !menu.gistConnectOpen && !menu.gistSaveOpen && !hosted.conflictOpen) menu.requestNew()
     }
     return
   }
@@ -271,7 +280,14 @@ function onKeydown(event) {
   } else if (key === 'o' && !event.shiftKey) {
     event.preventDefault()
     // A dialog already asking the question is not asked twice.
-    if (menu.confirm === null && !menu.connectOpen && !menu.gistConnectOpen && !hosted.conflictOpen && !persistence.diskPromptOpen) {
+    if (
+      menu.confirm === null &&
+      !menu.connectOpen &&
+      !menu.gistConnectOpen &&
+      !menu.gistSaveOpen &&
+      !hosted.conflictOpen &&
+      !persistence.diskPromptOpen
+    ) {
       menu.requestOpen()
     }
   }
@@ -422,6 +438,20 @@ onBeforeUnmount(() => {
               @click="menu.saveLocal({ saveAs: true })"
             >
               {{ capabilities.saveAsLabel }}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-save-as-gist"
+              :aria-disabled="menu.gistSaveReason !== '' ? 'true' : undefined"
+              :aria-describedby="menu.gistSaveReason !== '' ? 'file-save-as-gist-reason' : undefined"
+              @click="menu.requestSaveAsGist()"
+            >
+              <span>{{ menu.gistSaveLabel }}</span>
+              <span v-if="menu.gistSaveReason !== ''" id="file-save-as-gist-reason" class="file-menu__reason" data-testid="file-save-as-gist-reason">
+                {{ menu.gistSaveReason }}
+              </span>
             </button>
             <button
               type="button"
@@ -629,6 +659,7 @@ onBeforeUnmount(() => {
     <ProjectSettingsDialog />
     <ReplaceConfirmDialog />
     <ConnectDialog />
+    <SaveAsGistDialog />
     <GistConnectDialog />
     <ConflictDialog />
     <DiskChangeDialog />

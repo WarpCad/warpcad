@@ -36,6 +36,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-021 — File ▾ → Save as gist… (2026-10-28 21:19 UTC)
+
+Hand-driven by an agent on Chromium at 1440 and 390 px; the scripted e2e specs cover the flow itself. Two things only a person can judge: how the toast sits over the Operations toolbar for a few seconds at laptop width, and whether the "Saving…" chip flash after Save as gist reads as noise on a real phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At 1440 px, the "Saved to gist: <name>" toast covers part of the Operations toolbar (Chamfer, Enlarge) for a few seconds after Save as gist. Is that acceptable, or should it sit elsewhere? | Open | |
+| 2 | On a real iPhone, Save as gist's dialog as a bottom sheet with the on-screen keyboard up in the Name field: is the Save button always reachable? | Open | |
+| 3 | On a real phone, the header's chip reads "Saving…" for about a second after Save as gist, then "Saved to gist". Noticeable or fine? | Open | |
+
+
 ### io-020 — Gist title follows the Share sheet's Name (2026-10-28 19:28 UTC)
 
 The E2E for this runs against the fake gist API, so the real GitHub title and file list are only

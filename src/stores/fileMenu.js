@@ -34,6 +34,15 @@
  * update, so it asks **Merge their changes** (`mergeIn`, with its Undo-merge toast) or **Open
  * theirs instead**, and never offers to replace with a stranger's copy.
  *
+ * ## Save as gist (`TODO/io-021`)
+ *
+ * **File ▾ → Save as gist…** is a second entry point to `useGistPublish`, not a second
+ * implementation: the first save is its `publish()` (from a small dialog that asks the name and
+ * Secret / Public, or the connect step without a token), and once the project has a gist this
+ * account wrote, the same item reads **Save to gist** and calls `update()` straight away — with its
+ * `changed-remotely` refusal. The gist is saved only by that item (or the Share sheet): Ctrl/Cmd+S
+ * stays local, and the chip says how far behind the gist is instead of pushing.
+ *
  * ## What "non-empty" means
  *
  * Any step in the log, not the body count: a project whose every step is suppressed has no
@@ -45,9 +54,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, toRaw } from 'vue'
 
+import { useGistPublish } from '../composables/useGistPublish.js'
+import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
 import { useAlignReferenceStore } from './alignReference.js'
 import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
+import { useGistStore } from './gist.js'
 import { useHostedStore } from './hosted.js'
 import { useMergeStore } from './merge.js'
 import { usePersistenceStore } from './persistence.js'
@@ -55,6 +67,16 @@ import { useProjectSettingsStore } from './projectSettings.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
 
 /** @typedef {'open' | 'load' | 'new' | 'share' | 'share-update'} ConfirmKind */
+
+/** How long the *Saved to gist* toast stays (`TODO/io-021`). */
+const GIST_TOAST_MS = 6000
+
+/**
+ * What the Save as gist dialog shows: the token step, the first save's form, or **Save to gist**
+ * again after it was refused.
+ *
+ * @typedef {'connect' | 'create' | 'update'} GistSaveStep
+ */
 
 /**
  * A shared project waiting to be opened (`TODO/io-016`).
@@ -77,6 +99,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const projectSettings = useProjectSettingsStore()
   const alignReference = useAlignReferenceStore()
   const merge = useMergeStore()
+  const gist = useGistStore()
+  const publisher = useGistPublish()
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
@@ -86,6 +110,14 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const confirm = ref(null)
   /** `TODO/io-016`: the shared project the `share` / `share-update` question is about. */
   const pendingShared = shallowRef(/** @type {SharedOpenRequest | null} */ (null))
+  /** `TODO/io-021`: the **Save as gist…** dialog. */
+  const gistSaveOpen = ref(false)
+  /** The last gist save's failure, in `gistMessages.js`'s wording, for that dialog — or `''`. */
+  const gistSaveError = ref('')
+  /** The toast after a gist save: its words and the short link its **Copy link** copies. */
+  const gistSaveToast = shallowRef(/** @type {{ text: string, link: string } | null} */ (null))
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let gistToastTimer = null
   /** Resolves the hosted store's pending "replace?" question (`TODO/io-011`). */
   let replaceAnswer = /** @type {((answer: boolean) => void) | null} */ (null)
 
@@ -102,6 +134,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       menuOpen.value ||
       connectOpen.value ||
       gistConnectOpen.value ||
+      gistSaveOpen.value ||
       confirm.value !== null ||
       exportDialog.isOpen ||
       resolutionDialog.isOpen ||
@@ -326,6 +359,88 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     connectOpen.value = false
   }
 
+  /** Why **Save as gist…** is dimmed (Publish's own `no-bodies` rule), or `''`. */
+  const gistSaveReason = computed(() => (documentStore.bodies.length === 0 ? 'Nothing to save yet' : ''))
+  /**
+   * The project's save target is a gist: it has one, written by the connected account — or, with
+   * no account connected yet, one the connect step may turn out to own. Someone else's gist (a
+   * file they sent) is not: saving makes a new gist of this account's own, as the Share sheet does.
+   */
+  const gistTarget = computed(() => {
+    const field = publisher.gistField.value
+    return field !== null && (!gist.connected || field.owner === gist.login)
+  })
+  /** `Save as gist…` (asks first) until there is a target, then `Save to gist` (saves at once). */
+  const gistSaveLabel = computed(() => (gistTarget.value ? 'Save to gist' : 'Save as gist…'))
+  /** @type {import('vue').ComputedRef<GistSaveStep>} */
+  const gistSaveStep = computed(() => {
+    if (!gist.connected) return 'connect'
+    return gistTarget.value ? 'update' : 'create'
+  })
+  /** The dialog's Name pre-fill — `TODO/io-020`'s rule: the project's name, `Untitled` without one. */
+  const gistSaveDefaultName = computed(() => (persistence.projectName.trim() === '' ? DEFAULT_SHARE_NAME : persistence.projectName))
+  /** GitHub is being talked to: the dialog's Save is disabled and says so. */
+  const gistSaveBusy = computed(() => publisher.busy.value)
+
+  /**
+   * **Save as gist…** / **Save to gist**. A no-op while dimmed. With a target and a connected
+   * account it saves at once (an update); otherwise it opens the dialog (connect, or the form).
+   */
+  function requestSaveAsGist() {
+    if (gistSaveReason.value !== '') return
+    menuOpen.value = false
+    exportDialog.close()
+    resolutionDialog.close()
+    gistSaveError.value = ''
+    if (gistTarget.value && gist.connected) {
+      void saveAsGist()
+      return
+    }
+    gistSaveOpen.value = true
+  }
+
+  /**
+   * Save the project to its gist: `publish()` the first time (with the dialog's name and Secret /
+   * Public), `update()` once it has one. A failure keeps — or opens — the dialog with the reason
+   * and writes nothing; success closes it and raises the toast.
+   *
+   * @param {{ name?: string, public?: boolean }} [choice] The dialog's answers; unused by an update.
+   * @returns {Promise<import('../composables/useGistPublish.js').GistPublishOk | import('../core/gistMessages.js').GistFailure>}
+   */
+  async function saveAsGist(choice = {}) {
+    gistSaveError.value = ''
+    const result = gistTarget.value
+      ? await publisher.update()
+      : await publisher.publish({ ...(choice.name === undefined ? {} : { name: choice.name }), public: choice.public === true })
+    if (!result.ok) {
+      gistSaveError.value = result.message
+      gistSaveOpen.value = true
+      return result
+    }
+    gistSaveOpen.value = false
+    const elsewhere = result.warning === 'project-changed' ? ', but another project is open now' : ''
+    showGistToast(`Saved to gist: ${result.name}${elsewhere}`, result.link)
+    return result
+  }
+
+  /** @param {string} text @param {string} link */
+  function showGistToast(text, link) {
+    if (gistToastTimer !== null) clearTimeout(gistToastTimer)
+    gistSaveToast.value = { text, link }
+    gistToastTimer = setTimeout(dismissGistToast, GIST_TOAST_MS)
+  }
+
+  function dismissGistToast() {
+    if (gistToastTimer !== null) clearTimeout(gistToastTimer)
+    gistToastTimer = null
+    gistSaveToast.value = null
+  }
+
+  function closeSaveAsGist() {
+    gistSaveOpen.value = false
+    gistSaveError.value = ''
+  }
+
   /** Open the gist token dialog (`TODO/io-017`), from File ▾ or from the Share sheet. */
   function openGistConnect() {
     menuOpen.value = false
@@ -369,6 +484,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       gistConnectOpen.value = false
       return true
     }
+    if (gistSaveOpen.value) {
+      closeSaveAsGist()
+      return true
+    }
     if (menuOpen.value) {
       menuOpen.value = false
       return true
@@ -403,6 +522,18 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     closeConnect,
     openGistConnect,
     closeGistConnect,
+    gistSaveOpen,
+    gistSaveError,
+    gistSaveToast,
+    gistSaveReason,
+    gistSaveLabel,
+    gistSaveStep,
+    gistSaveDefaultName,
+    gistSaveBusy,
+    requestSaveAsGist,
+    saveAsGist,
+    closeSaveAsGist,
+    dismissGistToast,
     dismissTopmost,
   }
 })

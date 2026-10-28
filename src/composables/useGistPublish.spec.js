@@ -179,7 +179,7 @@ describe('publish — the two calls', () => {
     expect(readme).toContain(`(<${raw}>)`)
     expect(readme).toContain('- Last published 2026-10-28 14:05 UTC')
 
-    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV2 })
+    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV2, name: 'Phone stand' })
     expect(toRaw(useDocumentStore().raw).gist()).toEqual({ id: ID, public: false, lastRevision: REV2, owner: 'octocat' })
     expect(api.published.value).toBe(true)
     expect(api.shortLink.value).toBe(gistLink(ID))
@@ -229,7 +229,7 @@ describe('publish — the two calls', () => {
     buildProject()
     const { scope, api } = mount()
     const result = await api.publish()
-    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV1, warning: 'readme' })
+    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV1, name: 'Phone stand', warning: 'readme' })
     expect(toRaw(useDocumentStore().raw).gist()).toEqual({ id: ID, public: false, lastRevision: REV1, owner: 'octocat' })
     expect(useGistStore().lastWarning).toBe('readme')
     scope.stop()
@@ -343,7 +343,7 @@ describe('update — the interim rule: refuse if the gist changed', () => {
     // Exactly what Download copy would have written at that moment.
     expect(patched.files['phone-stand.ndjson']).toBe(expected)
     expect(patched.files['README.md']).toContain('3 bodies: Base, Back plate, Lip')
-    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV3 })
+    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV3, name: 'Phone stand' })
     expect(toRaw(useDocumentStore().raw).gist().lastRevision).toBe(REV3)
     expect(backend.createGist).not.toHaveBeenCalled()
     scope.stop()
@@ -539,6 +539,36 @@ describe('the Share sheet\'s name is the gist\'s title (io-020)', () => {
     const created = backend.createGist.mock.calls[0][0]
     expect(created.description).toBe('Untitled')
     expect(created.files['README.md']).toContain('# Untitled')
+    scope.stop()
+  })
+})
+
+describe('File ▾ → Save to gist (io-021): an update with no name keeps the gist\'s title', () => {
+  it('update() with no name reads the title from the gist, not the never-saved project\'s empty name', async () => {
+    buildProject()
+    usePersistenceStore().projectName = ''
+    const { scope, api } = mount()
+    await api.publish({ name: 'Fan Duct' })
+    backend.updateGist.mockClear()
+    backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: 'Fan Duct', text: '', revision: REV2, updatedAt: null, fileName: 'fan-duct.ndjson' })
+
+    const result = await api.update()
+    const patched = backend.updateGist.mock.calls[0][0]
+    expect(patched.description).toBe('Fan Duct')
+    expect(Object.keys(patched.files).sort()).toEqual(['README.md', 'fan-duct.ndjson'])
+    expect(result).toMatchObject({ ok: true, name: 'Fan Duct' })
+    scope.stop()
+  })
+
+  it('a gist with no title falls back to the project name, as before', async () => {
+    buildProject()
+    const { scope, api } = mount()
+    await api.publish()
+    backend.updateGist.mockClear()
+    backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
+    await api.update()
+    expect(backend.updateGist.mock.calls[0][0].description).toBe('Phone stand')
     scope.stop()
   })
 })

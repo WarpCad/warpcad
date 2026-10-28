@@ -110,4 +110,13 @@ Neither token can be limited to a single gist; the sheet says so in plain words.
 The negative case of the write probe (a token with no Gists permission gets 403) is expected from
 GitHub's documentation but was not observed. A by-hand check is queued in `TODO/VERIFY.md`.
 
+## Save as gist and Ctrl/Cmd+S (`TODO/io-021`)
+
+- **Ctrl/Cmd+S stays local.** Only File ▾ → Save as gist… / Save to gist, or the Share sheet, saves to the gist. The save chip shows how far behind the gist is ("Gist: N changes not saved") rather than pushing.
+- **"N changes" counts document-version bumps** since the last gist save. It is kept for this session only: after a reload or a new project, the chip shows autosave's wording until the next gist save.
+- **Save to gist keeps the gist's title.** Without that, a never-saved project would rename the gist's file to `untitled.ndjson`.
+- **A gist from another account is not this project's target.** The project counts as having a target only when the gist field exists and its owner is the connected login, or when no account is connected. Otherwise Save as gist… creates a new gist under the user's own account, as the Share sheet does.
+- **Share-sheet saves also update the chip**, because both entry points share `useGistPublish`.
+- **Failure placement.** A refused Save to gist (e.g. `changed-remotely`) opens the dialog on its update step with the `gistMessages.js` wording and a retry button. Nothing is written.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

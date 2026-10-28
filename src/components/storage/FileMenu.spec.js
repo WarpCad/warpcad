@@ -10,6 +10,8 @@ enableAutoUnmount(afterEach)
 
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useFileMenuStore } from '../../stores/fileMenu.js'
+import { setGistDependencies, useGistStore } from '../../stores/gist.js'
 import { useHostedStore, setHostedDependencies } from '../../stores/hosted.js'
 import { setExportDependencies } from '../../stores/exportDialog.js'
 import { setPersistenceDependencies, usePersistenceStore } from '../../stores/persistence.js'
@@ -97,8 +99,9 @@ describe('FileMenu — labels by capability (TODO/ui-033, data-002 §9)', () => 
     expect(save?.textContent?.trim()).toBe('Download copy')
     expect(body().q('file-save-as')).toBeNull()
     expect(body().q('file-open')?.textContent?.trim()).toBe('Open…')
-    // Never a control called "Save" that can only download a copy.
-    expect(body().q('file-menu')?.textContent).not.toMatch(/\bSave\b(?! to)/)
+    // Never a control called "Save" that can only download a copy. (`Save as gist…` /
+    // `Save to gist`, TODO/io-021, really save — to GitHub — so they are not that control.)
+    expect(body().q('file-menu')?.textContent).not.toMatch(/\bSave\b(?! to| as gist)/)
   })
 
   it('File System Access browsers get Save and Save As…, both addressable', async () => {
@@ -125,6 +128,96 @@ describe('FileMenu — labels by capability (TODO/ui-033, data-002 §9)', () => 
     await openMenu(wrapper)
     body().q('file-save-as').click()
     await vi.waitFor(() => expect(files.saves).toEqual([{ saveAs: false }, { saveAs: true }]))
+  })
+})
+
+describe('FileMenu — Save as gist… (TODO/io-021)', () => {
+  const GIST_ID = 'aa11bb22cc33dd44ee55ff6677889900'
+  let gistBackend
+
+  beforeEach(() => {
+    const records = new Map()
+    gistBackend = {
+      validateGistToken: vi.fn(async () => ({ login: 'octocat', expiresAt: null, broaderThanNeeded: false, tokenKind: 'fine-grained' })),
+      createGist: vi.fn(async () => ({ id: GIST_ID, revision: '1'.repeat(40), url: '', rawUrls: {} })),
+      updateGist: vi.fn(async () => ({ id: GIST_ID, revision: '2'.repeat(40), url: '', rawUrls: {} })),
+      deleteGist: vi.fn(),
+      readGist: vi.fn(async () => ({ id: GIST_ID, description: 'Bracket', text: '', revision: '2'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })),
+    }
+    setGistDependencies({
+      backend: gistBackend,
+      credentials: {
+        async read(key) { return records.get(key) ?? null },
+        async write(key, record) { records.set(key, record) },
+        async clear(key) { records.delete(key) },
+        close() {},
+      },
+    })
+  })
+  afterEach(() => setGistDependencies(null))
+
+  /** The labels of the "This device" group's items, in order. */
+  const deviceItems = () =>
+    Array.from(document.body.querySelectorAll('[role="group"][aria-label="This device"] [data-testid]'))
+      .map((el) => el.getAttribute('data-testid'))
+      .filter((id) => !id.endsWith('-reason'))
+
+  it('sits directly under Save As… (or the one Download copy item), dimmed with its reason on an empty scene', async () => {
+    const { wrapper } = setup('native')
+    await openMenu(wrapper)
+    const items = deviceItems()
+    expect(items.indexOf('file-save-as-gist')).toBe(items.indexOf('file-save-as') + 1)
+    const item = body().q('file-save-as-gist')
+    expect(item.textContent).toContain('Save as gist…')
+    expect(item.getAttribute('aria-disabled')).toBe('true')
+    expect(body().q('file-save-as-gist-reason')?.textContent?.trim()).toBe('Nothing to save yet')
+    item.click()
+    await nextTick()
+    expect(body().q('save-gist-dialog')).toBeNull()
+    expect(gistBackend.createGist).not.toHaveBeenCalled()
+  })
+
+  it('on a download-only browser it follows Download copy', async () => {
+    const { wrapper } = setup('fallback')
+    await openMenu(wrapper)
+    const items = deviceItems()
+    expect(items.indexOf('file-save-as-gist')).toBe(items.indexOf('file-save') + 1)
+  })
+
+  it('with a body it is enabled, with no reason, and opens the dialog', async () => {
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await openMenu(wrapper)
+    const item = body().q('file-save-as-gist')
+    expect(item.getAttribute('aria-disabled')).toBeNull()
+    expect(body().q('file-save-as-gist-reason')).toBeNull()
+    item.click()
+    await nextTick()
+    await nextTick()
+    expect(body().q('file-menu')).toBeNull()
+    expect(body().q('save-gist-dialog')).not.toBeNull()
+  })
+
+  it('reads "Save to gist" (no ellipsis) once the project is saved to a gist from this account', async () => {
+    const { wrapper } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await useGistStore().connect('github_pat_UNIT_SENTINEL_gist_not_a_real_token')
+    await useFileMenuStore().saveAsGist({ name: 'Bracket', public: false })
+    await openMenu(wrapper)
+    expect(body().q('file-save-as-gist')?.textContent?.trim()).toBe('Save to gist')
+  })
+
+  it('Ctrl/Cmd+S with a gist target stays local: no gist call', async () => {
+    const { files } = setup('fallback')
+    useDocumentStore().append(cube('cube-1'))
+    await useGistStore().connect('github_pat_UNIT_SENTINEL_gist_not_a_real_token')
+    await useFileMenuStore().saveAsGist({ name: 'Bracket', public: false })
+    gistBackend.readGist.mockClear()
+    gistBackend.updateGist.mockClear()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(files.saves).toHaveLength(1))
+    expect(gistBackend.readGist).not.toHaveBeenCalled()
+    expect(gistBackend.updateGist).not.toHaveBeenCalled()
   })
 })
 
@@ -269,9 +362,9 @@ describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
     await openMenu(wrapper)
     const group = document.body.querySelector('[role="group"][aria-label="This device"]')
     const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
-    // Merge file… (TODO/ui-062) sits directly under Open…; Share… (TODO/io-016) before Export…,
-    // which stays last.
-    expect(ids).toEqual(['file-new', 'file-save', 'file-open', 'file-merge', 'file-share', 'file-export'])
+    // Save as gist… (TODO/io-021) under the save item; Merge file… (TODO/ui-062) directly under
+    // Open…; Share… (TODO/io-016) before Export…, which stays last.
+    expect(ids).toEqual(['file-new', 'file-save', 'file-save-as-gist', 'file-open', 'file-merge', 'file-share', 'file-export'])
   })
 
   it('an empty scene: dimmed, with the reason visible AND as the accessible description', async () => {

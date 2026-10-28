@@ -33,6 +33,11 @@
  *   while it shows someone else's project, so opening a link never writes to IndexedDB.
  * - `projectName` — the name the project was last opened or saved under (file extension
  *   dropped), `''` when it has none; the Share sheet's default title (`TODO/io-016`).
+ * - `noteGistSaved(at)` — `TODO/io-021`: the project was just written to its gist. The chip's
+ *   resting text becomes `Saved to gist · 14:05`, then `Gist: 2 changes not saved` as the project
+ *   moves on (a count of document changes since, by the document's version). Nothing is pushed:
+ *   the gist is saved only by **File ▾ → Save to gist** or the Share sheet. This session only —
+ *   a reload or another project forgets it, and the chip goes back to autosave's words.
  *
  * ## A load is announced before it folds (`TODO/core-032`)
  *
@@ -267,6 +272,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const projectName = ref('')
   /** `TODO/io-016`: whether autosave is suspended (the Shared view is showing). */
   const autosaveSuspended = ref(false)
+  /** `TODO/io-021`: when this session last wrote the project to its gist (epoch ms), or 0. */
+  const gistSavedAt = ref(0)
+  /** The document's version right after that write: the changes since are what the gist lacks. */
+  const gistSavedVersion = ref(0)
 
   /**
    * `TODO/ai-009`: what this session last read from, or wrote to, the file it has a handle on —
@@ -376,6 +385,33 @@ export const usePersistenceStore = defineStore('persistence', () => {
     },
   })
 
+  // A loaded project (Open, New, a share copy) is not the one the gist was saved from.
+  watch(
+    () => documentStore.loadRevision,
+    () => {
+      gistSavedAt.value = 0
+    },
+  )
+
+  /**
+   * `TODO/io-021`: how many document changes the gist is behind — `-1` when this session has not
+   * saved the project to a gist, or the gist field has since been cleared (Stop sharing).
+   */
+  const gistBehind = computed(() => {
+    if (gistSavedAt.value === 0) return -1
+    const version = documentStore.version
+    if (toRaw(documentStore.raw).gist() === null) return -1
+    return Math.max(0, version - gistSavedVersion.value)
+  })
+
+  /** The chip's resting words for {@link gistBehind}, or `''`. */
+  const gistChipText = computed(() => {
+    const behind = gistBehind.value
+    if (behind < 0) return ''
+    if (behind === 0) return `Saved to gist · ${clock(gistSavedAt.value)}`
+    return `Gist: ${behind} ${behind === 1 ? 'change' : 'changes'} not saved`
+  })
+
   /** @type {import('vue').ComputedRef<import('../composables/useStatusSurface.js').StatusTone>} */
   const chipTone = computed(() => {
     if (loading.value) return 'saving'
@@ -383,6 +419,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (loadWarning.value) return 'error'
     if (diskChange.value !== null || mayHaveChanged.value) return 'warn'
     if (autosaveState.value === 'saving') return 'saving'
+    if (gistBehind.value >= 0) return gistBehind.value === 0 ? 'saved' : 'idle'
     if (autosaveState.value === 'saved') return 'saved'
     return 'idle'
   })
@@ -395,6 +432,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (mayHaveChanged.value) return MAY_HAVE_CHANGED_TEXT
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
+    if (gistChipText.value !== '') return gistChipText.value
     if (autosaveState.value === 'saved') return `Saved · ${clock(savedAt.value)}`
     return 'Autosave on'
   })
@@ -1018,6 +1056,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
     showNotice(text, DOWNLOAD_NOTICE_MS)
   }
 
+  /**
+   * `TODO/io-021`: the open project was just written to its gist — called by `useGistPublish`
+   * after the field is set, so the version counted from already includes that field change.
+   *
+   * @param {number} at Epoch ms of the write.
+   */
+  function noteGistSaved(at) {
+    gistSavedAt.value = at
+    gistSavedVersion.value = documentStore.version
+  }
+
   return {
     autosaveState,
     savedAt,
@@ -1055,6 +1104,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     newProject,
     dismissError,
     announce,
+    noteGistSaved,
     projectName,
     autosaveSuspended,
     setAutosaveSuspended,

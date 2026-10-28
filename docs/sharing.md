@@ -162,6 +162,24 @@ Once a project is published, the group in the Share sheet offers:
 If publishing fails, the sheet says why in plain words (the token was rejected or has expired, no
 network, GitHub is busy). Your project is always still saved in this browser.
 
+### Save as gist, from the File menu
+
+You don't need the Share sheet to save to a gist. **File ▾ → Save as gist…** sits under **Save as…**,
+and it works the same way as **Publish to a gist**: it asks for the **Name** (pre-filled), **Secret**
+or **Public**, and, if no token is connected yet, shows the connect step first. Once the project has
+a gist, the same item reads **Save to gist**, and it updates that gist with no dialog.
+
+**Example.** Open a project that has at least one shape. Choose **File ▾ → Save as gist…**, keep the
+name, choose **Secret**, and tap **Save**. The save chip reads *Saved to gist · 14:05*, and a note
+names the gist and offers **Copy link**. Make more changes, then choose **File ▾ → Save to gist**: the
+chip reads *Gist: 2 changes not saved* until that update goes through.
+
+**Ctrl/Cmd+S** still saves only to this browser. It never sends anything to GitHub, so the gist is
+changed only by the File menu or the Share sheet.
+
+If the item is dimmed, the reason is printed under it: a project with no shapes has nothing to put in
+a gist yet.
+
 ## If someone sent you a gist link
 
 It opens exactly like a long link: tap it and the model appears, with its name above it. You
