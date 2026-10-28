@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/WarpCad/warpcad/compare/v1.2.0...v1.3.0) (2026-10-28)
+
+### Features
+
+* **io:** gist storage — token decision, link, README and client (TODO/io-017, stage 1) ([7544786](https://github.com/WarpCad/warpcad/commit/7544786788949bf60e1ac250c4a27bf244928101))
+* **io:** share a project as a gist — connect, publish, update, open, stop (TODO/io-017, stage 2) ([e44340a](https://github.com/WarpCad/warpcad/commit/e44340ab5435ef37ef009c5dcb96588854d2cfca))
+
 ## [1.2.0](https://github.com/WarpCad/warpcad/compare/v1.1.0...v1.2.0) (2026-10-27)
 
 ## [1.1.0](https://github.com/WarpCad/warpcad/compare/v1.0.0...v1.1.0) (2026-10-27)
