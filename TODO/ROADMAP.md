@@ -55,7 +55,6 @@ this repository still need a green full run before they are pushed.
 | 9 | `M19` | [`testing-011`](M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28, the iOS app end to end, on the iPhone; free-form pass | The only check a fake Tauri boundary cannot stand in for | sonnet |
 | 10 | `M19` | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store listing, privacy, licence audits; stops at the owner's **Submit** | Ends at the Part 6 legal gate | sonnet |
 | 11 | `M20` | ▶ M20 home page: [`docs-026`](M20-docs-026-home-page-site-decision.md) → [`build-021`](M20-build-021-home-page-repo-scaffold.md) → [`testing-012`](M20-testing-012-help-deep-link-from-outside.md) → [`docs-028`](M20-docs-028-docs-home-and-published-help-contract.md) → [`docs-027`](M20-docs-027-home-page-content-and-docs-links.md) → [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) | `warpcad.com` is a parking page; the docs can only be found from inside the app. `docs-026` and `testing-012` are ready | sonnet |
-| 12 | `FIND` | ▶ [`ui-079`](FIND-ui-079-tiered-library-and-operations-panels.md) Shrink the Library and Operations panels between laptop and phone width | High; stages 1–3 are implemented per its file | opus |
 | 13 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
 | 14 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
 | 15 | `FIND` | ▶ [`ui-078`](FIND-ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | No width left after `ui-075` | sonnet |
@@ -101,6 +100,8 @@ this repository still need a green full run before they are pushed.
 
 **Deferred 2026-10-27:** start `build-017` (the Tauri scaffold) next? — parked, no decision yet.
 
+**Deferred 2026-10-29:** start `build-017` (the Tauri scaffold) next? — parked, no decision yet.
+
 - **Owner steps on `build-016`** (dual licence): Part 4 (repository settings) and Part 6 (review) are still open in
   `TODO/VERIFY.md`. The row is marked done, so these are tracked only there.
 
@@ -141,7 +142,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | M5 — Hardware Library | [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields | feature | medium | sonnet | ⏳ after `core-074`, `ui-052` |
 | Findings | [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
 | Findings | [`perf-003`](FIND-perf-003-defer-code-unused-at-boot.md) Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider) | feature | low | sonnet | ▶ **ready** (from `perf-002`) |
-| Findings | [`ui-079`](FIND-ui-079-tiered-library-and-operations-panels.md) Shrink the Library and Operations panels in steps between laptop and phone width | finding | high | opus | ▶ **ready** |
 | Findings | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) Two WebKit viewport-scaffold specs fail under parallel load; two app-header screenshots have drifted | finding | medium | sonnet | ▶ **ready** |
 | Findings | [`testing-005`](FIND-testing-005-triage-verify-md-open-rows.md) Triage the ~347 Open rows in `TODO/VERIFY.md`: move, graduate or close each | finding | medium | sonnet | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
@@ -298,7 +298,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-005` | Triage the ~347 open rows in `TODO/VERIFY.md`: move, graduate or close each | Finding | — | none |
-| `ui-079` | Shrink the Library and Operations panels in steps between laptop and phone width | Finding | — | 1, 5, 10 |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
 
 ---

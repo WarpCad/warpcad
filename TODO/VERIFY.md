@@ -36,6 +36,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-079 — Tiered Library and Operations panels (2026-10-29 12:40)
+
+Closed with only scenarios 1 and 4 (and 7's button presses) re-driven at 820 and 720 px on Chromium and WebKit, at the owner's request ("I'll verify later"). The rest of the file's Testing section is owed.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Re-drive acceptance 3, 16, 18 and 26 at 820x1180 and a hand-resized ~720 px window, WebKit and one other engine | Open | |
+| 2 | Re-run the closed-finding repros: `ui-072` (phone Library drag), `ui-043` and `ui-027` (phone toolbar), `ui-015` (tablet toolbar vs gizmo), `ui-070` (phone Inspector tab over the Library sheet) | Open | |
+| 3 | Drag a window edge slowly 1440 to 390 px and back in Chrome, Firefox and Safari, and on a real iPad (portrait, landscape, Split View): no jumps, text squash or cover of the gizmo/nav chrome | Open | |
+| 4 | Touch pinch/orbit at 820 (scenario 7) with the narrower viewport pane | Open | |
+
 ### ai-029 — MCP prompts as slash commands and Copy starter buttons (2026-10-29 09:50)
 
 Prompts and buttons are tested through an SDK client and a stubbed clipboard; nothing here was driven in real Claude Code or by hand, and acceptance 1, 23 and 25 were not re-driven.

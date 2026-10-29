@@ -5,8 +5,10 @@ kind: finding
 priority: high
 model: opus
 depends: []
-status: open
+status: done
 ---
+
+> **Closed 2026-10-29.** Everything shipped across `fe01ae5` (stages 1–3), `ui-084`, `ui-081`, `ui-082` and `adc1e36` (stage 7 plus the docs). The closing run only drove acceptance 1 and 4 (and 7's presses); the rest of the Testing section and the real-device hand drive are in `TODO/VERIFY.md`.
 
 > **Status (split, 2026-10-21).** Stages 1–3 are implemented (budget, `panelLayoutFor` and the
 > store, the fluid grid, the Operations icons tier) and still uncommitted at the time of writing.
