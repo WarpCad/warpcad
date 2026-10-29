@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0](https://github.com/WarpCad/warpcad/compare/v1.3.0...v1.4.0) (2026-10-29)
+
+### Features
+
+* **ai:** agents store the prompt that made a part, as its own record (TODO/ai-031) ([2cc2b77](https://github.com/WarpCad/warpcad/commit/2cc2b771f3c2afb786584396eadb64ba2391a374))
+* **ai:** list_ops summary, ops and kind filters so learning the catalogue stops costing ~7.6k tokens (TODO/ai-030) ([311fe8d](https://github.com/WarpCad/warpcad/commit/311fe8d13d017a1cc86148dfd65f561a06e3a97f))
+* **ai:** MCP prompts start, build and check-print, with Copy starter buttons (TODO/ai-029) ([69becf3](https://github.com/WarpCad/warpcad/commit/69becf3df275f9b7b13d601deafae4225bab2b71))
+* **ai:** MCP server instructions carry the working method (TODO/ai-027) ([60cdeee](https://github.com/WarpCad/warpcad/commit/60cdeee8d14e1de9be3b72ac511af84e41819cd8))
+* **ai:** serve the modelling guide as the MCP resource warpcad://guide (TODO/ai-028) ([78b60e1](https://github.com/WarpCad/warpcad/commit/78b60e1a36988507ec83e27e49e41cca9e8aa39b))
+* **io:** File ▾ → Save as gist… creates and saves a project's gist (TODO/io-021) ([7a17298](https://github.com/WarpCad/warpcad/commit/7a1729898484921757050f5d1651c24c0bb61537))
+* **io:** the gist README lists the prompts that made the project (TODO/io-022) ([bc5053a](https://github.com/WarpCad/warpcad/commit/bc5053a4c2c3459bcaa013d64b86e410aa955d8c))
+* **io:** Update gist merges the gist's newer revision first instead of refusing (TODO/io-019) ([f243338](https://github.com/WarpCad/warpcad/commit/f2433389db503407868c21f4a0c6f94cc319e05e))
+
+### Bug Fixes
+
+* **io:** the Share sheet's Name is the gist's title (TODO/io-020) ([0e9bd1c](https://github.com/WarpCad/warpcad/commit/0e9bd1c5d9b6b258a46a492f8b15c5246a94198e))
+
 ## [1.3.0](https://github.com/WarpCad/warpcad/compare/v1.2.0...v1.3.0) (2026-10-28)
 
 ### Features
