@@ -18,8 +18,9 @@
  *   change. It becomes `ctx.request`, so every `mcp` record carries its design intent
  *   (`TODO/ai-003`) the way an in-app turn's records carry the user's message. MCP gives a
  *   server no view of the conversation, so the client is asked for it explicitly;
- * - two resources, `warpcad://scene` (what `describe_scene` returns) and
- *   `warpcad://op-catalogue` (what `list_ops` returns), so a client can read without a call.
+ * - three resources, `warpcad://scene` (what `describe_scene` returns) and
+ *   `warpcad://op-catalogue` (what `list_ops` returns), so a client can read without a call, and `warpcad://guide`, our
+ *   modelling guide (`TODO/ai-028`; fixed text, not project data, so not wrapped).
  *
  * Every result is one text block: the tool's JSON inside `<document_data … label="tool_result">`
  * (`src/ai/documentData.js`), because names, intent and standing instructions in a project
@@ -44,6 +45,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { documentDataBlock } from '../src/ai/documentData.js'
+import { MODELLING_GUIDE } from '../src/ai/prompt.js'
 import { sharedInstructionLines } from '../src/ai/mcpInstructions.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createProjectSession, writeToolNames } from './projectFile.js'
@@ -66,6 +68,17 @@ const REQUEST_PROPERTY = Object.freeze({
     'The user’s request that led to this change, in their words (one or two sentences). Saved with the new History rows as their design intent.',
 })
 
+/** The guide's URI and annotations, shared with `liveHttp.js`. */
+export const GUIDE_URI = 'warpcad://guide'
+export const GUIDE_ANNOTATIONS = Object.freeze({
+  audience: /** @type {Array<'user' | 'assistant'>} */ (['assistant']),
+  priority: 1,
+})
+
+/**
+ * Each resource is the result of one `tool`, wrapped as project data, or fixed `text` of ours.
+ * The guide is `text`: it is not project data, so it is not wrapped in `document_data`.
+ */
 const RESOURCES = Object.freeze([
   {
     uri: 'warpcad://scene',
@@ -82,6 +95,15 @@ const RESOURCES = Object.freeze([
     description: 'What can be created and which operations exist, with operand counts, params and defaults — what list_ops returns.',
     mimeType: 'text/plain',
     tool: 'list_ops',
+  },
+  {
+    uri: GUIDE_URI,
+    name: 'guide',
+    title: 'Modelling guide',
+    description: 'How to model in WarpCad: conventions, operand rules, a worked example, printing defaults and the working method.',
+    mimeType: 'text/markdown',
+    annotations: GUIDE_ANNOTATIONS,
+    text: MODELLING_GUIDE,
   },
 ])
 
@@ -183,12 +205,15 @@ export function createWarpcadServer({ path }) {
   })
 
   server.setRequestHandler('resources/list', async () => ({
-    resources: RESOURCES.map(({ tool: _tool, ...resource }) => resource),
+    resources: RESOURCES.map(({ tool: _tool, text: _text, ...resource }) => resource),
   }))
 
   server.setRequestHandler('resources/read', async (request) => {
     const resource = RESOURCES.find((candidate) => candidate.uri === request.params.uri)
     if (!resource) throw new Error(`There is no resource ${JSON.stringify(request.params.uri)}.`)
+    if (resource.text !== undefined) {
+      return { contents: [{ uri: resource.uri, mimeType: resource.mimeType, text: resource.text }] }
+    }
     const result = await session.call(resource.tool, {})
     return {
       contents: [{ uri: resource.uri, mimeType: resource.mimeType, text: documentDataBlock('tool_result', result) }],

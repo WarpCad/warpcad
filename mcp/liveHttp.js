@@ -23,11 +23,12 @@ import { Server, WebStandardStreamableHTTPServerTransport } from '@modelcontextp
 import { randomUUID } from 'node:crypto'
 
 import { documentDataBlock } from '../src/ai/documentData.js'
+import { guideFor } from '../src/ai/prompt.js'
 import { sharedInstructionLines } from '../src/ai/mcpInstructions.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createRequestGate } from './bridge.js'
 import { writeToolNames } from './projectFile.js'
-import { mcpToolDefinitions, splitRequest } from './server.js'
+import { GUIDE_ANNOTATIONS, GUIDE_URI, mcpToolDefinitions, splitRequest } from './server.js'
 
 /** How long a session may be silent before the bridge stops counting it (see `createLiveHttpHandler`). */
 export const SESSION_IDLE_MS = 5 * 60_000
@@ -74,7 +75,7 @@ function createLiveServer(bridge, linkId) {
   const tools = createToolRegistry()
   const definitions = mcpToolDefinitions(tools, { live: true })
   const writers = writeToolNames(tools)
-  const server = new Server({ name: 'warpcad-live', version: '0.0.0' }, { capabilities: { tools: {} }, instructions: LIVE_SERVER_INSTRUCTIONS })
+  const server = new Server({ name: 'warpcad-live', version: '0.0.0' }, { capabilities: { tools: {}, resources: {} }, instructions: LIVE_SERVER_INSTRUCTIONS })
 
   server.setRequestHandler('tools/list', async () => ({
     tools: definitions.map((definition) => ({
@@ -82,6 +83,26 @@ function createLiveServer(bridge, linkId) {
       inputSchema: /** @type {{ type: 'object' } & Record<string, unknown>} */ (definition.inputSchema),
     })),
   }))
+
+  // Only the guide (`TODO/ai-028`). Static text with no project data, so no lease is needed to
+  // read it and a read never touches the tab; the scene and catalogue stay a tool call here.
+  const guide = guideFor({ live: true })
+  server.setRequestHandler('resources/list', async () => ({
+    resources: [
+      {
+        uri: GUIDE_URI,
+        name: 'guide',
+        title: 'Modelling guide',
+        description: 'How to model in WarpCad: conventions, operand rules, a worked example, printing defaults, the working method, and the live connection.',
+        mimeType: 'text/markdown',
+        annotations: { ...GUIDE_ANNOTATIONS },
+      },
+    ],
+  }))
+  server.setRequestHandler('resources/read', async (request) => {
+    if (request.params.uri !== GUIDE_URI) throw new Error(`There is no resource ${JSON.stringify(request.params.uri)}.`)
+    return { contents: [{ uri: GUIDE_URI, mimeType: 'text/markdown', text: guide }] }
+  })
 
   server.setRequestHandler('tools/call', async (request) => {
     const name = request.params.name

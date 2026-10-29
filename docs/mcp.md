@@ -132,10 +132,21 @@ shape and a *Union* or *Group* uses up the shapes it combines; several steps can
 change; and Claude checks a part (size, printability, clearance) before it says it's done. If a
 size that decides the result is missing, it asks you once instead of guessing.
 
+The full modelling guide, with a worked example and the reasoning behind the printing defaults, is
+a resource called `warpcad://guide`. Claude is told to read it before its first change. In a
+client that doesn't read it on its own, attach it by hand: in Claude Code, type
+`@warpcad:warpcad://guide` at the start of a message.
+
 **Example: a cube with a hole.** Run `npm run mcp:add -- bracket.ndjson`, start Claude Code in the
 WarpCad folder, and ask *a 40 mm cube with a 10 mm hole straight through it*. Claude places the
 cube on the grid, cuts the hole with a Subtract, measures the result and tells you its size. You
 don't have to tell it the units or which shape is kept.
+
+**Example: a plate with holes.** In Claude Code, type `@warpcad:warpcad://guide` at the start of a
+message to attach WarpCad's modelling guide, then ask *a 60 × 40 × 3 mm plate with four M3
+clearance holes 5 mm in from each corner*. Claude follows the guide's method: it builds the plate
+and the holes in one `apply_records` step, measures the result, and runs a print check before it
+calls the plate done.
 
 Some Assistant tools aren't here. `capture_view` needs a graphics card to draw a picture, and the
 server has none. The selection and reference-image tools need the app on screen.

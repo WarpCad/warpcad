@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-028 — The MCP guide resource (2026-10-29 00:20)
+
+The guide is served and tested with an SDK client; whether a real agent reads it unprompted, and whether it helps, was not measured.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With the owner's consent, repeat `ai-027`'s three-case drive twice each in Claude Code against this build; record whether the agent read `warpcad://guide` unasked, and append to that task's result file | Open | |
+| 2 | In Claude Code, `@warpcad:warpcad://guide` attaches the guide (the `docs/mcp.md` example) | Open | |
+
+
 ### io-022 — Prompts in the gist README (2026-10-28 21:49 UTC)
 
 GitHub's own rendering of the **How this was made** section is not something a test can see: block quotes, the `&#64;` mention break, and the "and N more" line on a real github.com page. Only a human on the published gist can check that.

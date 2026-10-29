@@ -3,6 +3,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { createServer } from 'node:http'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { guideFor } from '../src/ai/prompt.js'
 import { devAllowList } from './bridge.js'
 import { LIVE_SERVER_INSTRUCTIONS, createLiveHttpHandler } from './liveHttp.js'
 
@@ -92,6 +93,28 @@ describe('live /mcp initialize', () => {
   it('carries the composed instructions (TODO/ai-027)', async () => {
     const client = await connect()
     expect(client.getInstructions()).toBe(LIVE_SERVER_INSTRUCTIONS)
+    await client.close()
+  })
+})
+
+describe('live /mcp guide resource (TODO/ai-028)', () => {
+  it('lists and reads warpcad://guide with no lease, touching neither the bridge nor the tab', async () => {
+    const client = await connect()
+    const { resources } = await client.listResources()
+    expect(resources.map((resource) => resource.uri)).toEqual(['warpcad://guide'])
+    expect(resources[0]).toMatchObject({ name: 'guide', mimeType: 'text/markdown', annotations: { audience: ['assistant'], priority: 1 } })
+
+    // The allow-list is the lease: this spec's bridge refuses every call, and the read still works.
+    const guide = /** @type {any} */ (await client.readResource({ uri: 'warpcad://guide' }))
+    expect(guide.contents[0].text).toBe(guideFor({ live: true }))
+    expect(guide.contents[0].text).toMatch(/get_selection/)
+    expect(guide.contents[0].text).not.toMatch(/^<document_data/)
+    await client.close()
+  })
+
+  it('refuses a resource that is not the guide', async () => {
+    const client = await connect()
+    await expect(client.readResource({ uri: 'warpcad://scene' })).rejects.toThrow()
     await client.close()
   })
 })

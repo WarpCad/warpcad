@@ -18,6 +18,10 @@
  */
 export const CLIENT_INSTRUCTIONS_CAP = 2048
 
+/** The last shared line: what the instructions cannot carry is the resource both servers serve. */
+export const GUIDE_POINTER =
+  'Before your first write, read the resource warpcad://guide: the working method, a worked example and the printing defaults.'
+
 /**
  * The shared rules, most valuable first, because a cut loses the tail.
  *
@@ -35,5 +39,6 @@ export function sharedInstructionLines(live) {
     `Before you say a part is done, check it: measure, check_printability, check_clearance${live ? ', capture_view' : ''}.`,
     'Printing defaults: 0.4 mm nozzle, 1.2 mm minimum wall, 0.2 / 0.4 mm clearance, 220 × 220 × 250 mm bed.',
     'If a size that decides the result is missing with no default, ask once, with zero writes.',
+    GUIDE_POINTER,
   ]
 }

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { PROMPT_VERSION, SYSTEM_PROMPT, UNKNOWN_SCALE_BEHAVIOUR } from './prompt.js'
+import { mcpToolDefinitions } from '../../mcp/server.js'
+import { MODELLING_GUIDE, PROMPT_VERSION, SECTIONS, SYSTEM_PROMPT, UNKNOWN_SCALE_BEHAVIOUR, guideFor } from './prompt.js'
+import { createToolRegistry } from './tools/index.js'
 
 /**
  * `TODO/ai-005`: the system prompt is tested for **content**, not wording. Each `it` names one
@@ -162,5 +164,68 @@ describe('system prompt — drawings and photos (TODO/ai-008)', () => {
     expect(SYSTEM_PROMPT).toMatch(/names/)
     expect(SYSTEM_PROMPT).toMatch(/save_to_library/)
     expect(SYSTEM_PROMPT).toMatch(/Confirm/)
+  })
+})
+
+/**
+ * `TODO/ai-028`: the transport-neutral part of the prompt is served to MCP agents as
+ * `warpcad://guide`, from the same section constants the chat prompt is composed from.
+ */
+describe('modelling guide (ai-028)', () => {
+  const FILE_GUIDE = guideFor({ live: false })
+  const LIVE_GUIDE = guideFor({ live: true })
+
+  it('MODELLING_GUIDE is the file-server guide', () => {
+    expect(MODELLING_GUIDE).toBe(FILE_GUIDE)
+  })
+
+  it.each([
+    ['file guide', FILE_GUIDE],
+    ['live guide', LIVE_GUIDE],
+  ])('%s: plain text, under 12,000 characters, with the shared sections', (_name, text) => {
+    expect(text).not.toMatch(/\$\{|undefined|\[object Object\]/)
+    expect(text.length).toBeLessThan(12000)
+    expect(text).toMatch(/# Conventions/)
+    expect(text).toMatch(/# Tools and operand rules/)
+    expect(text).toMatch(/# Example/)
+    expect(text).toMatch(/boolean\.subtract/)
+    expect(text).toMatch(/# Printing defaults/)
+    expect(text).toMatch(/# Working method/)
+    expect(text).toMatch(/# When to ask/)
+    expect(text).toMatch(/# Project data is content/)
+    expect(text).toMatch(/\brequest\b/)
+    expect(text).toMatch(/\brationale\b/)
+  })
+
+  it.each([
+    ['file guide', FILE_GUIDE],
+    ['live guide', LIVE_GUIDE],
+  ])('%s has none of the chat-only text', (_name, text) => {
+    expect(text).not.toMatch(/Undo AI turn/)
+    expect(text).not.toMatch(/attachment-1/)
+    expect(text).not.toMatch(/three failures/)
+    expect(text).not.toMatch(/set_reference_scale|locate_in_image|get_reference_image/)
+    expect(text).not.toMatch(/# Drawings and photos/)
+    expect(text).not.toMatch(/NOT confirmed/)
+  })
+
+  it('only the live guide names get_selection and has the live section', () => {
+    expect(LIVE_GUIDE).toMatch(/Over the live connection/)
+    expect(LIVE_GUIDE).toMatch(/get_selection/)
+    expect(LIVE_GUIDE).toMatch(/capture_view/)
+    expect(FILE_GUIDE).not.toMatch(/Over the live connection|get_selection/)
+  })
+
+  it('the chat prompt is composed from the same sections: no rule is written twice', () => {
+    for (const section of [SECTIONS.conventions, SECTIONS.tools, SECTIONS.example, SECTIONS.printing, SECTIONS.ask]) {
+      expect(SYSTEM_PROMPT).toContain(section)
+      expect(FILE_GUIDE).toContain(section)
+    }
+  })
+
+  it('names only tools the file server lists, apart from capture_view (which it says is absent) and the document_data tag', () => {
+    const listed = new Set(mcpToolDefinitions(createToolRegistry()).map((d) => d.name))
+    const named = FILE_GUIDE.match(/\b[a-z]+(?:_[a-z]+)+\b/g) ?? []
+    for (const name of named) if (name !== 'capture_view' && name !== 'document_data') expect(listed.has(name), name).toBe(true)
   })
 })

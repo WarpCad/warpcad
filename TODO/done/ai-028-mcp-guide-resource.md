@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: none — Findings table, outside the milestone plan
 depends: [ai-027]
-status: open
+status: done
 ---
+
+> **What shipped.** As specified. `src/ai/prompt.js` exports `SECTIONS`, `guideFor({ live })` and `MODELLING_GUIDE`; `SYSTEM_PROMPT` is composed from the same sections and was verified byte-identical, so `PROMPT_VERSION` did not change. The guide has a short MCP-only intro (carrying `request` and `record_prompt`) and an MCP-only data note (standing instructions arrive inside tool results, with no confirmed/unconfirmed note). The shared Example is unchanged, so `request` is taught by the intro, not the example. Both instruction texts end with the pointer line and total 2,017 characters, close to the 2,048 cap. Not done: the real-model drive (needs the owner).
 
 ## Goal
 

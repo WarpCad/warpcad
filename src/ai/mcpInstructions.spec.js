@@ -9,7 +9,7 @@ import { createToolRegistry } from './tools/index.js'
 /**
  * `TODO/ai-027`: what an MCP agent is told when it connects. Tested for content, not wording
  * (the style of `prompt.spec.js`), plus the one hard limit: Claude Code cuts the text at 2,048
- * characters without saying so, and `ai-028` still has to add a pointer line.
+ * characters without saying so, including `ai-028`'s pointer line.
  */
 
 const tools = createToolRegistry()
@@ -19,9 +19,12 @@ const TRANSPORTS = /** @type {const} */ ([
 ])
 
 describe.each(TRANSPORTS)('%s instructions', (_name, text, definitions) => {
-  it('fit the client cap, leaving room for the pointer line ai-028 adds', () => {
-    expect(text.length).toBeLessThanOrEqual(1900)
+  it('fit the client cap, pointer line included', () => {
     expect(text.length).toBeLessThanOrEqual(CLIENT_INSTRUCTIONS_CAP)
+  })
+
+  it('point at warpcad://guide, which the server serves (ai-028)', () => {
+    expect(text).toMatch(/Before your first write, read the resource warpcad:\/\/guide/)
   })
 
   it('are plain text: nothing interpolated', () => {

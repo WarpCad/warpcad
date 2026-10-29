@@ -78,6 +78,11 @@ A tool never sees which transport is calling it beyond `ctx.origin`. That's what
 limited to `operandCount ≥ 1` and refuses through the same `acceptsOperandCount` the
 toolbar uses.
 
+The modelling guide (`ai-028`, `ai-029`) and the prompts built from it are transport text from
+`src/ai/prompt.js`, not tools: `SYSTEM_PROMPT` and `warpcad://guide` are composed from the same
+section constants, so the "one registry, no tools of its own" rule holds. A `get_guide` tool was
+rejected for that reason.
+
 **What would replace it:** two hand-maintained tool lists, one per transport. That's
 rejected for the same reason `CLAUDE.md` rejects a UI menu built by hand: the two would
 drift, and a capability would quietly exist on one path only.

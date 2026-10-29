@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { unwrapDocumentData } from '../src/ai/documentData.js'
+import { guideFor } from '../src/ai/prompt.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createDocument } from '../src/core/document.js'
 import { piBoltOnHole1 } from '../src/core/__fixtures__/piScenes.js'
@@ -441,12 +442,27 @@ describe('resources', () => {
     writeFileSync(file, CUBE)
     const { client } = await connect(file)
     const { resources } = await client.listResources()
-    expect(resources.map((resource) => resource.uri).sort()).toEqual(['warpcad://op-catalogue', 'warpcad://scene'])
+    expect(resources.map((resource) => resource.uri).sort()).toEqual(['warpcad://guide', 'warpcad://op-catalogue', 'warpcad://scene'])
 
     const scene = /** @type {any} */ (await client.readResource({ uri: 'warpcad://scene' }))
     expect(unwrapDocumentData(scene.contents[0].text)).toEqual((await call(client, 'describe_scene')).result)
     const catalogue = /** @type {any} */ (await client.readResource({ uri: 'warpcad://op-catalogue' }))
     expect(unwrapDocumentData(catalogue.contents[0].text)).toEqual((await call(client, 'list_ops')).result)
+  })
+
+  it('serves warpcad://guide as markdown for the assistant: our text, unwrapped, and reading it leaves the file alone (ai-028)', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, CUBE)
+    const before = statSync(file)
+    const { client } = await connect(file)
+    const listed = (await client.listResources()).resources.find((resource) => resource.uri === 'warpcad://guide')
+    expect(listed).toMatchObject({ name: 'guide', title: 'Modelling guide', mimeType: 'text/markdown', annotations: { audience: ['assistant'], priority: 1 } })
+
+    const guide = /** @type {any} */ (await client.readResource({ uri: 'warpcad://guide' }))
+    expect(guide.contents[0].text).toBe(guideFor({ live: false }))
+    expect(guide.contents[0].text).not.toMatch(/^<document_data/)
+    expect(readFileSync(file, 'utf8')).toBe(CUBE)
+    expect(statSync(file).mtimeMs).toBe(before.mtimeMs)
   })
 })
 
