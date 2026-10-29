@@ -14,6 +14,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
  * @typedef {object} StandIn
  * @property {(name: string, args: Record<string, unknown>) => Promise<{ isError: boolean, text: string }>} call
  * @property {() => Promise<string[]>} toolNames
+ * @property {(name: string, args?: Record<string, string>) => Promise<any>} getPrompt
  * @property {() => Promise<void>} close
  */
 
@@ -37,6 +38,9 @@ export async function connectMcpClient(url) {
     },
     async toolNames() {
       return (await client.listTools()).tools.map((tool) => tool.name)
+    },
+    async getPrompt(name, args) {
+      return client.getPrompt({ name, ...(args ? { arguments: args } : {}) })
     },
     async close() {
       // DELETE first, so the host drops this session at once; a bare close() leaves it counted.

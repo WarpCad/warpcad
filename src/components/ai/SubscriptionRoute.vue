@@ -13,10 +13,12 @@
  */
 import { computed, ref, watch } from 'vue'
 
+import { STARTER_CLAUDE_CODE } from '../../ai/mcpPrompts.js'
 import { MCP_ADD_COMMAND } from '../../ai/subscriptionRoute.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import ModalShell from '../storage/ModalShell.vue'
+import StarterCopy from './StarterCopy.vue'
 
 const assistant = useAssistantStore()
 const open = computed(() => assistant.view === 'subscription')
@@ -62,6 +64,9 @@ function back() {
       it adds appear in History marked <em>via mcp</em>. The full walk-through is
       <code>docs/mcp.md</code>.
     </p>
+    <p class="route__text">Then, in Claude Code:</p>
+    <pre class="route__command" data-testid="ai-subscription-starter">{{ STARTER_CLAUDE_CODE }}</pre>
+    <StarterCopy :text="STARTER_CLAUDE_CODE" label="Copy starter for Claude Code" testid="ai-subscription-copy-starter" />
     <p class="route__status" role="status" data-testid="ai-subscription-status">
       <template v-if="copied === 'copied'">Copied</template>
       <template v-else-if="copied === 'failed'">Couldn't copy. Select the command above and copy it by hand.</template>

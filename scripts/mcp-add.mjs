@@ -29,6 +29,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { MCP_SERVER_NAME } from '../src/ai/mcpPrompts.js'
 import { createDocument } from '../src/core/document.js'
 import { serializeProject } from '../src/core/project.js'
 import { ProjectFileError, loadProjectText } from '../mcp/projectFile.js'
@@ -36,7 +37,7 @@ import { ProjectFileError, loadProjectText } from '../mcp/projectFile.js'
 const USAGE = 'usage: npm run mcp:add -- <project-file.ndjson>   or   npm run mcp:add -- --dev'
 /** The Vite dev server's live-bridge endpoint (`vite.config.js`: port 5183, strict). */
 const DEV_URL = 'http://127.0.0.1:5183/mcp'
-const NAME = 'warpcad'
+const NAME = MCP_SERVER_NAME
 const SERVER = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'mcp', 'server.js')
 
 /** @param {string} message @returns {never} */

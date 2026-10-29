@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan
 depends: [ai-028]
-status: open
+status: done
 ---
+
+**What shipped (2026-10-29):** all of Goals 1 and 2 as written, with `StarterCopy.vue` shared by both sheets. Verification was partial: the real-Claude-Code drive and acceptance scenarios 1, 23 and 25 were not hand-driven (see `TODO/VERIFY.md`). Step 3 of the proposed fix (whether Claude Code delivers the embedded guide whole) is therefore unanswered, and the recipes do not yet fall back to "read warpcad://guide". The starter copy handler is proved on every engine with a stubbed clipboard in `e2e/ai-starter-copy.e2e.js`; real clipboard text is asserted on Chromium only. The hostile-project check (copied text equals the constant) runs on the subscription sheet in `e2e/ai-starter-copy.e2e.js`, not on the Live sheet.
 
 ## Goal
 

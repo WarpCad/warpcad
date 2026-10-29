@@ -23,4 +23,12 @@ test.describe('docs media: live MCP header button', () => {
     await expect(page.getByTestId('live-mcp-button')).toHaveAttribute('data-state', 'enabled')
     await shot(page, 'ai-live-mcp-header.png', { locator: page.getByTestId('app-header') })
   })
+
+  test('ai-connect-starter still', async ({ page }) => {
+    await openApp(page)
+    await page.getByTestId('live-mcp-button').click()
+    const row = page.getByTestId('ai-connect-starter-row')
+    await expect(row).toBeVisible()
+    await shot(page, 'ai-connect-starter.png', { locator: page.getByTestId('ai-connect-sheet') })
+  })
 })

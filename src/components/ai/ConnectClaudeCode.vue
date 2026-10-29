@@ -22,12 +22,14 @@
 import { computed, ref } from 'vue'
 
 import { liveEndpointUrl } from '../../ai/bridge/protocol.js'
+import { STARTER_CLAUDE_CODE, STARTER_OTHER_AGENT } from '../../ai/mcpPrompts.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { browserEngine, useLiveBridge } from '../../composables/useLiveBridge.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import { useHelpStore } from '../../stores/help.js'
 import ModalShell from '../storage/ModalShell.vue'
+import StarterCopy from './StarterCopy.vue'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
@@ -122,6 +124,18 @@ function close() {
       <p class="connect__note" data-testid="ai-connect-endpoint" :data-endpoint="endpointUrl">
         Endpoint: <code>{{ endpointUrl }}</code> (this computer only).
       </p>
+      <div class="connect__starter" data-testid="ai-connect-starter-row">
+        <p class="connect__text">Start the agent: paste one of these as your first message.</p>
+        <pre class="connect__command" data-testid="ai-connect-starter">{{ STARTER_CLAUDE_CODE }}</pre>
+        <div class="connect__starter-buttons">
+          <StarterCopy :text="STARTER_CLAUDE_CODE" label="Copy for Claude Code" testid="ai-connect-copy-starter" />
+          <StarterCopy :text="STARTER_OTHER_AGENT" label="Copy for another agent" testid="ai-connect-copy-starter-other" />
+        </div>
+        <details class="connect__note">
+          <summary>What this copies</summary>
+          <p data-testid="ai-connect-starter-other-text">{{ STARTER_OTHER_AGENT }}</p>
+        </details>
+      </div>
     </template>
 
     <p v-if="available && chat.bridge === 'connected'" class="connect__ok" role="status" data-testid="ai-connect-connected">
@@ -186,6 +200,39 @@ function close() {
 
 .connect__hosted .connect__actions {
   justify-content: flex-start;
+}
+
+.connect__starter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.connect__command {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.connect__starter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Stacked on a phone: each is a full-width 44px target. */
+@media (max-width: 479px) {
+  .connect__starter-buttons {
+    flex-direction: column;
+  }
 }
 
 .connect__ok {

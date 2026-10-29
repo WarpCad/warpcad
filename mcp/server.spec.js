@@ -466,6 +466,30 @@ describe('resources', () => {
   })
 })
 
+describe('prompts (TODO/ai-029)', () => {
+  it('lists start, build and check-print, and a get embeds the guide then the recipe without touching the file', async () => {
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, CUBE)
+    const before = statSync(file)
+    const { client } = await connect(file)
+    const { prompts } = await client.listPrompts()
+    expect(prompts.map((prompt) => prompt.name)).toEqual(['start', 'build', 'check-print'])
+
+    const got = /** @type {any} */ (await client.getPrompt({ name: 'build', arguments: { request: 'a 60 mm plate' } }))
+    expect(got.messages[0].content.resource).toMatchObject({ uri: 'warpcad://guide', mimeType: 'text/markdown', text: guideFor({ live: false }) })
+    expect(got.messages[1].content.text).toContain('a 60 mm plate')
+    expect(got.messages[1].content.text).not.toContain('get_selection')
+    expect(readFileSync(file, 'utf8')).toBe(CUBE)
+    expect(statSync(file).mtimeMs).toBe(before.mtimeMs)
+  })
+
+  it('refuses an unknown prompt and a build without a request, in words', async () => {
+    const { client } = await connect(join(dir, 'p.ndjson'))
+    await expect(client.getPrompt({ name: 'nope' })).rejects.toThrow(/no prompt "nope"/)
+    await expect(client.getPrompt({ name: 'build' })).rejects.toThrow(/"request" argument is required/)
+  })
+})
+
 describe('project variables (TODO/ai-014)', () => {
   const VARIABLE_TOOLS = ['bind_param', 'define_variable', 'delete_variable', 'list_variables', 'rename_variable', 'set_variable', 'unbind_param']
 

@@ -28,7 +28,7 @@ import { sharedInstructionLines } from '../src/ai/mcpInstructions.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createRequestGate } from './bridge.js'
 import { writeToolNames } from './projectFile.js'
-import { GUIDE_ANNOTATIONS, GUIDE_URI, mcpToolDefinitions, splitRequest } from './server.js'
+import { GUIDE_ANNOTATIONS, GUIDE_URI, mcpToolDefinitions, registerPromptHandlers, splitRequest } from './server.js'
 
 /** How long a session may be silent before the bridge stops counting it (see `createLiveHttpHandler`). */
 export const SESSION_IDLE_MS = 5 * 60_000
@@ -75,7 +75,7 @@ function createLiveServer(bridge, linkId) {
   const tools = createToolRegistry()
   const definitions = mcpToolDefinitions(tools, { live: true })
   const writers = writeToolNames(tools)
-  const server = new Server({ name: 'warpcad-live', version: '0.0.0' }, { capabilities: { tools: {}, resources: {} }, instructions: LIVE_SERVER_INSTRUCTIONS })
+  const server = new Server({ name: 'warpcad-live', version: '0.0.0' }, { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: LIVE_SERVER_INSTRUCTIONS })
 
   server.setRequestHandler('tools/list', async () => ({
     tools: definitions.map((definition) => ({
@@ -103,6 +103,9 @@ function createLiveServer(bridge, linkId) {
     if (request.params.uri !== GUIDE_URI) throw new Error(`There is no resource ${JSON.stringify(request.params.uri)}.`)
     return { contents: [{ uri: GUIDE_URI, mimeType: 'text/markdown', text: guide }] }
   })
+
+  // The recipes (`TODO/ai-029`): static text and the caller's arguments, so no lease either.
+  registerPromptHandlers(server, { live: true })
 
   server.setRequestHandler('tools/call', async (request) => {
     const name = request.params.name

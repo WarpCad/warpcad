@@ -20,7 +20,8 @@
  *   server no view of the conversation, so the client is asked for it explicitly;
  * - three resources, `warpcad://scene` (what `describe_scene` returns) and
  *   `warpcad://op-catalogue` (what `list_ops` returns), so a client can read without a call, and `warpcad://guide`, our
- *   modelling guide (`TODO/ai-028`; fixed text, not project data, so not wrapped).
+ *   modelling guide (`TODO/ai-028`; fixed text, not project data, so not wrapped);
+ * - three prompts, `start`, `build` and `check-print` (`TODO/ai-029`), Claude Code's `/mcp__warpcad__…` commands.
  *
  * Every result is one text block: the tool's JSON inside `<document_data … label="tool_result">`
  * (`src/ai/documentData.js`), because names, intent and standing instructions in a project
@@ -47,6 +48,7 @@ import { fileURLToPath } from 'node:url'
 import { documentDataBlock } from '../src/ai/documentData.js'
 import { MODELLING_GUIDE } from '../src/ai/prompt.js'
 import { sharedInstructionLines } from '../src/ai/mcpInstructions.js'
+import { listPrompts, promptMessages } from '../src/ai/mcpPrompts.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
 import { createProjectSession, writeToolNames } from './projectFile.js'
 
@@ -177,7 +179,7 @@ export function createWarpcadServer({ path }) {
 
   const server = new Server(
     { name: 'warpcad', version: '0.0.0' },
-    { capabilities: { tools: {}, resources: {} }, instructions: SERVER_INSTRUCTIONS }
+    { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: SERVER_INSTRUCTIONS }
   )
 
   server.setRequestHandler('tools/list', async () => ({
@@ -220,7 +222,25 @@ export function createWarpcadServer({ path }) {
     }
   })
 
+  registerPromptHandlers(server, { live: false })
+
   return server
+}
+
+/**
+ * `prompts/list` and `prompts/get` (`TODO/ai-029`), shared with `liveHttp.js`. A get reads and
+ * writes nothing: the messages are the guide and a recipe, with only the caller's arguments in them.
+ *
+ * @param {Server} server
+ * @param {{ live: boolean }} options
+ */
+export function registerPromptHandlers(server, { live }) {
+  server.setRequestHandler('prompts/list', async () => ({ prompts: listPrompts() }))
+  server.setRequestHandler('prompts/get', async (request) => {
+    const result = promptMessages(request.params.name, request.params.arguments, { live })
+    if ('error' in result) throw new Error(result.error)
+    return result
+  })
 }
 
 /**

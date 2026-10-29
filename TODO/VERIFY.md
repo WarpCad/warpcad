@@ -36,6 +36,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-029 — MCP prompts as slash commands and Copy starter buttons (2026-10-29 09:50)
+
+Prompts and buttons are tested through an SDK client and a stubbed clipboard; nothing here was driven in real Claude Code or by hand, and acceptance 1, 23 and 25 were not re-driven.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In Claude Code, `/` lists `mcp__warpcad__start`, `build` and `check-print`; `start` on a fresh file says it is empty, asks what to build and writes nothing | Open | |
+| 2 | `/mcp__warpcad__build` with the plate example lands the plate with the request as every History row's intent; `check-print` leaves the file's bytes unchanged | Open | |
+| 3 | Does Claude Code deliver the embedded guide whole (not cut at 2,048 characters)? If not, add the "read warpcad://guide" fallback to the recipes | Open | |
+| 4 | Does headless `claude -p "/mcp__warpcad__build …"` expand MCP prompts at all? Also paste the other-agent paragraph into a client without prompt support | Open | |
+| 5 | Drive acceptance 1, 23 and 25 by hand (the Assistant sheets overlay the viewport at phone width; both bodies stay visible after closing) | Open | |
+
 ### ai-028 — The MCP guide resource (2026-10-29 00:20)
 
 The guide is served and tested with an SDK client; whether a real agent reads it unprompted, and whether it helps, was not measured.

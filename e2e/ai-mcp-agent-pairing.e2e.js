@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { connectMcpClient } from '../mcp/claudeCodeStandIn.js'
+import { STARTER_CLAUDE_CODE, STARTER_OTHER_AGENT } from '../src/ai/mcpPrompts.js'
 
 const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'ai-mcp-agent-pairing')
 const REQUEST = 'add a 40 mm cube and a 20 mm sphere on top'
@@ -31,6 +32,11 @@ test('any MCP client can use explicitly enabled live access, and off refuses wri
     const sheet = page.getByTestId('ai-connect-sheet')
     await expect(sheet).toBeVisible()
     await expect(page.getByTestId('ai-connect-explain')).toContainText('any MCP client on this computer')
+    // `TODO/ai-029`: the starter row shows the Claude Code text; the buttons copy the fixed texts.
+    await expect(page.getByTestId('ai-connect-starter')).toHaveText(STARTER_CLAUDE_CODE)
+    await expect(page.getByTestId('ai-connect-starter-other-text')).toHaveText(STARTER_OTHER_AGENT)
+    const prompt = await client.getPrompt('start')
+    expect(prompt.messages[0].content.resource.uri).toBe('warpcad://guide')
     await page.getByTestId('ai-connect-lease').selectOption('15m')
     await page.getByTestId('ai-connect-enable').click()
     // The spec's client is already attached, so the bridge can go straight to `connected` and the
@@ -98,4 +104,27 @@ test('the live-access control is reachable at phone, tablet, and laptop widths',
 
   mkdirSync(SNAPSHOT_DIR, { recursive: true })
   await page.screenshot({ path: join(SNAPSHOT_DIR, `${testInfo.project.name}.png`) })
+})
+
+test('the Start the agent row fits at every width and copies the fixed texts (TODO/ai-029)', async ({ page, context }, testInfo) => {
+  test.skip(process.env.E2E_PREVIEW === '1', 'the live MCP bridge exists only on the dev host: E2E_DEV=1 npx playwright test e2e/ai-mcp-agent-pairing.e2e.js')
+  test.skip(!testInfo.project.name.startsWith('chromium-'), 'Chromium only here: clipboard grants are Chromium-only; the copy handler is proved on every engine in ai-starter-copy.e2e.js.')
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/')
+  await page.getByTestId('assistant-button').click()
+  await page.getByTestId('ai-key-connect').click()
+  await expect(page.getByTestId('ai-connect-sheet')).toBeVisible()
+
+  await page.getByTestId('ai-connect-copy-starter').click()
+  await expect(page.getByTestId('ai-connect-copy-starter')).toHaveText('Copied')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(STARTER_CLAUDE_CODE)
+  await page.getByTestId('ai-connect-copy-starter-other').click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(STARTER_OTHER_AGENT)
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  for (const id of ['ai-connect-copy-starter', 'ai-connect-copy-starter-other']) {
+    expect((await page.getByTestId(id).boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43)
+  }
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `starter-${testInfo.project.name}.png`) })
 })

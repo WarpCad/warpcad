@@ -51,7 +51,10 @@ Claude Code can drive WarpCad through its [MCP server](mcp.md).
    `my-part.ndjson` with the project file you want Claude Code to edit; it is created if it
    doesn't exist, and the script fills in every other path. Then start Claude Code in any folder
    and type `/mcp`: `warpcad` should say *connected*.
-5. In Claude Code, say *add a 3 mm base plate under the bracket*. Then open the file in WarpCad
+5. Start Claude Code there, tap **Copy starter for Claude Code** back in WarpCad (under *Then, in
+   Claude Code:*), and paste it as your first message. It is the one line `/mcp__warpcad__start`.
+   Claude reads your project, tells you what is in it, and asks what to build.
+6. In Claude Code, say *add a 3 mm base plate under the bracket*. Then open the file in WarpCad
    (**File ▾ → Open…**): the new step is in **History**, marked **via mcp**.
 
 ![The "Use your Claude subscription" sheet: an explanation that an API key is billed separately, the npm run mcp:add command in a box, and Use an API key instead and Copy buttons.](./screenshots/assistant-subscription-route.png)

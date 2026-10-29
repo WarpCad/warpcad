@@ -155,6 +155,24 @@ Every change Claude makes carries **why** it was made: the words of your request
 own one-line reason. That's what you see on the History row's note, the same as for the in-app
 Assistant ([Design intent](design-intent.md)).
 
+## Slash commands in Claude Code
+
+WarpCad also offers three ready-made starting points, MCP *prompts*. Claude Code lists them as slash
+commands; each one gives Claude the modelling guide first, so it follows WarpCad's method from the
+first message. Other MCP clients show the same prompts in their own menus.
+
+| Command | What it does |
+|---|---|
+| `/mcp__warpcad__start` | Reads the project, tells you what is in it and asks what to build. Changes nothing. |
+| `/mcp__warpcad__build <request>` | Builds what you describe: looks first, asks once if a deciding size is missing, builds, checks, and reports the sizes it read back. Your words are saved as each step's design intent. |
+| `/mcp__warpcad__check-print [body]` | Measures and print-checks every body (or the one you name) against the printer defaults (0.4 mm nozzle, 220 × 220 × 250 mm bed), and changes nothing. |
+
+**Example.** With WarpCad registered (`npm run mcp:add -- bracket.ndjson`), type
+`/mcp__warpcad__build a 60 × 40 × 3 mm plate with four M3 clearance holes 5 mm in from each corner`
+in Claude Code. Claude builds the plate, measures it, runs a print check, and tells you the hole
+diameter it used. Then type `/mcp__warpcad__check-print` to check every body without changing
+anything.
+
 ## Working on a project you have open
 
 You do not have to close the project first. Claude Code and the app can both edit the same file,
@@ -238,13 +256,18 @@ reach the loopback endpoint may read and change the open project.
   endpoint address (`http://127.0.0.1:5183/mcp`) your client should be registered with. Choose a longer
   lease only when you need it; you can turn access off from the same sheet at any time.
 
-4. In your MCP client, ask *add a 40 mm cube and a 20 mm sphere on top*. The bodies appear in the
+4. In your MCP client, start the agent: in WarpCad's **Live MCP access** sheet, under **Start the
+  agent**, tap **Copy for Claude Code** (it copies `/mcp__warpcad__start`) and paste it as your
+  first message, or tap **Copy for another agent** for a plain paragraph that works in any MCP
+  client. Neither text contains anything from your project. Then ask *add a 40 mm cube and a 20 mm sphere on top*. The bodies appear in the
   viewport, and in **History** each row is marked **via mcp**. The Assistant header reports the
   connected MCP agent.
 
 5. Select a body and move it with the gizmo. Press **Undo AI turn** to remove the agent's changes
   in one step. Your own **Undo** is untouched: it never takes back MCP rows, and **Undo AI turn**
   never takes back yours.
+
+![The Live MCP access sheet at phone width with the Start the agent row: the /mcp__warpcad__start command and the Copy for Claude Code and Copy for another agent buttons.](./screenshots/ai-connect-starter.png)
 
 ![WarpCad with the Assistant panel's "MCP agent · connected" chip, a cube with a sphere on top in the viewport, and History rows "Cube 1 — placed" and "Sphere 1 — placed", each marked "via mcp".](./screenshots/ai-live-bridge.png)
 

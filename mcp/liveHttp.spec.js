@@ -118,3 +118,15 @@ describe('live /mcp guide resource (TODO/ai-028)', () => {
     await client.close()
   })
 })
+
+describe('live /mcp prompts (TODO/ai-029)', () => {
+  it('lists and gets the recipes with no lease, the live guide embedded and get_selection named', async () => {
+    const client = await connect()
+    const { prompts } = await client.listPrompts()
+    expect(prompts.map((prompt) => prompt.name)).toEqual(['start', 'build', 'check-print'])
+    const got = /** @type {any} */ (await client.getPrompt({ name: 'build', arguments: { request: 'make this taller' } }))
+    expect(got.messages[0].content.resource.text).toBe(guideFor({ live: true }))
+    expect(got.messages[1].content.text).toMatch(/get_selection/)
+    await client.close()
+  })
+})
