@@ -175,13 +175,18 @@ async function placeShapes(page, input, info, ops = ['primitive.cuboid', 'primit
  */
 async function openShareSheet(page, input) {
   const button = page.getByTestId('share-open')
-  if (await button.isVisible()) {
-    await input.press(button)
-  } else {
-    await input.press(page.getByTestId('file-menu-button'))
-    await tap(input, page.getByTestId('file-share'))
-  }
-  await expect(page.getByTestId('share-sheet')).toBeVisible()
+  // Retried as a whole: straight after the Library closes, under a loaded run, the first press can land
+  // while the panel is still leaving and open nothing. A press that did open the sheet is never repeated.
+  await expect(async () => {
+    if (await page.getByTestId('share-sheet').isVisible()) return
+    if (await button.isVisible()) {
+      await input.press(button)
+    } else {
+      await input.press(page.getByTestId('file-menu-button'))
+      await tap(input, page.getByTestId('file-share'))
+    }
+    await expect(page.getByTestId('share-sheet')).toBeVisible({ timeout: 3000 })
+  }).toPass({ timeout: 15_000 })
 }
 
 /** @param {import('@playwright/test').Page} page */

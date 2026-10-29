@@ -2529,3 +2529,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** second tap used to refuse with changed-remotely → diff (useGistPublish.js, removed branch; TODO/done/io-019 Goal); now merges then publishes → diff (mergeRemote, update()) and e2e/gist-share case 11 passing this session (all 9 projects, 1666 passed, 0 failed across 24 specs)
 **To Add:** nothing
+
+## 2026-10-29T16:12:50Z — Retry opening the Share sheet in the io-019 two-device e2e spec
+
+**Post:** A flaky e2e spec in WarpCad: the Share button press right after a panel closed sometimes opened nothing under load. The helper now retries the whole open step instead of asserting once. Built with Claude Code, reviewed by me. #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** failed once in a 7-worker full run, passed alone on 9 projects, 81 passed after fix → test output this session; cause is an inference → not observed
+**To Add:** nothing

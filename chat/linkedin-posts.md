@@ -3647,3 +3647,16 @@ The new end-to-end case has two browser contexts both publish and update against
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** refused and wrote nothing before → diff (removed changed-remotely branch) and TODO/done/io-019 Goal; merge then publish, conflict banner sends nothing, different project refused → diff (mergeRemote, merge-conflict, different-project) and useGistPublish.spec.js passing this session (330 unit files, 7483 tests); two contexts end with four bodies → e2e/gist-share case 11, passing this session
 **To Add:** nothing
+
+## 2026-10-29T16:12:50Z — Retry opening the Share sheet in the io-019 two-device e2e spec
+
+**Post:** One e2e case in WarpCad's gist-sharing suite failed once in a full parallel run and passed alone on all nine browser/viewport projects. The cause was a button press landing while a panel was still closing.
+
+The test helper now retries the press and the visibility check together, and skips the press if the sheet is already open.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** failed once in a 7-worker full run, passed alone on 9 projects, 81 passed after fix → test output this session; cause is an inference → not observed
+**To Add:** nothing
