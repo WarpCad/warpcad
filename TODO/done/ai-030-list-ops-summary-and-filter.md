@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: none — Findings table, outside the milestone plan
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-29).** As specified. Two things differ from the spec's expectations: the instructions line was reworded tersely (`list_ops {detail:"summary"} lists ops, {ops:[…]} gives params. Then describe_scene.`) to stay inside the 2,048-character cap, and WebMCP's existing paging (1,500-character advice) applies to the summary too, so a browser agent sees a first page with `page.total`; `ops` fetches details. The default is still full; flipping it is left to the owner. The real-model token arm and the acceptance hand-drive were not done.
 
 ## Goal
 

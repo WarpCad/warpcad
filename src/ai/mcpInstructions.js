@@ -31,7 +31,7 @@ export const GUIDE_POINTER =
 export function sharedInstructionLines(live) {
   return [
     'Units are millimetres and degrees, Z up; the grid is the plane Z = 0.',
-    'Call list_ops first, then describe_scene for body ids. Never guess an id: take it from describe_scene or a write’s result.',
+    'list_ops {detail:"summary"} lists ops, {ops:[…]} gives params. Then describe_scene. Never guess an id: take it from describe_scene or a write.',
     'create places one body; operate changes existing bodies by id; apply_records does several steps atomically, a later step naming an earlier body "@1".',
     'positionMm: x and y centre the footprint, z is the underside. Place bodies relative to each other, never all at the origin.',
     'boolean.subtract keeps its first operand. A boolean or group consumes its operands: use the new id it returns.',

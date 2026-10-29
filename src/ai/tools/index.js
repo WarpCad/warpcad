@@ -23,7 +23,7 @@
  *
  * | Tool | Writes | What it does |
  * |---|---|---|
- * | `list_ops` | no | The catalogue, split as the tools are: `create` ops (zero operands) and `operate` ops (one, or two or more), each with its params schema and defaults. |
+ * | `list_ops` | no | The catalogue, split as the tools are: `create` ops (zero operands) and `operate` ops (one, or two or more), each with its params schema and defaults. Optional `{ detail: 'summary' }` (param names only, ~1/7 the size), `{ ops: [...] }` (just those, in full; at most 20) and `{ kind }` (one half) — `TODO/ai-030`. |
  * | `describe_scene` | no | Every body: id, name, op, bounds and size in mm, colour, part names. Never a mesh. |
  * | `describe_body` | no | One body: the above plus params, centre position and rotation. |
  * | `get_timeline` | no | The History rows: op, label, origin, suppressed / active / broken. |
@@ -104,7 +104,7 @@ import { createClearanceTool } from './clearance.js'
 import { createCreateTool, creatableOps } from './create.js'
 import { createImageTools } from './image.js'
 import { createSaveToLibraryTool } from './library.js'
-import { assertWriteOrigin } from './limits.js'
+import { LIMITS, assertWriteOrigin } from './limits.js'
 import { createMeasureTool } from './measure.js'
 import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
 import { createPrintabilityTool } from './printability.js'
@@ -247,15 +247,107 @@ function createListOpsTool(ops) {
       params: OPERATIONS[op].params,
     }
   })
+  const full = Object.freeze({ create, operate })
+  /** @param {{ params: any }} entry */
+  const paramNames = (entry) => Object.keys(entry.params?.properties ?? {})
+  /** The same data as `full`, minus schemas and defaults: the names cannot disagree with the schemas. */
+  const summary = Object.freeze({
+    create: create.map(({ op, label, kind, operandCount, params }) => ({ op, label, kind, operandCount, params: paramNames({ params }) })),
+    operate: operate.map(({ op, label, kind, operandCount, partAddressable, params }) => ({
+      op,
+      label,
+      kind,
+      operandCount,
+      partAddressable,
+      params: paramNames({ params }),
+    })),
+  })
+  const known = [...create, ...operate].map((entry) => entry.op)
+  const inputSchema = objectSchema({
+    detail: {
+      type: 'string',
+      enum: ['summary', 'full'],
+      description: 'summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults.',
+    },
+    ops: {
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      maxItems: LIMITS.listOpsIds,
+      description: `Only these ops, in full, in this order (at most ${LIMITS.listOpsIds}), e.g. ["primitive.cylinder", "boolean.subtract"].`,
+    },
+    kind: { type: 'string', enum: ['create', 'operate'], description: 'Only the create ops, or only the operate ops.' },
+  })
   return {
     name: 'list_ops',
     description:
       'List what can be made and what can be done: create ops (place from nothing) and operate ops (need existing bodies), ' +
-      'each with its operand count, params schema and defaults. Lengths in millimetres, angles in degrees.',
-    inputSchema: objectSchema({}),
+      'each with its operand count, params schema and defaults. Lengths in millimetres, angles in degrees. ' +
+      'The full list is large: call with { detail: "summary" } to see every op and its param names, then with ' +
+      '{ ops: ["primitive.cylinder", ...] } for the full schema of just the ones you use. { kind } keeps one half.',
+    inputSchema,
     transports: ['ai', 'mcp'],
-    run: () => ({ create, operate }),
+    run: (_ctx, input) => {
+      const { detail, ops: asked, kind } = /** @type {{ detail?: string, ops?: string[], kind?: string }} */ (input ?? {})
+      if (asked !== undefined) {
+        const unknown = asked.filter((id) => !known.includes(id))
+        if (unknown.length > 0) {
+          return {
+            error: `input.ops names ${unknown.map((id) => JSON.stringify(id)).join(', ')}, which ${unknown.length === 1 ? 'is' : 'are'} not in the catalogue.`,
+            closest: [...new Set(unknown.flatMap((id) => closestIds(id, known, 5)))].slice(0, 5),
+          }
+        }
+        const pick = (/** @type {any[]} */ list) => asked.filter((id) => list.some((entry) => entry.op === id)).map((id) => list.find((entry) => entry.op === id))
+        /** @type {Record<string, any[]>} */
+        const source = detail === 'summary' ? summary : full
+        /** @type {Record<string, any[]>} */
+        const picked = {
+          create: kind === 'operate' ? [] : pick(source.create),
+          operate: kind === 'create' ? [] : pick(source.operate),
+        }
+        return kind === undefined ? picked : { [kind]: picked[kind] }
+      }
+      /** @type {Record<string, any[]>} */
+      const source = detail === 'summary' ? summary : full
+      if (kind !== undefined) return { [kind]: source[kind] }
+      return { create: source.create, operate: source.operate }
+    },
   }
+}
+
+/**
+ * The `count` known ids nearest to a mistyped one: a shared word first, then edit distance.
+ *
+ * @param {string} wanted
+ * @param {string[]} known
+ * @param {number} count
+ * @returns {string[]}
+ */
+function closestIds(wanted, known, count) {
+  const lower = wanted.toLowerCase()
+  const words = lower.split(/[^a-z0-9]+/).filter(Boolean)
+  const score = (/** @type {string} */ id) => {
+    const shared = words.filter((word) => id.toLowerCase().includes(word)).length
+    return shared * 100 - editDistance(lower, id.toLowerCase())
+  }
+  return [...known].sort((a, b) => score(b) - score(a) || (a < b ? -1 : 1)).slice(0, count)
+}
+
+/**
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+function editDistance(a, b) {
+  let row = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i += 1) {
+    const next = [i]
+    for (let j = 1; j <= b.length; j += 1) {
+      next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+    }
+    row = next
+  }
+  return row[b.length]
 }
 
 /**

@@ -18,8 +18,8 @@
  *   change. It becomes `ctx.request`, so every `mcp` record carries its design intent
  *   (`TODO/ai-003`) the way an in-app turn's records carry the user's message. MCP gives a
  *   server no view of the conversation, so the client is asked for it explicitly;
- * - three resources, `warpcad://scene` (what `describe_scene` returns) and
- *   `warpcad://op-catalogue` (what `list_ops` returns), so a client can read without a call, and `warpcad://guide`, our
+ * - four resources, `warpcad://scene` (what `describe_scene` returns) and
+ *   `warpcad://op-catalogue` (what `list_ops` returns) and `warpcad://op-catalogue/summary` (`{ detail: "summary" }`), so a client can read without a call, and `warpcad://guide`, our
  *   modelling guide (`TODO/ai-028`; fixed text, not project data, so not wrapped);
  * - three prompts, `start`, `build` and `check-print` (`TODO/ai-029`), Claude Code's `/mcp__warpcad__…` commands.
  *
@@ -97,6 +97,15 @@ const RESOURCES = Object.freeze([
     description: 'What can be created and which operations exist, with operand counts, params and defaults — what list_ops returns.',
     mimeType: 'text/plain',
     tool: 'list_ops',
+  },
+  {
+    uri: 'warpcad://op-catalogue/summary',
+    name: 'op-catalogue-summary',
+    title: 'Operation catalogue (summary)',
+    description: 'Every op with its operand count and param names only, about a seventh of the size — what list_ops { detail: "summary" } returns.',
+    mimeType: 'text/plain',
+    tool: 'list_ops',
+    input: { detail: 'summary' },
   },
   {
     uri: GUIDE_URI,
@@ -207,7 +216,7 @@ export function createWarpcadServer({ path }) {
   })
 
   server.setRequestHandler('resources/list', async () => ({
-    resources: RESOURCES.map(({ tool: _tool, text: _text, ...resource }) => resource),
+    resources: RESOURCES.map(({ tool: _tool, text: _text, input: _input, ...resource }) => resource),
   }))
 
   server.setRequestHandler('resources/read', async (request) => {
@@ -216,7 +225,7 @@ export function createWarpcadServer({ path }) {
     if (resource.text !== undefined) {
       return { contents: [{ uri: resource.uri, mimeType: resource.mimeType, text: resource.text }] }
     }
-    const result = await session.call(resource.tool, {})
+    const result = await session.call(resource.tool, resource.input ?? {})
     return {
       contents: [{ uri: resource.uri, mimeType: resource.mimeType, text: documentDataBlock('tool_result', result) }],
     }

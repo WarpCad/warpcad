@@ -94,7 +94,7 @@ function startRecipe(live) {
 function buildRecipe(live, request) {
   return [
     `Build this by the method in the guide above. The user's request, in their own words: ${JSON.stringify(request)}`,
-    '1. Look first: describe_scene for what is already there.',
+    '1. Look first: describe_scene for what is already there, and list_ops with detail: "summary" for what can be made (then ops: [...] for the params of the ones you use).',
     ...(live ? ['   If the request says "this" or "that one", call get_selection first.'] : []),
     '2. If a size that decides the result is missing and has no default, ask the user once, with zero writes.',
     '3. Build with create, operate or apply_records. Pass the request above, as written, as `request` on every write.',

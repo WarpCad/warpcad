@@ -442,12 +442,14 @@ describe('resources', () => {
     writeFileSync(file, CUBE)
     const { client } = await connect(file)
     const { resources } = await client.listResources()
-    expect(resources.map((resource) => resource.uri).sort()).toEqual(['warpcad://guide', 'warpcad://op-catalogue', 'warpcad://scene'])
+    expect(resources.map((resource) => resource.uri).sort()).toEqual(['warpcad://guide', 'warpcad://op-catalogue', 'warpcad://op-catalogue/summary', 'warpcad://scene'])
 
     const scene = /** @type {any} */ (await client.readResource({ uri: 'warpcad://scene' }))
     expect(unwrapDocumentData(scene.contents[0].text)).toEqual((await call(client, 'describe_scene')).result)
     const catalogue = /** @type {any} */ (await client.readResource({ uri: 'warpcad://op-catalogue' }))
     expect(unwrapDocumentData(catalogue.contents[0].text)).toEqual((await call(client, 'list_ops')).result)
+    const summary = /** @type {any} */ (await client.readResource({ uri: 'warpcad://op-catalogue/summary' }))
+    expect(unwrapDocumentData(summary.contents[0].text)).toEqual((await call(client, 'list_ops', { detail: 'summary' })).result)
   })
 
   it('serves warpcad://guide as markdown for the assistant: our text, unwrapped, and reading it leaves the file alone (ai-028)', async () => {

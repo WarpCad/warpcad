@@ -25,6 +25,7 @@ describe('LIMITS — the starting caps from ai-001 decision 7', () => {
       consecutiveFailures: 3,
       turnMs: 10 * 60 * 1000,
       repeatTargets: 64,
+      listOpsIds: 20,
     })
     expect(Object.isFrozen(LIMITS)).toBe(true)
   })

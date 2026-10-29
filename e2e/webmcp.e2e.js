@@ -83,6 +83,16 @@ test('a browser agent lists the tools, places a cube and a sphere and unions the
   const names = await registeredNames(page)
   for (const name of ['create', 'operate', 'apply_records', 'describe_scene', 'get_selection', 'select', 'list_ops']) expect(names).toContain(name)
   expect(names).not.toContain('capture_view')
+  // ai-030: the cheap path — a summary is every op with param names only, and one op can be asked for in full.
+  const summary = await agentCall(page, 'list_ops', { detail: 'summary' })
+  expect(summary.ok, JSON.stringify(summary)).toBe(true)
+  // WebMCP pages a long list to its advised size, so the summary is a first page that says how many there are.
+  expect(summary.page.total).toBeGreaterThan(30)
+  expect(summary.create[0].defaults).toBeUndefined()
+  expect(Array.isArray(summary.create[0].params)).toBe(true)
+  const one = await agentCall(page, 'list_ops', { ops: ['primitive.cylinder'] })
+  expect(one.create.map((/** @type {any} */ row) => row.op)).toEqual(['primitive.cylinder'])
+  expect(one.create[0].defaults).toBeDefined()
   expect(await page.evaluate(() => /** @type {any} */ (window).__webmcp.annotations('describe_scene'))).toMatchObject({ readOnlyHint: true, untrustedContentHint: true })
 
   // No key: with WebMCP present the Assistant opens on its panel, which says a browser agent can drive it.

@@ -90,7 +90,7 @@ Lengths are millimetres, Z is up and angles are in degrees, as in the app.
 
 | Tool | Changes the file? | What it does |
 |---|---|---|
-| `list_ops` | no | What can be placed (Cube, Sphere, a Bolt, a Raspberry Pi…) and which operations exist, with their sizes and defaults. |
+| `list_ops` | no | What can be placed (Cube, Sphere, a Bolt, a Raspberry Pi…) and which operations exist, with their sizes and defaults. Claude reads a short list first and looks up the details only for the ops it uses, so a session starts faster and costs less. |
 | `describe_scene` | no | Every shape: id, name, size and position in mm. |
 | `describe_body` | no | One shape in detail. |
 | `get_timeline` | no | The History rows, who made each one, and why. |

@@ -45,6 +45,7 @@ import { REPEAT_LIMITS } from '../../core/repeat.js'
  * @property {number} turnMs Wall-clock time one turn may take, in milliseconds.
  * @property {number} repeatTargets Targets one `repeat` call may name (`TODO/core-061`) — the
  *   document's own limit, read from `src/core/repeat.js` so the two are one number.
+ * @property {number} listOpsIds Op ids one `list_ops { ops }` call may ask for (`TODO/ai-030`).
  */
 
 /** @type {Readonly<Limits>} */
@@ -55,6 +56,7 @@ export const LIMITS = Object.freeze({
   consecutiveFailures: 3,
   turnMs: 10 * 60 * 1000,
   repeatTargets: REPEAT_LIMITS.maxTargets,
+  listOpsIds: 20,
 })
 
 /**

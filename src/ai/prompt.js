@@ -43,7 +43,7 @@
  */
 
 /** Bumped on every change to {@link SYSTEM_PROMPT}: `YYYY-MM-DD.n`. */
-export const PROMPT_VERSION = '2026-10-10.1'
+export const PROMPT_VERSION = '2026-10-29.1'
 
 /**
  * What the prompt tells the model to do when scale or intent is genuinely unknown. Pinned by
@@ -65,7 +65,7 @@ export const SECTIONS = Object.freeze({
 - Geometry is placed, not spawned. Every create call gives positionMm: x and y centre the body's footprint, z is the height its underside rests at (0 = on the grid). Put each body where it belongs relative to the others, and never stack new bodies at the origin by default — a body placed on top of another hides it.
 - A body's name and op are shown in History. Describe what you made using the names the tools return.`,
   tools: `# Tools and operand rules
-- list_ops gives the catalogue: create ops (zero operands, placed from nothing) and operate ops (need existing bodies), each with its params schema and defaults. Call it once when you need an op or a param you are not sure of.
+- list_ops gives the catalogue: create ops (zero operands, placed from nothing) and operate ops (need existing bodies), each with its params schema and defaults. The full list is large: call it with { "detail": "summary" } to see every op and its param names, then with { "ops": ["primitive.cylinder"] } for the full schema of just the ones you use.
 - create places one new body. operate changes or combines existing bodies; it never creates from nothing.
 - Respect each op's operand count. One-operand ops (move, rotate, mirror, fillet, chamfer, enlarge, fit, bisect) take exactly one body. Booleans (union, subtract, intersect), group, snap and align take two or more.
 - For boolean.subtract the first operand is the body that is kept; every later operand is cut out of it. An operand may name a part, e.g. { "id": "bolt-4", "pieces": "tap" } for a bolt's tap hole.
@@ -77,7 +77,7 @@ export const SECTIONS = Object.freeze({
   example: `# Example
 User: "A 40 mm cube with a 10 mm hole straight through the middle."
 1. create { "op": "primitive.cuboid", "positionMm": [0, 0, 0], "params": { "size": [40, 40, 40] }, "rationale": "Main block" } → body "cuboid-1".
-2. create { "op": "primitive.cylinder", "positionMm": [0, 0, -1], "params": { "diameter": 10, "height": 42 }, "rationale": "Through-hole cutter, 1 mm proud each side" } → body "cylinder-2". (Check list_ops for the exact param names.)
+2. create { "op": "primitive.cylinder", "positionMm": [0, 0, -1], "params": { "diameter": 10, "height": 42 }, "rationale": "Through-hole cutter, 1 mm proud each side" } → body "cylinder-2". (Check list_ops with ops: ["primitive.cylinder"] for the exact param names.)
 3. operate { "op": "boolean.subtract", "operands": [{ "id": "cuboid-1" }, { "id": "cylinder-2" }], "rationale": "Cut the hole" } → one body remains.
 4. Inspect, then reply in one or two sentences saying what is there.`,
   printing: `# Printing defaults (use these unless the user or the project's standing instructions say otherwise)
