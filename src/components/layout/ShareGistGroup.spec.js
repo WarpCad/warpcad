@@ -6,8 +6,10 @@ import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, toRaw } from 'vue'
 
+import { createDocument } from '../../core/document.js'
 import { gistLink } from '../../core/gistLink.js'
 import { gistMessage } from '../../core/gistMessages.js'
+import { parseProject, serializeProject } from '../../core/project.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { setGistDependencies, useGistStore } from '../../stores/gist.js'
@@ -181,7 +183,7 @@ describe('ShareGistGroup', () => {
     expect(q('share-gist-link-text').value).toBe(gistLink(ID))
   })
 
-  it('Update gist patches the same gist and says so; a gist changed elsewhere refuses in fixed words', async () => {
+  it('Update gist patches the same gist and says so; a gist that now holds a different project refuses in fixed words', async () => {
     await useGistStore().connect(TOKEN)
     const wrapper = render()
     await flush()
@@ -194,12 +196,37 @@ describe('ShareGistGroup', () => {
     expect(wrapper.emitted('toast')?.at(-1)).toEqual(['Gist updated'])
     expect(backend.updateGist.mock.calls.at(-1)[0].id).toBe(ID)
 
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.ndjson' })
+    const stranger = createDocument({ foldCache: null })
+    stranger.append({ id: 'ball-1', op: 'primitive.sphere', name: 'Ball', params: { diameter: 30, center: [0, 0, 15] } }, { origin: 'local' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: serializeProject(stranger), revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.ndjson' })
     const calls = backend.updateGist.mock.calls.length
     q('share-gist-update').click()
     await flush()
-    expect(q('share-gist-error').textContent).toBe(gistMessage('changed-remotely', 'update'))
+    expect(q('share-gist-error').textContent).toBe(gistMessage('different-project', 'update'))
     expect(backend.updateGist.mock.calls.length).toBe(calls)
+  })
+
+  it('io-019: Update gist on a gist another device updated merges it in, then updates: both steps go up', async () => {
+    await useGistStore().connect(TOKEN)
+    const wrapper = render()
+    await flush()
+    q('share-gist-publish').click()
+    await flush()
+    const projectFile = (call) => Object.entries(call.files).find(([name, text]) => name.endsWith('.ndjson') && typeof text === 'string')[1]
+    const parsed = parseProject(projectFile(backend.createGist.mock.calls[0][0]))
+    const phone = createDocument({ foldCache: null })
+    phone.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+    phone.append({ id: 'phone-1', op: 'primitive.sphere', name: 'Knob', params: { diameter: 8, center: [0, 30, 4] } }, { origin: 'local' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: serializeProject(phone), revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.ndjson' })
+    backend.updateGist.mockResolvedValueOnce({ id: ID, revision: '3'.repeat(40), url: '', rawUrls: {} })
+
+    q('share-gist-update').click()
+    await flush()
+
+    expect(wrapper.emitted('toast')?.at(-1)).toEqual(['Gist updated'])
+    expect(q('share-gist-error')).toBeNull()
+    const sent = parseProject(projectFile(backend.updateGist.mock.calls.at(-1)[0]))
+    expect(sent.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'phone-1'])
   })
 
   it('Stop sharing asks first; Keep sharing deletes nothing; Stop sharing deletes the gist', async () => {

@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-019 — Update gist merges before publishing (2026-10-29 13:32)
+
+Driven by e2e and a scratch clash drive on Chromium and WebKit, never against real GitHub or on a real phone.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With a real throwaway token, edit one published project on a laptop and a phone, tap **Update gist** on both: the second shows the merge strip then *Gist updated*, and the real gist keeps both edits (the 60 s read cache is the unknown). | Open | |
+| 2 | After a gist merge, tap **Undo merge**, then **Update gist**: confirm the gist loses the merged rows ("take mine") and that this reads acceptably. | Open | |
+
+
 ### ui-079 — Tiered Library and Operations panels (2026-10-29 12:40)
 
 Closed with only scenarios 1 and 4 (and 7's button presses) re-driven at 820 and 720 px on Chromium and WebKit, at the owner's request ("I'll verify later"). The rest of the file's Testing section is owed.

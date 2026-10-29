@@ -3634,3 +3634,16 @@ The trade is that the hook is the only gate: skipping it with --no-verify skips 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** release called ci.yml first → diff (removed `test` job); hook gates on stored full unit and e2e runs → CLAUDE.md Conventions; --no-verify skips it → CONTRIBUTING.md Pushing; spdx/licences now manual → diff (CONTRIBUTING.md); guard spec → diff (scripts/release-workflow.spec.js)
 **To Add:** nothing
+
+## 2026-10-29T13:40:00Z — Update gist merges the other device's changes instead of refusing
+
+**Post:** A published WarpCad project can now be edited on two devices and updated from both. Until this change, Update gist compared the gist's latest revision with the one the project last published and, if they differed, refused and wrote nothing, so the owner had to open the gist first and redo their work.
+
+Now it reads the gist, merges its project into the open one with the same merge as Merge file, and only then publishes the merged result. If rows conflict, the conflict banner shows, nothing is sent, and the next tap publishes what you kept. If the gist now holds a different project, or the merge cannot run, nothing is written either.
+
+The new end-to-end case has two browser contexts both publish and update against a fake gist API, and each ends with all four bodies, as does the gist. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** refused and wrote nothing before → diff (removed changed-remotely branch) and TODO/done/io-019 Goal; merge then publish, conflict banner sends nothing, different project refused → diff (mergeRemote, merge-conflict, different-project) and useGistPublish.spec.js passing this session (330 unit files, 7483 tests); two contexts end with four bodies → e2e/gist-share case 11, passing this session
+**To Add:** nothing

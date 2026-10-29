@@ -6,8 +6,9 @@
  *
  * - `id` — the gist id, the short link's capability (`gistLink.js`'s {@link isGistId});
  * - `public` — whether it was created public (GitHub cannot change this afterwards);
- * - `lastRevision` — the gist revision this project last wrote, so **Update gist** can refuse
- *   when someone else's write came in between (the interim rule, `docs/decisions/gist-storage.md`);
+ * - `lastRevision` — the gist revision this project last wrote or merged in, so **Update gist**
+ *   knows when someone else's write came in between and merges it first (`TODO/io-019`,
+ *   `docs/decisions/gist-storage.md`);
  * - `owner` — the GitHub login that published it. A project file can be opened by someone who
  *   is not that account (a file sent by hand, not a link), and only the owner can update or
  *   delete the gist, so the screens treat a field whose owner is not the connected account as

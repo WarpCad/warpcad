@@ -11,8 +11,9 @@
  * - **The first save** (`create`): **Name** (`save-gist-name`, pre-filled by `TODO/io-020`'s rule —
  *   the project's name, `Untitled` without one) and **Secret / Public** (`save-gist-secret`,
  *   `save-gist-public`; Secret unless chosen, and GitHub cannot change it later), then **Save**.
- * - **Save to gist refused** (`update`, e.g. `changed-remotely`): the reason and **Save to gist**
- *   again — nothing else to ask, since the gist keeps its title and visibility.
+ * - **Save to gist refused** (`update`, e.g. `different-project` or `merge-conflict` — a gist
+ *   changed elsewhere is merged in first, `TODO/io-019`): the reason and **Save to gist** again —
+ *   nothing else to ask, since the gist keeps its title and visibility.
  * - **The toast** (`save-gist-toast`) names the gist and carries **Copy link**
  *   (`save-gist-toast-copy`), a new tap, so the clipboard write has its own activation.
  *

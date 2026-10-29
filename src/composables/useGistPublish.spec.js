@@ -7,11 +7,14 @@ import { effectScope, toRaw } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { gistLink, isGistRawUrl } from '../core/gistLink.js'
-import { serializeProject } from '../core/project.js'
+import { GIST_BUSY_MESSAGE, gistMessage } from '../core/gistMessages.js'
+import { parseProject, serializeProject } from '../core/project.js'
 import { GistError } from '../storage/gistBackend.js'
 import { useDocumentStore } from '../stores/document.js'
 import { setGistDependencies, useGistStore } from '../stores/gist.js'
+import { useMergeStore } from '../stores/merge.js'
 import { setPersistenceDependencies, usePersistenceStore } from '../stores/persistence.js'
+import { useTimelineStore } from '../stores/timeline.js'
 import { GIST_ORIGIN, useGistPublish } from './useGistPublish.js'
 
 /**
@@ -112,6 +115,25 @@ function buildProject() {
 
 /** The README text the last call of `fn` carried. */
 const readmeOf = (fn) => fn.mock.calls.at(-1)[0].files['README.md']
+
+/**
+ * Another device's copy of a published project (`TODO/io-019`): the gist's file read back into a
+ * document of its own — its own replica, as a phone that opened the link holds it — one edit,
+ * and the bytes that device's **Update gist** would have written.
+ *
+ * @param {string} text
+ * @param {(document: ReturnType<typeof createDocument>) => void} edit
+ */
+function otherDevice(text, edit) {
+  const parsed = parseProject(text)
+  const other = createDocument({ foldCache: null })
+  other.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+  edit(other)
+  return serializeProject(other)
+}
+
+/** The record ids in a project file, sorted. @param {string} text */
+const idsOf = (text) => parseProject(text).entries.map((entry) => entry.record.id).sort()
 
 beforeEach(async () => {
   setActivePinia(createPinia())
@@ -318,17 +340,30 @@ describe('the README carries the minimum', () => {
   })
 })
 
-describe('update — the interim rule: refuse if the gist changed', () => {
+describe('update — the gist is read first, and merged in when it changed (io-019)', () => {
+  /** The revision another device wrote: never one this session or this project published. */
+  const THEIRS = 'f'.repeat(40)
+
+  /**
+   * A published project with one local step since. `gistText` is the project file as the gist
+   * holds it after the publish — what another device that opened the link started from.
+   */
   async function published() {
     buildProject()
     const mounted = mount()
     await mounted.api.publish()
+    const gistText = backend.createGist.mock.calls[0][0].files['phone-stand.ndjson']
     backend.createGist.mockClear()
     backend.updateGist.mockClear()
     backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
     useDocumentStore().append({ ...CUBE, id: 'cube-2', name: 'Lip', params: { size: [5, 5, 5], center: [40, 0, 2.5] } })
-    return mounted
+    return { ...mounted, gistText }
   }
+
+  /** The gist as another device left it: `text` at {@link THEIRS}. @param {string} text */
+  const theirGist = (text) => ({ id: ID, description: 'Phone stand', text, revision: THEIRS, updatedAt: null, fileName: 'phone-stand.ndjson' })
+
+  const PHONE_ROW = { id: 'phone-1', op: 'primitive.sphere', name: 'Knob', params: { diameter: 8, center: [0, 30, 4] } }
 
   it('reads the gist first and, at the revision last published, patches the same id with both files', async () => {
     const { scope, api } = await published()
@@ -349,25 +384,150 @@ describe('update — the interim rule: refuse if the gist changed', () => {
     scope.stop()
   })
 
-  it('refuses, writing nothing, when the gist is at a revision this project never published', async () => {
-    const { scope, api } = await published()
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: 'f'.repeat(40), updatedAt: null, fileName: 'phone-stand.ndjson' })
-    const result = await api.update()
-    expect(result).toEqual({
-      ok: false,
-      kind: 'changed-remotely',
-      message: 'This gist changed since you last published it. Open its link first, then update.',
+  it('a gist another device updated is merged in first, then patched with the merged project', async () => {
+    const { scope, api, gistText } = await published()
+    const phone = otherDevice(gistText, (doc) => doc.append(structuredClone(PHONE_ROW), { origin: 'local' }))
+    backend.readGist.mockResolvedValueOnce(theirGist(phone))
+    /** What the open project held when the PATCH went out: the merge must already have landed. */
+    let idsAtPatch = []
+    let textAtPatch = ''
+    backend.updateGist.mockImplementationOnce(async () => {
+      idsAtPatch = useDocumentStore().raw.entries.map((entry) => entry.record.id).sort()
+      textAtPatch = serializeProject(toRaw(useDocumentStore().raw))
+      return { id: ID, revision: REV3, url: '', rawUrls: {} }
     })
-    expect(backend.updateGist).not.toHaveBeenCalled()
-    expect(toRaw(useDocumentStore().raw).gist().lastRevision).toBe(REV2)
+
+    const result = await api.update()
+
+    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV3, name: 'Phone stand' })
+    // Both devices' steps, locally and in the gist.
+    expect(idsAtPatch).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1'])
+    expect(backend.updateGist).toHaveBeenCalledTimes(1)
+    const patched = backend.updateGist.mock.calls[0][0]
+    expect(idsOf(patched.files['phone-stand.ndjson'])).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1'])
+    // Exactly the merged project, serialised after the merge (Download copy's bytes at that moment).
+    expect(patched.files['phone-stand.ndjson']).toBe(textAtPatch)
+    expect(patched.files['README.md']).toContain('4 bodies')
+    // The merge said what came in, with Undo merge — the strip every merge shows.
+    expect(useMergeStore().notice).toMatchObject({ kind: 'toast', text: 'Merged 1 step from the gist', undoable: true })
+    expect(toRaw(useDocumentStore().raw).gist().lastRevision).toBe(REV3)
     scope.stop()
   })
 
-  it('a cached read of a revision this session wrote earlier is not someone else\'s change', async () => {
+  it('a merge is not a local undo step: Undo still takes back the last local edit, not the phone\'s', async () => {
+    const { scope, api, gistText } = await published()
+    backend.readGist.mockResolvedValueOnce(theirGist(otherDevice(gistText, (doc) => doc.append(structuredClone(PHONE_ROW), { origin: 'local' }))))
+    await api.update()
+    useDocumentStore().undo()
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id).sort()).toEqual(['cube-1', 'cyl-1', 'phone-1'])
+    scope.stop()
+  })
+
+  it('a gist that now holds a different project is refused: nothing merged, nothing written', async () => {
     const { scope, api } = await published()
+    const stranger = createDocument({ foldCache: null })
+    stranger.append({ id: 'ball-1', op: 'primitive.sphere', name: 'Ball', params: { diameter: 30, center: [0, 0, 15] } }, { origin: 'local' })
+    backend.readGist.mockResolvedValueOnce(theirGist(serializeProject(stranger)))
+    const before = serializeProject(toRaw(useDocumentStore().raw))
+
+    const result = await api.update()
+
+    expect(result).toEqual({ ok: false, kind: 'different-project', message: gistMessage('different-project', 'update') })
+    expect(backend.updateGist).not.toHaveBeenCalled()
+    expect(serializeProject(toRaw(useDocumentStore().raw))).toBe(before)
+    expect(useMergeStore().notice).toBeNull()
+    expect(useGistStore().lastErrorKind).toBe('different-project')
+    scope.stop()
+  })
+
+  it('a gist whose project does not read is refused: nothing merged, nothing written', async () => {
+    const { scope, api } = await published()
+    backend.readGist.mockResolvedValueOnce(theirGist('{"id":"x","op":"primitive.cuboid"'))
+    const before = serializeProject(toRaw(useDocumentStore().raw))
+    expect(await api.update()).toMatchObject({ ok: false, kind: 'unreadable' })
+    expect(backend.updateGist).not.toHaveBeenCalled()
+    expect(serializeProject(toRaw(useDocumentStore().raw))).toBe(before)
+    scope.stop()
+  })
+
+  it('a merge with conflicts shows the banner and writes nothing; the next Update publishes the result', async () => {
+    const { scope, api, gistText } = await published()
+    // Here: move the base. There: round its top edge. The phone's fillet folds second, and
+    // conflicts with the move (`docs-022`).
+    useDocumentStore().append({ id: 'move-1', op: 'transform.translate', target: 'cube-1', supersedes: 'cube-1', params: { vector: [5, 0, 0] } })
+    const phone = otherDevice(gistText, (doc) => {
+      doc.setStandingInstructions('Keep the top edge rounded', { origin: 'local' })
+      doc.append({ id: 'fillet-1', op: 'modify.filletRim', target: 'cube-1', supersedes: 'cube-1', params: { face: 'top', radius: 2 } }, { origin: 'local' })
+    })
+    backend.readGist.mockResolvedValueOnce(theirGist(phone))
+
+    const result = await api.update()
+
+    expect(result).toEqual({ ok: false, kind: 'merge-conflict', message: gistMessage('merge-conflict', 'update') })
+    expect(backend.updateGist).not.toHaveBeenCalled()
+    expect(useMergeStore().notice).toMatchObject({ kind: 'banner', conflictIds: ['fillet-1'], undoable: true })
+    // The gist's revision is now in this project, so it is not merged a second time…
+    expect(toRaw(useDocumentStore().raw).gist().lastRevision).toBe(THEIRS)
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id)).toContain('fillet-1')
+
+    // …and, once the person has looked, Update gist publishes what they have.
+    backend.readGist.mockResolvedValueOnce(theirGist(phone))
+    const again = await api.update()
+    expect(again).toMatchObject({ ok: true, revision: REV3 })
+    expect(backend.updateGist).toHaveBeenCalledTimes(1)
+    expect(idsOf(backend.updateGist.mock.calls[0][0].files['phone-stand.ndjson'])).toContain('fillet-1')
+    scope.stop()
+  })
+
+  it('a rate-limited read says GitHub is busy and merges and writes nothing', async () => {
+    const { scope, api } = await published()
+    backend.readGist.mockRejectedValueOnce(new GistError('rate-limited', 'GitHub is limiting requests right now'))
+    const before = serializeProject(toRaw(useDocumentStore().raw))
+    expect(await api.update()).toEqual({ ok: false, kind: 'rate-limited', message: GIST_BUSY_MESSAGE })
+    expect(backend.updateGist).not.toHaveBeenCalled()
+    expect(serializeProject(toRaw(useDocumentStore().raw))).toBe(before)
+    expect(useMergeStore().notice).toBeNull()
+    scope.stop()
+  })
+
+  it('while History is previewing an earlier step it does not merge: refused, nothing written', async () => {
+    const { scope, api, gistText } = await published()
+    useTimelineStore().selectRow(CUBE.id)
+    expect(useMergeStore().unavailableReason).not.toBe('')
+    backend.readGist.mockResolvedValueOnce(theirGist(otherDevice(gistText, (doc) => doc.append(structuredClone(PHONE_ROW), { origin: 'local' }))))
+    const before = serializeProject(toRaw(useDocumentStore().raw))
+
+    expect(await api.update()).toEqual({ ok: false, kind: 'merge-unavailable', message: gistMessage('merge-unavailable', 'update') })
+    expect(backend.updateGist).not.toHaveBeenCalled()
+    expect(serializeProject(toRaw(useDocumentStore().raw))).toBe(before)
+    scope.stop()
+  })
+
+  it('a project replaced while the gist was being read is not merged into or published', async () => {
+    const { scope, api, gistText } = await published()
+    let release
+    backend.readGist.mockImplementationOnce(
+      () => new Promise((resolve) => (release = () => resolve(theirGist(otherDevice(gistText, (doc) => doc.append(structuredClone(PHONE_ROW), { origin: 'local' })))))),
+    )
+    const pending = api.update()
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+    useDocumentStore().load([{ record: { id: 'other-1', op: 'primitive.sphere', name: 'Other', params: { diameter: 5, center: [0, 0, 2.5] } }, origin: 'local' }])
+    release()
+
+    expect(await pending).toMatchObject({ ok: false, kind: 'not-published' })
+    expect(backend.updateGist).not.toHaveBeenCalled()
+    expect(useDocumentStore().raw.entries.map((entry) => entry.record.id)).toEqual(['other-1'])
+    expect(useMergeStore().notice).toBeNull()
+    scope.stop()
+  })
+
+  it('a cached read of a revision this session wrote earlier is not someone else\'s change: no merge', async () => {
+    const { scope, api, gistText } = await published()
     // GitHub can serve a read up to 60 s old: the create's revision, not the README patch's.
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV1, updatedAt: null, fileName: 'phone-stand.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: gistText, revision: REV1, updatedAt: null, fileName: 'phone-stand.ndjson' })
     expect((await api.update()).ok).toBe(true)
+    expect(backend.updateGist).toHaveBeenCalledTimes(1)
+    expect(useMergeStore().notice).toBeNull()
     scope.stop()
   })
 

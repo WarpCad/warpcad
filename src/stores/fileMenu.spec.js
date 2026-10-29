@@ -6,7 +6,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toRaw } from 'vue'
 
+import { createDocument } from '../core/document.js'
 import { gistMessage } from '../core/gistMessages.js'
+import { parseProject, serializeProject } from '../core/project.js'
 import { GistError } from '../storage/gistBackend.js'
 import { useDocumentStore } from './document.js'
 import { useFileMenuStore } from './fileMenu.js'
@@ -431,17 +433,43 @@ describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
     expect(menu.gistSaveLabel).toBe('Save as gist…')
   })
 
-  it('Save to gist refuses a gist changed elsewhere (changed-remotely): nothing written, the reason in the dialog', async () => {
+  it('Save to gist merges a gist changed elsewhere first, then saves the merged project (io-019)', async () => {
     await connect()
     useDocumentStore().append(cube('cube-1'))
     const menu = useFileMenuStore()
     menu.requestSaveAsGist()
     await menu.saveAsGist({ name: 'Bracket', public: false })
-    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: '', revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })
+    // Another device opened the gist, added a step and updated it.
+    const parsed = parseProject(gistBackend.createGist.mock.calls[0][0].files['bracket.ndjson'])
+    const phone = createDocument({ foldCache: null })
+    phone.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+    phone.append(cube('cube-phone'), { origin: 'local' })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: serializeProject(phone), revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })
+    gistBackend.updateGist.mockClear()
+    gistBackend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
+    useDocumentStore().append(cube('cube-2'))
+
+    menu.requestSaveAsGist()
+    await vi.waitFor(() => expect(gistBackend.updateGist).toHaveBeenCalledTimes(1))
+    const written = parseProject(gistBackend.updateGist.mock.calls[0][0].files['bracket.ndjson']).entries.map((entry) => entry.record.id)
+    expect(written.sort()).toEqual(['cube-1', 'cube-2', 'cube-phone'])
+    await vi.waitFor(() => expect(gistField().lastRevision).toBe(REV3))
+    expect(menu.gistSaveError).toBe('')
+  })
+
+  it('Save to gist refuses a gist that now holds a different project: nothing written, the reason in the dialog', async () => {
+    await connect()
+    useDocumentStore().append(cube('cube-1'))
+    const menu = useFileMenuStore()
+    menu.requestSaveAsGist()
+    await menu.saveAsGist({ name: 'Bracket', public: false })
+    const stranger = createDocument({ foldCache: null })
+    stranger.append({ id: 'ball-1', op: 'primitive.sphere', name: 'Ball', params: { diameter: 30, center: [0, 0, 15] } }, { origin: 'local' })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: serializeProject(stranger), revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })
     gistBackend.updateGist.mockClear()
 
     menu.requestSaveAsGist()
-    await vi.waitFor(() => expect(menu.gistSaveError).toBe(gistMessage('changed-remotely', 'update')))
+    await vi.waitFor(() => expect(menu.gistSaveError).toBe(gistMessage('different-project', 'update')))
     expect(gistBackend.updateGist).not.toHaveBeenCalled()
     expect(menu.gistSaveOpen).toBe(true)
     expect(gistField().lastRevision).toBe(REV2)

@@ -174,9 +174,25 @@ Once a project is published, the group in the Share sheet offers:
 - **Update gist** publishes the project as it is now, to the same gist. Anyone who opens the link
   afterwards sees the new version. Change **Name** and tap **Update gist** to rename the gist too:
   change it to *Desk stand* and the gist, its README and its file become *Desk stand*. If the gist changed somewhere else since you last published it
-  (you updated it from another device, or edited it on GitHub), WarpCad doesn't overwrite it. It
-  says *This gist changed since you last published it. Open its link first, then update.* Open
-  the link on this device, choose **Open it to edit**, then update.
+  (you updated it from another device, or edited it on GitHub), **Update gist** merges those
+  changes into your project first, the same way **File ▾ → Merge file…** does, and then updates
+  the gist with both. The merge note says what came in (*Merged 1 step from the gist*), with
+  **Undo merge**, then *Gist updated*. Nothing of yours is thrown away and nothing of theirs is
+  overwritten.
+
+  **Example.** Edit the project on your laptop and tap **Update gist**. Edit it on your phone, tap
+  **Update gist**: the phone merges the laptop's changes first, then updates the gist. Open the
+  link on either device and both edits are there.
+
+  Some updates stop before anything is sent to GitHub, and say why:
+
+  - If a step from the gist clashes with one of yours (both changed the same shape), the merge
+    note turns into the conflict banner and the gist is not updated. Tap **Show** to see the step,
+    fix or keep it, then tap **Update gist** again: this time it publishes.
+  - If the gist now holds a different project, WarpCad says *This gist now holds a different
+    project, so nothing was sent to it.*
+  - While you're looking at an earlier step in **History**, or the Assistant is working, return to
+    the latest step or let it finish, then update.
 - **Open on GitHub** shows the gist's page on github.com, with the readable page first.
 - **Stop sharing** deletes the gist from GitHub, after asking: the link stops working. People who
   already opened or saved a copy keep it, and GitHub may keep serving it for a few minutes.

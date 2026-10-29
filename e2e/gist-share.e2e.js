@@ -27,7 +27,10 @@ import { closeLibrary, isPhone, openLibrary, pointer, sleep, viewportPoint } fro
  *   6. rate-limited and deleted-gist responses show their plain messages;
  *   7. the owner opening their own link gets **Open it to edit**, not a read-only copy; someone
  *      else's **Make my own copy to edit** does not own the sender's gist;
- *   8. a project over the long link's ceiling shows the gist button as the way to share it.
+ *   8. a project over the long link's ceiling shows the gist button as the way to share it;
+ *  11. the owner on two devices (`TODO/io-019`): both update the same gist, and each **Update gist**
+ *      merges the other's step in first (the merge toast, then *Gist updated*), so both contexts
+ *      and the gist end with every body.
  * Plus: the hosted-repository and gist credentials never overwrite each other through the UI
  * (`io-002`'s closed findings, on the second key), and `#/gist/` coexisting with `#/help/<slug>`
  * (`M20-testing-012` has no spec yet, so the case lives here until it does).
@@ -531,6 +534,88 @@ test.describe('store and share a project as a GitHub gist', () => {
       await expect(other.getByTestId('shared-incomplete')).toBeVisible()
       await expect(other.getByTestId('shared-gist-message')).toHaveText(NOT_FOUND)
       await expect(other.getByTestId('viewport')).toHaveCount(0)
+      expect(fake.escaped).toEqual([])
+    } finally {
+      await context.close()
+    }
+  })
+
+  test('11. the owner on two devices: each Update gist merges the other\'s changes first (io-019)', async ({ page, browser, baseURL }, info) => {
+    test.setTimeout(150_000)
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+
+    // A, the laptop: connect, two shapes, publish.
+    await connectFromMenu(page, input)
+    await placeShapes(page, input, info)
+    await openShareSheet(page, input)
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
+    const id = /** @type {string} */ (await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))).slice(-32)
+    await closeShareSheet(page)
+    // The project file, carrying its gist field, is how the owner's second device gets the project.
+    const file = await downloadCopy(page, input)
+    if (await page.getByTestId('share-sheet').isVisible()) await closeShareSheet(page)
+    expect(file).toContain(id)
+
+    const context = await freshContext(browser, info, baseURL)
+    try {
+      // B, the owner's phone: open the file, connect the same account — it is published here too.
+      const phone = await context.newPage()
+      // The `<input type=file>` picker every engine has, which Playwright can answer (`merge-file.e2e.js`).
+      await phone.addInitScript(() => Object.defineProperty(window, 'showOpenFilePicker', { value: undefined, configurable: true }))
+      await openApp(phone, fake)
+      await editorReady(phone)
+      const pinput = await pointer(phone, info)
+      await openFileMenu(phone, pinput)
+      const chooserEvent = phone.waitForEvent('filechooser')
+      // Playwright's click, as `merge-file.e2e.js` opens it: the picker needs the click's activation.
+      await phone.getByTestId('file-open').click()
+      const chooser = await chooserEvent
+      await chooser.setFiles({ name: 'untitled.ndjson', mimeType: 'text/plain', buffer: Buffer.from(file) })
+      await expectBodyCount(phone, 2)
+      await connectFromMenu(phone, pinput)
+      expect((await gistFieldOf(phone))?.id).toBe(id)
+
+      // B edits and updates first: the gist is where B left it, so no merge.
+      await placeShapes(phone, pinput, info, ['primitive.cylinder'])
+      await openShareSheet(phone, pinput)
+      await tap(pinput, phone.getByTestId('share-gist-update'))
+      await expect(phone.getByTestId('share-toast')).toHaveText('Gist updated')
+      await expect(phone.getByTestId('merge-toast')).toHaveCount(0)
+      await closeShareSheet(phone)
+
+      // A edits too and updates: B's cylinder is merged in first, then the gist gets both.
+      await placeShapes(page, input, info, ['primitive.cuboid'])
+      const patches = fake.requests.filter((r) => r.method === 'PATCH').length
+      await openShareSheet(page, input)
+      await tap(input, page.getByTestId('share-gist-update'))
+      await expect(page.getByTestId('merge-toast-text')).toHaveText('Merged 1 step from the gist')
+      await expect(page.getByTestId('merge-undo')).toBeVisible()
+      await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
+      await expect(page.getByTestId('share-gist-error')).toHaveCount(0)
+      expect(fake.requests.filter((r) => r.method === 'PATCH').length).toBe(patches + 1)
+      await sleep(300)
+      await page.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-update-merged.png`) })
+      await closeShareSheet(page)
+      await expectBodyCount(page, 4)
+
+      // B updates again: A's cuboid comes in, and both devices end with all four bodies.
+      await openShareSheet(phone, pinput)
+      await tap(pinput, phone.getByTestId('share-gist-update'))
+      await expect(phone.getByTestId('merge-toast-text')).toHaveText('Merged 1 step from the gist')
+      await expect(phone.getByTestId('share-toast')).toHaveText('Gist updated')
+      await closeShareSheet(phone)
+      await expectBodyCount(phone, 4)
+      expect((await bodyNames(phone)).sort()).toEqual((await bodyNames(page)).sort())
+
+      // One gist, holding the four bodies.
+      expect(fake.gists.size).toBe(1)
+      const records = (projectFileOf(fake.gists.get(id))?.text ?? '').split('\n').filter((line) => line !== '' && !line.startsWith('{"warpcad"'))
+      expect(records).toHaveLength(4)
+      await expectNoHorizontalScroll(phone)
       expect(fake.escaped).toEqual([])
     } finally {
       await context.close()

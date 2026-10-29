@@ -50,7 +50,8 @@ so the classic `gist`-scope token is the **fallback**, accepted but not recommen
   `GET /gists?per_page=1`, then shows the login from `GET /user`.
 - **Merge (Stage 3).** Not in this task's first stages. Interim behaviour: **Update refuses if the
   gist's latest revision is not the one last published**; the owner opens the gist first. File
-  `io-0NN` for the `mergeIn` flow.
+  `io-0NN` for the `mergeIn` flow. *Replaced by `TODO/io-019`: Update now merges first — see
+  "Stage 3: Update merges the gist first" below.*
 
 ## Options compared
 
@@ -88,7 +89,8 @@ Neither token can be limited to a single gist; the sheet says so in plain words.
 - **Byte identity.** A Download copy taken *after* publishing contains `merge.gist`, which a file
   cannot know before the gist exists; the published file equals a Download copy taken before.
 - **Undo merge** leaves the gist field alone. A stale `lastRevision` only makes Update refuse,
-  which is the safe direction.
+  which is the safe direction. *(Since `io-019` a stale `lastRevision` makes Update merge again,
+  which brings in nothing new.)*
 
 ## The gist's name (`TODO/io-020`)
 
@@ -117,7 +119,44 @@ GitHub's documentation but was not observed. A by-hand check is queued in `TODO/
 - **Save to gist keeps the gist's title.** Without that, a never-saved project would rename the gist's file to `untitled.ndjson`.
 - **A gist from another account is not this project's target.** The project counts as having a target only when the gist field exists and its owner is the connected login, or when no account is connected. Otherwise Save as gist… creates a new gist under the user's own account, as the Share sheet does.
 - **Share-sheet saves also update the chip**, because both entry points share `useGistPublish`.
-- **Failure placement.** A refused Save to gist (e.g. `changed-remotely`) opens the dialog on its update step with the `gistMessages.js` wording and a retry button. Nothing is written.
+- **Failure placement.** A refused Save to gist (e.g. `different-project` or `merge-conflict`; before `io-019`, `changed-remotely`) opens the dialog on its update step with the `gistMessages.js` wording and a retry button. Nothing is written.
+
+## Stage 3: Update merges the gist first (`TODO/io-019`, 2026-10-29)
+
+Replaces Stage 2's interim rule (Update refused with `changed-remotely`, "open its link first,
+then update"). An owner who edits the same published project on two devices and taps **Update
+gist** on both no longer has to open the gist and redo work.
+
+- **The flow.** `useGistPublish.update()` reads the gist (`readGist`, unauthenticated) as before.
+  When its revision is neither the field's `lastRevision` nor one this session wrote, the gist's
+  project file goes through `persistence.mergeText` — the same `mergeIn` as **Merge file…**
+  (`ui-062`) and the hosted Load (`io-011`), under the source name *the gist*, so the same toast
+  (`Merged 2 steps from the gist`, **Undo merge**) or conflict banner. Only then is the project
+  serialised and patched, so the merged project is what the gist gets.
+- **Never write before the local merge has landed.** Checked first, changing nothing: History
+  previewing or the Assistant running (`merge-unavailable`, the moments **Merge file…** is dimmed
+  for), a file that does not read (`unreadable`), a different project by `relatedness`
+  (`different-project`), and a project replaced (Open, New) while the read was out
+  (`not-published`). A merge that is refused after that is `merge-failed`. Each writes nothing to
+  the gist; each has one fixed sentence in `gistMessages.js`.
+- **Conflicts stop the write.** A merge with conflicted rows lands locally with the banner, and
+  the update stops (`merge-conflict`): the person looks before their gist changes. The field's
+  `lastRevision` moves to the merged revision as soon as the merge lands, clean or not, so the
+  next **Update gist** does not merge the same revision again and publishes what the person kept.
+  Without that, conflicts are derived from the fold (`docs-022`), so a row the person chose to
+  leave broken would refuse every later update.
+- **Undo merge after a gist merge** is "take mine": the next Update publishes the project without
+  the gist's rows, as ordinary stamped removals, so the copies still converge. The gist's history
+  on GitHub keeps the earlier revision.
+- **No waiting for a quiet moment.** An unasked-for disk merge (`io-010`) waits while a drag,
+  popover or dialog is open. This merge is the answer to a tap on a button inside the Share sheet
+  or the Save-to-gist dialog, which are themselves such surfaces, so it runs at once, as Save
+  merging a changed file with a menu open does.
+- **Stale reads unchanged.** The 60-second cache on the public read can serve a revision this
+  session just wrote: `wroteRevision` still accepts it, so a stale read of our own write is never
+  merged. A read that carries no revision is merged and leaves `lastRevision` as it was.
+- **GitHub's own `409`** (`conflict`, the gist moved during the PATCH) now says to update again,
+  which merges.
 
 ## The prompts in the README (`TODO/io-022`)
 

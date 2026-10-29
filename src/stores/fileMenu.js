@@ -39,8 +39,9 @@
  * **File ▾ → Save as gist…** is a second entry point to `useGistPublish`, not a second
  * implementation: the first save is its `publish()` (from a small dialog that asks the name and
  * Secret / Public, or the connect step without a token), and once the project has a gist this
- * account wrote, the same item reads **Save to gist** and calls `update()` straight away — with its
- * `changed-remotely` refusal. The gist is saved only by that item (or the Share sheet): Ctrl/Cmd+S
+ * account wrote, the same item reads **Save to gist** and calls `update()` straight away — which
+ * merges a gist changed elsewhere in first (`TODO/io-019`), and opens the dialog with the reason
+ * when it cannot. The gist is saved only by that item (or the Share sheet): Ctrl/Cmd+S
  * stays local, and the chip says how far behind the gist is instead of pushing.
  *
  * ## What "non-empty" means

@@ -68,10 +68,29 @@ describe('gistMessage', () => {
     expect(gistMessage('untrusted-host', 'open')).toMatch(/somewhere WarpCad does not read from/)
   })
 
-  it('the interim update rule: refuse when the gist changed, and say to open it first', () => {
-    expect(gistMessage('changed-remotely', 'update')).toBe(
-      'This gist changed since you last published it. Open its link first, then update.',
+  it('io-019: a gist changed elsewhere is merged, not refused, so the old "open it first" kind is gone', () => {
+    expect(GIST_MESSAGE_KINDS).not.toContain('changed-remotely')
+    for (const kind of GIST_MESSAGE_KINDS) {
+      expect(gistMessage(kind, 'update')).not.toMatch(/Open its link first/)
+    }
+  })
+
+  it('io-019: an update that could not merge the gist says nothing was sent, one sentence per reason', () => {
+    expect(gistMessage('different-project', 'update')).toBe('This gist now holds a different project, so nothing was sent to it.')
+    expect(gistMessage('merge-conflict', 'update')).toBe(
+      "The gist's changes were merged in, but some steps conflicted. Check them, then update again.",
     )
+    expect(gistMessage('merge-unavailable', 'update')).toBe(
+      'The gist has changes to merge first. Return to the latest step and let the Assistant finish, then update again.',
+    )
+    expect(gistMessage('merge-failed', 'update')).toBe("The gist's changes couldn't be merged in, so nothing was sent to it.")
+    expect(gistMessage('unreadable', 'update')).toBe(
+      "The project in the gist couldn't be read, so nothing was sent to it. It may be damaged, or made by a newer WarpCad.",
+    )
+  })
+
+  it('io-019: GitHub refusing a write because the gist moved at that moment says to update again, which merges', () => {
+    expect(gistMessage('conflict', 'update')).toBe('This gist changed while it was being updated. Update again to merge those changes.')
   })
 
   it('the classic-token warning is exactly the agreed sentence', () => {

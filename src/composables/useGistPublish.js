@@ -22,13 +22,26 @@
  * The README's file link is the **revision-free** raw URL (`gistRawFileUrl`), so it always
  * serves the latest publish.
  *
- * ## Update refuses if the gist changed (the interim rule)
+ * ## Update merges the gist first if it changed (`TODO/io-019`, Stage 3)
  *
- * Before patching, the gist is read and its revision compared with the field's `lastRevision`.
- * A different revision means someone else's write came in between (another device, an edit on
- * github.com): nothing is written and the result is `changed-remotely` — "open it first". The
- * merge that would replace this rule is Stage 3 (`docs/decisions/gist-storage.md`). A revision
- * this session wrote itself is not someone else's change (GitHub serves a read up to 60 s old).
+ * Before patching, the gist is read (unauthenticated, `readGist`) and its revision compared with
+ * the field's `lastRevision`. A different revision means someone else's write came in between
+ * (another device, an edit on github.com): the gist's project is merged into the open one
+ * through `persistence.mergeText` — the same `mergeIn` as **Merge file…**, so the same toast
+ * (`Merged 2 steps from the gist`, **Undo merge**) or conflict banner — and only then is the
+ * project serialised and patched, so the merged result is what the gist gets. The field's
+ * `lastRevision` moves to the revision merged as soon as the merge lands, so it is never merged
+ * twice. Nothing is written to the gist when the merge cannot run (History previewing, the
+ * Assistant running), when the gist's file does not read or is a different project (both
+ * checked before anything is touched), or when rows conflicted: the banner is up, the person
+ * looks, and the next **Update gist** publishes what they kept. This replaces Stage 2's interim
+ * refusal (`changed-remotely`, "open it first"; `docs/decisions/gist-storage.md`). A revision
+ * this session wrote itself is not someone else's change (GitHub serves a read up to 60 s old),
+ * so a stale read of our own write is never merged.
+ *
+ * The merge runs even with the Share sheet or the Save-to-gist dialog open — they are what the
+ * person tapped, like Save merging a changed file with a menu open; it does not wait for the
+ * quiet moment an unasked-for disk merge waits for.
  *
  * ## The project file is Download copy's bytes
  *
@@ -58,14 +71,19 @@ import { computed, toRaw } from 'vue'
 import { gistFileName, gistLink, gistRawFileUrl } from '../core/gistLink.js'
 import { gistFailureOf, gistMessage, plainGistDescription } from '../core/gistMessages.js'
 import { gistReadme } from '../core/gistReadme.js'
-import { serializeProject } from '../core/project.js'
+import { relatedness } from '../core/merge/merge.js'
+import { parseProject, serializeProject } from '../core/project.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useGistStore } from '../stores/gist.js'
+import { mergeStateOfProject, useMergeStore } from '../stores/merge.js'
 import { usePersistenceStore } from '../stores/persistence.js'
 
 /** The transaction origin the gist field is written under. */
 export const GIST_ORIGIN = 'gist'
+
+/** What the merge strip calls the gist: `Merged 2 steps from the gist` (`TODO/io-019`). */
+export const GIST_MERGE_SOURCE = 'the gist'
 
 /** The README's file name in the gist. */
 const README = 'README.md'
@@ -247,8 +265,35 @@ export function useGistPublish(options = {}) {
   }
 
   /**
-   * **Update gist**: the same gist, a new revision — refused, writing nothing, when the gist is
-   * not at the revision this project last published.
+   * Merge the gist's project file into the open project (`TODO/io-019`): the same `mergeIn` as
+   * **Merge file…** (`persistence.mergeText`, announced, with its toast or conflict banner and
+   * **Undo merge**). Checked first, changing nothing when refused: a moment a merge cannot land
+   * (History previewing, the Assistant running), a file that does not read, a different project.
+   *
+   * @param {string} text The gist's project file.
+   * @returns {Promise<GistFailure | { ok: true, conflicted: boolean }>}
+   */
+  async function mergeRemote(text) {
+    if (useMergeStore().unavailableReason !== '') return fail('merge-unavailable', 'update')
+    const live = toRaw(documentStore.raw)
+    /** @type {import('../core/merge/state.js').MergeState} */
+    let theirs
+    try {
+      theirs = mergeStateOfProject(parseProject(text), live.foldCache)
+    } catch {
+      return fail('unreadable', 'update')
+    }
+    if (relatedness(live.mergeState(), theirs) === 'unrelated') return fail('different-project', 'update')
+    const outcome = await persistence.mergeText(text, GIST_MERGE_SOURCE)
+    if (!outcome.ok) return fail('merge-failed', 'update')
+    return { ok: true, conflicted: outcome.conflicts.length > 0 }
+  }
+
+  /**
+   * **Update gist**: the same gist, a new revision. When the gist is not at the revision this
+   * project last published (another device, an edit on github.com), its project is merged in
+   * first and the merged project is what is written; a merge that is refused, or that leaves
+   * conflicted rows for the person to look at, writes nothing (`TODO/io-019`).
    *
    * @param {{ name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's Name (see
    *   {@link publish}); without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own
@@ -272,11 +317,21 @@ export function useGistPublish(options = {}) {
     } catch (error) {
       return done(gistFailureOf(error, 'update'))
     }
+    // The project open now must still be the one published as this gist (an Open or New while
+    // the read was out): never merge a gist into, or publish over it, another project.
+    if (gistField.value?.id !== current.id || !published.value) return done(fail('not-published', 'update'))
     if (remote.revision !== current.lastRevision && !gist.wroteRevision(current.id, remote.revision)) {
-      return done(fail('changed-remotely', 'update'))
+      const merged = await mergeRemote(remote.text)
+      if (!merged.ok) return done(merged)
+      // The gist's revision is now in this project, whatever happens to the write below: the
+      // next Update does not merge it again (a conflicted row a person leaves broken would
+      // otherwise refuse every Update after it). A read without a revision leaves it as it was.
+      if (remote.revision !== null) setField({ ...current, lastRevision: remote.revision })
+      if (merged.conflicted) return done(fail('merge-conflict', 'update'))
     }
 
     const loadAt = documentStore.loadRevision
+    // Read after the merge: what is published is the merged project.
     const text = serializeProject(toRaw(documentStore.raw))
     const name = choice.name ?? (plainGistDescription(remote.description) || persistence.projectName)
     const fileName = gistFileName(name)

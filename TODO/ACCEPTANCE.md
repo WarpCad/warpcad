@@ -4079,6 +4079,7 @@ in `data-013`); the status chip kept the old summary after Undo merge (fixed in 
 
 
 **Re-checked**: 2026-10-15 UTC — **PASS** (`io-011`, re-driven because the hosted store now calls the shared `persistence.mergeText`/`mergeIn`). Laptop 1440x900 and 1280x800 Chromium, real `page.mouse` jittered 24-step Library drags, two browser contexts, `api.github.com` mocked: A saved a Cube to the repository, B loaded it and added a Cylinder and saved, A dropped a Sphere and pressed Save to: strip `Merged 1 step from me/bracket` with **Undo merge**, no dialog, 3 bodies, repository holds both; **Undo merge** took the Sphere... back to 2 bodies. Console: only the expected 404/409 responses from the mocked host.
+**Re-checked**: 2026-10-29 UTC — **PASS** (`io-019`, re-driven because Update gist now calls the shared `persistence.mergeText`/`mergeIn`). Chromium laptop 1440x900, phone 390x844 and WebKit tablet 820x1180, two contexts, fake gist API: the merge through the gist gave the same strip (`Merged 1 step from the gist`, **Undo merge** offered) and, with a move-versus-fillet clash, the same banner `Merged 1 step from the gist — 1 step conflicted`; the file-based Merge file… path is unchanged and covered by `merge-file.e2e.js` (green, all projects). Not driven by hand in this pass: the Show/Suppress clicks, the reload, **Undo merge** through the gist path.
 **Re-checked**: 2026-10-28 UTC — **PASS** (`io-017`, re-driven because it changed the merge section's format with a fifth register). Laptop 1440x900 Chromium, two contexts, fallback Download copy / Open… / Merge file…: Cube and Cylinder on A, B opened A's file and added a Sphere, A published a gist, then merged B's older file: strip `Merged 1 step from b.ndjson` with **Undo merge**, 3 bodies, and A's Share sheet still offered **Update gist** (the gist survived a merge from a copy that never had one); **Undo merge** gave 2 bodies and the gist was still there; after a reload 2 bodies, no **Undo merge**, gist intact. Not driven: step 3 (moving the Cube), step 6 (the conflict), phone width.
 
 ### 23. Claude Code edits the file you have open
@@ -4372,6 +4373,11 @@ scenario):
    close the sheet before it finishes; switch the fake to `rate-limited` and open the link on B;
    open a project whose file is over the inline limit (the fake's `truncateOver`); try it at 390 px
    with the token sheet's field focused (on a real phone, with the on-screen keyboard up).
+10. *The owner on two devices (`io-019`):* publish again on A and take a **Download copy**. On a
+    third context or device C, **File ▾ → Open…** that file and connect the same account (C is now
+    the owner's phone). On C, drag a Cylinder in and **Share → Update gist**. On A, drag a Cube in
+    and **Share → Update gist**. On C, **Share → Update gist** again. *Clash on purpose:* on A,
+    move the Cube; on C, round the same Cube's top edge; update from C, then from A.
 
 **Expect**:
 - Step 2: the token sheet is a bottom sheet at 390 px with the token field first and the GitHub link
@@ -4395,12 +4401,18 @@ scenario):
 - Step 9: one gist, not two; the publish finishes or fails with fixed wording, never a lost project;
   *GitHub is busy. Try again in a few minutes.*; the truncated file loads in full; the focused token
   field is not hidden behind the keyboard.
+- Step 10: C's first update says *Gist updated* with no merge. A's update first shows *Merged 1 step
+  from the gist* with **Undo merge**, then *Gist updated*; C's second update does the same the other
+  way, and A, C and the gist all hold every body from both. With the clashing edits, the update that
+  merges shows the conflict banner and sends nothing; tapping **Update gist** again after **Show**
+  publishes. Never *This gist changed since you last published it*, never one device's step lost.
 - At 390 px, 820 px and 1440 px: no horizontal scroll, every action a 44 px target, the header row
   not clipped.
 - Never: anything sent to GitHub without a tap, the token in a URL, the page, a log or an error,
   opening a gist link that writes to the browser's stored session, a copy that owns the sender's
   gist, or a repository token and a gist token that overwrite each other.
 
+**Last run**: 2026-10-29 UTC (`io-019`, uncommitted tree) — **PASS** on Chromium and WebKit, production build, fake gist API with sentinel token, no real network; laptop 1440x900 (Chromium), phone 390x844 (Chromium touch) and tablet 820x1180 (WebKit). Step 10 driven with a jittered pointer through `e2e/gist-share.e2e.js` case 11 (clean two-device merge: C updates with no merge, A's update shows `Merged 1 step from the gist` with **Undo merge** then *Gist updated*, C's second update the same the other way, all four bodies on both devices and in the one gist) and a scratch clash drive (A moves the Cube, C fillets it, C updates, A updates): banner `Merged 1 step from the gist — 1 step conflicted`, the Share sheet's error *The gist's changes were merged in, but some steps conflicted. Check them, then update again.*, **no PATCH sent**, then a second **Update gist** publishes (*Gist updated*, exactly one more PATCH). At 390 px the banner sat under the header, no horizontal scroll. Not driven: **Undo merge** after a gist merge, Firefox, a real phone.
 **Last run**: 2026-10-28 21:10 UTC (`io-021`, uncommitted tree) — **PASS** on Chromium, dev server, fake gist API with sentinel token, no real network. Laptop 1440x900 and phone 390x844 (Playwright touch emulation). Steps B2, B3, B5 and B6 driven: token sheet and Connected-as; Publish copied the short link and showed Published · secret; B's cold open showed the Shared view with the two bodies and no editor chrome; B's own copy had no Update or Stop; A's Update gist on the same id showed 3 bodies on B. Also PASS: the File-menu gist item (dimmed reason, connect step, Save to gist as one PATCH, Ctrl/Cmd+S sent nothing). Not driven: Firefox/WebKit, a real iPhone keyboard.
 
 **Last run**: 2026-10-28 UTC (`io-017`, Stage 2) — **PASS** with one flagged gap, hand-driven with an exploratory Playwright script (jittered pointer and CDP touch at 390x844, Chromium, two to four separate contexts, the fake gist API of `e2e/support/fakeGistApi.js`, a sentinel token, no real network). Steps 1-8: the token sheet was a bottom sheet with the field first and focused, a password-type field, and the token never in the DOM afterwards; Connect showed *Connected as hand-tester*, kind and expiry; **Publish** tapped twice quickly created exactly one gist, copied `…/#/gist/<id>` and showed *Published · secret · 09:13*; B's cold open showed the Shared view with no editor chrome and the hash cleared; B's **Make my own copy** gave an editor whose Share sheet offered **Connect**, not **Update** (the copy does not own A's gist); after A added a Cylinder and tapped **Update gist** a fresh context read 3 bodies from the same link; A pasting its own link got **Open it to edit** and **Make a copy** (no read-only copy) and Open it to edit gave the editor with 3 bodies; **Stop sharing** then confirm made the link show *Can't show this shared project / can't be found* with **Start WarpCad**. No request left the fake origins and the token went only to `api.github.com`. **Gap:** at 390 px the **Published** chip exists but is hidden (Share is under File ▾), so there is no persistent indicator. Not driven: the rate-limited and truncated-file modes (covered by `e2e/gist-share.e2e.js`), Firefox/WebKit, a real iPhone keyboard and clipboard.

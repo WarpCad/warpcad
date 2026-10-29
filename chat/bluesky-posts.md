@@ -2520,3 +2520,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** release no longer calls ci.yml → diff (.github/workflows/release.yml); pre-push refuses a push without stored full runs → CLAUDE.md Conventions, .githooks/pre-push as described there; guard spec updated → diff (scripts/release-workflow.spec.js)
 **To Add:** nothing
+
+## 2026-10-29T13:40:00Z — Update gist merges the other device's changes instead of refusing
+
+**Post:** WarpCad's Update gist used to refuse if you'd edited on another device. Now it merges that device's steps into the open project first, then publishes the result. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** second tap used to refuse with changed-remotely → diff (useGistPublish.js, removed branch; TODO/done/io-019 Goal); now merges then publishes → diff (mergeRemote, update()) and e2e/gist-share case 11 passing this session (all 9 projects, 1666 passed, 0 failed across 24 specs)
+**To Add:** nothing

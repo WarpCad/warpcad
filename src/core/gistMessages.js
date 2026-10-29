@@ -38,13 +38,20 @@ export const MAX_GIST_DESCRIPTION_CHARS = 200
 /**
  * `gistBackend.js`'s failure kinds, plus the ones Stage 2 adds: `unreadable` (the gist's file
  * did not load as a project), `invalid-link` (a `#/gist/` hash with no valid id),
- * `changed-remotely` (the interim update rule), `not-connected`, `no-bodies`, `busy`,
- * `already-published`, `not-published`, `storage` (the browser would not store the token), and
- * `unknown` (anything that is not a gist failure).
+ * `not-connected`, `no-bodies`, `busy`, `already-published`, `not-published`, `storage` (the
+ * browser would not store the token), and `unknown` (anything that is not a gist failure).
+ *
+ * `TODO/io-019` replaced Stage 2's `changed-remotely` refusal with a merge, and adds the ways an
+ * **Update gist** that has to merge first can stop, each writing nothing to the gist:
+ * `different-project` (the gist now holds another project), `merge-conflict` (merged, but rows
+ * conflicted: the banner is up, and the person looks before publishing), `merge-unavailable`
+ * (History is previewing or the Assistant is running — the moments **Merge file…** is dimmed
+ * for), and `merge-failed` (the merge itself was refused).
  *
  * @typedef {import('../storage/gistBackend.js').GistFailureKind | 'unreadable' | 'invalid-link'
- *   | 'changed-remotely' | 'not-connected' | 'no-bodies' | 'busy' | 'already-published'
- *   | 'not-published' | 'storage' | 'unknown'} GistMessageKind
+ *   | 'not-connected' | 'no-bodies' | 'busy' | 'already-published' | 'not-published' | 'storage'
+ *   | 'different-project' | 'merge-conflict' | 'merge-unavailable' | 'merge-failed'
+ *   | 'unknown'} GistMessageKind
  */
 
 /** @type {readonly GistMessageContext[]} */
@@ -68,13 +75,16 @@ export const GIST_MESSAGE_KINDS = Object.freeze([
   'untrusted-host',
   'unreadable',
   'invalid-link',
-  'changed-remotely',
   'not-connected',
   'no-bodies',
   'busy',
   'already-published',
   'not-published',
   'storage',
+  'different-project',
+  'merge-conflict',
+  'merge-unavailable',
+  'merge-failed',
   'unknown',
 ])
 
@@ -84,7 +94,7 @@ const CANT_BE_OPENED = "This shared project can't be opened."
 const GENERIC = 'Something went wrong talking to GitHub. Try again in a few minutes.'
 const TOKEN_REJECTED = 'GitHub rejected this token. It may have expired or been revoked. Connect again with a new token.'
 const NO_GIST_PERMISSION = "This token can't write gists. Make a new token with only the Gists permission (read and write)."
-const CHANGED_REMOTELY = 'This gist changed since you last published it. Open its link first, then update.'
+const NOTHING_SENT = 'so nothing was sent to it.'
 
 /** What a recipient following a link reads. @type {Partial<Record<GistMessageKind, string>>} */
 const OPEN = {
@@ -111,8 +121,14 @@ const SEND = {
   forbidden: NO_GIST_PERMISSION,
   'rate-limited': GIST_BUSY_MESSAGE,
   'not-found': "That gist can't be found. It may have been deleted on GitHub.",
-  conflict: `${CHANGED_REMOTELY}`,
-  'changed-remotely': CHANGED_REMOTELY,
+  // GitHub refused the write because the gist moved at that moment: the next Update reads and
+  // merges it (`TODO/io-019`).
+  conflict: 'This gist changed while it was being updated. Update again to merge those changes.',
+  unreadable: `The project in the gist couldn't be read, ${NOTHING_SENT} It may be damaged, or made by a newer WarpCad.`,
+  'different-project': `This gist now holds a different project, ${NOTHING_SENT}`,
+  'merge-conflict': "The gist's changes were merged in, but some steps conflicted. Check them, then update again.",
+  'merge-unavailable': 'The gist has changes to merge first. Return to the latest step and let the Assistant finish, then update again.',
+  'merge-failed': `The gist's changes couldn't be merged in, ${NOTHING_SENT}`,
   offline: `No network. ${SAFE}`,
   server: `GitHub is having trouble right now. ${SAFE}`,
   malformed: `GitHub's answer could not be read. ${SAFE}`,

@@ -6,8 +6,16 @@ priority: low
 model: opus
 milestone: none — Findings table, outside the milestone plan (split off `io-017` Stage 3, 2026-10-28)
 depends: [io-017, io-010]
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-10-29):** as proposed, with these differences. The merge does not wait for a quiet
+> moment (the Share sheet and Save-to-gist dialog count as busy, so waiting would deadlock); it behaves like
+> Save. `lastRevision` moves to the merged revision as soon as the merge lands, even with conflicts, so a row
+> a person leaves broken does not block every later update. `changed-remotely` is removed; the refusals are
+> `different-project`, `merge-conflict`, `merge-unavailable` and `merge-failed`, plus `unreadable`.
+> Tapping **Undo merge** after a gist merge makes the next update publish "take mine".
 
 ## Goal
 
