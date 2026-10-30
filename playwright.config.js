@@ -96,6 +96,11 @@ const smokeProjects = browserProjects
 const docsProjects = VIEWPORTS.map((size) => ({
   name: `docs-${size.name}`,
   testMatch: /.*\.docs\.js/,
+  // The paced movies (`@movie`) drive real drags at human speed under a screencast. Measured alone
+  // with three workers (laptop, 2026-10-30): 8-22 s each, and the getting-started tour is over 30 s,
+  // so under the full matrix the 30 s default is a budget the movies do not have. 120 s is the
+  // ceiling for a slow frame under load; a real hang still fails, just later. See TODO/testing-013.
+  timeout: 120_000,
   // Drops the default `-{projectName}-{platform}` suffix so the file name is exactly what
   // the markdown links to: `docs/screenshots/<name>.png`.
   snapshotPathTemplate: '{testDir}/../docs/screenshots/{arg}{ext}',
