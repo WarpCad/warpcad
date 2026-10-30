@@ -66,7 +66,10 @@ the Inspector's **Prompt** row shows those words, on one line. Tap the row to re
 tap again to close it. Download the project: the words are in the file, so whoever opens it later
 (a person or another model) can see what the duct was meant to be.
 
-![The Inspector for a selected block, with a Prompt row that reads "a 140 × 250 mm fan duct, 1.6 mm walls".](./screenshots/agent-prompt-row.png)
+Under the request is the agent's reply, if it saved one, with **Add reply…** to add one yourself
+(see [The reply is saved with your request](ai-partner.md#the-reply-is-saved-with-your-request)).
+
+![The Inspector for a selected block: a Prompt row that reads "a 140 × 250 mm fan duct, 1.6 mm walls", and under it the agent's reply, starting "Built the fan duct", with a Problems met list, a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
 
 - **One prompt can cover many parts.** Every shape the agent made for that request shows it, and
   so does a shape made by combining them later.

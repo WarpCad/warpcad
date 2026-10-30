@@ -21,7 +21,8 @@
  * 2. if the log did not change (a refusal, a cap, a read), **writes nothing** — the file stays
  *    byte-identical, mtime included. "Changed" is a record appended, revised in place or
  *    removed: the project-variable tools (`TODO/ai-014`) revise rows and may remove one — or
- *    the project's prompts changed (`record_prompt`, `TODO/ai-031`), which touches no row;
+ *    the project's prompts changed (`record_prompt`, `TODO/ai-031`; `record_response`, `TODO/ai-032`),
+ *    which touches no row;
  * 3. otherwise serialises, checks the text parses back, re-checks the file has not changed
  *    since step 0 — if it has (the app saved meanwhile), re-reads and re-applies the call, up to
  *    {@link MAX_ATTEMPTS} times, then refuses with nothing written (`TODO/io-010`) — writes a
@@ -56,7 +57,7 @@ import { open, readFile, rename, stat, unlink } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
 import { LIMITS, createTurn } from '../src/ai/tools/limits.js'
-import { RECORD_PROMPT } from '../src/ai/tools/prompt.js'
+import { RECORD_PROMPT, RECORD_RESPONSE } from '../src/ai/tools/prompt.js'
 import { ReplayRejection, createDocument } from '../src/core/document.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../src/core/project.js'
 import { createReplicaId } from '../src/core/replica.js'
@@ -171,6 +172,7 @@ export function loadProjectText(text, name, replica) {
  * (`src/ai/tools/index.js`: "Every write tool also takes an optional `rationale`"), plus
  * `record_prompt` (`TODO/ai-031`), which writes the prompt and nothing else — so it takes the lock
  * but has no rationale, and so no `request` either (`server.js` adds that only beside a rationale).
+ * `record_response` (`TODO/ai-032`) is the same: it writes the reply under the prompt, and no row.
  *
  * @param {ToolRegistry} tools
  * @returns {Set<string>}
@@ -179,7 +181,7 @@ export function writeToolNames(tools) {
   return new Set(
     tools
       .definitions('mcp')
-      .filter((definition) => definition.name === RECORD_PROMPT || Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale'))
+      .filter((definition) => definition.name === RECORD_PROMPT || definition.name === RECORD_RESPONSE || Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale'))
       .map((definition) => definition.name)
   )
 }

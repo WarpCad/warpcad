@@ -72,6 +72,7 @@
  * @property {Map<string, import('../prompt.js').PromptEntry>} [prompts] `TODO/ai-031`: the prompts
  *   agents were given, by id — a grow-only set merged by `joinPromptMaps` (`src/core/prompt.js`),
  *   so it carries no stamp. Absent is the same as empty: a state built before prompts existed.
+ *   `TODO/ai-032`: a prompt's reply segments do carry stamps, one each, which order them.
  */
 
 /**
@@ -164,7 +165,21 @@ export function canonicalJSON(state) {
     }),
     parts: sortedPairs(state.parts).map(([op, [definition, stamp]]) => [op, definition, [stamp.counter, stamp.replica]]),
     viewHidden: sortedPairs(state.viewHidden).map(([key, [hidden, stamp]]) => [key, hidden, [stamp.counter, stamp.replica]]),
-    prompts: sortedPairs(state.prompts ?? new Map()).map(([id, prompt]) => [id, prompt.text, prompt.produced]),
+    prompts: sortedPairs(state.prompts ?? new Map()).map(([id, prompt]) => [
+      id,
+      prompt.text,
+      prompt.produced,
+      ...(prompt.responses !== undefined && prompt.responses.length > 0
+        ? [
+            prompt.responses.map((/** @type {import('../prompt.js').ResponseSegment} */ segment) => [
+              segment.id,
+              segment.text,
+              [segment.at.counter, segment.at.replica],
+              ...(segment.removed === true ? [true] : []),
+            ]),
+          ]
+        : []),
+    ]),
   })
 }
 
@@ -190,5 +205,7 @@ export function highestCounter(state) {
   for (const name of REGISTER_NAMES) see(state.registers[name]?.[1])
   for (const [, stamp] of state.parts.values()) see(stamp)
   for (const [, stamp] of state.viewHidden.values()) see(stamp)
+  // `TODO/ai-032`: a reply segment's stamp, so the next one written sorts after it.
+  for (const prompt of (state.prompts ?? new Map()).values()) for (const segment of prompt.responses ?? []) see(segment.at)
   return highest
 }

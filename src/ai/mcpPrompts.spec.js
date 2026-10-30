@@ -20,7 +20,7 @@ import { createToolRegistry } from './tools/index.js'
 const tools = createToolRegistry()
 const FILE = mcpToolDefinitions(tools)
 const LIVE = mcpToolDefinitions(tools, { live: true })
-const WRITERS = ['create', 'operate', 'apply_records', 'define_variable', 'set_variable', 'record_prompt']
+const WRITERS = ['create', 'operate', 'apply_records', 'define_variable', 'set_variable', 'record_prompt', 'record_response']
 
 /** @param {string} name @param {Record<string, unknown>} [args] @param {boolean} [live] */
 function recipe(name, args = {}, live = false) {
@@ -84,6 +84,11 @@ describe.each([
   it.each(['start', 'build', 'check-print'])('%s names only tools this transport lists', (name) => {
     const text = /** @type {any} */ (messages(name)[1].content).text.replace(/"[^"]*"/g, '')
     for (const tool of text.match(/\b[a-z]+(?:_[a-z]+)+\b/g) ?? []) expect(listed.has(tool), tool).toBe(true)
+  })
+
+  it('build ends by asking for record_response with every problem met (ai-032)', () => {
+    const text = /** @type {any} */ (messages('build')[1].content).text
+    expect(text.trim().split('\n').at(-1)).toMatch(/record_response.*final message.*every problem you met/)
   })
 
   it(`${live ? 'names' : 'does not name'} get_selection in build`, () => {

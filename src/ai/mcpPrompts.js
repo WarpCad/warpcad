@@ -18,6 +18,7 @@
  * recorded in `TODO/VERIFY.md`; if it cuts them, the recipes fall back to "read warpcad://guide".
  */
 
+import { RECORD_RESPONSE_SENTENCE } from './mcpInstructions.js'
 import { guideFor } from './prompt.js'
 
 /** The name both registrations use (`scripts/mcp-add.mjs`), so the slash commands read `/mcp__warpcad__…`. */
@@ -100,6 +101,7 @@ function buildRecipe(live, request) {
     '3. Build with create, operate or apply_records. Pass the request above, as written, as `request` on every write.',
     '4. Before you say it is done, check it: measure, check_printability, and check_clearance for bodies that touch.',
     '5. Reply with the sizes you read back from the result, not the sizes you intended.',
+    `6. ${RECORD_RESPONSE_SENTENCE}`,
   ].join('\n')
 }
 

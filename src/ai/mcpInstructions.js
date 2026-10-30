@@ -18,6 +18,22 @@
  */
 export const CLIENT_INSTRUCTIONS_CAP = 2048
 
+/**
+ * Both servers' line for the two prompt tools (`TODO/ai-031`, `TODO/ai-032`): the request first,
+ * the reply last. Squeezed to fit {@link CLIENT_INSTRUCTIONS_CAP} with five characters to spare
+ * on the live server — the full wording (deviation, workaround, refused call, failed check) is in
+ * `record_response`'s own description, the guide and the `build` prompt.
+ */
+export const RECORD_PROMPT_LINE =
+  'Call `record_prompt` first with the user’s request, as received, before any write; `record_response` last, with your final message and every problem you met.'
+
+/**
+ * `TODO/ai-032`: the full sentence, where there is room for it (the guide, the MCP prompts).
+ * Backticks are the caller's to add or not.
+ */
+export const RECORD_RESPONSE_SENTENCE =
+  'When you finish, call record_response with your final message — including every problem you met: a deviation from the request, a workaround, a refused call, a failed check and how you resolved it.'
+
 /** The last shared line: what the instructions cannot carry is the resource both servers serve. */
 export const GUIDE_POINTER =
   'Before your first write, read the resource warpcad://guide: the working method, a worked example and the printing defaults.'

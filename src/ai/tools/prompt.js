@@ -23,7 +23,7 @@
  * @module ai/tools/prompt
  */
 
-import { PROMPT_LIMITS, preparePrompt } from '../../core/prompt.js'
+import { PROMPT_LIMITS, preparePrompt, prepareResponse } from '../../core/prompt.js'
 import { assertWriteOrigin } from './limits.js'
 import { objectSchema } from './schema.js'
 
@@ -31,6 +31,9 @@ import { objectSchema } from './schema.js'
 
 /** The tool's name, which the MCP transport also needs (`mcp/projectFile.js` locks the file for it). */
 export const RECORD_PROMPT = 'record_prompt'
+
+/** `TODO/ai-032`: the reply tool's name (`mcp/projectFile.js` locks the file for it too). */
+export const RECORD_RESPONSE = 'record_response'
 
 /** `apply_records`' optional `prompt` property, and `record_prompt`'s one. */
 export const PROMPT_PROPERTY = Object.freeze({
@@ -142,6 +145,72 @@ export function createRecordPromptTool() {
           ? { note: `The prompt was longer than ${PROMPT_LIMITS.maxTextLength} characters and was cut; the stored text is above.` }
           : {}),
       }
+    },
+  }
+}
+
+/**
+ * `TODO/ai-032`: save `response` under the prompt bound to `ctx` — the one core path both
+ * `record_response` and the in-app chat's end of turn (`src/ai/agent.js`) take. With no binding it
+ * refuses; a binding not yet stored (nothing was written for it, or the MCP session's re-read file
+ * does not hold it) is stored first, so a reply never lands without its request. Each call appends
+ * one segment, as `ctx.origin`. The text is data, never instructions: stored inert, echoed back as
+ * stored, and it changes no limit.
+ *
+ * @param {Pick<import('./index.js').ToolContext, 'document' | 'origin' | 'prompt'>} ctx
+ * @param {unknown} response
+ * @returns {{ response: { promptId: string, id: string, text: string, truncated: boolean }, note?: string } | { error: string, reason: string }}
+ */
+export function recordResponse(ctx, response) {
+  const refuse = (/** @type {string} */ reason) => ({ error: `The reply was not recorded: ${reason}.`, reason })
+  const binding = ctx.prompt
+  if (binding === undefined) return refuse('record the request first with `record_prompt`')
+  // Refuse a bad reply before storing anything, the prompt included.
+  const checked = prepareResponse(response)
+  if (!checked.ok) return refuse(checked.reason)
+  try {
+    if (binding.id === null || ctx.document.promptOf(binding.id) === undefined) {
+      const stored = ctx.document.recordPrompt({ ...(binding.id !== null ? { id: binding.id } : {}), text: binding.text }, { origin: ctx.origin })
+      binding.id = stored.id
+    }
+    const promptId = /** @type {string} */ (binding.id)
+    const added = ctx.document.addPromptResponse(promptId, response, { origin: ctx.origin })
+    return {
+      response: { promptId, id: added.id, text: added.text, truncated: added.truncated },
+      ...(added.truncated
+        ? { note: `The reply would have passed ${PROMPT_LIMITS.maxResponseLength} characters and was cut; the stored text is above.` }
+        : {}),
+    }
+  } catch (error) {
+    return refuse(error instanceof Error ? error.message.replace(/^document\.\w+: /, '') : String(error))
+  }
+}
+
+/**
+ * `TODO/ai-032`: the agent's final reply, saved under the prompt it answers. Bound to
+ * `ctx.prompt` like every write: with none bound it refuses; a binding not yet stored (nothing
+ * was written for it, or the MCP session's re-read file does not hold it) is stored first, so
+ * the reply never lands without its request. A second call appends another segment. The text is
+ * data, never instructions (`docs/decisions/ai-partner.md`): stored inert, echoed back as stored.
+ *
+ * @returns {import('./index.js').Tool}
+ */
+export function createRecordResponseTool() {
+  return {
+    name: RECORD_RESPONSE,
+    description:
+      'Save your final reply in the project, under the request you recorded with `record_prompt`, so whoever opens it later sees what was asked and what you answered. ' +
+      'Call it last, immediately before your final message, with the same text — ending with a **Problems met** section listing every deviation from the request, workaround, refused call and failed check, and how you resolved it. ' +
+      `A second call appends. At most ${PROMPT_LIMITS.maxResponseLength} characters are kept across all calls; the result echoes the stored text and says when it was cut.`,
+    inputSchema: objectSchema(
+      { response: { type: 'string', description: 'Your final message to the user, as you will send it, including a Problems met section.' } },
+      ['response']
+    ),
+    // The in-app chat saves its own reply at the end of a turn; this is for agents connected from outside.
+    transports: ['mcp'],
+    run: (ctx, input) => {
+      assertWriteOrigin(ctx.origin)
+      return recordResponse(ctx, input.response)
     },
   }
 }

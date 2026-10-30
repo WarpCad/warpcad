@@ -112,6 +112,7 @@ export async function runOnTab(call, options = {}) {
   try {
     const target = await tabEndpoint()
     const before = target.turns.at(-1)
+    const version = documentStore.raw.version
     const reply = await target.handle(call, options.via)
     options.onReply?.(reply)
     const after = target.turns.at(-1)
@@ -120,6 +121,10 @@ export async function runOnTab(call, options = {}) {
       documentStore.refresh()
       loadRevision = documentStore.loadRevision
       chat.lastLanded = target.lastOrigin ?? origin
+    } else if (documentStore.raw.version !== version) {
+      // `TODO/ai-032`: a write that touched no row — `record_response`, `record_prompt` — still
+      // changed the project: the Inspector shows the reply, and autosave keeps it.
+      documentStore.refresh()
     }
     chat.bridgeTurns = target.turns.length
     return reply

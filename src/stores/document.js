@@ -408,6 +408,22 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * **Add reply…** (`TODO/ai-032`, decision 4): append the text a person pasted to a prompt's
+   * reply — core's `addPromptResponse` as the local user, so it is one undo step labelled
+   * `Add reply` whose Undo takes it back (and the selection stays where it was). Throws core's
+   * refusal (empty, not text, the reply full), changing nothing.
+   *
+   * @param {string} promptId
+   * @param {string} text
+   * @returns {{ id: string, text: string, truncated: boolean }}
+   */
+  function addPromptResponse(promptId, text) {
+    const added = raw.addPromptResponse(promptId, text, { origin: 'local', label: 'Add reply', meta: selectionMeta() })
+    refresh()
+    return added
+  }
+
+  /**
    * Hide or show one body, or one of its parts, in the view (`TODO/ui-089`) — core's
    * `setViewHidden`, a `local` document change that bumps the version but is not an undo step,
    * like the build volume.
@@ -881,6 +897,7 @@ export const useDocumentStore = defineStore('document', () => {
     buildVolume,
     setBuildVolume,
     setViewHidden,
+    addPromptResponse,
     showAll,
     deleteBodies,
     removePart,

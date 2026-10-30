@@ -7,6 +7,9 @@
  * a button) shows the whole text, wrapped. Nothing renders for a body no prompt produced, which
  * is every body a person made by hand.
  *
+ * Under the request, for one selected body, each prompt's saved reply and its **Add reply…**
+ * control (`TODO/ai-032`, `src/components/ai/PromptReply.vue`).
+ *
  * With several bodies selected it says how many prompts produced them — "2 prompts" — and shows
  * no text: one Inspector row is no place to read several requests side by side.
  *
@@ -17,6 +20,7 @@ import { computed, ref, watch } from 'vue'
 
 import { promptsForBody } from '../../core/prompt.js'
 import { useDocumentStore } from '../../stores/document.js'
+import PromptReply from '../ai/PromptReply.vue'
 
 const props = defineProps({
   /** The selected bodies' ids (lineage roots). One shows the text; several show a count. */
@@ -66,6 +70,10 @@ watch(
       <span class="prompt__label">Prompt</span>
       <span class="prompt__text" data-testid="inspector-prompt-text">{{ text }}</span>
     </button>
+    <!-- `TODO/ai-032`: each prompt's saved reply, and Add reply…, under the request. -->
+    <template v-if="single">
+      <PromptReply v-for="prompt in prompts" :key="prompt.id" :prompt="prompt" />
+    </template>
     <p v-else class="prompt prompt--count" data-testid="inspector-prompt">{{ countLabel }}</p>
   </template>
 </template>

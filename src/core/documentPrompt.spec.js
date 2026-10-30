@@ -363,3 +363,341 @@ describe('promptsForBody', () => {
     expect(promptsForBody(document, cube).map((p) => p.id)).toEqual([prompt.id])
   })
 })
+
+/**
+ * `TODO/ai-032`: the agent's reply, appended to the prompt it answers as ordered segments, each
+ * its own stamped merge entry inside the prompt's record in `merge.prompts`.
+ */
+describe('a reply through the command layer', () => {
+  it('appends a segment, leaving text and produced intact, and needs an origin', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    const cube = placeCube(document)
+    document.addPromptProduced(prompt.id, [cube], mcp)
+    const version = document.version
+    expect(() => document.addPromptResponse(prompt.id, 'x', /** @type {any} */ ({}))).toThrow(/origin/)
+    expect(document.version).toBe(version)
+
+    const added = document.addPromptResponse(prompt.id, '  Done.‮ ', mcp)
+    expect(added).toEqual({ id: expect.stringMatching(/^reply-aaaaaa-\d+$/), text: 'Done.', truncated: false })
+    expect(document.version).toBe(version + 1)
+    expect(document.promptOf(prompt.id)).toEqual({ id: prompt.id, text: 'a cube', produced: [cube], responses: [{ id: added.id, text: 'Done.' }] })
+  })
+
+  it('a second call appends; a prompt with no reply has no responses field', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    expect(document.promptOf(prompt.id)).not.toHaveProperty('responses')
+    document.addPromptResponse(prompt.id, 'first', mcp)
+    document.addPromptResponse(prompt.id, 'second', mcp)
+    expect(document.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['first', 'second'])
+    expect(document.prompts()[0].responses).toHaveLength(2)
+  })
+
+  it('refuses no prompt, an empty or non-string reply, changing nothing', () => {
+    const document = createDocument()
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    expect(() => document.addPromptResponse('no-such-prompt', 'x', mcp)).toThrow(/no prompt/)
+    for (const text of ['', '  ', 42, 'a'.repeat(1024 * 1024)]) {
+      expect(() => document.addPromptResponse(prompt.id, /** @type {any} */ (text), mcp)).toThrow(/empty|text|over the cap/)
+    }
+    expect(document.promptOf(prompt.id)).not.toHaveProperty('responses')
+  })
+
+  it('cuts the segment that reaches the cap with …, then refuses further appends with a reason', () => {
+    const document = createDocument()
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    document.addPromptResponse(prompt.id, 'a'.repeat(PROMPT_LIMITS.maxResponseLength - 10), mcp)
+    const cut = document.addPromptResponse(prompt.id, 'b'.repeat(50), mcp)
+    expect(cut.truncated).toBe(true)
+    expect(cut.text.endsWith('…')).toBe(true)
+    const total = (document.promptOf(prompt.id)?.responses ?? []).reduce((sum, r) => sum + r.text.length, 0)
+    expect(total).toBe(PROMPT_LIMITS.maxResponseLength)
+    const version = document.version
+    expect(() => document.addPromptResponse(prompt.id, 'more', mcp)).toThrow(/full|cap/)
+    expect(document.version).toBe(version)
+  })
+
+  it('hands out copies', () => {
+    const document = createDocument()
+    const prompt = document.recordPrompt({ text: 'x' }, mcp)
+    document.addPromptResponse(prompt.id, 'reply', mcp)
+    const read = /** @type {any} */ (document.promptOf(prompt.id))
+    read.responses[0].text = 'changed'
+    read.responses.push({ id: 'evil', text: 'evil' })
+    expect(document.promptOf(prompt.id)?.responses).toEqual([{ id: expect.any(String), text: 'reply' }])
+  })
+})
+
+describe('a reply in the file', () => {
+  it('rides inside its prompt in merge.prompts, stamped; it round-trips byte-identical', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const plain = serializeProject(document)
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    const reply = document.addPromptResponse(prompt.id, 'Done.\n\nProblems met: none', mcp)
+    const text = serializeProject(document)
+    expect(recordLinesOf(text)).toEqual(recordLinesOf(plain))
+    const [stored] = stateLineOf(text).merge.prompts
+    expect(stored).toEqual({ id: prompt.id, text: 'a cube', responses: [{ id: reply.id, text: 'Done.\n\nProblems met: none', at: [expect.any(Number), 'aaaaaa'] }] })
+    const reopened = open(text)
+    expect(reopened.promptOf(prompt.id)).toEqual(document.promptOf(prompt.id))
+    expect(serializeProject(reopened)).toBe(text)
+    void cube
+  })
+
+  it('after a reload, a new reply is stamped later than the ones in the file', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    placeCube(document)
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    document.addPromptResponse(prompt.id, 'first', mcp)
+    const reopened = open(serializeProject(document), { replica: 'bbbbbb' })
+    reopened.addPromptResponse(prompt.id, 'second', mcp)
+    expect(reopened.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['first', 'second'])
+    const [first, second] = stateLineOf(serializeProject(reopened)).merge.prompts[0].responses
+    expect(second.at[0]).toBeGreaterThan(first.at[0])
+  })
+
+  it('a hostile segment drops the whole prompt record with a warning, never half of it', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    placeCube(document)
+    const prompt = document.recordPrompt({ text: 'a cube' }, mcp)
+    document.addPromptResponse(prompt.id, 'fine', mcp)
+    const hostile = withMerge(serializeProject(document), (merge) => ({
+      ...merge,
+      prompts: [
+        ...merge.prompts,
+        { id: 'prompt-bad-1', text: 'ok', responses: [{ id: 'r', text: 'a‮b', at: [1, 'aaaaaa'] }] },
+        { id: 'prompt-bad-2', responses: [{ id: 'r', text: 'orphan reply', at: [1, 'aaaaaa'] }] },
+      ],
+    }))
+    const parsed = parseProject(hostile)
+    expect([...(parsed.merge?.prompts?.keys() ?? [])]).toEqual([prompt.id])
+    expect(parsed.warnings.filter((warning) => warning.op === PROMPT_OP).map((w) => w.id)).toEqual(['prompt-bad-1', 'prompt-bad-2'])
+  })
+})
+
+describe('replies merge', () => {
+  function twoCopies() {
+    const a = createDocument({ replica: 'aaaaaa' })
+    placeCube(a)
+    const prompt = a.recordPrompt({ text: 'shared' }, mcp)
+    const b = open(serializeProject(a), { replica: 'bbbbbb' })
+    return { a, b, prompt }
+  }
+
+  it('two replicas replying to one prompt keep both, in stamp order, in both merge orders and through the file', () => {
+    const { a, b, prompt } = twoCopies()
+    a.addPromptResponse(prompt.id, 'from A', mcp)
+    b.addPromptResponse(prompt.id, 'from B', mcp)
+    const sa = open(serializeProject(a)).mergeState()
+    const sb = open(serializeProject(b)).mergeState()
+    expect(canonicalJSON(mergeStates(sa, sb))).toBe(canonicalJSON(mergeStates(sb, sa)))
+    expect(canonicalJSON(mergeStates(sa, sb))).toContain('from A')
+    a.mergeFrom(sb, { origin: 'merge' })
+    b.mergeFrom(sa, { origin: 'merge' })
+    const expected = a.promptOf(prompt.id)
+    expect(expected?.responses?.map((r) => r.text).sort()).toEqual(['from A', 'from B'])
+    expect(b.promptOf(prompt.id)).toEqual(expected)
+    expect(open(serializeProject(a)).promptOf(prompt.id)).toEqual(expected)
+    expect(expected?.text).toBe('shared')
+  })
+
+  it('a reply merged into a copy that lost the prompt brings the whole record back, never half of it', () => {
+    const { a, b, prompt } = twoCopies()
+    a.addPromptResponse(prompt.id, 'done', mcp)
+    // B's copy was saved by an older build, which dropped the prompts.
+    const lost = withMerge(serializeProject(b), (merge) => {
+      const { prompts, ...rest } = merge
+      void prompts
+      return rest
+    })
+    const older = open(lost, { replica: 'cccccc' })
+    expect(older.prompts()).toEqual([])
+    older.mergeFrom(open(serializeProject(a)).mergeState(), { origin: 'merge' })
+    expect(older.promptOf(prompt.id)).toEqual(a.promptOf(prompt.id))
+  })
+
+  it('undo, delete and a failed merge leave the reply alone', () => {
+    const { a, prompt } = twoCopies()
+    a.addPromptResponse(prompt.id, 'mine', mcp)
+    a.appendAll([{ id: 'own', op: 'primitive.cuboid', name: 'Mine', params: { size: [5, 5, 5], center: [0, 50, 2.5] } }], local)
+    a.undo()
+    const before = a.prompts()
+    expect(before[0].responses).toHaveLength(1)
+    const other = createDocument({ replica: 'dddddd' })
+    placeCube(other)
+    expect(() => a.mergeFrom(other.mergeState(), { origin: 'merge' })).toThrow()
+    expect(a.prompts()).toEqual(before)
+  })
+})
+
+/**
+ * `TODO/ai-032` decision 4: **Add reply…** appends through the command layer as the local user,
+ * so it is an undo step. Undo leaves a tombstone — `{ id, at, removed: true }`, its text gone —
+ * that the merge honours, so a replica still holding the segment cannot bring it back.
+ */
+describe('a reply added by hand is undoable', () => {
+  function twoCopies() {
+    const a = createDocument({ replica: 'aaaaaa' })
+    placeCube(a)
+    const prompt = a.recordPrompt({ text: 'shared' }, mcp)
+    return { a, prompt }
+  }
+
+  it('a local reply is one undo step; Undo removes it, Redo puts the text back', () => {
+    const { a, prompt } = twoCopies()
+    a.addPromptResponse(prompt.id, 'by an agent', mcp)
+    expect(a.canUndo()).toBe(false)
+    a.addPromptResponse(prompt.id, 'pasted by hand', { origin: 'local', label: 'Add reply' })
+    expect(a.pendingUndo()?.label).toBe('Add reply')
+    const version = a.version
+    a.undo()
+    expect(a.version).toBeGreaterThan(version)
+    expect(a.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['by an agent'])
+    expect(a.canRedo()).toBe(true)
+    a.redo()
+    expect(a.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['by an agent', 'pasted by hand'])
+    a.undo()
+    expect(a.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['by an agent'])
+  })
+
+  it('undoing the only segment leaves no responses field, and a tombstone without text in the file', () => {
+    const { a, prompt } = twoCopies()
+    const added = a.addPromptResponse(prompt.id, 'secret paste', local)
+    a.undo()
+    expect(a.promptOf(prompt.id)).not.toHaveProperty('responses')
+    const text = serializeProject(a)
+    expect(text).not.toContain('secret paste')
+    expect(stateLineOf(text).merge.prompts[0].responses).toEqual([{ id: added.id, at: [expect.any(Number), 'aaaaaa'], removed: true }])
+    const reopened = open(text)
+    expect(reopened.promptOf(prompt.id)).not.toHaveProperty('responses')
+    expect(serializeProject(reopened)).toBe(text)
+  })
+
+  it('the undo survives a merge with a replica that still has the segment, in both directions', () => {
+    const { a, prompt } = twoCopies()
+    a.addPromptResponse(prompt.id, 'kept', mcp)
+    a.addPromptResponse(prompt.id, 'taken back', local)
+    const b = open(serializeProject(a), { replica: 'bbbbbb' })
+    expect(b.promptOf(prompt.id)?.responses).toHaveLength(2)
+    a.undo()
+    a.mergeFrom(open(serializeProject(b)).mergeState(), { origin: 'merge' })
+    expect(a.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['kept'])
+    b.mergeFrom(open(serializeProject(a)).mergeState(), { origin: 'merge' })
+    expect(b.promptOf(prompt.id)?.responses?.map((r) => r.text)).toEqual(['kept'])
+    const sa = open(serializeProject(a)).mergeState()
+    const sb = open(serializeProject(b)).mergeState()
+    expect(canonicalJSON(mergeStates(sa, sb))).toBe(canonicalJSON(mergeStates(sb, sa)))
+    expect(canonicalJSON(mergeStates(sa, sa))).toBe(canonicalJSON(sa))
+  })
+
+  it('a removed segment does not count against the cap', () => {
+    const { a, prompt } = twoCopies()
+    a.addPromptResponse(prompt.id, 'a'.repeat(PROMPT_LIMITS.maxResponseLength), local)
+    a.undo()
+    const again = a.addPromptResponse(prompt.id, 'b'.repeat(PROMPT_LIMITS.maxResponseLength), local)
+    expect(again.truncated).toBe(false)
+  })
+
+  it('removePromptResponse needs an origin, names a missing prompt or segment, and is idempotent', () => {
+    const { a, prompt } = twoCopies()
+    const added = a.addPromptResponse(prompt.id, 'x', mcp)
+    expect(() => a.removePromptResponse(prompt.id, added.id, /** @type {any} */ ({}))).toThrow(/origin/)
+    expect(() => a.removePromptResponse('nope', added.id, mcp)).toThrow(/no prompt/)
+    expect(() => a.removePromptResponse(prompt.id, 'reply-zzzzzz-9', mcp)).toThrow(/no reply segment/)
+    expect(a.removePromptResponse(prompt.id, added.id, mcp)).toBe(true)
+    expect(a.removePromptResponse(prompt.id, added.id, mcp)).toBe(false)
+    expect(a.promptOf(prompt.id)).not.toHaveProperty('responses')
+    expect(a.canUndo()).toBe(false)
+  })
+
+  it('a local reply is refused inside a batch, which stays atomic', () => {
+    const { a, prompt } = twoCopies()
+    expect(() => a.batch((doc) => doc.addPromptResponse(prompt.id, 'x', local))).toThrow(/batch/)
+    expect(a.promptOf(prompt.id)).not.toHaveProperty('responses')
+  })
+
+  it('a tombstone that still carries text, or a removed flag that is not true, drops the record with a warning', () => {
+    const { a, prompt } = twoCopies()
+    const added = a.addPromptResponse(prompt.id, 'x', local)
+    a.undo()
+    for (const segment of [
+      { id: added.id, at: [3, 'aaaaaa'], removed: true, text: 'smuggled' },
+      { id: added.id, at: [3, 'aaaaaa'], removed: 'yes' },
+    ]) {
+      const hostile = withMerge(serializeProject(a), (merge) => ({ ...merge, prompts: [{ ...merge.prompts[0], responses: [segment] }] }))
+      const parsed = parseProject(hostile)
+      expect(parsed.merge?.prompts?.size ?? 0).toBe(0)
+      expect(parsed.warnings.some((warning) => warning.op === PROMPT_OP)).toBe(true)
+    }
+  })
+})
+
+/**
+ * The previous builds meet a reply. `prompt-response-written.ndjson` is this build's
+ * `recordPrompt` + two cubes + two `addPromptResponse` calls, then a third added as `local` and
+ * Undone — a tombstone — serialised (replica `aaaaaa`);
+ * `prompt-response-saved-by-v1.4.0.ndjson` is that file opened and saved by v1.4.0's own code
+ * (`git archive v1.4.0 src package.json`, this repo's `node_modules` linked in) — the release
+ * that knows prompts but not replies. Never edit them by hand.
+ */
+describe('a previous build meets the reply', () => {
+  const written = /** @type {string} */ (fixtures['./__fixtures__/prompt-response-written.ndjson'])
+  const savedByV14 = /** @type {string} */ (fixtures['./__fixtures__/prompt-response-saved-by-v1.4.0.ndjson'])
+  const savedByV12 = /** @type {string} */ (fixtures['./__fixtures__/prompt-saved-by-v1.2.0.ndjson'])
+
+  it('the fixtures are present, and the written one has a reply and a tombstone', () => {
+    expect(written).toBeTypeOf('string')
+    expect(savedByV14).toBeTypeOf('string')
+    const responses = stateLineOf(written).merge.prompts[0].responses
+    expect(responses.filter((/** @type {any} */ r) => r.removed !== true).length).toBeGreaterThan(0)
+    expect(responses.filter((/** @type {any} */ r) => r.removed === true)).toEqual([{ id: expect.any(String), at: expect.any(Array), removed: true }])
+    expect(open(written).prompts()[0].responses).toHaveLength(2)
+    expect(serializeProject(open(written))).toBe(written)
+  })
+
+  it('a legacy file with no reply, and one with replies but no tombstone, load and save unchanged', () => {
+    const legacy = /** @type {string} */ (fixtures['./__fixtures__/prompt-written.ndjson'])
+    expect(serializeProject(open(legacy))).toBe(legacy)
+    expect(open(legacy).prompts()[0]).not.toHaveProperty('responses')
+    const noTombstone = withMerge(written, (merge) => ({
+      ...merge,
+      prompts: merge.prompts.map((/** @type {any} */ p) => ({ ...p, responses: p.responses.filter((/** @type {any} */ r) => r.removed !== true) })),
+    }))
+    expect(serializeProject(open(noTombstone))).toBe(noTombstone)
+  })
+
+  it('the tombstone holds through v1.4.0: merging its copy (which still has nothing) back does not revive it', () => {
+    const older = open(savedByV14, { replica: 'dddddd' })
+    older.mergeFrom(open(written).mergeState(), { origin: 'merge' })
+    expect(stateLineOf(serializeProject(older)).merge.prompts[0].responses.some((/** @type {any} */ r) => r.removed === true)).toBe(true)
+    expect(older.prompts()[0].responses?.map((r) => r.text)).not.toContain('Pasted by hand, then undone.')
+  })
+
+  it('v1.4.0 kept every record line and the prompt, dropping only the reply', () => {
+    expect(recordLinesOf(savedByV14)).toEqual(recordLinesOf(written))
+    expect(JSON.stringify(stateLineOf(savedByV14))).not.toContain('responses')
+    const reopened = open(savedByV14).prompts()
+    expect(reopened.map((p) => p.text)).toEqual(open(written).prompts().map((p) => p.text))
+    expect(reopened[0]).not.toHaveProperty('responses')
+  })
+
+  it('merging the newer copy back restores the reply; the other way round keeps it', () => {
+    const older = open(savedByV14, { replica: 'dddddd' })
+    older.mergeFrom(open(written).mergeState(), { origin: 'merge' })
+    expect(older.prompts()).toEqual(open(written).prompts())
+    const newer = open(written, { replica: 'eeeeee' })
+    newer.mergeFrom(open(savedByV14).mergeState(), { origin: 'merge' })
+    expect(newer.prompts()).toEqual(open(written).prompts())
+  })
+
+  it('a project with a reply survives a merge with v1.2.0’s fixture', () => {
+    const document = open(/** @type {string} */ (fixtures['./__fixtures__/prompt-written.ndjson']), { replica: 'ffffff' })
+    const [prompt] = document.prompts()
+    document.addPromptResponse(prompt.id, 'the reply', mcp)
+    const replied = document.promptOf(prompt.id)
+    document.mergeFrom(open(savedByV12).mergeState(), { origin: 'merge' })
+    expect(document.promptOf(prompt.id)).toEqual(replied)
+  })
+})

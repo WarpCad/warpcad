@@ -42,6 +42,7 @@
  */
 
 import { cleanText } from './intent.js'
+import { compareStamps, isReplicaId } from './replica.js'
 
 /** The `op` a dropped prompt's {@link import('./project.js').LoadWarning} carries. */
 export const PROMPT_OP = 'note.prompt'
@@ -60,6 +61,15 @@ export const PROMPT_LIMITS = Object.freeze({
   /** Prompts one project may hold. */
   maxPrompts: 500,
   maxIdLength: 256,
+  /**
+   * `TODO/ai-032`: the longest a prompt's reply may be, across all its segments together, in
+   * UTF-16 code units. An append that would pass it is cut, with `…`; one after that is refused.
+   */
+  maxResponseLength: 20_000,
+  /** `TODO/ai-032`: reply segments one prompt may hold. */
+  maxResponseSegments: 100,
+  /** The highest stamp counter a segment may carry: the merge section's own ceiling. */
+  maxCounter: 2 ** 40,
 })
 
 /** What a prompt id and a produced id may be made of: a record id's alphabet. */
@@ -72,10 +82,41 @@ const ID = /^[A-Za-z0-9._:-]+$/
 const BIDI = /[‪-‮⁦-⁩‎‏؜]/g
 
 /**
+ * `TODO/ai-032`: one piece of the reply to a prompt — what one `record_response` call (or one
+ * **Add reply…**) appended. Each is its own merge entry, stamped when it was written, so two
+ * replicas that both reply keep both, in stamp order.
+ *
+ * A segment taken back (Undo of **Add reply…**, `removePromptResponse`) stays as a **tombstone**:
+ * `removed: true`, its text emptied, its id and stamp kept. Removal is grow-only — once removed,
+ * removed on every replica the merge reaches — so a copy that still holds the segment cannot bring
+ * it back. A tombstone is never shown and takes none of the {@link PROMPT_LIMITS.maxResponseLength}
+ * characters; it does count toward {@link PROMPT_LIMITS.maxResponseSegments}. The file writes it
+ * as `{ id, at, removed: true }`, with no `text`.
+ *
+ * @typedef {object} ResponseSegment
+ * @property {string} id Unique within its prompt: `reply-<replica>-<counter>`.
+ * @property {string} text Clean, never empty — `''` on a tombstone only.
+ * @property {import('./replica.js').Stamp} at
+ * @property {true} [removed] A tombstone.
+ */
+
+/**
  * @typedef {object} PromptRecord
  * @property {string} id
  * @property {string} text Clean, at most {@link PROMPT_LIMITS.maxTextLength}.
  * @property {string[]} produced Record ids, sorted, each once.
+ * @property {{ id: string, text: string }[]} [responses] `TODO/ai-032`: the reply, in stamp
+ *   order; absent when there is none.
+ */
+
+/**
+ * A prompt as a file stores it, validated: its reply segments keep their stamps.
+ *
+ * @typedef {object} StoredPrompt
+ * @property {string} id
+ * @property {string} text
+ * @property {string[]} produced
+ * @property {ResponseSegment[]} [responses]
  */
 
 /**
@@ -84,6 +125,8 @@ const BIDI = /[‪-‮⁦-⁩‎‏؜]/g
  * @typedef {object} PromptEntry
  * @property {string} text
  * @property {string[]} produced Sorted, each once.
+ * @property {ResponseSegment[]} [responses] `TODO/ai-032`: in stamp order, at most
+ *   {@link PROMPT_LIMITS.maxResponseLength} characters together; absent when there is none.
  */
 
 /**
@@ -121,6 +164,66 @@ export function preparePrompt(value) {
 }
 
 /**
+ * `TODO/ai-032`: what `record_response` (and **Add reply…**) appends, or why it refuses. Cleaned
+ * and bounded exactly as {@link preparePrompt}; cut to `room`, the characters the prompt's reply
+ * has left under {@link PROMPT_LIMITS.maxResponseLength}.
+ *
+ * @param {unknown} value The agent's final message, or the text a person pasted.
+ * @param {number} [room] Characters still free in this prompt's reply.
+ * @returns {{ ok: true, text: string, truncated: boolean } | { ok: false, reason: string }}
+ */
+export function prepareResponse(value, room = PROMPT_LIMITS.maxResponseLength) {
+  if (typeof value !== 'string') return { ok: false, reason: 'the reply must be text' }
+  if (value.length > PROMPT_LIMITS.maxInputLength) {
+    return {
+      ok: false,
+      reason: `the reply is ${value.length} characters, over the cap of ${PROMPT_LIMITS.maxInputLength} this tool accepts`,
+    }
+  }
+  const whole = cleanText(value.replace(BIDI, ''), Infinity)
+  if (whole === '') return { ok: false, reason: 'the reply is empty' }
+  const free = Math.min(Math.max(0, Math.floor(room)), PROMPT_LIMITS.maxResponseLength)
+  if (free === 0) {
+    return { ok: false, reason: `the reply to this prompt is full: it already holds the cap of ${PROMPT_LIMITS.maxResponseLength} characters` }
+  }
+  const truncated = whole.length > free
+  return { ok: true, text: truncated ? cleanText(whole, free) : whole, truncated }
+}
+
+/**
+ * The reply as a reader sees it: the live segments joined by a blank line (`''` for none).
+ *
+ * @param {{ responses?: readonly { text: string, removed?: true }[] }} prompt
+ * @returns {string}
+ */
+export function responseTextOf(prompt) {
+  return (prompt.responses ?? [])
+    .filter((segment) => segment.removed !== true)
+    .map((segment) => segment.text)
+    .join('\n\n')
+}
+
+/**
+ * `TODO/ai-032`: the segment as its tombstone — text gone, id and stamp kept.
+ *
+ * @param {ResponseSegment} segment
+ * @returns {ResponseSegment}
+ */
+export function tombstoneOf(segment) {
+  return { id: segment.id, text: '', at: segment.at, removed: true }
+}
+
+/**
+ * @param {readonly { text: string }[]} segments
+ * @returns {number}
+ */
+function responseLength(segments) {
+  let total = 0
+  for (const segment of segments) total += segment.text.length
+  return total
+}
+
+/**
  * @param {unknown} id
  * @returns {boolean}
  */
@@ -135,7 +238,7 @@ function isId(id) {
  * this build does not know is ignored.
  *
  * @param {unknown} raw
- * @returns {{ ok: true, record: PromptRecord } | { ok: false, reason: string }}
+ * @returns {{ ok: true, record: StoredPrompt } | { ok: false, reason: string }}
  */
 export function validatePromptRecord(raw) {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, reason: 'a prompt must be an object' }
@@ -155,7 +258,140 @@ export function validatePromptRecord(raw) {
   if (produced.length > PROMPT_LIMITS.maxProduced) return { ok: false, reason: `its produced names more than ${PROMPT_LIMITS.maxProduced} records` }
   if (!produced.every(isId)) return { ok: false, reason: 'its produced must be a list of record ids' }
   if (new Set(produced).size !== produced.length) return { ok: false, reason: 'its produced names a record twice' }
-  return { ok: true, record: { id: /** @type {string} */ (record.id), text, produced: [...produced].sort(compareIds) } }
+  /** @type {StoredPrompt} */
+  const valid = { id: /** @type {string} */ (record.id), text, produced: [...produced].sort(compareIds) }
+  if (record.responses !== undefined) {
+    const responses = readResponses(record.responses)
+    if (!responses.ok) return responses
+    if (responses.segments.length > 0) valid.responses = responses.segments
+  }
+  return { ok: true, record: valid }
+}
+
+/**
+ * `TODO/ai-032`: a stored record's reply segments, strictly — every segment's text clean and
+ * non-empty, its id once, its stamp a real one, and all of them within the cap together.
+ *
+ * @param {unknown} raw
+ * @returns {{ ok: true, segments: ResponseSegment[] } | { ok: false, reason: string }}
+ */
+function readResponses(raw) {
+  if (!Array.isArray(raw)) return { ok: false, reason: 'its responses must be a list of reply segments' }
+  if (raw.length > PROMPT_LIMITS.maxResponseSegments) {
+    return { ok: false, reason: `its responses hold more than ${PROMPT_LIMITS.maxResponseSegments} reply segments` }
+  }
+  /** @type {ResponseSegment[]} */
+  const segments = []
+  const ids = new Set()
+  for (const item of raw) {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) return { ok: false, reason: 'a reply segment must be an object' }
+    const segment = /** @type {Record<string, unknown>} */ (item)
+    if (!isId(segment.id)) return { ok: false, reason: 'a reply segment’s id must be letters, digits and . _ : -' }
+    if (ids.has(segment.id)) return { ok: false, reason: 'a reply segment id appears twice' }
+    ids.add(segment.id)
+    if (segment.removed !== undefined) {
+      // A tombstone: `removed: true` and no text, exactly.
+      if (segment.removed !== true) return { ok: false, reason: 'a reply segment’s removed must be true' }
+      if (segment.text !== undefined) return { ok: false, reason: 'a removed reply segment must carry no text' }
+      const at = readStamp(segment.at)
+      if (at === null) return { ok: false, reason: 'a reply segment’s stamp must be [counter, replica]' }
+      segments.push(tombstoneOf({ id: /** @type {string} */ (segment.id), text: '', at }))
+      continue
+    }
+    if (typeof segment.text !== 'string') return { ok: false, reason: 'a reply segment’s text must be text' }
+    if (segment.text === '') return { ok: false, reason: 'a reply segment is empty' }
+    if (segment.text.length > PROMPT_LIMITS.maxResponseLength || cleanText(segment.text.replace(BIDI, ''), PROMPT_LIMITS.maxResponseLength) !== segment.text) {
+      return { ok: false, reason: 'a reply segment has control or bidirectional-override characters, or is not clean' }
+    }
+    const at = readStamp(segment.at)
+    if (at === null) return { ok: false, reason: 'a reply segment’s stamp must be [counter, replica]' }
+    segments.push({ id: /** @type {string} */ (segment.id), text: segment.text, at })
+  }
+  if (responseLength(segments) > PROMPT_LIMITS.maxResponseLength) {
+    return { ok: false, reason: `its reply is over the cap of ${PROMPT_LIMITS.maxResponseLength} characters` }
+  }
+  return { ok: true, segments: segments.sort(compareSegments) }
+}
+
+/**
+ * @param {unknown} raw `[counter, replica]`, as the file writes a stamp.
+ * @returns {import('./replica.js').Stamp | null}
+ */
+function readStamp(raw) {
+  if (!Array.isArray(raw) || raw.length !== 2) return null
+  const [counter, replica] = raw
+  if (!Number.isSafeInteger(counter) || counter < 1 || counter > PROMPT_LIMITS.maxCounter) return null
+  if (!isReplicaId(replica)) return null
+  return { counter, replica }
+}
+
+/**
+ * Stamp order, then id — a total order, the same on every replica.
+ *
+ * @param {ResponseSegment} a
+ * @param {ResponseSegment} b
+ * @returns {number}
+ */
+function compareSegments(a, b) {
+  return compareStamps(a.at, b.at) || compareIds(a.id, b.id)
+}
+
+/**
+ * `TODO/ai-032`: two replies to one prompt as one. Segments are a grow-only set by id, in stamp
+ * order; one id with two different segments (only a hostile file makes that) is settled by the
+ * shorter text, then the smaller, then the earlier stamp — the same in every merge order. A
+ * tombstone beats a live segment of its id, always: an Undone reply stays undone. Then the cap:
+ * tombstones are kept and take no room; live segments are kept in order while they fit, the one
+ * that crosses it is cut with `…`, the rest are left out — so a cut segment and its whole original settle on the cut one, and the
+ * join stays commutative, associative and idempotent.
+ *
+ * @param {readonly ResponseSegment[] | undefined} a
+ * @param {readonly ResponseSegment[] | undefined} b
+ * @returns {ResponseSegment[]}
+ */
+export function joinResponses(a, b) {
+  /** @type {Map<string, ResponseSegment>} */
+  const byId = new Map()
+  for (const segment of [...(a ?? []), ...(b ?? [])]) {
+    const held = byId.get(segment.id)
+    if (held === undefined || preferSegment(segment, held)) byId.set(segment.id, segment)
+  }
+  /** @type {ResponseSegment[]} */
+  const kept = []
+  /** @type {number} */
+  let room = PROMPT_LIMITS.maxResponseLength
+  for (const segment of [...byId.values()].sort(compareSegments)) {
+    if (kept.length >= PROMPT_LIMITS.maxResponseSegments) break
+    // A tombstone takes no room and is kept past the cap: dropping it would let a copy that still
+    // holds the segment bring it back.
+    if (segment.removed === true) {
+      kept.push(segment)
+      continue
+    }
+    if (room <= 0) continue
+    if (segment.text.length <= room) {
+      kept.push(segment)
+      room -= segment.text.length
+      continue
+    }
+    kept.push({ ...segment, text: cleanText(segment.text, room) })
+    room = 0
+  }
+  return kept
+}
+
+/**
+ * @param {ResponseSegment} x
+ * @param {ResponseSegment} y
+ * @returns {boolean} Whether `x` wins over `y` for one id.
+ */
+function preferSegment(x, y) {
+  // Removal wins: Undo of a reply holds on every replica. Two tombstones: the earlier stamp.
+  if ((x.removed === true) !== (y.removed === true)) return x.removed === true
+  if (x.removed === true) return compareStamps(x.at, y.at) < 0
+  if (x.text.length !== y.text.length) return x.text.length < y.text.length
+  if (x.text !== y.text) return x.text < y.text
+  return compareStamps(x.at, y.at) < 0
 }
 
 /**
@@ -181,7 +417,8 @@ export function unionProduced(a, b) {
 /**
  * The merge rule (`docs/decisions/document-sync.md`): prompts are a **grow-only set** keyed by
  * id. Both sides' prompts are kept; one prompt on both sides keeps the union of what it produced.
- * Text never changes after a prompt is recorded, so two texts under one id only come from a
+ * Its reply segments join by {@link joinResponses} (`TODO/ai-032`), so two replicas that both
+ * reply keep both. Text never changes after a prompt is recorded, so two texts under one id only come from a
  * hostile file — settled by the smaller string, the same in every merge order. Commutative,
  * associative and idempotent, and needs no stamp. Past {@link PROMPT_LIMITS.maxPrompts}, the
  * first ids in sorted order are kept.
@@ -206,7 +443,9 @@ export function joinPromptMaps(a, b) {
       continue
     }
     const text = x.text <= y.text ? x.text : y.text
-    joined.set(id, { text, produced: unionProduced(x.produced, y.produced) })
+    // `TODO/ai-032`: both sides' replies, each segment kept once, in stamp order, capped.
+    const responses = x.responses === undefined && y.responses === undefined ? [] : joinResponses(x.responses, y.responses)
+    joined.set(id, { text, produced: unionProduced(x.produced, y.produced), ...(responses.length > 0 ? { responses } : {}) })
   }
   return joined
 }

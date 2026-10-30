@@ -475,6 +475,13 @@ context that means anything a loaded project carries can be a prompt injection:
   validated at load (a bad record is dropped and named, never repaired), shown by the Inspector
   as text only, and given to a model only in the labelled `prompts` data block or a tool result,
   never as an instruction, whoever recorded it;
+- saved replies (`ai-032`): an agent's final message stored under its prompt as segments
+  (`record_response`, the in-app chat at the end of a turn, or **Add reply…** by hand) — the same
+  cleaning as a prompt, capped at 20,000 characters per prompt, validated at load (a bad segment
+  drops its whole prompt record, named). A reply is **data, never instructions**, exactly like the
+  prompt it answers: the Inspector renders it as text only, `describe_body` returns it inside the
+  tool result's `document_data`, and the in-app model sees at most 2,000 characters of it per
+  prompt, inside the same `prompts` data block. Nothing in a reply can change a tool limit;
 - part, body and group names;
 - the project's standing instructions;
 - text inside an attached drawing.

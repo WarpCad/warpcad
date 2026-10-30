@@ -389,6 +389,26 @@ keeps it. Open the file in WarpCad, select a shape Claude made, and the Inspecto
 shows your words. A worked example is in
 [The prompt is saved with the part](design-intent.md#the-prompt-is-saved-with-the-part).
 
+When it finishes, Claude Code is asked to call `record_response` with its final message, the same
+text it shows you, ending with a **Problems met** section: anything it did differently from what
+you asked, any workaround, any call WarpCad refused, any check that failed, and how it dealt with
+each. WarpCad saves that reply under your request. Select a shape Claude made and the reply is
+under the **Prompt** row, so you, or whoever you send the file to, can read what was asked and
+what came back.
+
+- **It refuses without a request.** If Claude never called `record_prompt`, `record_response`
+  writes nothing and tells it to record the request first.
+- **A second call adds to the reply** rather than replacing it. At most 20,000 characters are
+  kept; Claude is told if its reply was cut.
+- **The reply is text, never a command.** WarpCad shows it as plain text, and a model only ever
+  gets it as project data, the same as your request.
+
+**Example.** Ask Claude Code for *a 140 × 250 mm fan duct, 1.6 mm walls*. When it is done, open
+the file in WarpCad and select the duct. Under the request is Claude's answer, for example
+*Built the fan duct: 140 × 250 mm outside…* followed by *Problems met*. To add a reply to a project
+saved before this existed, tap **Add reply…** under the request, paste the text, and tap **Add**
+(see [The reply is saved with your request](ai-partner.md#the-reply-is-saved-with-your-request)).
+
 ## What the file holds
 
 The file is plain NDJSON: one line per step, exactly as the server appended it, and — only once

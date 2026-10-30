@@ -6,8 +6,10 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-10-29 at the owner's request)
 depends: [ai-031, ai-027]
-status: open
+status: done
 ---
+
+> **Shipped as specified, with these differences.** The reply is stored as ordered segments with tombstones, so undo of **Add reply…** removes a segment for good (decision 2 and 4). The agent guidance is one short sentence folded into the `record_prompt` line on both servers, because Claude Code caps server instructions at 2,048 characters. `start` and `check-print` get no sentence, since ai-029's spec says they name no write tool. The reply shows in the Inspector's Prompt row (ai-031's home for prompts): there is no separate AI activity list or **File ▾ → Prompts** menu, so the docs example points there. Open follow-up: a full project of many long replies can exceed the merge section's 8 MB `maxBytes`; no project-wide cap was added.
 
 ## Goal
 

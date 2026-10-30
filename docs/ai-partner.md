@@ -155,8 +155,38 @@ On a tablet the same chat is a sheet over the bottom of the screen, and the mode
 ![On a phone, the half-height Assistant sheet over the viewport, with Fold, Half and Tall buttons and the wing visible above it](./screenshots/ai-chat-overlay-phone.png)
 
 A turn lands all at once, when it is finished. Until then the Assistant works on a private copy, so
-a turn that is stopped, fails, or runs into a limit changes nothing in your project. You don't have
+a turn that is stopped, fails, or runs into a limit changes nothing in your model. You don't have
 to wait for it: see [While the Assistant works](#while-the-assistant-works).
+
+## The reply is saved with your request
+
+When a turn that built something ends, WarpCad saves the Assistant's last message in the project,
+under your request. The Assistant is asked to end that message with a **Problems met** section:
+anything it did differently from what you asked, any workaround, any refused call or failed check,
+and how it dealt with each. Agents connected from outside (Claude Code, an agent in your browser)
+save their reply the same way, with the `record_response` tool ([MCP](mcp.md#the-prompt-is-saved-with-the-part)).
+
+Select a shape the agent made. The Inspector's **Prompt** row shows your request, and under it,
+under **Reply**, the answer. A long reply shows its first few lines; tap **Show all** to read the
+rest, and **Show less** to fold it again.
+
+**Example.** Ask your agent for *a 140 × 250 mm fan duct, 1.6 mm walls*. When it finishes, select
+the duct: under your request is the agent's answer, including a **Problems met** section if it hit
+any. Save the project and send the file to someone else, and they see the same exchange. To add a
+reply to an older project, tap **Add reply…** under the request, paste the text and tap **Add**.
+
+![The Inspector for the selected duct: a Prompt row with the request, and under it the agent's reply with a Problems met list, a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+
+- **Add reply…** works on any request, with a reply or without; a second reply goes after the first.
+  It is one step on the **Undo** button in the top bar: **Undo** takes the reply back and leaves
+  the request.
+- **A turn that fails or hits a limit** after it started building keeps your request and what went
+  wrong, so you can see why there is no part. The shapes it was making are still discarded. A turn
+  you **Stop** yourself, or one that only asked you a question, saves nothing.
+- **At most 20,000 characters** of reply are kept per request. Past that the text is cut with an
+  ellipsis, and **Add reply…** says the reply is full.
+- **The reply is text, not a command.** It is shown as plain text (a link or markup in it does
+  nothing), and the Assistant only ever reads it as project data, never as an instruction.
 
 ## While the Assistant works
 

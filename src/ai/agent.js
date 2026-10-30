@@ -81,6 +81,7 @@ import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { assembleMessages, compactToolResult, summariseScene } from './context.js'
 import { documentDataBlock, promptsBlock, standingInstructionsBlock } from './documentData.js'
 import { preparePrompt } from '../core/prompt.js'
+import { recordResponse } from './tools/prompt.js'
 import { imagePart } from './image.js'
 import { SYSTEM_PROMPT } from './prompt.js'
 import { LIMITS, createToolRegistry, createTurn, toStrictWire } from './tools/index.js'
@@ -571,6 +572,13 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   let text = ''
   /** @type {import('./tools/library.js').SaveProposal[]} */
   const proposals = []
+  /**
+   * `TODO/ai-032`: the turn's prompt binding, once the tool context exists. Its `id` is set when
+   * the turn stored the prompt — that is, when it began building.
+   *
+   * @type {{ id: string | null, text: string } | undefined}
+   */
+  let bound
 
   /**
    * @param {TurnOutcome['status']} status
@@ -605,6 +613,14 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
     })
     if (status !== 'done' && extra.message !== undefined) {
       emit({ type: 'notice', kind: /** @type {'stopped' | 'cancelled' | 'failed'} */ (status), message: extra.message })
+    }
+    // `TODO/ai-032`: a turn that began building and then failed or hit a cap keeps its request and
+    // what went wrong, in the live project — the fork's rows are still discarded. Cancelled is the
+    // user's own Stop, not a problem; a turn that wrote nothing (a question, an offline send) has
+    // no request stored to answer.
+    if ((status === 'failed' || status === 'stopped') && bound?.id != null && extra.message !== undefined) {
+      const reply = `${text === '' ? '' : `${text}\n\n`}## Problems met\n- ${extra.message}`
+      recordResponse({ document: live, origin: 'ai', prompt: { id: null, text: bound.text } }, reply)
     }
     emit({ type: 'turn_end', outcome })
     return outcome
@@ -651,6 +667,7 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
     ...(ctx.references ? { references: ctx.references } : {}),
     proposals,
   }
+  bound = toolCtx.prompt
   // `TODO/ai-008`: with nothing attached and no photo in the project, the image tools would fail
   // every time, so they are not offered.
   const hasImages = (ctx.references?.attachments.length ?? 0) > 0 || fork.assets().size > 0
@@ -715,6 +732,9 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
 
   // Land the fork by merge (decision 5, step 4; `TODO/ai-017`).
   const kept = [{ role: 'user', content: userContent }, ...messages.slice(turnStart + 1)]
+  // `TODO/ai-032`: the final text goes under the turn's prompt on the fork, so it lands in the
+  // same `ai` merge as the rows. Only for a turn that stored its prompt (it built something).
+  if (bound?.id != null && text.trim() !== '') recordResponse(toolCtx, text)
   const forkState = fork.mergeState()
   const own = forkWork(seed, forkState)
   if (isEmptyChange(own)) return finish('done', { messages: kept })

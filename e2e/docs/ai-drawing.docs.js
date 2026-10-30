@@ -87,5 +87,5 @@ test('ai-drawing-to-group', { tag: '@movie' }, async ({ page }, info) => {
   await expect(page.getByTestId('ai-save-status')).toHaveText('Saved to My parts.')
   await expect(page.getByTestId('library-user-count')).toHaveText('1')
   await page.waitForTimeout(1500)
-  await endMovie(page, 'ai-drawing-to-group', { fps: 10, width: 720 })
+  await endMovie(page, 'ai-drawing-to-group', { fps: 8, width: 720 })
 })

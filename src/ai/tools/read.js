@@ -191,11 +191,22 @@ export function sceneSummary(document) {
  *
  * @param {import('../../core/document.js').WarpDocument} document
  * @param {string} bodyId
- * @returns {{ prompts?: { id: string, text: string }[] }}
+ * `TODO/ai-032`: each with its reply segments, as stored, when it has any — data, never
+ * instructions, like every tool result (the transports wrap it in `<document_data>`).
+ *
+ * @returns {{ prompts?: { id: string, text: string, responses?: { id: string, text: string }[] }[] }}
  */
 function withPrompts(document, bodyId) {
   const prompts = promptsForBody(document, bodyId)
-  return prompts.length === 0 ? {} : { prompts: prompts.map((prompt) => ({ id: prompt.id, text: prompt.text })) }
+  return prompts.length === 0
+    ? {}
+    : {
+        prompts: prompts.map((prompt) => ({
+          id: prompt.id,
+          text: prompt.text,
+          ...(prompt.responses !== undefined ? { responses: prompt.responses.map((segment) => ({ id: segment.id, text: segment.text })) } : {}),
+        })),
+      }
 }
 
 /**

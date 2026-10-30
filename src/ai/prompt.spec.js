@@ -27,6 +27,12 @@ describe('system prompt — versioned and frozen', () => {
     expect(SYSTEM_PROMPT.length).toBeGreaterThan(1500)
     expect(SYSTEM_PROMPT.length).toBeLessThan(20000)
   })
+
+  it('says the final message is saved and must name every problem met, with no record_response to call (ai-032)', () => {
+    expect(SYSTEM_PROMPT).toMatch(/final message is saved in the project/)
+    expect(SYSTEM_PROMPT).toMatch(/every problem you met/)
+    expect(SYSTEM_PROMPT).not.toMatch(/record_response/)
+  })
 })
 
 describe('system prompt — conventions', () => {
@@ -185,6 +191,7 @@ describe('modelling guide (ai-028)', () => {
   ])('%s: plain text, under 12,000 characters, with the shared sections', (_name, text) => {
     expect(text).not.toMatch(/\$\{|undefined|\[object Object\]/)
     expect(text.length).toBeLessThan(12000)
+    expect(text).toMatch(/call record_response with your final message/)
     expect(text).toMatch(/# Conventions/)
     expect(text).toMatch(/# Tools and operand rules/)
     expect(text).toMatch(/# Example/)

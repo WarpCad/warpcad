@@ -34,6 +34,7 @@
  * | `repeat` | yes | `{ source, seedBody, seedPart, targets }`: one linked `pattern.repeat` (`TODO/core-061`) — the source's own steps re-aimed from `seedPart` at each target, as one new body. Refused in core's words; at most 64 targets. |
  * | `apply_records` | yes | `{ steps: [{ create } \| { operate }], prompt? }` as one atomic change; a step names an earlier step's body as `@n`. `prompt` records the request with it (`ai-031`). |
  * | `record_prompt` | yes (the prompt only) | MCP and WebMCP (`ai-031`). `{ prompt }`: the user's request, in their words, stored in the project and linked to every record written for it afterwards; echoes `{ id, text, truncated }`. Called once, first. |
+ * | `record_response` | yes (the reply only) | MCP and WebMCP (`ai-032`). `{ response }`: the agent's final message, appended as a segment under the bound prompt (`ctx.prompt`); refuses with none bound; echoes `{ promptId, id, text, truncated }`. Called last. |
  * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
  * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
  * | `check_clearance` | no | `{ a, b }`: the smallest gap between two bodies and the closest points, or the volume they share when they interpenetrate. |
@@ -110,7 +111,7 @@ import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
 import { createPrintabilityTool } from './printability.js'
 import { createReadTools } from './read.js'
 import { createRepeatTool } from './repeat.js'
-import { createRecordPromptTool, knownIds, linkProduced } from './prompt.js'
+import { createRecordPromptTool, createRecordResponseTool, knownIds, linkProduced } from './prompt.js'
 import { checkInput, objectSchema, paramsSchemaFor } from './schema.js'
 import { createVariableTools } from './variables.js'
 
@@ -389,6 +390,7 @@ export function createToolRegistry(options = {}) {
       createClearanceTool(),
       createRepeatTool(),
       createRecordPromptTool(),
+      createRecordResponseTool(),
       createCaptureTool(),
       ...createImageTools(),
       createSaveToLibraryTool(),

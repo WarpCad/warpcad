@@ -444,7 +444,7 @@ import { conditionContextOf, conditionShapeError, describeCondition, evaluateCon
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { normalizeGistField, sameGistField } from './gistField.js'
-import { PROMPT_LIMITS, preparePrompt, unionProduced, validatePromptRecord } from './prompt.js'
+import { PROMPT_LIMITS, preparePrompt, prepareResponse, tombstoneOf, unionProduced, validatePromptRecord } from './prompt.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { RENAME_OP, nameOverrideOf, normalizeBodyName } from './naming.js'
 import { applyAction, emptyScene } from './replay.js'
@@ -639,7 +639,7 @@ import {
  * inverse is position-independent and survives that.
  *
  * @typedef {object} LogRevision
- * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution' | 'revise'} kind
+ * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution' | 'revise' | 'reply'} kind
  *   `resolution` (`TODO/core-035`) revises no entry at all — only the design
  *   resolution the whole log is folded at. `revise` (`TODO/ui-052`) swaps several
  *   entries' records and Leave-broken flags at once — see `items`.
@@ -657,6 +657,11 @@ import {
  *   this step put into the log at `at` — the photo an Edit sketch session added. Its
  *   inverse is `remove`, so Undo takes them back out in the same step.
  * @property {{ at: number, records: OpRecord[] }} [remove] The inverse of `add`.
+ * @property {{ promptId: string, segmentId: string, text: string }} [reply] `reply`
+ *   (`TODO/ai-032`): a segment **Add reply…** appended to a prompt — no log entry at all. Undo
+ *   tombstones the segment (`removePromptResponse`); Redo appends the text again as a new
+ *   segment, since a tombstone is never revived. Handled by `undo`/`redo` themselves, never by
+ *   {@link applyRevision}, and refused inside a `batch`.
  */
 
 /**
@@ -842,6 +847,18 @@ export class ReplayRejection extends Error {
  *   Throws the reason, changing nothing, for one it refuses (empty, not text, over the cap, the
  *   project's prompt cap). With an `id` that is already stored with the same text, it adds
  *   `produced` to it instead. What was asked is a fact: a version bump, never an undo step.
+ * @property {(id: string, text: unknown, transaction: TransactionOptions) => { id: string, text: string, truncated: boolean }} addPromptResponse
+ *   `TODO/ai-032`: append one segment to a stored prompt's reply, cleaned and cut to the room the
+ *   reply has left (`src/core/prompt.js`'s `prepareResponse`); never touches its text, its
+ *   `produced` or an earlier segment. Stamped from the merge clock, so two replicas that both
+ *   reply keep both, in stamp order. A version bump. With origin `local` (**Add reply…**,
+ *   decision 4) it is one undo step whose Undo tombstones the segment; any other origin is not
+ *   an undo step. Throws for an id that names no prompt, an empty or non-string reply, a reply
+ *   already at the cap, and a `local` reply inside a `batch`.
+ * @property {(id: string, segmentId: string, transaction: TransactionOptions) => boolean} removePromptResponse
+ *   `TODO/ai-032`: take one reply segment back, leaving a tombstone the merge honours (removal is
+ *   grow-only). `false`, changing nothing, when it is already removed. A version bump; never an
+ *   undo step itself. Throws for an id that names no prompt or a segment id the prompt does not hold.
  * @property {(id: string, ids: readonly string[], transaction: TransactionOptions) => void} addPromptProduced
  *   `TODO/ai-031`: link record ids to a stored prompt (sorted, each once, capped). A version bump
  *   when anything was added; never an undo step. Throws for an id that names no prompt.
@@ -1656,6 +1673,24 @@ export function createDocument(options = {}) {
    * @type {Map<string, import('./prompt.js').PromptEntry>}
    */
   let prompts = new Map()
+  /**
+   * `TODO/ai-031`: a stored prompt as the read API hands it out — a fresh copy; `TODO/ai-032`:
+   * its live reply segments as `{ id, text }`, in stamp order, only when there are any.
+   *
+   * @param {string} id
+   * @param {import('./prompt.js').PromptEntry} prompt
+   * @returns {import('./prompt.js').PromptRecord}
+   */
+  function promptRecordOf(id, prompt) {
+    // `TODO/ai-032`: a tombstone (an Undone **Add reply…**) is never handed out.
+    const responses = (prompt.responses ?? []).filter((segment) => segment.removed !== true)
+    return {
+      id,
+      text: prompt.text,
+      produced: [...prompt.produced],
+      ...(responses.length > 0 ? { responses: responses.map((segment) => ({ id: segment.id, text: segment.text })) } : {}),
+    }
+  }
   /**
    * `TODO/ai-031`: a fresh prompt id, `prompt-<replica>-<n>`, one past this replica's highest.
    * Deliberately **not** `nextId`: that ticks the merge clock, and recording what was asked must
@@ -3719,6 +3754,58 @@ export function createDocument(options = {}) {
   const undoStack = []
   /** @type {HistoryStep[]} */
   const redoStack = []
+  /** `TODO/ai-032`: how many `batch` builds are running — a `local` reply is refused inside one. */
+  let batchDepth = 0
+
+  /**
+   * `TODO/ai-032`: append one segment to a prompt's reply. The command-layer body of
+   * `addPromptResponse`, shared with Redo of **Add reply…**.
+   *
+   * @param {string} caller
+   * @param {string} id
+   * @param {unknown} text
+   * @returns {{ id: string, text: string, truncated: boolean }}
+   */
+  function appendResponseSegment(caller, id, text) {
+    const prompt = prompts.get(id)
+    if (prompt === undefined) throw new Error(`document.${caller}: there is no prompt "${id}"`)
+    const held = prompt.responses ?? []
+    if (held.length >= PROMPT_LIMITS.maxResponseSegments) {
+      throw new Error(`document.${caller}: the reply to this prompt is full: it already holds ${PROMPT_LIMITS.maxResponseSegments} segments, the cap`)
+    }
+    // A tombstone's text is '': it takes none of the room.
+    const used = held.reduce((sum, segment) => sum + segment.text.length, 0)
+    const prepared = prepareResponse(text, PROMPT_LIMITS.maxResponseLength - used)
+    if (!prepared.ok) throw new Error(`document.${caller}: ${prepared.reason}`)
+    // Ticks the merge clock: a later reply, here or on another replica, sorts after this one.
+    const at = { counter: stampClock.tick(), replica: stampClock.replica }
+    const segment = { id: `reply-${at.replica}-${at.counter}`, text: prepared.text, at }
+    prompts = new Map(prompts).set(id, { ...prompt, responses: [...held, segment] })
+    document.version += 1
+    return { id: segment.id, text: segment.text, truncated: prepared.truncated }
+  }
+
+  /**
+   * `TODO/ai-032`: tombstone one reply segment.
+   *
+   * @param {string} caller
+   * @param {string} id
+   * @param {string} segmentId
+   * @returns {boolean} Whether anything changed.
+   */
+  function tombstoneResponseSegment(caller, id, segmentId) {
+    const prompt = prompts.get(id)
+    if (prompt === undefined) throw new Error(`document.${caller}: there is no prompt "${id}"`)
+    const held = prompt.responses ?? []
+    const at = held.findIndex((segment) => segment.id === segmentId)
+    if (at < 0) throw new Error(`document.${caller}: prompt "${id}" has no reply segment "${segmentId}"`)
+    if (held[at].removed === true) return false
+    const next = held.slice()
+    next[at] = tombstoneOf(held[at])
+    prompts = new Map(prompts).set(id, { ...prompt, responses: next })
+    document.version += 1
+    return true
+  }
 
   /**
    * What the Undo/Redo button says it will do (section 19: "the tooltip and
@@ -4019,7 +4106,12 @@ export function createDocument(options = {}) {
       /** @type {T} */
       let result
       try {
-        result = build(document)
+        batchDepth += 1
+        try {
+          result = build(document)
+        } finally {
+          batchDepth -= 1
+        }
       } catch (error) {
         restoreState(before)
         undoStack.splice(0, undoStack.length, ...undoBefore)
@@ -4259,6 +4351,18 @@ export function createDocument(options = {}) {
       const step = undoStack.at(-1)
       if (step === undefined) return undefined
 
+      // `TODO/ai-032`: **Add reply…** touched no log entry, so nothing below applies — the
+      // segment is tombstoned, which a merge since cannot have made unsafe (removal is grow-only).
+      const reply = step.revision?.kind === 'reply' ? step.revision.reply : undefined
+      if (reply !== undefined) {
+        tombstoneResponseSegment('undo', reply.promptId, reply.segmentId)
+        undoStack.pop()
+        redoStack.push(step)
+        keepRestore(redoStack, step, null)
+        document.version += 1
+        return step
+      }
+
       // `TODO/core-030`: nothing has touched the document since this step, so
       // the state before it is exactly what re-folding the log without it would
       // produce — the fold is deterministic — and it is put back instead, O(1).
@@ -4351,6 +4455,19 @@ export function createDocument(options = {}) {
     redo() {
       const step = redoStack.at(-1)
       if (step === undefined) return undefined
+
+      // `TODO/ai-032`: a tombstone is never revived, so Redo appends the text again as a new
+      // segment — the next Undo takes back that one. Refused, changing nothing, when it no longer fits.
+      const reply = step.revision?.kind === 'reply' ? step.revision.reply : undefined
+      if (reply !== undefined) {
+        const added = appendResponseSegment('redo', reply.promptId, reply.text)
+        /** @type {HistoryStep} */
+        const redone = { ...step, revision: { kind: 'reply', reply: { ...reply, segmentId: added.id } } }
+        redoStack.pop()
+        undoStack.push(redone)
+        keepRestore(undoStack, redone, null)
+        return redone
+      }
 
       // The mirror of undo's restore (`TODO/core-030`): still at the state this
       // step's Undo left, so the state before that Undo is exactly the answer.
@@ -4596,12 +4713,12 @@ export function createDocument(options = {}) {
     },
 
     prompts() {
-      return [...prompts].map(([id, prompt]) => ({ id, text: prompt.text, produced: [...prompt.produced] }))
+      return [...prompts].map(([id, prompt]) => promptRecordOf(id, prompt))
     },
 
     promptOf(id) {
       const prompt = prompts.get(id)
-      return prompt === undefined ? undefined : { id, text: prompt.text, produced: [...prompt.produced] }
+      return prompt === undefined ? undefined : promptRecordOf(id, prompt)
     },
 
     recordPrompt(input, transaction) {
@@ -4633,8 +4750,35 @@ export function createDocument(options = {}) {
       if (!verdict.ok) throw new Error(`document.addPromptProduced: ${verdict.reason}`)
       const produced = unionProduced(prompt.produced, verdict.record.produced)
       if (produced.length === prompt.produced.length) return
-      prompts = new Map(prompts).set(id, { text: prompt.text, produced })
+      prompts = new Map(prompts).set(id, { ...prompt, produced })
       document.version += 1
+    },
+
+    addPromptResponse(id, text, transaction) {
+      requireOrigin('addPromptResponse', transaction)
+      const local = transaction.origin === 'local'
+      // A batch's composite step cannot carry a reply part; nothing needs one to.
+      if (local && batchDepth > 0) throw new Error('document.addPromptResponse: a reply added by hand cannot be part of a batch')
+      const added = appendResponseSegment('addPromptResponse', id, text)
+      if (local) {
+        /** @type {HistoryStep} */
+        const step = {
+          origin: 'local',
+          label: transaction.label ?? 'Add reply',
+          records: [],
+          meta: transaction.meta,
+          revision: { kind: 'reply', reply: { promptId: id, segmentId: added.id, text: added.text } },
+        }
+        undoStack.push(step)
+        keepRestore(undoStack, step, null)
+        redoStack.length = 0
+      }
+      return added
+    },
+
+    removePromptResponse(id, segmentId, transaction) {
+      requireOrigin('removePromptResponse', transaction)
+      return tombstoneResponseSegment('removePromptResponse', id, segmentId)
     },
 
     viewHidden() {

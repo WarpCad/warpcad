@@ -315,6 +315,8 @@ export function readMergeSection(raw, recordIds) {
   }
 
   const promptsRead = raw.prompts === undefined ? undefined : readPrompts(raw.prompts)
+  // `TODO/ai-032`: a reply segment's stamp counts, so the clock never issues one below it.
+  for (const prompt of promptsRead?.prompts.values() ?? []) for (const segment of prompt.responses ?? []) see(segment.at)
 
   return {
     projectId,
@@ -357,7 +359,8 @@ function readPrompts(raw) {
       promptProblems.push({ id: verdict.record.id, reason: 'a prompt with this id is already in the file' })
       continue
     }
-    prompts.set(verdict.record.id, { text: verdict.record.text, produced: verdict.record.produced })
+    const { responses } = verdict.record
+    prompts.set(verdict.record.id, { text: verdict.record.text, produced: verdict.record.produced, ...(responses !== undefined ? { responses } : {}) })
   }
   if (raw.length > cap) {
     promptProblems.push({ reason: `the file has ${raw.length} prompts and a project holds at most ${cap}; the rest were left out` })

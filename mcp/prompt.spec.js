@@ -83,6 +83,30 @@ describe('the MCP session and record_prompt', () => {
   })
 })
 
+describe('the MCP session and record_response (TODO/ai-032)', () => {
+  it('lands the reply in the file under the lock, after record_prompt in an earlier call', async () => {
+    const file = join(dir, 'duct.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    const recorded = await session.call('record_prompt', { prompt: DUCT })
+    await session.call('create', CUBE)
+    const result = await session.call('record_response', { response: 'Built it.\n\nProblems met: none' })
+    expect(result.error).toBeUndefined()
+    const saved = loadProjectText(readFileSync(file, 'utf8'), 'duct.ndjson')
+    expect(saved.promptOf(recorded.prompt.id)?.responses).toEqual([{ id: result.response.id, text: 'Built it.\n\nProblems met: none' }])
+    expect(writeToolNames(createToolRegistry()).has('record_response')).toBe(true)
+  })
+
+  it('with no prompt recorded, refuses and writes nothing', async () => {
+    const file = join(dir, 'duct.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    await session.call('create', CUBE)
+    const before = readFileSync(file, 'utf8')
+    const refused = await session.call('record_response', { response: 'done' })
+    expect(refused.error).toMatch(/record_prompt/)
+    expect(readFileSync(file, 'utf8')).toBe(before)
+  })
+})
+
 describe('the instructions name record_prompt, inside the budget', () => {
   for (const [name, text] of /** @type {const} */ ([
     ['SERVER_INSTRUCTIONS', SERVER_INSTRUCTIONS],
