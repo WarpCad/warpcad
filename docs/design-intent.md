@@ -5,11 +5,13 @@ A WarpCad project remembers **why** things are the way they are, not just their 
 - **Standing instructions** are rules for the whole project, written once: your printer's bed
   size, the nozzle, the thinnest wall you trust, the material. The AI assistant applies them
   to every request in this project.
+- The **description** is for people: what the part is and what it's for. A gist's README
+  shows it under the title.
 - **Design intent** is a short note on a step in History saying why the step was made. When
   the assistant (or another AI tool connected to WarpCad) adds a step, it saves what you asked
   for and a one-line reason with it.
 
-Both are saved in the project file, so they come back when you reopen it, and a model picking
+All three are saved in the project file, so they come back when you reopen it, and a model picking
 the project up next week can read them instead of guessing.
 
 ## Set your project's standing instructions
@@ -28,6 +30,36 @@ the project up next week can read them instead of guessing.
 
 On a phone the dialog fills the width of the screen and stays at the top, so the keyboard
 can't cover it.
+
+## Describe your project for people
+
+Standing instructions are for the AI. The **Description** is for people: a few lines saying what
+the part is and what it's for. It's the first field in **Project settings…**, and when you
+publish the project as a gist, it's the text under the title on GitHub (see
+[Publish a project as a gist](sharing.md#publish-a-project-as-a-gist)). An AI tool connected to
+WarpCad can write it too, with its `set_description` tool. Whoever saves last wins.
+
+You can format it a little:
+
+- a blank line starts a new paragraph
+- a line starting with `- ` is a bullet in a list
+- `**bold**`, `*italic*` and `` `code` ``
+
+Nothing else is formatted. A link, a picture, a heading or any HTML shows exactly as you typed it,
+so a description can't send a reader anywhere or run anything. As you type, a preview under the
+field shows how it will look.
+
+1. Open **File ▾ → Project settings…**.
+2. In **Description**, type *A \*\*wall-mounted\*\* fan duct for a closet.*, a blank line, then
+   *- prints in \*PETG\** and *- walls are \`1.6\` mm* on two lines.
+3. The preview shows *wall-mounted* in bold, then a list of two items with *PETG* in italics and
+   *1.6* in code type.
+4. Click **Save**.
+
+![The Project settings dialog with the Description field filled in, and its preview below: "A wall-mounted fan duct for a closet." with "wall-mounted" in bold, then a bullet list: "prints in PETG" and "walls are 1.6 mm".](./screenshots/project-settings-description.png)
+
+Like the instructions, the description isn't a step in History, so **Undo** doesn't change it.
+At most 2000 characters are kept.
 
 ## See why a step was made
 

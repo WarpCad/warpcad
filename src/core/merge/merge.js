@@ -205,7 +205,7 @@ export function mergeStates(a, b) {
   }
 
   /** @type {MergeState['registers']} */
-  const registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null }
+  const registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null }
   for (const name of REGISTER_NAMES) {
     registers[name] = /** @type {any} */ (later(a.registers[name], b.registers[name]) ?? null)
   }

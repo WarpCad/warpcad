@@ -9,6 +9,7 @@ import { createDocument } from '../core/document.js'
 import { gistLink, isGistRawUrl } from '../core/gistLink.js'
 import { GIST_BUSY_MESSAGE, gistMessage } from '../core/gistMessages.js'
 import { parseProject, serializeProject } from '../core/project.js'
+import { defineVariable } from '../core/variables.js'
 import { GistError } from '../storage/gistBackend.js'
 import { useDocumentStore } from '../stores/document.js'
 import { setGistDependencies, useGistStore } from '../stores/gist.js'
@@ -786,6 +787,59 @@ describe('publish — how this was made (the prompts)', () => {
     expect(api.promptCount.value).toBe(0)
     await api.publish()
     expect(backend.updateGist.mock.calls[0][0].files['README.md']).not.toContain('How this was made')
+    scope.stop()
+  })
+})
+
+/**
+ * `TODO/io-023` — the README is the project's brief: the description, the request and the agent's
+ * reply, and the variables with their ranges. Only the request and the reply are behind
+ * **Include prompts in the README**.
+ */
+describe('publish — the project brief', () => {
+  /** A project with a prompt, its reply, two variables and a description. */
+  function buildBrief() {
+    buildProject()
+    const raw = toRaw(useDocumentStore().raw)
+    const prompt = raw.recordPrompt({ text: 'a fan duct, inlet 40 to 120 mm', produced: ['cube-1'] }, { origin: 'mcp' })
+    raw.addPromptResponse(prompt.id, 'Built it.\n\nProblems met: none.', { origin: 'mcp' })
+    defineVariable(raw, { name: 'inlet_diameter', kind: 'number', value: 80, unit: 'mm', min: 40, max: 120 }, { origin: 'mcp' })
+    defineVariable(raw, { name: 'flange', kind: 'boolean', value: true }, { origin: 'mcp' })
+    raw.setDescription('A **wall** duct for a closet.', { origin: 'local' })
+    useDocumentStore().refresh()
+  }
+
+  for (const path of ['publish', 'update']) {
+    it(`${path}: the description, request, reply and variables, in that order`, async () => {
+      buildBrief()
+      const { scope, api } = mount()
+      if (path === 'update') {
+        await api.publish()
+        backend.readGist.mockResolvedValue({ id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })
+        await api.update()
+      } else {
+        await api.publish()
+      }
+      const readme = readmeOf(backend.updateGist)
+      const order = ['A **wall** duct for a closet\\.', '## How this was made', '> a fan duct, inlet 40 to 120 mm', '**Reply**', '> Built it\\.', '- Made: Base', '## Variables', '| inlet\\_diameter | 80 mm | 40–120 mm |', '| flange | yes | yes / no |']
+      const at = order.map((marker) => readme.indexOf(marker))
+      expect(at.every((index) => index >= 0)).toBe(true)
+      expect([...at].sort((a, b) => a - b)).toEqual(at)
+      scope.stop()
+    })
+  }
+
+  it('unticked: the request and the reply are gone; the description and the variables stay', async () => {
+    buildBrief()
+    const { scope, api } = mount()
+    await api.publish({ prompts: false })
+    for (const readme of [backend.createGist.mock.calls[0][0].files['README.md'], readmeOf(backend.updateGist)]) {
+      expect(readme).not.toContain('How this was made')
+      expect(readme).not.toContain('a fan duct')
+      expect(readme).not.toContain('Built it')
+      expect(readme).toContain('A **wall** duct for a closet\\.')
+      expect(readme).toContain('## Variables')
+    }
     scope.stop()
   })
 })

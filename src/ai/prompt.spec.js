@@ -28,6 +28,15 @@ describe('system prompt — versioned and frozen', () => {
     expect(SYSTEM_PROMPT.length).toBeLessThan(20000)
   })
 
+  it('asks for a min and max on every variable meant to be changed, and for a description (io-023)', () => {
+    for (const text of [SYSTEM_PROMPT, MODELLING_GUIDE, guideFor({ live: true })]) {
+      expect(text).toMatch(/variable a person is meant to change a min and a max/)
+      expect(text).toMatch(/set_description/)
+    }
+    const define = createToolRegistry().definitions('mcp').find((definition) => definition.name === 'define_variable')
+    expect(define?.description).toMatch(/set min and max/)
+  })
+
   it('says the final message is saved and must name every problem met, with no record_response to call (ai-032)', () => {
     expect(SYSTEM_PROMPT).toMatch(/final message is saved in the project/)
     expect(SYSTEM_PROMPT).toMatch(/every problem you met/)

@@ -274,7 +274,7 @@ describe('ShareGistGroup', () => {
     documentStore.refresh()
     await flush()
     expect(q('share-gist-prompts').checked).toBe(true)
-    expect(q('share-gist-prompts-note').textContent).toBe('1 prompt will be in the README. The project file has them either way.')
+    expect(q('share-gist-prompts-note').textContent).toBe('1 prompt — the request and the reply — will be in the README. The project file has them either way.')
   })
 
   it('unticking it publishes without the prompts in the README, and the project file keeps them', async () => {
@@ -286,7 +286,7 @@ describe('ShareGistGroup', () => {
     await flush()
     q('share-gist-prompts').click()
     await nextTick()
-    expect(q('share-gist-prompts-note').textContent).toBe('Left out of the README. The project file still has them.')
+    expect(q('share-gist-prompts-note').textContent).toBe('The request and the reply are left out of the README. The project file still has them.')
     q('share-gist-publish').click()
     await flush()
 

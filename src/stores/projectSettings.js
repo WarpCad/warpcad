@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * File ▾ → **Project settings…** (`TODO/ai-003`): UI state for the dialog that edits the
- * project's standing instructions, and whether this browser trusts them.
+ * project's standing instructions (and, `TODO/io-023`, its description for people), and whether
+ * this browser trusts the instructions.
  *
  * UI state only. The instructions themselves are document state (`raw.standingInstructions`,
  * persisted in the project file's state line by `src/core/project.js`); this store opens and
@@ -69,11 +70,16 @@ export const useProjectSettingsStore = defineStore('projectSettings', () => {
    * `TODO/io-007`: and the build volume, when the dialog passes one (validated by the document,
    * which throws naming the field; nothing is saved then).
    *
+   * `TODO/io-023`: and the description, when the dialog passes one (after the build volume, so a
+   * refused volume saves nothing).
+   *
    * @param {string} text
    * @param {import('../core/buildVolume.js').BuildVolume} [buildVolume]
+   * @param {string} [description]
    */
-  function save(text, buildVolume) {
+  function save(text, buildVolume, description) {
     if (buildVolume !== undefined) documentStore.setBuildVolume(buildVolume)
+    if (description !== undefined) documentStore.setDescription(description)
     documentStore.setStandingInstructions(text)
     trustStore.trust(documentStore.standingInstructions)
     trustRevision.value += 1

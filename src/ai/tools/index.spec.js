@@ -111,6 +111,8 @@ describe('createToolRegistry', () => {
       'record_response',
       'rename_variable',
       'repeat',
+      // io-023: the project's description for people, on both transports.
+      'set_description',
       'set_variable',
       'unbind_param',
     ])

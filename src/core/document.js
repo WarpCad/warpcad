@@ -352,7 +352,7 @@
  * stamp, a record stamp and stamps for the `suppressed`/`leftBroken` flags — beside the record,
  * never inside it, in a side table by record id (`metaById`), not on the entry objects, so
  * `entries` is exactly what it was for every reader that never merges. Per document:
- * tombstones (`dead`, id → stamp), five last-writer-wins registers (`TODO/io-017` added `gist`), a stamp per user-part
+ * tombstones (`dead`, id → stamp), six last-writer-wins registers (`TODO/io-017` added `gist`, `TODO/io-023` `description`), a stamp per user-part
  * definition and (`TODO/ui-089`) a stamped switch per hidden-or-shown body and part. A log no edit here has stamped — a seed, a loaded file — **derives** it:
  * position keys from row order, every stamp counter 0 under the fixed replica `legacy`, a
  * register only where the value differs from what its absence means. Deterministic, so two
@@ -382,6 +382,7 @@
  * | `setStandingInstructions` | the `standingInstructions` register |
  * | `setBuildVolume` | the `buildVolume` register |
  * | `setGist` (`TODO/io-017`) | the `gist` register |
+ * | `setDescription` (`TODO/io-023`) | the `description` register |
  * | `setViewHidden`, `showAll` (`TODO/ui-089`) | the view switch of each body or part whose Hide / Show changed |
  * | user-part adoption (inside the fold of a placement) | the part's definition stamp |
  * | `undo`, `redo`, `batch` | whatever the change they make is: Undo of a placement tombstones its rows, Redo brings them back with a fresh `born` that beats the tombstone, Undo of an edit stamps the old record as a new write |
@@ -443,6 +444,7 @@ import { isResolution, policyFor, resolutionLabel } from './kernel/tessellation.
 import { conditionContextOf, conditionShapeError, describeCondition, evaluateCondition } from './condition.js'
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
+import { cleanDescription } from './description.js'
 import { normalizeGistField, sameGistField } from './gistField.js'
 import { PROMPT_LIMITS, preparePrompt, prepareResponse, tombstoneOf, unionProduced, validatePromptRecord } from './prompt.js'
 import { currentParamsRecordOf } from './paramEdit.js'
@@ -838,6 +840,10 @@ export class ReplayRejection extends Error {
  * @property {(value: import('./gistField.js').GistField | null, transaction: TransactionOptions) => void} setGist
  *   `TODO/io-017`: record (or, with `null`, clear) the gist this project is published as. An external
  *   fact: a version bump, never an undo step.
+ * @property {() => string} description `TODO/io-023`: the project's description for people
+ *   (`src/core/description.js`), `''` when there is none.
+ * @property {(text: unknown, transaction: TransactionOptions) => void} setDescription `TODO/io-023`:
+ *   replace it (cleaned and capped; `''` clears it). A version bump, never an undo step.
  * @property {() => import('./prompt.js').PromptRecord[]} prompts `TODO/ai-031`: the prompts agents
  *   were given, fresh copies, in the order they were recorded (merged ones by id).
  * @property {(id: string) => import('./prompt.js').PromptRecord | undefined} promptOf `TODO/ai-031`:
@@ -1008,6 +1014,7 @@ const STAMPED_MUTATORS = Object.freeze([
   'setStandingInstructions',
   'setBuildVolume',
   'setGist',
+  'setDescription',
   'setViewHidden',
   'showAll',
 ])
@@ -1665,6 +1672,13 @@ export function createDocument(options = {}) {
    */
   let gist = null
   /**
+   * `TODO/io-023`: the project's description for people (`src/core/description.js`), `''` when
+   * there is none. Project metadata like {@link standingInstructions} — outside the fold and both
+   * undo stacks, a version bump when it changes — because it builds nothing. Stored cleaned.
+   * @type {string}
+   */
+  let description = ''
+  /**
    * `TODO/ai-031`: the prompts agents were given, by id (`src/core/prompt.js`). Project metadata
    * like {@link gist} — outside the fold and both undo stacks, a version bump when it changes —
    * because what was asked is a fact Undo does not take back: undoing a body leaves the prompt
@@ -1763,7 +1777,7 @@ export function createDocument(options = {}) {
    */
   let dead = new Map()
   /** @type {import('./merge/state.js').MergeRegisters} */
-  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null }
+  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null }
   /**
    * The stamp that wrote each user-part definition this project carries, by op.
    * @type {Map<string, import('./replica.js').Stamp>}
@@ -1939,6 +1953,7 @@ export function createDocument(options = {}) {
       standingInstructions,
       buildVolume,
       gist,
+      description,
       partOps: new Set(userParts.keys()),
       meta: metaById,
       dead,
@@ -2036,6 +2051,7 @@ export function createDocument(options = {}) {
     if (mark.standingInstructions !== standingInstructions) written.push('standingInstructions')
     if (!sameVolume(mark.buildVolume, buildVolume)) written.push('buildVolume')
     if (!sameGistField(mark.gist, gist)) written.push('gist')
+    if (mark.description !== description) written.push('description')
     const newParts = [...userParts.keys()].filter((op) => !mark.partOps.has(op))
     // `TODO/ui-089`: every body or part whose Hide / Show changed, each its own switch.
     const switched =
@@ -2133,7 +2149,8 @@ export function createDocument(options = {}) {
         else if (name === 'resolution') registers.resolution = [resolution, stamp]
         else if (name === 'standingInstructions') registers.standingInstructions = [standingInstructions, stamp]
         else if (name === 'buildVolume') registers.buildVolume = [{ ...buildVolume }, stamp]
-        else registers.gist = [gist === null ? null : { ...gist }, stamp]
+        else if (name === 'gist') registers.gist = [gist === null ? null : { ...gist }, stamp]
+        else registers.description = [description, stamp]
       }
     }
     partStamps = mark.partStamps
@@ -2178,6 +2195,8 @@ export function createDocument(options = {}) {
       buildVolume: sameVolume(buildVolume, DEFAULT_BUILD_VOLUME) ? null : [{ ...buildVolume }, LEGACY_STAMP],
       // `TODO/io-017`: never derived from a file — its value only ever arrives with its stamp.
       gist: gist === null ? null : [{ ...gist }, LEGACY_STAMP],
+      // `TODO/io-023`: likewise, never derived from a state-line field.
+      description: description === '' ? null : [description, LEGACY_STAMP],
     }
     partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
     viewStamps = new Map([...viewHidden.keys()].map((key) => [key, [true, LEGACY_STAMP]]))
@@ -2243,11 +2262,17 @@ export function createDocument(options = {}) {
       buildVolume:
         written.buildVolume !== undefined ? [{ ...buildVolume }, written.buildVolume] : registers.buildVolume,
       gist: registers.gist,
+      description: registers.description,
     }
     // `TODO/io-017`: the gist travels in the section as value and stamp together.
     if (overlay.gist !== undefined) {
       gist = overlay.gist[0] === null ? null : { ...overlay.gist[0] }
       registers.gist = [gist === null ? null : { ...gist }, overlay.gist[1]]
+    }
+    // `TODO/io-023`: so does the description.
+    if (overlay.description !== undefined) {
+      description = overlay.description[0]
+      registers.description = [description, overlay.description[1]]
     }
     partStamps = new Map(
       [...partStamps].map(([op, stamp]) => [op, overlay.partStamps.get(op) ?? stamp])
@@ -4606,6 +4631,8 @@ export function createDocument(options = {}) {
       viewHidden = loadedViewHidden
       // `TODO/io-017`: the gist arrives only inside a version-2 file's merge section, below.
       gist = null
+      // `TODO/io-023`: likewise the description.
+      description = ''
       // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
       // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
@@ -4709,6 +4736,30 @@ export function createDocument(options = {}) {
       const next = value === null ? null : normalizeGistField(value)
       if (sameGistField(next, gist)) return
       gist = next
+      document.version += 1
+    },
+
+    description() {
+      return description
+    },
+
+    /**
+     * `TODO/io-023`: replace the project's description for people. Origin-tagged like every
+     * mutation, cleaned and capped (`cleanDescription`), and a version bump so autosave and the
+     * save-status chip follow it. Not an undo step, like the standing instructions beside it in
+     * Project settings. Setting the same text is a no-op; `''` clears it.
+     */
+    setDescription(text, transaction) {
+      const origin = transaction?.origin
+      if (typeof origin !== 'string' || origin.length === 0) {
+        throw new Error(
+          'document.setDescription: a transaction origin is required — ' +
+            "every mutation is origin-tagged so undo/redo can be scoped to the local user's own edits"
+        )
+      }
+      const next = cleanDescription(text)
+      if (next === description) return
+      description = next
       document.version += 1
     },
 
@@ -5857,6 +5908,7 @@ export function createDocument(options = {}) {
         standingInstructions,
         buildVolume,
         gist,
+        description,
         prompts,
         layer: publishesUserParts ? projectPartsSnapshot() : null,
         projectId,
@@ -5944,6 +5996,8 @@ export function createDocument(options = {}) {
         // `TODO/io-017`: whichever set or clear of the gist was written last.
         const mergedGist = merged.registers.gist?.[0]
         gist = mergedGist === undefined || mergedGist === null ? null : normalizeGistField(mergedGist)
+        // `TODO/io-023`: whichever set or clear of the description was written last.
+        description = cleanDescription(merged.registers.description?.[0] ?? '')
         // `TODO/ai-031`: both sides' prompts, as one grow-only set.
         prompts = merged.prompts ?? new Map()
         stampClock.observe(highestCounter(merged))
@@ -5961,6 +6015,7 @@ export function createDocument(options = {}) {
         standingInstructions = previous.standingInstructions
         buildVolume = previous.buildVolume
         gist = previous.gist
+        description = previous.description
         prompts = previous.prompts
         viewHidden = previous.viewHidden
         viewStamps = previous.viewStamps

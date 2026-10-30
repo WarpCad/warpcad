@@ -46,8 +46,9 @@
  * ## The project file is Download copy's bytes
  *
  * `serializeProject` of the live document, the one serializer **Download copy** and autosave use.
- * Its README carries the project's name and body names only — never intent text, standing
- * instructions or the AI conversation (`gistReadme.js` has no field that could hold them).
+ * Its README is the project's brief (`TODO/io-023`): the name, the description, the body names,
+ * the request and reply of each prompt (only with **Include prompts in the README**), and the
+ * variables — never intent text or standing instructions (`gistReadme.js` has no field for them).
  *
  * ## The field is set through the command layer
  *
@@ -73,7 +74,9 @@ import { gistFailureOf, gistMessage, plainGistDescription } from '../core/gistMe
 import { gistReadme } from '../core/gistReadme.js'
 import { relatedness } from '../core/merge/merge.js'
 import { parseProject, serializeProject } from '../core/project.js'
+import { responseTextOf } from '../core/prompt.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
+import { variablesOf } from '../core/variables.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useGistStore } from '../stores/gist.js'
 import { mergeStateOfProject, useMergeStore } from '../stores/merge.js'
@@ -154,20 +157,44 @@ export function useGistPublish(options = {}) {
   const bodyNames = () => documentStore.bodies.map((body) => body.name)
 
   /**
-   * The prompts the README's **How this was made** section lists (`TODO/io-022`): each prompt's text
-   * and the names of the bodies it produced, in timeline order. A produced id that is not a body (a
-   * sketch step, a boolean's operand) is not named.
+   * The prompts the README's **How this was made** section lists (`TODO/io-022`): each prompt's text,
+   * its reply (`TODO/io-023`: `ai-032`'s segments joined by a blank line), and the names of the
+   * bodies it produced, in timeline order. A produced id that is not a body (a sketch step, a
+   * boolean's operand) is not named.
    *
-   * @returns {{ text: string, bodies: string[] }[]}
+   * @returns {import('../core/gistReadme.js').GistReadmePrompt[]}
    */
   function promptsForReadme() {
     const bodies = documentStore.bodies
     return toRaw(documentStore.raw)
       .prompts()
-      .map((prompt) => ({
-        text: prompt.text,
-        bodies: bodies.filter((body) => prompt.produced.includes(body.id)).map((body) => body.name),
-      }))
+      .map((prompt) => {
+        const produced = new Set(prompt.produced)
+        const reply = responseTextOf(prompt)
+        return {
+          text: prompt.text,
+          ...(reply !== '' ? { reply } : {}),
+          bodies: bodies.filter((body) => produced.has(body.id)).map((body) => body.name),
+        }
+      })
+  }
+
+  /**
+   * What every README of this project carries besides its name and time (`TODO/io-023`): the
+   * description and the variables always; the prompts and their replies unless `prompts` is
+   * exactly `false` (the Share sheet's **Include prompts in the README**, unticked).
+   *
+   * @param {{ prompts?: boolean }} choice
+   * @returns {Pick<import('../core/gistReadme.js').GistReadmeInput, 'description' | 'bodies' | 'prompts' | 'variables'>}
+   */
+  function briefOf(choice) {
+    const raw = toRaw(documentStore.raw)
+    return {
+      description: raw.description(),
+      bodies: bodyNames(),
+      prompts: choice.prompts === false ? [] : promptsForReadme(),
+      variables: variablesOf(raw),
+    }
   }
 
   /** The gist's description: the project's name as one plain line. @param {string} name */
@@ -201,7 +228,8 @@ export function useGistPublish(options = {}) {
    *
    * @param {{ public?: boolean, name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's
    *   Name, the gist's title; without it the project's own name is used. `prompts: false` leaves the
-   *   prompts out of the README (the file keeps them); anything else lists them.
+   *   prompts and their replies out of the README (the file keeps them); anything else lists them.
+   *   The description and the variables are always in it (`TODO/io-023`).
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
   async function publish(choice = {}) {
@@ -215,7 +243,7 @@ export function useGistPublish(options = {}) {
     const name = choice.name ?? persistence.projectName
     const fileName = gistFileName(name)
     const publishedAt = now()
-    const readme = { name, note: '', bodies: bodyNames(), prompts: choice.prompts === false ? [] : promptsForReadme(), publishedAt }
+    const readme = { name, ...briefOf(choice), publishedAt }
     const isPublic = choice.public === true
 
     await gist.start()
@@ -341,9 +369,7 @@ export function useGistPublish(options = {}) {
       [fileName]: text,
       [README]: gistReadme({
         name,
-        note: '',
-        bodies: bodyNames(),
-        prompts: choice.prompts === false ? [] : promptsForReadme(),
+        ...briefOf(choice),
         publishedAt,
         id: current.id,
         rawUrl: gistRawFileUrl(current.owner, current.id, fileName),

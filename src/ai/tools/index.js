@@ -35,6 +35,7 @@
  * | `apply_records` | yes | `{ steps: [{ create } \| { operate }], prompt? }` as one atomic change; a step names an earlier step's body as `@n`. `prompt` records the request with it (`ai-031`). |
  * | `record_prompt` | yes (the prompt only) | MCP and WebMCP (`ai-031`). `{ prompt }`: the user's request, in their words, stored in the project and linked to every record written for it afterwards; echoes `{ id, text, truncated }`. Called once, first. |
  * | `record_response` | yes (the reply only) | MCP and WebMCP (`ai-032`). `{ response }`: the agent's final message, appended as a segment under the bound prompt (`ctx.prompt`); refuses with none bound; echoes `{ promptId, id, text, truncated }`. Called last. |
+ * | `set_description` | yes (the description only) | MCP and in-app (`io-023`). `{ description }`: the project's description for people, in a small Markdown subset (no links, images, headings or HTML); replaces it, `''` clears it; echoes `{ text, truncated, previous }`. |
  * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
  * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
  * | `check_clearance` | no | `{ a, b }`: the smallest gap between two bodies and the closest points, or the volume they share when they interpenetrate. |
@@ -103,6 +104,7 @@ import { applySteps, createApplyRecordsTool } from './batch.js'
 import { createCaptureTool } from './capture.js'
 import { createClearanceTool } from './clearance.js'
 import { createCreateTool, creatableOps } from './create.js'
+import { createSetDescriptionTool } from './description.js'
 import { createImageTools } from './image.js'
 import { createSaveToLibraryTool } from './library.js'
 import { LIMITS, assertWriteOrigin } from './limits.js'
@@ -391,6 +393,7 @@ export function createToolRegistry(options = {}) {
       createRepeatTool(),
       createRecordPromptTool(),
       createRecordResponseTool(),
+      createSetDescriptionTool(),
       createCaptureTool(),
       ...createImageTools(),
       createSaveToLibraryTool(),

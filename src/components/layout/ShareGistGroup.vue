@@ -52,7 +52,8 @@ const publisher = useGistPublish()
 const makePublic = ref(false)
 /**
  * **Include prompts in the README** (`TODO/io-022`), on by default. Unticked, the README leaves the
- * prompts out; the project file keeps them either way.
+ * prompts out — the request and, `TODO/io-023`, the agent's reply; the description and the
+ * variables stay. The project file keeps them all either way.
  */
 const includePrompts = ref(true)
 const confirmingStop = ref(false)
@@ -71,8 +72,8 @@ const promptNote = computed(() => {
   const count = publisher.promptCount.value
   const noun = count === 1 ? 'prompt' : 'prompts'
   return includePrompts.value
-    ? `${count} ${noun} will be in the README. The project file has them either way.`
-    : 'Left out of the README. The project file still has them.'
+    ? `${count} ${noun} — the request and the reply — will be in the README. The project file has them either way.`
+    : 'The request and the reply are left out of the README. The project file still has them.'
 })
 
 const busyText = computed(() => {

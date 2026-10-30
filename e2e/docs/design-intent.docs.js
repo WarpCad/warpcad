@@ -23,6 +23,19 @@ test.describe('docs media: design intent', () => {
     await shot(page, 'project-settings-dialog.png', { locator: dialog })
   })
 
+  // `TODO/io-023`: the Description field, for people, with its live preview of the Markdown subset.
+  test('project-settings-description still', async ({ page }) => {
+    await openApp(page)
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('project-settings').click()
+    const dialog = page.getByTestId('project-settings-dialog')
+    await expect(dialog).toBeVisible()
+    await page.getByTestId('project-settings-description').fill('A **wall-mounted** fan duct for a closet.\n\n- prints in *PETG*\n- walls are `1.6` mm')
+    await expect(page.getByTestId('project-settings-description-preview').locator('li')).toHaveCount(2)
+    await page.getByTestId('project-settings-description').blur()
+    await shot(page, 'project-settings-description.png', { locator: dialog })
+  })
+
   test('project-settings-untrusted still', async ({ page }) => {
     await openApp(page)
     await loadScene(page, 'bracket-intent.ndjson', 3)

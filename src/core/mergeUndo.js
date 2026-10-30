@@ -42,10 +42,11 @@
  * @property {string} resolution
  * @property {string} standingInstructions
  * @property {BuildVolume} buildVolume
+ * @property {string} [description] `TODO/io-023`: the project's description for people.
  */
 
 /**
- * @typedef {{ resolution?: string, standingInstructions?: string, buildVolume?: BuildVolume }} MergeUndoSettings
+ * @typedef {{ resolution?: string, standingInstructions?: string, buildVolume?: BuildVolume, description?: string }} MergeUndoSettings
  * @typedef {{ ok: true, target: DocumentEntry[], rollbackAt: number | null, settings: MergeUndoSettings } | { ok: false, message: string }} MergeUndoPlan
  */
 
@@ -60,6 +61,7 @@ export function mergeSnapshotOf(raw) {
     resolution: raw.resolution(),
     standingInstructions: raw.standingInstructions(),
     buildVolume: raw.buildVolume(),
+    description: raw.description(),
   }
 }
 
@@ -200,6 +202,9 @@ export function planMergeUndo(base, merged, current, change) {
   if (change.registers.includes('buildVolume') && sameVolume(current.buildVolume, merged.buildVolume)) {
     settings.buildVolume = base.buildVolume
   }
+  if (change.registers.includes('description') && current.description === merged.description) {
+    settings.description = base.description ?? ''
+  }
   return { ok: true, target: rows, rollbackAt, settings }
 }
 
@@ -220,5 +225,6 @@ export function applyMergeUndo(raw, plan, transaction) {
     if (settings.resolution !== undefined) raw.setResolution(settings.resolution, transaction)
     if (settings.standingInstructions !== undefined) raw.setStandingInstructions(settings.standingInstructions, transaction)
     if (settings.buildVolume !== undefined) raw.setBuildVolume(settings.buildVolume, transaction)
+    if (settings.description !== undefined) raw.setDescription(settings.description, transaction)
   })
 }

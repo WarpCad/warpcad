@@ -23,6 +23,7 @@
 
 import { isReplicaId } from '../replica.js'
 import { SECTION_REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
+import { cleanDescription } from '../description.js'
 import { normalizeGistField } from '../gistField.js'
 import { PROMPT_LIMITS, validatePromptRecord } from '../prompt.js'
 import { parseKey } from './positionKey.js'
@@ -69,6 +70,8 @@ export const MERGE_LIMITS = Object.freeze({
  *   line's `viewHidden` (listed: hidden; not listed: shown). Only bodies the file holds.
  * @property {[import('../gistField.js').GistField | null, Stamp]} [gist] `TODO/io-017`: the gist
  *   register, value and stamp, when the file has ever set or cleared it.
+ * @property {[string, Stamp]} [description] `TODO/io-023`: the description register, its text
+ *   cleaned and capped (`src/core/description.js`), when the file has ever set or cleared it.
  * @property {Map<string, import('../prompt.js').PromptEntry>} [prompts] `TODO/ai-031`: the valid
  *   prompt records, by id, when the section has a `prompts` list.
  * @property {{ id?: string, reason: string }[]} [promptProblems] `TODO/ai-031`: each prompt record
@@ -275,6 +278,16 @@ export function readMergeSection(raw, recordIds) {
     gist = [value, stamp]
   }
 
+  // `TODO/io-023`: `[text, stamp]`. Untrusted: text only, cleaned and capped as a set would be.
+  /** @type {MergeOverlay['description']} */
+  let description
+  if (raw.description !== undefined) {
+    if (!Array.isArray(raw.description) || raw.description.length !== 2 || typeof raw.description[0] !== 'string') {
+      throw new MergeSectionError('merge: `description` must be [text, stamp]')
+    }
+    description = [cleanDescription(raw.description[0]), see(readStamp(raw.description[1], '`description`'))]
+  }
+
   /** @type {Map<string, Stamp>} */
   const partStamps = new Map()
   for (const [op, value] of Object.entries(partStampsRaw)) {
@@ -328,6 +341,7 @@ export function readMergeSection(raw, recordIds) {
     partStamps,
     viewStamps,
     ...(gist !== undefined ? { gist } : {}),
+    ...(description !== undefined ? { description } : {}),
     ...(promptsRead !== undefined ? promptsRead : {}),
   }
 }

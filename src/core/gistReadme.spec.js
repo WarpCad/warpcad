@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { DESCRIPTION_LIMITS } from './description.js'
 import { gistLink } from './gistLink.js'
 import {
   MAX_LISTED_BODIES,
   MAX_LISTED_PROMPTS,
+  MAX_LISTED_VARIABLES,
   MAX_BODY_NAME_CHARS,
   MAX_NAME_CHARS,
-  MAX_NOTE_CHARS,
   MAX_PROMPT_CHARS,
   escapeMarkdownText,
   formatPublishedAt,
@@ -15,9 +16,10 @@ import {
 } from './gistReadme.js'
 
 /**
- * `TODO/io-017` Stage 1 — the generated `README.md`. Names and the note are **data, never
- * instructions** and never markup: whatever a user typed into a body name must reach github.com
- * as inert text. Standing instructions, intent text and the AI conversation are never carried.
+ * `TODO/io-017` Stage 1 — the generated `README.md`. Names are **data, never instructions** and
+ * never markup: whatever a user typed into a body name must reach github.com as inert text.
+ * Standing instructions and intent text are never carried. `TODO/io-023`: the description is the
+ * one field with formatting, and only its Markdown subset (`src/core/description.js`).
  */
 
 const ID = '0123456789abcdef0123456789abcdef'
@@ -28,7 +30,7 @@ const AT = Date.UTC(2026, 9, 27, 14, 5, 59)
 function input(over = {}) {
   return {
     name: 'Phone stand',
-    note: 'A stand for a phone, 70° angle, for the desk.',
+    description: 'A stand for a phone, 70° angle, for the desk.',
     bodies: ['Base', 'Back plate', 'Lip', 'Cable notch'],
     publishedAt: AT,
     id: ID,
@@ -44,7 +46,7 @@ describe('gistReadme — the template', () => {
       [
         '# Phone stand',
         '',
-        '> A stand for a phone, 70° angle, for the desk\\.',
+        'A stand for a phone, 70° angle, for the desk\\.',
         '',
         `**[Open in WarpCad](${gistLink(ID)})** — nothing to install, no account.`,
         '',
@@ -64,17 +66,11 @@ describe('gistReadme — the template', () => {
     expect(gistReadme(input({ publishedAt: new Date(AT).toISOString() }))).toBe(gistReadme(input()))
   })
 
-  it('omits the blockquote for an empty or blank note', () => {
-    for (const note of ['', '   ', '\n\n', undefined]) {
-      const text = gistReadme(input({ note }))
-      expect(text).not.toMatch(/^>/m)
+  it('omits the description for an empty or blank one', () => {
+    for (const description of ['', '   ', '\n\n', undefined]) {
+      const text = gistReadme(input({ description }))
       expect(text.startsWith('# Phone stand\n\n**[Open in WarpCad]')).toBe(true)
     }
-  })
-
-  it('quotes every line of a multi-line note', () => {
-    const text = gistReadme(input({ note: 'line one\nline two\n\nline four' }))
-    expect(text).toContain('> line one\n> line two\n>\n> line four\n')
   })
 
   it('uses "Untitled" for a blank name, and the singular for one body', () => {
@@ -126,7 +122,7 @@ describe('gistReadme — the template', () => {
   })
 })
 
-describe('gistReadme — names and note are inert text', () => {
+describe('gistReadme — names are inert text', () => {
   const hostile = [
     '[x](javascript:alert(1))',
     '<img src=x onerror=alert(1)>',
@@ -141,7 +137,7 @@ describe('gistReadme — names and note are inert text', () => {
   ]
 
   it.each(hostile)('a body named %j renders as text, never as a link, image, tag or emphasis', (name) => {
-    const text = gistReadme(input({ bodies: [name], name, note: name }))
+    const text = gistReadme(input({ bodies: [name], name }))
     // No raw angle bracket from the data survives: every `<` is ours (the raw link) or an entity.
     const withoutOurs = text.replace(`(<${RAW}>)`, '')
     expect(withoutOurs).not.toMatch(/<[a-z!/]/i)
@@ -175,17 +171,17 @@ describe('gistReadme — names and note are inert text', () => {
     expect(text).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/)
   })
 
-  it('caps the name, the note and each body name, without splitting an emoji', () => {
+  it('caps the name, the description and each body name, without splitting an emoji', () => {
     const text = gistReadme(input({
       name: '📱'.repeat(MAX_NAME_CHARS + 50),
-      note: 'n'.repeat(MAX_NOTE_CHARS + 50),
+      description: 'n'.repeat(DESCRIPTION_LIMITS.maxLength + 50),
       bodies: ['b'.repeat(MAX_BODY_NAME_CHARS + 50)],
     }))
     const heading = text.split('\n')[0]
     expect(Array.from(heading.slice(2)).length).toBe(MAX_NAME_CHARS)
     expect(heading.endsWith('…')).toBe(true)
     expect(heading).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/) // no lone high surrogate
-    expect(text).toContain(`> ${'n'.repeat(MAX_NOTE_CHARS - 1)}…\n`)
+    expect(text).toContain(`\n${'n'.repeat(DESCRIPTION_LIMITS.maxLength - 1)}…\n`)
     expect(text).toContain(`: ${'b'.repeat(MAX_BODY_NAME_CHARS - 1)}…\n`)
   })
 
@@ -216,7 +212,7 @@ describe('gistReadme — how this was made (the prompts)', () => {
       [
         '# Phone stand',
         '',
-        '> A stand for a phone, 70° angle, for the desk\\.',
+        'A stand for a phone, 70° angle, for the desk\\.',
         '',
         `**[Open in WarpCad](${gistLink(ID)})** — nothing to install, no account.`,
         '',
@@ -251,13 +247,13 @@ describe('gistReadme — how this was made (the prompts)', () => {
   })
 
   it('keeps a prompt inert: a link, an image, a mention and bidi controls are text', () => {
-    const hostile = '[x](javascript:alert(1)) <img src=x onerror=alert(1)> ask @octocat ‮reversed'
+    const hostile = '[x](javascript:alert(1)) <img src=x onerror=alert(1)> ask @octocat \u202Ereversed'
     const text = gistReadme(input({ prompts: [{ text: hostile, bodies: [] }] }))
     expect(text).not.toContain('](javascript:')
     expect(text).not.toContain('<img')
     expect(text).not.toContain('@octocat')
     expect(text).toContain('&#64;octocat')
-    expect(text).not.toContain('‮')
+    expect(text).not.toContain('\u202E')
   })
 
   it('breaks a mention in a produced body name too, so nobody is notified', () => {
@@ -281,8 +277,8 @@ describe('gistReadme — how this was made (the prompts)', () => {
   it('caps the whole section, cutting the prompt that crosses the limit and counting the rest', () => {
     const long = 'x'.repeat(4000)
     const prompts = [{ text: long, bodies: [] }, { text: long, bodies: [] }, { text: 'tail', bodies: [] }]
-    // No note, so every `> ` line is a prompt's and the count is the section's alone.
-    const text = gistReadme(input({ note: '', prompts }))
+    // Every `> ` line is a prompt's, so the count is the section's alone.
+    const text = gistReadme(input({ description: '', prompts }))
     const sent = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
     expect([...sent].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
     expect(text).not.toContain('> tail')
@@ -303,7 +299,214 @@ describe('gistReadme — how this was made (the prompts)', () => {
   })
 })
 
-describe('gistReadme — never carries instructions, intent or the AI conversation', () => {
+/** `TODO/io-023` — the description, in its Markdown subset, under the title. */
+describe('gistReadme — the description', () => {
+  it('renders paragraphs, bullet lists, bold, italic and inline code', () => {
+    const description = 'A **wall** duct, *PETG*.\nSecond line.\n\n- one `wall = 1.6`\n- _two_'
+    const text = gistReadme(input({ description }))
+    expect(text).toContain(
+      [
+        '# Phone stand',
+        '',
+        'A **wall** duct, *PETG*\\. Second line\\.',
+        '',
+        '- one `wall = 1.6`',
+        '- *two*',
+        '',
+        `**[Open in WarpCad](${gistLink(ID)})**`,
+      ].join('\n'),
+    )
+  })
+
+  it.each([
+    ['a link', '[x](javascript:alert(1))'],
+    ['an image', '![pic](https://evil.example/t.png)'],
+    ['an autolink', '<https://evil.example>'],
+    ['a script', '<script>alert(1)</script>'],
+    ['an img onerror', '<img src=x onerror=alert(1)>'],
+    ['a raw HTML block', '<div>\n<b>x</b>\n</div>'],
+    ['a heading', '# Heading'],
+    ['a fenced code block', '```js\nalert(1)\n```'],
+    ['a reference definition', '[ref]: https://evil.example'],
+    ['a table', '| a | b |\n| - | - |'],
+  ])('keeps %s inert: escaped text, never markup', (_, description) => {
+    const text = gistReadme(input({ description }))
+    const body = text.split('\n').slice(2, text.split('\n').indexOf(`**[Open in WarpCad](${gistLink(ID)})** — nothing to install, no account.`)).join('\n')
+    expect(body).not.toMatch(/<[a-z!/]/i)
+    expect(body).not.toContain('](')
+    expect(body).not.toContain('![')
+    expect(body).not.toMatch(/^#/m)
+    expect(body).not.toMatch(/^```/m)
+    expect(body).not.toMatch(/^\|/m)
+    expect(body).not.toMatch(/(^|[^\\])\[(x|ref|pic)\]/)
+  })
+
+  it('inline code keeps a hostile string as code, which GitHub never renders as HTML', () => {
+    const text = gistReadme(input({ description: 'see `<img src=x onerror=alert(1)>`' }))
+    expect(text).toContain('see `<img src=x onerror=alert(1)>`')
+  })
+
+  it('breaks a mention so it notifies nobody, and strips bidi controls', () => {
+    const text = gistReadme(input({ description: 'ask **@octocat** or @hubot\u202Etxt' }))
+    expect(text).not.toMatch(/(^|[^#\d])@\w/)
+    expect(text).toContain('**&#64;octocat**')
+    expect(text).toContain('&#64;hubottxt')
+    expect(text).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/)
+  })
+
+  it('a description line can never start a heading, quote or numbered list', () => {
+    const text = gistReadme(input({ description: '===\n\n> quote\n\n1. one' }))
+    expect(text).toContain('\n\\===\n')
+    expect(text).toContain('\n&gt; quote\n')
+    expect(text).toContain('\n1\\. one\n')
+  })
+})
+
+/** `TODO/io-023` — the agent's reply under each prompt, sharing the prompts' character budget. */
+describe('gistReadme — the reply', () => {
+  it('renders the reply as a second quote headed Reply, between the request and the bodies', () => {
+    const text = gistReadme(input({ prompts: [{ text: 'a fan duct', reply: 'Done.\n\nProblems met: none.', bodies: ['Base'] }] }))
+    expect(text).toContain(
+      ['## How this was made', '', '> a fan duct', '', '**Reply**', '', '> Done\\.', '>', '> Problems met: none\\.', '', '- Made: Base'].join('\n'),
+    )
+  })
+
+  it('a prompt with no reply renders exactly as io-022 does', () => {
+    const withBlank = gistReadme(input({ prompts: [{ text: 'a fan duct', reply: '  ', bodies: ['Base'] }] }))
+    const without = gistReadme(input({ prompts: [{ text: 'a fan duct', bodies: ['Base'] }] }))
+    expect(withBlank).toBe(without)
+    expect(without).not.toContain('Reply')
+  })
+
+  it('keeps a reply inert: a link, an image, a script, a mention and bidi controls are text', () => {
+    const hostile = '[x](javascript:alert(1)) <img src=x onerror=alert(1)> <script>x</script> ask @octocat \u202Ereversed'
+    const text = gistReadme(input({ prompts: [{ text: 'a stand', reply: hostile, bodies: [] }] }))
+    expect(text).not.toContain('](javascript:')
+    expect(text).not.toMatch(/<(img|script)/)
+    expect(text).not.toContain('@octocat')
+    expect(text).toContain('&#64;octocat')
+    expect(text).not.toContain('\u202E')
+  })
+
+  it('counts against the shared cap: the cut reply ends in … and later prompts are counted', () => {
+    const prompt = 'p'.repeat(MAX_PROMPT_CHARS - 100)
+    const reply = 'r'.repeat(500)
+    const text = gistReadme(input({ description: '', prompts: [{ text: prompt, reply, bodies: [] }, { text: 'tail', bodies: [] }] }))
+    const quoted = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
+    expect([...quoted].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
+    expect(text).toContain(`> ${'r'.repeat(99)}…`)
+    expect(text).not.toContain('> tail')
+    expect(text).toContain('- and 1 more')
+  })
+})
+
+/** `TODO/io-023` — every project variable, with its range where the project defines one. */
+describe('gistReadme — variables', () => {
+  /** @type {import('./gistReadme.js').GistReadmeVariable[]} */
+  const VARIABLES = [
+    { name: 'inlet_diameter', kind: 'number', value: 80, unit: 'mm', min: 40, max: 120 },
+    { name: 'wall', kind: 'number', value: 1.6, unit: 'mm', min: 0.4 },
+    { name: 'angle', kind: 'number', value: 30, unit: 'deg', max: 90 },
+    { name: 'count', kind: 'number', value: 3, unit: '' },
+    { name: 'fan', kind: 'enum', value: 120, options: [{ value: 80, label: '80 mm' }, { value: 120, label: '120 mm' }] },
+    { name: 'flange', kind: 'boolean', value: true },
+  ]
+
+  it('renders a table after How this was made: name, value and range', () => {
+    const text = gistReadme(input({ prompts: [{ text: 'a duct', bodies: [] }], variables: VARIABLES }))
+    expect(text).toContain(
+      [
+        '## Variables',
+        '',
+        '| Name | Value | Range |',
+        '| --- | --- | --- |',
+        '| inlet\\_diameter | 80 mm | 40–120 mm |',
+        '| wall | 1\\.6 mm | ≥ 0\\.4 mm |',
+        '| angle | 30 deg | ≤ 90 deg |',
+        '| count | 3 | — |',
+        '| fan | 120 mm | 80 mm, 120 mm |',
+        '| flange | yes | yes / no |',
+        '',
+        'Made with WarpCad.',
+      ].join('\n'),
+    )
+    expect(text.indexOf('## How this was made')).toBeLessThan(text.indexOf('## Variables'))
+  })
+
+  it('a min or max of 0, a negative and a fractional value render as written, not as blank', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'a', kind: 'number', value: 0, unit: 'mm', min: 0, max: 0.25 },
+      { name: 'b', kind: 'number', value: -2.5, unit: 'mm', min: -10, max: 0 },
+    ] }))
+    expect(text).toContain('| a | 0 mm | 0–0\\.25 mm |')
+    expect(text).toContain('| b | \\-2\\.5 mm | \\-10–0 mm |')
+  })
+
+  it('leaves the Range column out when no variable defines one', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'w', kind: 'number', value: 140, unit: 'mm' },
+      { name: 'd', kind: 'number', value: 44, unit: 'mm' },
+    ] }))
+    expect(text).toContain('| Name | Value |\n| --- | --- |\n| w | 140 mm |\n| d | 44 mm |\n')
+    expect(text).not.toContain('Range')
+  })
+
+  it('no variables, no section', () => {
+    expect(gistReadme(input({ variables: [] }))).toBe(gistReadme(input()))
+    expect(gistReadme(input())).not.toContain('## Variables')
+  })
+
+  it('a name or label with a pipe or a line break cannot break the table', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'a|b', kind: 'number', value: 1, unit: 'mm' },
+      { name: 'c', kind: 'enum', value: 'x', options: [{ value: 'x', label: 'one\n| two |' }, { value: 'y', label: 'y|z' }] },
+    ] }))
+    const rows = text.split('\n').filter((line) => line.startsWith('| '))
+    expect(rows).toHaveLength(4)
+    for (const row of rows) expect(row.split(/(?<!\\)\|/).length).toBe(5)
+    expect(text).toContain('| a\\|b | 1 mm | — |')
+  })
+
+  it('keeps a hostile option label or name inert, and breaks a mention', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'x', kind: 'enum', value: 1, options: [{ value: 1, label: '<img src=x onerror=alert(1)>' }, { value: 2, label: '[l](javascript:x) @octocat' }] },
+    ] }))
+    expect(text).not.toMatch(/<img/)
+    expect(text).not.toContain('](javascript')
+    expect(text).toContain('&#64;octocat')
+  })
+
+  it(`lists at most ${MAX_LISTED_VARIABLES} variables, then says how many more`, () => {
+    const many = Array.from({ length: MAX_LISTED_VARIABLES + 7 }, (_, index) => ({ name: `v${index}`, kind: 'number', value: index, unit: '' }))
+    const text = gistReadme(input({ variables: many }))
+    expect(text).toContain(`| v${MAX_LISTED_VARIABLES - 1} |`)
+    expect(text).not.toContain(`| v${MAX_LISTED_VARIABLES} |`)
+    expect(text).toContain('- and 7 more')
+  })
+
+  it('is deterministic and reads only the documented fields of a variable', () => {
+    const smuggled = /** @type {any} */ ([{ ...VARIABLES[0], intent: 'INTENT-SENTINEL', id: 'var-1' }])
+    const first = gistReadme(input({ variables: smuggled }))
+    expect(first).toBe(gistReadme(input({ variables: smuggled })))
+    expect(first).not.toContain('INTENT-SENTINEL')
+    expect(first).not.toContain('var-1')
+  })
+})
+
+describe('gistReadme — section order', () => {
+  it('title, description, link, counts, How this was made, Variables, footer', () => {
+    const text = gistReadme(input({
+      prompts: [{ text: 'a duct', reply: 'done', bodies: ['Base'] }],
+      variables: [{ name: 'w', kind: 'number', value: 1, unit: 'mm', min: 0, max: 2 }],
+    }))
+    const order = ['# Phone stand', 'A stand for a phone', '[Open in WarpCad]', '- 4 bodies', '## How this was made', '> a duct', '**Reply**', '> done', '- Made: Base', '## Variables', 'Made with WarpCad']
+    const at = order.map((marker) => text.indexOf(marker))
+    expect(at.every((index) => index >= 0)).toBe(true)
+    expect([...at].sort((a, b) => a - b)).toEqual(at)
+  })
+})
+
+describe('gistReadme — never carries instructions or intent', () => {
   const SECRET_INSTRUCTIONS = 'STANDING-INSTRUCTION-SENTINEL always use metric'
   const SECRET_INTENT = 'INTENT-SENTINEL make it sturdier'
   const SECRET_CHAT = 'CONVERSATION-SENTINEL user: hello'

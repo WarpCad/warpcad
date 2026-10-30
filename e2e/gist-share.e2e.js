@@ -802,7 +802,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     await tap(input, page.getByTestId('share-gist-connect'))
     await connectInDialog(page, input, GIST_TOKEN)
     await expect(page.getByTestId('share-gist-prompts')).toBeChecked()
-    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('1 prompt will be in the README. The project file has them either way.')
+    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('1 prompt — the request and the reply — will be in the README. The project file has them either way.')
     await tap(input, page.getByTestId('share-gist-publish'))
     await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
     const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
@@ -814,13 +814,91 @@ test.describe('store and share a project as a GitHub gist', () => {
     // Untick, then update: the README drops the section, and the project file still has the prompt.
     await tap(input, page.getByTestId('share-gist-prompts'))
     await expect(page.getByTestId('share-gist-prompts')).not.toBeChecked()
-    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('Left out of the README. The project file still has them.')
+    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('The request and the reply are left out of the README. The project file still has them.')
     await tap(input, page.getByTestId('share-gist-update'))
     await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
     const updated = fake.gists.get(id)
     expect(updated?.files['README.md']).not.toContain('How this was made')
     const file = Object.entries(updated?.files ?? {}).find(([name]) => name !== 'README.md')
     expect(String(file?.[1])).toContain('a 140 × 250 mm fan duct')
+  })
+
+  test('12. the README is the project\'s brief: description, request and reply, variables with ranges; unticking keeps the description and variables (io-023)', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    // An agent's work: a body, the request, the reply, two variables (one with a range).
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const { defineVariable } = await window.__e2eImport('/src/core/variables.js')
+      const store = useDocumentStore()
+      store.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [10, 10, 2], center: [0, 0, 1] } })
+      const prompt = store.raw.recordPrompt({ text: 'a fan duct, inlet between 40 and 120 mm', produced: ['base'] }, { origin: 'mcp' })
+      store.raw.addPromptResponse(prompt.id, 'Built it. Problems met: none.', { origin: 'mcp' })
+      defineVariable(store.raw, { name: 'inlet_diameter', kind: 'number', value: 80, unit: 'mm', min: 40, max: 120 }, { origin: 'mcp' })
+      defineVariable(store.raw, { name: 'wall', kind: 'number', value: 1.6, unit: 'mm' }, { origin: 'mcp' })
+      store.refresh()
+    })
+    await expectBodyCount(page, 1)
+
+    // A person writes the description: File ▾ → Project settings… → Description, with its preview.
+    await openFileMenu(page, input)
+    await tap(input, page.getByTestId('project-settings'))
+    await expect(page.getByTestId('project-settings-dialog')).toBeVisible()
+    await page.getByTestId('project-settings-description').fill('A **wall** duct for a closet.\n\n- prints in *PETG*')
+    await expect(page.getByTestId('project-settings-description-preview').locator('strong')).toHaveText('wall')
+    await expect(page.getByTestId('project-settings-description-preview').locator('li')).toHaveText('prints in PETG')
+    await tap(input, page.getByTestId('project-settings-save'))
+    await expect(page.getByTestId('project-settings-dialog')).toHaveCount(0)
+
+    await openShareSheet(page, input)
+    await tap(input, page.getByTestId('share-gist-connect'))
+    await connectInDialog(page, input, GIST_TOKEN)
+    await expect(page.getByTestId('share-gist-prompts')).toBeChecked()
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
+    const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
+    const id = /** @type {string} */ (copied).slice(-32)
+    const readme = String(fake.gists.get(id)?.files['README.md'])
+    const order = [
+      '# ',
+      'A **wall** duct for a closet\\.',
+      '- prints in *PETG*',
+      '[Open in WarpCad]',
+      '- 1 body: Base',
+      '## How this was made',
+      '> a fan duct, inlet between 40 and 120 mm',
+      '**Reply**',
+      '> Built it\\. Problems met: none\\.',
+      '- Made: Base',
+      '## Variables',
+      '| Name | Value | Range |',
+      '| inlet\\_diameter | 80 mm | 40–120 mm |',
+      '| wall | 1\\.6 mm | — |',
+      'Made with WarpCad.',
+    ]
+    const at = order.map((marker) => readme.indexOf(marker))
+    expect(at, readme).not.toContain(-1)
+    expect([...at].sort((a, b) => a - b)).toEqual(at)
+
+    // Untick, then update: the request and the reply leave the README; the description and the
+    // variables stay, and the project file keeps everything.
+    await tap(input, page.getByTestId('share-gist-prompts'))
+    await expect(page.getByTestId('share-gist-prompts-note')).toHaveText('The request and the reply are left out of the README. The project file still has them.')
+    await tap(input, page.getByTestId('share-gist-update'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
+    const updated = fake.gists.get(id)
+    const after = String(updated?.files['README.md'])
+    expect(after).not.toContain('How this was made')
+    expect(after).not.toContain('a fan duct')
+    expect(after).not.toContain('Built it')
+    expect(after).toContain('A **wall** duct for a closet\\.')
+    expect(after).toContain('| inlet\\_diameter | 80 mm | 40–120 mm |')
+    const file = String(Object.entries(updated?.files ?? {}).find(([name]) => name !== 'README.md')?.[1])
+    expect(file).toContain('Built it. Problems met: none.')
+    expect(file).toContain('"description":["A **wall** duct for a closet.')
   })
 
   test('the repository token and the gist token never overwrite each other through the UI', async ({ page }, info) => {

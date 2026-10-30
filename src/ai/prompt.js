@@ -45,7 +45,7 @@
 import { RECORD_RESPONSE_SENTENCE } from './mcpInstructions.js'
 
 /** Bumped on every change to {@link SYSTEM_PROMPT}: `YYYY-MM-DD.n`. */
-export const PROMPT_VERSION = '2026-10-29.2'
+export const PROMPT_VERSION = '2026-10-30.1'
 
 /**
  * What the prompt tells the model to do when scale or intent is genuinely unknown. Pinned by
@@ -74,6 +74,7 @@ export const SECTIONS = Object.freeze({
 - A boolean or group consumes its operands: afterwards only the result body exists, with a new id. Do not reference a consumed id again; use the id from the result.
 - apply_records runs several create/operate steps as one atomic change: all land or none do. A later step names the body an earlier step made as "@1", "@2", … (1-based). Use it for things that only make sense whole.
 - Every write tool takes an optional rationale: one short line saying why. Give one; it is saved with the record as design intent.
+- Give every variable a person is meant to change a min and a max (define_variable): it is the range readers are told is safe to change. Set the project's description with set_description: what the part is and what it is for, written for a person.
 - Write tools return the scene afterwards. Read it instead of assuming your call did what you meant.
 - Checks (they never write): measure gives bounds, size, volume, surface area and centre of mass. check_printability gives watertightness, whether a part fits the build volume (and which way round), the thinnest wall found, and walls thinner than the nozzle, as issues with a severity and a "where" in mm. check_clearance gives the gap between two bodies, or how much they overlap. capture_view renders the scene you have built from a named view (iso, top, front, right, back, bottom, left) and shows you the picture; use section to look inside a hollow part.`,
   example: `# Example

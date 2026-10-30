@@ -116,8 +116,8 @@ const DEFINE_SCHEMA = withRationale(
       value: VALUE,
       label: { type: 'string', description: `Optional display name for the Variables panel, at most ${VARIABLE_LIMITS.maxLabelLength} characters.` },
       unit: { type: 'string', enum: [...VARIABLE_UNITS], description: 'Optional, kind number only: "mm" for a length, "deg" for an angle, "" for a plain count.' },
-      min: { type: 'number', description: 'Optional, kind number only: the smallest value allowed.' },
-      max: { type: 'number', description: 'Optional, kind number only: the largest value allowed.' },
+      min: { type: 'number', description: 'Kind number only: the smallest value allowed. Set it on every variable a person is meant to change.' },
+      max: { type: 'number', description: 'Kind number only: the largest value allowed. Set it on every variable a person is meant to change.' },
       options: {
         type: 'array',
         description: 'Kind enum only: the choices, each a value and the label a person reads. To bind a param like a Pi’s model, use the values that param offers (see list_variables with its id).',
@@ -287,7 +287,7 @@ function createDefineVariableTool() {
     description:
       'Define a new project variable: a named value (number, boolean, or a choice) that params on any body can be bound to, so one change updates them all — ' +
       'e.g. { "name": "piModel", "kind": "enum", "value": 4, "options": [{ "value": 4, "label": "Pi 4" }, { "value": 5, "label": "Pi 5" }] }. ' +
-      'Then bind params to it with bind_param. Refused, by name, if the name is taken.',
+      'Then bind params to it with bind_param. For a number a person is meant to change, set min and max: the range readers see as safe to change. Refused, by name, if the name is taken.',
     inputSchema: DEFINE_SCHEMA,
     transports: ['ai', 'mcp'],
     run: (ctx, input) => {

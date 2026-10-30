@@ -5,6 +5,12 @@
  * **standing instructions** — rules the AI assistant applies to every request in this project
  * ("print on a 220×220 mm bed, 0.4 mm nozzle, min wall 1.6 mm").
  *
+ * - **Description** (`TODO/io-023`), first: what the part is and what it is for, written for
+ *   **people** (the gist README shows it under the title; an agent can set it with
+ *   `set_description`). A small Markdown subset — paragraphs, `- ` lists, `**bold**`, `*italic*`,
+ *   `` `code` `` — with a live preview under the field (`DescriptionText.vue`, elements with text
+ *   content only); a link, image, heading or HTML shows as typed. Saved with the rest on Save.
+ *
  * - **Precondition**: none. **Trigger**: `project-settings` in the File menu's Design group.
  *   **Feedback**: a live character count against the cap while typing; on Save the
  *   save-status chip reports the autosave like any other document change.
@@ -23,15 +29,19 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
+import { DESCRIPTION_LIMITS } from '../../core/description.js'
 import { INSTRUCTIONS_MAX_LENGTH } from '../../core/intent.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useProjectSettingsStore } from '../../stores/projectSettings.js'
+import DescriptionText from '../display/DescriptionText.vue'
 import ModalShell from './ModalShell.vue'
 
 const settings = useProjectSettingsStore()
 const documentStore = useDocumentStore()
 
 const draft = ref('')
+/** The description being edited (`TODO/io-023`). */
+const descriptionDraft = ref('')
 /** The build volume being edited, mm. `null` while a field is blank. */
 const volume = ref(/** @type {{ widthMm: number | null, depthMm: number | null, heightMm: number | null }} */ ({
   widthMm: 220,
@@ -41,6 +51,7 @@ const volume = ref(/** @type {{ widthMm: number | null, depthMm: number | null, 
 const volumeError = ref('')
 /** @type {import('vue').Ref<HTMLTextAreaElement | null>} */
 const field = ref(null)
+const descriptionCount = computed(() => `${Array.from(descriptionDraft.value).length} / ${DESCRIPTION_LIMITS.maxLength}`)
 
 const count = computed(() => `${draft.value.length} / ${INSTRUCTIONS_MAX_LENGTH}`)
 const untrusted = computed(() => !settings.trusted)
@@ -50,6 +61,7 @@ watch(
   async (open) => {
     if (!open) return
     draft.value = documentStore.standingInstructions
+    descriptionDraft.value = documentStore.description
     volume.value = { ...documentStore.buildVolume }
     volumeError.value = ''
     await nextTick()
@@ -60,7 +72,7 @@ watch(
 
 function save() {
   try {
-    settings.save(draft.value, /** @type {import('../../core/buildVolume.js').BuildVolume} */ ({ ...volume.value }))
+    settings.save(draft.value, /** @type {import('../../core/buildVolume.js').BuildVolume} */ ({ ...volume.value }), descriptionDraft.value)
   } catch (error) {
     volumeError.value = error instanceof Error ? error.message : String(error)
   }
@@ -70,9 +82,32 @@ function save() {
 <template>
   <ModalShell :open="settings.isOpen" testid="project-settings-dialog" title="Project settings" help-topic="project-settings" @backdrop="settings.close()">
     <form class="settings__form" novalidate @submit.prevent="save()">
+      <label class="settings__field" for="project-settings-description">Description</label>
+      <p id="project-settings-description-help" class="settings__help">
+        What this part is and what it is for, for people who open the project or its gist. You can use
+        **bold**, *italic*, `code` and lines starting with "- " for a list; links and pictures show as typed.
+      </p>
+      <textarea
+        id="project-settings-description"
+        v-model="descriptionDraft"
+        class="settings__text settings__text--short"
+        rows="3"
+        :maxlength="DESCRIPTION_LIMITS.maxLength"
+        aria-describedby="project-settings-description-help project-settings-description-count"
+        spellcheck="true"
+        placeholder="e.g. A wall-mounted fan duct for a closet, printed in PETG."
+        data-testid="project-settings-description"
+      />
+      <p id="project-settings-description-count" class="settings__count" aria-live="polite" data-testid="project-settings-description-count">
+        {{ descriptionCount }} characters
+      </p>
+      <div v-if="descriptionDraft.trim() !== ''" class="settings__preview" aria-label="Description preview">
+        <DescriptionText :text="descriptionDraft" testid="project-settings-description-preview" />
+      </div>
+
       <label class="settings__field" for="project-settings-text">Standing instructions</label>
       <p id="project-settings-help" class="settings__help">
-        Rules the AI assistant applies to every request in this project — your printer's bed size, nozzle,
+        For the AI, not for people: rules the AI assistant applies to every request in this project — your printer's bed size, nozzle,
         minimum wall thickness, materials. Saved with the project file.
       </p>
 
@@ -196,6 +231,16 @@ function save() {
   resize: vertical;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.settings__text--short {
+  min-height: calc(var(--tap) * 2);
+}
+
+.settings__preview {
+  padding: 8px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
 }
 
 .settings__volume {

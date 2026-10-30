@@ -9,6 +9,7 @@ import { nextTick } from 'vue'
 enableAutoUnmount(afterEach)
 
 import { createInstructionTrust } from '../../ai/instructionTrust.js'
+import { DESCRIPTION_LIMITS } from '../../core/description.js'
 import { INSTRUCTIONS_MAX_LENGTH } from '../../core/intent.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { setHostedDependencies } from '../../stores/hosted.js'
@@ -136,5 +137,74 @@ describe('File ▾ → Project settings…', () => {
     const dialog = q('project-settings-dialog')
     expect(dialog.querySelector('img, b')).toBeNull()
     expect(q('project-settings-text').value).toBe('<img src=x data-evil="1"><b>bold</b>')
+  })
+})
+
+/**
+ * `TODO/io-023` — the project's **Description**, for people to read, above the standing
+ * instructions (which are for the AI). A small Markdown subset with a live preview; everything
+ * outside it is shown as typed. The preview is built from elements with text content, never from
+ * markup.
+ */
+describe('File ▾ → Project settings… — Description', () => {
+  /** @param {string} text */
+  async function describeAs(text) {
+    const field = q('project-settings-description')
+    field.value = text
+    field.dispatchEvent(new Event('input'))
+    await nextTick()
+  }
+
+  it('comes before the standing instructions, says it is for people, and shows the current text', async () => {
+    const { wrapper, documentStore } = setup()
+    documentStore.setDescription('A wall duct.')
+    await openSettings(wrapper)
+    const field = q('project-settings-description')
+    expect(field.value).toBe('A wall duct.')
+    expect(field.getAttribute('maxlength')).toBe(String(DESCRIPTION_LIMITS.maxLength))
+    expect(field.compareDocumentPosition(q('project-settings-text')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(q('project-settings-dialog').textContent).toMatch(/for people/i)
+  })
+
+  it('previews the Markdown subset live: paragraphs, a list, bold, italic and code', async () => {
+    const { wrapper } = setup()
+    await openSettings(wrapper)
+    expect(q('project-settings-description-preview')).toBeNull()
+    await describeAs('A **wall** duct, *PETG*.\n\n- one `1.6`\n- two')
+    const preview = q('project-settings-description-preview')
+    expect(preview.querySelectorAll('p')).toHaveLength(1)
+    expect(preview.querySelectorAll('li')).toHaveLength(2)
+    expect(preview.querySelector('strong')?.textContent).toBe('wall')
+    expect(preview.querySelector('em')?.textContent).toBe('PETG')
+    expect(preview.querySelector('code')?.textContent).toBe('1.6')
+    expect(q('project-settings-description-count').textContent).toContain(`/ ${DESCRIPTION_LIMITS.maxLength}`)
+  })
+
+  it('Save writes it to the document with the instructions; Cancel discards it', async () => {
+    const { wrapper, documentStore } = setup()
+    await openSettings(wrapper)
+    const before = documentStore.version
+    await describeAs('A **wall** duct.')
+    q('project-settings-save').click()
+    await nextTick()
+    expect(documentStore.description).toBe('A **wall** duct.')
+    expect(documentStore.version).toBeGreaterThan(before)
+
+    await openSettings(wrapper)
+    await describeAs('changed')
+    q('project-settings-cancel').click()
+    await nextTick()
+    expect(documentStore.description).toBe('A **wall** duct.')
+  })
+
+  it('renders hostile text as text: no link, image, script, heading or HTML element is created', async () => {
+    const { wrapper } = setup()
+    await openSettings(wrapper)
+    await describeAs('# Heading\n\n[x](javascript:alert(1)) ![i](https://e.vil/p.png) <img src=x onerror=alert(1)> <script>alert(1)</script> <b>b</b>')
+    const preview = q('project-settings-description-preview')
+    expect(preview.querySelector('a, img, script, h1, h2, b, iframe')).toBeNull()
+    expect(preview.textContent).toContain('# Heading')
+    expect(preview.textContent).toContain('[x](javascript:alert(1))')
+    expect(preview.textContent).toContain('<img src=x onerror=alert(1)>')
   })
 })

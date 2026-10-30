@@ -253,6 +253,12 @@ export const useDocumentStore = defineStore('document', () => {
    */
   const buildVolume = ref(raw.buildVolume())
   /**
+   * The project's description for people (`TODO/io-023`), mirrored off `raw` in {@link refresh}.
+   * Shown only through `DescriptionText.vue`, which renders the Markdown subset as elements with
+   * text content — never markup.
+   */
+  const description = ref(raw.description())
+  /**
    * Bumped each time a whole document is *loaded* (autosave restore, Open) as
    * opposed to edited. The viewport frames the camera on it: a loaded project
    * whose geometry sits outside the default view would otherwise read as an empty
@@ -295,6 +301,7 @@ export const useDocumentStore = defineStore('document', () => {
     resolution.value = raw.resolution()
     standingInstructions.value = raw.standingInstructions()
     buildVolume.value = raw.buildVolume()
+    description.value = raw.description()
     const list = raw.bodies()
     bodies.value = list.map(summarizeBody)
     // `TODO/ui-052`: a change (a model swap, or its Undo) can take away the part the
@@ -404,6 +411,18 @@ export const useDocumentStore = defineStore('document', () => {
    */
   function setBuildVolume(volume) {
     raw.setBuildVolume(volume, { origin: 'local' })
+    refresh()
+  }
+
+  /**
+   * Replace the project's description for people (`TODO/io-023`) — core's `setDescription`, a
+   * `local` document change that bumps the version but is not an undo step, like the standing
+   * instructions beside it in Project settings. `''` clears it.
+   *
+   * @param {string} text
+   */
+  function setDescription(text) {
+    raw.setDescription(text, { origin: 'local' })
     refresh()
   }
 
@@ -896,6 +915,8 @@ export const useDocumentStore = defineStore('document', () => {
     setStandingInstructions,
     buildVolume,
     setBuildVolume,
+    description,
+    setDescription,
     setViewHidden,
     addPromptResponse,
     showAll,

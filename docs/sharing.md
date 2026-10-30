@@ -89,8 +89,9 @@ wasn't what they wanted. **Open theirs instead** replaces their copy with yours.
 ## Publish a project as a gist
 
 A **gist** is a small page on GitHub that holds a few files. Publishing puts two there: your
-project file, and a short page anyone can read on GitHub with the project's name, how many shapes
-it has and what they're called, and an **Open in WarpCad** link. You get a short link,
+project file, and a short page anyone can read on GitHub (the README): the project's name and
+description, an **Open in WarpCad** link, its shapes, how it was made and the numbers you can
+change (see [What the gist's README says](#what-the-gists-readme-says)). You get a short link,
 `https://app.warpcad.com/#/gist/` followed by the gist's id. It works for a project of any size,
 and when you publish again the **same link** shows the newer version.
 
@@ -144,27 +145,48 @@ is only there before the first publish.
 A small **Published** mark appears beside **Share** while the open project is published from
 your account. On a phone it's a dot on the Share button.
 
-### How this was made: the prompts in the README
+### What the gist's README says
 
-When the project has the requests that made its shapes in it (a request an agent was given, see
-[the AI partner](ai-partner.md)), the gist's README gains a **How this was made** section. Each request is
-a quote, with the shapes it made under it, oldest first, so a reader on github.com sees what the
-part was meant to be without opening WarpCad.
+The README is the project's brief, so a person or a model landing on the gist understands the part
+without opening WarpCad. It's written again every time you publish, in this order:
+
+1. **The title**, then the project's **description**: what the part is and what it's for. You
+   write it in **File ▾ → Project settings… → Description**, or an agent writes it for you (see
+   [Describe your project for people](design-intent.md#describe-your-project-for-people)). Its
+   **bold**, *italic*, `code` and bullet lists show on GitHub; a link, picture or heading in it
+   shows as plain text.
+2. The **Open in WarpCad** link, how many shapes there are and what they're called, when it was
+   last published and a link to the project file.
+3. **How this was made**: each request an agent was given (see [the AI partner](ai-partner.md)) as
+   a quote, then the agent's answer as a second quote headed **Reply**, then *Made:* and the shapes
+   it produced. Oldest first.
+4. **Variables**: a table of every [project variable](variables.md), with its value and its
+   **Range**: *40–120 mm* when the variable has a smallest and largest value, *≥ 40 mm* or
+   *≤ 120 mm* when it has one of them, the choices for a list, *yes / no* for a switch, and *—*
+   when it has none. When no variable has a range, the table has no Range column.
+
+![A gist README as text: the title Fan duct, the description with wall-mounted in bold and a two-item list, the Open in WarpCad link and the shapes, How this was made with the request quoted and the agent's Reply quoted under it, then a Variables table with inlet_diameter, 80 mm, 40–120 mm.](./screenshots/gist-readme-brief.png)
+
+The range is what the agent says is safe to change, so WarpCad asks agents to give one to every
+variable you're meant to change. A variable without one shows *—*.
 
 Under **Short link with GitHub** the box **Include prompts in the README** is on by default. Its
-note says how many prompts the README will carry. Untick it to keep them out of the README: the
-project file still has them, so the gist's file is the same either way.
+note says how many prompts the README will carry, with the request and the reply. Untick it to keep
+the requests and the replies out of the README. The description and the variables stay: they
+describe the part, not the conversation. The project file still has everything, so the gist's
+file is the same either way.
 
-![The Share sheet on a phone before publishing: Short link with GitHub has Make it public unticked and Publish to a gist, then Include prompts in the README ticked, with the note 1 prompt will be in the README, and the line about who can read a secret gist.](./screenshots/gist-prompts.png)
+![The Share sheet on a phone before publishing: Short link with GitHub has Make it public unticked and Publish to a gist, then Include prompts in the README ticked, with the note 1 prompt — the request and the reply — will be in the README, and the line about who can read a secret gist.](./screenshots/gist-prompts.png)
 
-A **public** gist is listed on GitHub for anyone to read, and that includes these prompts. Check the
-box before you publish a project whose requests you would not show to strangers.
+A **public** gist is listed on GitHub for anyone to read, and that includes the requests and the
+replies. Untick the box before you publish a project whose conversation you would not show to
+strangers.
 
-**Example.** Ask your agent for *a 140 × 250 mm fan duct, 1.6 mm walls*. Open your project, tap
-**Share**, and tap **Publish to a gist**. On github.com, open the gist: under **How this was made** is
-*a 140 × 250 mm fan duct, 1.6 mm walls*, with *Made: Base, Lip* under it, the names of the shapes it
-produced. To keep the requests out, untick **Include prompts in the README** before you publish, or
-before **Update gist** the next time.
+**Example.** Ask your agent for a fan duct with an `inlet_diameter` variable between 40 and
+120 mm. Publish to a gist and open it on GitHub. Under **How this was made** is your request and
+the agent's answer. Under **Variables** is a table with `inlet_diameter`, its value and
+*40–120 mm*. Untick **Include prompts in the README** and tap **Update gist** to leave the request
+and the answer out; the variables stay.
 
 ### Update it, copy the link, or stop sharing
 

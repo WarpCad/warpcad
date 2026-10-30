@@ -55,6 +55,9 @@
  * @property {Lww<unknown> | null} gist `TODO/io-017`: the gist this project is published as
  *   (`src/core/gistField.js`), or `null` once cleared. A value travels with its stamp in the
  *   file's `merge.gist`, not as a state-line field — see {@link SECTION_REGISTER_NAMES}.
+ * @property {Lww<unknown> | null} description `TODO/io-023`: the project's description for people
+ *   (`src/core/description.js`), `''` once cleared. Like `gist`, value and stamp travel together in
+ *   the file's `merge.description`.
  */
 
 /**
@@ -94,13 +97,14 @@ export function isLegacyStamp(stamp) {
 }
 
 /** The document-level registers, in their canonical order. */
-export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist'])
+export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist', 'description'])
 
 /**
  * The registers whose **value** is a state-line field and whose stamp alone goes in the file's
  * `merge.registers` map (`section.js`). A released build refuses a name in that map it does not
  * know, so a register added later never goes there: `gist` (`TODO/io-017`) is written as its own
- * `merge.gist` key, value and stamp together, which an older build simply ignores.
+ * `merge.gist` key, value and stamp together, which an older build simply ignores; so is
+ * `description` (`TODO/io-023`), as `merge.description`.
  */
 export const SECTION_REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume'])
 
@@ -115,7 +119,7 @@ export function emptyMergeState(projectId = null) {
     projectId,
     entries: new Map(),
     dead: new Map(),
-    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null },
+    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null },
     parts: new Map(),
     viewHidden: new Map(),
     prompts: new Map(),

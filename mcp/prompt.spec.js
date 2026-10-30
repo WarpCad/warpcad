@@ -107,6 +107,29 @@ describe('the MCP session and record_response (TODO/ai-032)', () => {
   })
 })
 
+describe('the MCP session and set_description (TODO/io-023)', () => {
+  it('writes the description to the file under the lock, though it touches no row', async () => {
+    const file = join(dir, 'duct.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    await session.call('create', CUBE)
+    const result = await session.call('set_description', { description: 'A **wall** duct for a closet.' })
+    expect(result.error).toBeUndefined()
+    const saved = loadProjectText(readFileSync(file, 'utf8'), 'duct.ndjson')
+    expect(saved.description()).toBe('A **wall** duct for a closet.')
+    expect(writeToolNames(createToolRegistry()).has('set_description')).toBe(true)
+  })
+
+  it('a refused set_description writes nothing', async () => {
+    const file = join(dir, 'duct.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    await session.call('create', CUBE)
+    const before = readFileSync(file, 'utf8')
+    const refused = await session.call('set_description', { description: 42 })
+    expect(refused.error).toBeDefined()
+    expect(readFileSync(file, 'utf8')).toBe(before)
+  })
+})
+
 describe('the instructions name record_prompt, inside the budget', () => {
   for (const [name, text] of /** @type {const} */ ([
     ['SERVER_INSTRUCTIONS', SERVER_INSTRUCTIONS],
