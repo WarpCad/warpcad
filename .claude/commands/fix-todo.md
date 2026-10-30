@@ -160,20 +160,29 @@ Sonnet half (resume at sub-step 3 against the diff already in the tree). Delegat
 here would nest an agent inside an agent for no benefit.
 
 **Otherwise** (a user invoked `/fix-todo <id>` directly, not via
-`/run-todos`): **if the TODO's `model` field is `opus`** (geometry/numerics, a
-rendering algorithm, large multi-module orchestration, or real architectural
-ambiguity — see `TODO/README.md`'s Model field section) and the active session
-model is not already Opus-tier, do sub-steps (1) and (2) as a single `Agent`
-tool call with `model: "opus"` (`subagent_type: "claude"`, foreground — the
-result gates Step 5) instead of writing the code yourself. Brief that agent
-like a handoff, not a summary: paste the TODO's full
-**Problem**/**Affected files**/**Proposed fix**/**Testing** sections verbatim,
-state the RED/GREEN order above, and tell it to report back which files it
-touched and the final test output. When it returns, read its diff yourself
-(`git diff`) before trusting the summary — you still own steps 5-9. If the
-session model is already Opus or better, skip the delegation and just do
-Step 4 directly — spawning a same-tier agent would only lose context for no
-benefit.
+`/run-todos`): the TODO's `model` field names the tier that must write the code
+(default `sonnet` when absent; `opus` for geometry/numerics, a rendering
+algorithm, large multi-module orchestration, or real architectural ambiguity —
+see `TODO/README.md`'s Model field section). The session you are running in may
+be a different tier, so compare the two exactly, not just "is it Opus-tier":
+
+- **Session tier matches the `model` field** (`sonnet` on a `sonnet` TODO, or
+  `opus` on an `opus` TODO): do Step 4 directly. Spawning a same-tier agent would
+  only lose context for no benefit.
+- **Session tier differs** — in either direction: an `opus` session on a
+  `sonnet` TODO (pays Opus rates for work Sonnet does as well), a `sonnet` or
+  `haiku` session on an `opus` TODO (under-powered for the geometry), or a
+  `haiku` session on any TODO (Haiku runs tests; it does not write code): do
+  sub-steps (1) and (2) as a single `Agent` tool call with
+  `model: "<the TODO's model field>"` (`subagent_type: "claude"`, foreground —
+  the result gates Step 5) instead of writing the code yourself. Brief that agent
+  like a handoff, not a summary: paste the TODO's full
+  **Problem**/**Affected files**/**Proposed fix**/**Testing** sections verbatim,
+  state the RED/GREEN order above, and tell it to report back which files it
+  touched and the final test output. When it returns, read its diff yourself
+  (`git diff`) before trusting the summary — you still own steps 5-9. Report the
+  model switch in the Step 9 report, and pass the tier that actually wrote the
+  code to `--model` in Step 4's progress call.
 
 ---
 
