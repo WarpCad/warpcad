@@ -27,6 +27,28 @@ A project that is too big for a link, or one you want to keep updating, can be p
 
 ![The Share sheet on a phone: the Name field reading "Phone stand", a Copy link button, Send the file underneath, and the line about who can open the link, then the Short link with GitHub group with its Connect GitHub for short links button.](./screenshots/share-sheet.png)
 
+### Tell people what they are looking at
+
+Someone who opens your link lands on a 3D model with no explanation. Give it one: the
+**description** is shown to them in a popup the moment the link opens. It's the same description
+that leads a gist's README ([below](#what-the-gists-readme-says)).
+
+The Share sheet shows what they will see, under the **Copy link** button: *People who open this
+will see: Fan duct for a 120 mm fan…*, the first line of your description, with **Edit…**. If
+you haven't written one, it says *Add a description for the people you are sending this to*, with
+**Add…**. Either button closes the sheet and opens **File ▾ → Project settings…**, where the
+**Description** field is. You can use a little formatting there: bold, italic, bullet lists and
+paragraphs (see [Describe your project for people](design-intent.md#describe-your-project-for-people)).
+**Save as gist…** shows the same line.
+
+**Example.** Open your project. **File ▾ → Project settings…**. Under **Description** type *Fan
+duct for a \*\*120 mm\*\* fan to a 40 mm hose.* and, on new lines after a blank one, *- Print the
+three parts upright* and *- The elbow needs \*supports\**. **Save.** Tap **Share**. The sheet
+shows *People who open this will see: Fan duct for a 120 mm fan to a 40 mm hose.* Tap **Copy
+link** and open the link in another browser: a popup shows your text over the model. Tap **View
+the model**, then **About** in the header to read it again. Publish as a gist and open it on
+GitHub: the same text is under the title.
+
 **Example.** Open your project. Tap **Share**. Tap **Send…**, pick **Messages** and your dad's
 name, and tap send. Dad's message reads *"Here's a model I made in WarpCad: Phone stand"*
 followed by the link.
@@ -55,10 +77,14 @@ You don't need to know anything about WarpCad to look at it.
    out. On a computer, drag with the mouse and scroll to zoom. The buttons in the bottom corner do
    the same thing if you prefer to tap, and **Home** in the box at the top right turns it back to
    a standard view.
-3. **That's all you have to do.** Tapping the model doesn't change it. Nothing you do on this
+3. **That's all you have to do.** If the sender wrote a description, it opens over the model as
+   a popup: read it, then tap **View the model**. The **About** button under the name opens it
+   again. A link with no description opens straight onto the model. Tapping the model doesn't change it. Nothing you do on this
    screen changes the model, and nothing on your device is saved or overwritten.
 
 ![The Shared view on a phone: the project's name at the top, a cube and a sphere in the middle with the navigation buttons and the view box in the corners, and a large Make my own copy to edit button at the bottom.](./screenshots/shared-view.png)
+
+![The Shared view on a phone with a popup over the model titled About this project: a description of a fan duct with 120 mm in bold and a two-item list, and a large View the model button.](./screenshots/shared-about-popup.png)
 
 **Example.** Tap the link. The model appears. Drag one finger to turn it, pinch to zoom. Tap
 **Make my own copy to edit** only if you want to change it.
@@ -245,7 +271,10 @@ a gist yet.
 It opens exactly like a long link: tap it and the model appears, with its name above it. You
 don't need a GitHub account, and nothing is saved on your device unless you tap **Make my own
 copy to edit**. The two buttons and the controls are the ones in
-[If someone sent you a WarpCad link](#if-someone-sent-you-a-warpcad-link).
+[If someone sent you a WarpCad link](#if-someone-sent-you-a-warpcad-link), and so is the popup:
+if the project has a description it opens over the model, **View the model** closes it and
+**About** opens it again. If the link is your own, you don't get the popup (you wrote it), but
+**About** is there.
 
 **Example.** Your daughter texts you a link that starts `https://app.warpcad.com/#/gist/`. Tap it.
 The phone stand appears. Drag to turn it. Tap **Make my own copy to edit** if you want to change it;

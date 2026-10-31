@@ -393,11 +393,12 @@ const GIST_HASH = `#/gist/${GIST_ID}`
 /**
  * A project as a gist holds it: published by its owner, so it carries the `gist` field.
  *
- * @param {{ projectId?: string, gistId?: string, extra?: boolean }} [options]
+ * @param {{ projectId?: string, gistId?: string, extra?: boolean, description?: string }} [options]
  */
-function publishedText({ projectId = 'senderproject0001', gistId = GIST_ID, extra = false } = {}) {
+function publishedText({ projectId = 'senderproject0001', gistId = GIST_ID, extra = false, description = '' } = {}) {
   const doc = createDocument({ mintProjectId: () => projectId })
   doc.append(CUBE, { origin: 'local' })
+  if (description !== '') doc.setDescription(description, { origin: 'local' })
   if (extra) doc.append(CYLINDER, { origin: 'local' })
   doc.setGist({ id: gistId, public: false, lastRevision: REVISION, owner: 'octocat' }, { origin: 'gist' })
   return serializeProject(doc)
@@ -746,5 +747,46 @@ describe('hostile projects behave through a gist exactly as through Open…', ()
       expect(useTimelineStore().previewDocument()?.entries.map((entry) => entry.record.id)).toEqual(openedIds)
     }
     scope.stop()
+  })
+})
+
+describe('the description popup opens itself (TODO/ui-091)', () => {
+  afterEach(() => setGistDependencies(null))
+
+  it('a share link whose project has a description opens the popup once, and never writes storage', async () => {
+    const doc = createDocument({ mintProjectId: () => 'senderproject0001' })
+    doc.append(CUBE, { origin: 'local' })
+    doc.setDescription('Fan duct. **Print upright.**', { origin: 'local' })
+    const records = parseNdjson(serializeProject(doc)).records
+    const { scope } = await boot(fakeEnv(await linkHash(records)))
+    const share = useShareStore()
+    expect(share.phase).toBe('ready')
+    expect(share.aboutOpen).toBe(true)
+    expect(share.description).toBe('Fan duct. **Print upright.**')
+    expect(backend.saves).toEqual([])
+    scope.stop()
+  })
+
+  it('a share link without a description opens no popup', async () => {
+    const { scope } = await boot(fakeEnv(await linkHash(senderRecords())))
+    expect(useShareStore().phase).toBe('ready')
+    expect(useShareStore().aboutOpen).toBe(false)
+    scope.stop()
+  })
+
+  it('a gist link opens the popup; the owner’s own link does not', async () => {
+    setGistDependencies({ backend: gistBackend(servedAs(publishedText({ description: 'Fan duct' }))), credentials: noCredentials })
+    const first = await boot(fakeEnv(GIST_HASH))
+    expect(useShareStore().aboutOpen).toBe(true)
+    expect(useShareStore().description).toBe('Fan duct')
+    first.scope.stop()
+
+    setActivePinia(createPinia())
+    backend.stored = { text: publishedText({ description: 'Fan duct' }), savedAt: 1000 }
+    const own = await boot(fakeEnv(GIST_HASH))
+    expect(useGistStore().linkPhase).toBe('own-link')
+    expect(useShareStore().description).toBe('Fan duct')
+    expect(useShareStore().aboutOpen).toBe(false)
+    own.scope.stop()
   })
 })

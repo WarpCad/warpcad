@@ -506,6 +506,86 @@ test.describe('share a project by link', () => {
     await expect(page.getByTestId('merge-undo')).toBeVisible()
   })
 
+  test('6. the project description opens as a popup over the model; View the model dismisses it, About brings it back; no description, no popup (ui-091)', async ({ page, browser, baseURL }, info) => {
+    test.setTimeout(120_000)
+    await openApp(page)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    await placeShapes(page, input, info)
+
+    // The sender's hint before there is a description, then File ▾ → Project settings… → Description.
+    await openShareSheet(page, input)
+    await expect(page.getByTestId('description-hint-text')).toHaveText('Add a description for the people you are sending this to')
+    await expect(page.getByTestId('description-hint-edit')).toHaveText('Add…')
+    // Add… closes the sheet and opens Project settings.
+    await input.press(page.getByTestId('description-hint-edit'))
+    await expect(page.getByTestId('share-sheet')).toHaveCount(0)
+    await expect(page.getByTestId('project-settings-dialog')).toBeVisible()
+    await page.getByTestId('project-settings-description').fill('Fan duct for a **120 mm** fan to a 40 mm hose.\n\n- Print the three parts upright\n- The elbow needs *supports*')
+    await input.press(page.getByTestId('project-settings-save'))
+    await expect(page.getByTestId('project-settings-dialog')).toHaveCount(0)
+
+    await openShareSheet(page, input)
+    await expect(page.getByTestId('description-hint-line')).toHaveText('Fan duct for a 120 mm fan to a 40 mm hose.')
+    await expect(page.getByTestId('description-hint-edit')).toHaveText('Edit…')
+    // The button's layout height (`offsetHeight`), not `boundingBox()`: that comes back through the
+    // browser's float32 pipeline and read 43.999969 for a button laid out at exactly 44px.
+    expect(await page.getByTestId('description-hint-edit').evaluate((el) => /** @type {HTMLElement} */ (el).offsetHeight)).toBeGreaterThanOrEqual(44)
+    await expectNoHorizontalScroll(page)
+    await page.keyboard.press('Escape')
+    const hash = await copyLink(page, input)
+
+    const context = await freshContext(browser, info, baseURL)
+    try {
+      const other = await context.newPage()
+      await openApp(other, `/${hash}`)
+      await expect(other.getByTestId('shared-view')).toHaveAttribute('data-state', 'ready')
+      // It opens itself: the reader has done nothing yet.
+      const popup = other.getByTestId('shared-about')
+      await expect(popup).toBeVisible()
+      await expect(popup).toHaveAttribute('role', 'dialog')
+      await expect(popup).toHaveAttribute('aria-modal', 'true')
+      await expect(other.getByTestId('shared-about-text').locator('strong')).toHaveText('120 mm')
+      await expect(other.getByTestId('shared-about-text').locator('li')).toHaveCount(2)
+      await expect(other.getByTestId('shared-about-close')).toBeFocused()
+      await expectNoHorizontalScroll(other)
+      await other.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-shared-about-popup.png`) })
+
+      // A finger can dismiss it; the model is there underneath; About brings it back; Esc dismisses.
+      const tapTarget = await other.getByTestId('shared-about-close').boundingBox()
+      expect(tapTarget?.height ?? 0).toBeGreaterThanOrEqual(44)
+      const reader = await pointer(other, info)
+      await reader.press(other.getByTestId('shared-about-close'))
+      await expect(popup).toHaveCount(0)
+      await expect(other.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+      await expectBodyCount(other, 2)
+      await expect(other.getByTestId('shared-about-open')).toBeFocused()
+      await reader.press(other.getByTestId('shared-about-open'))
+      await expect(popup).toBeVisible()
+      await other.keyboard.press('Escape')
+      await expect(popup).toHaveCount(0)
+      // Opening a link never wrote the reader's storage.
+      expect(await readAutosave(other)).toBeNull()
+    } finally {
+      await context.close()
+    }
+
+    // A project with no description: no popup and no About button.
+    const plain = await freshContext(browser, info, baseURL)
+    try {
+      const page2 = await plain.newPage()
+      await openApp(page2)
+      await editorReady(page2)
+      const noText = await makeLinkHash(page2, 'Plain')
+      await page2.goto(`/${noText}`)
+      await expect(page2.getByTestId('shared-view')).toHaveAttribute('data-state', 'ready')
+      await expect(page2.getByTestId('shared-about')).toHaveCount(0)
+      await expect(page2.getByTestId('shared-about-open')).toHaveCount(0)
+    } finally {
+      await plain.close()
+    }
+  })
+
   test('Send… hands the OS share sheet a message and the link; cancelling it says nothing', async ({ page }, info) => {
     await page.addInitScript(() => {
       /** @type {any} */ (window).__shared = []

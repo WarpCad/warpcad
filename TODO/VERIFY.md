@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-091 — About this project popup on share links (2026-10-31 02:45 UTC)
+
+Not covered by an acceptance scenario run yet: scenarios 22 and 29 need a hand drive. Scenario 30 needs a GitHub connection and was not driven.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Scenario 29: send a project to someone new; the recipient reads the About popup and dismisses it by finger, with no keyboard | Open | |
+| 2 | Scenario 22: merge a copy from a second profile; a copy with a different description merges and the later edit wins | Open | |
+
+
 ### io-019 — Update gist merges before publishing (2026-10-29 13:32)
 
 Driven by e2e and a scratch clash drive on Chromium and WebKit, never against real GitHub or on a real phone.

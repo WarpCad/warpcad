@@ -89,7 +89,11 @@ export async function openShareLink(hash, { env, share, restored }) {
     return
   }
   // Only the hash this read was for: a newer link pasted meanwhile owns the address bar now.
-  if (share.show(token, decoded) && env.hash() === hash) env.clearHash()
+  if (share.show(token, decoded)) {
+    // `TODO/ui-091`: the project's description opens over the model, once.
+    share.offerAbout(false)
+    if (env.hash() === hash) env.clearHash()
+  }
 }
 
 /**
@@ -174,7 +178,11 @@ export async function openGistLink(hash, { env, share, gist, restored, liveGist 
     return
   }
   // Only the hash this read was for: a newer link pasted meanwhile owns the address bar now.
-  if (gist.showLink(generation, { description, own, text: read.text, records, name }) && env.hash() === hash) env.clearHash()
+  if (gist.showLink(generation, { description, own, text: read.text, records, name })) {
+    // `TODO/ui-091`: the project's description opens over the model, once — not for the owner's own link.
+    share.offerAbout(own)
+    if (env.hash() === hash) env.clearHash()
+  }
 }
 
 /**

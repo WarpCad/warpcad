@@ -79,7 +79,7 @@ import { applyMergeUndo, mergeSnapshotOf, planMergeUndo } from '../core/mergeUnd
 import { counterOfId, createClock, createReplicaId } from '../core/replica.js'
 import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { assembleMessages, compactToolResult, summariseScene } from './context.js'
-import { documentDataBlock, promptsBlock, standingInstructionsBlock } from './documentData.js'
+import { descriptionBlock, documentDataBlock, promptsBlock, standingInstructionsBlock } from './documentData.js'
 import { preparePrompt } from '../core/prompt.js'
 import { recordResponse } from './tools/prompt.js'
 import { imagePart } from './image.js'
@@ -468,6 +468,9 @@ function userContentFor(ctx, fork, userMessage, images, attachmentIds) {
   const content = []
   const instructions = standingInstructionsBlock(ctx.standingInstructions())
   if (instructions !== '') content.push({ type: 'text', text: instructions })
+  // `TODO/ui-091`: what the part is for, in the author's words, as data.
+  const about = descriptionBlock(fork.description?.() ?? '')
+  if (about !== '') content.push({ type: 'text', text: about })
   // `TODO/ai-031`: what earlier requests asked for, as data.
   const asked = promptsBlock(fork.prompts())
   if (asked !== '') content.push({ type: 'text', text: asked })

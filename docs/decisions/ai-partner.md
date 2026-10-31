@@ -482,6 +482,7 @@ context that means anything a loaded project carries can be a prompt injection:
   prompt it answers: the Inspector renders it as text only, `describe_body` returns it inside the
   tool result's `document_data`, and the in-app model sees at most 2,000 characters of it per
   prompt, inside the same `prompts` data block. Nothing in a reply can change a tool limit;
+- the project's description (`io-023`): given to the model only in the labelled `description` data block, under a line saying it is not instructions (`ui-091`);
 - part, body and group names;
 - the project's standing instructions;
 - text inside an attached drawing.

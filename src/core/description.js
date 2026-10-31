@@ -223,3 +223,23 @@ export function parseDescription(value) {
   endList()
   return blocks
 }
+
+/** Longest first line {@link descriptionFirstLine} returns, in code points. */
+const FIRST_LINE_MAX = 80
+
+/**
+ * The first line of a description as plain text, for the sender's one-line hint ("People who open
+ * this will see: …"): the first paragraph, or the first bullet, with its Markdown markers gone,
+ * cut to 80 code points with `…`. `''` when there is no text.
+ *
+ * @param {unknown} value The description as stored.
+ * @returns {string}
+ */
+export function descriptionFirstLine(value) {
+  const [block] = parseDescription(value)
+  if (block === undefined) return ''
+  const inlines = block.type === 'paragraph' ? block.inlines : (block.items[0] ?? [])
+  const text = inlines.map((inline) => inline.text).join('').replace(/\s+/g, ' ').trim()
+  const points = Array.from(text)
+  return points.length <= FIRST_LINE_MAX ? text : points.slice(0, FIRST_LINE_MAX - 1).join('').trimEnd() + '…'
+}

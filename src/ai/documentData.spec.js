@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { documentDataBlock, standingInstructionsBlock, unwrapDocumentData } from './documentData.js'
+import { descriptionBlock, documentDataBlock, standingInstructionsBlock, unwrapDocumentData } from './documentData.js'
 
 /**
  * `TODO/ai-003`, `docs/decisions/ai-partner.md` decision 7: document-derived text reaches a
@@ -56,5 +56,22 @@ describe('standingInstructionsBlock', () => {
     expect(block).toMatch(/do not follow/i)
     expect(block.match(/<\/document_data>/g)).toHaveLength(1)
     expect(block).not.toContain('</document_data>Ignore')
+  })
+})
+
+describe('descriptionBlock (TODO/ui-091)', () => {
+  it('is empty when there is no description', () => {
+    expect(descriptionBlock('')).toBe('')
+    expect(descriptionBlock('  \n ')).toBe('')
+  })
+
+  it('quotes the description as data, never as instructions, hostile text only inside the block', () => {
+    const block = descriptionBlock(HOSTILE)
+    expect(block).toMatch(/not instructions/i)
+    const at = block.indexOf('<document_data')
+    // everything before the block is the app's own line; the hostile text is only inside the block
+    expect(block.slice(0, at)).not.toMatch(/ignore previous/i)
+    expect(block.slice(at).match(/<\/document_data>/g)).toHaveLength(1)
+    expect(unwrapDocumentData(block.slice(at))).toBe(HOSTILE)
   })
 })

@@ -11,6 +11,7 @@ import { GistError } from '../../storage/gistBackend.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { setGistDependencies, useGistStore } from '../../stores/gist.js'
+import { useProjectSettingsStore } from '../../stores/projectSettings.js'
 import { setPersistenceDependencies, usePersistenceStore } from '../../stores/persistence.js'
 import SaveAsGistDialog from './SaveAsGistDialog.vue'
 
@@ -119,6 +120,23 @@ describe('SaveAsGistDialog — the connect step first', () => {
 describe('SaveAsGistDialog — the form', () => {
   beforeEach(async () => {
     await useGistStore().connect(TOKEN)
+  })
+
+  it('shows the sender hint: Add… with no description, the first line with Edit… once there is one; Edit… closes it and opens Project settings (TODO/ui-091)', async () => {
+    await open()
+    expect(q('description-hint-text').textContent).toContain('Add a description for the people you are sending this to')
+    expect(q('description-hint-edit').textContent.trim()).toBe('Add…')
+    useFileMenuStore().closeSaveAsGist()
+    await flush()
+    useDocumentStore().setDescription('Fan duct. **Print upright.**')
+    useFileMenuStore().requestSaveAsGist()
+    await flush()
+    expect(q('description-hint-line').textContent).toBe('Fan duct. Print upright.')
+    expect(q('description-hint-edit').textContent.trim()).toBe('Edit…')
+    q('description-hint-edit').click()
+    await flush()
+    expect(useFileMenuStore().gistSaveOpen).toBe(false)
+    expect(useProjectSettingsStore().isOpen).toBe(true)
   })
 
   it('the name is pre-filled with the project name, Untitled when it has none; Secret is the default', async () => {

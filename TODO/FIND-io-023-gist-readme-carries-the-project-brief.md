@@ -83,6 +83,8 @@ Done means a published gist's README, in this order, shows:
    the README code is already written for it and "any other properties that are added" then has a home.
    Standing instructions stay **out** (they are instructions to a model, not a reader's brief; `gistReadme.js`
    says why).
+   **Answered 2026-10-31 by `ui-091`:** the About popup and share-link text reuse this `description` field (no second field). See `TODO/done/ui-091-project-about-popup-for-shared-links.md`.
+
 3. **Are variables and the description opt-out too?** Recommendation: no, they always go; only the
    conversation (request and reply) is behind the checkbox, because that is the part an owner may not want on a
    public page.

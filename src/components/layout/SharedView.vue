@@ -21,6 +21,13 @@
  *
  * Name and note arrived in a link: untrusted text, rendered as text only.
  *
+ * ## The About popup (`TODO/ui-091`)
+ *
+ * A project with a description (`TODO/io-023`) opens with it in a popup over the model
+ * (`SharedAboutPopup.vue`; `share.offerAbout`, once per link, never for the owner's own link).
+ * **View the model** dismisses it; the header's **About** button (`shared-about-open`, only when
+ * there is text) opens it again.
+ *
  * ## A gist link, `#/gist/<id>` (`TODO/io-017`)
  *
  * The same screen, read through the gist store:
@@ -36,8 +43,9 @@
  *   opens it as a separate new project through the File menu's open flow. Everyone else keeps
  *   the one button, **Make my own copy to edit**.
  */
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
+import SharedAboutPopup from './SharedAboutPopup.vue'
 import ReplaceConfirmDialog from '../storage/ReplaceConfirmDialog.vue'
 import Viewport from '../viewport/Viewport.vue'
 import { useGistStore } from '../../stores/gist.js'
@@ -57,6 +65,17 @@ const description = computed(() => {
   const text = gist.linkDescription
   return text !== '' && text !== share.name ? text : ''
 })
+
+/** The header's About button, which gets focus back when the popup closes. */
+const aboutButton = ref(/** @type {HTMLButtonElement | null} */ (null))
+/** The project has a description to show (`TODO/ui-091`). */
+const hasAbout = computed(() => share.phase === 'ready' && share.description.trim() !== '')
+
+async function closeAbout() {
+  share.closeAbout()
+  await nextTick()
+  aboutButton.value?.focus()
+}
 </script>
 
 <template>
@@ -83,6 +102,17 @@ const description = computed(() => {
         <h1 class="shared__title" data-testid="shared-title">{{ share.phase === 'ready' ? share.name : 'Opening…' }}</h1>
         <p v-if="share.note" class="shared__note" data-testid="shared-note">{{ share.note }}</p>
         <p v-if="description" class="shared__note" data-testid="shared-description">{{ description }}</p>
+        <button
+          v-if="hasAbout"
+          ref="aboutButton"
+          type="button"
+          class="shared__about"
+          data-testid="shared-about-open"
+          aria-haspopup="dialog"
+          @click="share.openAbout()"
+        >
+          About
+        </button>
         <p v-if="share.phase === 'ready'" class="shared__hint" data-testid="shared-hint">Drag to turn it · pinch or scroll to zoom</p>
       </header>
 
@@ -123,6 +153,7 @@ const description = computed(() => {
       </div>
     </template>
 
+    <SharedAboutPopup :open="share.aboutOpen" :text="share.description" @close="closeAbout()" />
     <ReplaceConfirmDialog />
   </section>
 </template>
@@ -189,6 +220,20 @@ const description = computed(() => {
   margin: 4px 0 0;
   font-size: 12px;
   color: var(--text-3);
+}
+
+.shared__about {
+  min-height: 44px;
+  margin: 4px 0 0 -8px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .shared__stage {

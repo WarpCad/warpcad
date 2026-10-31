@@ -40,6 +40,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
+import DescriptionHint from './DescriptionHint.vue'
 import ShareGistGroup from './ShareGistGroup.vue'
 import { useGistPublish } from '../../composables/useGistPublish.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
@@ -346,6 +347,9 @@ onBeforeUnmount(() => {
                 Copy link
               </button>
             </div>
+
+            <!-- TODO/ui-091: what the recipient will see first; Edit… / Add… open Project settings. -->
+            <DescriptionHint @edit="closeSheet()" />
 
             <p v-if="problem" class="share-sheet__problem" role="alert" data-testid="share-problem">{{ problem }}</p>
             <textarea

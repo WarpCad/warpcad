@@ -6,8 +6,11 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-10-29 at the owner's request)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-10-31):** the owner decided to reuse io-023's `description` field as the About text, so there is no second `about` register, field, cleaner, renderer or tool. Shipped: the popup (`SharedAboutPopup.vue`) on Shared links with a non-blank description, not for the owner's own link; the header About button; the sender-hint row (`DescriptionHint.vue`) in the Share sheet and Save as gist; the description passed to the assistant as data inside the untrusted-data wrapper, with `ai-partner.md` updated. The popup carries a `shared-link` help topic. Open-question answers used: 2000 characters, Markdown subset, assistant sees it, assistant tool (the existing `set_description`). Scenarios 22 and 29 are not yet driven by hand; see `TODO/VERIFY.md`.
+
 
 ## Goal
 

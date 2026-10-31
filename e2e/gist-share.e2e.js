@@ -901,6 +901,64 @@ test.describe('store and share a project as a GitHub gist', () => {
     expect(file).toContain('"description":["A **wall** duct for a closet.')
   })
 
+  test('13. a gist whose project has a description opens with it as a popup, and the README leads with it; the owner\'s own link has no popup (ui-091)', async ({ page, browser, baseURL }, info) => {
+    test.setTimeout(150_000)
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [10, 10, 2], center: [0, 0, 1] } })
+      store.setDescription('Fan duct for a **120 mm** fan.\n\n- Print upright')
+    })
+    await expectBodyCount(page, 1)
+
+    await openShareSheet(page, input)
+    await expect(page.getByTestId('description-hint-line')).toHaveText('Fan duct for a 120 mm fan.')
+    await tap(input, page.getByTestId('share-gist-connect'))
+    await connectInDialog(page, input, GIST_TOKEN)
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
+    const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
+    const id = /** @type {string} */ (copied).slice(-32)
+    const hash = `#/gist/${id}`
+    const readme = String(fake.gists.get(id)?.files['README.md'])
+    expect(readme).toContain('Fan duct for a **120 mm** fan\\.')
+    expect(readme).toContain('- Print upright')
+
+    // Someone else, cold: the popup over the model; one button dismisses it; About brings it back.
+    const context = await freshContext(browser, info, baseURL)
+    try {
+      const other = await context.newPage()
+      await openApp(other, fake, `/${hash}`)
+      await expect(other.getByTestId('shared-view')).toHaveAttribute('data-state', 'ready')
+      const popup = other.getByTestId('shared-about')
+      await expect(popup).toBeVisible()
+      await expect(other.getByTestId('shared-about-text').locator('strong')).toHaveText('120 mm')
+      await other.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-shared-about-popup.png`) })
+      const reader = await pointer(other, info)
+      await reader.press(other.getByTestId('shared-about-close'))
+      await expect(popup).toHaveCount(0)
+      await expect(other.getByTestId('shared-about-open')).toBeVisible()
+      await reader.press(other.getByTestId('shared-about-open'))
+      await expect(popup).toBeVisible()
+    } finally {
+      await context.close()
+    }
+
+    // The owner opening their own link: no popup (they wrote it), but the About button is there.
+    await page.evaluate((next) => {
+      window.location.hash = next
+    }, hash)
+    await expect(page.getByTestId('shared-view')).toHaveAttribute('data-state', 'ready')
+    await expect(page.getByTestId('shared-gist-edit')).toBeVisible()
+    await expect(page.getByTestId('shared-about')).toHaveCount(0)
+    await expect(page.getByTestId('shared-about-open')).toBeVisible()
+    expect(fake.escaped).toEqual([])
+  })
+
   test('the repository token and the gist token never overwrite each other through the UI', async ({ page }, info) => {
     const fake = newFake()
     await openApp(page, fake)

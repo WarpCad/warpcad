@@ -48,6 +48,8 @@ export const TOPICS = Object.freeze({
   hosted: { page: 'save-load', anchor: 'keeping-a-copy-in-a-github-repository', title: 'Hosted storage' },
   // The header's Share sheet (`TODO/io-016`).
   share: { page: 'sharing', anchor: 'send-a-project', title: 'Share' },
+  // The About popup a share or gist link opens with (`TODO/ui-091`).
+  'shared-link': { page: 'sharing', anchor: 'if-someone-sent-you-a-warpcad-link', title: 'Opening a shared link' },
   gist: { page: 'sharing', anchor: 'publish-a-project-as-a-gist', title: 'Short link with GitHub' },
   // Sketching.
   sketch: { page: 'sketch-mode', anchor: 'the-four-drawing-tools', title: 'Sketch' },

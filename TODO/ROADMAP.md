@@ -296,7 +296,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `io-023` | Gist README carries the project's brief: the prompt and the agent's reply, the variables with their ranges, the project description. Filed 2026-10-29 at the owner's request. [`FIND-io-023`](FIND-io-023-gist-readme-carries-the-project-brief.md) | Feature | `ai-031`, `io-022` | 30 |
-| `ui-091` | An "About this project" field in Project settings, shown as a popup to anyone who opens a share or gist link and as the gist README's quote. Filed 2026-10-29 at the owner's request. [`FIND-ui-091`](FIND-ui-091-project-about-popup-for-shared-links.md) | Feature | — | 22, 29, 30 |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-005` | Triage the ~347 open rows in `TODO/VERIFY.md`: move, graduate or close each | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |

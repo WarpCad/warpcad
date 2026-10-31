@@ -94,6 +94,15 @@ export const useShareStore = defineStore('share', () => {
   /** The project's title and the sender's note — untrusted text, rendered as text. */
   const name = ref('')
   const note = ref('')
+  /**
+   * `TODO/ui-091`: the shared project's description (`TODO/io-023`), cleaned by the loader —
+   * untrusted text, rendered by `DescriptionText.vue` as elements with text content.
+   */
+  const description = ref('')
+  /** The About popup is showing. */
+  const aboutOpen = ref(false)
+  /** The popup has already been offered for this link; reopening is by the About button only. */
+  let aboutOffered = false
   /** A one-line result for **Save a copy of the file** (the Shared view has no status chip). */
   const status = ref('')
   /** Moves when the shared document is replaced; what Watch re-renders on. */
@@ -138,6 +147,9 @@ export const useShareStore = defineStore('share', () => {
     phase.value = 'opening'
     reason.value = ''
     status.value = ''
+    description.value = ''
+    aboutOpen.value = false
+    aboutOffered = false
     persistence.setAutosaveSuspended(true)
     return generation
   }
@@ -163,6 +175,9 @@ export const useShareStore = defineStore('share', () => {
     shared = { doc, records: decoded.records, text }
     name.value = decoded.name
     note.value = decoded.note
+    description.value = doc.description?.() ?? ''
+    aboutOpen.value = false
+    aboutOffered = false
     revision.value += 1
     phase.value = 'ready'
     timeline.watchFork(source)
@@ -188,6 +203,9 @@ export const useShareStore = defineStore('share', () => {
     phase.value = 'off'
     reason.value = ''
     status.value = ''
+    description.value = ''
+    aboutOpen.value = false
+    aboutOffered = false
     if (wasShowing) timeline.endWatch()
     persistence.setAutosaveSuspended(false)
   }
@@ -216,6 +234,32 @@ export const useShareStore = defineStore('share', () => {
     status.value = result.ok ? `Download started: ${result.name}` : `Couldn't save the file: ${result.error}`
   }
 
+  /**
+   * `TODO/ui-091`: offer the About popup, once per link. Opens it only when the Shared view is
+   * ready, the project has a description, the link is not the owner's own and it has not been
+   * offered yet.
+   *
+   * @param {boolean} own The link is the person's own published project.
+   * @returns {boolean} Whether the popup opened.
+   */
+  function offerAbout(own) {
+    if (phase.value !== 'ready' || aboutOffered) return false
+    aboutOffered = true
+    if (own || description.value.trim() === '') return false
+    aboutOpen.value = true
+    return true
+  }
+
+  /** The header's **About** button: show the description again. */
+  function openAbout() {
+    if (phase.value === 'ready' && description.value.trim() !== '') aboutOpen.value = true
+  }
+
+  /** **View the model** / Esc: dismiss the popup. */
+  function closeAbout() {
+    aboutOpen.value = false
+  }
+
   /** **File ▾ → Share…**: open the sender's Share sheet, as the header's Share button does. */
   function requestSheet() {
     sheetRequests.value += 1
@@ -231,6 +275,11 @@ export const useShareStore = defineStore('share', () => {
     reason,
     name,
     note,
+    description,
+    aboutOpen,
+    offerAbout,
+    openAbout,
+    closeAbout,
     status,
     revision,
     sheetRequests,

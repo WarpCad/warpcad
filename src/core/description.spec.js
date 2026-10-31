@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { DESCRIPTION_LIMITS, cleanDescription, parseDescription, prepareDescription } from './description.js'
+import { DESCRIPTION_LIMITS, cleanDescription, descriptionFirstLine, parseDescription, prepareDescription } from './description.js'
 
 /**
  * `TODO/io-023` — the project's **description**: text written for people to read, set by a person
@@ -186,5 +186,34 @@ describe('parseDescription — everything else is plain text', () => {
   it('is deterministic', () => {
     const text = 'A **b** *c* `d`\n\n- e\n- f'
     expect(parseDescription(text)).toEqual(parseDescription(text))
+  })
+})
+
+describe('descriptionFirstLine (TODO/ui-091)', () => {
+  it('is the first paragraph as plain text, Markdown markers gone', () => {
+    expect(descriptionFirstLine('Fan duct for a **120 mm** fan.\n\nSecond paragraph.')).toBe('Fan duct for a 120 mm fan.')
+  })
+
+  it('takes the first bullet when the text starts with a list', () => {
+    expect(descriptionFirstLine('- Print upright\n- Needs supports')).toBe('Print upright')
+  })
+
+  it('is empty for blank text and for non-text', () => {
+    expect(descriptionFirstLine('')).toBe('')
+    expect(descriptionFirstLine('  \n ')).toBe('')
+    expect(descriptionFirstLine(/** @type {any} */ (null))).toBe('')
+  })
+
+  it('cuts a long line at 80 code points with an ellipsis, never inside an emoji', () => {
+    const line = descriptionFirstLine('😀'.repeat(200))
+    expect(Array.from(line)).toHaveLength(80)
+    expect(line.endsWith('…')).toBe(true)
+    expect(descriptionFirstLine('x'.repeat(80))).toBe('x'.repeat(80))
+  })
+
+  it('leaves hostile text as characters (the caller renders it as text)', () => {
+    expect(descriptionFirstLine('<img src=x onerror=alert(1)> [x](javascript:alert(1)) @octocat')).toBe(
+      '<img src=x onerror=alert(1)> [x](javascript:alert(1)) @octocat',
+    )
   })
 })

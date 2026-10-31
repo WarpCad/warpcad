@@ -6,7 +6,8 @@ A WarpCad project remembers **why** things are the way they are, not just their 
   size, the nozzle, the thinnest wall you trust, the material. The AI assistant applies them
   to every request in this project.
 - The **description** is for people: what the part is and what it's for. A gist's README
-  shows it under the title.
+  shows it under the title, and anyone who opens your share or gist link sees it in a popup
+  ([Tell people what they are looking at](sharing.md#tell-people-what-they-are-looking-at)).
 - **Design intent** is a short note on a step in History saying why the step was made. When
   the assistant (or another AI tool connected to WarpCad) adds a step, it saves what you asked
   for and a one-line reason with it.
@@ -33,10 +34,13 @@ can't cover it.
 
 ## Describe your project for people
 
-Standing instructions are for the AI. The **Description** is for people: a few lines saying what
-the part is and what it's for. It's the first field in **Project settings…**, and when you
+Standing instructions are for the AI: rules it follows. The **Description** is for people: a few
+lines saying what the part is and what it's for. (The assistant reads it too, but only as notes
+about the project, never as rules.) It's the first field in **Project settings…**, and when you
 publish the project as a gist, it's the text under the title on GitHub (see
-[Publish a project as a gist](sharing.md#publish-a-project-as-a-gist)). An AI tool connected to
+[Publish a project as a gist](sharing.md#publish-a-project-as-a-gist)). Anyone who opens your
+share or gist link sees it in a popup over the model (see
+[Tell people what they are looking at](sharing.md#tell-people-what-they-are-looking-at)). An AI tool connected to
 WarpCad can write it too, with its `set_description` tool. Whoever saves last wins.
 
 You can format it a little:

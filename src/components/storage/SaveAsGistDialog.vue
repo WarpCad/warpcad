@@ -23,6 +23,7 @@
 import { computed, ref, watch } from 'vue'
 
 import { useFileMenuStore } from '../../stores/fileMenu.js'
+import DescriptionHint from '../layout/DescriptionHint.vue'
 import ModalShell from './ModalShell.vue'
 
 const SECRET_NOTE = 'A secret gist is not private: anyone with the link can read it. Saving sends the whole project to GitHub.'
@@ -97,6 +98,8 @@ async function copyLink() {
         </fieldset>
         <p class="save-gist__note" data-testid="save-gist-disclosure">{{ note }}</p>
       </template>
+      <!-- TODO/ui-091: the description is the gist README's lead; Edit… / Add… open Project settings. -->
+      <DescriptionHint @edit="menu.closeSaveAsGist()" />
       <p v-if="menu.gistSaveBusy" class="save-gist__note" role="status" data-testid="save-gist-busy">Saving to GitHub…</p>
       <p v-if="menu.gistSaveError" class="save-gist__error" role="alert" data-testid="save-gist-error">{{ menu.gistSaveError }}</p>
       <div class="save-gist__actions">
