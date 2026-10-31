@@ -54,7 +54,7 @@ this repository still need a green full run before they are pushed.
 | 8 | `M19` | [`ai-026`](M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app | MCP service for agents | opus |
 | 9 | `M19` | [`testing-011`](M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28, the iOS app end to end, on the iPhone; free-form pass | The only check a fake Tauri boundary cannot stand in for | sonnet |
 | 10 | `M19` | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store listing, privacy, licence audits; stops at the owner's **Submit** | Ends at the Part 6 legal gate | sonnet |
-| 11 | `M20` | ▶ M20 home page: [`docs-027`](M20-docs-027-home-page-content-and-docs-links.md) → [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) | `warpcad.com` is a parking page; the docs can only be found from inside the app. `docs-026` and `testing-012` are ready | sonnet |
+| 11 | `M20` | ▶ M20 home page: [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) | `warpcad.com` is a parking page; the docs can only be found from inside the app. `docs-026` and `testing-012` are ready | sonnet |
 | 13 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
 | 14 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
 | 15 | `FIND` | ▶ [`ui-078`](FIND-ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | No width left after `ui-075` | sonnet |
@@ -130,7 +130,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | M19 — Native iOS app | [`ai-026`](M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app (loopback, opt-in Wi-Fi with a token) | feature | high | opus | ⏳ after `build-017`, `build-018` |
 | M19 — Native iOS app | [`testing-011`](M19-testing-011-acceptance-scenario-28-ios-app.md) Acceptance scenario 28 on the iPhone, plus the free-form pass | feature | high | sonnet | ⏳ after `build-019`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026` |
 | M19 — Native iOS app | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store readiness; stops at the owner's Submit | feature | high | sonnet | ⏳ after `build-019`, `testing-011` |
-| M20 — Home page | [`docs-027`](M20-docs-027-home-page-content-and-docs-links.md) The home page: hero, what it does, every docs page linked into Help from `help/index.json`, source, support | feature | medium | sonnet | ⏳ after `build-021`, `docs-028` |
 | M20 — Home page | [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) Verify the domain, move `warpcad.com` DNS off Squarespace, enforce HTTPS; `app` untouched. Owner steps | feature | medium | sonnet | ⏳ after `docs-027` |
 | M18 — Launch | [`core-065`](M18-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ⏸ **parked** (decided 2026-10-17: keep the Albany table for now) |
 | Findings | [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | finding | medium | sonnet | ▶ **ready** (found 2026-10-24 by the `ui-083` commit gate) |
@@ -226,10 +225,9 @@ before another site depends on it, and `perf-003` must keep it green. The home r
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `docs-027` | The page: hero with Open WarpCad, What it does, every index page grouped by `docs-groups.json` (unknown → More, missing → build fails), source and licences, support, footer; CSP `script-src 'none'` | Docs | `build-021`, `docs-028` | none (no app change) |
 | `build-022` | Owner steps in `TODO/VERIFY.md`: create repo, verify `warpcad.com` for the org, Squarespace A/AAAA/`www` records (leave `app`), Pages domain + HTTPS, live checks | Build | `docs-027` | 1 on the live app |
 
-**Suggested order:** `docs-027` → `build-022`
+**Suggested order:** `build-022`
 (**stop for the owner's DNS and Pages steps, then the five-minute free-form pass on `warpcad.com`**). The App Store
 support URL is GitHub Issues (`docs-026`), so `build-020` does not depend on `build-022`.
 

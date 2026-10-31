@@ -6,7 +6,7 @@ priority: medium
 model: sonnet
 milestone: M20
 depends: [build-021, docs-028]
-status: open
+status: done
 ---
 
 > **Decision update (2026-10-31, `docs-026`).** Analytics is GA4 (new property `G-JQS0CFWW6C`), so the CSP below
@@ -17,6 +17,23 @@ status: open
 > **Two repositories.** The page is built in `~/src/@WarpCad/warpcad.github.io`. This
 > repository gains a line in `docs/README.md` and `README.md` once the page is live
 > (`build-022`), and this file's retirement. Commit each repository separately.
+
+> **Shipped locally (2026-10-31), commit `c606706` in `warpcad.github.io`.** The page has the six sections in
+> order. The docs list is built from the app's live help index, grouped by `docs-groups.json`, with `sharing`
+> added to History and files (the live index has 32 pages, not 31). A grouped slug the index lacks fails the
+> build; a page no group lists goes under **More** (unit-tested in `scripts/help-groups.test.mjs`).
+>
+> **Not done, and why:**
+> - **Focus on Read the docs.** The page scrolls to Documentation and sets `#docs`, but does not move focus: the
+>   page has no client-side script. The e2e asserts the scroll and the address only.
+> - **CSP and analytics.** No CSP `<meta>` is set yet. The decision update says the policy follows
+>   `docs/decisions/analytics.md` (GA4, `G-JQS0CFWW6C`), and the GA4 tag is not wired in this task. It needs its
+>   own step before the page is public.
+> - **Claims check.** Each "What it does" claim was checked against its page's opening; a full read of each
+>   page against the live app is still a manual pass, due at `build-022`.
+> - **Three-link check on the live site** (`testing-012`'s human version) waits for `build-022`.
+>
+> **Owner step:** `gh repo create WarpCad/warpcad.github.io --public` has not been run. Nothing is pushed.
 
 ## Goal
 
