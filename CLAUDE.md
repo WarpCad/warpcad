@@ -345,7 +345,7 @@ Also independent of the open Stack decisions:
   `e2e/naming.spec.js` in the build/scaffold task to guard it (fail the build if a
   `*.e2e.js` without `.story` points at the component-workshop tool).
 - `mcp/` — the MCP server (Node, runs outside the browser)
-- `docs/` — end-user documentation site (tool TBD, see Library decisions)
+- `docs/` — end-user documentation, rendered into the in-app Help by `scripts/help-build.mjs` and published at `app.warpcad.com/help/` for the home page and the native apps (`docs/help-slugs.json` keeps retired slugs working). See `docs/decisions/documentation.md`.
 
 ## Conventions
 

@@ -110,6 +110,9 @@ While the sheet is open, the address ends in `#/help/align` (or whichever topic 
 are on). Send that address and the other person's WarpCad opens straight onto the same page.
 If the address already carries a shared project (`#/gist/…`), help leaves it alone.
 
+A link to a help page keeps working if the page is later renamed: WarpCad opens the page that
+replaced it, and the address changes to the new name.
+
 ## Linking to a page
 
 Any web page, bookmark or message can open WarpCad on a docs page. Use the address

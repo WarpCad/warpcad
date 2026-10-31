@@ -6,12 +6,19 @@ priority: medium
 model: sonnet
 milestone: M20
 depends: [testing-012]
-status: open
+status: done
 ---
 
 > **One repository, plus a check.** The code and docs changes are all in this repository. Step 6's
 > M19 edits were made when this row was filed; only re-check them, in `warpcad/TODO/` before
 > `build-017`'s hand-off or `~/src/@WarpCad/warpcad-native/TODO/` after it.
+
+> **Shipped (2026-10-31).** The record is `docs/decisions/documentation.md`. `help/index.json` now carries
+> `schema`, `version`, `commit` and `aliases`. `docs/help-slugs.json` is the lockfile (63 slugs, no aliases yet),
+> and the build fails on a dropped or renamed slug without an alias. `HelpSheet.vue` resolves an alias to its page,
+> and the hash follows it. The native docs-page names in M19 were checked and agree; `build-020` step 1 links the
+> shapes table in the record. The CORS and cache headers were checked on the live site; a GIF under `help/img/`
+> was not checked separately.
 
 ## Goal
 

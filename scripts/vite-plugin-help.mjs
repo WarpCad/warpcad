@@ -14,7 +14,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, join, resolve } from 'node:path'
 
-import { buildHelp, helpIndex } from './help-build.mjs'
+import { buildHelp, checkSlugLock, helpIndex } from './help-build.mjs'
+import { TOPICS } from '../src/help/topics.js'
 
 const CONTENT_TYPES = Object.freeze({
   '.html': 'text/html; charset=utf-8',
@@ -49,8 +50,22 @@ export function helpRuntimeCaching() {
  * @param {{ docsDir?: string }} [options]
  * @returns {import('vite').Plugin}
  */
-export function warpcadHelp({ docsDir = 'docs' } = {}) {
+export function warpcadHelp({ docsDir = 'docs', version, commit } = {}) {
   const root = resolve(docsDir)
+  /** The published-slug lockfile (`docs/help-slugs.json`, `TODO/docs-028`). */
+  const lockFile = join(root, 'help-slugs.json')
+
+  /** @returns {{ slugs: string[], aliases: Record<string, string> }} */
+  function readLock() {
+    if (!existsSync(lockFile)) return { slugs: [], aliases: {} }
+    const lock = JSON.parse(readFileSync(lockFile, 'utf8'))
+    return { slugs: lock.slugs ?? [], aliases: lock.aliases ?? {} }
+  }
+
+  /** @param {import('./help-build.mjs').HelpBuild} help */
+  function indexOf(help) {
+    return helpIndex(help, { version, commit, aliases: readLock().aliases })
+  }
 
   /** @type {{ stamp: number, build: import('./help-build.mjs').HelpBuild } | null} */
   let cache = null
@@ -84,7 +99,7 @@ export function warpcadHelp({ docsDir = 'docs' } = {}) {
    */
   function lookup(name) {
     const help = current()
-    if (name === 'index.json') return { body: JSON.stringify(helpIndex(help)), type: CONTENT_TYPES['.json'] }
+    if (name === 'index.json') return { body: JSON.stringify(indexOf(help)), type: CONTENT_TYPES['.json'] }
     const page = /^([\w-]+)\.html$/.exec(name)
     if (page && page[1] in help.pages) return { body: help.pages[page[1]].html, type: CONTENT_TYPES['.html'] }
     const asset = help.assets.find((a) => a.to === name)
@@ -102,6 +117,11 @@ export function warpcadHelp({ docsDir = 'docs' } = {}) {
       const help = current()
       for (const warning of help.warnings) this.warn(warning)
       if (help.errors.length > 0) this.error(`The in-app help has dead links:\n  ${help.errors.join('\n  ')}`)
+      const lockErrors = checkSlugLock(
+        { pageSlugs: Object.keys(help.pages), topicIds: Object.keys(TOPICS) },
+        readLock(),
+      )
+      if (lockErrors.length > 0) this.error(`The published help slugs do not match docs/help-slugs.json:\n  ${lockErrors.join('\n  ')}`)
     },
 
     generateBundle() {
@@ -109,7 +129,7 @@ export function warpcadHelp({ docsDir = 'docs' } = {}) {
       for (const page of Object.values(help.pages)) {
         this.emitFile({ type: 'asset', fileName: `help/${page.slug}.html`, source: page.html })
       }
-      this.emitFile({ type: 'asset', fileName: 'help/index.json', source: JSON.stringify(helpIndex(help)) })
+      this.emitFile({ type: 'asset', fileName: 'help/index.json', source: JSON.stringify(indexOf(help)) })
       for (const asset of help.assets) {
         this.emitFile({ type: 'asset', fileName: `help/${asset.to}`, source: readFileSync(asset.from) })
       }

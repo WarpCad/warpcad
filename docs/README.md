@@ -4,11 +4,12 @@ End-user documentation lives in this folder. Every task that adds or changes a
 user-visible control adds its page here at the same time, per `CLAUDE.md`'s
 Interaction Model rule — there is no later "write the docs" pass.
 
-This index **is** the sidebar for now. `CLAUDE.md`'s Stack table still lists the
-documentation-site tool as TBD (a Library decision nobody has needed to make
-yet), so pages are plain Markdown and this file is the table of contents. When a
-docs-site generator is chosen, its sidebar config replaces this list — the pages
-themselves won't have to move.
+This index **is** the table of contents. The docs stay here, in plain Markdown, and are
+published as the in-app Help by `scripts/help-build.mjs` and as the versioned `help/` contract
+(`docs/decisions/documentation.md`). The home page and the native apps read that contract, not
+these files, so renaming a page is safe only with an alias: when you rename or remove a page,
+add an entry to `docs/help-slugs.json` (`"old-slug": "new-slug"` under `aliases`). The build
+fails and says so if you forget.
 
 Pictures and GIFs are never captured by hand: they come from `e2e/docs/*.docs.js` via
 `npm run docs:media`, are embedded as `![alt](./screenshots/<name>.png)` or

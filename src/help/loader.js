@@ -16,7 +16,7 @@
 /**
  * @typedef {{ id: string, text: string }} IndexHeading
  * @typedef {{ slug: string, title: string, headings: IndexHeading[] }} IndexPage
- * @typedef {{ order: string[], pages: IndexPage[] }} HelpIndex
+ * @typedef {{ schema?: number, version?: string, commit?: string, order: string[], pages: IndexPage[], aliases?: Record<string, string> }} HelpIndex
  */
 
 /** @type {(url: string) => Promise<{ ok: boolean, status?: number, text: () => Promise<string> }>} */
@@ -70,6 +70,20 @@ export function loadHelpIndex() {
     indexCache = pending
   }
   return indexCache
+}
+
+/**
+ * The page a slug opens: the page itself, or the page that replaced a retired slug (`docs/help-slugs.json`,
+ * `TODO/docs-028`). `null` when neither exists. The index's `aliases` point only at a page or a topic id,
+ * which the build guarantees, so one lookup is enough.
+ *
+ * @param {HelpIndex} index
+ * @param {string} slug
+ * @returns {string | null}
+ */
+export function resolveSlug(index, slug) {
+  if (index.pages.some((page) => page.slug === slug)) return slug
+  return index.aliases?.[slug] ?? null
 }
 
 /**

@@ -51,6 +51,23 @@ test.describe('a cold help link', () => {
     await expect(page.getByTestId('help-contents')).toBeVisible()
   })
 
+  test('an alias opens the page that replaced it, and the address follows (docs-028)', async ({ page }) => {
+    // No real rename exists yet, so the index gets a fixture alias: the page states the rule, and
+    // this test proves the path the first real rename will take.
+    await page.route('**/help/index.json', async (route) => {
+      const response = await route.fetch()
+      const json = await response.json()
+      json.aliases = { 'old-page': 'booleans' }
+      await route.fulfill({ response, json })
+    })
+    await openCold(page, '#/help/old-page')
+    const sheet = page.getByTestId('help-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet).toHaveAttribute('data-page', 'booleans')
+    await expect(page.getByTestId('help-current-page')).toContainText('Union, Subtract and Intersect')
+    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/help/booleans')
+  })
+
   test('a #/gist/<id> hash keeps priority and opens no Help sheet', async ({ page }) => {
     await openCold(page, '#/gist/0123456789abcdef')
     await expect(page.getByTestId('help-sheet')).toBeHidden()

@@ -143,7 +143,7 @@ export default defineConfig(({ command }) => ({
     ...liveBridgePlugins(),
     vue(),
     // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
-    warpcadHelp(),
+    warpcadHelp({ version: APP_VERSION, commit: APP_COMMIT }),
     // `TODO/build-011`: THIRD-PARTY-NOTICES.txt beside index.html, linked from the Help footer.
     warpcadNotices(),
     // Bundle-size treemap, written to the repo root (not `dist/`: that is deployed to Pages and

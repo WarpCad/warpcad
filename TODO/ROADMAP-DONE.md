@@ -800,6 +800,7 @@ first five rows below.
 
 | id | Title | Area | Depends | Demo |
 |---|---|---|---|---|
+| ✅ `docs-028` | Published help is a versioned contract: `help/index.json` gains `schema`/`version`/`commit`/`aliases`; `docs/help-slugs.json` lockfile fails a build that drops a slug; decision record `documentation.md` | Docs | `testing-012` | — |
 | ✅ `docs-026` | Decision record `docs/decisions/home-page.md`: VitePress 1.6.x chosen, GA4 in its own property, `warpcad.com` canonical, App Store support URL = GitHub Issues | Docs | — | the record |
 | ✅ `testing-012` | `e2e/help-deep-link.e2e.js`: cold `/#/help/<slug>` and topic ids open Help, Esc clears the hash, `#/gist/` keeps priority, unknown slug gets a readable line; 3 × 3 | Testing | — | 1 (from a cold help link) |
 
@@ -1187,5 +1188,6 @@ convention going forward.
 | `io-023` | 2026-10-31 04:38 | 7m from the start of this invocation. Shipped in c741da7; this run drove scenarios 29 and 30 by hand (dev server, fake gist API), PASS for the publish, README order, cold-open popup, copy, update and untick. Scenario 30 steps 6-10 and WebKit not driven. |
 | `testing-012` | 2026-10-31 18:57 | 8m (first step record 18:49; preflight not separately timed) |
 | `docs-026` | 2026-10-31 19:39 | 50m, including the wait for the owner's App Store answer (step record 18:49) |
+| `docs-028` | 2026-10-31 19:45 | 5m from the first step record (19:40); the help-build, lockfile and HelpSheet work was not separately timed |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

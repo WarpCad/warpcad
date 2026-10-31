@@ -21,7 +21,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { loadHelpIndex, loadHelpPage } from '../../help/loader.js'
+import { loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/loader.js'
 import { TOPICS } from '../../help/topics.js'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
@@ -179,12 +179,15 @@ function ownsHash() {
   return window.location.hash === '' || window.location.hash.startsWith('#/help/')
 }
 
-function openFromHash() {
+async function openFromHash() {
   const match = HASH_RE.exec(window.location.hash)
   if (!match) return
   const [, id] = match
-  if (id in TOPICS) help.open(id)
-  else help.openPage(id)
+  if (id in TOPICS) return help.open(id)
+  // A retired slug opens the page that replaced it (`TODO/docs-028`); the watch below then
+  // rewrites the hash to the new slug. An unknown slug falls through to the moved line.
+  const index = await loadHelpIndex().catch(() => null)
+  help.openPage(index ? (resolveSlug(index, id) ?? id) : id)
 }
 
 watch(

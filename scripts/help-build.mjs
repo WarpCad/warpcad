@@ -478,17 +478,54 @@ export function buildHelp({ docsDir }) {
 }
 
 /**
- * The small JSON the Help sheet loads first: titles, order and each page's `##` headings.
+ * The small JSON the Help sheet loads first: titles, order and each page's `##` headings. It also
+ * says which build produced it (`version`, `commit`) and which retired slugs point at a live page
+ * (`aliases`, from `docs/help-slugs.json`), so a native app pinned to an older commit can tell.
  *
  * @param {HelpBuild} build
+ * @param {{ version?: string, commit?: string, aliases?: Record<string, string> }} [meta]
  */
-export function helpIndex(build) {
+export function helpIndex(build, meta = {}) {
   return {
+    schema: 1,
+    version: meta.version,
+    commit: meta.commit,
     order: build.order,
     pages: build.order.map((slug) => ({
       slug,
       title: build.pages[slug].title,
       headings: build.pages[slug].headings.filter((h) => h.level === 2).map((h) => ({ id: h.id, text: h.text })),
     })),
+    aliases: meta.aliases ?? {},
   }
+}
+
+/**
+ * The published-slug lockfile (`docs/help-slugs.json`, `TODO/docs-028`): every page slug and
+ * topic id that has ever shipped must stay reachable, so a removed or renamed page needs an alias.
+ * Returns one message per problem; an empty list is a pass.
+ *
+ * @param {{ pageSlugs: string[], topicIds: string[] }} live what this build publishes
+ * @param {{ slugs: string[], aliases: Record<string, string> }} lock what has shipped before
+ * @returns {string[]}
+ */
+export function checkSlugLock({ pageSlugs, topicIds }, lock) {
+  const live = new Set([...pageSlugs, ...topicIds])
+  const locked = new Set(lock.slugs)
+  const aliasKeys = new Set(Object.keys(lock.aliases))
+  const errors = []
+  for (const slug of live) {
+    if (!locked.has(slug)) errors.push(`"${slug}" is not in docs/help-slugs.json: run npm run help:slugs to record it`)
+  }
+  for (const slug of locked) {
+    if (!live.has(slug) && !aliasKeys.has(slug)) {
+      errors.push(`"${slug}" was published but is gone: add an alias in docs/help-slugs.json (old -> new)`)
+    }
+  }
+  for (const [from, to] of Object.entries(lock.aliases)) {
+    if (live.has(from)) errors.push(`alias "${from}" shadows a live page or topic`)
+    if (aliasKeys.has(to)) errors.push(`alias "${from}" points at another alias ("${to}")`)
+    else if (!live.has(to)) errors.push(`alias "${from}" points at "${to}", which is not a page or topic`)
+  }
+  return errors
 }
