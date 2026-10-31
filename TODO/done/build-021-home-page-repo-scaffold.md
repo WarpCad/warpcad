@@ -6,7 +6,7 @@ priority: medium
 model: sonnet
 milestone: M20
 depends: [docs-026]
-status: open
+status: done
 ---
 
 > **Decision update (2026-10-31, `docs-026`).** The generator is **VitePress** (pinned to the stable 1.6.x line),
@@ -20,6 +20,15 @@ status: open
 > repository separately. This file retires in this repository's commit. Creating the GitHub
 > repository is an owner step (outward-facing, and the name is fixed): the task stops and asks
 > before `gh repo create WarpCad/warpcad.github.io --public`.
+
+> **Shipped locally (2026-10-31).** `~/src/@WarpCad/warpcad.github.io` is a git repository with one commit,
+> `33c38a6`: a VitePress 1.6.4 placeholder page, the CNAME guard, `npm run check`, the nine-project Playwright
+> suite (54 tests, reviewed baselines), and `.github/workflows/pages.yml`. Two deviations from the proposed fix:
+> VitePress replaces the zero-dependency build and serve scripts, as `docs-026` decided; the brand icons are
+> committed copies in `public/`, not read from the app repository at build time.
+>
+> **Owner step, not done:** `gh repo create WarpCad/warpcad.github.io --public` has not been run. Nothing is pushed.
+> That, and the first deploy, are `build-022`.
 
 ## Goal
 

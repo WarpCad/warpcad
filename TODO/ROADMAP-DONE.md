@@ -800,6 +800,7 @@ first five rows below.
 
 | id | Title | Area | Depends | Demo |
 |---|---|---|---|---|
+| ✅ `build-021` | `~/src/@WarpCad/warpcad.github.io` scaffolded locally: VitePress placeholder, CNAME guard, check, 3×3 Playwright, Pages workflow (owner's `gh repo create` still to run) | Build | `docs-026` | 1 (open the placeholder) |
 | ✅ `docs-028` | Published help is a versioned contract: `help/index.json` gains `schema`/`version`/`commit`/`aliases`; `docs/help-slugs.json` lockfile fails a build that drops a slug; decision record `documentation.md` | Docs | `testing-012` | — |
 | ✅ `docs-026` | Decision record `docs/decisions/home-page.md`: VitePress 1.6.x chosen, GA4 in its own property, `warpcad.com` canonical, App Store support URL = GitHub Issues | Docs | — | the record |
 | ✅ `testing-012` | `e2e/help-deep-link.e2e.js`: cold `/#/help/<slug>` and topic ids open Help, Esc clears the hash, `#/gist/` keeps priority, unknown slug gets a readable line; 3 × 3 | Testing | — | 1 (from a cold help link) |
@@ -1189,5 +1190,6 @@ convention going forward.
 | `testing-012` | 2026-10-31 18:57 | 8m (first step record 18:49; preflight not separately timed) |
 | `docs-026` | 2026-10-31 19:39 | 50m, including the wait for the owner's App Store answer (step record 18:49) |
 | `docs-028` | 2026-10-31 19:45 | 5m from the first step record (19:40); the help-build, lockfile and HelpSheet work was not separately timed |
+| `build-021` | 2026-10-31 19:58 | 12m from the first step record (19:46); the GitHub repo creation is an owner step |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
