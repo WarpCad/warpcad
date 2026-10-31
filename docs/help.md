@@ -110,6 +110,21 @@ While the sheet is open, the address ends in `#/help/align` (or whichever topic 
 are on). Send that address and the other person's WarpCad opens straight onto the same page.
 If the address already carries a shared project (`#/gist/…`), help leaves it alone.
 
+## Linking to a page
+
+Any web page, bookmark or message can open WarpCad on a docs page. Use the address
+`https://app.warpcad.com/#/help/<page>`, where `<page>` is the page's name as it appears at
+the end of the address when you read it in Help.
+
+1. Paste `https://app.warpcad.com/#/help/booleans` into the address bar and press Enter.
+2. WarpCad opens with Help on *Combining shapes: Union, Subtract and Intersect*.
+3. Press **×**. The address goes back to `app.warpcad.com/`, and the empty scene is ready
+   for you to place a Cube.
+
+If the page no longer exists (it was renamed or removed after the link was written), Help
+opens with the line "This page has moved or no longer exists" and Contents open, so you can
+pick another page.
+
 ## The source code
 
 WarpCad is free software under the AGPL-3.0, so you can always get the code of the copy you are

@@ -6,8 +6,17 @@ priority: medium
 model: sonnet
 milestone: M20
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped as specified, with one fix the spec did not anticipate.** The spec's
+> cases all passed on the existing code except the unknown-slug outcome, which opened the
+> network-error state. `HelpSheet.vue` now checks `help/index.json` first: an unknown slug
+> shows "This page has moved or no longer exists" and opens Contents, and falls through to the
+> page fetch only if the index itself cannot load. The new `help-deep-link.e2e.js` (6 tests) runs
+> on all nine projects, with snapshot baselines; `help.e2e.js` (the `ui-061` hash-mirror
+> regression surface) passes on all nine. Scenario 1 was re-driven from a cold help link at phone
+> width (`TODO/ACCEPTANCE.md`). `docs/help.md` gained "Linking to a page".
 
 ## Goal
 

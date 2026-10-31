@@ -129,11 +129,25 @@ describe('HelpSheet (TODO/ui-061)', () => {
     document.removeEventListener('keydown', below)
   })
 
-  it('says so, and offers a retry, when the page cannot be loaded', async () => {
+  it('says so, and offers a retry, when a listed page cannot be fetched', async () => {
+    const { help } = setup()
+    setHelpFetch(async (url) => {
+      if (String(url).endsWith('help/index.json')) return { ok: true, json: async () => INDEX, text: async () => JSON.stringify(INDEX) }
+      return { ok: false, status: 500, text: async () => '' }
+    })
+    help.open('boolean')
+    await flushPromises()
+    expect(q('help-error')?.textContent).toMatch(/could not load/i)
+    expect(q('help-retry')).not.toBeNull()
+  })
+
+  it('says the page has moved, and opens Contents, when the slug is not in the index', async () => {
     const { help } = setup()
     help.open('boolean')
     help.openPage('missing-page')
     await flushPromises()
-    expect(q('help-error')?.textContent).toMatch(/could not load/i)
+    expect(q('help-moved')?.textContent).toMatch(/moved or no longer exists/i)
+    expect(q('help-error')).toBeNull()
+    expect(help.contentsOpen).toBe(true)
   })
 })

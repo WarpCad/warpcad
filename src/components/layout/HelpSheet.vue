@@ -41,7 +41,7 @@ const NOTICES_URL = `${import.meta.env.BASE_URL}THIRD-PARTY-NOTICES.txt`
 /** @type {import('vue').Ref<import('../../help/loader.js').HelpIndex | null>} */
 const index = ref(null)
 const html = ref('')
-/** @type {import('vue').Ref<'loading' | 'ready' | 'error'>} */
+/** @type {import('vue').Ref<'loading' | 'ready' | 'error' | 'moved'>} */
 const state = ref('loading')
 /** @type {import('vue').Ref<HTMLElement | null>} */
 const content = ref(null)
@@ -72,6 +72,20 @@ async function show() {
   const token = ++loadToken
   state.value = 'loading'
   const slug = help.page
+  // A link to a page renamed or removed since it was written (`#/help/<slug>` is a public
+  // contract, `TODO/testing-012`): say so and open Contents, not the network-error state.
+  // If the index itself cannot load, fall through to the page fetch and its own error state.
+  const known = await loadHelpIndex().then(
+    (loaded) => loaded.pages.some((p) => p.slug === slug),
+    () => true,
+  )
+  if (token !== loadToken) return
+  if (!known) {
+    html.value = ''
+    state.value = 'moved'
+    if (!help.contentsOpen) help.toggleContents()
+    return
+  }
   try {
     const fragment = await loadHelpPage(slug)
     if (token !== loadToken) return
@@ -256,6 +270,9 @@ onBeforeUnmount(() => {
           </nav>
           <div class="help__scroll" ref="content" data-testid="help-scroll">
             <p v-if="state === 'loading'" class="help__status" role="status" data-testid="help-loading">Loading…</p>
+            <p v-else-if="state === 'moved'" class="help__status" role="status" data-testid="help-moved">
+              This page has moved or no longer exists. Pick another from Contents.
+            </p>
             <div v-else-if="state === 'error'" class="help__status" role="alert" data-testid="help-error">
               Could not load this page. If you are offline and have not opened Help before, it is not cached
               yet — reconnect once and it will be.

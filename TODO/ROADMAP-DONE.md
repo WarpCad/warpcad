@@ -796,6 +796,12 @@ first five rows below.
 | ✅ `build-009` | Drop `@sentry/vite-plugin` (it pulls `sentry@0.45.0`, FSL-1.1-Apache-2.0) and upload source maps with `curl` from the Pages workflow | Finding | — | none |
 ---
 
+## M20 — Home page at warpcad.com
+
+| id | Title | Area | Depends | Demo |
+|---|---|---|---|---|
+| ✅ `testing-012` | `e2e/help-deep-link.e2e.js`: cold `/#/help/<slug>` and topic ids open Help, Esc clears the hash, `#/gist/` keeps priority, unknown slug gets a readable line; 3 × 3 | Testing | — | 1 (from a cold help link) |
+
 ## Findings
 
 Open findings that belong to no single milestone. (`/fix-todo` Step 8 marks rows here the same way
@@ -1178,5 +1184,6 @@ convention going forward.
 | `ai-032` | 2026-10-30 04:57 | ~2h wall clock (started 02:21 UTC, Step 3 skipped on a green stamp). RED/GREEN by an Opus agent, then a second Opus agent for undo tombstones, guidance, in-app turns, read-back, the activity UI, e2e and docs; a third for the acceptance drive. Typecheck and unit (330 files, 7555 tests) green; e2e full matrix 4566 passed, 0 failed, 1339 skipped (same count as baseline). `docs:media` budget failure on `ai-drawing-to-group.gif` fixed by 8 fps for that movie; the other gifs restored from git. Acceptance 27, 22, 23, 24, 25 and the ai-031 and ai-027 repros re-driven PASS. No green stamp set (docs:media was red at the time of the run). |
 | `ui-091` | 2026-10-31 02:45 | 3h6m. Reused io-023's description field as the About text; popup, About button, sender hints, assistant context. Scenarios 22 and 29 not yet driven by hand (see VERIFY.md). |
 | `io-023` | 2026-10-31 04:38 | 7m from the start of this invocation. Shipped in c741da7; this run drove scenarios 29 and 30 by hand (dev server, fake gist API), PASS for the publish, README order, cold-open popup, copy, update and untick. Scenario 30 steps 6-10 and WebKit not driven. |
+| `testing-012` | 2026-10-31 18:57 | 8m (first step record 18:49; preflight not separately timed) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
