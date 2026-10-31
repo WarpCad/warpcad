@@ -36,6 +36,25 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-022 — Owner checks to bring warpcad.com live (2026-10-31 21:20 UTC)
+
+Prepared, not run. The home page is scaffolded and committed locally in `~/src/@WarpCad/warpcad.github.io` (`33c38a6`, `c606706`), with no GitHub repository yet. Creating `WarpCad/warpcad.github.io` was denied by the permission check, so steps 1–10 are the owner's to run or approve. Rows 6–10 are the task's tests; record each result with the date and the output, as `build-010` did. Squarespace and the org domain are owner-only.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Create the repo and push: `gh repo create WarpCad/warpcad.github.io --public --source ~/src/@WarpCad/warpcad.github.io --push`. Then enable Pages from Actions (`gh api -X POST repos/WarpCad/warpcad.github.io/pages -f build_type=workflow`). The first workflow run deploys to `https://warpcad.github.io/`; check that address shows the page. | Open | |
+| 2 | Verify `warpcad.com` for the WarpCad org before any DNS points at GitHub: org Settings → Pages → Add a domain, add the `_github-pages-challenge-WarpCad` TXT record at Squarespace, verify. | Open | |
+| 3 | Squarespace DNS: remove the four Squarespace `A` records on `@` and the `www` CNAME to `ext-sq.squarespace.com`; add `A @` to the four GitHub addresses (re-check them in GitHub's Pages docs first), `AAAA @`, and `CNAME www` → `warpcad.github.io`. Leave `app` exactly as it is. Check with the owner before removing any MX record. | Open | |
+| 4 | Pages settings: Source "GitHub Actions", custom domain `warpcad.com`, save; wait for the DNS check. | Open | |
+| 5 | Enforce HTTPS once the certificate is issued. | Open | |
+| 6 | `dig +short warpcad.com A` shows the four GitHub addresses; `dig +short www.warpcad.com CNAME` shows `warpcad.github.io.`; `dig +short app.warpcad.com CNAME` still shows `warpcad.github.io.`. | Open | |
+| 7 | `curl -sI http://warpcad.com` is a 301 to `https://warpcad.com/`; `https://www.warpcad.com` redirects to `https://warpcad.com/`; `https://app.warpcad.com/` is 200 and the app is unchanged. | Open | |
+| 8 | `https://warpcad.github.io/warpcad/` (the app's old project-site address) redirects to `https://app.warpcad.com/`, and is not served under `warpcad.com/warpcad/`. Record what happens (`docs-026` question 2 predicted it). | Open | |
+| 9 | Live check by hand at phone 390×844, tablet and laptop, in Safari on an iPhone or iPad plus one desktop browser: follow the `docs/help.md` example, tap **Open WarpCad**, then acceptance scenario 1 (place a box and a sphere; both stay visible). | Open | |
+| 10 | The next scheduled run succeeds, and the deployed `help-index.snapshot.json` matches the app's live `help/index.json`. | Open | |
+
+Then the deferred `docs/README.md` and `README.md` links, and the `hosting.md` section, land in this repository.
+
 ### io-023 — Gist README carries the project brief (2026-10-31 04:38 UTC)
 
 The README is generated Markdown. The fake gist API proves its text, but not how GitHub renders it, and the shared About popup has only been driven at 390 px in Chromium. Scenarios 29 and 30 were driven on the dev server (see ACCEPTANCE.md Re-checked lines); these two are the parts that only a person on a real page can judge.
