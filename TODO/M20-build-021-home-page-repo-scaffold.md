@@ -9,6 +9,12 @@ depends: [docs-026]
 status: open
 ---
 
+> **Decision update (2026-10-31, `docs-026`).** The generator is **VitePress** (pinned to the stable 1.6.x line),
+> not plain HTML with a zero-dependency `scripts/build.mjs`. The Pages build, the local serve step and the link
+> check are VitePress's own build plus a small `scripts/check.mjs`; the zero-dependency points below are superseded.
+> Analytics is GA4 in its own property, `G-JQS0CFWW6C`, under the policy in `docs/decisions/analytics.md`. See
+> `docs/decisions/home-page.md`.
+
 > **Two repositories.** This task creates `~/src/@WarpCad/warpcad.github.io` (a new git
 > repository beside this one) and changes only `TODO/` and `docs/decisions/` here. Commit each
 > repository separately. This file retires in this repository's commit. Creating the GitHub

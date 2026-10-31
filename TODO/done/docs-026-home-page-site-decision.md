@@ -6,8 +6,13 @@ priority: medium
 model: sonnet
 milestone: M20
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-10-31).** The record is `docs/decisions/home-page.md`. The owner answered question 3
+> (canonical host), question 7 (GA4 in its own property) and question 10 (App Store support URL = GitHub
+> Issues). Dependent TODOs (`build-020`, `build-021`, `docs-027`, `build-022`) carry dated decision-update notes.
+> `CLAUDE.md`'s Stack and `hosting.md` point at the record.
 
 ## Goal
 
@@ -22,6 +27,17 @@ Done means `docs/decisions/home-page.md` exists, follows CLAUDE.md's Library dec
 (options compared on features, size, stars, open/closed issue ratio, release recency and
 maintainer count, plus a rejection table), and answers the questions below. The owner has
 confirmed every answer marked **owner**.
+
+**Decided 2026-10-31 (owner):** analytics is Google Analytics 4 in a **new property** for `warpcad.com`, Measurement
+ID `G-JQS0CFWW6C`, so the home page's reports stay separate from the app's (`G-JFYXCZJ1HN`). See
+`docs/decisions/home-page.md`.
+
+**Decided 2026-10-31 (owner):** the generator is **VitePress**, not the proposed plain HTML (question 1 below).
+Analytics **is wanted** (question 7 below), which replaces the proposed "none". Provider not yet chosen. The
+canonical host stays the bare domain `warpcad.com` (question 3, as proposed). Analytics conflicts with the
+proposed `script-src 'none'` and "no third-party requests", so those parts of question 7 and the CSP in `docs-027`
+must be revisited with it. VitePress is in the comparison list, but the record still needs its health-check numbers
+and its rejection-table row for the other options before the decision is final (CLAUDE.md, Library decisions).
 
 ### Questions the record answers
 

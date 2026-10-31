@@ -9,6 +9,9 @@ depends: [build-019, testing-011]
 status: open
 ---
 
+> **Decision update (2026-10-31, `docs-026` question 10).** The App Store support URL is GitHub Issues on
+> `WarpCad/warpcad` (owner). This task does **not** depend on `build-022`. See `docs/decisions/home-page.md`.
+
 > **Ends at a human gate.** This task prepares everything App Review needs and stops. Pressing
 > **Submit for Review** is the owner's action, after the legal review that
 > `docs/decisions/app-store-licensing.md` Part 6 requires ("Before App Store submission, the owner

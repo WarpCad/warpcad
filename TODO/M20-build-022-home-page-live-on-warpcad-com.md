@@ -9,6 +9,9 @@ depends: [docs-027]
 status: open
 ---
 
+> **Decision update (2026-10-31, `docs-026`).** The App Store support URL is GitHub Issues, not `warpcad.com`, so
+> `build-020` does not wait on this task. `warpcad.com` remains the canonical host (`docs/decisions/home-page.md`).
+
 > **Owner steps.** Pushing, creating the repository, the Squarespace DNS changes and the GitHub
 > Pages settings are all outward-facing and are the owner's to do or approve. This task prepares
 > the exact steps, waits, and verifies. It mirrors `build-010`, which brought `app.warpcad.com`

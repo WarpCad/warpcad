@@ -9,6 +9,11 @@ depends: [build-021, docs-028]
 status: open
 ---
 
+> **Decision update (2026-10-31, `docs-026`).** Analytics is GA4 (new property `G-JQS0CFWW6C`), so the CSP below
+> is **not** `script-src 'none'`: it uses the policy in `docs/decisions/analytics.md`, and the privacy text is the
+> home page's own. The App Store support URL is GitHub Issues on `WarpCad/warpcad` (owner, 2026-10-31), so the
+> Support section links the issue tracker. See `docs/decisions/home-page.md`.
+
 > **Two repositories.** The page is built in `~/src/@WarpCad/warpcad.github.io`. This
 > repository gains a line in `docs/README.md` and `README.md` once the page is live
 > (`build-022`), and this file's retirement. Commit each repository separately.

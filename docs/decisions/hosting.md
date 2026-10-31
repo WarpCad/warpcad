@@ -63,6 +63,9 @@ Domains and the repository's Settings -> Pages (Source "GitHub Actions", custom 
 | Netlify | Same as Cloudflare, with tighter free-tier caps. |
 | Vercel | Hobby-tier commercial-use restriction is a poor fit for an AGPL project anyone may host. |
 
+The bare domain `warpcad.com` is the home page, built with VitePress and served from its own repository
+(`warpcad.github.io`). The decision and its rejected options are in `docs/decisions/home-page.md`.
+
 ## Update path (`TODO/build-005`)
 
 Problem: the worker precaches the app shell, so a reload served the old build until a new worker
