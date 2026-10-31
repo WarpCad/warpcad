@@ -6,8 +6,17 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-10-29 at the owner's request)
 depends: [ai-031, ai-032, io-022]
-status: open
+status: done
 ---
+
+> **Shipped in `c741da7`** (the feature landed before this file was retired): the description is a
+> reader-facing property (set in File ▾ → Project settings, shown as the README's quote and as the shared
+> About popup, `ui-091`); the agent's reply renders under each prompt; a Variables table carries value and
+> range. The owner's "How this was made" gap was not reproduced on the current build and is recorded in
+> `docs/decisions/gist-storage.md`. Step 6 (`/fix-todo io-023`, 2026-10-31) drove scenarios 29 and 30 by hand
+> against the dev server with the fake gist API: PASS for publish, README order, the cold-open About popup,
+> **Make my own copy**, owner **Update gist**, and unticking **Include prompts**. Scenario 30's later steps
+> (third body, open-to-edit, stop sharing, the two-device clash) and WebKit were not driven.
 
 ## Goal
 

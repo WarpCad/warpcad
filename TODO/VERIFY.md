@@ -36,6 +36,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-023 — Gist README carries the project brief (2026-10-31 04:38 UTC)
+
+The README is generated Markdown. The fake gist API proves its text, but not how GitHub renders it, and the shared About popup has only been driven at 390 px in Chromium. Scenarios 29 and 30 were driven on the dev server (see ACCEPTANCE.md Re-checked lines); these two are the parts that only a person on a real page can judge.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Open a published gist on github.com and read the README: the description quote, **How this was made** with its block quotes and **Reply**, and the **Variables** table (columns, the – range, the em-dash for an open range) render as a table, not raw pipes. | Open | |
+| 2 | On a real iPhone in Safari, open a short link to a project that has a description: the About popup sits over the model, **View the model** dismisses it, and the header **About** button brings it back. | Open | |
+
+
 ### ui-091 — About this project popup on share links (2026-10-31 02:45 UTC)
 
 Not covered by an acceptance scenario run yet: scenarios 22 and 29 need a hand drive. Scenario 30 needs a GitHub connection and was not driven.
