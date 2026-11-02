@@ -34,7 +34,6 @@ import { computed, ref } from 'vue'
 
 import { createAnthropicClient } from '../ai/client.js'
 import { modelLabel } from '../ai/models.js'
-import { createScriptedClient } from '../ai/providers/scripted.js'
 import { createAiKeyStore } from '../storage/aiKey.js'
 import { useAiChatStore } from './aiChat.js'
 import { useSettingsStore } from './settings.js'
@@ -185,6 +184,8 @@ export const useAssistantStore = defineStore('assistant', () => {
       // The transcript is read only in a dev build: a production page cannot be switched onto it.
       const transcript = import.meta.env.DEV ? /** @type {any} */ (globalThis).__WARPCAD_SCRIPTED__ : undefined
       if (transcript !== undefined && transcript !== null) {
+        // `TODO/perf-003`: dev-only, so a production build never fetches it.
+        const { createScriptedClient } = await import('../ai/providers/scripted.js')
         scriptedClient = createScriptedClient(transcript)
         scripted.value = true
         scriptedName.value = String(transcript.name ?? 'unnamed')

@@ -9,8 +9,6 @@
  *
  * @module core/errorReporting
  */
-import * as Sentry from '@sentry/vue'
-
 /** Key shapes the app stores: Anthropic `sk-ant-…`, GitHub `ghp_…` and `github_pat_…` tokens. */
 const KEY_PATTERN = /sk-ant-[A-Za-z0-9_-]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}/
 /** A URL carrying a fragment, a relative `/#/route`, or a bare `#/route` hash fragment. */
@@ -152,41 +150,101 @@ export function scrubEvent(event) {
   return leaksPrivateText(out) ? null : out
 }
 
+/** Errors kept while the SDK is still being fetched; the oldest is dropped past this. */
+export const MAX_BUFFERED = 20
+
+/** @type {Promise<boolean>} */
+let ready = Promise.resolve(false)
+
 /**
- * Starts error reporting for `app`. Does nothing, and sends nothing, without a DSN.
+ * Resolves once the SDK started by {@link initErrorReporting} has initialised (`true`) or failed
+ * (`false`). Resolves `false` when reporting was never started.
+ *
+ * @returns {Promise<boolean>}
+ */
+export function errorReportingReady() {
+  return ready
+}
+
+/**
+ * Starts error reporting for `app`. Does nothing, and sends nothing, without a DSN. With one, the
+ * SDK is fetched after boot (`TODO/perf-003`); errors raised until it lands (window `error`,
+ * `unhandledrejection`, Vue's `app.config.errorHandler`, which still reaches any previous handler)
+ * are kept, at most {@link MAX_BUFFERED}, and captured once after `Sentry.init`, through the
+ * same `beforeSend` scrubber.
  *
  * @param {object} options
  * @param {import('vue').App | object} options.app The Vue app, before it is mounted.
  * @param {Record<string, any>} [options.env] `import.meta.env`; injected in tests.
- * @returns {boolean} Whether the SDK was started.
+ * @param {any} [options.target] Where `error` / `unhandledrejection` are heard; `globalThis` by default.
+ * @returns {boolean} Whether the SDK is being started (a DSN is set); `errorReportingReady()` says how it went.
  */
-export function initErrorReporting({ app, env = import.meta.env }) {
+export function initErrorReporting({ app, env = import.meta.env, target = globalThis }) {
   const dsn = typeof env.VITE_SENTRY_DSN === 'string' ? env.VITE_SENTRY_DSN.trim() : ''
   if (dsn === '') return false
-  try {
-    Sentry.init({
-      app: /** @type {any} */ (app),
-      dsn,
-      release: env.VITE_SENTRY_RELEASE || undefined,
-      environment: env.MODE,
-      // Sentry 11 replaced `sendDefaultPii` (gone from the SDK) with `dataCollection`, whose
-      // defaults collect user info, cookies, headers, bodies and query strings. Everything off.
-      dataCollection: /** @type {any} */ (DATA_COLLECTION),
-      attachProps: false,
-      tracesSampleRate: 0,
-      replaysSessionSampleRate: 0,
-      replaysOnErrorSampleRate: 0,
-      maxBreadcrumbs: 20,
-      integrations: (/** @type {{ name: string }[]} */ defaults) => [
-        ...defaults.filter((integration) => integration.name !== 'Breadcrumbs' && !BLOCKED_INTEGRATIONS.has(integration.name)),
-        Sentry.breadcrumbsIntegration({ dom: false, history: false, fetch: true, xhr: true, sentry: true }),
-      ],
-      beforeSend: /** @type {any} */ (scrubEvent),
-      beforeBreadcrumb: /** @type {any} */ (scrubBreadcrumb),
-    })
-    return true
-  } catch {
-    // Reporting must never be the reason the app fails to boot.
-    return false
+  /** @type {unknown[]} */
+  let buffer = []
+  let loaded = false
+  /** @param {unknown} error */
+  const keep = (error) => {
+    if (loaded) return
+    buffer.push(error)
+    if (buffer.length > MAX_BUFFERED) buffer.shift()
   }
+  /** @param {any} event */
+  const onError = (event) => keep(event?.error ?? event?.message ?? event)
+  /** @param {any} event */
+  const onRejection = (event) => keep(event?.reason ?? event)
+  const listening = typeof target?.addEventListener === 'function'
+  if (listening) {
+    target.addEventListener('error', onError)
+    target.addEventListener('unhandledrejection', onRejection)
+  }
+  const config = /** @type {any} */ (app)?.config
+  const previous = config?.errorHandler
+  if (config !== undefined && config !== null) {
+    config.errorHandler = (/** @type {unknown} */ error, /** @type {unknown} */ instance, /** @type {string} */ info) => {
+      keep(error)
+      if (typeof previous === 'function') previous(error, instance, info)
+    }
+  }
+  ready = (async () => {
+    try {
+      const Sentry = await import('@sentry/vue')
+      Sentry.init({
+        app: /** @type {any} */ (app),
+        dsn,
+        release: env.VITE_SENTRY_RELEASE || undefined,
+        environment: env.MODE,
+        // Sentry 11 replaced `sendDefaultPii` (gone from the SDK) with `dataCollection`, whose
+        // defaults collect user info, cookies, headers, bodies and query strings. Everything off.
+        dataCollection: /** @type {any} */ (DATA_COLLECTION),
+        attachProps: false,
+        tracesSampleRate: 0,
+        replaysSessionSampleRate: 0,
+        replaysOnErrorSampleRate: 0,
+        maxBreadcrumbs: 20,
+        integrations: (/** @type {{ name: string }[]} */ defaults) => [
+          ...defaults.filter((integration) => integration.name !== 'Breadcrumbs' && !BLOCKED_INTEGRATIONS.has(integration.name)),
+          Sentry.breadcrumbsIntegration({ dom: false, history: false, fetch: true, xhr: true, sentry: true }),
+        ],
+        beforeSend: /** @type {any} */ (scrubEvent),
+        beforeBreadcrumb: /** @type {any} */ (scrubBreadcrumb),
+      })
+      loaded = true
+      for (const error of buffer) Sentry.captureException(error)
+      return true
+    } catch {
+      // Reporting must never be the reason the app fails to boot.
+      return false
+    } finally {
+      loaded = true
+      buffer = []
+      if (listening) {
+        target.removeEventListener('error', onError)
+        target.removeEventListener('unhandledrejection', onRejection)
+      }
+    }
+  })()
+  return true
 }

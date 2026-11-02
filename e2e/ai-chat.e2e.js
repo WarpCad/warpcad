@@ -163,7 +163,8 @@ test('Enter sends, Shift+Enter breaks the line', async ({ page }) => {
   expect(api.requests).toHaveLength(0)
   await input.press('Enter')
   await expect(page.getByTestId('ai-user-message')).toHaveText('line one\nline two')
-  expect(api.requests).toHaveLength(1)
+  // The first Send imports the agent before the request goes out (`TODO/perf-003`), so wait for it.
+  await expect.poll(() => api.requests.length).toBe(1)
 })
 
 test('Undo AI turn takes the turn back, then switches itself off', async ({ page }) => {

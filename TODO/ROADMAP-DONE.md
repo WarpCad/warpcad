@@ -838,6 +838,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `build-004` | Hook up Sentry error reporting and source-map upload in the build and the Pages workflow, token kept out of the bundle and repo. Moved here from unscheduled 2026-10-16 so the overnight run reaches it | Feature | — | none |
 | ✅ `build-007` | Add hosted-app GA4 page views and the owner setup checklist. Moved here from unscheduled 2026-10-16 | Feature | — | none |
 | ✅ `perf-002` | Measure whether the production bundle warning affects load time. Moved here from unscheduled 2026-10-16 | Finding | — | 1 |
+| ✅ `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider). Shipped 2026-11-02: slow4g cold usable 333 / 334 / 335 ms faster in Chromium / Firefox / WebKit, 66 kB less boot JS; targets re-baselined and one extra request accepted (see the TODO). ai-006 and scenarios 24–25 logged in `TODO/VERIFY.md` | Feature | `perf-002` | 1 |
 | ✅ `ui-072` | Phone (390 px): the second Library drag does not register; `save-load-ui` fails on all three phone projects (at HEAD and earlier) | Finding | — | 1, 12; `ui-070` repro |
 | ✅ `core-064` | Subtract with a Pi's `hole1` consumes the Pi along with the plate; the tool part should survive so one Pi can drill several holes. Decided 2026-10-17 | Finding | — | 5, 10, 15 |
 | ✅ `core-063` | Repeat Apply copies a foreign step on the first part; decided 2026-10-17 to copy it and list it under *Not part of the repeat* | Finding | `core-061` | 10, 15 |
@@ -1197,5 +1198,6 @@ convention going forward.
 | `docs-027` | 2026-10-31 21:05 | 2h38m from the first step record (18:27), including waits for the owner's answers; the CSP/GA4 tag and the live claims pass are not in it |
 | `testing-005` | 2026-11-02 01:43 | 3m from the first step record (01:40); the Sonnet triage agent's own run is not separately timed |
 | `testing-014` | 2026-11-02 14:50 | under 5m (step-record timer read 0m); no code written: the fix was already in `ad06915`, so this run only re-checked it and retired the file |
+| `perf-003` | 2026-11-02 18:23 | 3h28m wall clock (from the first step record, 14:55 UTC). Sonnet agent for RED/GREEN, then a changed-scope e2e run that found one real timing race (`ai-chat` Shift+Enter read the request list before the lazy agent import finished; fixed with a poll), then a bench on both builds and a `--check` pass. Targets re-baselined to relative gains, a request-count rule relaxed by decision; ai-006 and scenarios 24–25 not driven |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

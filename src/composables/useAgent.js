@@ -35,11 +35,7 @@
  * @module composables/useAgent
  */
 
-import { createAgentContext, runTurn, undoAiTurn } from '../ai/agent.js'
-import { downscaleToImagePart, fitWithin } from '../ai/image.js'
 import { estimateCost } from '../ai/models.js'
-import { prepareReference } from '../ai/reference.js'
-import { addAttachment, createReferences } from '../ai/tools/image.js'
 import { viewportCapture } from '../render/offscreenCapture.js'
 import { bytesFromBase64 } from '../sketch/imageAsset.js'
 import { decodeAssetBitmap, importImageFile } from '../sketch/imageClient.js'
@@ -59,6 +55,48 @@ import { useTimelineStore } from '../stores/timeline.js'
  * @property {Pick<import('../ai/client.js').AiClient, 'stream'>} [client] A scripted provider
  *   (specs); default: the Assistant store's real one.
  */
+
+/**
+ * `TODO/perf-003`: the agent loop, the image helpers, the reference sanitiser and the image tools
+ * (which pull in the tool registry) are not used at boot; the first Send or attach imports them.
+ */
+const agentModules = {
+  agent: () => import('../ai/agent.js'),
+  image: () => import('../ai/image.js'),
+  reference: () => import('../ai/reference.js'),
+  imageTools: () => import('../ai/tools/image.js'),
+}
+
+/**
+ * @typedef {{
+ *   agent: typeof import('../ai/agent.js'),
+ *   image: typeof import('../ai/image.js'),
+ *   reference: typeof import('../ai/reference.js'),
+ *   imageTools: typeof import('../ai/tools/image.js'),
+ * }} AgentModules
+ */
+
+/** @type {AgentModules | null} */
+let loaded = null
+/** @type {Promise<AgentModules> | null} */
+let loading = null
+
+/**
+ * Import the deferred modules once; a failed import is retried by the next call.
+ *
+ * @returns {Promise<AgentModules>}
+ */
+function loadAgentModules() {
+  if (loaded !== null) return Promise.resolve(loaded)
+  loading ??= Promise.all([agentModules.agent(), agentModules.image(), agentModules.reference(), agentModules.imageTools()]).then(
+    ([agent, image, reference, imageTools]) => (loaded = { agent, image, reference, imageTools }),
+    (error) => {
+      loading = null
+      throw error
+    },
+  )
+  return loading
+}
 
 /** @type {AgentDependencies | null} */
 let dependencies = null
@@ -93,8 +131,9 @@ const MAX_PROJECT_PHOTOS_PER_TURN = 4
  *
  * @param {import('../ai/tools/image.js').ToolReferences} references
  * @param {import('../core/document.js').WarpDocument} document
+ * @param {Pick<typeof import('../ai/image.js'), 'downscaleToImagePart' | 'fitWithin'>} image
  */
-async function prepareProjectPhotos(references, document) {
+async function prepareProjectPhotos(references, document, { downscaleToImagePart, fitWithin }) {
   let prepared = 0
   for (const record of document.assets().values()) {
     if (prepared >= MAX_PROJECT_PHOTOS_PER_TURN) break
@@ -117,6 +156,9 @@ async function prepareProjectPhotos(references, document) {
  */
 function agentContext() {
   if (context !== null) return context
+  if (loaded === null) throw new Error('useAgent: the agent modules are not loaded')
+  const { createAgentContext } = loaded.agent
+  const { createReferences } = loaded.imageTools
   const chat = useAiChatStore()
   const assistant = useAssistantStore()
   const documentStore = useDocumentStore()
@@ -190,18 +232,10 @@ export function useAgent() {
 
   async function send() {
     if (!chat.canSend) return
-    // `TODO/ai-007`: capture_view is offered only while the viewport can render. Read per turn —
-    // the viewport mounts after this context may have been built, and a lost context clears it.
-    const ctx = agentContext()
-    ctx.capture = viewportCapture() ?? undefined
     const userMessage = chat.draft.trim()
     const attached = chat.attachments
     chat.draft = ''
     chat.attachments = []
-    // `TODO/ai-008`: each sanitised attachment becomes a reference the image tools can name, and
-    // the project's own photos get a prepared copy.
-    const references = /** @type {import('../ai/tools/image.js').ToolReferences} */ (ctx.references)
-    const attachmentIds = attached.map((a) => addAttachment(references, { name: a.name, record: a.reference.record, sent: a.reference.sent, bitmap: a.reference.bitmap }))
     chat.push({ kind: 'user', text: userMessage, images: attached.length })
     if (attached.length > 0 && chat.imageSentRevision !== documentStore.loadRevision) {
       chat.imageSentRevision = documentStore.loadRevision
@@ -218,8 +252,32 @@ export function useAgent() {
     chat.usage = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 }
     chat.resetTurnCost()
     controller = new AbortController()
+    // `TODO/perf-003`: the first Send imports the agent, inside the running state set above; if
+    // that fails the draft and attachments come back.
+    /** @type {AgentModules} */
+    let modules
     try {
-      if (documentStore.raw.assets().size > 0) await prepareProjectPhotos(references, documentStore.raw)
+      modules = await loadAgentModules()
+    } catch (error) {
+      chat.push({ kind: 'notice', level: 'failed', message: `Couldn't load the assistant: ${reasonOf(error)}` })
+      chat.draft = userMessage
+      chat.attachments = attached
+      chat.running = false
+      controller = null
+      return
+    }
+    const { runTurn } = modules.agent
+    const { addAttachment } = modules.imageTools
+    // `TODO/ai-007`: capture_view is offered only while the viewport can render. Read per turn —
+    // the viewport mounts after this context may have been built, and a lost context clears it.
+    const ctx = agentContext()
+    ctx.capture = viewportCapture() ?? undefined
+    // `TODO/ai-008`: each sanitised attachment becomes a reference the image tools can name, and
+    // the project's own photos get a prepared copy.
+    const references = /** @type {import('../ai/tools/image.js').ToolReferences} */ (ctx.references)
+    const attachmentIds = attached.map((a) => addAttachment(references, { name: a.name, record: a.reference.record, sent: a.reference.sent, bitmap: a.reference.bitmap }))
+    try {
+      if (documentStore.raw.assets().size > 0) await prepareProjectPhotos(references, documentStore.raw, modules.image)
       const outcome = await runTurn({
         userMessage: userMessage === '' ? 'Please look at the attached image.' : userMessage,
         images: attached.map((a) => a.part),
@@ -304,6 +362,9 @@ export function useAgent() {
       undoTabTurn()
       return
     }
+    // `TODO/perf-003`: no module load, no AI turn of this module.
+    if (loaded === null) return
+    const { undoAiTurn } = loaded.agent
     const ctx = agentContext()
     const turn = ctx.aiTurns.at(-1)
     if (turn === undefined) return
@@ -340,10 +401,15 @@ export function useAgent() {
     // `TODO/ai-008`: sanitise first (sketch-003); only the re-encoded pixels go any further.
     // Send is held while this runs (`chat.attaching`).
     chat.attaching += 1
-    /** @type {Awaited<ReturnType<typeof prepareReference>>} */
+    /** @type {Awaited<ReturnType<typeof import('../ai/reference.js').prepareReference>>} */
     let prepared
     try {
-      prepared = await prepareReference(file, { importImage: importImageFile, downscale: (blob) => downscaleToImagePart(blob) })
+      // `TODO/perf-003`: the first attach imports the sanitiser, inside the pending state.
+      const { reference, image } = await loadAgentModules()
+      prepared = await reference.prepareReference(file, { importImage: importImageFile, downscale: (blob) => image.downscaleToImagePart(blob) })
+    } catch (error) {
+      chat.attachError = `Couldn't load the image tools: ${reasonOf(error)}.`
+      return
     } finally {
       chat.attaching -= 1
     }

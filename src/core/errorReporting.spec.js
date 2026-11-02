@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@sentry/vue', () => ({
   init: vi.fn(),
+  captureException: vi.fn(),
   breadcrumbsIntegration: vi.fn((options) => ({ name: 'Breadcrumbs', options })),
 }))
 
 import * as Sentry from '@sentry/vue'
-import { containsSecret, initErrorReporting, scrubBreadcrumb, scrubEvent } from './errorReporting.js'
+import { MAX_BUFFERED, containsSecret, errorReportingReady, initErrorReporting, scrubBreadcrumb, scrubEvent } from './errorReporting.js'
 
 // Shapes only, never a real credential.
 const ANTHROPIC_KEY = 'sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAA'
@@ -15,20 +16,31 @@ const GITHUB_TOKEN = 'ghp_' + 'B'.repeat(36)
 
 beforeEach(() => {
   vi.mocked(Sentry.init).mockClear()
+  vi.mocked(Sentry.captureException).mockClear()
 })
 
+const DSN_ENV = { VITE_SENTRY_DSN: 'https://abc@o1.ingest.us.sentry.io/2' }
+
 describe('initErrorReporting', () => {
-  it('does not call Sentry.init without a DSN', () => {
-    expect(initErrorReporting({ app: {}, env: {} })).toBe(false)
-    expect(initErrorReporting({ app: {}, env: { VITE_SENTRY_DSN: '' } })).toBe(false)
-    expect(initErrorReporting({ app: {}, env: { VITE_SENTRY_DSN: '   ' } })).toBe(false)
+  it('does not load or call Sentry without a DSN, and installs nothing', async () => {
+    const target = new EventTarget()
+    const add = vi.spyOn(target, 'addEventListener')
+    const app = { config: /** @type {any} */ ({}) }
+    expect(initErrorReporting({ app, env: {}, target })).toBe(false)
+    expect(initErrorReporting({ app, env: { VITE_SENTRY_DSN: '' }, target })).toBe(false)
+    expect(initErrorReporting({ app, env: { VITE_SENTRY_DSN: '   ' }, target })).toBe(false)
+    expect(await errorReportingReady()).toBe(false)
     expect(Sentry.init).not.toHaveBeenCalled()
+    expect(add).not.toHaveBeenCalled()
+    expect(app.config.errorHandler).toBeUndefined()
   })
 
-  it('initialises with privacy settings stated explicitly when a DSN is set', () => {
+  it('initialises with privacy settings stated explicitly when a DSN is set (after the SDK import resolves)', async () => {
     const app = {}
-    const env = { VITE_SENTRY_DSN: 'https://abc@o1.ingest.us.sentry.io/2', VITE_SENTRY_RELEASE: 'deadbeef', MODE: 'production' }
-    expect(initErrorReporting({ app, env })).toBe(true)
+    const env = { ...DSN_ENV, VITE_SENTRY_RELEASE: 'deadbeef', MODE: 'production' }
+    expect(initErrorReporting({ app, env, target: new EventTarget() })).toBe(true)
+    expect(Sentry.init).not.toHaveBeenCalled() // the SDK is fetched after boot, not during it
+    expect(await errorReportingReady()).toBe(true)
     expect(Sentry.init).toHaveBeenCalledTimes(1)
     const options = /** @type {any} */ (vi.mocked(Sentry.init).mock.calls[0][0])
     expect(options.dsn).toBe(env.VITE_SENTRY_DSN)
@@ -45,8 +57,9 @@ describe('initErrorReporting', () => {
     expect(options.beforeBreadcrumb).toBe(scrubBreadcrumb)
   })
 
-  it('removes tracing, replay and feedback integrations and replaces breadcrumbs with a narrow set', () => {
-    initErrorReporting({ app: {}, env: { VITE_SENTRY_DSN: 'https://abc@o1.ingest.us.sentry.io/2' } })
+  it('removes tracing, replay and feedback integrations and replaces breadcrumbs with a narrow set', async () => {
+    initErrorReporting({ app: {}, env: DSN_ENV, target: new EventTarget() })
+    await errorReportingReady()
     const { integrations } = /** @type {any} */ (vi.mocked(Sentry.init).mock.calls[0][0])
     const defaults = ['Breadcrumbs', 'Console', 'BrowserTracing', 'Replay', 'ReplayCanvas', 'Feedback', 'GlobalHandlers', 'Vue'].map((/** @type {string} */ name) => ({ name }))
     const names = integrations(defaults).map((/** @type {{ name: string }} */ integration) => integration.name)
@@ -58,11 +71,51 @@ describe('initErrorReporting', () => {
     )
   })
 
-  it('never throws if the SDK does', () => {
+  it('never throws if the SDK does', async () => {
     vi.mocked(Sentry.init).mockImplementationOnce(() => {
       throw new Error('sdk exploded')
     })
-    expect(initErrorReporting({ app: {}, env: { VITE_SENTRY_DSN: 'https://abc@o1.ingest.us.sentry.io/2' } })).toBe(false)
+    expect(() => initErrorReporting({ app: {}, env: DSN_ENV, target: new EventTarget() })).not.toThrow()
+    expect(await errorReportingReady()).toBe(false)
+  })
+
+  it('captures an error raised before the SDK landed exactly once after init, and stops listening', async () => {
+    const target = new EventTarget()
+    const previous = vi.fn()
+    const app = { config: { errorHandler: previous } }
+    initErrorReporting({ app, env: DSN_ENV, target })
+    const early = new Error('before the sdk')
+    const reason = new Error('rejected early')
+    const vueError = new Error('in a component')
+    target.dispatchEvent(Object.assign(new Event('error'), { error: early }))
+    target.dispatchEvent(Object.assign(new Event('unhandledrejection'), { reason }))
+    app.config.errorHandler(vueError, null, 'render')
+    expect(previous).toHaveBeenCalledWith(vueError, null, 'render') // the previous handler still runs
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+    await errorReportingReady()
+    expect(vi.mocked(Sentry.captureException).mock.calls.map((c) => c[0])).toEqual([early, reason, vueError])
+    // After init the buffer is spent: nothing is captured twice by our own listeners.
+    target.dispatchEvent(Object.assign(new Event('error'), { error: early }))
+    app.config.errorHandler(vueError, null, 'render')
+    expect(Sentry.captureException).toHaveBeenCalledTimes(3)
+    expect(previous).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps at most MAX_BUFFERED early errors, newest last', async () => {
+    const target = new EventTarget()
+    initErrorReporting({ app: {}, env: DSN_ENV, target })
+    for (let i = 0; i < MAX_BUFFERED + 5; i += 1) target.dispatchEvent(Object.assign(new Event('error'), { error: i }))
+    await errorReportingReady()
+    const kept = vi.mocked(Sentry.captureException).mock.calls.map((c) => c[0])
+    expect(kept).toHaveLength(MAX_BUFFERED)
+    expect(kept.at(-1)).toBe(MAX_BUFFERED + 4)
+  })
+
+  it('hands buffered errors to Sentry, whose beforeSend is the scrubber that drops a key-bearing event', async () => {
+    initErrorReporting({ app: {}, env: DSN_ENV, target: new EventTarget() })
+    await errorReportingReady()
+    const { beforeSend } = /** @type {any} */ (vi.mocked(Sentry.init).mock.calls[0][0])
+    expect(beforeSend({ message: `failed with ${ANTHROPIC_KEY}` })).toBeNull()
   })
 })
 

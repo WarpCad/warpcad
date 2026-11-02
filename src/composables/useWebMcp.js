@@ -27,7 +27,6 @@
 
 import { watch } from 'vue'
 
-import { createWebMcpLink } from '../ai/webmcp/register.js'
 import { aliasNavigatorModelContext, modelContextApiOf, modelContextOf } from '../ai/webmcp/toolShape.js'
 import { createWebMcpPreference } from '../storage/webMcpPreference.js'
 import { useAiChatStore } from '../stores/aiChat.js'
@@ -106,6 +105,8 @@ export async function startWebMcp(options = {}) {
   }
   aliasNavigatorModelContext(options.env ?? globalThis)
   preference = options.preference ?? createWebMcpPreference()
+  // `TODO/perf-003`: the tool registry arrives only where the browser has WebMCP.
+  const { createWebMcpLink } = await import('../ai/webmcp/register.js')
   link = createWebMcpLink({
     modelContext,
     endpoint,

@@ -5,6 +5,17 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toRaw } from 'vue'
 
+// `TODO/perf-003`: count evaluations of the deferred modules. A mock factory runs on first import.
+const loads = vi.hoisted(() => ({ agent: 0, reference: 0 }))
+vi.mock('../ai/agent.js', async (importOriginal) => {
+  loads.agent += 1
+  return importOriginal()
+})
+vi.mock('../ai/reference.js', async (importOriginal) => {
+  loads.reference += 1
+  return importOriginal()
+})
+
 import { serializeProject } from '../core/project.js'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { useDocumentStore } from '../stores/document.js'
@@ -46,6 +57,46 @@ function scripted(script) {
     },
   }
 }
+
+describe('useAgent loads the agent on first use (TODO/perf-003)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+  afterEach(() => setAgentDependencies(null))
+
+  it('importing the composable does not evaluate the agent or the reference sanitiser', () => {
+    expect(loads.agent).toBe(0)
+    expect(loads.reference).toBe(0)
+  })
+
+  it('undoTurn before any load is a no-op and does not load the agent', () => {
+    const chat = useAiChatStore()
+    chat.lastLanded = 'ai'
+    chat.landedVersion = 0
+    useAgent().undoTurn()
+    expect(loads.agent).toBe(0)
+    expect(chat.items).toEqual([])
+  })
+
+  it('attach from a cold module loads the sanitiser, then reports a refused file in the composer', async () => {
+    const chat = useAiChatStore()
+    await useAgent().attach(new Blob(['not an image'], { type: 'text/plain' }))
+    expect(loads.reference).toBe(1)
+    expect(chat.attaching).toBe(0)
+    expect(chat.attachError).not.toBe('')
+  })
+
+  it('send from a cold module loads the agent on the first call and runs the turn', async () => {
+    setAgentDependencies({ client: scripted([{ text: 'On it.', calls: [{ name: 'create', input: CUBE }] }, { text: 'Done.' }]) })
+    const chat = useAiChatStore()
+    chat.draft = 'a 20 mm cube'
+    const pending = useAgent().send()
+    await pending
+    expect(loads.agent).toBe(1)
+    expect(useDocumentStore().bodies).toHaveLength(1)
+    expect(chat.running).toBe(false)
+  })
+})
 
 describe('useAgent (TODO/ai-006)', () => {
   beforeEach(() => {

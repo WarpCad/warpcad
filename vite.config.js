@@ -131,7 +131,14 @@ export default defineConfig(({ command }) => ({
   // would make Playwright's `reuseExistingServer` silently attach to the
   // wrong app instead of failing loudly. Fail loudly instead.
   server: { port: 5183, strictPort: true },
-  build: { sourcemap: SENTRY.sourcemap },
+  build: {
+    sourcemap: SENTRY.sourcemap,
+    rolldownOptions: {
+      // `TODO/perf-003`: keep everything reachable at boot in one chunk beside the runtime; without
+      // it Rolldown splits the initial graph into three files, a slow-link loss (perf-002 section 7).
+      output: { codeSplitting: { groups: [{ name: 'app', tags: ['$initial'] }] } },
+    },
+  },
   plugins: [
     devContentSecurityPolicy(),
     sentryConnectSrc(),

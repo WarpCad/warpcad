@@ -38,6 +38,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### perf-003 — Acceptance checks not driven (2026-11-02 18:23 UTC)
+
+The perf-003 change shipped with its bench and the closed-finding checks done. Three checks could not be driven in this run, so they are logged here for a human to run: ai-006 needs the dev-only scripted provider, which only exists in the dev build, and the owner ruled out the dev server for this run. Scenarios 24 and 25 need a real model key and a live MCP client against `npm run dev`. The three are not covered by a standing scenario run, so they belong here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `ai-006`: open the chat panel on a dev build, run a scripted turn that lands a body, press **Undo AI turn**, and confirm the body is taken back and the header Undo still reads correctly. | Open | Needs `npm run dev` (scripted provider is DEV-only). |
+| 2 | Acceptance scenario 24, "Edit while the Assistant works": laptop then phone, with a real model key, following the scenario's steps 1–7. | Open | Needs a real Anthropic key. The scripted transcript covers the plumbing only. |
+| 3 | Acceptance scenario 25, "An MCP agent edits the project you have open": `npm run dev`, a loopback MCP client, lease enabled, steps 1–7, plus phone reachability of the access control. | Open | Needs `npm run dev` and an MCP client registered with the loopback endpoint. |
+
 ### build-022 — Owner checks to bring warpcad.com live (2026-10-31 21:20 UTC)
 
 Prepared, not run. The home page is scaffolded and committed locally in `~/src/@WarpCad/warpcad.github.io` (`33c38a6`, `c606706`), with no GitHub repository yet. Creating `WarpCad/warpcad.github.io` was denied by the permission check, so steps 1–10 are the owner's to run or approve. Rows 6–10 are the task's tests; record each result with the date and the output, as `build-010` did. Squarespace and the org domain are owner-only.

@@ -176,6 +176,15 @@ which the implementing session did not have. Everything else (no-DSN inertness, 
 scrubbing, hidden maps and deletion, the CSP host) is proved with mocks at the SDK boundary and
 with production builds. The operator checklist is in `TODO/VERIFY.md`.
 
+## Loading (`TODO/perf-003`)
+
+The SDK is not in the boot chunk. `initErrorReporting` fetches `@sentry/vue` after boot, and only
+when `VITE_SENTRY_DSN` is set; without a DSN nothing is fetched and nothing is installed. Until the
+SDK lands, errors from `window` `error`, `unhandledrejection` and Vue's `app.config.errorHandler`
+(which still calls any previous handler) are kept in a bounded buffer of 20, then captured once
+through the same `beforeSend` scrubber after `Sentry.init`. `errorReportingReady()` resolves to
+whether initialisation succeeded.
+
 ## Operator steps
 
 1. Create a Sentry project (platform: Vue / browser) and copy its DSN.
