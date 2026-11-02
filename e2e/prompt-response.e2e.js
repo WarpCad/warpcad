@@ -48,11 +48,22 @@ const REPLY = [
  */
 async function selectFromList(page, id) {
   const inspector = page.getByTestId('inspector')
-  if ((await inspector.getAttribute('data-open')) !== 'true' && (await page.getByTestId('inspector-tab').isVisible())) {
-    await page.getByTestId('inspector-tab').click()
+  const tab = page.getByTestId('inspector-tab')
+  const list = page.getByTestId('object-list')
+  const header = page.getByTestId('inspector-objects-header')
+  // Wait until some part of the Inspector is up before reading any of it. Right after a reload
+  // the phone tab is not laid out yet, and an instant `isVisible()` skipped opening the sheet
+  // (testing-014). On laptop there is no tab: the panel is already showing its list.
+  await expect.poll(async () => (await tab.isVisible()) || (await list.isVisible()) || (await header.isVisible())).toBe(true)
+  if ((await inspector.getAttribute('data-open')) !== 'true' && (await tab.isVisible())) {
+    await tab.click()
     await expect(inspector).toHaveAttribute('data-open', 'true')
   }
-  if (!(await page.getByTestId('object-list').isVisible())) await page.getByTestId('inspector-objects-header').click()
+  // The list is the whole Inspector when nothing is selected, and collapsed behind its header
+  // when one body is. Wait for one of the two before choosing, since the header is absent
+  // while nothing is selected.
+  await expect(list.or(header)).toBeVisible()
+  if (!(await list.isVisible())) await header.click()
   await page.getByTestId(`objects-row-${id}`).click()
   await expect(page.getByTestId('inspector-name')).toBeVisible()
 }

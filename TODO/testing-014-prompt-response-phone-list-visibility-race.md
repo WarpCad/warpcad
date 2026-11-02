@@ -16,6 +16,10 @@ status: open
 > of a fix. Open question: why does the objects section stay collapsed on phone in the working tree
 > when HEAD passes? Suspect a store or document-load difference from `io-023`'s changes; bisect first.
 
+**Decided 2026-10-31:** fix this before pushing `406b4ba` (io-023's retirement commit). Bisect first: the phone objects section stays collapsed, which is probably caused by io-023's changes.
+
+**Decided 2026-11-01:** run this before `build-017`; it is row 0 of Next up in `TODO/ROADMAP.md`. The push of the 8 unpushed commits waits on it.
+
 ## Problem
 
 `an agent's record_response shows under the request at once, and is saved` (`ai-032`'s spec) failed

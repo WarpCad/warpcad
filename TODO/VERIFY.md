@@ -34,6 +34,8 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 **Decided 2026-10-17:** the roughly 347 Open rows get a triage task, `testing-005` (move, graduate or close each row). Until it runs, add new rows only for genuine one-offs.
 
+**Decided 2026-11-01:** run `testing-005` next, right after `testing-014` and before `build-017`. The queue held 438 open rows at that date, not the roughly 347 quoted here.
+
 ## Queue
 
 ### build-022 — Owner checks to bring warpcad.com live (2026-10-31 21:20 UTC)
@@ -52,6 +54,8 @@ Prepared, not run. The home page is scaffolded and committed locally in `~/src/@
 | 8 | `https://warpcad.github.io/warpcad/` (the app's old project-site address) redirects to `https://app.warpcad.com/`, and is not served under `warpcad.com/warpcad/`. Record what happens (`docs-026` question 2 predicted it). | Open | |
 | 9 | Live check by hand at phone 390×844, tablet and laptop, in Safari on an iPhone or iPad plus one desktop browser: follow the `docs/help.md` example, tap **Open WarpCad**, then acceptance scenario 1 (place a box and a sphere; both stay visible). | Open | |
 | 10 | The next scheduled run succeeds, and the deployed `help-index.snapshot.json` matches the app's live `help/index.json`. | Open | |
+
+**Decided 2026-11-01:** the owner moves `warpcad.com` now, running rows 2–5 in order (row 1 is already done). `app.warpcad.com` stays untouched. Results go in the table above, with date and output.
 
 Then the deferred `docs/README.md` and `README.md` links, and the `hosting.md` section, land in this repository.
 
@@ -508,7 +512,7 @@ Acceptance 10, 12, 15, 22, 23 and the data-007, ui-052, core-024, ui-063, ui-038
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | *Save to library…* on a repeat body (*Bolt 1 ×3*) saves the repeat without its source, so dropping that part from My parts will not rebuild it. Decide whether it should refuse, or save the source with it. | Open | |
+| 1 | *Save to library…* on a repeat body (*Bolt 1 ×3*) saves the repeat without its source, so dropping that part from My parts will not rebuild it. Decide whether it should refuse, or save the source with it. | OK | **Decided 2026-11-01:** keep the refusal that `ui-076` shipped; a repeat is not saved without its source. Nothing further to check here. |
 | 2 | Edit Bolt 1's Length with the repeat on screen: do the three repeats change at the same moment as Bolt 1, or is there a visible lag that reads as "not linked"? | Open | |
 | 3 | Move the Pi after the bolts exist: only the Pi moves and the bolts stay (a later step is not consumed by earlier rows). Does that read as a bug to someone who did not read the docs? `ui-069` must explain it. | Open | |
 | 4 | Type a value into Position X on *Bolt 1 ×3*: nothing moves, but the refusal is an uncaught error, not a message. | OK | Fixed by `ui-069`: the fields are read-only on a repeat body with a note; `e2e/repeat-placement.e2e.js` asserts no page error. |
