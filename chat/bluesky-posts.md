@@ -2547,3 +2547,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 437 → 421 Open, 10 moved, 6 closed, 5 pointed at FIND-testing-015 → TODO/done/testing-005 "What shipped" and ROADMAP-DONE row
 **To Add:** nothing
+
+## 2026-11-02T18:56:13Z — File five owner requests as tasks and park STEP import
+
+**Post:** WarpCad's backlog took five new tasks today: a prompting guide for browser agents, a raisable AI step limit, 3MF import with selectable sub-parts, group merging, and hidden-by-default parts. STEP import is parked behind a licence question. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five tasks filed 2026-11-02 → TODO/ROADMAP.md rows 16b-16f; STEP parked, readers LGPL → TODO/DEFER-io-025 Goal
+**To Add:** nothing

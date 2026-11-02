@@ -3673,3 +3673,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** counts → TODO/done/testing-005 "What shipped"; "queued since September" cut, task file says September but not re-checked against git → reworded to "for weeks"
 **To Add:** nothing
+
+## 2026-11-02T18:56:13Z — File five owner requests as tasks and park STEP import
+
+**Post:** Today's WarpCad session was planning, not code. Five requests became task files with the interaction model spelled out before anyone builds them: a public guide so a browser agent can write a correct modeling prompt, a higher per-project limit for AI steps (an agent stopped at 200), importing a 3MF as one part whose components can be selected, merging the parts when two groups are grouped, and a hidden-by-default switch for a part.
+
+One request went the other way. Reading STEP files directly is parked, because every ready-made reader is LGPL and that is a licence decision for the owner. The 3MF route needs no new dependency, and it builds the multi-part structure a STEP reader would use later.
+
+The task files are in the repository's TODO folder.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five tasks, each with an "Interaction model" section → grep of the five TODO/FIND-* files; stopped at 200 → TODO/FIND-ai-033 Goal; LGPL, parked → TODO/DEFER-io-025 Goal; no dependency, multi-mesh part reusable → TODO/FIND-io-024 "Why 3MF first"
+**To Add:** nothing
