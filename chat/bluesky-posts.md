@@ -2538,3 +2538,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** failed once in a 7-worker full run, passed alone on 9 projects, 81 passed after fix → test output this session; cause is an inference → not observed
 **To Add:** nothing
+
+## 2026-11-02T13:29:13Z — Triage the VERIFY.md open rows (testing-005)
+
+**Post:** WarpCad's manual-check queue had 437 open rows. A triage pass moved 10 into the standing acceptance scenarios, closed 6 with evidence, and filed one task to automate the WebGL depth and translucency checks. About 416 stay open: they need a real device or a person's eye. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 437 → 421 Open, 10 moved, 6 closed, 5 pointed at FIND-testing-015 → TODO/done/testing-005 "What shipped" and ROADMAP-DONE row
+**To Add:** nothing

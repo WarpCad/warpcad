@@ -3660,3 +3660,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** failed once in a 7-worker full run, passed alone on 9 projects, 81 passed after fix → test output this session; cause is an inference → not observed
 **To Add:** nothing
+
+## 2026-11-02T13:29:13Z — Triage the VERIFY.md open rows (testing-005)
+
+**Post:** WarpCad keeps a short queue of checks only a person can make. It had grown to 437 open rows, which is the same pile-up the project's second attempt died of.
+
+A triage pass sorted them. Ten were already covered by a standing acceptance scenario and became "also re-drive" lines there. Six were answered by later changes and are closed with the evidence cited. Five WebGL depth and translucency checks, queued by hand for weeks, now have a task to turn them into a three-engine pixel spec. About 416 remain, because each needs real hardware or someone's judgment.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** none
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** counts → TODO/done/testing-005 "What shipped"; "queued since September" cut, task file says September but not re-checked against git → reworded to "for weeks"
+**To Add:** nothing

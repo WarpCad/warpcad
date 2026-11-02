@@ -813,6 +813,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `testing-005` | Triage the `TODO/VERIFY.md` open rows: 437 → 421 Open; 10 moved to `ACCEPTANCE.md` as "Also re-drive" lines, 6 closed with evidence, 5 pointed at `FIND-testing-015` (WebGL depth and translucency, real-GPU look still open). Filed 2026-10-17 | Finding | — | — |
 | ✅ `ui-079` | Shrink the Library and Operations panels in steps between laptop and phone width (stages 1–3 here; stages 4–6 as `ui-084`, `ui-081`, `ui-082`; stage 7 `adc1e36`) | Finding | — | 1, 5, 10 |
 | ✅ `core-075` | More ways to join split pieces: butterfly keys, loose dowels and tenons, dovetails, puzzle tabs, laps, fingers, magnets. Filed 2026-10-26 at the owner's request; four stages (`220b02d`, `85d80fe`, `0ae6f36`, this commit) | Feature | — | 4, 11, 17 |
 | ✅ `io-016` | Share a project by link (`#/share/v1/…`, the project deflated into the URL fragment) and a read-only Shared view for the recipient; gist overflow (`io-017`) and native Universal Links (`io-018`) reserved, no task files yet. Filed 2026-10-26 at the owner's request | Feature | — | 22, 29 |
@@ -1193,5 +1194,6 @@ convention going forward.
 | `docs-028` | 2026-10-31 19:45 | 5m from the first step record (19:40); the help-build, lockfile and HelpSheet work was not separately timed |
 | `build-021` | 2026-10-31 19:58 | 12m from the first step record (19:46); the GitHub repo creation is an owner step |
 | `docs-027` | 2026-10-31 21:05 | 2h38m from the first step record (18:27), including waits for the owner's answers; the CSP/GA4 tag and the live claims pass are not in it |
+| `testing-005` | 2026-11-02 01:43 | 3m from the first step record (01:40); the Sonnet triage agent's own run is not separately timed |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+**What shipped:** a partial triage, not the full one the finding asked for. Of 437 Open rows, 10 were moved into `TODO/ACCEPTANCE.md` as "Also re-drive" lines, 6 were closed with cited evidence, and 5 are pointed at a new graduate TODO, `FIND-testing-015`. The other ~416 stay Open: each needs a real device, the owner, or a feel judgment, and the classification used one-line summaries plus targeted greps rather than reading every row. Unverified rows and the `FIND-testing-015` grouping are flagged for the owner.
 
 ## Problem
 
