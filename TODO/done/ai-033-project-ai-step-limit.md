@@ -6,7 +6,7 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-02 at the owner's request)
 depends: []
-status: open
+status: done
 ---
 
 ## Goal

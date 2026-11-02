@@ -384,6 +384,44 @@ builds on Claude's work, for example you moved its sphere, **Undo AI turn** says
 AI turn* and names the step in the way. Press **Undo** in the top bar to take your move back,
 then **Undo AI turn** again: Claude's cube and sphere go, and your own **Undo** is untouched.
 
+## How much one turn may build
+
+Each project has a **step limit**: the most steps one AI turn may add. It's **1,000** unless you
+change it, and you can set it anywhere from **50 to 5,000**. The bar under the chat shows it
+(**Limit: 1,000 steps**, or **Limit: 1,000** on a phone), and it's there whichever agent you use:
+the chat, a browser agent, or an MCP agent in live mode. Only you can change it. No agent can,
+however it's connected.
+
+![The AI step limit sheet open over a part: "Steps per turn" with 2000 typed in, a note that a higher limit lets one turn spend more of your API budget, and Cancel and Save buttons.](./screenshots/ai-step-limit.png)
+
+**Example: give a big job more room.**
+
+1. Open the **Assistant**. The bar under the chat reads **Limit: 1,000 steps**.
+2. Ask your agent for something large. If it reaches the limit, it stops and tells you, and the
+   panel shows *This turn reached the project's limit of 1,000 steps* with **Change limit…**.
+3. Tap **Change limit…**, type `2000`, and tap **Save**. The bar reads **Limit: 2,000 steps**.
+4. Tell the agent to carry on. Its new steps join the same **Undo AI turn**.
+5. Save the project. The limit is saved in the file, so it's still 2,000 when you reopen it.
+
+A number outside 50 to 5,000, or one that isn't whole, keeps the sheet open with the range under
+the field, and nothing changes.
+
+Things to know:
+
+- **A project someone sent you can't raise its own limit.** If a file you open asks for more than
+  you've allowed in this browser, the bar shows the lower number in force, and the sheet says
+  *This project asks for 3,000 steps. It's using 1,000 until you approve it.* Tap **Use 3,000** to
+  allow it. Once you've allowed a number, any project asking for that much or less uses it. A
+  project asking for less than 1,000 always gets what it asks for.
+- **The chat Assistant also stops at 40 tool calls in a turn**, whatever the limit says. Each call
+  adds at most 50 steps, so a chat turn never builds more than 2,000 steps, and fewer once its
+  looks at the model are counted.
+- **For a browser agent or an MCP agent in live mode, the limit counts one burst of work.** A new
+  limit applies to the agent's next call. A pause of more than a minute starts a new burst, which
+  counts from zero and is its own **Undo AI turn**.
+- **A higher limit lets one turn spend more of your API budget**, because the agent keeps working
+  for longer.
+
 ## Test, replace and forget
 
 Open **Assistant** (then **Key and model…** if the connected panel opens) to get these:

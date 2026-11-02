@@ -4,7 +4,14 @@
  * decision 7), enforced here in code and not in the prompt.
  *
  * Both transports use this module and these constants: the browser agent (`ai-005`,
- * origin `ai`) and the MCP server (`ai-009`, origin `mcp`). Every cap **stops the turn
+ * origin `ai`) and the MCP server (`ai-009`, origin `mcp`).
+ *
+ * **One cap is the project's, not a constant** (`TODO/ai-033`): {@link Limits.recordsPerTurn} is the
+ * project's AI step limit (`src/core/aiBudget.js`), 1,000 by default, 50 to 5,000, set by a person in
+ * the Assistant panel and never by an agent. {@link LIMITS} holds its default; the transports read
+ * the effective value (`src/ai/stepLimitApproval.js`) when a chat turn starts, and on every call on
+ * WebMCP and the live bridge. The closed-file MCP server (`mcp/projectFile.js`) runs one turn per
+ * call, so {@link Limits.recordsPerCall} always stops it first and the project value never applies. Every cap **stops the turn
  * and says so**. None of them truncates silently, because a model that thinks it built
  * 60 records when 50 landed would go on to reason about bodies that do not exist.
  *
@@ -30,6 +37,7 @@
  * @module ai/tools/limits
  */
 
+import { AI_STEP_LIMIT } from '../../core/aiBudget.js'
 import { REPEAT_LIMITS } from '../../core/repeat.js'
 
 /**
@@ -38,7 +46,9 @@ import { REPEAT_LIMITS } from '../../core/repeat.js'
  *
  * @typedef {object} Limits
  * @property {number} recordsPerCall Records one write call may append.
- * @property {number} recordsPerTurn Records one turn may append across all its calls.
+ * @property {number} recordsPerTurn Records one turn may append across all its calls — the
+ *   project's AI step limit (`TODO/ai-033`); {@link LIMITS} holds its default, read from
+ *   `src/core/aiBudget.js` so the two are one number.
  * @property {number} stepsPerTurn Tool calls one turn may make, reads included.
  * @property {number} consecutiveFailures Failures of the same tool in a row before
  *   the turn stops and the user is asked.
@@ -51,7 +61,7 @@ import { REPEAT_LIMITS } from '../../core/repeat.js'
 /** @type {Readonly<Limits>} */
 export const LIMITS = Object.freeze({
   recordsPerCall: 50,
-  recordsPerTurn: 200,
+  recordsPerTurn: AI_STEP_LIMIT.default,
   stepsPerTurn: 40,
   consecutiveFailures: 3,
   turnMs: 10 * 60 * 1000,
@@ -94,6 +104,28 @@ export function assertWriteOrigin(origin) {
  * @property {keyof Limits} limit Which cap.
  * @property {true} stop The turn is over.
  */
+
+/**
+ * The cap that stops a call which would take a turn past the project's step limit. The sentence
+ * says whose limit it is and that only the person can change it, so the model reports it rather
+ * than retrying (`TODO/ai-033`).
+ *
+ * @param {number} limit The limit in force.
+ * @param {number} landed Records that already landed in this turn.
+ * @param {number} count Records this call needed.
+ * @returns {LimitHit}
+ */
+export function recordsPerTurnHit(limit, landed, count) {
+  return {
+    error:
+      `One turn may append at most ${limit} records; ${landed} have landed and this call needed ${count} more. ` +
+      'Nothing from this call was appended, and the turn has stopped. ' +
+      "This is the project's step limit, set in WarpCad's Assistant panel, and only the person can change it: " +
+      'tell them the limit was reached and wait for them before trying again.',
+    limit: 'recordsPerTurn',
+    stop: true,
+  }
+}
 
 /**
  * @typedef {object} TurnStats
@@ -185,10 +217,8 @@ export function createTurn(options = {}) {
         return stop('recordsPerCall', `One call may append at most ${limits.recordsPerCall} records; this one needed ${count}. Nothing was appended, and the turn has stopped.`)
       }
       if (records + count > limits.recordsPerTurn) {
-        return stop(
-          'recordsPerTurn',
-          `One turn may append at most ${limits.recordsPerTurn} records; ${records} have landed and this call needed ${count} more. Nothing from this call was appended, and the turn has stopped.`
-        )
+        stoppedBy = recordsPerTurnHit(limits.recordsPerTurn, records, count)
+        return stoppedBy
       }
       return null
     },

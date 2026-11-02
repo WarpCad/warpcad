@@ -14,13 +14,15 @@ import readSource from './read.js?raw'
 import repeatSource from './repeat.js?raw'
 import schemaSource from './schema.js?raw'
 import variablesSource from './variables.js?raw'
-import { LIMITS, WRITE_ORIGINS, assertWriteOrigin, createTurn } from './limits.js'
+import { AI_STEP_LIMIT } from '../../core/aiBudget.js'
+import { createToolRegistry } from './index.js'
+import { LIMITS, WRITE_ORIGINS, assertWriteOrigin, createTurn, recordsPerTurnHit } from './limits.js'
 
 describe('LIMITS — the starting caps from ai-001 decision 7', () => {
   it('holds the accepted starting values', () => {
     expect(LIMITS).toEqual({
       recordsPerCall: 50,
-      recordsPerTurn: 200,
+      recordsPerTurn: 1000,
       stepsPerTurn: 40,
       consecutiveFailures: 3,
       turnMs: 10 * 60 * 1000,
@@ -28,6 +30,10 @@ describe('LIMITS — the starting caps from ai-001 decision 7', () => {
       listOpsIds: 20,
     })
     expect(Object.isFrozen(LIMITS)).toBe(true)
+  })
+
+  it('reads recordsPerTurn from the project limit\'s default, so the two are one number (TODO/ai-033)', () => {
+    expect(LIMITS.recordsPerTurn).toBe(AI_STEP_LIMIT.default)
   })
 })
 
@@ -115,6 +121,35 @@ describe('createTurn — the per-turn budget', () => {
     expect(turn.canAppend(2)).toBeNull()
     expect(turn.canAppend(3)).toMatchObject({ limit: 'recordsPerTurn', stop: true })
     expect(turn.stats.records).toBe(3)
+  })
+
+  it('says the per-turn cap is the project\'s limit, set in the Assistant panel, that only the person can change (TODO/ai-033)', () => {
+    const turn = createTurn({ limits: { ...LIMITS, recordsPerTurn: 60 } })
+    turn.commitRecords(50)
+    const hit = turn.canAppend(20)
+    expect(hit).toMatchObject({ limit: 'recordsPerTurn', stop: true })
+    expect(hit?.error).toBe(recordsPerTurnHit(60, 50, 20).error)
+    expect(hit?.error).toMatch(/at most 60 records; 50 have landed and this call needed 20 more/)
+    expect(hit?.error).toMatch(/project's step limit/)
+    expect(hit?.error).toMatch(/Assistant panel/)
+    expect(hit?.error).toMatch(/only the person can change it/i)
+  })
+})
+
+describe('no tool can write the project\'s AI step limit (TODO/ai-033)', () => {
+  it('no tool module names the setter', () => {
+    for (const source of [batchSource, captureSource, createSource, imageSource, librarySource, overlaySource, indexSource, operateSource, readSource, repeatSource, schemaSource, variablesSource]) {
+      expect(source).not.toMatch(/setAiRecordsPerTurn|aiRecordsPerTurn/)
+    }
+  })
+
+  it('no tool\'s name or input schema, on any transport, reaches it', () => {
+    const registry = createToolRegistry()
+    for (const transport of /** @type {const} */ (['ai', 'mcp', 'webmcp'])) {
+      const listed = JSON.stringify(registry.definitions(/** @type {any} */ (transport)))
+      expect(listed).not.toMatch(/aiRecordsPerTurn|recordsPerTurn|step.?limit/i)
+    }
+    expect(JSON.stringify(registry.tools.map((tool) => tool.name))).not.toMatch(/limit/i)
   })
 })
 

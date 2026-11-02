@@ -58,6 +58,9 @@
  * @property {Lww<unknown> | null} description `TODO/io-023`: the project's description for people
  *   (`src/core/description.js`), `''` once cleared. Like `gist`, value and stamp travel together in
  *   the file's `merge.description`.
+ * @property {Lww<unknown> | null} [aiRecordsPerTurn] `TODO/ai-033`: the project's AI step limit
+ *   (`src/core/aiBudget.js`), set only by a person. Like `description`, value and stamp travel
+ *   together in the file's `merge.aiRecordsPerTurn`. Absent or `null`: never set, the default.
  */
 
 /**
@@ -97,14 +100,15 @@ export function isLegacyStamp(stamp) {
 }
 
 /** The document-level registers, in their canonical order. */
-export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist', 'description'])
+export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist', 'description', 'aiRecordsPerTurn'])
 
 /**
  * The registers whose **value** is a state-line field and whose stamp alone goes in the file's
  * `merge.registers` map (`section.js`). A released build refuses a name in that map it does not
  * know, so a register added later never goes there: `gist` (`TODO/io-017`) is written as its own
  * `merge.gist` key, value and stamp together, which an older build simply ignores; so is
- * `description` (`TODO/io-023`), as `merge.description`.
+ * `description` (`TODO/io-023`), as `merge.description`; and `aiRecordsPerTurn` (`TODO/ai-033`), as
+ * `merge.aiRecordsPerTurn`.
  */
 export const SECTION_REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume'])
 
@@ -119,7 +123,7 @@ export function emptyMergeState(projectId = null) {
     projectId,
     entries: new Map(),
     dead: new Map(),
-    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null },
+    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null, aiRecordsPerTurn: null },
     parts: new Map(),
     viewHidden: new Map(),
     prompts: new Map(),
@@ -164,7 +168,7 @@ export function canonicalJSON(state) {
     entries: sortedPairs(state.entries).map(([id, entry]) => [id, plainEntry(entry)]),
     dead: sortedPairs(state.dead).map(([id, stamp]) => [id, [stamp.counter, stamp.replica]]),
     registers: REGISTER_NAMES.map((name) => {
-      const register = state.registers[name]
+      const register = state.registers[name] ?? null
       return register === null ? null : [register[0], [register[1].counter, register[1].replica]]
     }),
     parts: sortedPairs(state.parts).map(([op, [definition, stamp]]) => [op, definition, [stamp.counter, stamp.replica]]),

@@ -117,7 +117,7 @@ import { createRecordPromptTool, createRecordResponseTool, knownIds, linkProduce
 import { checkInput, objectSchema, paramsSchemaFor } from './schema.js'
 import { createVariableTools } from './variables.js'
 
-export { LIMITS, WRITE_ORIGINS, createTurn } from './limits.js'
+export { LIMITS, WRITE_ORIGINS, createTurn, recordsPerTurnHit } from './limits.js'
 export { toStrictWire } from './schema.js'
 
 /** @typedef {import('../../core/kernel/registry.js').RegistryEntry} RegistryEntry */

@@ -34,9 +34,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { nextStepAfter } from '../../ai/transcript.js'
+import { formatSteps } from '../../core/aiBudget.js'
 import { useAgent } from '../../composables/useAgent.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
+import { useAiLimitStore } from '../../stores/aiLimit.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
@@ -53,6 +55,8 @@ import TokenReadout from './TokenReadout.vue'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
+/** `TODO/ai-033`: the project's step limit — the bar's button and the stop notice. */
+const aiLimit = useAiLimitStore()
 const agent = useAgent()
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
@@ -281,6 +285,12 @@ const HEIGHTS = /** @type {const} */ ([
         @cancel="agent.cancelSave(pinnedSave.index)"
       />
 
+      <!-- TODO/ai-033: outside v-show="!linked", so a live or WebMCP agent's stop is seen too. -->
+      <p v-if="aiLimit.stoppedAt !== null" class="chat__notice chat__limit-stop" role="status" data-testid="ai-step-limit-notice">
+        This turn reached the project's limit of {{ formatSteps(aiLimit.stoppedAt) }} steps.
+        <button type="button" class="chat__chip" data-testid="ai-step-limit-from-notice" @click="aiLimit.openFromNotice()">Change limit…</button>
+      </p>
+
       <div class="chat__bar">
         <button
           type="button"
@@ -291,6 +301,17 @@ const HEIGHTS = /** @type {const} */ ([
           @click="agent.undoTurn()"
         >
           Undo AI turn
+        </button>
+        <!-- TODO/ai-033: in the bar, not .chat__meta, which hides while an agent is connected. -->
+        <button
+          type="button"
+          class="chat__chip"
+          data-testid="ai-step-limit-open"
+          :data-untrusted="aiLimit.untrusted ? 'true' : 'false'"
+          title="How many steps one AI turn may build in this project"
+          @click="aiLimit.open()"
+        >
+          Limit: {{ aiLimit.label }}<span class="chat__limit-unit"> steps</span>
         </button>
         <button
           v-if="selectedBody"
@@ -538,6 +559,21 @@ const HEIGHTS = /** @type {const} */ ([
 .chat__undo,
 .chat__chip {
   padding: 0 12px;
+}
+
+.chat__limit-stop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* `TODO/ai-033`: at phone width the bar is already full; the button reads "Limit: 1,000". */
+@media (max-width: 480px) {
+  .chat__limit-unit {
+    display: none;
+  }
 }
 
 .chat__undo:disabled {

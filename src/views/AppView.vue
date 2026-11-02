@@ -22,6 +22,7 @@ import LiveMcpButton from '../components/ai/LiveMcpButton.vue'
 import ChatPanel from '../components/ai/ChatPanel.vue'
 import AiWorkingChip from '../components/display/AiWorkingChip.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
+import StepLimitSheet from '../components/ai/StepLimitSheet.vue'
 import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
 import ConnectClaudeCode from '../components/ai/ConnectClaudeCode.vue'
 import MergeBanner from '../components/display/MergeBanner.vue'
@@ -415,6 +416,7 @@ function onInspectorClaim() {
     <!-- The Assistant's key sheet (TODO/ai-004), opened by the header button when there is no
          key or from the chat's "Key and model…"; teleports to <body> at the modal tier. -->
     <KeySheet />
+    <StepLimitSheet />
     <!-- The no-key alternative (TODO/ai-013): the Claude Code route, which a subscription covers. -->
     <SubscriptionRoute />
     <!-- The live MCP access sheet (TODO/ai-023): a local MCP client edits this open project. -->

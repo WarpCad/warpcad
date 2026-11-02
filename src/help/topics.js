@@ -69,6 +69,7 @@ export const TOPICS = Object.freeze({
   assistant: { page: 'ai-partner', anchor: 'asking-for-a-part', title: 'Assistant' },
   'assistant-key': { page: 'ai-partner', anchor: 'getting-a-key', title: 'Assistant key' },
   'assistant-subscription': { page: 'ai-partner', anchor: 'no-api-key-use-your-subscription', title: 'Claude Code route' },
+  'assistant-step-limit': { page: 'ai-partner', anchor: 'how-much-one-turn-may-build', title: 'AI step limit' },
   'claude-code': { page: 'mcp', anchor: 'live-mode-an-mcp-agent-edits-the-project-you-have-open', title: 'Live MCP access' },
 })
 

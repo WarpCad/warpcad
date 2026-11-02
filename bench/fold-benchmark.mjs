@@ -27,9 +27,15 @@
  * `TODO/core-032` adds how a root edit and a cold Open scale with the length of one
  * dependent lineage.
  *
+ * `TODO/ai-033` adds, behind `--ai-turns`, how one AI turn scales with its record count (200,
+ * 1,000 and 5,000 records, landed as 50-record calls): the live path WebMCP and the bridge take
+ * (the real tab endpoint, per call), the chat path's fork → `mergeFrom` landing, and the
+ * **Undo AI turn** inverse of each.
+ *
  * Usage:
  *   node bench/fold-benchmark.mjs                 # all scenes, 11 runs each
  *   node bench/fold-benchmark.mjs --runs 21 --json /tmp/fold.json
+ *   node bench/fold-benchmark.mjs --ai-turns --runs 5 [--ai-sizes 200,1000,5000] [--json /tmp/ai.json]
  *
  * @module bench/fold-benchmark
  */
@@ -37,7 +43,12 @@
 import { writeFileSync } from 'node:fs'
 import { performance } from 'node:perf_hooks'
 
+import { createTabEndpoint } from '../src/ai/bridge/tabEndpoint.js'
+import { LIMITS } from '../src/ai/tools/limits.js'
 import { createDocument } from '../src/core/document.js'
+import { applyMergeUndo, mergeSnapshotOf, planMergeUndo } from '../src/core/mergeUndo.js'
+import { diffStates } from '../src/core/merge/merge.js'
+import { createClock } from '../src/core/replica.js'
 import { setEvaluationWorkerFactory } from '../src/core/kernel/evaluationClient.js'
 import { isGroup } from '../src/core/kernel/group.js'
 import { evaluate } from '../src/core/kernel/index.js'
@@ -112,6 +123,160 @@ setEvaluationWorkerFactory(() => /** @type {any} */ ({ addEventListener() {}, re
 /** The store's real per-refresh summary, main-thread share only. */
 function summarize(/** @type {any} */ document) {
   for (const body of document.bodies()) summarizeBody(body)
+}
+
+// ---------------------------------------------------------------------------
+// `TODO/ai-033`: one AI turn of 200, 1,000 and 5,000 records, as 50-record calls.
+//
+// The records are the `filletScene` mix (a cuboid, two moves and a rim fillet per body), so a
+// 5,000-record turn is 1,250 bodies, landed on top of a 200-record project of the user's own. Every number is main-thread time: the trial fold runs inside
+// each `appendAll` (`src/core/document.js`).
+//
+// - **live call** — one 50-record call through the real tab endpoint (WebMCP and the bridge),
+//   which folds the call's records into the live document and diffs the group's state; the
+//   median and the worst call of the turn, and the turn's total.
+// - **live Undo AI turn** — `endpoint.undoLast()` on that group.
+// - **chat landing** — the BYOK chat's `live.mergeFrom(fork.mergeState())` after the fork built
+//   the whole turn (the fork's own calls are timed as **fork call**).
+// - **chat Undo AI turn** — `planMergeUndo` + `applyMergeUndo` of that landing.
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {readonly any[]} records
+ * @param {number} size
+ * @returns {any[][]}
+ */
+function callsOf(records, size) {
+  const calls = []
+  for (let start = 0; start < records.length; start += size) calls.push(records.slice(start, start + size))
+  return calls
+}
+
+/**
+ * The user's own project the turn extends: `data-004`'s 200-record fixture, its ids prefixed so
+ * they never meet the turn's. Undo AI turn then has a real project to put back, not an empty one.
+ */
+const USER_PROJECT = filletScene(50).map((record) => ({
+  ...record,
+  id: `user-${record.id}`,
+  ...(record.target ? { target: `user-${record.target}` } : {}),
+  ...(record.supersedes ? { supersedes: `user-${record.supersedes}` } : {}),
+}))
+
+/** A tool registry with one tool, `land`, that appends the call's records as the real ones do. */
+const landingTools = /** @type {any} */ ({
+  run(/** @type {any} */ ctx, /** @type {string} */ name, /** @type {any} */ input) {
+    const hit = ctx.turn.canAppend(input.records.length)
+    if (hit) return { ...hit }
+    ctx.document.appendAll(input.records, { origin: ctx.origin })
+    ctx.turn.commitRecords(input.records.length)
+    return { ok: true }
+  },
+})
+
+/** @param {number} total */
+async function liveTurn(total) {
+  const records = filletScene(Math.ceil(total / 4)).slice(0, total)
+  const document = createDocument()
+  document.appendAll(USER_PROJECT, { origin: 'local' })
+  const endpoint = createTabEndpoint({
+    document: () => document,
+    tools: landingTools,
+    limits: { ...LIMITS, recordsPerTurn: total },
+  })
+  const perCall = []
+  let id = 0
+  const started = performance.now()
+  for (const call of callsOf(records, LIMITS.recordsPerCall)) {
+    const at = performance.now()
+    const reply = await endpoint.handle({ type: 'call', id: (id += 1), name: 'land', input: { records: call } }, { origin: 'webmcp', groupBy: 'idle' })
+    if (reply.result.error) throw new Error(`live turn of ${total}: ${reply.result.error}`)
+    perCall.push(performance.now() - at)
+  }
+  const turnTotal = performance.now() - started
+  if (endpoint.turns.length !== 1) throw new Error(`live turn of ${total} landed as ${endpoint.turns.length} groups`)
+  const undoStarted = performance.now()
+  endpoint.undoLast()
+  const undo = performance.now() - undoStarted
+  if (document.entries.length !== USER_PROJECT.length) throw new Error('live Undo AI turn left rows behind')
+  return { perCall, turnTotal, undo }
+}
+
+/** @param {number} total */
+function chatTurn(total) {
+  const records = filletScene(Math.ceil(total / 4)).slice(0, total)
+  const live = createDocument()
+  live.appendAll(USER_PROJECT, { origin: 'local' })
+  live.ensureProjectId()
+  const fork = createDocument({ clock: createClock('forkaa'), foldCache: live.foldCache })
+  fork.mergeFrom(live.mergeState(), { origin: 'merge' })
+  const seed = fork.mergeState()
+  const perCall = []
+  for (const call of callsOf(records, LIMITS.recordsPerCall)) {
+    const at = performance.now()
+    fork.appendAll(call, { origin: 'ai' })
+    perCall.push(performance.now() - at)
+  }
+  const base = mergeSnapshotOf(live)
+  const forkState = fork.mergeState()
+  const landStarted = performance.now()
+  live.mergeFrom(forkState, { origin: 'ai' })
+  const landing = performance.now() - landStarted
+  const merged = mergeSnapshotOf(live)
+  const change = diffStates(seed, forkState)
+  const undoStarted = performance.now()
+  const plan = planMergeUndo(base, merged, mergeSnapshotOf(live), change)
+  if (!plan.ok) throw new Error(`chat Undo AI turn of ${total}: ${plan.message}`)
+  applyMergeUndo(live, plan, { origin: 'ai' })
+  const undo = performance.now() - undoStarted
+  if (live.entries.length !== USER_PROJECT.length) throw new Error('chat Undo AI turn left rows behind')
+  return { perCall, landing, undo }
+}
+
+if (args.includes('--ai-turns')) {
+  const sizes = String(option('--ai-sizes', '200,1000,5000')).split(',').map(Number)
+  const aiRows = []
+  for (const total of sizes) {
+    const liveCall = []
+    const liveWorst = []
+    const liveTotal = []
+    const liveUndo = []
+    const forkCall = []
+    const landing = []
+    const chatUndo = []
+    for (let run = 0; run < RUNS; run += 1) {
+      const live = await liveTurn(total)
+      liveCall.push(stats(live.perCall).median)
+      liveWorst.push(Math.max(...live.perCall))
+      liveTotal.push(live.turnTotal)
+      liveUndo.push(live.undo)
+      const chat = chatTurn(total)
+      forkCall.push(stats(chat.perCall).median)
+      landing.push(chat.landing)
+      chatUndo.push(chat.undo)
+    }
+    aiRows.push({
+      records: total,
+      calls: Math.ceil(total / LIMITS.recordsPerCall),
+      liveCall: stats(liveCall),
+      liveWorstCall: stats(liveWorst),
+      liveTurnTotal: stats(liveTotal),
+      liveUndo: stats(liveUndo),
+      forkCall: stats(forkCall),
+      chatLanding: stats(landing),
+      chatUndo: stats(chatUndo),
+    })
+  }
+  const ms = (/** @type {number} */ value) => value.toFixed(1).padStart(8)
+  console.log(`fold-benchmark --ai-turns · node ${process.version} · ${RUNS} runs per size · median (p95) ms, main thread\n`)
+  console.log('records | calls | live call (median of turn) | live worst call | live turn total | live Undo AI turn | fork call | chat landing (mergeFrom) | chat Undo AI turn')
+  for (const row of aiRows) {
+    console.log(
+      `${String(row.records).padStart(7)} | ${String(row.calls).padStart(5)} | ${ms(row.liveCall.median)} (${ms(row.liveCall.p95)}) | ${ms(row.liveWorstCall.median)} (${ms(row.liveWorstCall.p95)}) | ${ms(row.liveTurnTotal.median)} (${ms(row.liveTurnTotal.p95)}) | ${ms(row.liveUndo.median)} (${ms(row.liveUndo.p95)}) | ${ms(row.forkCall.median)} (${ms(row.forkCall.p95)}) | ${ms(row.chatLanding.median)} (${ms(row.chatLanding.p95)}) | ${ms(row.chatUndo.median)} (${ms(row.chatUndo.p95)})`,
+    )
+  }
+  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ runs: RUNS, node: process.version, aiRows }, null, 2))
+  process.exit(0)
 }
 
 /** What the worker spends on the composites the summary left pending. */

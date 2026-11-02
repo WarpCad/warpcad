@@ -19,6 +19,7 @@
 
 import { viewportCapture } from '../render/offscreenCapture.js'
 import { useAiChatStore } from '../stores/aiChat.js'
+import { useAiLimitStore } from '../stores/aiLimit.js'
 import { useDocumentStore } from '../stores/document.js'
 import { usePlacementStore } from '../stores/placement.js'
 import { useSelectionStore } from '../stores/selection.js'
@@ -64,11 +65,14 @@ export async function tabEndpoint() {
       selection: { ids: () => [...selection.ids], select: (ids) => selection.selectMany(ids) },
       capture: () => viewportCapture() ?? undefined,
       isEditing: () => placement.isDragging || transform.bodyId !== '' || fieldFocused(),
+      // `TODO/ai-033`: the project's step limit in force, read on every call.
+      limits: () => useAiLimitStore().limits(),
     })
   } else {
     // A New or an Open: the groups belong to the project that was there.
     endpoint.reset()
     useAiChatStore().bridgeTurns = 0
+    useAiLimitStore().clearStop()
   }
   loadRevision = documentStore.loadRevision
   return endpoint
@@ -113,14 +117,18 @@ export async function runOnTab(call, options = {}) {
     const target = await tabEndpoint()
     const before = target.turns.at(-1)
     const version = documentStore.raw.version
+    const limitBefore = useAiLimitStore().effective
     const reply = await target.handle(call, options.via)
     options.onReply?.(reply)
+    // `TODO/ai-033`: the step limit refused the call — the panel's notice offers **Change limit…**.
+    if (reply.result?.limit === 'recordsPerTurn') useAiLimitStore().noteStop(limitBefore)
     const after = target.turns.at(-1)
     if (after !== undefined && (after !== before || target.turns.length !== chat.bridgeTurns)) {
       // The raw document changed; the store's mirrors (bodies, History, the viewport) refresh here.
       documentStore.refresh()
       loadRevision = documentStore.loadRevision
       chat.lastLanded = target.lastOrigin ?? origin
+      useAiLimitStore().clearStop()
     } else if (documentStore.raw.version !== version) {
       // `TODO/ai-032`: a write that touched no row — `record_response`, `record_prompt` — still
       // changed the project: the Inspector shows the reply, and autosave keeps it.

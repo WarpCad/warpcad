@@ -121,7 +121,7 @@ function randomEdit(w, rand, all) {
     const value = which === 0 ? null : which === 1 ? { row: null } : { row: id, key: entry.pos[0], born: entry.born }
     state.registers = { ...state.registers, rollbackAfter: [/** @type {any} */ (value), tick(w)] }
   } else if (roll < 91) {
-    const name = rand.pick(/** @type {const} */ (['resolution', 'standingInstructions', 'buildVolume']))
+    const name = rand.pick(/** @type {const} */ (['resolution', 'standingInstructions', 'buildVolume', 'aiRecordsPerTurn']))
     state.registers = { ...state.registers, [name]: [rand.int(5), tick(w)] }
   } else if (roll < 95) {
     state.parts.set(`part-${rand.int(3)}`, [{ v: rand.int(9) }, tick(w)])

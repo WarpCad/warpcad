@@ -40,6 +40,7 @@ import { viewportCapture } from '../render/offscreenCapture.js'
 import { bytesFromBase64 } from '../sketch/imageAsset.js'
 import { decodeAssetBitmap, importImageFile } from '../sketch/imageClient.js'
 import { useAiChatStore } from '../stores/aiChat.js'
+import { useAiLimitStore } from '../stores/aiLimit.js'
 import { undoTabTurn } from './useTabEndpoint.js'
 import { useAssistantStore } from '../stores/assistant.js'
 import { useDocumentStore } from '../stores/document.js'
@@ -178,6 +179,8 @@ function agentContext() {
       select: (ids) => selection.selectMany(ids),
     },
     standingInstructions: () => ({ text: documentStore.standingInstructions, trusted: project.trusted }),
+    // `TODO/ai-033`: the project's step limit in force, read once when each turn starts.
+    limits: () => useAiLimitStore().limits(),
     onEvent: (event) => {
       if (event.type === 'tool_call') chat.step += 1
       // `TODO/ai-017`: the fork changed; a Watch re-renders it.
@@ -278,6 +281,8 @@ export function useAgent() {
     const attachmentIds = attached.map((a) => addAttachment(references, { name: a.name, record: a.reference.record, sent: a.reference.sent, bitmap: a.reference.bitmap }))
     try {
       if (documentStore.raw.assets().size > 0) await prepareProjectPhotos(references, documentStore.raw, modules.image)
+      const aiLimit = useAiLimitStore()
+      const limitAtStart = aiLimit.effective
       const outcome = await runTurn({
         userMessage: userMessage === '' ? 'Please look at the attached image.' : userMessage,
         images: attached.map((a) => a.part),
@@ -294,6 +299,9 @@ export function useAgent() {
       // `TODO/ai-012`: Undo AI turn takes back whichever AI change landed last.
       if (landed) chat.lastLanded = 'ai'
       if (landed) reportLanding(outcome, ctx)
+      // `TODO/ai-033`: the step limit stopped it — the notice offers **Change limit…**.
+      if (outcome.status === 'stopped' && outcome.limit === 'recordsPerTurn') aiLimit.noteStop(limitAtStart)
+      else if (landed) aiLimit.clearStop()
       // `TODO/ai-008`: the built group is selected, so the Inspector lists its sub-parts — unless
       // the user was working during the turn (`TODO/ai-017`): their selection is theirs then.
       const quiet = outcome.meanwhile === 0

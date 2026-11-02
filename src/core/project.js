@@ -676,6 +676,13 @@ export function parseProject(text) {
         message: `${label} ${PROMPT_REMOVED} (${problem.reason})`,
       })
     }
+    // `TODO/ai-033`: an AI step limit this build cannot use was left out; the default applies.
+    if (merge.aiRecordsPerTurnProblem !== undefined) {
+      warnings.push({
+        op: 'project-state',
+        message: `the project's AI step limit was ignored (${merge.aiRecordsPerTurnProblem}) — it uses the default`,
+      })
+    }
     // A row whose tombstone is not older than its own birth is dead by the merge rule (a tie
     // goes to the tombstone), whatever the file's record lines say. Resolved, not refused: the
     // row is dropped the way a retired record is, and named.

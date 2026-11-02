@@ -427,6 +427,27 @@ describe('runTurn — caps stop the turn and say so', () => {
     expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
   })
 
+  it('the project step limit is read when the turn starts; a change during the turn does not move it (TODO/ai-033)', async () => {
+    let limit = 2
+    const client = scriptedProvider((request, index) => {
+      // The person raises the limit while the turn runs.
+      if (index === 1) limit = 1000
+      return { calls: [call('create', CUBE)] }
+    })
+    const { ctx } = setup({ client, limits: () => ({ ...LIMITS, recordsPerTurn: limit }) })
+    const outcome = await runTurn({ userMessage: 'many cubes', ctx })
+    expect(outcome.status).toBe('stopped')
+    expect(outcome.limit).toBe('recordsPerTurn')
+    expect(outcome.message).toMatch(/at most 2 records/)
+
+    // The next turn starts with the raised value.
+    const next = scriptedProvider([{ calls: [call('create', CUBE)] }, { calls: [call('create', CUBE)] }, { calls: [call('create', CUBE)] }, { text: 'done' }])
+    ctx.client = /** @type {any} */ (next)
+    const second = await runTurn({ userMessage: 'three cubes', ctx })
+    expect(second.status).toBe('done')
+    expect(second.recordIds).toHaveLength(3)
+  })
+
   it('wall clock: checked before each model request', async () => {
     let clock = 0
     const client = scriptedProvider([{ calls: [call('create', CUBE)] }, { text: 'never asked' }])

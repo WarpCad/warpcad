@@ -23,6 +23,7 @@
 
 import { isReplicaId } from '../replica.js'
 import { SECTION_REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
+import { checkAiStepLimit } from '../aiBudget.js'
 import { cleanDescription } from '../description.js'
 import { normalizeGistField } from '../gistField.js'
 import { PROMPT_LIMITS, validatePromptRecord } from '../prompt.js'
@@ -72,6 +73,11 @@ export const MERGE_LIMITS = Object.freeze({
  *   register, value and stamp, when the file has ever set or cleared it.
  * @property {[string, Stamp]} [description] `TODO/io-023`: the description register, its text
  *   cleaned and capped (`src/core/description.js`), when the file has ever set or cleared it.
+ * @property {[number, Stamp]} [aiRecordsPerTurn] `TODO/ai-033`: the AI step limit register, when the
+ *   file has ever set it and it is valid (`src/core/aiBudget.js`).
+ * @property {string} [aiRecordsPerTurnProblem] `TODO/ai-033`: why the file's `aiRecordsPerTurn` was
+ *   **dropped** — a setting about how much an agent may do must never cost the user the file, so a
+ *   bad one is ignored (and named by `project.js`'s load warning); the default applies.
  * @property {Map<string, import('../prompt.js').PromptEntry>} [prompts] `TODO/ai-031`: the valid
  *   prompt records, by id, when the section has a `prompts` list.
  * @property {{ id?: string, reason: string }[]} [promptProblems] `TODO/ai-031`: each prompt record
@@ -288,6 +294,30 @@ export function readMergeSection(raw, recordIds) {
     description = [cleanDescription(raw.description[0]), see(readStamp(raw.description[1], '`description`'))]
   }
 
+  // `TODO/ai-033`: `[n, stamp]`. Untrusted, and dropped rather than refused when it is wrong.
+  /** @type {MergeOverlay['aiRecordsPerTurn']} */
+  let aiRecordsPerTurn
+  /** @type {string | undefined} */
+  let aiRecordsPerTurnProblem
+  if (raw.aiRecordsPerTurn !== undefined) {
+    const value = raw.aiRecordsPerTurn
+    if (!Array.isArray(value) || value.length !== 2) {
+      aiRecordsPerTurnProblem = 'it is not [steps, stamp]'
+    } else {
+      const verdict = checkAiStepLimit(value[0])
+      if (!verdict.ok) {
+        aiRecordsPerTurnProblem = verdict.reason
+      } else {
+        try {
+          aiRecordsPerTurn = [verdict.value, see(readStamp(value[1], '`aiRecordsPerTurn`'))]
+        } catch (error) {
+          if (!(error instanceof MergeSectionError)) throw error
+          aiRecordsPerTurnProblem = error.message.replace(/^merge: /, '')
+        }
+      }
+    }
+  }
+
   /** @type {Map<string, Stamp>} */
   const partStamps = new Map()
   for (const [op, value] of Object.entries(partStampsRaw)) {
@@ -342,6 +372,8 @@ export function readMergeSection(raw, recordIds) {
     viewStamps,
     ...(gist !== undefined ? { gist } : {}),
     ...(description !== undefined ? { description } : {}),
+    ...(aiRecordsPerTurn !== undefined ? { aiRecordsPerTurn } : {}),
+    ...(aiRecordsPerTurnProblem !== undefined ? { aiRecordsPerTurnProblem } : {}),
     ...(promptsRead !== undefined ? promptsRead : {}),
   }
 }

@@ -519,13 +519,39 @@ context that means anything a loaded project carries can be a prompt injection:
 | Network access | Tools get a `ctx` with the document (the fork), the registry and read-only helpers. No tool imports or receives `fetch`. The only network call in the whole AI path is the provider client, which the agent loop calls, not a tool. A spec asserts no tool module references `fetch`, `XMLHttpRequest`, `WebSocket` or `import(` of a URL. |
 | Key access | The key is read by the provider client from the credential store and closed over. It's never in `ctx`, a tool result, the transcript, Pinia state or the document. |
 | Writes outside the open document | Write tools call only the fork's `append`/`appendAll`. There's no save, export, download, library-write or settings tool in v1 (`ai-008`'s save-to-library is a **human-confirmed** action, not a tool side effect). The MCP server writes only the one file it was started with. |
-| Unbounded work | **Starting values**, constants in `limits.js`, tuned by `ai-011`'s evals. Every cap stops the turn and **says so**, never silently truncates. **Records per call**: 50. **Records per turn**: 200. **Tool calls (steps) per turn**: 40. **Consecutive failures of the same tool**: 3, then stop and ask the user. **Wall clock per turn**: 10 minutes. **Sketch points**: the sketch model's existing hostile-input caps. |
+| Unbounded work | **Starting values**, constants in `limits.js`, tuned by `ai-011`'s evals. Every cap stops the turn and **says so**, never silently truncates. **Records per call**: 50. **Records per turn**: the project's **AI step limit** (`TODO/ai-033`, amended 2026-11-02): 1,000 by default, a whole number from 50 to 5,000, set only by a person in the Assistant panel and saved with the project (it was the constant 200 until then). **Tool calls (steps) per turn**: 40. **Consecutive failures of the same tool**: 3, then stop and ask the user. **Wall clock per turn**: 10 minutes. **Sketch points**: the sketch model's existing hostile-input caps. |
 | Address something the document didn't issue | Operand ids must exist in the fork, as `ai-002` specifies. |
 | Act on model-supplied HTML or URLs | See decision 8: model output is rendered as text and no remote resource is ever loaded from it. |
 
 The caps also bound what an injection can achieve. The worst a successful injection can
 do is spend tokens up to the caps and build unwanted geometry on a fork, which lands as
 one turn that **Undo AI turn** removes.
+
+**Amended 2026-11-02 (`TODO/ai-033`).** Records per turn is no longer a constant: an agent
+building a large part stopped at 200 with no way for the person to give it more room. It is now
+a per-project value, and two things replaced the constant as what bounds an injection:
+
+- **The ceiling, in code.** `AI_STEP_LIMIT` (`src/core/aiBudget.js`) refuses anything outside 50
+  to 5,000, on set and on load, so no project file, merge or bug can take a turn past 5,000
+  records. 5,000 was kept after measuring it (`bench/results/2026-11-02-ai-033.md`): a 50-record
+  call on WebMCP or the live bridge costs a median 32 ms of main thread at 5,000 records, 59 ms
+  at worst, and the chat path cannot reach 5,000 at all, because 40 tool calls of at most 50
+  records is 2,000.
+- **The approval rule.** A project file can come from anyone, so a value that arrived with one
+  cannot silently raise the limit (owner decision 2026-11-02). The value in force is
+  `min(stored, max(default, approved))`, where *approved* is the highest value the person saved
+  or approved in this browser (`src/ai/stepLimitApproval.js`, `localStorage`
+  `warpcad:ai-step-limit-approved`). A value at or below the default always applies; a higher
+  one from a file applies only up to what was approved, until the person taps **Use N**. One
+  number per browser, not `instructionTrust.js`'s per-text list: a number only means "how much".
+
+No agent can write the value on any transport: no tool names it, and
+`document.setAiRecordsPerTurn` throws for every origin but `local`. The chat reads the value in
+force when a turn starts; WebMCP and the live bridge read it on every call, and a group compares
+its running record count with it, so a raise lets the agent's next call land in the same
+**Undo AI turn** group. On those two transports the limit counts one burst of calls less than
+`GROUP_IDLE_MS` apart, as the group always has. The closed-file MCP server runs one turn per call,
+so records per call stops it first and the project value never applies there.
 
 ---
 

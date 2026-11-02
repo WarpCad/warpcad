@@ -352,7 +352,7 @@
  * stamp, a record stamp and stamps for the `suppressed`/`leftBroken` flags — beside the record,
  * never inside it, in a side table by record id (`metaById`), not on the entry objects, so
  * `entries` is exactly what it was for every reader that never merges. Per document:
- * tombstones (`dead`, id → stamp), six last-writer-wins registers (`TODO/io-017` added `gist`, `TODO/io-023` `description`), a stamp per user-part
+ * tombstones (`dead`, id → stamp), seven last-writer-wins registers (`TODO/io-017` added `gist`, `TODO/io-023` `description`, `TODO/ai-033` `aiRecordsPerTurn`), a stamp per user-part
  * definition and (`TODO/ui-089`) a stamped switch per hidden-or-shown body and part. A log no edit here has stamped — a seed, a loaded file — **derives** it:
  * position keys from row order, every stamp counter 0 under the fixed replica `legacy`, a
  * register only where the value differs from what its absence means. Deterministic, so two
@@ -383,6 +383,7 @@
  * | `setBuildVolume` | the `buildVolume` register |
  * | `setGist` (`TODO/io-017`) | the `gist` register |
  * | `setDescription` (`TODO/io-023`) | the `description` register |
+ * | `setAiRecordsPerTurn` (`TODO/ai-033`) | the `aiRecordsPerTurn` register |
  * | `setViewHidden`, `showAll` (`TODO/ui-089`) | the view switch of each body or part whose Hide / Show changed |
  * | user-part adoption (inside the fold of a placement) | the part's definition stamp |
  * | `undo`, `redo`, `batch` | whatever the change they make is: Undo of a placement tombstones its rows, Redo brings them back with a fresh `born` that beats the tombstone, Undo of an edit stamps the old record as a new write |
@@ -445,6 +446,7 @@ import { conditionContextOf, conditionShapeError, describeCondition, evaluateCon
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { cleanDescription } from './description.js'
+import { AI_STEP_LIMIT, isAiStepLimit, normalizeAiStepLimit } from './aiBudget.js'
 import { normalizeGistField, sameGistField } from './gistField.js'
 import { PROMPT_LIMITS, preparePrompt, prepareResponse, tombstoneOf, unionProduced, validatePromptRecord } from './prompt.js'
 import { currentParamsRecordOf } from './paramEdit.js'
@@ -844,6 +846,13 @@ export class ReplayRejection extends Error {
  *   (`src/core/description.js`), `''` when there is none.
  * @property {(text: unknown, transaction: TransactionOptions) => void} setDescription `TODO/io-023`:
  *   replace it (cleaned and capped; `''` clears it). A version bump, never an undo step.
+ * @property {() => number} aiRecordsPerTurn `TODO/ai-033`: the project's AI step limit — how many
+ *   records one AI turn may append (`src/core/aiBudget.js`); the default until a person sets it.
+ *   The **stored** value: transports read the effective one (`src/ai/stepLimitApproval.js`).
+ * @property {(limit: number, transaction: TransactionOptions) => void} setAiRecordsPerTurn
+ *   `TODO/ai-033`: set it. Throws unless the origin is `local` — no agent, on any transport, may
+ *   change its own limit — and, naming the range, for a value outside it. A version bump, never an
+ *   undo step; setting the same value is a no-op.
  * @property {() => import('./prompt.js').PromptRecord[]} prompts `TODO/ai-031`: the prompts agents
  *   were given, fresh copies, in the order they were recorded (merged ones by id).
  * @property {(id: string) => import('./prompt.js').PromptRecord | undefined} promptOf `TODO/ai-031`:
@@ -1017,6 +1026,7 @@ const STAMPED_MUTATORS = Object.freeze([
   'setBuildVolume',
   'setGist',
   'setDescription',
+  'setAiRecordsPerTurn',
   'setViewHidden',
   'showAll',
 ])
@@ -1682,6 +1692,13 @@ export function createDocument(options = {}) {
    */
   let description = ''
   /**
+   * `TODO/ai-033`: the project's AI step limit (`src/core/aiBudget.js`). Project metadata like
+   * {@link description} — outside the fold and both undo stacks, a version bump when it changes —
+   * and set only by a person (origin `local`).
+   * @type {number}
+   */
+  let aiRecordsPerTurn = AI_STEP_LIMIT.default
+  /**
    * `TODO/ai-031`: the prompts agents were given, by id (`src/core/prompt.js`). Project metadata
    * like {@link gist} — outside the fold and both undo stacks, a version bump when it changes —
    * because what was asked is a fact Undo does not take back: undoing a body leaves the prompt
@@ -1780,7 +1797,7 @@ export function createDocument(options = {}) {
    */
   let dead = new Map()
   /** @type {import('./merge/state.js').MergeRegisters} */
-  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null }
+  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null, aiRecordsPerTurn: null }
   /**
    * The stamp that wrote each user-part definition this project carries, by op.
    * @type {Map<string, import('./replica.js').Stamp>}
@@ -1957,6 +1974,7 @@ export function createDocument(options = {}) {
       buildVolume,
       gist,
       description,
+      aiRecordsPerTurn,
       partOps: new Set(userParts.keys()),
       meta: metaById,
       dead,
@@ -2055,6 +2073,7 @@ export function createDocument(options = {}) {
     if (!sameVolume(mark.buildVolume, buildVolume)) written.push('buildVolume')
     if (!sameGistField(mark.gist, gist)) written.push('gist')
     if (mark.description !== description) written.push('description')
+    if (mark.aiRecordsPerTurn !== aiRecordsPerTurn) written.push('aiRecordsPerTurn')
     const newParts = [...userParts.keys()].filter((op) => !mark.partOps.has(op))
     // `TODO/ui-089`: every body or part whose Hide / Show changed, each its own switch.
     const switched =
@@ -2153,6 +2172,7 @@ export function createDocument(options = {}) {
         else if (name === 'standingInstructions') registers.standingInstructions = [standingInstructions, stamp]
         else if (name === 'buildVolume') registers.buildVolume = [{ ...buildVolume }, stamp]
         else if (name === 'gist') registers.gist = [gist === null ? null : { ...gist }, stamp]
+        else if (name === 'aiRecordsPerTurn') registers.aiRecordsPerTurn = [aiRecordsPerTurn, stamp]
         else registers.description = [description, stamp]
       }
     }
@@ -2200,6 +2220,8 @@ export function createDocument(options = {}) {
       gist: gist === null ? null : [{ ...gist }, LEGACY_STAMP],
       // `TODO/io-023`: likewise, never derived from a state-line field.
       description: description === '' ? null : [description, LEGACY_STAMP],
+      // `TODO/ai-033`: likewise; at the default it was never set.
+      aiRecordsPerTurn: aiRecordsPerTurn === AI_STEP_LIMIT.default ? null : [aiRecordsPerTurn, LEGACY_STAMP],
     }
     partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
     viewStamps = new Map([...viewHidden.keys()].map((key) => [key, [true, LEGACY_STAMP]]))
@@ -2266,6 +2288,7 @@ export function createDocument(options = {}) {
         written.buildVolume !== undefined ? [{ ...buildVolume }, written.buildVolume] : registers.buildVolume,
       gist: registers.gist,
       description: registers.description,
+      aiRecordsPerTurn: registers.aiRecordsPerTurn ?? null,
     }
     // `TODO/io-017`: the gist travels in the section as value and stamp together.
     if (overlay.gist !== undefined) {
@@ -2276,6 +2299,11 @@ export function createDocument(options = {}) {
     if (overlay.description !== undefined) {
       description = overlay.description[0]
       registers.description = [description, overlay.description[1]]
+    }
+    // `TODO/ai-033`: so does the AI step limit.
+    if (overlay.aiRecordsPerTurn !== undefined) {
+      aiRecordsPerTurn = overlay.aiRecordsPerTurn[0]
+      registers.aiRecordsPerTurn = [aiRecordsPerTurn, overlay.aiRecordsPerTurn[1]]
     }
     partStamps = new Map(
       [...partStamps].map(([op, stamp]) => [op, overlay.partStamps.get(op) ?? stamp])
@@ -4636,6 +4664,8 @@ export function createDocument(options = {}) {
       gist = null
       // `TODO/io-023`: likewise the description.
       description = ''
+      // `TODO/ai-033`: and the AI step limit.
+      aiRecordsPerTurn = AI_STEP_LIMIT.default
       // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
       // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
@@ -4763,6 +4793,29 @@ export function createDocument(options = {}) {
       const next = cleanDescription(text)
       if (next === description) return
       description = next
+      document.version += 1
+    },
+
+    aiRecordsPerTurn() {
+      return aiRecordsPerTurn
+    },
+
+    /**
+     * `TODO/ai-033`: set the project's AI step limit. **Only origin `local`**: the person, in the
+     * Assistant panel. Every other origin is a transport (or a bug in one) and is refused, so no
+     * agent can raise its own limit. Validated, a version bump so autosave follows it, and not an
+     * undo step. Setting the same value is a no-op.
+     */
+    setAiRecordsPerTurn(limit, transaction) {
+      if (transaction?.origin !== 'local') {
+        throw new Error(
+          `document.setAiRecordsPerTurn: only origin local may set the AI step limit, got ${JSON.stringify(transaction?.origin)} — ` +
+            'a person sets it in the Assistant panel, and no agent may change its own limit'
+        )
+      }
+      const next = normalizeAiStepLimit(limit)
+      if (next === aiRecordsPerTurn) return
+      aiRecordsPerTurn = next
       document.version += 1
     },
 
@@ -5917,6 +5970,7 @@ export function createDocument(options = {}) {
         buildVolume,
         gist,
         description,
+        aiRecordsPerTurn,
         prompts,
         layer: publishesUserParts ? projectPartsSnapshot() : null,
         projectId,
@@ -6006,6 +6060,9 @@ export function createDocument(options = {}) {
         gist = mergedGist === undefined || mergedGist === null ? null : normalizeGistField(mergedGist)
         // `TODO/io-023`: whichever set or clear of the description was written last.
         description = cleanDescription(merged.registers.description?.[0] ?? '')
+        // `TODO/ai-033`: whichever set of the AI step limit was written last; never set, the default.
+        const mergedLimit = merged.registers.aiRecordsPerTurn?.[0]
+        aiRecordsPerTurn = isAiStepLimit(mergedLimit) ? mergedLimit : AI_STEP_LIMIT.default
         // `TODO/ai-031`: both sides' prompts, as one grow-only set.
         prompts = merged.prompts ?? new Map()
         stampClock.observe(highestCounter(merged))
@@ -6024,6 +6081,7 @@ export function createDocument(options = {}) {
         buildVolume = previous.buildVolume
         gist = previous.gist
         description = previous.description
+        aiRecordsPerTurn = previous.aiRecordsPerTurn
         prompts = previous.prompts
         viewHidden = previous.viewHidden
         viewStamps = previous.viewStamps

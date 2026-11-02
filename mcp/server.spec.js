@@ -775,3 +775,35 @@ describe('the app and the server edit one file (TODO/io-010)', () => {
     expect(existsSync(`${file}.lock`)).toBe(false)
   })
 })
+
+describe('the project step limit does not apply to the closed-file server (TODO/ai-033)', () => {
+  /** @param {number} count @param {number} y */
+  const spheres = (count, y) => Array.from({ length: count }, (_, index) => ({ create: { op: 'primitive.sphere', positionMm: [index * 30, y, 0] } }))
+
+  it('one turn per call: a file naming a low limit changes nothing, and no reply reports recordsPerTurn', async () => {
+    const project = createDocument()
+    project.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [10, 10, 10], center: [0, 0, 5] } }, { origin: 'local' })
+    project.setAiRecordsPerTurn(50, { origin: 'local' })
+    const file = join(dir, 'p.ndjson')
+    writeFileSync(file, serializeProject(project))
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+
+    const replies = [
+      await session.call('apply_records', { steps: spheres(30, 100) }),
+      await session.call('apply_records', { steps: spheres(30, 200) }),
+      await session.call('apply_records', { steps: spheres(51, 300) }),
+    ]
+    expect(replies[0].error).toBeUndefined()
+    // 60 records across two calls, past the file's 50: each call is its own turn.
+    expect(replies[1].error).toBeUndefined()
+    expect(replies[2].limit).toBe('recordsPerCall')
+    expect(JSON.stringify(replies)).not.toMatch(/recordsPerTurn|step limit/)
+
+    const reopened = parseProject(readFileSync(file, 'utf8'))
+    expect(reopened.entries).toHaveLength(61)
+    // The server carries the person's value through untouched.
+    const document = createDocument()
+    document.loadEntries(reopened.entries, reopened.rollbackAt, reopened.resolution, reopened)
+    expect(document.aiRecordsPerTurn()).toBe(50)
+  })
+})

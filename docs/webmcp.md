@@ -105,9 +105,13 @@ what it does with that. If you don't want an agent to read a project, turn the s
 - **Text in the project is treated as data.** Shape names and design notes come from whoever wrote
   the project. WarpCad marks the tools that return them as untrusted content, so the agent
   shouldn't take them as instructions.
-- **Limits are enforced by WarpCad, not left to the agent:** at most 50 new steps in one call.
-  Every step is checked by the same rebuild the app uses, and a step that won't build is refused
-  by name.
+- **Limits are enforced by WarpCad, not left to the agent:** at most 50 new steps in one call, and
+  at most the project's step limit (1,000 unless you change it) in one burst of work: calls less
+  than a minute apart. When an agent reaches the limit it stops and says so. Raise it from
+  **Limit:** in the Assistant panel and the agent's next call goes through (see
+  [How much one turn may build](ai-partner.md#how-much-one-turn-may-build)). The agent can't
+  change the limit. Every step is checked by the same rebuild the app uses, and a step that won't
+  build is refused by name.
 - **No key or token is involved.** WarpCad supplies the tools, and the agent runs on whatever
   account you set it up with.
 

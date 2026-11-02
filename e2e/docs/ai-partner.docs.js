@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { loadScene, openApp, shot } from './support.js'
+import { installFakeWebMcp } from '../support/fakeWebMcp.js'
 
 /**
  * Docs media for `docs/ai-partner.md` (`TODO/ai-004`): the Assistant key sheet before a key is
@@ -139,3 +140,26 @@ test.describe('docs media: while the Assistant works', () => {
   })
 })
 
+
+/**
+ * Docs media for `docs/ai-partner.md`'s *How much one turn may build* (`TODO/ai-033`): the AI step
+ * limit sheet open over a part, with a new limit typed in. No key: a stand-in browser agent
+ * (`document.modelContext`) is what opens the Assistant on its panel, as on a browser with
+ * WebMCP. Laptop only.
+ */
+test.describe('docs media: AI step limit', () => {
+  test.skip(({ viewport }) => viewport?.width !== 1440, 'laptop-only')
+
+  test('ai-step-limit still', async ({ page }) => {
+    await installFakeWebMcp(page)
+    await openApp(page)
+    await loadScene(page, 'cube-and-sphere.ndjson', 2)
+    await page.getByTestId('assistant-button').click()
+    await expect(page.getByTestId('assistant-panel')).toBeVisible()
+    await expect(page.getByTestId('ai-step-limit-open')).toHaveText('Limit: 1,000 steps')
+    await page.getByTestId('ai-step-limit-open').click()
+    await expect(page.getByTestId('ai-step-limit-sheet')).toBeVisible()
+    await page.getByTestId('ai-step-limit-input').fill('2000')
+    await shot(page, 'ai-step-limit.png')
+  })
+})

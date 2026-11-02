@@ -18,6 +18,8 @@
  *   written as `[null, stamp]`, so it keeps beating an older set after a reload;
  * - the **description** register (`TODO/io-023`) is written the same way, for the same reason:
  *   `description: [text, stamp]`, a clear being `['', stamp]`;
+ * - the **AI step limit** register (`TODO/ai-033`) likewise: `aiRecordsPerTurn: [n, stamp]`, written
+ *   only once a person has set it (a project at the default writes nothing);
  * - a **view switch** (`TODO/ui-089`) is written as its stamp alone, under `viewStamps` by body
  *   and part, its value being whether the state line's `viewHidden` lists it. A show is
  *   written too (that is what lets a later show beat an earlier hide after a reload); a hide
@@ -128,6 +130,12 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
       ? null
       : [typeof descriptionRegister[0] === 'string' ? descriptionRegister[0] : '', encodeStamp(descriptionRegister[1])]
 
+  // `TODO/ai-033`: the AI step limit, the same way, once a person has ever set it.
+  const limitRegister = state.registers.aiRecordsPerTurn ?? null
+  /** @type {[number, [number, string]] | null} */
+  const aiRecordsPerTurn =
+    limitRegister === null || typeof limitRegister[0] !== 'number' ? null : [limitRegister[0], encodeStamp(limitRegister[1])]
+
   /** @type {Record<string, [number, string]>} */
   const partStamps = {}
   for (const op of writtenParts) {
@@ -192,13 +200,15 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
     Object.keys(partStamps).length === 0 &&
     Object.keys(viewStamps).length === 0 &&
     gist === null &&
-    description === null
+    description === null &&
+    aiRecordsPerTurn === null
   if (empty) return null
 
   return {
     ...(state.projectId !== null ? { project: state.projectId } : {}),
     ...(gist !== null ? { gist } : {}),
     ...(description !== null ? { description } : {}),
+    ...(aiRecordsPerTurn !== null ? { aiRecordsPerTurn } : {}),
     clock,
     ...(Object.keys(pos).length > 0 ? { pos } : {}),
     ...(Object.keys(stamps).length > 0 ? { stamps } : {}),

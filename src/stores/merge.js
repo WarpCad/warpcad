@@ -77,6 +77,8 @@ const REGISTER_WORDS = Object.freeze({
   gist: 'the gist link',
   // `TODO/io-023`: the project's description for people.
   description: 'the description',
+  // `TODO/ai-033`: the project's AI step limit, set in the Assistant panel.
+  aiRecordsPerTurn: 'the AI step limit',
 })
 
 /**

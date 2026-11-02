@@ -38,6 +38,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-033 — Per-project AI step limit (2026-11-02 21:48 UTC)
+
+Not covered by a standing acceptance scenario: scenarios 24 and 25 need a real API key and a live MCP client, and this session had neither. The bar button, sheet and notice were checked only by the e2e spec and the screenshot.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Scenario 24 with a real key at phone width: the **Limit: 1,000** button and the sheet stay usable with the keyboard open. | Open | |
+| 2 | Scenario 25 with a real MCP client: raise the limit mid-burst; the next call lands in the same group. | Open | |
+| 3 | Open a project file stating 3000 in a browser that never approved it: the bar reads 1,000 and **Use 3,000** appears. | Open | |
+
+
 ### core-076 — Group popover on real hardware (2026-11-02 20:10 UTC)
 
 Every scenario was driven in emulation, including trusted touch at phone width. Emulation has no on-screen keyboard, so the rule that commit stays reachable while typing a prefix was only reasoned about: the row list is capped at 40% of the height for it.

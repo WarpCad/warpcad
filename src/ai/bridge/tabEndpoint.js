@@ -70,12 +70,24 @@
  * gap; recording one changes no row, so it is never a group by itself, and Undo AI turn leaves
  * it (what was asked is history). {@link TabEndpoint.reset} forgets it with the groups.
  *
+ * ## The project's step limit (`TODO/ai-033`)
+ *
+ * `limits` is read **per call** (a function; a plain object is read once, for older callers), so
+ * the person raising the project's step limit in the Assistant panel takes effect on the agent's
+ * next call. A group keeps a running count of the records its calls landed and compares it with
+ * the limit in force on each call — not a `createTurn` budget, whose stop is sticky: an agent that
+ * hit the limit, and retried after the person raised it, would otherwise stay refused for as long
+ * as it kept calling. So a raise reopens a stopped group, a lowered limit refuses the next call,
+ * and {@link TabEndpoint.reset} (a new project) clears the count with the groups. A pause longer
+ * than `GROUP_IDLE_MS` starts a new group and a new count, as it always has: on these transports
+ * the limit is per burst of work.
+ *
  * @module ai/bridge/tabEndpoint
  */
 
 import { diffStates } from '../../core/merge/merge.js'
 import { applyMergeUndo, mergeSnapshotOf, planMergeUndo } from '../../core/mergeUndo.js'
-import { LIMITS, createToolRegistry, createTurn } from '../tools/index.js'
+import { LIMITS, createToolRegistry, createTurn, recordsPerTurnHit } from '../tools/index.js'
 import { EDITING_REFUSAL, GESTURE_WAIT_MS, GROUP_IDLE_MS, STALE_REFUSAL } from './protocol.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
@@ -98,7 +110,8 @@ const WHO = Object.freeze({ mcp: 'MCP agent', webmcp: 'browser agent' })
  * @property {() => boolean} [isEditing] A drag or a focused field is in progress.
  * @property {() => number} [now]
  * @property {(ms: number) => Promise<void>} [sleep]
- * @property {import('../tools/limits.js').Limits} [limits]
+ * @property {import('../tools/limits.js').Limits | (() => import('../tools/limits.js').Limits)} [limits]
+ *   Read per call when a function (`TODO/ai-033`: the app passes the project's effective step limit).
  */
 
 /**
@@ -130,7 +143,8 @@ const WHO = Object.freeze({ mcp: 'MCP agent', webmcp: 'browser agent' })
  * @property {import('../../core/merge/state.js').MergeState} baseState
  * @property {AiTurn} turn
  * @property {Change} own What its calls changed, accumulated.
- * @property {import('../tools/limits.js').Turn} budget The group's records cap.
+ * @property {number} records `TODO/ai-033`: records the group's calls have landed, compared on
+ *   each call with the step limit in force.
  * @property {string | null} promptId `TODO/ai-031`: the prompt its writes were for, when one was bound.
  */
 
@@ -200,7 +214,7 @@ export function createTabEndpoint(options) {
   const now = options.now ?? Date.now
   const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
   const isEditing = options.isEditing ?? (() => false)
-  const limits = options.limits ?? LIMITS
+  const readLimits = typeof options.limits === 'function' ? options.limits : () => /** @type {import('../tools/limits.js').Limits} */ (options.limits ?? LIMITS)
   /** @type {Group[]} */
   const groups = []
   let turnCount = 0
@@ -271,15 +285,29 @@ export function createTabEndpoint(options) {
     const callRequest = via.origin === 'webmcp' ? (binding?.text ?? call.request) : (call.request ?? binding?.text)
     const request = callRequest ?? ''
     const group = openGroupFor(request, via, binding?.id ?? null)
-    const budget = group?.budget ?? createTurn({ now, limits: { ...limits, turnMs: Infinity, stepsPerTurn: Infinity, consecutiveFailures: Infinity } })
-    const perCall = createTurn({ now, limits })
+    // `TODO/ai-033`: the limit in force for this call, against what the group has landed so far.
+    const limits = readLimits()
+    const landedBefore = group?.records ?? 0
+    const perCall = createTurn({ now, limits: { ...limits, recordsPerTurn: Infinity } })
+    /** @type {import('../tools/limits.js').LimitHit | null} */
+    let overLimit = null
+    let landedNow = 0
     /** @type {import('../tools/limits.js').Turn} */
     const turn = {
       beginStep: (name) => perCall.beginStep(name),
       endStep: (name, ok) => perCall.endStep(name, ok),
-      canAppend: (count) => budget.canAppend(count) ?? perCall.canAppend(count),
+      canAppend: (count) => {
+        if (overLimit !== null) return overLimit
+        const hit = perCall.canAppend(count)
+        if (hit !== null) return hit
+        if (landedBefore + landedNow + count > limits.recordsPerTurn) {
+          overLimit = recordsPerTurnHit(limits.recordsPerTurn, landedBefore + landedNow, count)
+          return overLimit
+        }
+        return null
+      },
       commitRecords: (count) => {
-        budget.commitRecords(count)
+        landedNow += count
         perCall.commitRecords(count)
       },
       get stats() {
@@ -307,7 +335,10 @@ export function createTabEndpoint(options) {
     if (ctx.prompt !== undefined) prompts[via.origin] = { id: ctx.prompt.id, text: ctx.prompt.text }
     const afterState = live.mergeState()
     const own = diffStates(beforeState, afterState)
-    if (isEmpty(own)) return result
+    if (isEmpty(own)) {
+      if (group !== null) group.records += landedNow
+      return result
+    }
 
     /** @type {Group} */
     const landedIn = group ?? {
@@ -316,7 +347,7 @@ export function createTabEndpoint(options) {
       lastAt: now(),
       baseState: beforeState,
       own: emptyChange(),
-      budget,
+      records: 0,
       promptId: ctx.prompt?.id ?? null,
       turn: {
         turnId: `${via.origin}-turn-${(turnCount += 1)}`,
@@ -335,6 +366,7 @@ export function createTabEndpoint(options) {
       picked = null
     }
     landedIn.lastAt = now()
+    landedIn.records += landedNow
     landedIn.own = union(landedIn.own, own)
     const change = restrictTo(diffStates(landedIn.baseState, afterState), landedIn.own)
     const gone = new Set([...change.added, ...change.removed])

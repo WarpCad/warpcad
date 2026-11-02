@@ -383,7 +383,11 @@ reaches your project.
   content, never as instructions to follow, the same way the in-app Assistant does.
 - **Limits are enforced by the server, not left to Claude:** at most 50 new steps in one call,
   every step checked by the same rebuild the app uses, and a step that won't build is refused by
-  name.
+  name. The project's step limit
+  ([How much one turn may build](ai-partner.md#how-much-one-turn-may-build)) doesn't apply to the
+  server: each call is its own turn, so the 50-step cap always comes first. It does apply in
+  [live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open), where it counts each burst
+  of calls less than a minute apart, and you raise it from **Limit:** in the Assistant panel.
 - **A refused change leaves the file untouched**, byte for byte.
 - **Writes are all-or-nothing.** The server writes a new copy beside the file and then swaps it in,
   so the file is never left half-written. A lock file (`bracket.ndjson.lock`, there only while a

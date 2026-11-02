@@ -43,10 +43,11 @@
  * @property {string} standingInstructions
  * @property {BuildVolume} buildVolume
  * @property {string} [description] `TODO/io-023`: the project's description for people.
+ * @property {number} [aiRecordsPerTurn] `TODO/ai-033`: the project's AI step limit.
  */
 
 /**
- * @typedef {{ resolution?: string, standingInstructions?: string, buildVolume?: BuildVolume, description?: string }} MergeUndoSettings
+ * @typedef {{ resolution?: string, standingInstructions?: string, buildVolume?: BuildVolume, description?: string, aiRecordsPerTurn?: number }} MergeUndoSettings
  * @typedef {{ ok: true, target: DocumentEntry[], rollbackAt: number | null, settings: MergeUndoSettings } | { ok: false, message: string }} MergeUndoPlan
  */
 
@@ -62,6 +63,7 @@ export function mergeSnapshotOf(raw) {
     standingInstructions: raw.standingInstructions(),
     buildVolume: raw.buildVolume(),
     description: raw.description(),
+    aiRecordsPerTurn: raw.aiRecordsPerTurn(),
   }
 }
 
@@ -205,6 +207,13 @@ export function planMergeUndo(base, merged, current, change) {
   if (change.registers.includes('description') && current.description === merged.description) {
     settings.description = base.description ?? ''
   }
+  if (
+    change.registers.includes('aiRecordsPerTurn') &&
+    current.aiRecordsPerTurn === merged.aiRecordsPerTurn &&
+    base.aiRecordsPerTurn !== undefined
+  ) {
+    settings.aiRecordsPerTurn = base.aiRecordsPerTurn
+  }
   return { ok: true, target: rows, rollbackAt, settings }
 }
 
@@ -226,5 +235,12 @@ export function applyMergeUndo(raw, plan, transaction) {
     if (settings.standingInstructions !== undefined) raw.setStandingInstructions(settings.standingInstructions, transaction)
     if (settings.buildVolume !== undefined) raw.setBuildVolume(settings.buildVolume, transaction)
     if (settings.description !== undefined) raw.setDescription(settings.description, transaction)
+    // `TODO/ai-033`: the AI step limit is set only with origin `local`. Only a file merge can have
+    // moved it (no agent writes it, so an AI turn's landing never does), and **Undo merge** is the
+    // person's own click — so it is put back as theirs. Under an agent's origin it is never
+    // written: that path cannot reach the setter.
+    if (settings.aiRecordsPerTurn !== undefined && transaction.origin === 'merge') {
+      raw.setAiRecordsPerTurn(settings.aiRecordsPerTurn, { origin: 'local' })
+    }
   })
 }

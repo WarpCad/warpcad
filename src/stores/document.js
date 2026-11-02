@@ -259,6 +259,11 @@ export const useDocumentStore = defineStore('document', () => {
    */
   const description = ref(raw.description())
   /**
+   * The project's **stored** AI step limit (`TODO/ai-033`), mirrored off `raw` in {@link refresh}.
+   * What the transports use is `stores/aiLimit.js`'s effective value, never this one directly.
+   */
+  const aiRecordsPerTurn = ref(raw.aiRecordsPerTurn())
+  /**
    * Bumped each time a whole document is *loaded* (autosave restore, Open) as
    * opposed to edited. The viewport frames the camera on it: a loaded project
    * whose geometry sits outside the default view would otherwise read as an empty
@@ -302,6 +307,7 @@ export const useDocumentStore = defineStore('document', () => {
     standingInstructions.value = raw.standingInstructions()
     buildVolume.value = raw.buildVolume()
     description.value = raw.description()
+    aiRecordsPerTurn.value = raw.aiRecordsPerTurn()
     const list = raw.bodies()
     bodies.value = list.map(summarizeBody)
     // `TODO/ui-052`: a change (a model swap, or its Undo) can take away the part the
@@ -423,6 +429,18 @@ export const useDocumentStore = defineStore('document', () => {
    */
   function setDescription(text) {
     raw.setDescription(text, { origin: 'local' })
+    refresh()
+  }
+
+  /**
+   * Set the project's AI step limit (`TODO/ai-033`) — core's `setAiRecordsPerTurn`, always with
+   * origin `local`: only the person sets it, in the Assistant panel. A version bump, not an undo
+   * step. Throws, naming the range, for a value outside it.
+   *
+   * @param {number} limit
+   */
+  function setAiRecordsPerTurn(limit) {
+    raw.setAiRecordsPerTurn(limit, { origin: 'local' })
     refresh()
   }
 
@@ -917,6 +935,8 @@ export const useDocumentStore = defineStore('document', () => {
     setBuildVolume,
     description,
     setDescription,
+    aiRecordsPerTurn,
+    setAiRecordsPerTurn,
     setViewHidden,
     addPromptResponse,
     showAll,

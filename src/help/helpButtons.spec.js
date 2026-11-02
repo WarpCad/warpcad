@@ -69,6 +69,7 @@ const SURFACES = Object.freeze([
   'src/components/viewport/RepeatSheet.vue',
   'src/components/ai/ChatPanel.vue',
   'src/components/ai/KeySheet.vue',
+  'src/components/ai/StepLimitSheet.vue',
   'src/components/ai/SubscriptionRoute.vue',
   'src/components/ai/ConnectClaudeCode.vue',
 ])

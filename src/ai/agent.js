@@ -201,7 +201,9 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  * @property {() => { text: string, trusted: boolean }} standingInstructions Read per turn.
  * @property {(event: AgentEvent) => void} onEvent
  * @property {() => number} now
- * @property {import('./tools/limits.js').Limits} limits
+ * @property {import('./tools/limits.js').Limits | (() => import('./tools/limits.js').Limits)} limits
+ *   A function is read once when each turn starts (`TODO/ai-033`: the app passes the project's
+ *   effective step limit), so a change while a turn runs applies from the next turn.
  * @property {TurnLog[]} turns Every finished turn, oldest first, for the next turn's context.
  * @property {AiTurn[]} aiTurns Landed turns, oldest first.
  * @property {boolean} running A turn is in progress; a second {@link runTurn} is refused.
@@ -230,7 +232,8 @@ const NOTHING_KEPT = 'Nothing from this turn was kept — the project is as it w
  *   text, **untrusted** — the safe reading when nobody has said otherwise.
  * @param {(event: AgentEvent) => void} [options.onEvent]
  * @param {() => number} [options.now]
- * @param {import('./tools/limits.js').Limits} [options.limits] {@link LIMITS} by default.
+ * @param {import('./tools/limits.js').Limits | (() => import('./tools/limits.js').Limits)} [options.limits]
+ *   {@link LIMITS} by default; a function is read when each turn starts.
  * @returns {AgentContext}
  */
 export function createAgentContext(options) {
@@ -571,7 +574,9 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   const emit = ctx.onEvent
   /** @type {TokenUsage} */
   const usage = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 }
-  const turn = createTurn({ now: ctx.now, limits: ctx.limits })
+  // `TODO/ai-033`: the project's step limit as it stands when the turn starts, for the whole turn.
+  const limits = typeof ctx.limits === 'function' ? ctx.limits() : ctx.limits
+  const turn = createTurn({ now: ctx.now, limits })
   let text = ''
   /** @type {import('./tools/library.js').SaveProposal[]} */
   const proposals = []
@@ -684,8 +689,8 @@ async function turnBody({ userMessage, images, attachmentIds, ctx, signal }) {
   try {
     for (;;) {
       if (signal?.aborted) return cancelled()
-      if (turn.stats.elapsedMs > ctx.limits.turnMs) {
-        return stopped('turnMs', `This turn has run for more than ${minutes(ctx.limits.turnMs)}, so it has stopped.`)
+      if (turn.stats.elapsedMs > limits.turnMs) {
+        return stopped('turnMs', `This turn has run for more than ${minutes(limits.turnMs)}, so it has stopped.`)
       }
 
       const reply = await readReply(ctx.client.stream({ system: SYSTEM_PROMPT, messages, tools, signal }), emit, usage)
