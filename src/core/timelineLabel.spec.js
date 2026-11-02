@@ -85,6 +85,34 @@ describe('timeline row labels (TODO/ui-032)', () => {
     expect(describeRow(subtract, index)).toBe('Subtract Cube 1 + Cylinder 1')
   })
 
+  it('says what went into what for a merge (TODO/core-076)', () => {
+    const base = { id: 'g1', op: 'group.assemble', name: 'Group 1' }
+    const other = { id: 'g2', op: 'group.assemble', name: 'Clearances' }
+    const merge = {
+      id: 'm',
+      op: 'group.merge',
+      name: 'Group 1',
+      target: 'g1',
+      operands: ['g2'],
+      consumes: ['g1', 'g2'],
+      params: { members: [{}, { prefix: 'c-', hidden: true }] },
+    }
+    expect(describeRow(merge, buildNameIndex([base, other, merge]))).toBe('Merge Clearances into Group 1')
+  })
+
+  it('reads as a Group when no member merges (TODO/core-076)', () => {
+    const merge = {
+      id: 'm',
+      op: 'group.merge',
+      name: 'Group 1',
+      target: 'cuboid-1',
+      operands: ['cylinder-2'],
+      consumes: ['cuboid-1', 'cylinder-2'],
+      params: { members: [{ name: 'Cube 1' }, { name: 'Cylinder 1', hidden: true }] },
+    }
+    expect(describeRow(merge, buildNameIndex([cube, cylinder, merge]))).toBe('Group Cube 1 + Cylinder 1')
+  })
+
   it('names every operand of a three-way group, base first, and accepts sub-part addresses', () => {
     const group = {
       id: 'group-5',

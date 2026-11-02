@@ -133,6 +133,13 @@ shape and a *Union* or *Group* uses up the shapes it combines; several steps can
 change; and Claude checks a part (size, printability, clearance) before it says it's done. If a
 size that decides the result is missing, it asks you once instead of guessing.
 
+**Keeping parts when grouping.** `operate` with `group.merge` gathers bodies into one flat group
+that keeps their parts, the way the **Group** panel in the app does (see
+[Grouping groups](groups.md#grouping-groups-merging-their-parts)). Each entry in its optional
+`members` takes `prefix`, `hidden`, or `name` to keep that body whole as one part. If two bodies
+share a part name the call is refused and suggests a prefix. `group.assemble` is for plain solids
+now: it refuses a body with named parts, so a model cannot flatten one without saying so.
+
 The full modelling guide, with a worked example and the reasoning behind the printing defaults, is
 a resource called `warpcad://guide`. Claude is told to read it before its first change. In a
 client that doesn't read it on its own, attach it by hand: in Claude Code, type

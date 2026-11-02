@@ -587,7 +587,9 @@ function resolvePieces(group, pieces) {
     )
   }
   for (const piece of requested) {
-    if (!group.parts[piece]) {
+    // `Object.hasOwn`, not a truthiness read: a part called `constructor` would otherwise be
+    // found on the prototype and handed to the union as if it were a solid (TODO/core-076).
+    if (!Object.hasOwn(group.parts, piece)) {
       throw new Error(
         `combine: no part named "${piece}" in group "${group.name || '(unnamed)'}" ` +
           `(parts: ${Object.keys(group.parts).join(',') || 'none'})`
@@ -669,6 +671,142 @@ export function add(group, object, partName, options = {}) {
     names: Object.freeze(names),
     parts: Object.freeze(parts),
     holes: group.holes,
+    colors: Object.freeze(colors),
+    ...metaField(meta),
+  })
+}
+
+/** The longest part name, `operate`'s existing limit. */
+export const MAX_PART_NAME_LENGTH = 80
+
+/**
+ * Names `parts` (a plain object) cannot safely hold. `parts['__proto__'] = solid` really does make
+ * the part vanish, while `names` goes on listing it (measured 2026-11-02, TODO/core-076).
+ */
+const REFUSED_PART_NAMES = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']))
+
+/** Any C0 or C1 control character, or DEL. */
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTER = /[\u0000-\u001f\u007f-\u009f]/
+
+/**
+ * What is wrong with a merged part's name, in words a person can act on, or `null`. The one
+ * definition the kernel's refusal and the Group popover's error both read (TODO/core-076).
+ *
+ * @param {string} name
+ * @returns {string | null}
+ */
+export function partNameProblem(name) {
+  if (name.length === 0) return 'A part name cannot be empty.'
+  if (REFUSED_PART_NAMES.has(name)) return `"${name}" cannot be a part name.`
+  if (name.length > MAX_PART_NAME_LENGTH) return `"${name}" is longer than ${MAX_PART_NAME_LENGTH} characters.`
+  return null
+}
+
+/**
+ * What is wrong with a name prefix, or `null`. A comma would make the part impossible to address
+ * (`resolvePieces` splits on commas). A trailing space is fine: the prefix is used exactly as typed.
+ *
+ * @param {unknown} prefix
+ * @returns {string | null}
+ */
+export function prefixProblem(prefix) {
+  if (typeof prefix !== 'string') return 'A prefix must be text.'
+  if (prefix.includes(',')) return 'A prefix cannot contain a comma.'
+  if (CONTROL_CHARACTER.test(prefix)) return 'A prefix cannot contain control characters.'
+  if (/^\s/.test(prefix)) return 'A prefix cannot start with a space.'
+  return null
+}
+
+/**
+ * One part's metadata with the part names inside it renamed — so a prefixed split's seam still
+ * names the parts it joins.
+ *
+ * @param {PartMeta} entry
+ * @param {(name: string) => string} rename
+ * @returns {PartMeta}
+ */
+function renameMetaParts(entry, rename) {
+  /** @param {[string, string]} joins @returns {[string, string]} */
+  const renamed = (joins) => [rename(joins[0]), rename(joins[1])]
+  return Object.freeze({
+    ...entry,
+    ...(entry.joins ? { joins: renamed(entry.joins) } : {}),
+    ...(entry.seam ? { seam: { ...entry.seam, joins: renamed(entry.seam.joins) } } : {}),
+    ...(entry.hardware ? { hardware: entry.hardware.map((item) => ({ ...item, joins: renamed(item.joins) })) } : {}),
+  })
+}
+
+/**
+ * Merge every part of `object` into `group`, flat (`TODO/core-076`). One pass over the source's
+ * parts and no CSG, so the cost grows only with the part count, and every part stays where it is.
+ *
+ * Why not {@link add} with `subpartPrefix`: that adds a combined part as well (the "single object"
+ * this exists to avoid), overwrites a colliding name silently, and carries neither `meta` nor the
+ * hidden state.
+ *
+ * - **Names** are `prefix + name`, literally, as in JSCAD. A name already present, hidden or not,
+ *   throws: nothing is ever overwritten.
+ * - **Visibility**: a part is in `names` only if it was visible in the source and `hidden` is not
+ *   set. So `hidden` can hide, and never reveals: leaving it off does not expose a bolt's `tap`.
+ * - **Colours** carry over under the new name, then the member's `colors` (keyed by the source's
+ *   part name, in a record's `{ color, colorAlpha }` shape) replace them. A colour for a part the
+ *   source no longer has is ignored: an upstream edit that removes a part must not break the merge.
+ * - **Holes** are concatenated.
+ *
+ * @param {Group} group
+ * @param {Group} object
+ * @param {object} [options]
+ * @param {string} [options.prefix]
+ * @param {boolean} [options.hidden] Hide everything this adds.
+ * @param {Readonly<Record<string, { color?: unknown, colorAlpha?: unknown }>>} [options.colors]
+ * @returns {Group}
+ */
+export function mergeInto(group, object, options = {}) {
+  if (!isGroup(object)) throw new Error('mergeInto: this is not a group, so it has no parts to merge — give it a part name instead')
+  const prefix = options.prefix ?? ''
+  const prefixRefusal = prefixProblem(prefix)
+  if (prefixRefusal !== null) throw new Error(`mergeInto: ${prefixRefusal}`)
+  /** @param {string} name */
+  const rename = (name) => prefix + name
+
+  const parts = { ...group.parts }
+  const colors = { ...group.colors }
+  const meta = { ...group.meta }
+  /** @type {string[]} */
+  const added = []
+  for (const name of Object.keys(object.parts)) {
+    const merged = rename(name)
+    const refusal = partNameProblem(merged)
+    if (refusal !== null) throw new Error(`mergeInto: ${refusal}`)
+    if (Object.hasOwn(parts, merged)) {
+      throw new Error(
+        `mergeInto: "${merged}" from group "${object.name || '(unnamed)'}" is already a part of group "${group.name || '(unnamed)'}"`
+      )
+    }
+    parts[merged] = object.parts[name]
+    added.push(name)
+    const own = Object.hasOwn(options.colors ?? {}, name) ? options.colors?.[name] : undefined
+    if (own !== undefined) {
+      if (own?.color === undefined) throw new Error(`mergeInto: part "${name}" has a colour entry with no colour`)
+      assertRecordColor(own.color, own.colorAlpha, `mergeInto: part "${name}"`)
+      colors[merged] = Object.freeze({
+        color: /** @type {number} */ (own.color),
+        alpha: /** @type {number | undefined} */ (own.colorAlpha) ?? 1,
+      })
+    } else if (Object.hasOwn(object.colors ?? {}, name)) {
+      colors[merged] = object.colors[name]
+    }
+    const partMeta = partMetaOf(object, name)
+    if (partMeta) meta[merged] = prefix === '' ? partMeta : renameMetaParts(partMeta, rename)
+  }
+
+  const visible = options.hidden ? [] : object.names.filter((name) => added.includes(name)).map(rename)
+  return Object.freeze({
+    name: group.name,
+    names: Object.freeze([...group.names, ...visible]),
+    parts: Object.freeze(parts),
+    holes: Object.freeze([...group.holes, ...object.holes]),
     colors: Object.freeze(colors),
     ...metaField(meta),
   })

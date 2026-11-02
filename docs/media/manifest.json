@@ -145,15 +145,15 @@
   },
   "group-combine.gif": {
     "spec": "e2e/docs/groups.docs.js",
-    "specHash": "747ca1864691d7537ec47dbc1b6cb4aa0808572e4dc5eb29e3af83abcfaa2662",
-    "bytes": 1164980,
-    "seconds": 11.1
+    "specHash": "af0601a2c95bb9127b1db0bbd4a5e8fc23fc3248470214333f3be413992f9469",
+    "bytes": 1047182,
+    "seconds": 10.2
   },
   "group-subpart-select.gif": {
     "spec": "e2e/docs/groups.docs.js",
-    "specHash": "747ca1864691d7537ec47dbc1b6cb4aa0808572e4dc5eb29e3af83abcfaa2662",
-    "bytes": 855357,
-    "seconds": 9.2
+    "specHash": "af0601a2c95bb9127b1db0bbd4a5e8fc23fc3248470214333f3be413992f9469",
+    "bytes": 721447,
+    "seconds": 8.2
   },
   "snap-operation.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
@@ -449,5 +449,11 @@
     "specHash": "568046b4cb23cd7ba9fbe169528a66c57289dbf074a488084cefc35789a07a98",
     "bytes": 1900426,
     "seconds": 9.88
+  },
+  "group-merge.gif": {
+    "spec": "e2e/docs/groups.docs.js",
+    "specHash": "af0601a2c95bb9127b1db0bbd4a5e8fc23fc3248470214333f3be413992f9469",
+    "bytes": 1173713,
+    "seconds": 10.2
   }
 }

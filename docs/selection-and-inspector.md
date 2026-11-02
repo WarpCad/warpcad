@@ -425,6 +425,10 @@ real geometry but are **not drawn** by default. Those carry a small **hidden** l
 bolt's `tap` (the clearance envelope its thread actually needs) and a washer's
 `clearance` are hidden pieces.
 
+A group gets the same section. [Merging groups](groups.md#grouping-groups-merging-their-parts)
+keeps every piece of each one in this list, so you can still reach and cut with a hidden
+clearance block.
+
 A plain Cube, Sphere or any other one-piece shape has no Parts section at all. It is not
 there and greyed out. It simply is not there.
 

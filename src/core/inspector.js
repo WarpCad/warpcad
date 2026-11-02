@@ -599,25 +599,61 @@ function creationRecordOf(id, byId) {
  * part by name and measurement alone. That mirrors `group.assemble`'s own stated
  * scope limit on nested composite operands, one layer further out.
  *
+ * **`group.merge`** (`TODO/core-076`) is both at once, per member: a member with a `name` zips
+ * as above, and a merging member answers with that operand's own map under its prefix, so a part
+ * that came through two merges still reports the record that made it. A built-in member has
+ * nothing to answer with, and falls back to case 2 rather than claiming each part is a Pi.
+ *
  * @param {Body} body
  * @param {readonly OpRecord[]} records The document's records, in order.
  * @returns {Map<string, OpRecord>}
  */
 function partRecordsFor(body, records) {
-  /** @type {Map<string, OpRecord>} */
-  const byPart = new Map()
-  if (records.length === 0) return byPart
+  if (records.length === 0) return new Map()
 
   /** @type {Map<string, OpRecord>} */
   const byId = new Map()
   for (const record of records) {
     if (record.id !== undefined) byId.set(record.id, record)
   }
+  return partRecordsOfRoot(byId.get(body.id), byId, new Set())
+}
 
-  const root = byId.get(body.id)
-  const consumed = root?.consumes
-  const names = root?.params?.names
-  if (!Array.isArray(consumed) || !Array.isArray(names)) return byPart
+/**
+ * {@link partRecordsFor} for one lineage root.
+ *
+ * @param {OpRecord | undefined} root
+ * @param {Map<string, OpRecord>} byId
+ * @param {Set<string>} visited Guards the walk: a malformed document degrades, it does not hang.
+ * @returns {Map<string, OpRecord>}
+ */
+function partRecordsOfRoot(root, byId, visited) {
+  /** @type {Map<string, OpRecord>} */
+  const byPart = new Map()
+  if (root?.id === undefined || visited.has(root.id)) return byPart
+  visited.add(root.id)
+
+  const consumed = root.consumes
+  if (!Array.isArray(consumed)) return byPart
+  if (root.op === 'group.merge') {
+    const members = root.params?.members
+    if (!Array.isArray(members)) return byPart
+    // `consumes` lists `[target, ...operands]` in order: `planGroupMerge` writes it that way.
+    for (let index = 0; index < members.length && index < consumed.length; index += 1) {
+      const member = members[index]
+      const record = creationRecordOf(consumed[index], byId)
+      if (typeof member?.name === 'string') {
+        if (record) byPart.set(member.name, record)
+      } else {
+        const prefix = typeof member?.prefix === 'string' ? member.prefix : ''
+        for (const [name, part] of partRecordsOfRoot(record, byId, visited)) byPart.set(prefix + name, part)
+      }
+    }
+    return byPart
+  }
+
+  const names = root.params?.names
+  if (!Array.isArray(names)) return byPart
   for (let index = 0; index < names.length && index < consumed.length; index += 1) {
     const record = creationRecordOf(consumed[index], byId)
     if (record) byPart.set(String(names[index]), record)

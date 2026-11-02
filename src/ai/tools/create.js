@@ -55,6 +55,8 @@ import { placeReferenceImages } from './image.js'
  * @typedef {object} BuiltStep
  * @property {OpRecord[]} records In append order.
  * @property {string} bodyId The body's id afterwards (its lineage root).
+ * @property {Array<{ subPart: string, hidden: true }>} [viewHides] What to hide in the view under
+ *   that body, straight after the records land (`TODO/core-076`).
  */
 
 /**

@@ -27,6 +27,14 @@
  * scenario 5 records the bolt leaving the Objects list, and nothing in `core-064` asked to
  * change that.
  *
+ * **A merged group's hidden parts cut the same way (`TODO/core-076`).** A group made by
+ * `group.merge` is a kit of clearances to cut with one at a time, and merging must not take a
+ * Pi's drilling away. So a Subtract that names only parts hidden in a body whose lineage root is
+ * `group.merge` leaves that body in the scene. Visible parts, or hidden mixed with visible, are a
+ * cut with the board, and retire it. A bolt that was never merged keeps its root `hardware.bolt`,
+ * so its `tap` is still used up (scenario 5). "Hidden" is the geometry's own hidden state, never a
+ * Hide in the view: a view setting must not change what a boolean does.
+ *
  * ## What survival means for the rest of the document
  *
  * Nothing new: the Subtract reads the Pi's record as it was at that step, through `operands`,
@@ -47,6 +55,9 @@ import { drillPartsOf } from './kernel/registry.js'
 /** The one op whose cutting operand may survive. */
 const SUBTRACT_OP = 'boolean.subtract'
 
+/** A lineage root whose hidden parts are cut with, not used up. */
+const MERGE_OP = 'group.merge'
+
 /**
  * One operand of a boolean about to be written.
  *
@@ -58,11 +69,13 @@ const SUBTRACT_OP = 'boolean.subtract'
  */
 
 /**
- * The two document questions the rule asks. A `WarpDocument` is one.
+ * The document questions the rule asks. A `WarpDocument` is one.
  *
  * @typedef {object} LineageView
  * @property {(id: string) => string | undefined} rootOf The lineage root of any record id.
  * @property {(id: string) => OpRecord | undefined} recordOf
+ * @property {(id: string) => readonly string[]} hiddenPartsOf The parts hidden in a record's
+ *   value (`TODO/core-076`); `[]` for a solid.
  */
 
 /**
@@ -95,6 +108,10 @@ export function keepsToolBody(view, op, operand, index) {
   const root = view.rootOf(operand.terminal)
   const creation = root === undefined ? undefined : view.recordOf(root)
   if (creation === undefined) return false
+  if (creation.op === MERGE_OP) {
+    const hidden = view.hiddenPartsOf(operand.terminal)
+    return pieces.every((piece) => hidden.includes(piece))
+  }
   const drills = drillPartsOf(creation.op)
   return drills.length > 0 && pieces.every((piece) => drills.includes(piece))
 }

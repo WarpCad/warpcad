@@ -30,6 +30,7 @@
  */
 
 import { consumesOf } from '../../core/booleanConsumes.js'
+import { hasMergeableParts, planGroupMerge } from '../../core/groupMerge.js'
 import { RIM_ORIENTATIONS } from '../../core/kernel/fillet.js'
 import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
@@ -68,6 +69,8 @@ import { checkInput, objectSchema, splitRationale, vectorSchema, withRationale }
  * @property {string} description What it does, for the model.
  * @property {JsonSchema} params
  * @property {(document: WarpDocument, operands: ResolvedOperand[], params: Record<string, any>, op: string) => OpRecord} build
+ * @property {(document: WarpDocument, operands: ResolvedOperand[], params: Record<string, any>) => Array<{ subPart: string, hidden: true }>} [viewHides]
+ *   What to hide in the view under the new body, read before the record lands (`TODO/core-076`).
  */
 
 /**
@@ -167,6 +170,40 @@ function positionSpec(label, prefix, description, params, recordParams) {
 }
 
 /**
+ * The `group.merge` plan for a tool call (`TODO/core-076`), through the planner the Group popover
+ * uses. Two differences, both because a model has no popover to read: a prefix is never filled in
+ * for it, so a collision is refused and names the prefix to use; and a prefix or `hidden` on the
+ * row that keeps its names is refused rather than ignored.
+ *
+ * @param {WarpDocument} document
+ * @param {ResolvedOperand[]} operands
+ * @param {Record<string, any>} params
+ * @returns {import('../../core/groupMerge.js').GroupMergePlan}
+ */
+function mergePlanFor(document, operands, params) {
+  const op = 'group.merge'
+  const members = /** @type {Array<{ name?: string, prefix?: string, hidden?: boolean }>} */ (params.members ?? operands.map(() => ({})))
+  if (members.length !== operands.length) throw new Error(`${op}: give one member per operand — ${operands.length} operands, ${members.length} members`)
+  const both = members.findIndex((member) => member.name !== undefined && member.prefix !== undefined)
+  if (both >= 0) throw new Error(`${op}: member ${both + 1} has both name and prefix — name is already the whole part name`)
+  const named = members.map((member) => (member.name === undefined ? {} : { name: member.name.trim() }))
+  const planned = planGroupMerge(
+    document,
+    operands,
+    members.map((member, index) => ({ ...member, ...named[index], prefix: member.prefix ?? '' }))
+  )
+  if (planned.record === null) {
+    const hints = planned.suggestedPrefixes.flatMap((prefix, index) => (prefix === '' || members[index].prefix !== undefined ? [] : [`"${prefix}" for ${operands[index].name}`]))
+    throw new Error(`${op}: ${planned.errors.join(' ')}${hints.length > 0 ? ` Try a prefix: ${hints.join(', ')}.` : ''}`)
+  }
+  const target = planned.rows.findIndex((row) => row.isTarget)
+  if (target >= 0 && (members[target].prefix !== undefined || members[target].hidden !== undefined)) {
+    throw new Error(`${op}: ${operands[target].name} is the first body that merges, so it keeps its names and visibility — it takes no prefix or hidden`)
+  }
+  return planned
+}
+
+/**
  * Every operation the model may run, and how its record is written.
  *
  * @type {Readonly<Record<string, OperationSpec>>}
@@ -194,6 +231,15 @@ export const OPERATIONS = Object.freeze({
       },
     }),
     build: (document, operands, params, op) => {
+      // Old records still fold; this refusal is in the tool only. A model doing this would get
+      // each composite flattened into one part, with nothing in the result to warn it (`TODO/core-076`).
+      const composite = operands.find((operand) => hasMergeableParts(document.scene.byId.get(operand.terminal)))
+      if (composite !== undefined) {
+        throw new Error(
+          `${op}: ${composite.name} has named parts, and this would flatten them into one. ` +
+            'Use group.merge to keep them; a member with a name keeps one body whole as a single part.'
+        )
+      }
       const names = params.names ?? operands.map((operand) => operand.name)
       if (names.length !== operands.length) throw new Error(`${op}: give one name per operand — ${operands.length} operands, ${names.length} names`)
       const trimmed = names.map((/** @type {string} */ name) => name.trim())
@@ -209,6 +255,30 @@ export const OPERATIONS = Object.freeze({
         params: { names: trimmed },
       }
     },
+  },
+
+  'group.merge': {
+    label: 'Merge',
+    description:
+      'Gather two or more bodies into one flat group that keeps their parts, so each part stays addressable, hidden parts and colours included. ' +
+      'The result takes the name of the first operand with parts, which keeps its part names; the rest follow in operand order. ' +
+      'Cutting with only hidden parts of the result leaves it in place, so one kit of clearances can cut many times; cutting with a visible part uses it up.',
+    params: objectSchema({
+      members: {
+        type: 'array',
+        description: 'Optional: one entry per operand, in operand order. Default: every body with parts merges, and a plain solid becomes one part named after its body.',
+        items: objectSchema({
+          name: { type: 'string', description: 'Keep this body whole, as one part with this name, instead of merging its parts.' },
+          prefix: { type: 'string', description: 'Put this text exactly as written in front of each part name, e.g. "clearance-". No commas. Needed when two bodies share a part name. Not with name, and not on the first body that merges.' },
+          hidden: { type: 'boolean', description: 'Hide what this member adds: it still exists and can be cut with, but does not count for bounds, export or a whole-body cut. Not on the first body that merges.' },
+        }),
+      },
+    }),
+    build: (document, operands, params) => ({
+      id: document.nextId('group'),
+      ...(/** @type {Omit<OpRecord, 'id'>} */ (mergePlanFor(document, operands, params).record)),
+    }),
+    viewHides: (document, operands, params) => mergePlanFor(document, operands, params).viewHides,
   },
 
   'group.snap': positionSpec(
@@ -546,7 +616,8 @@ export function buildOperateRecords(document, input, ops = kernelRegistry, resol
   const record = spec.build(document, operands, input.params ?? {}, op)
   // A record that continues a body keeps that body's id; anything else is a new body.
   const bodyId = record.supersedes !== undefined ? operands[0].id : /** @type {string} */ (record.id)
-  return { records: [record], bodyId }
+  const viewHides = spec.viewHides?.(document, operands, input.params ?? {}) ?? []
+  return { records: [record], bodyId, ...(viewHides.length > 0 ? { viewHides } : {}) }
 }
 
 /**
@@ -617,7 +688,7 @@ export function createOperateTool(ops, applySteps) {
   return {
     name: 'operate',
     description:
-      'Run one operation on existing bodies, named by id: booleans, group, snap/align, rim fillet/chamfer, resize, fit, bisect, move, rotate, mirror. ' +
+      'Run one operation on existing bodies, named by id: booleans, group, merge, snap/align, rim fillet/chamfer, resize, fit, bisect, move, rotate, mirror. ' +
       'Refused with a reason if an id is not a body on screen or the operand count is wrong. Returns the resulting body’s id and the scene afterwards.',
     inputSchema,
     validate: (input) => {

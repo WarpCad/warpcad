@@ -194,6 +194,53 @@ test.describe('docs media: groups', () => {
     await endMovie(page, 'group-subpart-select', { fps: 10, width: 640 })
   })
 
+  /** Group 1, then Group 2, through the Objects list, as the page's example does. */
+  const selectBothGroups = async (page) => {
+    await press(page, 'objects-row-group-1')
+    // One selected collapses the Objects section, so reopen it as a person would.
+    if (!(await page.getByTestId('object-list').isVisible())) await press(page, 'inspector-objects-header')
+    await press(page, 'objects-check-group-2')
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
+  }
+
+  /** The panel filled in as the page's example has it: a prefix, and Hide these parts. */
+  const fillMergePopover = async (page) => {
+    await press(page, 'operation-group')
+    await expect(page.getByTestId('group-merge-popover')).toBeVisible()
+    await page.getByTestId('group-merge-prefix-1').pressSequentially('clearance-', { delay: 60 })
+    await expect(page.getByTestId('group-merge-preview-1')).toHaveText('clearance-Cube 3, +1 more')
+    await press(page, 'group-merge-hide-1')
+    await expect(page.getByTestId('group-merge-hide-1')).toBeChecked()
+  }
+
+  test('group-merge', { tag: '@movie' }, async ({ page }) => {
+    await openScene(page, 'two-groups.ndjson')
+    await startMovie(page, 'group-merge')
+    await selectBothGroups(page)
+    await page.waitForTimeout(250)
+    await fillMergePopover(page)
+    await page.waitForTimeout(500)
+    await press(page, 'group-merge-commit')
+    await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
+    const [merged] = await bodies(page)
+    expect(merged.op).toBe('group.merge')
+    await expect(page.getByTestId('inspector-part-item-clearance-Cube 3')).toHaveAttribute('data-hidden', 'true')
+    await page.waitForTimeout(600)
+    await endMovie(page, 'group-merge', { fps: 10, width: 640 })
+  })
+
+  test('group-merge-prefix still', async ({ page }) => {
+    await openScene(page, 'two-groups.ndjson')
+    await selectBothGroups(page)
+    await fillMergePopover(page)
+    await settle(page)
+    await expect(page.getByTestId('group-merge-popover')).toHaveScreenshot('group-merge-prefix.png', {
+      animations: 'disabled',
+      caret: 'hide',
+      maxDiffPixelRatio: MAX_DIFF_PIXEL_RATIO,
+    })
+  })
+
   test('group-vs-union still', async ({ page }) => {
     await openScene(page, 'cubes-overlap.ndjson')
     const box = await page.getByTestId('viewport-canvas').boundingBox()

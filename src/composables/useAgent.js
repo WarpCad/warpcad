@@ -391,7 +391,7 @@ export function useAgent() {
   function lastGroupOf(outcome) {
     if (outcome.status !== 'done' || outcome.recordIds.length === 0) return null
     const landed = new Set(outcome.recordIds)
-    const group = [...documentStore.raw.records].reverse().find((record) => record.op === 'group.assemble' && record.id !== undefined && landed.has(record.id))
+    const group = [...documentStore.raw.records].reverse().find((record) => (record.op === 'group.assemble' || record.op === 'group.merge') && record.id !== undefined && landed.has(record.id))
     return group?.id ?? null
   }
 

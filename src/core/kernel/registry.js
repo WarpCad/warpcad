@@ -49,7 +49,9 @@ import {
   fit,
   isGroup,
   mapGeometry,
+  mergeInto,
   mirror,
+  partNameProblem,
   pick,
   removePart,
   snap,
@@ -490,6 +492,44 @@ function requireTwoOperands(inputs, op) {
     )
   }
   return /** @type {[ResolvedOperand, ResolvedOperand]} */ (inputs)
+}
+
+/** Every field a `group.merge` member may carry. */
+const MERGE_MEMBER_FIELDS = Object.freeze(new Set(['name', 'prefix', 'hidden', 'colors']))
+
+/**
+ * Add one `group.merge` member to the group so far (TODO/core-076): one part if it has a `name`,
+ * its parts merged in if it does not. See the op's own comment.
+ *
+ * @param {import('./group.js').Group} group
+ * @param {Geom3 | import('./group.js').Group} value
+ * @param {any} member
+ * @returns {import('./group.js').Group}
+ */
+function mergeMember(group, value, member) {
+  if (typeof member !== 'object' || member === null || Array.isArray(member)) {
+    throw new Error(`a member must be an object, got ${JSON.stringify(member)}`)
+  }
+  const unknown = Object.keys(member).find((key) => !MERGE_MEMBER_FIELDS.has(key))
+  if (unknown !== undefined) throw new Error(`unknown field "${unknown}"`)
+  const { name, prefix, hidden, colors } = member
+  if (hidden !== undefined && typeof hidden !== 'boolean') throw new Error(`hidden must be true or false, got ${JSON.stringify(hidden)}`)
+  if (colors !== undefined && (typeof colors !== 'object' || colors === null || Array.isArray(colors))) {
+    throw new Error(`colors must map part names to colours, got ${JSON.stringify(colors)}`)
+  }
+  if (name === undefined) {
+    if (!isGroup(value)) throw new Error('this is a plain solid with no parts to merge, so it needs a name')
+    return mergeInto(group, value, { prefix, hidden, colors })
+  }
+  if (prefix !== undefined) throw new Error('prefix cannot sit beside name, which is already the whole part name')
+  if (typeof name !== 'string') throw new Error(`name must be text, got ${JSON.stringify(name)}`)
+  const refusal = partNameProblem(name)
+  if (refusal !== null) throw new Error(refusal)
+  // `add` overwrites a name it already has, on purpose, for recipes. Never here.
+  if (Object.hasOwn(group.parts, name)) throw new Error(`"${name}" is already a part of this group`)
+  const own = colors !== undefined && Object.hasOwn(colors, name) ? colors[name] : undefined
+  if (own !== undefined && own?.color === undefined) throw new Error(`part "${name}" has a colour entry with no colour`)
+  return add(group, value, name, { hidden, color: own?.color, colorAlpha: own?.colorAlpha })
 }
 
 /**
@@ -1783,16 +1823,11 @@ export const registry = Object.freeze({
   // (`OperationsToolbar.vue`'s `run()`), so a grouped part reads as "Cube 1" rather
   // than an opaque record id once `ui-016` surfaces a per-part breadcrumb.
   //
-  // Deliberately **not** `rawOperands`: a composite operand (a placed
-  // `hardware.bolt`, say) arrives here with its own internal parts already
-  // collapsed into one solid by `toGeom3`, so grouping two composites does not
-  // preserve either one's own sub-structure inside the new outer group. That is a
-  // real, stated scope limit, not an oversight — preserving a *nested* composite's
-  // parts would need `rawOperands` and `add()`'s `subpartPrefix` option
-  // (`group.js:398-420`, already built for exactly this), but wiring that through
-  // has no consumer until a UI can address a doubly-nested part, which is
-  // `ui-016`-or-later work. Building it here would be exactly the premature
-  // generality CLAUDE.md warns against.
+  // Deliberately **not** `rawOperands`: a composite operand (a placed `hardware.bolt`, say)
+  // arrives here with its own internal parts already collapsed into one solid by `toGeom3`,
+  // so grouping two composites keeps neither one's sub-structure. That is what this op
+  // means, and every saved file that uses it still folds that way. Keeping a group's parts
+  // is `group.merge`, just below (TODO/core-076).
   'group.assemble': native('2+', ({ params, inputs }) => {
     const op = 'group.assemble'
     const names = params.names
@@ -1815,6 +1850,42 @@ export const registry = Object.freeze({
     inputs.forEach((geometry, index) => {
       group = add(group, geometry, names[index])
     })
+    return group
+  }),
+
+  // Group that keeps its operands' parts (TODO/core-076): every part, hole and clearance lands
+  // in one flat group, and each member says how. `members` lines up with `[target, ...operands]`:
+  //
+  // - **A member with `name`** becomes one part of that name: a plain solid, or a group kept
+  //   whole through `toGeom3`, exactly what `group.assemble` does to it. `hidden` may sit beside
+  //   it, as in JSCAD's `add(object, name, hidden)`; `prefix` is refused, because `name` is
+  //   already the whole name.
+  // - **A member without `name`** must be a group, and its parts merge in (`mergeInto`).
+  //
+  // A new op rather than a `merge: true` flag on `group.assemble`: a build that predates the flag
+  // would ignore it and silently collapse the parts, the wrong-geometry-with-no-error failure
+  // `index.js` refuses throughout. An unknown op is refused by name. `wholeGroupNative` so the
+  // parts arrive intact, and so a `pieces` address is refused rather than ignored.
+  //
+  // `core/groupMerge.js` is the one writer of these records. Colours and view hides do not live
+  // on a `Group` alone, so it bakes the former in here and hands back the latter.
+  'group.merge': wholeGroupNative('2+', ({ params, inputs }) => {
+    const op = 'group.merge'
+    const members = params.members
+    if (!Array.isArray(members) || members.length !== inputs.length) {
+      throw new Error(`${op}: expected one member per operand (${inputs.length}), got ${JSON.stringify(members)}`)
+    }
+    let group = createGroup()
+    inputs.forEach((/** @type {any} */ input, index) => {
+      try {
+        group = mergeMember(group, input.value, members[index])
+      } catch (error) {
+        throw new Error(`${op}: member ${index + 1}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    })
+    if (group.names.length === 0) {
+      throw new Error(`${op}: every part would be hidden, so there is nothing to draw — leave at least one visible`)
+    }
     return group
   }),
 

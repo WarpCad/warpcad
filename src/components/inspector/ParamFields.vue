@@ -54,6 +54,7 @@ const BLOCKING_OP_LABELS = Object.freeze({
   'boolean.subtract': 'Subtract',
   'boolean.intersect': 'Intersect',
   'group.assemble': 'Group',
+  'group.merge': 'Group',
 })
 
 const isSubPart = computed(() => Boolean(props.body.subPart))
@@ -532,6 +533,10 @@ function onEnumChange(event, field) {
       <template v-if="isRecipePart">
         These are catalogue values for a ready-made part whose options aren't described yet, so
         they can't be changed here. Move, rotate and delete all work as usual.
+      </template>
+      <template v-else-if="editability.blockedBy === 'group.merge'">
+        This group merged other shapes' parts, so it has no parameters of its own. A built-in
+        shape's options, such as a Raspberry Pi's Model, are in that shape's row in History.
       </template>
       <template v-else>
         This shape is a {{ blockingOpLabel || 'combination' }} of other shapes, so it has no

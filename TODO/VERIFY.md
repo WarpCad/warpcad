@@ -38,6 +38,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-076 — Group popover on real hardware (2026-11-02 20:10 UTC)
+
+Every scenario was driven in emulation, including trusted touch at phone width. Emulation has no on-screen keyboard, so the rule that commit stays reachable while typing a prefix was only reasoned about: the row list is capped at 40% of the height for it.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone, select two groups, press **Group** and tap **Prefix**. With the keyboard open, can you still reach the panel's **Group** button, and does the page stay unzoomed? | Open | |
+| 2 | With five or more rows (two Pis and three Cubes) on the same phone, does the list scroll inside the panel without the page moving behind it? | Open | |
+
 ### perf-003 — Acceptance checks not driven (2026-11-02 18:23 UTC)
 
 The perf-003 change shipped with its bench and the closed-finding checks done. Three checks could not be driven in this run, so they are logged here for a human to run: ai-006 needs the dev-only scripted provider, which only exists in the dev build, and the owner ruled out the dev server for this run. Scenarios 24 and 25 need a real model key and a live MCP client against `npm run dev`. The three are not covered by a standing scenario run, so they belong here.

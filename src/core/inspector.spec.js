@@ -671,6 +671,31 @@ describe('describeSelection — drilled into a group s sub-part (TODO/ui-016)', 
     return { document, groupId: id, names }
   }
 
+  it('TODO/core-076: a part reports its creation record through two merges, under its prefix', () => {
+    const document = createDocument()
+    const append = (/** @type {any} */ record) => document.append(record, { origin: 'local' })
+    append({ id: 'cube', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10] } })
+    append({ id: 'cyl', op: 'primitive.cylinder', name: 'Cylinder 1', params: { height: 20, diameter: 6, center: [30, 0, 0] } })
+    append({ id: 'g1', op: 'group.assemble', name: 'Group 1', target: 'cube', operands: ['cyl'], consumes: ['cube', 'cyl'], params: { names: ['Cube 1', 'Cylinder 1'] } })
+    append(translateRecord(document, 'g1', [0, 0, 25]))
+    const moved = /** @type {string} */ (document.currentIdOf('g1'))
+    append({ id: 'solo', op: 'primitive.cuboid', name: 'Solo', params: { size: [3, 3, 3], center: [60, 0, 0] } })
+    append({ id: 'pi', op: 'hardware.washer', name: 'Washer 1', params: { type: 'iso7089', spec: 'm3' } })
+    append({ id: 'm1', op: 'group.merge', name: 'Solo', target: moved, operands: ['solo', 'pi'], consumes: [moved, 'solo', 'pi'], params: { members: [{ }, { name: 'Solo' }, { prefix: 'w-' }] } })
+    append({ id: 'other', op: 'primitive.cuboid', name: 'Other', params: { size: [3, 3, 3], center: [90, 0, 0] } })
+    append({ id: 'm2', op: 'group.merge', name: 'Solo', target: 'other', operands: ['m1'], consumes: ['other', 'm1'], params: { members: [{ name: 'Other' }, { prefix: 'p-' }] } })
+
+    const partOf = (/** @type {string} */ partName) =>
+      present(describeSelection(document.bodies(), ['m2'], { subPart: { bodyId: 'm2', partName }, records: document.records }).body)
+    expect(partOf('p-Cylinder 1').op).toBe('primitive.cylinder')
+    expect(partOf('p-Cylinder 1').params.map((field) => field.key)).toContain('diameter')
+    expect(partOf('p-Solo').op).toBe('primitive.cuboid')
+    expect(partOf('Other').op).toBe('primitive.cuboid')
+    // A built-in member answers name and measurements only, not "this part is a washer".
+    const washerPart = Object.keys(/** @type {any} */ (document.bodies().find((body) => body.id === 'm2')?.geometry).parts).find((name) => name.startsWith('p-w-'))
+    expect(partOf(/** @type {string} */ (washerPart)).op).toBe('')
+  })
+
   it('case 1: recovers the grouped body s own op and params, not the group s', () => {
     const { document, groupId, names } = groupedPair()
     const selection = describeSelection(document.bodies(), [groupId], {

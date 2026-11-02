@@ -6,8 +6,17 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-02 at the owner's request)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped, where it differs from the proposal below.** Everything proposed shipped. Four
+> differences. (1) The AI tool never fills in a prefix: a collision is refused and names the prefix
+> to use, because a model has no popover to read. (2) The "hidden" in the cut rule is the geometry's
+> own hidden state, never a Hide in the view, so a view setting cannot change what a boolean retires.
+> (3) The real suggested prefix for a bolt is `Bolt / screw 2-`, the Library's name, not `Bolt 2-`.
+> (4) Added, found by driving it: `ObjectList.vue`'s part rows wrap instead of truncating, because five
+> rows all reading `clearance…` could not be told apart. `planGroupMerge`'s record has no `id`,
+> because `nextId` ticks the clock and the planner runs on every keystroke.
 
 ## Problem
 

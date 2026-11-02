@@ -131,6 +131,13 @@ A boolean can use **one named part instead of the whole shape**. That is how you
 port opening in a case wall: you want a hole the size of the Ethernet jack, not a hole
 the size of the whole board.
 
+**A group you merged keeps its parts too.** [Merge a kit of clearance blocks into a
+board](groups.md#grouping-groups-merging-their-parts), and each block can cut on its own.
+Subtract with only hidden parts of a merged group and **the group stays in the scene**, so
+you can cut with the next one. Subtract with a visible part and the group is used up, as any
+cutting shape is. A bolt that was never merged is still used up by a cut with its `tap`; one
+merged with something else stays.
+
 **How to select a part:** click the shape once — the whole thing is selected. Click a
 second time, landing on the part you want. The Inspector header now reads a breadcrumb
 like `Raspberry Pi 1 ▸ ethernet`, and the gizmo shrinks to that part alone.

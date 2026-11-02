@@ -52,6 +52,7 @@
  * @module ai/tools/batch
  */
 
+import { applyViewHides } from '../../core/groupMerge.js'
 import { ReplayRejection } from '../../core/document.js'
 import { composeIntent } from '../../core/intent.js'
 import { buildCreateRecords, createInputSchema, validateCreateInput } from './create.js'
@@ -166,6 +167,7 @@ export function applySteps(ctx, steps, ops, rationale) {
         if (hit) throw new LimitFailure(hit)
         try {
           document.insertAt(at, built.records, transaction)
+          applyViewHides(document, built.bodyId, built.viewHides ?? [], { origin })
         } catch (error) {
           throw new StepFailure(batchStep, at + 1, error)
         }

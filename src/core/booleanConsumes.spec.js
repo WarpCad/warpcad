@@ -6,6 +6,7 @@ import { consumesOf, keepsToolBody } from './booleanConsumes.js'
 import { tallyBom } from './bom.js'
 import { impactOf } from './dependents.js'
 import { createDocument } from './document.js'
+import { recordsForDrop } from './library.js'
 import { boundsOf, volumeOf } from './kernel/group.js'
 import { drillPartsOf } from './kernel/registry.js'
 import { offeredFixesOf } from './repair.js'
@@ -292,5 +293,77 @@ describe('Repeat and a drilled plate (TODO/core-061 interplay)', () => {
     expect(reason).toMatch(/copy/)
     expect(reason).toMatch(/Subtract/)
     expect(reason).toMatch(/one at a time/)
+  })
+})
+
+describe('TODO/core-076: a merged group’s hidden parts cut without using it up', () => {
+  /**
+   * A merged Pi + clearance cube, a plate, and a whole-body bolt beside them.
+   *
+   * @returns {{ document: WarpDocument, merged: string }}
+   */
+  function mergedPi() {
+    const document = createDocument()
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: { model: 4 } }, LOCAL)
+    document.append({ id: 'block', op: 'primitive.cuboid', name: 'Block', params: { size: [4, 4, 4], center: [20, 20, 0] } }, LOCAL)
+    document.append({ id: 'gone', op: 'primitive.cuboid', name: 'Gone', params: { size: [4, 4, 4], center: [40, 20, 0] } }, LOCAL)
+    document.append(
+      { id: 'm', op: 'group.merge', name: 'Raspberry Pi 1', target: 'pi-1', operands: ['block', 'gone'], consumes: ['pi-1', 'block', 'gone'], params: { members: [{}, { name: 'Block', hidden: true }, { name: 'Gone' }] } },
+      LOCAL,
+    )
+    return { document, merged: 'm' }
+  }
+  const plate = { terminal: 'plate', ref: 'plate' }
+
+  it('a hidden part of a merged group stays', () => {
+    const { document, merged } = mergedPi()
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: merged, ref: { id: merged, pieces: 'Block' } }])).toEqual(['plate'])
+  })
+
+  it('merging does not take a Pi’s drilling away', () => {
+    const { document, merged } = mergedPi()
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: merged, ref: { id: merged, pieces: 'hole1' } }])).toEqual(['plate'])
+  })
+
+  it('a visible part retires it, and so does hidden mixed with visible', () => {
+    const { document, merged } = mergedPi()
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: merged, ref: { id: merged, pieces: 'Gone' } }])).toEqual(['plate', merged])
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: merged, ref: { id: merged, pieces: 'Block,Gone' } }])).toEqual(['plate', merged])
+  })
+
+  it('a whole-body cut with a merged group retires it, and only Subtract keeps it', () => {
+    const { document, merged } = mergedPi()
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: merged, ref: merged }])).toEqual(['plate', merged])
+    expect(consumesOf(document, 'boolean.union', [plate, { terminal: merged, ref: { id: merged, pieces: 'Block' } }])).toEqual(['plate', merged])
+  })
+
+  it('a bolt that was never merged is still used up by its tap (scenario 5), but a merged one stays', () => {
+    const document = createDocument()
+    document.appendAll(recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document), LOCAL)
+    const id = /** @type {string} */ (document.bodies()[0].recordId)
+    expect(document.hiddenPartsOf(id)).toContain('tap')
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: id, ref: { id, pieces: 'tap' } }])).toEqual(['plate', id])
+    document.append({ id: 'cube', op: 'primitive.cuboid', name: 'Cube', params: { size: [2, 2, 2], center: [30, 0, 0] } }, LOCAL)
+    document.append({ id: 'mb', op: 'group.merge', name: 'Bolt 1', target: id, operands: ['cube'], consumes: [id, 'cube'], params: { members: [{}, { name: 'Cube' }] } }, LOCAL)
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: 'mb', ref: { id: 'mb', pieces: 'tap' } }])).toEqual(['plate'])
+  })
+
+  it('a moved merged group is judged by its root and its current value', () => {
+    const { document, merged } = mergedPi()
+    document.append({ id: 'mv', op: 'transform.translate', target: merged, supersedes: merged, params: { vector: [1, 0, 0], rotation: [0, 0, 0] } }, LOCAL)
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: 'mv', ref: { id: 'mv', pieces: 'Block' } }])).toEqual(['plate'])
+  })
+
+  it('cutting really leaves the group in the scene, so the next clearance can cut too', () => {
+    const { document, merged } = mergedPi()
+    document.append({ id: 'plate', op: 'primitive.cuboid', name: 'Plate', params: { size: [8, 8, 2], center: [20, 20, 0] } }, LOCAL)
+    const ref = { id: merged, pieces: 'Block' }
+    document.append(
+      { id: 'cut', op: 'boolean.subtract', name: 'Subtract 1', target: 'plate', operands: [ref], consumes: consumesOf(document, 'boolean.subtract', [plate, { terminal: merged, ref }]) },
+      LOCAL,
+    )
+    expect(document.bodies().map((body) => body.name)).toEqual(['Raspberry Pi 1', 'Subtract 1'])
+    const cut = /** @type {import('./kernel/group.js').Group} */ (/** @type {unknown} */ (bodyOf(document, 'cut')?.geometry))
+    expect(volumeOf(cut)).toBeCloseTo(8 * 8 * 2 - 4 * 4 * 2, 6)
   })
 })

@@ -462,7 +462,7 @@ import {
 } from './userPart.js'
 import { foldColorOverrides } from './colorOverride.js'
 import { bodyViewOf, encodeViewHidden, normalizeViewHidden, viewHiddenMapOf, withViewHidden } from './visibility.js'
-import { isGroup } from './kernel/group.js'
+import { hiddenNamesOf, isGroup } from './kernel/group.js'
 import {
   VARIABLE_LIMITS,
   VARIABLE_OP,
@@ -882,6 +882,8 @@ export class ReplayRejection extends Error {
  * @property {(id: string) => import('./repeat.js').RepeatInfo | undefined} repeatOf `TODO/core-061`:
  *   what a `pattern.repeat` row built, by its id.
  * @property {(id: string) => OpRecord | undefined} recordOf
+ * @property {(id: string) => readonly string[]} hiddenPartsOf `TODO/core-076`: the parts hidden
+ *   in a record's value, `[]` for a solid or a record not in the scene.
  * @property {() => TimelineRow[]} timeline
  * @property {() => BrokenStep[]} brokenSteps
  * @property {() => number | null} rollbackAt
@@ -1240,6 +1242,7 @@ const STEP_VERBS = Object.freeze({
   'boolean.subtract': 'Subtract',
   'boolean.intersect': 'Intersect',
   'group.assemble': 'Group',
+  'group.merge': 'Merge',
   'group.snap': 'Snap',
   'group.align': 'Align',
   'modify.filletRim': 'Fillet',
@@ -4946,6 +4949,11 @@ export function createDocument(options = {}) {
      */
     recordOf(id) {
       return entries.find((entry) => entry.record.id === id)?.record
+    },
+
+    hiddenPartsOf(id) {
+      const value = scene.byId.get(id)
+      return isGroup(value) ? hiddenNamesOf(value) : []
     },
 
     /** Section 18's marker, as an active-entry count. `null` when not rolled back. */

@@ -252,6 +252,84 @@ describe('the records operate writes are the ones the UI writes', () => {
     })
   })
 
+  describe('group.merge (TODO/core-076)', () => {
+    /** Two groups of two cubes each, the second recoloured and with one part hidden in the view. */
+    function twoGroups() {
+      const { document, ids } = cubes(4)
+      const run = (/** @type {any} */ input) => /** @type {any} */ (tools.run(makeContext({ document }), 'operate', input))
+      const a = run({ op: 'group.assemble', operands: [{ id: ids[0] }, { id: ids[1] }] }).applied[0].bodyId
+      const b = run({ op: 'group.assemble', operands: [{ id: ids[2] }, { id: ids[3] }] }).applied[0].bodyId
+      document.setColorOverride(b, { color: 0xff0000 }, LOCAL)
+      document.setViewHidden(b, { subPart: 'Cube 3', hidden: true }, LOCAL)
+      return { document, run, a, b }
+    }
+    /** @param {import('../../core/document.js').WarpDocument} document @param {string} id */
+    const bodyOf = (document, id) => /** @type {any} */ (document.bodies().find((body) => body.id === id))
+
+    it('writes the planner’s record, colours baked in, and hides carried', () => {
+      const { document, run, a, b } = twoGroups()
+      const terminal = document.currentIdOf(b)
+      const result = run({ op: 'group.merge', operands: [{ id: a }, { id: b }], params: { members: [{}, { prefix: 'c-', hidden: true }] } })
+      expect(result.error).toBeUndefined()
+      const id = result.applied[0].bodyId
+      const merged = bodyOf(document, id)
+      expect(merged.name).toBe('Group 1')
+      expect(Object.keys(merged.geometry.parts)).toEqual(['Cube 1', 'Cube 2', 'c-Cube 3', 'c-Cube 4'])
+      expect(merged.geometry.names).toEqual(['Cube 1', 'Cube 2'])
+      expect(merged.geometry.colors['c-Cube 4']).toEqual({ color: 0xff0000, alpha: 1 })
+      expect(merged.viewHiddenParts).toEqual(['c-Cube 3'])
+      expect(document.entries.at(-1)?.record).toMatchObject({ op: 'group.merge', target: a, operands: [terminal] })
+    })
+
+    it('with no members, every body with parts merges and a solid is one part', () => {
+      const { document, run, a } = twoGroups()
+      const solo = place(document, 'primitive.cuboid', { x: 90, y: 0 }, { size: [2, 2, 2] })
+      const result = run({ op: 'group.merge', operands: [{ id: solo }, { id: a }] })
+      expect(Object.keys(bodyOf(document, result.applied[0].bodyId).geometry.parts)).toEqual(['Cube 1', 'Cube 2', 'Cube 5'])
+    })
+
+    it('refuses a collision, naming the prefix to use, rather than filling one in', () => {
+      const { document } = cubes(0)
+      const run = (/** @type {any} */ input) => /** @type {any} */ (tools.run(makeContext({ document }), 'operate', input))
+      const one = place(document, 'hardware.bolt', { x: 0, y: 0 })
+      const two = place(document, 'hardware.bolt', { x: 60, y: 0 })
+      const before = document.entries.length
+      const result = run({ op: 'group.merge', operands: [{ id: one }, { id: two }] })
+      expect(result.reason).toMatch(/already a part of Bolt \/ screw 1/)
+      expect(result.reason).toMatch(/"Bolt \/ screw 2-"/)
+      expect(document.entries).toHaveLength(before)
+    })
+
+    it('refuses a prefix or hidden on the body that keeps its names, and a wrong-length members', () => {
+      const { run, a, b } = twoGroups()
+      expect(run({ op: 'group.merge', operands: [{ id: a }, { id: b }], params: { members: [{ prefix: 'x' }, {}] } }).reason).toMatch(/keeps its names/)
+      expect(run({ op: 'group.merge', operands: [{ id: a }, { id: b }], params: { members: [{}] } }).reason).toMatch(/one member per operand/)
+      expect(run({ op: 'group.merge', operands: [{ id: a }, { id: b }], params: { members: [{}, { name: 'n', prefix: 'x' }] } }).reason).toMatch(/both name and prefix/)
+    })
+
+    it('a part address is refused, as on any whole-body op', () => {
+      const { run, a, b } = twoGroups()
+      expect(run({ op: 'group.merge', operands: [{ id: a, pieces: 'Cube 1' }, { id: b }] }).reason).toMatch(/cannot take a part address/)
+    })
+
+    it('group.assemble refuses an operand with named parts and points at group.merge', () => {
+      const { document, run, a, b } = twoGroups()
+      const before = document.entries.length
+      const result = run({ op: 'group.assemble', operands: [{ id: a }, { id: b }] })
+      expect(result.reason).toMatch(/has named parts.*group\.merge/)
+      expect(document.entries).toHaveLength(before)
+    })
+
+    it('cutting with a hidden part of a merged group leaves it in the scene', () => {
+      const { document, run, a, b } = twoGroups()
+      const merged = run({ op: 'group.merge', operands: [{ id: a }, { id: b }], params: { members: [{}, { prefix: 'c-', hidden: true }] } }).applied[0].bodyId
+      const plate = place(document, 'primitive.cuboid', { x: 45, y: 0 }, { size: [100, 100, 2] })
+      const cut = run({ op: 'boolean.subtract', operands: [{ id: plate }, { id: merged, pieces: 'c-Cube 3' }] })
+      expect(cut.error).toBeUndefined()
+      expect(document.bodies().map((body) => body.id)).toContain(merged)
+    })
+  })
+
   it('a snap supersedes the moving body and keeps the reference', () => {
     const { document, ids } = cubes(2)
     const result = /** @type {any} */ (

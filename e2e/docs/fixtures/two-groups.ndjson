@@ -1,0 +1,6 @@
+{"id":"cube-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[40,40,40],"center":[-90,-30,20]}}
+{"id":"cube-2","op":"primitive.cuboid","name":"Cube 2","params":{"size":[40,40,40],"center":[-30,-30,20]}}
+{"id":"group-1","op":"group.assemble","name":"Group 1","target":"cube-1","operands":["cube-2"],"consumes":["cube-1","cube-2"],"params":{"names":["Cube 1","Cube 2"]}}
+{"id":"cube-3","op":"primitive.cuboid","name":"Cube 3","params":{"size":[40,40,40],"center":[30,30,20]}}
+{"id":"cube-4","op":"primitive.cuboid","name":"Cube 4","params":{"size":[40,40,40],"center":[90,30,20]}}
+{"id":"group-2","op":"group.assemble","name":"Group 2","target":"cube-3","operands":["cube-4"],"consumes":["cube-3","cube-4"],"params":{"names":["Cube 3","Cube 4"]}}

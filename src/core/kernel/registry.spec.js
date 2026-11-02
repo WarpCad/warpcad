@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { acceptsOperandCount, assertOperandCount, getEntry, registry } from './registry.js'
-import { calcCenterWith, calcSnap, centroidOf, combine, isGroup, pick } from './group.js'
+import { add, calcCenterWith, calcSnap, centroidOf, combine, createGroup, isGroup, pick } from './group.js'
 import { evaluate, evaluateOp, expand } from './index.js'
 import { HARDWARE_LIBRARY, PRIMITIVE_LIBRARY } from '../library.js'
 
-const { measurements } = modeling
+const { measurements, primitives, transforms } = modeling
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
@@ -472,6 +472,112 @@ describe('native builders', () => {
     // leaked in there would be the undifferentiated create/operate dropdown
     // CLAUDE.md's Interaction Model rules out.
     expect(registry['boolean.intersect'].ui).toBeUndefined()
+  })
+
+  // TODO/core-076: `group.assemble`'s sibling, which keeps a group's own parts.
+  describe('group.merge — TODO/core-076', () => {
+    const solid = (/** @type {number} */ x) => transforms.translate([x, 0, 0], primitives.cuboid({ size: [2, 2, 2] }))
+    /** @param {string} label @param {Array<[string, number, boolean?]>} parts */
+    const group = (label, parts) => {
+      let value = createGroup(label)
+      for (const [name, x, hidden] of parts) value = add(value, solid(x), name, hidden ? { hidden } : {})
+      return value
+    }
+    /** @param {any[]} values */
+    const raw = (values) => values.map((value) => ({ value }))
+    /** @param {any[]} members @param {any[]} values */
+    const merge = (members, values) => /** @type {any} */ (build('group.merge', { params: { members }, inputs: raw(values) }))
+
+    it('is a whole-group native taking 2+ operands, and offers no Library row', () => {
+      expect(registry['group.merge']).toMatchObject({ kind: 'native', operandCount: '2+', rawOperands: true })
+      expect(registry['group.merge'].subPartOperands).toBeUndefined()
+      expect(registry['group.merge'].ui).toBeUndefined()
+      expect(acceptsOperandCount('group.merge', 1)).toBe(false)
+      expect(acceptsOperandCount('group.merge', 2)).toBe(true)
+    })
+
+    it('flattens two groups, in input order, keeping hidden parts hidden', () => {
+      const value = merge(
+        [{}, { prefix: 'c-', hidden: true }],
+        [group('a', [['PCB', 0], ['tap', 40, true]]), group('b', [['Screen', 10], ['Mic', 20]])]
+      )
+      expect(Object.keys(value.parts)).toEqual(['PCB', 'tap', 'c-Screen', 'c-Mic'])
+      expect(value.names).toEqual(['PCB'])
+    })
+
+    it('a member with `name` is one part: a plain solid, or a group kept whole', () => {
+      const value = merge(
+        [{}, { name: 'Cube 1' }, { name: 'Whole', hidden: true, colors: { Whole: { color: 0xff0000 } } }],
+        [group('a', [['PCB', 0]]), solid(10), group('b', [['x', 20], ['y', 30]])]
+      )
+      expect(value.names).toEqual(['PCB', 'Cube 1'])
+      expect(Object.keys(value.parts)).toEqual(['PCB', 'Cube 1', 'Whole'])
+      expect(value.colors.Whole).toEqual({ color: 0xff0000, alpha: 1 })
+      expect(measurements.measureBoundingBox(value.parts.Whole)[1][0]).toBeCloseTo(31, 6)
+    })
+
+    it('every member a `name`: the same parts `group.assemble` makes', () => {
+      const value = merge([{ name: 'A' }, { name: 'B' }], [solid(0), solid(10)])
+      expect(value.names).toEqual(['A', 'B'])
+    })
+
+    it('refuses a wrong-length `members`, and names the operand count', () => {
+      expect(() => merge([{}], [group('a', [['p', 0]]), group('b', [['q', 1]])])).toThrow(/group\.merge.*one member per operand \(2\)/)
+      expect(() => build('group.merge', { params: {}, inputs: raw([solid(0), solid(1)]) })).toThrow(/one member per operand/)
+    })
+
+    it('refuses a plain solid with no `name`, naming the member', () => {
+      expect(() => merge([{}, {}], [group('a', [['p', 0]]), solid(1)])).toThrow(/group\.merge: member 2.*plain solid.*name/)
+    })
+
+    it('refuses `prefix` beside `name`, since `name` is already the whole name', () => {
+      expect(() => merge([{}, { name: 'x', prefix: 'y' }], [group('a', [['p', 0]]), solid(1)])).toThrow(/member 2.*prefix.*name/)
+    })
+
+    it('refuses a field it does not know, and a `hidden` that is not a boolean', () => {
+      expect(() => merge([{}, { nmae: 'x' }], [group('a', [['p', 0]]), solid(1)])).toThrow(/member 2.*"nmae"/)
+      expect(() => merge([{}, { name: 'x', hidden: 'yes' }], [group('a', [['p', 0]]), solid(1)])).toThrow(/member 2.*hidden/)
+    })
+
+    it('refuses a collision, a `name` member included, with the member in front', () => {
+      expect(() => merge([{}, {}], [group('a', [['p', 0]]), group('b', [['p', 1]])])).toThrow(/group\.merge: member 2.*"p"/)
+      expect(() => merge([{}, { name: 'p' }], [group('a', [['p', 0]]), solid(1)])).toThrow(/group\.merge: member 2.*"p"/)
+    })
+
+    it.each(['__proto__', 'constructor', 'prototype'])('refuses %s as a `name`', (name) => {
+      expect(() => merge([{}, { name }], [group('a', [['p', 0]]), solid(1)])).toThrow(/cannot be a part name/)
+    })
+
+    it('refuses a result with nothing visible, which could be neither drawn nor combined', () => {
+      expect(() => merge([{ name: 'A', hidden: true }, { name: 'B', hidden: true }], [solid(0), solid(1)])).toThrow(/group\.merge: .*visible/)
+    })
+
+    it('refuses a `pieces` address in the fold, instead of ignoring it', () => {
+      const records = [
+        { id: 'a', op: 'primitive.cuboid', params: { size: [1, 1, 1] } },
+        { id: 'b', op: 'primitive.cuboid', params: { size: [1, 1, 1], center: [5, 0, 0] } },
+        { id: 'c', op: 'primitive.cuboid', params: { size: [1, 1, 1], center: [9, 0, 0] } },
+        { id: 'g', op: 'group.assemble', target: 'a', operands: ['b'], params: { names: ['A', 'B'] } },
+        { id: 'm', op: 'group.merge', target: { id: 'g', pieces: 'A' }, operands: ['c'], params: { members: [{}, { name: 'c' }] } },
+      ]
+      expect(() => evaluate(records)).toThrow(/group\.merge.*names pieces/)
+    })
+
+    it('leaves group.assemble as it was: two groups fold to two opaque parts', () => {
+      const records = [
+        { id: 'a', op: 'primitive.cuboid', params: { size: [2, 2, 2] } },
+        { id: 'b', op: 'primitive.cuboid', params: { size: [2, 2, 2], center: [5, 0, 0] } },
+        { id: 'c', op: 'primitive.cuboid', params: { size: [2, 2, 2], center: [10, 0, 0] } },
+        { id: 'd', op: 'primitive.cuboid', params: { size: [2, 2, 2], center: [15, 0, 0] } },
+        { id: 'g1', op: 'group.assemble', target: 'a', operands: ['b'], params: { names: ['A', 'B'] } },
+        { id: 'g2', op: 'group.assemble', target: 'c', operands: ['d'], params: { names: ['C', 'D'] } },
+        { id: 'g3', op: 'group.assemble', target: 'g1', operands: ['g2'], params: { names: ['One', 'Two'] } },
+      ]
+      const value = /** @type {any} */ (evaluate(records).byId.get('g3'))
+      expect(value.names).toEqual(['One', 'Two'])
+      expect(measurements.measureBoundingBox(value.parts.One)[1][0]).toBeCloseTo(6, 6)
+      expect(measurements.measureBoundingBox(value.parts.Two)[0][0]).toBeCloseTo(9, 6)
+    })
   })
 
   // TODO/ui-015: unlike the booleans above, `group.assemble` keeps every operand's

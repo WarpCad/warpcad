@@ -184,7 +184,8 @@
  *    bolt from `bodies()` — it was the cutting tool, and a boolean has always
  *    consumed its operands whole. Cutting with one part and keeping the body
  *    would be a non-consuming boolean, which is a different feature.
- * 4. **Group is the exception, and says so on screen.** `group.assemble` is a
+ * 4. **Group is the exception, and says so on screen.** `group.assemble` (and, since
+ *    `TODO/core-076`, `group.merge`, which `GroupMergePopover.vue` writes) is a
  *    plain `native` entry (see its own registry comment on nested composites),
  *    so handing it a `{ id, pieces }` would throw rather than mean anything.
  *    `run()` therefore sends it bare terminal ids even when a depth is set, and
@@ -304,14 +305,16 @@
  *    literal `0` (the minimum face), the identical distinction the straight
  *    Offset field already has to make.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
 import AlignPopover from './AlignPopover.vue'
+import GroupMergePopover from './GroupMergePopover.vue'
 import OperationsGroupPopover from './OperationsGroupPopover.vue'
 import PopoverGrip from './PopoverGrip.vue'
 
 import { consumesOf } from '../../core/booleanConsumes.js'
+import { operandsHaveParts } from '../../core/groupMerge.js'
 import { OPERATION_GROUPS, groupStates } from '../../core/operationGroups.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
@@ -457,6 +460,13 @@ const runError = ref(/** @type {string | null} */ (null))
 function run(op, label) {
   if (disabled.value) return
   runError.value = null
+
+  // TODO/core-076: a body with named parts has a question to answer first, so Group opens its
+  // popover. With none it stays this one click, which is the common case and gains no step.
+  if (op === 'group.assemble' && operandsHaveParts(toRaw(documentStore.raw), selectedOperands.value.map((operand) => ({ terminal: operand.terminalId })))) {
+    openPopover.value = openPopover.value === 'group-merge' ? null : 'group-merge'
+    return
+  }
 
   // Every selected body, resolved to the record that currently represents it
   // and — where the user has drilled in — to a named part (`TODO/ui-040`; see
@@ -715,7 +725,7 @@ const canCommitFilletChamfer = computed(
 
 /** Which popover is open, or none. */
 const openPopover = ref(
-  /** @type {'align' | 'modify.filletRim' | 'modify.chamferRim' | 'modify.enlarge' | 'modify.fit' | 'modify.bisect' | 'transform.mirror' | null} */ (
+  /** @type {'align' | 'group-merge' | 'modify.filletRim' | 'modify.chamferRim' | 'modify.enlarge' | 'modify.fit' | 'modify.bisect' | 'transform.mirror' | null} */ (
     null
   ),
 )
@@ -994,6 +1004,11 @@ function isExactOneOp(op) {
 // closes itself rather than staying open for a tap that has nothing to move.
 watch(alignDisabled, (isDisabled) => {
   if (isDisabled && openPopover.value === 'align') openPopover.value = null
+})
+
+// The same for Group's popover (TODO/core-076) and its 2-or-more precondition.
+watch(disabled, (isDisabled) => {
+  if (isDisabled && openPopover.value === 'group-merge') openPopover.value = null
 })
 
 // Same self-closing discipline for the exactly-1 precondition Fillet, Chamfer,
@@ -1452,7 +1467,7 @@ const groupMembers = computed(() => {
       glyph: operation.glyph,
       disabled: disabled.value,
       title: titleFor(operation),
-      expanded: undefined,
+      expanded: operation.op === 'group.assemble' ? openPopover.value === 'group-merge' : undefined,
       action: () => run(operation.op, operation.label),
     }
   }
@@ -1741,6 +1756,7 @@ onBeforeUnmount(() => {
         :disabled="disabled"
         :data-testid="`operation-${operation.label.toLowerCase()}`"
         :data-op="operation.op"
+        :aria-expanded="operation.op === 'group.assemble' ? openPopover === 'group-merge' : undefined"
         :title="titleFor(operation)"
         :aria-label="titleFor(operation)"
         @click="run(operation.op, operation.label)"
@@ -2170,6 +2186,9 @@ onBeforeUnmount(() => {
       <!-- Align (TODO/ui-060): the frame is this file's `.ops__popover`, the contents are
            AlignPopover's. It stays open across taps; Escape or the backdrop closes it. -->
       <AlignPopover v-else-if="openPopover === 'align'" class="ops__popover ops__popover--align" />
+
+      <!-- Group over bodies with named parts (TODO/core-076), framed the same way. -->
+      <GroupMergePopover v-else-if="openPopover === 'group-merge'" class="ops__popover ops__popover--align" @close="closePopover" />
     </Teleport>
   </div>
 </template>

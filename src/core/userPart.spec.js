@@ -485,6 +485,34 @@ describe('capturePart — a body\'s lineage as a self-contained part', () => {
   })
 })
 
+describe('capturePart — a merged group (TODO/core-076)', () => {
+  it('a placed copy keeps its parts, hidden state and colours', () => {
+    const doc = createDocument()
+    const cube = (/** @type {string} */ id, /** @type {number} */ x) =>
+      doc.append({ id, op: 'primitive.cuboid', name: id, params: { size: [2, 2, 2], center: [x, 0, 0] } }, LOCAL)
+    cube('a', 0)
+    cube('b', 10)
+    cube('c', 20)
+    doc.append({ id: 'g', op: 'group.assemble', name: 'Group 1', target: 'a', operands: ['b'], consumes: ['a', 'b'], params: { names: ['a', 'b'] } }, LOCAL)
+    doc.append(
+      {
+        id: 'm',
+        op: 'group.merge',
+        name: 'Group 1',
+        target: 'g',
+        operands: ['c'],
+        consumes: ['g', 'c'],
+        params: { members: [{ colors: { a: { color: 0xff0000 } } }, { name: 'c', hidden: true }] },
+      },
+      LOCAL,
+    )
+    const value = /** @type {any} */ (foldDefinition(capturePart(doc, 'm', { name: 'Merged' }), doc.resolution()))
+    expect(value.names).toEqual(['a', 'b'])
+    expect(Object.keys(value.parts)).toEqual(['a', 'b', 'c'])
+    expect(value.colors.a).toEqual({ color: 0xff0000, alpha: 1 })
+  })
+})
+
 describe('capturePart — user colour overrides (TODO/core-054)', () => {
   /** A group recoloured by hand: whole body, plus one named part at partial opacity. */
   function recolouredDocument() {

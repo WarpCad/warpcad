@@ -18,8 +18,10 @@ import {
   isGroup,
   localBoundsOf,
   mapGeometry,
+  mergeInto,
   mirror,
   mirrorRotationDeg,
+  partMetaOf,
   pick,
   sizeOf,
   snap,
@@ -1175,5 +1177,147 @@ describe('mirrorRotationDeg (TODO/core-028)', () => {
   it('rejects an unknown axis and a malformed rotation', () => {
     expect(() => mirrorRotationDeg([0, 0, 0], /** @type {any} */ ('q'))).toThrow(/axis/)
     expect(() => mirrorRotationDeg(/** @type {any} */ ([0, 0]), 'x')).toThrow(/rotation/)
+  })
+})
+
+// TODO/core-076: merging one group's parts into another, flat.
+describe('mergeInto', () => {
+  const at = (/** @type {number} */ x) => transforms.translate([x, 0, 0], small())
+  /** Two visible parts and a hidden one, with a colour, at known places. */
+  const board = () => {
+    let group = add(createGroup('board'), at(0), 'PCB', { color: 0x00ff00 })
+    group = add(group, at(10), 'LCD')
+    return add(group, at(50), 'tap', { hidden: true })
+  }
+  const clearances = () => add(add(createGroup('clearances'), at(20), 'Screen'), at(30), 'Mic')
+
+  /** @param {Group} group */
+  const boundsByPart = (group) =>
+    Object.fromEntries(Object.entries(group.parts).map(([name, part]) => [name, measurements.measureBoundingBox(part)]))
+
+  it('keeps every part where it was, in input order, and the union of the inputs bounds', () => {
+    const before = { ...boundsByPart(board()), ...boundsByPart(clearances()) }
+    const merged = mergeInto(mergeInto(createGroup(), board()), clearances())
+    expect(Object.keys(merged.parts)).toEqual(['PCB', 'LCD', 'tap', 'Screen', 'Mic'])
+    expect(merged.names).toEqual(['PCB', 'LCD', 'Screen', 'Mic'])
+    const after = boundsByPart(merged)
+    for (const [name, bounds] of Object.entries(before)) {
+      for (let corner = 0; corner < 2; corner += 1) {
+        for (let axis = 0; axis < 3; axis += 1) expect(after[name][corner][axis]).toBeCloseTo(bounds[corner][axis], 6)
+      }
+    }
+    // -2 .. 32 on X: the hidden tap at 50 does not count, exactly as it does not in `board`.
+    expect(sizeOf(merged)[0]).toBeCloseTo(34, 6)
+  })
+
+  it('uses the prefix literally, like JSCAD', () => {
+    const merged = mergeInto(mergeInto(createGroup(), board()), clearances(), { prefix: 'clearance' })
+    expect(merged.names).toEqual(['PCB', 'LCD', 'clearanceScreen', 'clearanceMic'])
+    expect(mergeInto(createGroup(), clearances(), { prefix: 'a ' }).names).toEqual(['a Screen', 'a Mic'])
+  })
+
+  it('treats an empty prefix as no prefix', () => {
+    expect(mergeInto(createGroup(), clearances(), { prefix: '' }).names).toEqual(['Screen', 'Mic'])
+  })
+
+  it('`hidden` hides only that member, and leaving it unset never reveals a hidden source part', () => {
+    const merged = mergeInto(mergeInto(createGroup(), board()), clearances(), { hidden: true })
+    expect(merged.names).toEqual(['PCB', 'LCD'])
+    expect(Object.keys(merged.parts)).toEqual(['PCB', 'LCD', 'tap', 'Screen', 'Mic'])
+    expect(sizeOf(merged)[0]).toBeCloseTo(14, 6)
+    expect(mergeInto(createGroup(), board()).names).not.toContain('tap')
+  })
+
+  it('carries colours under the new name, and a member colour replaces the source one', () => {
+    const merged = mergeInto(createGroup(), board(), {
+      prefix: 'x-',
+      colors: { PCB: { color: 0xff0000 }, LCD: { color: 0x0000ff, colorAlpha: 0.5 }, gone: { color: 1 } },
+    })
+    expect(merged.colors).toEqual({ 'x-PCB': { color: 0xff0000, alpha: 1 }, 'x-LCD': { color: 0x0000ff, alpha: 0.5 } })
+    expect(mergeInto(createGroup(), board(), { prefix: 'y-' }).colors).toEqual({ 'y-PCB': { color: 0x00ff00, alpha: 1 } })
+  })
+
+  it('refuses a colour that is not one', () => {
+    expect(() => mergeInto(createGroup(), board(), { colors: { PCB: { color: 'red' } } })).toThrow(/PCB.*0xRRGGBB/)
+    expect(() => mergeInto(createGroup(), board(), { colors: { PCB: {} } })).toThrow(/PCB.*colou?r/)
+  })
+
+  it('carries `meta` under the new name and rewrites the part names inside it', () => {
+    let split = add(createGroup('split'), at(0), 'A', {
+      meta: {
+        role: 'piece',
+        seam: /** @type {any} */ ({ profile: 'dovetail', joins: ['A', 'B'], axis: 'x' }),
+        hardware: [{ item: 'dowel', diameterMm: 4, count: 2, label: 'pin', joins: ['A', 'B'], axis: 'x' }],
+      },
+    })
+    split = add(split, at(10), 'B')
+    split = add(split, at(20), 'key', { meta: { role: 'key', joins: ['A', 'B'], axis: 'x' } })
+    const merged = mergeInto(createGroup(), split, { prefix: 'p-' })
+    expect(partMetaOf(merged, 'p-A')?.seam?.joins).toEqual(['p-A', 'p-B'])
+    expect(partMetaOf(merged, 'p-A')?.hardware?.[0].joins).toEqual(['p-A', 'p-B'])
+    expect(partMetaOf(merged, 'p-key')?.joins).toEqual(['p-A', 'p-B'])
+    expect(partMetaOf(merged, 'A')).toBeUndefined()
+    // No metadata anywhere: the key stays absent, as on any other group.
+    expect('meta' in mergeInto(createGroup(), clearances())).toBe(false)
+  })
+
+  it('concatenates holes, and `combine` subtracts them', () => {
+    const holed = addHole(add(createGroup('holed'), big(), 'block'), small())
+    const merged = mergeInto(mergeInto(createGroup(), clearances()), holed)
+    expect(merged.holes).toHaveLength(1)
+    const block = measurements.measureVolume(combine(merged, 'block'))
+    expect(block).toBeCloseTo(1000 - 64, 6)
+  })
+
+  it('a group with no parts adds nothing, and a one-part group adds one', () => {
+    expect(mergeInto(clearances(), createGroup()).names).toEqual(['Screen', 'Mic'])
+    expect(mergeInto(createGroup(), add(createGroup(), at(0), 'only')).names).toEqual(['only'])
+  })
+
+  it('refuses a collision by name, a hidden part included, rather than overwriting', () => {
+    expect(() => mergeInto(board(), add(createGroup('other'), at(0), 'PCB'))).toThrow(/"PCB".*"other".*"board"/)
+    expect(() => mergeInto(board(), add(createGroup('other'), at(0), 'tap'))).toThrow(/"tap"/)
+    expect(() => mergeInto(board(), add(createGroup('other'), at(0), 'CB'), { prefix: 'P' })).toThrow(/"PCB"/)
+  })
+
+  it.each([
+    ['a comma', 'a,b', /comma/],
+    ['a control character', 'a\u0007', /control/],
+    ['a leading space', ' a', /start with a space/],
+    ['a non-string', 7, /text/],
+  ])('refuses a prefix with %s', (_label, prefix, message) => {
+    expect(() => mergeInto(createGroup(), clearances(), { prefix: /** @type {any} */ (prefix) })).toThrow(message)
+  })
+
+  it('refuses a result over 80 characters and takes one of exactly 80', () => {
+    const prefix = 'p'.repeat(74) // + 'Screen' = 80
+    expect(mergeInto(createGroup(), add(createGroup(), at(0), 'Screen'), { prefix }).names).toEqual([`${prefix}Screen`])
+    expect(() => mergeInto(createGroup(), add(createGroup(), at(0), 'Screen'), { prefix: `${prefix}p` })).toThrow(/80 characters/)
+  })
+
+  it.each(['__proto__', 'constructor', 'prototype'])('refuses %s as a part and as a prefix-made name', (name) => {
+    const source = { ...createGroup('bad'), names: [name], parts: Object.fromEntries([[name, at(0)]]) }
+    expect(() => mergeInto(createGroup(), source)).toThrow(/cannot be a part name/)
+    const made = add(createGroup('ok'), at(0), name.slice(3))
+    expect(() => mergeInto(createGroup(), made, { prefix: name.slice(0, 3) })).toThrow(/cannot be a part name/)
+  })
+
+  it('refuses a plain solid: it has no parts to merge', () => {
+    expect(() => mergeInto(createGroup(), /** @type {any} */ (small()))).toThrow(/not a group/)
+  })
+
+  it('never mutates either input', () => {
+    const into = board()
+    const from = clearances()
+    const snapshot = [[...into.names], [...from.names]]
+    mergeInto(into, from, { prefix: 'x-' })
+    expect([[...into.names], [...from.names]]).toEqual(snapshot)
+  })
+})
+
+describe('resolvePieces', () => {
+  it.each(['constructor', 'toString', '__proto__'])('says %s is not a part instead of finding it on the prototype', (name) => {
+    const group = add(createGroup('g'), small(), 'only')
+    expect(() => combine(group, name)).toThrow(new RegExp(`no part named "${name}"`))
   })
 })

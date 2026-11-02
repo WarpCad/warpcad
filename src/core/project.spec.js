@@ -1042,6 +1042,27 @@ describe('user visibility on the state line (TODO/ui-089)', () => {
   const visibilityOf = (document) =>
     document.bodies().map((/** @type {any} */ body) => [body.id, body.viewHidden === true, body.viewHiddenParts ?? []])
 
+  it('TODO/core-076: a merged body with hides round-trips byte for byte', () => {
+    const document = createDocument()
+    document.append({ id: 'a', op: 'primitive.cuboid', name: 'a', params: { size: [2, 2, 2] } }, local)
+    document.append({ id: 'b', op: 'primitive.cuboid', name: 'b', params: { size: [2, 2, 2], center: [5, 0, 0] } }, local)
+    document.append({ id: 'g', op: 'group.assemble', name: 'Group 1', target: 'a', operands: ['b'], consumes: ['a', 'b'], params: { names: ['a', 'b'] } }, local)
+    document.append({ id: 'c', op: 'primitive.cuboid', name: 'c', params: { size: [2, 2, 2], center: [9, 0, 0] } }, local)
+    document.append(
+      { id: 'm', op: 'group.merge', name: 'Group 1', target: 'g', operands: ['c'], consumes: ['g', 'c'], params: { members: [{ colors: { a: { color: 16711680 } } }, { name: 'c', hidden: true }] } },
+      local,
+    )
+    document.setViewHidden('m', { subPart: 'b', hidden: true }, local)
+    const text = serializeProject(document)
+    const reopened = open(text)
+    expect(serializeProject(reopened)).toBe(text)
+    const body = /** @type {any} */ (reopened.bodies().find((candidate) => candidate.id === 'm'))
+    expect(body.viewHiddenParts).toEqual(['b'])
+    expect(body.geometry.names).toEqual(['a', 'b'])
+    expect(Object.keys(body.geometry.parts)).toEqual(['a', 'b', 'c'])
+    expect(body.geometry.colors.a).toEqual({ color: 16711680, alpha: 1 })
+  })
+
   it('round-trips a body hide and a part hide, and the reopened file re-saves byte-identically', () => {
     const document = splitScenario()
     document.setViewHidden('cube-1', { subPart: 'Cube 1 A', hidden: true }, local)

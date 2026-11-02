@@ -83,6 +83,7 @@ const VERBS = Object.freeze({
   'boolean.subtract': 'Subtract',
   'boolean.intersect': 'Intersect',
   'group.assemble': 'Group',
+  'group.merge': 'Merge',
   'group.snap': 'Snap',
   'group.align': 'Align',
   'modify.filletRim': 'Fillet',
@@ -218,6 +219,18 @@ export function describeRow(record, names) {
   const params = record.params ?? {}
   const subject = nameOf(record.supersedes ?? record.target, index)
   const verb = /** @type {Record<string, string>} */ (VERBS)[record.op]
+
+  // A merge (`TODO/core-076`): the result carries the target's name, so the row says what went
+  // into what. With no member merging (a Hide tick on whole parts) it is a plain Group in a
+  // different record, and reads like one.
+  if (record.op === 'group.merge' && Array.isArray(params.members)) {
+    const members = /** @type {Array<{ name?: string }>} */ (params.members)
+    const named = [record.target, ...(record.operands ?? [])].map((ref) => nameOf(ref, index))
+    const shown = (/** @type {Array<string | undefined>} */ list) => list.filter((name) => name !== undefined).join(', ')
+    if (members.every((member) => member?.name !== undefined)) return `Group ${shown(named).replaceAll(', ', ' + ')}`.trimEnd()
+    if (named[0] === undefined) return 'Merge'
+    return named.length > 1 ? `Merge ${shown(named.slice(1))} into ${named[0]}` : `Merge into ${named[0]}`
+  }
 
   // A boolean or a group: its geometry *is* its operands, so the row names them
   // rather than pretending one of them is the subject — the same reasoning

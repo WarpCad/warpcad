@@ -878,9 +878,10 @@ watch(
 .part__body {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  /* Inline text, not a flex row (`TODO/core-076`): a merged group's parts can share a long prefix,
+     so the name wraps at its spaces and hyphens and the `hidden` pill flows after it. A flex row
+     let the pill squeeze the name to one letter per line in a narrow panel. */
+  display: block;
   padding: 0 10px 0 2px;
   border: none;
   background: transparent;
@@ -892,10 +893,10 @@ watch(
   touch-action: manipulation;
 }
 
+/* Wraps rather than truncates (`TODO/core-076`): five rows all reading `clearance…` cannot be told
+   apart. `anywhere` is only for one long word with nowhere else to break. */
 .part__name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .part--hidden .part__name {
@@ -904,7 +905,9 @@ watch(
 }
 
 .part__hidden {
-  flex: 0 0 auto;
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
   padding: 1px 6px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;

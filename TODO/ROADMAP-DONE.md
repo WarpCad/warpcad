@@ -813,6 +813,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `core-076` | Grouping a group collapses it into one opaque part. A new `group.merge` op flattens parts, hidden parts, holes, colours and hides into the first group, with a literal JSCAD-style prefix; a cut with a hidden part of a merged group leaves the group in place. `group.assemble` and existing files unchanged. Filed 2026-11-02 | Finding | — | new 32; 1, 4, 5, 6, 10, 11, 12, 13, 14, 15, 18, 22, 24, 25 |
 | ✅ `testing-014` | Phone prompt-response test races the Inspector's object list. Fixed in `ad06915` (wait for the phone tab, list or header before reading any of them), not by the proposed wait on the list alone; re-checked 2026-11-02 against a full e2e run with 0 failures | Finding | — | none |
 | ✅ `testing-005` | Triage the `TODO/VERIFY.md` open rows: 437 → 421 Open; 10 moved to `ACCEPTANCE.md` as "Also re-drive" lines, 6 closed with evidence, 5 pointed at `FIND-testing-015` (WebGL depth and translucency, real-GPU look still open). Filed 2026-10-17 | Finding | — | — |
 | ✅ `ui-079` | Shrink the Library and Operations panels in steps between laptop and phone width (stages 1–3 here; stages 4–6 as `ui-084`, `ui-081`, `ui-082`; stage 7 `adc1e36`) | Finding | — | 1, 5, 10 |
@@ -1199,5 +1200,6 @@ convention going forward.
 | `testing-005` | 2026-11-02 01:43 | 3m from the first step record (01:40); the Sonnet triage agent's own run is not separately timed |
 | `testing-014` | 2026-11-02 14:50 | under 5m (step-record timer read 0m); no code written: the fix was already in `ad06915`, so this run only re-checked it and retired the file |
 | `perf-003` | 2026-11-02 18:23 | 3h28m wall clock (from the first step record, 14:55 UTC). Sonnet agent for RED/GREEN, then a changed-scope e2e run that found one real timing race (`ai-chat` Shift+Enter read the request list before the lazy agent import finished; fixed with a poll), then a bench on both builds and a `--check` pass. Targets re-baselined to relative gains, a request-count rule relaxed by decision; ai-006 and scenarios 24–25 not driven |
+| `core-076` | 2026-11-02 20:10 | 1h13m wall clock (from 18:57 UTC). Opus in-session; Haiku ran every test stage. Step 6 was driven before the full suite, since a fix found there would have meant a re-run. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

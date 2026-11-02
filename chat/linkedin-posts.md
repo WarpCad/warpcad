@@ -3688,3 +3688,23 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five tasks, each with an "Interaction model" section → grep of the five TODO/FIND-* files; stopped at 200 → TODO/FIND-ai-033 Goal; LGPL, parked → TODO/DEFER-io-025 Goal; no dependency, multi-mesh part reusable → TODO/FIND-io-024 "Why 3MF first"
 **To Add:** nothing
+
+## 2026-11-02T20:06:01Z — Group merges the parts of groups, with an optional prefix
+
+**Post:** Pressing Group on two groups in WarpCad used to turn each one into a single opaque part. You could no longer pick, measure or cut with what was inside, and colours and hidden parts were lost on the way.
+
+Now the parts merge into one flat group, with an optional name prefix. Hidden parts stay out of the size and the export, and they can still cut: subtract with a hidden clearance and the board stays in the scene for the next one. Grouping plain solids is still one click.
+
+Tested on a real board model: 16 parts and 5 clearance blocks became 21 parts, still 50.8 x 22.86 x 11.84 mm, with no part moved.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:**
+- "flatten each into one opaque part" → TODO/done/core-076 Problem, reproduced on the owner's file; `group.assemble` test in registry.spec.js
+- "hidden parts and colours included" → groupMerge.spec.js; driven on the real file, 66/66 Chromium, 22/22 WebKit, 22/22 Firefox
+- "the board stays" → booleanConsumes.spec.js; two cuts driven on the real file
+- "still one click" → e2e/group-combine.e2e.js unedited and green; e2e/group-merge.e2e.js first test
+- "21 parts, 50.8 x 22.86 x 11.84 mm, no part moved" → scenario 32 drive, 2026-11-02
+**To Add:** docs/media/group-merge.gif

@@ -2556,3 +2556,19 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five tasks filed 2026-11-02 → TODO/ROADMAP.md rows 16b-16f; STEP parked, readers LGPL → TODO/DEFER-io-025 Goal
 **To Add:** nothing
+
+## 2026-11-02T20:06:01Z — Group merges the parts of groups, with an optional prefix
+
+**Post:** WarpCad: grouping two groups used to flatten each into one opaque part. Now their parts merge into one flat group, hidden parts and colours included, with an optional name prefix. Cut with a hidden clearance and the board stays, ready for the next cut.
+
+Built with Claude Code, reviewed by me.
+**Links:** [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #3DPrinting
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:**
+- "flatten each into one opaque part" → TODO/done/core-076 Problem, reproduced on the owner's file; `group.assemble` test in registry.spec.js
+- "hidden parts and colours included" → groupMerge.spec.js; driven on the real file, 66/66 Chromium, 22/22 WebKit, 22/22 Firefox
+- "the board stays" → booleanConsumes.spec.js; two cuts driven on the real file
+- "still one click" → e2e/group-combine.e2e.js unedited and green; e2e/group-merge.e2e.js first test
+- "21 parts, 50.8 x 22.86 x 11.84 mm, no part moved" → scenario 32 drive, 2026-11-02
+**To Add:** docs/media/group-merge.gif

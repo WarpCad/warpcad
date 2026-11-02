@@ -2,6 +2,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { nextTick } from 'vue'
 import { DOMWrapper, enableAutoUnmount, mount } from '@vue/test-utils'
 
 // The popover is `<Teleport to="body">`d (see the component's own CSS
@@ -909,11 +910,47 @@ describe('OperationsToolbar — sub-part-addressed boolean operands (TODO/ui-040
     const appendSpy = vi.spyOn(documentStore, 'append')
     await wrapper.get('[data-testid="operation-group"]').trigger('click')
 
+    // TODO/core-076: a body with parts has a question to answer first, so nothing is written yet.
+    expect(appendSpy).not.toHaveBeenCalled()
+    /** @param {string} testid */
+    const inPopover = (testid) => /** @type {HTMLInputElement} */ (document.body.querySelector(`[data-testid="${testid}"]`))
+    expect(inPopover('group-merge-popover')).not.toBeNull()
+
+    // Kept whole, it is today's record.
+    const keep = inPopover('group-merge-keep-1')
+    keep.checked = false
+    keep.dispatchEvent(new Event('change'))
+    await nextTick()
+    inPopover('group-merge-commit').click()
+    await nextTick()
+
     const record = appendSpy.mock.calls[0][0]
     expect(record.op).toBe('group.assemble')
     expect(record.target).toBe('base-1')
     expect(record.operands).toEqual(['group-1'])
     expect(record.params?.names).toEqual(['Base 1', 'Group 1'])
+    expect(inPopover('group-merge-popover')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('TODO/core-076: left ticked, a group joined by a solid merges, and the group is the target whichever was picked first', async () => {
+    placeGroupAndCuboid()
+    drillThenSelectBaseFirst('group-1', 'Cube 1', 'base-1')
+
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-group"]').trigger('click')
+    const commit = /** @type {HTMLButtonElement} */ (document.body.querySelector('[data-testid="group-merge-commit"]'))
+    commit.click()
+    await nextTick()
+
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.op).toBe('group.merge')
+    expect(record.name).toBe('Group 1')
+    expect(record.target).toBe('group-1')
+    expect(record.operands).toEqual(['base-1'])
+    expect(record.params?.members).toEqual([{}, { name: 'Base 1' }])
+    wrapper.unmount()
   })
 
   it('names both operands, with the drilled-in one shown by part, before anything is committed', async () => {

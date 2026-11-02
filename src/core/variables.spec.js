@@ -714,6 +714,7 @@ describe('bindableParams — what the bind control may offer, read from the regi
   it.each([
     ['transform.rotate', { angles: [0, 0, 90], center: [0, 0, 0], rotation: [0, 0, 90] }],
     ['group.assemble', { names: ['A', 'B'] }],
+    ['group.merge', { members: [{}, { prefix: 'x', hidden: true }] }],
     ['boolean.union', {}],
     ['raspberrypi.hat', {}],
     ['asset.image', { mime: 'image/png' }],

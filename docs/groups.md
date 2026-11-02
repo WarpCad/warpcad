@@ -22,10 +22,11 @@ unclickable until two or more solids are selected** — see
 for how selecting more than one shape works (Shift-click on desktop, or the
 **Select** marquee tool on a touch screen).
 
-Unlike Subtract, **Group does not care what order you pick things in.** There is no
-base and no subtrahend — every selected solid is an equal member of the resulting
-group, so the badge under the toolbar just shows the selected count, with no
-"first is the base" note.
+Unlike Subtract, **Group of plain solids does not care what order you pick things in.**
+There is no base and no subtrahend — every selected solid is an equal member of the
+resulting group, so the badge under the toolbar just shows the selected count, with no
+"first is the base" note. Order does matter once a selected body has its own parts: see
+[Grouping groups](#grouping-groups-merging-their-parts).
 
 ## A worked example
 
@@ -113,7 +114,8 @@ gizmo and editable fields come back for the group as a whole.
 One kind of group is an exception to the parameter half: parts that came from a
 **built-in multi-part shape** (rather than from shapes you grouped yourself) show
 their name and measurements but no parameter fields, because those parts were never
-separate shapes you created and so have no parameters of their own to show.
+separate shapes you created and so have no parameters of their own to show. That stays
+true after the built-in shape is [merged into a group](#grouping-groups-merging-their-parts).
 
 ### This works on shapes you have moved, too
 
@@ -131,14 +133,71 @@ selected, or from its row in the Inspector's
 [object list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape), the same
 way you would reach any other hidden piece.
 
+## Grouping groups: merging their parts
+
+Select bodies that have their own parts (two groups, a Raspberry Pi and a Cube, two bolts)
+and press **Group**, and a small panel opens instead of grouping straight away. By default
+every part lands in **one flat group**: you can still pick, measure and cut with each one,
+hidden parts and colours included. Grouping plain solids stays one click, with no panel.
+
+![Pressing Group on two groups opens a panel, a prefix is typed and Hide these parts ticked, and the result is one group listing every part](./media/group-merge.gif)
+
+Try it (millimetres, Z up):
+
+1. Drag two **Cubes** into the view, select both, and press **Group**: `Group 1`. Do the
+   same with two more Cubes: `Group 2`.
+2. Click `Group 1`, hold **Shift** and click `Group 2`, then press **Group**. A small panel
+   opens.
+3. In the `Group 2` row, leave **Merge parts** ticked and type `clearance-` in **Prefix**.
+   The line below it shows `clearance-Cube 3, +1 more`. Tick **Hide these parts**, then
+   press the panel's **Group**.
+4. One body remains, still named `Group 1`. In the Inspector's **Parts** section it lists
+   `Cube 1` and `Cube 2`, and `clearance-Cube 3` and `clearance-Cube 4` carry the **hidden**
+   label. Turn on **Show hidden parts** to see those two drawn as well.
+5. To keep a whole group as a single part instead, untick **Merge parts** for it.
+6. To add to a built-in shape, drag in a **Raspberry Pi** and a **Cube**, select both and
+   press **Group**, then press the panel's **Group**. The result is still named
+   `Raspberry Pi 1`, its parts now include `Cube 1`, and `hole1` is still there to cut with.
+
+![The Group panel: Group 1 keeps its names, and Group 2 has Merge parts ticked, the prefix clearance- typed and Hide these parts ticked](./screenshots/group-merge-prefix.png)
+
+What to know:
+
+- **The first merging body gives the name and keeps its part names**, and the others follow
+  in the order you picked them. A Cube picked before a Pi still joins that Pi. A pick depth
+  is ignored: the whole body joins.
+- **The prefix is used exactly as typed**, so include your own separator: `clearance` gives
+  `clearanceScreen`, and `clearance-` gives `clearance-Screen`. A prefix cannot contain a
+  comma or start with a space, and a part name can be at most 80 characters.
+- **Two shapes with the same part names need a prefix, and the panel fills one in.** A Pi and
+  a Camera both have `hole1`, so the Camera's row opens with its own name as the prefix. If
+  you change it to something that clashes, the panel says which part clashes and **Group**
+  dims until you fix it.
+- **Hide these parts decides what counts.** Hidden parts stay out of the size, export and a
+  whole-object cut. Leave it unticked and the added parts count as part of the object. A
+  part that was already hidden stays hidden either way, so ticking nothing never reveals a
+  bolt's `tap`.
+- **Cutting with a hidden part leaves the group in place; cutting with a visible part uses it
+  up.** So one kit of clearances can cut many pockets, one at a time. See
+  [Cutting with just one part](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape).
+- **A merged built-in shape's options move to History.** A merged Pi has no **Model** field in
+  the Inspector any more; change it from the Pi's own row in History, which rebuilds the
+  merge. If the new model has a part name that is already taken, that step is refused and
+  says which name.
+- **Undo takes the whole merge back**, with each original group as it was, colours and hides
+  included.
+- **Groups you merged before are not changed.** A project saved with a group of groups keeps
+  each one as a single part. Press **Group** again on new selections to merge them.
+
 ## Notes and gotchas
 
 - **Units are millimetres**, as everywhere else in WarpCad.
 - **More than two at once is fine.** Select three or more solids and Group
   combines all of them into one body, the same way Union does.
-- **Order never matters.** Grouping A-then-B gives the identical result to
-  grouping B-then-A — there is nothing analogous to Subtract's base/subtrahend
-  distinction.
+- **Order does not matter for plain solids.** Grouping A-then-B gives the same result
+  as B-then-A — there is nothing analogous to Subtract's base/subtrahend distinction.
+  When a selected body has its own parts, [order sets the name and the part
+  order](#grouping-groups-merging-their-parts).
 - **A group's dimension lines and Inspector report the combined bounding box** —
   the smallest box that contains every part — not any single part's own size. To
   read one part's own size, click into it as described above.
