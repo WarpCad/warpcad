@@ -245,6 +245,14 @@ export const OPERATIONS = Object.freeze({
       const trimmed = names.map((/** @type {string} */ name) => name.trim())
       if (trimmed.some((/** @type {string} */ name) => name === '' || name.length > 80)) throw new Error(`${op}: each part name must be 1 to 80 characters`)
       if (new Set(trimmed).size !== trimmed.length) throw new Error(`${op}: part names must be unique, got ${JSON.stringify(trimmed)}`)
+      // `TODO/core-077`: a recoloured operand keeps its colour only in a `group.merge` record, so
+      // the planner writes the same record a click does. Named choices keep each body whole.
+      const planned = planGroupMerge(
+        document,
+        operands,
+        trimmed.map((/** @type {string} */ name) => ({ name }))
+      )
+      if (planned.record?.op === 'group.merge') return { id: document.nextId('group'), ...planned.record }
       return {
         id: document.nextId('group'),
         op,

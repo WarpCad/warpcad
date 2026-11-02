@@ -71,6 +71,13 @@ operands. The difference is what is *inside* the result: a boolean's result is o
 computed volume, while a group's result still contains both original solids,
 complete — and you can look at either one individually, as the next section shows.
 
+A colour you gave a shape stays on it. To see that:
+
+1. Drag two **Cubes** into the view, and colour the first one red in the Inspector.
+2. Select both and press **Group**. The first Cube stays red.
+3. Click it twice to reach `Group 1 ▸ Cube 1`. Press **Reset** under Color only if you
+   have recoloured it since: Reset returns it to the red it had when you grouped it.
+
 ## Selecting a part inside a group
 
 Once a group is selected as a whole, **clicking again on one of its parts narrows

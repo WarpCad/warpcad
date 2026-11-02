@@ -2572,3 +2572,12 @@ Built with Claude Code, reviewed by me.
 - "still one click" → e2e/group-combine.e2e.js unedited and green; e2e/group-merge.e2e.js first test
 - "21 parts, 50.8 x 22.86 x 11.84 mm, no part moved" → scenario 32 drive, 2026-11-02
 **To Add:** docs/media/group-merge.gif
+
+## 2026-11-02T21:44:55Z — Group keeps a recoloured body's colour (core-077)
+
+**Post:** WarpCad fix: colour a cube red, group it with a second cube, and the red now stays. A plain Group used to drop the colour with no warning. 7,784 unit tests and the full e2e matrix pass. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](https://github.com/WarpCad/warpcad)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** colour lost on plain Group → TODO/FIND-core-077 Problem (measured at 3ecbaf8); fix → diff of src/core/groupMerge.js; 7,784 unit tests passed → unit run this session; 4715 e2e passed, 0 failed → full e2e run this session; red survives Group, deselect, reload → manual drive this session
+**To Add:** screenshot of the red cube kept red after Group

@@ -5,7 +5,7 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
 
 ## Problem

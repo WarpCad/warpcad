@@ -252,6 +252,19 @@ describe('the records operate writes are the ones the UI writes', () => {
     })
   })
 
+  it('a group over a recoloured solid keeps the colour (TODO/core-077)', () => {
+    const { document, ids } = cubes(2)
+    document.setColorOverride(ids[0], { color: 0xff0000 }, LOCAL)
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'operate', { op: 'group.assemble', operands: ids.map((id) => ({ id })) }))
+    expect(result.error).toBeUndefined()
+    expect(document.entries.at(-1)?.record).toMatchObject({
+      op: 'group.merge',
+      params: { members: [{ name: 'Cube 1', colors: { 'Cube 1': { color: 0xff0000 } } }, { name: 'Cube 2' }] },
+    })
+    const merged = /** @type {any} */ (document.bodies().find((body) => body.id === result.applied[0].bodyId))
+    expect(merged.geometry.colors['Cube 1']).toEqual({ color: 0xff0000, alpha: 1 })
+  })
+
   describe('group.merge (TODO/core-076)', () => {
     /** Two groups of two cubes each, the second recoloured and with one part hidden in the view. */
     function twoGroups() {

@@ -3708,3 +3708,16 @@ Built with Claude Code, reviewed by me.
 - "still one click" → e2e/group-combine.e2e.js unedited and green; e2e/group-merge.e2e.js first test
 - "21 parts, 50.8 x 22.86 x 11.84 mm, no part moved" → scenario 32 drive, 2026-11-02
 **To Add:** docs/media/group-merge.gif
+
+## 2026-11-02T21:44:55Z — Group keeps a recoloured body's colour (core-077)
+
+**Post:** WarpCad had a quiet bug. Colour a cube red, group it with a second cube, and the red disappeared. Nothing warned, and Undo was the only way back.
+
+The cause was in how the group was recorded. A plain Group wrote a new root that read only its own history, so the colour set on the cube was left behind. The fix records the group with each coloured member's colour baked in, and a group with no colour writes the same record as before, so existing project files fold as they did.
+
+The unit suite (7,784 tests) and the full end-to-end matrix pass. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** colour lost on plain Group → TODO/FIND-core-077 Problem (measured at 3ecbaf8); a colourless group writes the same record → groupMerge.spec.js equality test; 7,784 unit tests passed → unit run this session; 4715 e2e passed, 0 failed → full e2e run this session
+**To Add:** screenshot of the red cube kept red after Group

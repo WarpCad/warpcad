@@ -254,20 +254,65 @@ describe('planGroupMerge — collisions and refused prefixes', () => {
 })
 
 describe('planGroupMerge — keeping a body whole', () => {
-  it('with nothing merging and nothing hidden, the record equals group.assemble’s', () => {
+  it('with nothing merging, nothing hidden and no colour, the record equals group.assemble’s', () => {
     const document = boardAndClearances()
-    const plan = planGroupMerge(document, operandsOf(document, ['board', 'clear']), [{ merge: false }, { merge: false }])
-    const clear = body(document, 'clear').recordId
+    cube(document, 'plain', 'Plain', 40)
+    const plan = planGroupMerge(document, operandsOf(document, ['board', 'plain']), [{ merge: false }, { merge: false }])
+    const plain = body(document, 'plain').recordId
     expect(plan.record).toEqual({
       op: 'group.assemble',
       name: 'Group 1',
       target: 'board',
-      operands: [clear],
-      consumes: ['board', clear],
-      params: { names: ['Board', 'Clearances'] },
+      operands: [plain],
+      consumes: ['board', plain],
+      params: { names: ['Board', 'Plain'] },
     })
     const id = commit(document, plan)
-    expect(group(document, id).names).toEqual(['Board', 'Clearances'])
+    expect(group(document, id).names).toEqual(['Board', 'Plain'])
+  })
+
+  describe('a colour to keep (TODO/core-077)', () => {
+    it('a recoloured solid with nothing merging writes group.merge with its colour under its name', () => {
+      const document = boardAndClearances()
+      cube(document, 'red', 'Red', 40)
+      cube(document, 'plain', 'Plain', 50)
+      document.setColorOverride('red', { color: 0xff0000 }, LOCAL)
+      const plan = planGroupMerge(document, operandsOf(document, ['red', 'plain']))
+      expect(plan.record).toMatchObject({
+        op: 'group.merge',
+        params: { members: [{ name: 'Red', colors: { Red: { color: 0xff0000 } } }, { name: 'Plain' }] },
+      })
+      const id = commit(document, plan)
+      expect(group(document, id).colors.Red).toEqual({ color: 0xff0000, alpha: 1 })
+      expect(group(document, id).colors.Plain).toBeUndefined()
+    })
+
+    it('a whole-body colour on a body kept whole does the same', () => {
+      const document = boardAndClearances()
+      cube(document, 'plain', 'Plain', 40)
+      const plan = planGroupMerge(document, operandsOf(document, ['plain', 'clear']), [{}, { merge: false }])
+      expect(plan.record).toMatchObject({ op: 'group.merge' })
+      const id = commit(document, plan)
+      expect(group(document, id).colors.Clearances).toEqual({ color: 0xff0000, alpha: 1 })
+    })
+
+    it('alpha survives', () => {
+      const document = boardAndClearances()
+      cube(document, 'ghost', 'Ghost', 40)
+      cube(document, 'plain', 'Plain', 50)
+      document.setColorOverride('ghost', { color: 0x00ff00, colorAlpha: 0.25 }, LOCAL)
+      const id = commit(document, planGroupMerge(document, operandsOf(document, ['ghost', 'plain'])))
+      expect(group(document, id).colors.Ghost).toEqual({ color: 0x00ff00, alpha: 0.25 })
+    })
+
+    it('a colour reset before grouping bakes nothing, and writes group.assemble', () => {
+      const document = boardAndClearances()
+      cube(document, 'red', 'Red', 40)
+      cube(document, 'plain', 'Plain', 50)
+      document.setColorOverride('red', { color: 0xff0000 }, LOCAL)
+      document.clearColorOverride('red', {}, LOCAL)
+      expect(planGroupMerge(document, operandsOf(document, ['red', 'plain'])).record).toMatchObject({ op: 'group.assemble' })
+    })
   })
 
   it('a Hide tick on an unticked row still writes the hide, as a group.merge of name members', () => {

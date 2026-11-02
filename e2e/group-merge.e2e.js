@@ -138,6 +138,37 @@ test('two groups are built by hand, and plain solids stay one click', async ({ p
   expect((await sceneBodies(page))[0].op).toBe('group.assemble')
 })
 
+test('a recoloured solid keeps its colour through a one-click Group, and Undo restores it (TODO/core-077)', async ({ page }, info) => {
+  await page.goto('/')
+  const { press } = await pointer(page, info)
+  await openProject(
+    page,
+    [
+      { id: 'a', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [-30, 0, 10] } },
+      { id: 'b', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [20, 20, 20], center: [30, 0, 10] } },
+    ]
+      .map((record) => JSON.stringify(record))
+      .join('\n'),
+    2,
+  )
+  await selectInOrder(page, press, ['Cube 1'])
+  await page.getByTestId('inspector-color-input').fill('#ff0000')
+  await expect(page.getByTestId('inspector-color-value')).toHaveText('#ff0000')
+  await selectInOrder(page, press, ['Cube 1', 'Cube 2'])
+  await press(page.getByTestId('operation-group'))
+  await expect(page.getByTestId('group-merge-popover')).toHaveCount(0)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const colorOf = (name) =>
+    page.evaluate(async (partName) => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      return useDocumentStore().raw.bodies()[0]?.geometry.colors?.[partName]
+    }, name)
+  expect(await colorOf('Cube 1')).toEqual({ color: 0xff0000, alpha: 1 })
+  expect(await colorOf('Cube 2')).toBeUndefined()
+  await press(page.getByTestId('undo-button'))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+})
+
 test('merge two groups, one prefixed and hidden; cut with a hidden part; Undo, Redo, reload', async ({ page }, info) => {
   test.setTimeout(150_000)
   await page.goto('/')

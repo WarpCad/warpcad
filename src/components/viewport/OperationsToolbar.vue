@@ -314,7 +314,7 @@ import OperationsGroupPopover from './OperationsGroupPopover.vue'
 import PopoverGrip from './PopoverGrip.vue'
 
 import { consumesOf } from '../../core/booleanConsumes.js'
-import { operandsHaveParts } from '../../core/groupMerge.js'
+import { operandsHaveParts, planGroupMerge } from '../../core/groupMerge.js'
 import { OPERATION_GROUPS, groupStates } from '../../core/operationGroups.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
@@ -485,8 +485,19 @@ function run(op, label) {
   const [base, ...rest] = operands
   const id = documentStore.raw.nextId(op === 'group.assemble' ? 'group' : 'bool')
 
+  // TODO/core-077: a recoloured body keeps its colour only in a `group.merge` record (a
+  // `group.assemble` is a new root and reads just its own lineage), so the planner decides. With no
+  // colour to keep it returns today's `group.assemble` and the literal below is written as before.
+  const planned =
+    op === 'group.assemble'
+      ? planGroupMerge(
+          toRaw(documentStore.raw),
+          operands.map((operand) => ({ id: operand.rootId, terminal: operand.terminalId, name: operand.name })),
+        ).record
+      : null
+
   /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = {
+  const record = planned?.op === 'group.merge' ? { id, ...planned } : {
     id,
     op,
     name: documentStore.raw.nextName(label),
@@ -520,7 +531,7 @@ function run(op, label) {
   // fall back to its opaque record id. Deliberately `name`, not `label`: a
   // drilled-in operand joins the new group under its own body name, never
   // "Group 1 › Cube 1".
-  if (op === 'group.assemble') {
+  if (op === 'group.assemble' && planned?.op !== 'group.merge') {
     record.params = { names: operands.map((operand) => operand.name) }
   }
 

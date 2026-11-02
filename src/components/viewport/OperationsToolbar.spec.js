@@ -902,6 +902,24 @@ describe('OperationsToolbar — sub-part-addressed boolean operands (TODO/ui-040
     expect(result.bounds[1][1]).toBeCloseTo(205, 6)
   })
 
+  it('TODO/core-077: Group over a recoloured solid opens no panel and writes the colour into the record', async () => {
+    placeCuboid('cube-1', 'Cube 1', [0, 0, 5])
+    placeCuboid('cube-2', 'Cube 2', [100, 0, 5])
+    documentStore.raw.setColorOverride('cube-1', { color: 0xff0000 }, { origin: 'local' })
+    selection.select('cube-1')
+    selection.toggle('cube-2')
+
+    const wrapper = mount(OperationsToolbar)
+    const appendSpy = vi.spyOn(documentStore, 'append')
+    await wrapper.get('[data-testid="operation-group"]').trigger('click')
+
+    expect(document.body.querySelector('[data-testid="group-merge-popover"]')).toBeNull()
+    const record = appendSpy.mock.calls[0][0]
+    expect(record.op).toBe('group.merge')
+    expect(record.params?.members).toEqual([{ name: 'Cube 1', colors: { 'Cube 1': { color: 0xff0000 } } }, { name: 'Cube 2' }])
+    wrapper.unmount()
+  })
+
   it('Group ignores a pick depth and still commits bare ids — its registry entry is not `subPartOperands`', async () => {
     placeGroupAndCuboid()
     drillThenSelectBaseFirst('group-1', 'Cube 1', 'base-1')

@@ -256,8 +256,10 @@ function previewLine(names) {
 }
 
 /**
- * The record, once the plan has no errors. With nothing merging and nothing hidden it is exactly
- * today's `group.assemble`: there is nothing a `group.merge` would say that it does not.
+ * The record, once the plan has no errors. With nothing merging, nothing hidden and no colour to
+ * keep it is exactly today's `group.assemble`: there is nothing a `group.merge` would say that it
+ * does not. A colour is something it cannot say, because that op is a new root and reads only its
+ * own lineage (`TODO/core-077`), so a recoloured body writes `group.merge` of `name` members.
  *
  * @param {WarpDocument} document
  * @param {ReadonlyArray<any>} order Rows in result order.
@@ -268,7 +270,20 @@ function previewLine(names) {
 function recordFor(document, order, target, hiddenOf) {
   const terminals = order.map((row) => row.operand.terminal)
   const lineage = { target: terminals[0], operands: terminals.slice(1), consumes: terminals }
-  if (target === undefined && !order.some(hiddenOf)) {
+  const members = order.map((row) => {
+    const colors = bakedColorsOf(row.body, row.merges ? row.partNames : [])
+    if (!row.merges) {
+      const whole = effectiveOverrideOf(row.body?.colorOverrides, undefined)
+      if (whole) colors[row.wholeName] = { color: whole.color, ...(whole.colorAlpha === undefined ? {} : { colorAlpha: whole.colorAlpha }) }
+    }
+    return {
+      ...(row.merges ? {} : { name: row.wholeName }),
+      ...(row.prefix === '' ? {} : { prefix: row.prefix }),
+      ...(hiddenOf(row) ? { hidden: true } : {}),
+      ...(Object.keys(colors).length > 0 ? { colors } : {}),
+    }
+  })
+  if (target === undefined && !order.some(hiddenOf) && !members.some((member) => member.colors !== undefined)) {
     return {
       op: 'group.assemble',
       name: document.nextName('Group'),
@@ -280,21 +295,7 @@ function recordFor(document, order, target, hiddenOf) {
     op: 'group.merge',
     name: target === undefined ? document.nextName('Group') : target.operand.name,
     ...lineage,
-    params: {
-      members: order.map((row) => {
-        const colors = bakedColorsOf(row.body, row.merges ? row.partNames : [])
-        if (!row.merges) {
-          const whole = effectiveOverrideOf(row.body?.colorOverrides, undefined)
-          if (whole) colors[row.wholeName] = { color: whole.color, ...(whole.colorAlpha === undefined ? {} : { colorAlpha: whole.colorAlpha }) }
-        }
-        return {
-          ...(row.merges ? {} : { name: row.wholeName }),
-          ...(row.prefix === '' ? {} : { prefix: row.prefix }),
-          ...(hiddenOf(row) ? { hidden: true } : {}),
-          ...(Object.keys(colors).length > 0 ? { colors } : {}),
-        }
-      }),
-    },
+    params: { members },
   }
 }
 
