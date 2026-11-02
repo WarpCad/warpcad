@@ -453,7 +453,7 @@
   "group-merge.gif": {
     "spec": "e2e/docs/groups.docs.js",
     "specHash": "af0601a2c95bb9127b1db0bbd4a5e8fc23fc3248470214333f3be413992f9469",
-    "bytes": 1173713,
-    "seconds": 10.2
+    "bytes": 1072491,
+    "seconds": 9.8
   }
 }
