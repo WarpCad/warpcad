@@ -6,8 +6,19 @@ priority: high
 model: sonnet
 milestone: none — found while closing io-023 (filed and closed 2026-10-30)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (commit `ad06915`, 2026-11-01; re-checked 2026-11-02).** The fix
+> that landed is not the one proposed below. The root cause was the instant `isVisible()` read
+> right after `page.reload()`: the phone tab was not laid out yet, so the helper skipped opening
+> the sheet. `selectFromList` in `e2e/prompt-response.e2e.js` now waits for the tab, the list or
+> the header before it reads any of them. Waiting on the list or header alone cannot work with
+> nothing selected, because the header is absent then. The full e2e run on the current tree
+> (`.todo-progress/_runs.json`, fingerprint-matched to this tree) passed with 0 failures.
+>
+> The `io-023` theory in the 2026-10-30 note below was not the cause; the bisect in `ad06915`
+> answered its open question. The rest of the file is kept as the record of the investigation.
 
 > **Status (2026-10-30): NOT fixed.** The wait below was tried, and the full matrix still fails this
 > test on `chromium-phone`, with a different symptom: `object-list` resolves but stays `hidden` for

@@ -44,7 +44,6 @@ this repository still need a green full run before they are pushed.
 
 | # | Milestone | Task | Why now | Model |
 |---|---|---|---|---|
-| 0 | `FIND` | ▶ [`testing-014`](testing-014-prompt-response-phone-list-visibility-race.md) Phone prompt-response test races the Inspector's object list; bisect, then fix before pushing `406b4ba` | Decided 2026-11-01: runs before `build-017`; blocks the push | sonnet |
 | 1 | `M19` | ▶ [`build-017`](M19-build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 app (iOS, iPadOS, macOS, Android, Windows) beside this repo, bundling the build, then hand the native TODOs to it | Everything in M19 builds on it | opus |
 | 2 | `M19` | [`build-018`](M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPhone; settle the decision record's unknowns | Its answers set `io-014`'s and `ai-026`'s scope | sonnet |
 | 3 | `M19` | [`build-019`](M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build | Early on purpose: Tauri's open iOS bugs are in this step. **Owner steps first** (Apple Developer account, bundle id) | sonnet |
@@ -60,6 +59,7 @@ this repository still need a green full run before they are pushed.
 | 14 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
 | 15 | `FIND` | ▶ [`ui-078`](FIND-ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | No width left after `ui-075` | sonnet |
 | 16 | `FIND` | ▶ [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note wording | Small | sonnet |
+| 16a | `FIND` | [`ui-092`](FIND-ui-092-prompts-view-highlight-and-edit.md) A Prompts view: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole | Filed 2026-11-02 at the owner's request; rank not yet reviewed. `testing-014` is closed, so nothing blocks it | opus |
 | 17 | `FIND` | ▶ [`perf-003`](FIND-perf-003-defer-code-unused-at-boot.md) Defer code unused at boot (Sentry included) | Faster cold start | sonnet |
 | 17a | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB of kernel out of the main bundle) | Low; follows `perf-003` | opus |
 | 19 | `FIND` | ▶ [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet flake under load | Low | sonnet |
@@ -120,7 +120,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
-| Findings | [`testing-014`](testing-014-prompt-response-phone-list-visibility-race.md) Phone prompt-response test races the Inspector's object list (passes at HEAD, fails in the working tree) | finding | — | sonnet | ▶ **ready**, first (decided 2026-11-01) |
 | M19 — Native iOS app | [`build-017`](M19-build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 iOS app in `~/src/@WarpCad/warpcad-native`, bundling the WarpCad build | feature | high | opus | ▶ **ready** |
 | M19 — Native iOS app | [`build-018`](M19-build-018-tauri-ios-device-probe.md) Measure the app on the owner's iPhone; settle the decision record's unverified rows | feature | high | sonnet | ⏳ after `build-017` |
 | M19 — Native iOS app | [`build-019`](M19-build-019-ios-signing-and-testflight.md) Distribution signing and a TestFlight build | feature | high | sonnet | ⏳ after `build-017`; owner steps first |
@@ -143,6 +142,7 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | M5 — Hardware Library | [`core-074`](M05-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator | feature | medium | opus | ▶ **ready** (dependency on `core-073` dropped 2026-10-24) |
 | M5 — Hardware Library | [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields | feature | medium | sonnet | ⏳ after `core-074`, `ui-052` |
 | Findings | [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
+| Findings | [`ui-092`](FIND-ui-092-prompts-view-highlight-and-edit.md) A Prompts view from the Inspector: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole | feature | medium | opus | ▶ **ready** |
 | Findings | [`perf-003`](FIND-perf-003-defer-code-unused-at-boot.md) Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider) | feature | low | sonnet | ▶ **ready** (from `perf-002`) |
 | Findings | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) Two WebKit viewport-scaffold specs fail under parallel load; two app-header screenshots have drifted | finding | medium | sonnet | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
@@ -287,12 +287,12 @@ Open findings that belong to no single milestone. Closed findings are in
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `testing-014` | Phone prompt-response test races the Inspector's object list; passes at HEAD, fails in the working tree. Decided 2026-11-01: run before `build-017` | Finding | — | none (the repro is the `ai-032` spec) |
 | `testing-006` | Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | 24, 25 |
 | `ui-078` | The 390 px header has no width budget left after `ui-075`; decide the layout before `ui-077`. Filed 2026-10-18 | Finding | `ui-075` | 24, 25 |
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `render-007` | Hidden-part toggle-off leaves a steady remnant at the bolt's base under full-matrix load; the 40 px revert check fails at 120. Filed 2026-10-30 | Finding | — | none |
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
+| `ui-092` | A Prompts view from the Inspector: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole. Filed 2026-11-02 | Feature | — | 10, 22, 27, 30 |
 | `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider); filed by `perf-002` with measured targets | Feature | `perf-002` | 1 |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
@@ -406,7 +406,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 11 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `perf-003`, `testing-010`, `ui-079`, `testing-009`, `render-007`. |
+| [Findings](#findings-open-rows) | 12 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `ui-092`, `perf-003`, `testing-010`, `ui-079`, `testing-009`, `render-007`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family. |
 
