@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.0](https://github.com/WarpCad/warpcad/compare/v1.4.0...v1.5.0) (2026-11-02)
+
+### Features
+
+* **ai:** agents save their reply and problems met in the project (TODO/ai-032) ([c1869ac](https://github.com/WarpCad/warpcad/commit/c1869ac27d836646b9606cd48be841c46a332101))
+* **docs:** published help is a versioned contract with a slug lockfile (TODO/docs-028) ([aaffb66](https://github.com/WarpCad/warpcad/commit/aaffb66f8030da3a3a247af6af113d2c99663195))
+* **help:** a cold help link to a removed page says so and opens Contents (TODO/testing-012) ([2172422](https://github.com/WarpCad/warpcad/commit/2172422571794ad1b59b0122c17069d8db825717))
+* **home-page:** the warpcad.com page lists every docs page (TODO/docs-027) ([51e949b](https://github.com/WarpCad/warpcad/commit/51e949b3bd50c2e82bfa94069256d617dcd08bcb))
+* **io:** gist README carries the project brief (TODO/io-023) ([c741da7](https://github.com/WarpCad/warpcad/commit/c741da703927030d91b580039d3f13e4ceac5d8a))
+* **share:** show the project description as an About popup on share links (TODO/ui-091) ([fd51a3e](https://github.com/WarpCad/warpcad/commit/fd51a3efe398138c9b8c70cfe77916a8341916c0))
+
+### Bug Fixes
+
+* **testing:** wait for the phone Inspector before the prompt-response reads it ([ad06915](https://github.com/WarpCad/warpcad/commit/ad069152a090191fa533c5e7cbb0d0468a319e5f))
+
 ## [1.4.0](https://github.com/WarpCad/warpcad/compare/v1.3.0...v1.4.0) (2026-10-29)
 
 ### Features
