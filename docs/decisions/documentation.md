@@ -64,9 +64,23 @@ answer the owner gives is a configuration change in `build:native`:
 
 | Shape | Bundle size | Offline | Licence fit | Cost |
 |---|---|---|---|---|
-| **Bundled** (today's `dist-native/`) | +89 MB of GIFs | Full | Needs (a) | None. It is what `build:native` does now |
-| **Bundled text and stills, GIFs from the web** | about +19 MB | Text and stills | Needs (a) | `helpRuntimeCaching()`'s GIF pattern points at `app.warpcad.com`, and the shell's CSP allows that one `img-src` |
+| **Bundled** (today's `dist-native/`) | +184 MB of GIFs (light 85 MB + dark 99 MB; was +89 MB before `docs-030`) | Full | Needs (a) | None. It is what `build:native` does now |
+| **Bundled text and stills, GIFs from the web** | about +40 MB (stills 42 MB, light 21 MB + dark 21 MB, plus text; was about +19 MB) | Text and stills | Needs (a) | `helpRuntimeCaching()`'s GIF pattern points at `app.warpcad.com`, and the shell's CSP allows that one `img-src` |
 | **All Help from the web** | +0 | None until visited | Fits (b) | `helpUrl()` gains a build-time base (`VITE_HELP_BASE`), and the shell's CSP allows `connect-src` and `img-src` for `app.warpcad.com`. Must show version skew, which the `version` and `commit` fields make visible |
+
+### Light and dark pictures (`docs-030`, 2026-11-03)
+
+Every docs picture is recorded twice from one spec, in `prefers-color-scheme: light` (`x.png`, `x.gif`) and `dark`
+(`x.dark.png`, `x.dark.gif`), through the `docs-<size>` and `docs-<size>-dark` Playwright projects. The help build wraps a
+pair in a `<picture>` whose dark `<source>` is keyed to `prefers-color-scheme`; a reader downloads one variant, so the web
+cost is unchanged. What grew is the repository and the Pages artifact: `docs/media/` 87 MB to 184 MB (75 dark GIFs, 99 MB),
+`docs/screenshots/` 24 MB to 42 MB (160 dark stills, 21 MB). The service worker does not precache the dark stills
+(`HELP_PRECACHE_IGNORES`; they are runtime-cached with the GIFs), so the install size is unchanged.
+
+**OPEN: the native shape is undecided and needs the owner's call.** The table above is repriced with these numbers and
+nothing else changed. The native apps would ship both variants (the OS theme picks, as on the web), so "Bundled" is now
+about +184 MB of GIFs, which is the strongest argument yet for one of the two web-sourced shapes. This record does not
+choose; it belongs to `build-020` step 1.
 
 ## Rejection table
 
@@ -83,7 +97,7 @@ answer the owner gives is a configuration change in `build:native`:
 - **Search traffic matters** (`docs-026` question 4's trigger). The cheap path stays in this repository: have the
   help build also emit a crawlable page per slug (`app.warpcad.com/help/<slug>/`, the same fragment in a minimal
   shell with an **Open in WarpCad** link and a canonical URL). That keeps one renderer. A second site does not.
-- **A native shape is chosen** (`build-020` step 1). Its version-skew line is the follow-up for the
+- **A native shape is chosen** (`build-020` step 1; the dark twins doubled the bundled cost, see above). Its version-skew line is the follow-up for the
   "All Help from the web" shape.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

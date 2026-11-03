@@ -93,6 +93,6 @@ test.describe('docs media: timeline re-link', () => {
     const cube = page.locator('[data-testid="scene-bodies"] li', { hasText: 'Cube 1' }).first()
     await expect(cube).toHaveAttribute('data-body-center', /^60(\.0+)?,/)
     await page.waitForTimeout(1200)
-    await endMovie(page, 'timeline-relink', { fps: 8, width: 600 })
+    await endMovie(page, 'timeline-relink', { fps: 8, width: 500 })
   })
 })

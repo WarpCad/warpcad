@@ -112,6 +112,17 @@ export async function shot(page, name, options = {}) {
   })
 }
 
+/**
+ * The variant suffix of the running docs project: `.dark` under the `docs-<size>-dark` projects
+ * (`colorScheme: 'dark'`, `TODO/docs-030`), empty under light. Movie names carry it so one spec
+ * records both themes from the same steps.
+ *
+ * @returns {string}
+ */
+function themeSuffix() {
+  return test.info().project.use.colorScheme === 'dark' ? '.dark' : ''
+}
+
 /** Where recordings land; `scripts/docs-gifs.mjs` reads from here. Not `test-results/`, which Playwright wipes. */
 export const MOVIES_DIR = join(process.cwd(), '.docs-movies')
 
@@ -145,12 +156,17 @@ export async function installCursor(page) {
  * screencast API records from this call, not from page load).
  *
  * @param {import('@playwright/test').Page} page
- * @param {string} name movie name; the GIF becomes `docs/media/<name>.gif`
+ * @param {string} name movie name; the GIF becomes `docs/media/<name>.gif` (`<name>.dark.gif` under a dark project)
  * @param {{ width: number, height: number }} [size] recording size; a portrait phone passes its own aspect
  */
 export async function startMovie(page, name, size = { width: 960, height: 600 }) {
+  name += themeSuffix()
   mkdirSync(MOVIES_DIR, { recursive: true })
   await installCursor(page)
+  // Same pin as `shot()`: the dev server's header reads `v1.4.0 · dev`, which a shipped GIF must not show.
+  await page
+    .getByTestId('app-version')
+    .evaluateAll((els) => els.forEach((el) => (el.textContent = 'v0.0.0 · 0000000')))
   await page.mouse.move(40, 40)
   await page.screencast.start({ path: join(MOVIES_DIR, `${name}.webm`), size })
   await page.waitForTimeout(500)
@@ -165,11 +181,12 @@ export async function startMovie(page, name, size = { width: 960, height: 600 })
  * @param {{ fps?: number, width?: number, maxSeconds?: number }} [gif] per-movie GIF overrides for motion-heavy scenes that blow the size budget; `maxSeconds` (clamped to 20, recorded in the manifest) is the one recorded duration exception, for the README tour
  */
 export async function endMovie(page, name, gif = {}) {
+  name += themeSuffix()
   await page.waitForTimeout(300)
   await page.screencast.stop()
   await page.evaluate(() => document.getElementById('docs-cursor')?.remove())
   const spec = test.info().file.replace(`${process.cwd()}/`, '')
-  writeFileSync(join(MOVIES_DIR, `${name}.json`), JSON.stringify({ name, spec, trim: 0, ...gif }))
+  writeFileSync(join(MOVIES_DIR, `${name}.json`), JSON.stringify({ name, spec, theme: themeSuffix() ? 'dark' : 'light', trim: 0, ...gif }))
 }
 
 /**

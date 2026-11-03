@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 import { liveBridgePlugins } from './mcp/liveBridge.js'
-import { HELP_PRECACHE_GLOBS, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
+import { HELP_PRECACHE_GLOBS, HELP_PRECACHE_IGNORES, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
 import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
@@ -184,6 +184,7 @@ export default defineConfig(({ command }) => ({
         // offline right after install. The GIFs are runtime-cached, not precached: they are
         // ~60 MB (see `scripts/vite-plugin-help.mjs`).
         globPatterns: ['**/*.{js,css,html,webmanifest}', ...HELP_PRECACHE_GLOBS],
+        globIgnores: ['**/node_modules/**/*', ...HELP_PRECACHE_IGNORES],
         runtimeCaching: [helpRuntimeCaching()],
       },
       manifest: {

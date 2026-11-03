@@ -101,6 +101,7 @@ Dynamic actions (a drag, a gizmo pull) are recorded as video and converted to a 
   `endMovie(page, '<name>')` and take a final-frame `shot`. The GIF lands at `docs/media/<name>.gif`.
 - **Record and convert:** `npm run docs:movies` records to `.docs-movies/` (git-ignored),
   `npm run docs:gifs` converts with ffmpeg, and `npm run docs:media` does stills, movies and GIFs.
+  Each spec is recorded twice (`docs-<size>` light, `docs-<size>-dark` dark, `x.dark.gif`); a movie's `name` never carries `.dark`.
   Refresh the final-frame still with `npm run docs:movies -- --update-snapshots`.
 - **Budget:** each GIF is at most 12 s and 1.5 MB; the converter fails and says which knob to turn.
   `docs/media/manifest.json` records the source spec's hash so a stale GIF can be detected.

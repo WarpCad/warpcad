@@ -14,7 +14,10 @@ fails and says so if you forget.
 Pictures and GIFs are never captured by hand: they come from `e2e/docs/*.docs.js` via
 `npm run docs:media`, are embedded as `![alt](./screenshots/<name>.png)` or
 `![alt](./media/<name>.gif)`, and the `guards` Playwright project fails on a dead link, an
-orphaned file, or a picture no spec produces.
+orphaned file, or a picture no spec produces. Every picture also exists as a dark twin
+(`<name>.dark.png`, `<name>.dark.gif`), recorded from the same spec by the `docs-<size>-dark`
+projects; you still write one embed, and the Help shows the twin that matches the reader's
+light or dark setting.
 
 ## Where WarpCad came from
 

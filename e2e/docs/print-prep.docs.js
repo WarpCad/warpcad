@@ -113,11 +113,15 @@ test.describe('docs media: print prep', () => {
    */
   const faceOn = async (page) => {
     await page.getByTestId('gizmo-view-right').click()
+    const readScale = () =>
+      page.evaluate(() => Number(document.querySelector('[data-testid="cut-plane"]')?.getAttribute('data-face-u')?.split(',')[0]))
     for (let i = 0; i < 40; i += 1) {
-      await page.waitForTimeout(120)
-      const scale = await page.evaluate(() =>
-        Number(document.querySelector('[data-testid="cut-plane"]')?.getAttribute('data-face-u')?.split(',')[0])
-      )
+      // The camera eases after a view click or a wheel step. Judge the scale only once it has
+      // stopped moving: a reading taken mid-ease lands the zoom at a different point each run.
+      const first = await readScale()
+      await page.waitForTimeout(300)
+      const scale = await readScale()
+      if (Math.abs(scale - first) > 1e-3) continue
       if (scale >= 3.5 && scale <= 5.5) return
       await page.evaluate((deltaY) => {
         const canvas = document.querySelector('[data-testid="viewport"] canvas')
@@ -326,14 +330,14 @@ test.describe('docs media: print prep', () => {
 
     await selectWing(page)
     await press(page, 'gizmo-view-right')
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(200)
     await press(page, 'op-split')
     await expect(page.getByTestId('split-sheet')).toBeVisible()
-    await page.waitForTimeout(400)
+    await page.waitForTimeout(250)
     await page.getByTestId('split-offset').click()
     await page.getByTestId('split-offset').fill('')
     await page.getByTestId('split-offset').pressSequentially('150', { delay: 30 })
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(200)
 
     // Place connectors: the search's own posts become markers, over the dimmed rim.
     await press(page, 'split-manual-joints')
@@ -341,7 +345,7 @@ test.describe('docs media: print prep', () => {
     await expect(markers.first()).toBeVisible()
     await expect(markers.first()).toHaveAttribute('data-state', 'ok')
     await faceOn(page)
-    await page.waitForTimeout(400)
+    await page.waitForTimeout(250)
 
     // Pick Screw boss, then drag the first marker 10 mm along the face, with the real mouse.
     await press(page, 'split-connector-kind-screwBoss')
@@ -351,11 +355,11 @@ test.describe('docs media: print prep', () => {
     await dragMouse(page, await markerCentre(first), target)
     await expect(first).toHaveAttribute('data-dragging', 'false')
     await expect(first).toHaveAttribute('data-state', 'ok')
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(200)
     await expect(first).toHaveAttribute('data-selected', 'true')
     await press(page, 'split-connector-kind-screwBoss')
     await expect(first).toHaveAttribute('data-kind', 'screwBoss')
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(200)
 
     // A drag toward the rim turns red and snaps back, with the reason.
     const here = await markerFace(first)
@@ -368,16 +372,16 @@ test.describe('docs media: print prep', () => {
       await page.waitForTimeout(30)
     }
     await expect(first).toHaveAttribute('data-state', 'bad')
-    await page.waitForTimeout(400)
+    await page.waitForTimeout(250)
     await page.mouse.up()
     await expect(page.getByTestId('split-notice')).toBeVisible()
     await expect(first).toHaveAttribute('data-state', 'ok')
     expect(await markerFace(first)).toEqual(here)
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(200)
 
     await press(page, 'split-apply')
     await expect(page.getByTestId('split-sheet')).toHaveCount(0)
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(200)
     await endMovie(page, 'print-prep-manual-joint', { fps: 8, width: 600 })
     await settle(page)
   })

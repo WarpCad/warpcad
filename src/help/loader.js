@@ -98,7 +98,8 @@ export function loadHelpPage(slug) {
     const request = fetchImpl(helpUrl(`${encodeURIComponent(slug)}.html`)).then(async (response) => {
       if (!response.ok) throw new Error(`help page ${slug}: HTTP ${response.status ?? '?'}`)
       const html = await response.text()
-      return html.replace(/(<img[^>]*?\ssrc=")img\//g, `$1${helpUrl('img/')}`)
+      // `<img src>` and the dark twin's `<source srcset>` (`TODO/docs-030`) both point into the bundled folder.
+      return html.replace(/(<(?:img|source)[^>]*?\s(?:src|srcset)=")img\//g, `$1${helpUrl('img/')}`)
     })
     request.catch(() => {
       if (pageCache.get(slug) === request) pageCache.delete(slug)

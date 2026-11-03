@@ -156,4 +156,45 @@ describe('buildHelp', () => {
     expect(out.assets.map((a) => a.to).sort()).toEqual(['img/media/m.gif', 'img/screenshots/a.png'])
     expect(out.pages.readme.html).toContain('src="img/screenshots/a.png"')
   })
+
+  it('wraps a picture with a dark twin in a <picture> keyed to prefers-color-scheme', () => {
+    const dir = docs({
+      'README.md': '# Docs\n\n![a](screenshots/a.png) ![m](media/m.gif)\n',
+      'screenshots/a.png': 'png',
+      'screenshots/a.dark.png': 'dark',
+      'media/m.gif': 'gif',
+      'media/m.dark.gif': 'dark',
+    })
+    const out = buildHelp({ docsDir: dir })
+    expect(out.errors).toEqual([])
+    expect(out.pages.readme.html).toContain(
+      '<picture><source srcset="img/screenshots/a.dark.png" media="(prefers-color-scheme: dark)"><img src="img/screenshots/a.png" alt="a" loading="lazy"></picture>',
+    )
+    expect(out.pages.readme.html).toContain('srcset="img/media/m.dark.gif"')
+    expect(out.assets.map((a) => a.to).sort()).toEqual([
+      'img/media/m.dark.gif',
+      'img/media/m.gif',
+      'img/screenshots/a.dark.png',
+      'img/screenshots/a.png',
+    ])
+  })
+
+  it('leaves a picture without a dark twin as a plain <img>', () => {
+    const dir = docs({ 'README.md': '# Docs\n\n![a](screenshots/a.png)\n', 'screenshots/a.png': 'png' })
+    const out = buildHelp({ docsDir: dir })
+    expect(out.pages.readme.html).not.toContain('<picture')
+    expect(out.pages.readme.html).toContain('<img src="img/screenshots/a.png"')
+  })
+
+  it('fails the build for a dark picture with no light partner', () => {
+    const dir = docs({
+      'README.md': '# Docs\n',
+      'screenshots/lonely.dark.png': 'dark',
+      'media/ok.gif': 'gif',
+      'media/ok.dark.gif': 'dark',
+    })
+    const out = buildHelp({ docsDir: dir })
+    expect(out.errors.join('\n')).toContain('screenshots/lonely.dark.png')
+    expect(out.errors.join('\n')).not.toContain('ok.dark.gif')
+  })
 })

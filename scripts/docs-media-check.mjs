@@ -55,7 +55,7 @@ export function findClaimedStills(source) {
  *   refs: ImageRef[],
  *   files: string[],
  *   claimedStills: Set<string>,
- *   manifest: Record<string, { spec: string, specHash: string }>,
+ *   manifest: Record<string, { spec: string, specHash: string, theme?: string }>,
  *   hashes: Record<string, string>,
  *   ci?: boolean,
  * }} input
@@ -69,6 +69,11 @@ export function checkDocsMedia({ refs, files, claimedStills, manifest, hashes, c
   const warnings = []
   const present = new Set(files)
   const referenced = new Set(refs.map((r) => r.target))
+  // A dark twin is reached through its light partner (`help-build` emits the <picture>), never
+  // embedded by name, so it counts as referenced when the light file is.
+  const darkOf = (/** @type {string} */ f) => f.replace(/\.(png|gif)$/, '.dark.$1')
+  const lightOf = (/** @type {string} */ f) => f.replace(/\.dark\.(png|gif)$/, '.$1')
+  const isDark = (/** @type {string} */ f) => /\.dark\.(png|gif)$/.test(f)
 
   for (const r of refs) {
     if (!present.has(r.target)) errors.push(`${r.file}:${r.line} links to missing image ${r.target}`)
@@ -77,13 +82,18 @@ export function checkDocsMedia({ refs, files, claimedStills, manifest, hashes, c
 
   for (const f of files) {
     const name = f.split('/').pop() ?? f
-    if (!referenced.has(f)) {
+    if (isDark(f)) {
+      if (!present.has(lightOf(f))) errors.push(`unpaired: ${f} has no light partner ${lightOf(f)} — record both themes from one spec`)
+    } else if (/\.(png|gif)$/.test(f) && /^docs\/(screenshots|media)\//.test(f) && !present.has(darkOf(f))) {
+      errors.push(`unpaired: ${f} has no dark twin ${darkOf(f)} — run \`npm run docs:media\` (docs-*-dark projects record it)`)
+    }
+    if (!referenced.has(isDark(f) ? lightOf(f) : f)) {
       errors.push(
         `orphan: ${f} is not referenced by any docs page or README.md — embed it, or delete it and the e2e/docs spec that produces it`,
       )
     }
-    if (f.endsWith('.png') && !claimedStills.has(name)) {
-      errors.push(`${f}: no e2e/docs/*.docs.js claims '${name}' via shot()/toHaveScreenshot(), so tests would never refresh it`)
+    if (f.endsWith('.png') && !claimedStills.has(isDark(f) ? lightOf(name) : name)) {
+      errors.push(`${f}: no e2e/docs/*.docs.js claims '${isDark(f) ? lightOf(name) : name}' via shot()/toHaveScreenshot(), so tests would never refresh it`)
     }
     if (f.endsWith('.gif') && !manifest[name]) {
       errors.push(`${f}: no entry in docs/media/manifest.json — record it with an e2e/docs movie and \`npm run docs:media\``)

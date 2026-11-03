@@ -29,6 +29,7 @@ export const EXCLUDED_DIRS = Object.freeze(['decisions', 'montage'])
  * @property {string} [page] slug of the page being rendered
  * @property {(href: string, line: number) => ResolvedLink} [resolveLink]
  * @property {(src: string, line: number) => string | null} [resolveImage] bundled path, or `null` for a dead image
+ * @property {(bundled: string) => string | null} [resolveDark] the bundled dark-theme twin (`x.dark.<ext>` beside `x.<ext>`) of a bundled picture, or `null` when there is none
  * @typedef {{ html: string, headings: Heading[], title: string }} Rendered
  */
 
@@ -92,7 +93,11 @@ function renderInline(source, context, line) {
   text = text.replace(/!\[([^\]]*)\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g, (_, alt, src) => {
     const bundled = context.resolveImage ? context.resolveImage(src, line) : src
     if (bundled === null) return keep(`<span class="help-dead-image">${escapeHtml(alt)}</span>`)
-    return keep(`<img src="${escapeHtml(bundled)}" alt="${escapeHtml(alt)}" loading="lazy">`)
+    const img = `<img src="${escapeHtml(bundled)}" alt="${escapeHtml(alt)}" loading="lazy">`
+    const dark = context.resolveDark ? context.resolveDark(bundled) : null
+    if (dark === null) return keep(img)
+    // The browser picks the source from the reader's colour scheme; no script is involved.
+    return keep(`<picture><source srcset="${escapeHtml(dark)}" media="(prefers-color-scheme: dark)">${img}</picture>`)
   })
   text = text.replace(/\[((?:[^\]\\]|\\.)*)\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g, (_, label, href) => {
     const inner = renderInline(label, context, line)
@@ -392,6 +397,19 @@ export function buildHelp({ docsDir }) {
     headingsByPage[slug] = collectHeadings(sources[slug])
   }
 
+  // A dark twin (`x.dark.png`) is only ever reached through its light partner (`x.png`); one
+  // without a partner would ship unreachable, so it fails the build (`TODO/docs-030`).
+  for (const dir of ['media', 'screenshots']) {
+    const folder = join(docsDir, dir)
+    if (!existsSync(folder)) continue
+    for (const name of readdirSync(folder)) {
+      const m = /^(.*)\.dark\.(png|gif)$/.exec(name)
+      if (m && !existsSync(join(folder, `${m[1]}.${m[2]}`))) {
+        errors.push(`docs/${dir}/${name}: dark picture has no light partner ${m[1]}.${m[2]}`)
+      }
+    }
+  }
+
   /** @type {Record<string, HelpPage>} */
   const pages = {}
   for (const file of files) {
@@ -412,6 +430,17 @@ export function buildHelp({ docsDir }) {
           return null
         }
         const to = posix.join('img', rel)
+        assets.set(to, { from: abs, to })
+        return to
+      },
+      resolveDark(bundled) {
+        const rel = bundled.replace(/^img\//, '')
+        const m = /^(.*)\.(png|gif)$/.exec(rel)
+        if (!m) return null
+        const darkRel = `${m[1]}.dark.${m[2]}`
+        const abs = join(docsDir, darkRel)
+        if (!existsSync(abs) || !statSync(abs).isFile()) return null
+        const to = posix.join('img', darkRel)
         assets.set(to, { from: abs, to })
         return to
       },

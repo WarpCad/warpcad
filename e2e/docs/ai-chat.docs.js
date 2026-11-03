@@ -62,28 +62,28 @@ async function askForWing(page, typingMs = 0) {
 test.describe('docs media: the chat panel (scripted provider)', () => {
   test.skip(process.env.E2E_PREVIEW === '1', 'the scripted provider is dev-only: E2E_DEV=1 npm run docs:screenshots -- e2e/docs/ai-chat.docs.js')
   test('ai-chat-panel still', async ({ page }, info) => {
-    test.skip(info.project.name !== 'docs-laptop', 'laptop-only')
+    test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-laptop', 'laptop-only')
     await scriptedApp(page)
     await askForWing(page)
     await shot(page, 'ai-chat-panel.png')
   })
 
   test('ai-chat-overlay-tablet still', async ({ page }, info) => {
-    test.skip(info.project.name !== 'docs-tablet', 'tablet-only')
+    test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-tablet', 'tablet-only')
     await scriptedApp(page)
     await askForWing(page)
     await shot(page, 'ai-chat-overlay-tablet.png')
   })
 
   test('ai-chat-overlay-phone still', async ({ page }, info) => {
-    test.skip(info.project.name !== 'docs-phone', 'phone-only')
+    test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-phone', 'phone-only')
     await scriptedApp(page)
     await askForWing(page)
     await shot(page, 'ai-chat-overlay-phone.png')
   })
 
   test('ai-wing-airfoil', { tag: '@movie' }, async ({ page }, info) => {
-    test.skip(info.project.name !== 'docs-laptop', 'laptop-only')
+    test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-laptop', 'laptop-only')
     await scriptedApp(page)
     await startMovie(page, 'ai-wing-airfoil')
     await askForWing(page, 18)

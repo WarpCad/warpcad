@@ -41,7 +41,7 @@ async function buildFromDrawing(page) {
 }
 
 test('assistant-drawing-overlay still', async ({ page }, info) => {
-  test.skip(info.project.name !== 'docs-laptop', 'laptop-only')
+  test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-laptop', 'laptop-only')
   await buildFromDrawing(page)
   const line = page.getByTestId('ai-transcript').locator('li').filter({ has: page.getByTestId('ai-activity-label').filter({ hasText: 'Compared the top view with the drawing' }) })
   await line.getByTestId('ai-activity-thumbnail').click()
@@ -51,7 +51,7 @@ test('assistant-drawing-overlay still', async ({ page }, info) => {
 })
 
 test('assistant-save-proposal still', async ({ page }, info) => {
-  test.skip(info.project.name !== 'docs-phone', 'phone-only: the half-height sheet is the point')
+  test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-phone', 'phone-only: the half-height sheet is the point')
   await buildFromDrawing(page)
   await shot(page, 'assistant-save-proposal.png')
 })
@@ -63,7 +63,7 @@ test('assistant-save-proposal still', async ({ page }, info) => {
  * recording starts, so it is never on film).
  */
 test('ai-drawing-to-group', { tag: '@movie' }, async ({ page }, info) => {
-  test.skip(info.project.name !== 'docs-laptop', 'laptop-only')
+  test.skip(info.project.name.replace(/-dark$/, '') !== 'docs-laptop', 'laptop-only')
   await connected(page)
   await expect(page.getByTestId('library-user-count')).toHaveText('0')
   await startMovie(page, 'ai-drawing-to-group')
@@ -87,5 +87,5 @@ test('ai-drawing-to-group', { tag: '@movie' }, async ({ page }, info) => {
   await expect(page.getByTestId('ai-save-status')).toHaveText('Saved to My parts.')
   await expect(page.getByTestId('library-user-count')).toHaveText('1')
   await page.waitForTimeout(1500)
-  await endMovie(page, 'ai-drawing-to-group', { fps: 8, width: 720 })
+  await endMovie(page, 'ai-drawing-to-group', { fps: 8, width: 600 })
 })

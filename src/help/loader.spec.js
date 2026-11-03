@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { resolveSlug } from './loader.js'
+import { helpUrl, loadHelpPage, resetHelpCache, resolveSlug, setHelpFetch } from './loader.js'
 
 const INDEX = {
   order: ['getting-started', 'booleans'],
@@ -29,5 +29,22 @@ describe('resolveSlug (docs-028)', () => {
     const { aliases, ...older } = INDEX
     expect(resolveSlug(older, 'old-page')).toBeNull()
     expect(resolveSlug(older, 'booleans')).toBe('booleans')
+  })
+})
+
+describe('loadHelpPage picture paths (docs-030)', () => {
+  it('points both the <img src> and the dark <source srcset> into the bundled folder', async () => {
+    const html =
+      '<picture><source srcset="img/screenshots/a.dark.png" media="(prefers-color-scheme: dark)"><img src="img/screenshots/a.png" alt="a" loading="lazy"></picture>'
+    setHelpFetch(async () => ({ ok: true, text: async () => html }))
+    resetHelpCache()
+    try {
+      const out = await loadHelpPage('page')
+      expect(out).toContain(`srcset="${helpUrl('img/')}screenshots/a.dark.png"`)
+      expect(out).toContain(`src="${helpUrl('img/')}screenshots/a.png"`)
+    } finally {
+      setHelpFetch()
+      resetHelpCache()
+    }
   })
 })

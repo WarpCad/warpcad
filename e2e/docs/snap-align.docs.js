@@ -355,7 +355,7 @@ test.describe('docs media: align', () => {
     await quick('align-z-outside-plus')
     await afterMove(page, 'pi-1', aligned)
     await page.waitForTimeout(1000)
-    await endMovie(page, 'snap-subpart-both-sides', { fps: 8, width: 640 })
+    await endMovie(page, 'snap-subpart-both-sides', { fps: 8, width: 560 })
     await page.keyboard.press('Escape')
     await expect(popover).toHaveCount(0)
 
@@ -508,7 +508,7 @@ test.describe('docs media: align', () => {
         return repeatBody ? repeatBody.bounds[5] - repeatBody.bounds[2] : 0
       }, { timeout: 15000 })
       .toBeGreaterThan(18)
-    await page.waitForTimeout(1500)
-    await endMovie(page, 'repeat-placement', { fps: 8, width: 640 })
+    await page.waitForTimeout(1000)
+    await endMovie(page, 'repeat-placement', { fps: 8, width: 520 })
   })
 })

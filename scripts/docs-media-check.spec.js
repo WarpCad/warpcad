@@ -41,7 +41,7 @@ describe('findClaimedStills', () => {
 describe('checkDocsMedia', () => {
   const base = {
     refs: [{ file: 'docs/a.md', alt: 'A', target: 'docs/screenshots/a.png', line: 3 }],
-    files: ['docs/screenshots/a.png'],
+    files: ['docs/screenshots/a.png', 'docs/screenshots/a.dark.png'],
     claimedStills: new Set(['a.png']),
     manifest: {},
     hashes: {},
@@ -75,7 +75,7 @@ describe('checkDocsMedia', () => {
     const r = checkDocsMedia({
       ...base,
       refs: [{ file: 'docs/a.md', alt: 'M', target: 'docs/media/m.gif', line: 1 }],
-      files: ['docs/media/m.gif'],
+      files: ['docs/media/m.gif', 'docs/media/m.dark.gif'],
     })
     expect(r.errors.some((e) => e.includes('manifest') && e.includes('m.gif'))).toBe(true)
   })
@@ -84,8 +84,11 @@ describe('checkDocsMedia', () => {
     const input = {
       ...base,
       refs: [{ file: 'docs/a.md', alt: 'M', target: 'docs/media/m.gif', line: 1 }],
-      files: ['docs/media/m.gif'],
-      manifest: { 'm.gif': { spec: 'e2e/docs/m.docs.js', specHash: 'old' } },
+      files: ['docs/media/m.gif', 'docs/media/m.dark.gif'],
+      manifest: {
+        'm.gif': { spec: 'e2e/docs/m.docs.js', specHash: 'old' },
+        'm.dark.gif': { spec: 'e2e/docs/m.docs.js', specHash: 'old' },
+      },
       hashes: { 'e2e/docs/m.docs.js': 'new' },
     }
     const local = checkDocsMedia(input)
@@ -93,5 +96,42 @@ describe('checkDocsMedia', () => {
     expect(local.warnings.some((w) => w.includes('stale') && w.includes('m.gif'))).toBe(true)
     const ci = checkDocsMedia({ ...input, ci: true })
     expect(ci.errors.some((e) => e.includes('stale'))).toBe(true)
+  })
+
+  describe('dark twins (docs-030)', () => {
+    const pair = {
+      refs: [{ file: 'docs/a.md', alt: 'A', target: 'docs/screenshots/a.png', line: 3 }],
+      files: ['docs/screenshots/a.png', 'docs/screenshots/a.dark.png'],
+      claimedStills: new Set(['a.png']),
+      manifest: {},
+      hashes: {},
+    }
+
+    it('passes a light still with its dark twin, referenced only by the light name', () => {
+      expect(checkDocsMedia(pair)).toEqual({ errors: [], warnings: [] })
+    })
+
+    it('flags a light picture with no dark twin', () => {
+      const r = checkDocsMedia({ ...pair, files: ['docs/screenshots/a.png'] })
+      expect(r.errors.some((e) => e.includes('unpaired') && e.includes('a.dark.png'))).toBe(true)
+    })
+
+    it('flags a dark picture with no light partner', () => {
+      const r = checkDocsMedia({ ...pair, files: ['docs/screenshots/a.dark.png'] })
+      expect(r.errors.some((e) => e.includes('unpaired') && e.includes('light partner'))).toBe(true)
+    })
+
+    it('flags a dark still no spec produces, and a dark gif missing from the manifest', () => {
+      const still = checkDocsMedia({ ...pair, claimedStills: new Set() })
+      expect(still.errors.some((e) => e.includes("claims 'a.png'"))).toBe(true)
+      const gif = checkDocsMedia({
+        refs: [{ file: 'docs/a.md', alt: 'M', target: 'docs/media/m.gif', line: 1 }],
+        files: ['docs/media/m.gif', 'docs/media/m.dark.gif'],
+        claimedStills: new Set(),
+        manifest: { 'm.gif': { spec: 's', specHash: 'h', theme: 'light' } },
+        hashes: {},
+      })
+      expect(gif.errors.some((e) => e.includes('m.dark.gif') && e.includes('manifest'))).toBe(true)
+    })
   })
 })

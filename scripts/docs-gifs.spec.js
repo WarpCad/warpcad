@@ -127,6 +127,27 @@ describe('convertMovies', () => {
     expect(manifest['demo.gif'].specHash).toMatch(/^[0-9a-f]{64}$/)
   })
 
+  it('converts a light and a dark variant of one movie, each with its theme, each inside the budget (docs-030)', () => {
+    addMovie('demo')
+    addMovie('demo.dark')
+    const { run } = fakeRun({ gifBytes: 2048, seconds: 7 })
+    const results = convertMovies({ moviesDir, outDir, root, run })
+    expect(results.map((r) => r.name).sort()).toEqual(['demo.dark.gif', 'demo.gif'])
+    expect(results.every((r) => r.ok)).toBe(true)
+    const manifest = JSON.parse(readFileSync(join(outDir, 'manifest.json'), 'utf8'))
+    expect(manifest['demo.gif'].theme).toBe('light')
+    expect(manifest['demo.dark.gif'].theme).toBe('dark')
+    expect(manifest['demo.dark.gif']).toMatchObject({ bytes: 2048, seconds: 7 })
+  })
+
+  it('holds the dark variant to the same budget', () => {
+    addMovie('demo.dark')
+    const { run } = fakeRun({ gifBytes: BUDGET.maxBytes + 10 })
+    const results = convertMovies({ moviesDir, outDir, root, run })
+    expect(results[0]).toMatchObject({ name: 'demo.dark.gif', ok: false })
+    expect(existsSync(join(outDir, 'demo.dark.gif'))).toBe(false)
+  })
+
   it('fails an over-budget GIF, deletes it, and keeps it out of the manifest', () => {
     addMovie('big')
     const { run } = fakeRun({ gifBytes: BUDGET.maxBytes + 10 })

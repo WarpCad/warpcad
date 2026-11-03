@@ -100,7 +100,8 @@ function hashFile(path) {
 }
 
 /**
- * Convert every recorded movie in `moviesDir`.
+ * Convert every recorded movie in `moviesDir`. A movie recorded under a dark project is named
+ * `<name>.dark` and becomes `<name>.dark.gif` (`TODO/docs-030`); each variant is held to {@link BUDGET}.
  *
  * @param {{ moviesDir: string, outDir: string, root: string, run?: Runner }} options
  *   `root` resolves the spec paths stored in each movie's sidecar JSON.
@@ -142,6 +143,7 @@ export function convertMovies({ moviesDir, outDir, root, run = defaultRun }) {
     }
     manifest = updateManifest(manifest, gifName, {
       spec: meta.spec,
+      theme: base.endsWith('.dark') ? 'dark' : 'light',
       specHash: hashFile(resolve(root, meta.spec)),
       bytes,
       seconds,

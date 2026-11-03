@@ -35,12 +35,19 @@ const CONTENT_TYPES = Object.freeze({
 export const HELP_PRECACHE_GLOBS = Object.freeze(['help/**/*.{json,png,jpg,jpeg}'])
 
 /**
- * Workbox `runtimeCaching` entry for the help GIFs. A function, not a frozen constant: Workbox's
+ * Dark-theme twins (`x.dark.png`, `TODO/docs-030`) are left out of the precache: a reader gets one
+ * variant, so precaching both would double the install for nothing. They are runtime-cached the
+ * first time they are seen instead (see `helpRuntimeCaching`). Spread into `workbox.globIgnores`.
+ */
+export const HELP_PRECACHE_IGNORES = Object.freeze(['help/**/*.dark.*'])
+
+/**
+ * Workbox `runtimeCaching` entry for the help GIFs and the dark still twins. A function, not a frozen constant: Workbox's
  * option validation writes defaults (`method`) onto the object it is given.
  */
 export function helpRuntimeCaching() {
   return {
-    urlPattern: /\/help\/img\/.*\.gif$/,
+    urlPattern: /\/help\/img\/.*(?:\.gif|\.dark\.png)$/,
     handler: /** @type {const} */ ('CacheFirst'),
     options: { cacheName: 'help-media', expiration: { maxEntries: 100 } },
   }

@@ -88,13 +88,23 @@ const smokeProjects = browserProjects
   .map((project) => ({ ...project, name: `smoke-${project.name}`, grep: /@smoke/ }))
 
 /**
+ * Every docs picture is recorded twice from the same spec (`TODO/docs-030`): the `docs-<size>` project
+ * in `prefers-color-scheme: light` writes `x.png` / `x.gif`, the `docs-<size>-dark` twin writes
+ * `x.dark.png` / `x.dark.gif`. `support.js` reads the project's `colorScheme` to name movies.
+ */
+const THEMES = [
+  { scheme: 'light', suffix: '', file: '' },
+  { scheme: 'dark', suffix: '-dark', file: '.dark' },
+]
+
+/**
  * Docs-media projects (`TODO/docs-005`). Chromium only, on purpose: these are pictures
  * for humans, not a cross-engine behaviour gate. Software GL keeps pixels independent of
  * the contributor's GPU; `deviceScaleFactor: 2` is the one fixed choice for crisp images.
  * Baselines are generated on one pinned platform (the maintainer's Mac) — see CONTRIBUTING.md.
  */
-const docsProjects = VIEWPORTS.map((size) => ({
-  name: `docs-${size.name}`,
+const docsProjects = VIEWPORTS.flatMap((size) => THEMES.map((theme) => ({
+  name: `docs-${size.name}${theme.suffix}`,
   testMatch: /.*\.docs\.js/,
   // The paced movies (`@movie`) drive real drags at human speed under a screencast. Measured alone
   // with three workers (laptop, 2026-10-30): 8-22 s each, and the getting-started tour is over 30 s,
@@ -103,17 +113,18 @@ const docsProjects = VIEWPORTS.map((size) => ({
   timeout: 120_000,
   // Drops the default `-{projectName}-{platform}` suffix so the file name is exactly what
   // the markdown links to: `docs/screenshots/<name>.png`.
-  snapshotPathTemplate: '{testDir}/../docs/screenshots/{arg}{ext}',
+  snapshotPathTemplate: `{testDir}/../docs/screenshots/{arg}${theme.file}{ext}`,
   use: {
     ...devices['Desktop Chrome'],
     viewport: size.viewport,
     hasTouch: size.touch,
     deviceScaleFactor: 2,
+    colorScheme: theme.scheme,
     launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
     // The picture must not depend on when the service worker finishes precaching (see above).
     ...(process.env.E2E_PREVIEW === '1' ? { serviceWorkers: 'block' } : {}),
   },
-}))
+})))
 
 const PREVIEW = process.env.E2E_PREVIEW === '1'
 
@@ -140,6 +151,10 @@ const ORIGIN = PREVIEW ? 'http://localhost:5184' : 'http://localhost:5183'
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // The dev-only docs (`E2E_DEV=1 npm run docs:*`) share one dev server, and the live-bridge
+  // stills hold a lease: two tabs holding one at once make the bridge refuse as ambiguous. Light
+  // and dark run as separate projects, so `serial` (within one worker) is not enough: one worker.
+  workers: process.env.E2E_DEV === '1' && WANTS_DOCS ? 1 : undefined,
   // Agent-oriented reporter: terse console summary, failure detail in one markdown file
   // (test-report-for-coding-agents/, gitignored). Lean options keep token use low.
   // A CLI --reporter flag REPLACES this whole list, silently dropping the progress reporter
