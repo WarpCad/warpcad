@@ -151,6 +151,12 @@ nothing to install. The pages below cover what each part of the app does.
   on / off** switch in the Assistant header, its rows marked **via webmcp** in History, **Undo AI
   turn**, and exactly what an attached agent can see. It starts with the Chrome setup steps: the
   WebMCP flag, the inspector extension, and how to check that the browser offers it.
+- [Prompting an agent to design a part](agent-prompting.md) — for an agent that drives WarpCad,
+  and the person writing its prompt: every tool with its parameters and an example call
+  (generated from the app's own tool registry), coordinates and units, variables and operations,
+  how to check the result, a worked box-and-lid example with the results of each call, the
+  limits and what an error looks like, and how to word the request. Also published as
+  `llms.txt` and `llms-full.txt` for a search tool.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
   orientation triad, touch gestures, and reading size off the grid.
 - [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and

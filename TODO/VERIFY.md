@@ -38,6 +38,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### docs-029 — Agent prompting guide (2026-11-03)
+
+Not covered by an acceptance scenario, and not runnable unattended: it needs a model with web search and no WarpCad context, handed only the published URL. The page itself, its generated tool list and its worked example are covered by `scripts/agent-docs.spec.js`, `scripts/agent-example.spec.js` and `e2e/agent-prompting-help.e2e.js`. Two lines are only possible after deploy: the home page link in `~/src/@WarpCad/warpcad.github.io` (`docs-027`), and the live URLs.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | After deploy, give a model with web search only `https://app.warpcad.com/help/agent-prompting.html` (and separately `https://app.warpcad.com/llms.txt`) and ask it to write the box-and-lid prompt. Record whether it found the page and used the exact tool names (`define_variable`, `apply_records`, `bind_param`, `set_variable`, `describe_scene`, `measure`, `check_printability`). | Open | Could not be run here: no web-search model, and the page is not deployed. |
+| 2 | After deploy, `curl -I` `https://app.warpcad.com/llms.txt`, `/llms-full.txt` and `/help/agent-prompting.html` return 200 with a readable content type. | Open | The build copies the first two from `public/` and writes the third; checked against a local build only. |
+| 3 | Add the guide to the docs list on the home page (`warpcad.github.io`, one line), noted in this task's closing commit. | Open | Different repository; not touched here. |
+
 ### ui-093 — Mark a part hidden or shown by default (2026-11-03 14:20 UTC)
 
 Not covered by a standing acceptance scenario: scenario 24 needs a real API key, and `ui-085` needs a real iPhone. Everything else in the drive is covered by the e2e spec or the hand drive.

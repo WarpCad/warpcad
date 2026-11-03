@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-02 at the owner's request)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-03):** the guide is `docs/agent-prompting.md` (Help slug `agent-prompting`), with its tool reference, limits and worked example generated between markers from `src/ai/tools/` and `scripts/agent-example.mjs` (run against the real registry, results passed through `toToolResult`). `public/llms.txt` is hand-written and `public/llms-full.txt` is generated; `npm run docs:agent --check` fails when either is stale. Deviations from the spec are in the page and in the commit: `wall` drives the lid thickness, not the cavity, because a variable is one number and cannot express a wall; `check_printability` does not check overhangs, and the page says so; large schemas (over 2,500 characters) are shown as a parameter table. The generator is a committed page plus a stale-check spec, not a Vite build step. Not done here and in `TODO/VERIFY.md`: the web-search model acceptance check, the live URLs, and the home-page link in `warpcad.github.io`.
 
 ## Goal
 

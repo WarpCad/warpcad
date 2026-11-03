@@ -1,0 +1,19 @@
+# WarpCad
+
+> WarpCad is a free, open-source parametric CAD app that runs in the browser at https://app.warpcad.com. You sketch in 2D, build 3D solids, combine them with Union, Subtract and Intersect, and keep every dimension editable as a named variable. Lengths are in millimetres and Z is up. It is installable as a web app, and an AI agent can drive it through WebMCP in Chrome, through MCP from Claude Code, or through the in-app Assistant, all with the same tools.
+
+To design a part with an agent, read the guide first. It lists every tool with its schema and an example call, explains coordinates, variables and operations, and walks through a box-and-lid example whose results were produced by running the calls.
+
+## Guides
+
+- [Prompting an agent to design a part](https://app.warpcad.com/help/agent-prompting.html): every WebMCP tool, coordinates and units, variables, checking the result, a worked example, limits and errors, and how to write the prompt.
+- [Browser agents (WebMCP)](https://app.warpcad.com/help/webmcp.html): connect an agent that runs in Chrome to the open WarpCad tab.
+- [Driving WarpCad from an MCP client](https://app.warpcad.com/help/mcp.html): the same tools for Claude Code, over a project file.
+- [Variables](https://app.warpcad.com/help/variables.html): name a number once and bind fields to it.
+- [Combining shapes: Union, Subtract and Intersect](https://app.warpcad.com/help/booleans.html): operand counts and which shape is cut.
+
+## Optional
+
+- [The guide as one Markdown file](https://app.warpcad.com/llms-full.txt): the prompting guide with no HTML and no pictures.
+
+Documentation licence: CC BY-SA 4.0.

@@ -466,4 +466,10 @@ Every message names the file and says that nothing was written to it.
   planned separately. An agent that runs in the browser can already drive a hosted copy over
   [WebMCP](webmcp.md).
 
+## Next: how to write the prompt
+
+The same tools are listed, with their parameters and an example call each, in
+[Prompting an agent to design a part](agent-prompting.md), together with the coordinates and units,
+how variables and operations work, and a worked example.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

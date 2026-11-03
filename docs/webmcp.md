@@ -208,4 +208,10 @@ See [the three ways in](mcp.md#three-ways-in) for how this compares with Claude 
 file and Claude Code's live mode. With your own API key, you can also type in the
 [Assistant panel](ai-partner.md) itself.
 
+## Next: how to write the prompt
+
+Once your agent can see the tools, [Prompting an agent to design a part](agent-prompting.md) lists
+every one with its parameters, explains the coordinates and units, and walks through a box-and-lid
+example you can copy.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

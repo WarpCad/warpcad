@@ -30,6 +30,10 @@ Moving the source to another repository breaks three things this one relies on:
   retired slug to the page that replaced it (`aliases`). The build fails when a published slug is missing from the
   list, when a listed slug is gone without an alias, when an alias points at a missing page or at another alias, or
   when an alias shadows a live page. Add slugs with `npm run help:slugs`. Removing one is an alias, added by hand.
+- **`help/agent-prompting.html`, `/llms.txt` and `/llms-full.txt` are published contract too** (`TODO/docs-029`):
+  an agent's search tool or a person's prompt may link them, so they keep their URLs like the slugs do. The page's
+  tool reference and worked example are generated from the tool registry by `scripts/agent-docs.mjs`
+  (`npm run docs:agent`), and a unit spec fails when the committed page or `llms-full.txt` is stale.
 - **An alias opens the replacement.** `HelpSheet.vue` resolves the slug through `resolveSlug`, and the hash follows
   the page it opened. A slug that is neither a page, a topic, nor an alias gets `testing-012`'s moved line.
 

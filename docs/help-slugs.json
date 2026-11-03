@@ -63,7 +63,8 @@
     "assistant-key",
     "assistant-subscription",
     "assistant-step-limit",
-    "claude-code"
+    "claude-code",
+    "agent-prompting"
   ],
   "aliases": {}
 }

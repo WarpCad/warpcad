@@ -467,5 +467,7 @@ That's all of it. The chat opens from the same button; see [asking for a part](#
   produce.
 - [Saving and reopening your work](save-load.md): the key is never in a saved file.
 - [Driving WarpCad from Claude Code](mcp.md): the route that uses a Claude subscription.
+- [Prompting an agent to design a part](agent-prompting.md): the tools the Assistant uses, with
+  their parameters, the coordinates and units, and a worked example.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
