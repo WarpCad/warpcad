@@ -2581,3 +2581,21 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** colour lost on plain Group → TODO/FIND-core-077 Problem (measured at 3ecbaf8); fix → diff of src/core/groupMerge.js; 7,784 unit tests passed → unit run this session; 4715 e2e passed, 0 failed → full e2e run this session; red survives Group, deselect, reload → manual drive this session
 **To Add:** screenshot of the red cube kept red after Group
+
+## 2026-11-02T23:21:04Z — Per-project AI step limit for WarpCad's assistant
+
+**Post:** WarpCad's AI assistant used to stop at 200 operations per turn. The cap is now a project setting: 1,000 by default, adjustable from the Assistant panel up to 5,000. A project file can't raise it on its own; the person approves it in their browser. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** default 1,000 and range 50–5,000 → TODO/done/ai-033-project-ai-step-limit.md; project-file raise needs browser approval → same file, Proposed fix step 4; committed 0f99845
+**To Add:** screenshot of the sheet (docs/screenshots/ai-step-limit.png)
+
+## 2026-11-03T18:50:00Z — Assistant button no longer shows the key sheet over a saved key (ai-034)
+
+**Post:** WarpCad fix: click Assistant in the first moments after the app opens and you could get asked for an API key you'd already saved, and the sheet stayed. The click now waits for the stored key to load, then opens the right view. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** early click opened the key sheet and left it → TODO/done/ai-034 Problem; 3 of 6 default-worker runs failed before → same file's table; 10 consecutive runs with no assistant-panel failure → e2e runs this session (chromium-laptop, E2E_DEV=1)
+**To Add:** none

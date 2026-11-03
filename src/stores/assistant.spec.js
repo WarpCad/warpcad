@@ -270,6 +270,72 @@ describe('the assistant store', () => {
     expect(assistant.view).toBe('chat')
   })
 
+  describe('TODO/ai-034: a click before the stored key has loaded waits for the answer', () => {
+    /** A key store whose load() the test releases by hand. */
+    function heldStore(stored) {
+      let release
+      let fail
+      const held = new Promise((resolve, reject) => {
+        release = () => resolve(stored)
+        fail = () => reject(new Error('IndexedDB unavailable'))
+      })
+      const keyStore = { load: () => held, save: vi.fn(), forget: vi.fn() }
+      setAssistantDependencies({ keyStore, fetch: vi.fn(), isOnline: () => true })
+      return { release, fail }
+    }
+
+    it('open() during the load, then a key arrives: chat, never the key sheet', async () => {
+      const { release } = heldStore({ key: KEY, persisted: true })
+      const assistant = useAssistantStore()
+      const started = assistant.start()
+      assistant.open()
+      expect(assistant.view).toBe('closed')
+      release()
+      await started
+      expect(assistant.view).toBe('chat')
+    })
+
+    it('open() during the load, then no key: the key sheet', async () => {
+      const { release } = heldStore({ key: null, persisted: true })
+      const assistant = useAssistantStore()
+      const started = assistant.start()
+      assistant.open()
+      release()
+      await started
+      expect(assistant.view).toBe('key')
+    })
+
+    it('open() during a load that fails: the key sheet, and not stuck', async () => {
+      const { fail } = heldStore(null)
+      const assistant = useAssistantStore()
+      const started = assistant.start().catch(() => {})
+      assistant.open()
+      fail()
+      await started
+      expect(assistant.view).toBe('key')
+      expect(assistant.loaded).toBe(true)
+    })
+
+    it('open() then close() before the load finishes: stays closed', async () => {
+      const { release } = heldStore({ key: KEY, persisted: true })
+      const assistant = useAssistantStore()
+      const started = assistant.start()
+      assistant.open()
+      assistant.close()
+      release()
+      await started
+      expect(assistant.view).toBe('closed')
+    })
+
+    it('open() after the load is unchanged', async () => {
+      install()
+      const assistant = useAssistantStore()
+      await assistant.start()
+      assistant.open()
+      expect(assistant.view).toBe('key')
+    })
+  })
+
   it('start() is idempotent', async () => {
     install()
     const assistant = useAssistantStore()

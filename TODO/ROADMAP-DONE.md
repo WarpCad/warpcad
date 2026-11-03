@@ -813,6 +813,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ai-034` | Clicking Assistant before the stored key has loaded no longer opens the key sheet: the click is remembered and answered once the key is known | Finding | — | 17, 18, 24 |
 | ✅ `ui-093` | Mark a part of a group hidden by default, or a hidden part shown by default: `group.setPartHidden` as one undoable step, an Inspector checkbox, and a Subtract keeps a Group whose named parts are all hidden | Feature | — | 1, 5, 6, 10, 11, 12, 13, 14, 15, 22, 24, 25 |
 | ✅ `docs-030` | Every docs GIF and still is recorded in light and dark (`x.dark.*` twins from the same spec), and the Help and home page show the variant matching the reader's theme; the dark twins are runtime-cached, not precached; the native shape stays OPEN | Finding | — | none |
 | ✅ `ai-033` | Per-project AI step limit: default 1,000, range 50–5,000, approved per browser when a file raises it; changed from the Assistant panel | Feature | — | 24, 25, 27 |
@@ -1209,5 +1210,6 @@ convention going forward.
 | `ai-033` | 2026-11-02 21:48 | Opus agent for Step 4 (whole implementation, bench, docs, e2e). Haiku ran typecheck, unit (7,855 passed) and the full e2e matrix (4,728 passed, 0 failed, 1,357 skipped, dev-only). **Step 6 hand re-drive not done** (scenarios 24 and 25 need a real key and MCP client; 27 covered by e2e stand-in). |
 | `ui-093` | 2026-11-03 14:20 | ~14h08m wall clock from Step 3 (00:12 UTC start), most of it idle while waiting on decisions. Sonnet agents for RED/GREEN and for the e2e spec, docs and media, and a third for the hand drive. Haiku ran typecheck and unit (7,879 passed) and the full matrix twice: first 4,756 passed with the bolt-fit docs shot failing (re-recorded, it shows the new checkbox); then the same count with the print-prep docs shot failing (`testing-008`, passes alone, named in the commit's `Known-failures:` trailer, no green stamp). Hand-driven PASS on 1, 5, 6, 10, 11, 12, 13, 14, 15, 22, 25, the "drive it differently" cases, the plate cut and the closed-finding repros. Scenario 24 and `ui-085` not driven (in `TODO/VERIFY.md`). |
 | `docs-030` | 2026-11-03 18:22 | ~3h17m wall clock from Step 3 (15:04 UTC), most of it idle while waiting on decisions and the stale dev servers |
+| `ai-034` | 2026-11-03 18:45 | ~20m wall clock from Step 3 (18:27 UTC). Sonnet in-session for RED/GREEN; Haiku ran typecheck, unit (7,894 passed), `ai-key.e2e.js` (144/144, all engines) and `ai-scripted.e2e.js` (10 runs, no `assistant-panel` failure). `changed` scope, no green stamp. Hand-driven (scripted provider) PASS on 17 and 24 at laptop, 24 at phone; 18 by `ai-drawing.e2e.js` only; `perf-003`'s bundle check PASS. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

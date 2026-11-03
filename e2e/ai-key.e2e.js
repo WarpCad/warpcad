@@ -172,6 +172,23 @@ test('paste, Save and test, reload: still connected; the request carried the key
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([])
 })
 
+test('TODO/ai-034: clicking Assistant the instant the page opens never shows the key sheet over a saved key', async ({ page }) => {
+  await stubApi(page)
+  await pasteAndSave(page)
+  await page.reload({ waitUntil: 'commit' })
+  // No wait for the viewport or the dot: the click may land before the stored key has loaded.
+  await page.getByTestId('assistant-button').click()
+  await expect(page.getByTestId('assistant-panel')).toBeVisible()
+  await expect(page.getByTestId('ai-key-sheet')).toHaveCount(0)
+})
+
+test('TODO/ai-034: clicking Assistant the instant the page opens, with no key, ends on the key sheet', async ({ page }) => {
+  await page.reload({ waitUntil: 'commit' })
+  await page.getByTestId('assistant-button').click()
+  await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
+  await expect(page.getByTestId('assistant-panel')).toHaveCount(0)
+})
+
 test('changing the model is one setting: it persists, re-tests, and the next request uses it', async ({ page }) => {
   const api = await stubApi(page)
   await pasteAndSave(page)

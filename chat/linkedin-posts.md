@@ -3721,3 +3721,35 @@ The unit suite (7,784 tests) and the full end-to-end matrix pass. Built with Cla
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** colour lost on plain Group → TODO/FIND-core-077 Problem (measured at 3ecbaf8); a colourless group writes the same record → groupMerge.spec.js equality test; 7,784 unit tests passed → unit run this session; 4715 e2e passed, 0 failed → full e2e run this session
 **To Add:** screenshot of the red cube kept red after Group
+
+## 2026-11-02T23:21:04Z — Per-project AI step limit for WarpCad's assistant
+
+**Post:** An AI agent building a large part in WarpCad hit a hard cap of 200 operations in one turn, and the person had no way to raise it.
+
+The limit is now a project setting. The default is 1,000 steps, and the Assistant panel shows the value and lets the person change it, within a range of 50 to 5,000. Changing it takes effect on the agent's next call, so the work continues without a reload.
+
+A project file can come from anyone, so a value above the default only applies once the person approves it in their own browser. Agents cannot change the setting at all.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cap was 200 and is now 1,000 default, 50–5,000 range → TODO/done/ai-033-project-ai-step-limit.md; approval rule → same file, Proposed fix step 4; takes effect on next call → same file, Interaction model; committed 0f99845
+**To Add:** screenshot of the Assistant bar and sheet
+
+## 2026-11-03T18:50:00Z — Assistant button no longer shows the key sheet over a saved key (ai-034)
+
+**Post:** A click on WarpCad's Assistant button in the first moments after the app opens could land before the saved API key had loaded. The app chose the key sheet at the moment of the click and never changed its mind, so someone with a saved key was asked for one.
+
+The fix is small. If the key hasn't loaded, the click is remembered and answered once it has, including when the load fails. Closing the panel in the meantime cancels it. On routes where chat is right with or without a key, it still opens at once.
+
+The race showed up as a flaky end-to-end spec: 3 of 6 runs failed at default workers before the change, and 10 consecutive runs after it had no failure.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** race and 3-of-6 figure → TODO/done/ai-034 Problem table; the chat-opens-at-once routes → diff of src/stores/assistant.js open(); 10 clean runs → e2e runs this session
+**To Add:** none

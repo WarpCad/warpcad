@@ -92,6 +92,16 @@ test.describe('scenario 17 plumbing — airfoil and wing', () => {
     await expect(page.getByTestId('assistant-keys')).toHaveCount(0)
   })
 
+  test('TODO/ai-034: clicking Assistant straight after goto, before WebGL is ready, still opens the chat', async ({ page }) => {
+    await page.addInitScript((value) => {
+      /** @type {any} */ (window).__WARPCAD_SCRIPTED__ = value
+    }, transcript('airfoil-wing'))
+    await page.goto('/')
+    await page.getByTestId('assistant-button').click()
+    await expect(page.getByTestId('assistant-panel')).toBeVisible()
+    await expect(page.getByTestId('ai-key-input')).toHaveCount(0)
+  })
+
   test('a loft wing and the rest appear, every body stays, and Undo AI turn takes the whole turn back', async ({ page }) => {
     await useScript(page, transcript('airfoil-wing'))
     await openAssistant(page)

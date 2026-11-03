@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+**Shipped:** as proposed, with one narrowing. `open()` remembers the click only when the answer could be the key sheet; on the WebMCP and live-MCP routes chat is right with or without a key, so it opens at once (`ConnectClaudeCode.spec.js` calls `open()` without `start()` and caught this). A failed key load now still marks the store loaded, so a waiting click resolves to the key sheet. `doneWithKeySheet()` needed no change. The `e2e/ai-key.e2e.js` cases (saved key, no key) run in the default matrix; the scripted spec gained a click-straight-after-`goto` case, and 10 runs at default workers had no `assistant-panel` failure (the table above: 3 of 6 before).
 
 ## Problem
 

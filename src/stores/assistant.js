@@ -178,6 +178,22 @@ export const useAssistantStore = defineStore('assistant', () => {
     return `Key saved in this browser — not tested yet`
   })
 
+  /**
+   * `TODO/ai-034`: a click on **Assistant** before the stored key has loaded is remembered, not
+   * answered, so the view is chosen once the key is known. Any other view change clears it.
+   */
+  let openPending = false
+
+  function settleOpen() {
+    if (!openPending) return
+    openPending = false
+    chooseOpenView()
+  }
+
+  function chooseOpenView() {
+    view.value = hasKey.value || mcpOnly.value || webMcpPresent.value ? 'chat' : 'key'
+  }
+
   /** @returns {Promise<void>} */
   function start() {
     startPromise ??= (async () => {
@@ -193,14 +209,20 @@ export const useAssistantStore = defineStore('assistant', () => {
         persisted.value = true
         status.value = 'ok'
         loaded.value = true
+        settleOpen()
         return
       }
-      const stored = await deps.keyStore.load()
-      key = stored.key
-      hasKey.value = key !== null
-      persisted.value = stored.persisted
-      status.value = hasKey.value ? 'saved' : 'none'
-      loaded.value = true
+      try {
+        const stored = await deps.keyStore.load()
+        key = stored.key
+        hasKey.value = key !== null
+        persisted.value = stored.persisted
+        status.value = hasKey.value ? 'saved' : 'none'
+      } finally {
+        // A failed load still answers "is there a key?" (no), so a waiting click is not stuck.
+        loaded.value = true
+        settleOpen()
+      }
     })()
     return startPromise
   }
@@ -252,6 +274,7 @@ export const useAssistantStore = defineStore('assistant', () => {
   async function forget() {
     if (scripted.value) return
     await deps.keyStore.forget()
+    openPending = false
     key = null
     hasKey.value = false
     persisted.value = true
@@ -266,24 +289,33 @@ export const useAssistantStore = defineStore('assistant', () => {
    * sheet if there is nothing to connect with.
    */
   function open() {
-    view.value = hasKey.value || mcpOnly.value || webMcpPresent.value ? 'chat' : 'key'
+    // Chat is the answer with or without a key on these routes, so only the "no key" outcome waits.
+    if (!loaded.value && !mcpOnly.value && !webMcpPresent.value) {
+      openPending = true
+      return
+    }
+    chooseOpenView()
   }
 
   /** `TODO/ai-012`: live MCP access controls. */
   function openConnect() {
+    openPending = false
     view.value = 'connect'
   }
 
   function openKeySheet() {
+    openPending = false
     view.value = 'key'
   }
 
   /** `TODO/ai-013`: the no-key alternative — the Claude Code route, which uses a subscription. */
   function openSubscriptionRoute() {
+    openPending = false
     view.value = 'subscription'
   }
 
   function close() {
+    openPending = false
     view.value = 'closed'
   }
 
