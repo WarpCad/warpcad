@@ -455,5 +455,11 @@
     "specHash": "af0601a2c95bb9127b1db0bbd4a5e8fc23fc3248470214333f3be413992f9469",
     "bytes": 1072491,
     "seconds": 9.8
+  },
+  "part-hidden-by-default.gif": {
+    "spec": "e2e/docs/selection-inspector.docs.js",
+    "specHash": "31f078c0df77951418b96c5c8c913d5a494d13db1a269286b571f32ac010c781",
+    "bytes": 822607,
+    "seconds": 11.58
   }
 }

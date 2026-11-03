@@ -457,6 +457,52 @@ test.describe('docs media: selection, inspector, gizmo', () => {
     await shot(page, 'inspector-hidden-parts.png')
   })
 
+  /** Open `one-group.ndjson` (Cube 1 and Cube 2 in Group 1) and select the group from the Objects list. */
+  const openGroup = async (page) => {
+    await openScene(page, 'one-group.ndjson', 1)
+    await openObjectList(page)
+    await page.getByTestId('objects-row-group-1').click()
+    await expect(page.getByTestId('inspector-parts')).toBeVisible()
+  }
+
+  test('inspector-default-hidden still', async ({ page }) => {
+    await openGroup(page)
+    await page.getByTestId('inspector-part-Cube 2').click()
+    await expect(page.getByTestId('inspector-default-hidden')).toBeVisible()
+    await page.getByTestId('inspector-default-hidden').check()
+    await expect(page.getByTestId('inspector-default-hidden')).toBeChecked()
+    await shot(page, 'inspector-default-hidden.png')
+  })
+
+  test('part-hidden-by-default', { tag: '@movie' }, async ({ page }) => {
+    await openGroup(page)
+    await startMovie(page, 'part-hidden-by-default')
+    const press = async (testId) => {
+      const el = page.getByTestId(testId)
+      await el.scrollIntoViewIfNeeded()
+      const b = await el.boundingBox()
+      await glideTo(page, { x: b.x + b.width / 2, y: b.y + b.height / 2 })
+      await page.mouse.down()
+      await page.waitForTimeout(80)
+      await page.mouse.up()
+      await page.waitForTimeout(500)
+    }
+    const box = page.getByTestId('inspector-default-hidden')
+    await press('inspector-part-Cube 2')
+    await expect(box).not.toBeChecked()
+    await press('inspector-default-hidden')
+    await expect(box).toBeChecked()
+    await page.waitForTimeout(900)
+    await press('inspector-breadcrumb-group')
+    await expect(page.getByTestId('inspector-part-hidden-Cube 2')).toHaveText('hidden')
+    await page.waitForTimeout(1000)
+    await press('inspector-part-Cube 2')
+    await press('inspector-default-hidden')
+    await expect(box).not.toBeChecked()
+    await page.waitForTimeout(1200)
+    await endMovie(page, 'part-hidden-by-default', { fps: 12, width: 640 })
+  })
+
   test('delete-body', { tag: '@movie' }, async ({ page }) => {
     await openScene(page, 'two-solids.ndjson', 2)
     await selectCube(page)

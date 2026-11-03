@@ -122,6 +122,25 @@ describe('parseProject → loadEntries round trip', () => {
     expect(serializeProject(restored)).toBe(text)
   })
 
+  it('a part marked hidden by default round-trips byte for byte and stays hidden (TODO/ui-093)', () => {
+    const original = createDocument()
+    original.append({ id: 'c1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 0] } }, local)
+    original.append({ id: 'c2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [10, 10, 10], center: [30, 0, 0] } }, local)
+    original.append(
+      { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'c1', operands: ['c2'], consumes: ['c1', 'c2'], params: { names: ['Cube 1', 'Cube 2'] } },
+      local,
+    )
+    original.setPartHidden('g', 'Cube 2', true, local)
+    const text = serializeProject(original)
+
+    const restored = createDocument()
+    const { entries, rollbackAt, merge } = parseProject(text)
+    restored.loadEntries(entries, rollbackAt, undefined, { merge })
+
+    expect(restored.hiddenPartsOf(/** @type {string} */ (restored.currentIdOf('g')))).toEqual(['Cube 2'])
+    expect(serializeProject(restored)).toBe(text)
+  })
+
   it('restores a suppressed row as suppressed, not as active and not as deleted', () => {
     const original = scenario()
     original.setSuppressed('cube-2-move', true, local)

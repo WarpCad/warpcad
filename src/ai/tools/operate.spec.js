@@ -668,3 +668,24 @@ describe('modify.splitWithJoint — the AI can ask for seam profiles (TODO/core-
     expect(pins.params?.joint).toBeUndefined()
   })
 })
+
+describe('group.setPartHidden — the AI can mark a part hidden by default (TODO/ui-093)', () => {
+  const tools = createToolRegistry()
+
+  it('writes the UI’s record, and refuses an unknown part naming the real ones', () => {
+    const { document, ids } = cubes(2)
+    const ctx = makeContext({ document })
+    const grouped = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.assemble', operands: ids.map((id) => ({ id })) }))
+    const bodyId = grouped.applied[0].bodyId
+    const result = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.setPartHidden', operands: [{ id: bodyId }], params: { part: 'Cube 2', hidden: true } }))
+    expect(result.error).toBeUndefined()
+    expect(document.entries.at(-1)?.record).toMatchObject({
+      op: 'group.setPartHidden',
+      target: bodyId,
+      supersedes: bodyId,
+      params: { part: 'Cube 2', hidden: true },
+    })
+    const bad = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.setPartHidden', operands: [{ id: bodyId }], params: { part: 'Nope', hidden: true } }))
+    expect(JSON.stringify(bad)).toMatch(/Cube 1/)
+  })
+})

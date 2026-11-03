@@ -147,6 +147,8 @@ envelope.
 
 To see it, select the fastener, tick **Show hidden parts** in the Inspector's **Parts** section,
 and tap `tap` in the list. The envelope appears as a translucent red shape around the fastener.
+If you want the clearance counted and drawn as part of the fastener, tap `tap` and untick
+[**Hidden by default**](selection-and-inspector.md#hidden-by-default); tick it again to put it back.
 To cut with it, select your part first and then add `tap` as the second operand, as in
 [Cutting with just one part of a multi-part shape](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape).
 

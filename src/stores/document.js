@@ -709,6 +709,27 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Mark one part of a group hidden by default, or shown (`TODO/ui-093`) — core's
+   * `setPartHidden`, one undo step. The selection stays on the part (it still exists). If the
+   * eye had hidden that part, the eye is cleared too (not an undo step), so unticking
+   * **Hidden by default** draws the part straight away instead of changing nothing on screen.
+   *
+   * @param {string} bodyId
+   * @param {string} partName
+   * @param {boolean} hidden
+   * @returns {OpRecord}
+   */
+  function setPartHidden(bodyId, partName, hidden) {
+    const { record } = raw.setPartHidden(bodyId, partName, hidden, { origin: 'local', meta: selectionMeta() })
+    const summary = raw.bodies().find((body) => body.id === bodyId)
+    if ((summary?.viewHiddenParts ?? []).includes(partName)) {
+      raw.setViewHidden(bodyId, { subPart: partName, hidden: false }, { origin: 'local' })
+    }
+    refresh()
+    return record
+  }
+
+  /**
    * Replace the whole document with a parsed project (`TODO/io-001`) — the one
    * entry point for autosave restore and Open.
    *
@@ -942,6 +963,7 @@ export const useDocumentStore = defineStore('document', () => {
     showAll,
     deleteBodies,
     removePart,
+    setPartHidden,
     appendRepeat,
     detachRepeat,
     mergeFrom,

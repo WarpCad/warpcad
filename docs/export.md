@@ -105,8 +105,9 @@ slicer plate or a mesh viewer expects, and the suggested name says so.
 
 A body made of several named parts (a bolt, a nut, a library item) exports as the **one
 combined solid** you would actually print: its visible parts fused together, with any
-holes cut out. A part that is hidden stays out, exactly as it is on screen. A finished
-[sketch shape](sketch-mode.md) exports like any other solid.
+holes cut out. A part marked [**Hidden by default**](selection-and-inspector.md#hidden-by-default)
+(a bolt's `tap`, say) stays out, exactly as it is on screen. A shape or part you hid only with the
+eye is still exported. A finished [sketch shape](sketch-mode.md) exports like any other solid.
 
 ## The three formats
 

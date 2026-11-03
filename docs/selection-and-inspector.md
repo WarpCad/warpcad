@@ -479,6 +479,47 @@ there and greyed out. It simply is not there.
    [Combining shapes](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape)
    for the full mechanics of cutting with one named piece.
 
+### Hidden by default
+
+The eye only hides a piece from view. **Hidden by default** goes further: it makes the piece
+behave like a bolt's `tap`, a piece that is part of the shape but not part of the finished
+object. Use the eye to look past something for a moment, and this box when the piece is not
+part of the thing you are making.
+
+![A group's Cube 2 selected with Hidden by default ticked, under the Color row](./screenshots/inspector-default-hidden.png)
+
+It is in the Inspector, directly below the Color row, whenever you are drilled into one named
+piece of a group or ready-made shape (the breadcrumb reads `Objects ▸ Group 1 ▸ Cube 2`). It is
+not there for a whole-shape selection, a plain solid or a Repeat.
+
+- **Ticked**, the piece is not drawn, carries the **hidden** label, and is left out of the
+  shape's **Size**, of **Export** and **Print pieces**, and of a whole-shape cut. It is still
+  in the Parts list (below the visible pieces), still counted in the bill of materials, and
+  still there to select and to cut with. **Show hidden parts** draws it as a translucent
+  overlay, like any other hidden piece.
+- **Unticked**, on a piece that was hidden (a bolt's `tap`, or one you marked), it becomes an
+  ordinary piece: drawn, counted in Size, and exported.
+- **It is a modelling step.** History gains `Hide Cube 2 by default on Group 1` (or `Show ...`),
+  and one **Undo** takes it back. The eye is not a step, and Undo does not touch it.
+- **It clears the piece's eye.** Marking a piece either way un-hides it from the view first, so
+  unticking a piece you had also hidden with the eye shows it straight away.
+- **The last shown piece cannot be hidden.** A shape with nothing drawn cannot be shown, so the
+  box is greyed out with *Last shown part: it needs one shown part.* beside it.
+- **Show all does not bring it back.** **Show all** undoes the eye, and the eye hid nothing here.
+
+### Worked example: hide a part of a group by default
+
+1. Drag two **Cubes** into the view, apart from each other. Select both and press **Group**.
+2. In the Inspector's **Parts** section, tap `Cube 2`. The breadcrumb reads `Group 1 ▸ Cube 2`.
+3. Tick **Hidden by default**. `Cube 2` disappears and its row gains a small **hidden** label.
+4. Tap `Group 1` in the breadcrumb. **Size** now reads 40 × 40 × 40 mm, the size of `Cube 1` alone.
+5. To bring it back as an ordinary part, tap the `Cube 2` row and untick **Hidden by default**.
+6. To do the opposite on a built-in shape, drag in a **Bolt / screw**, tap `tap` in **Parts**, and
+   untick **Hidden by default**. The clearance is now drawn, counted in **Size**, and exported
+   with the bolt.
+
+![Cube 2 of a group ticked Hidden by default, the group shrinking to Cube 1 alone, then unticked](./media/part-hidden-by-default.gif)
+
 ## Moving and turning a shape
 
 The handles, close up: three arrows to move, three rings to turn.
@@ -935,8 +976,11 @@ deleted: hiding only changes what the 3D view draws.
 - **Hiding is not a modelling step.** It adds nothing to History, and **Undo** undoes your
   last real change, not a hide. It is saved with the project, so a reload or a saved file
   opened later shows the same things hidden.
-- **Export is unchanged.** A hidden shape or piece is still exported, still in **Print
-  pieces**, and still counted in the bill of materials.
+- **Export is unchanged.** A shape or piece you hid with the eye is still exported, still in **Print
+  pieces**, and still counted in the bill of materials. A piece marked
+  [Hidden by default](#hidden-by-default) is different: it is not part of the shape, so it is
+  left out of Size, Export and Print pieces (it is still counted in the bill of materials).
+  **Show all** does not bring it back, because the eye did not hide it.
 - **This is not Show hidden parts.** A bolt's `tap` and other pieces labelled *hidden* are
   ready-made helper pieces that are never drawn unless you turn on
   [Show hidden parts](hardware-library.md#fit-the-part-you-cant-see); that toggle does not

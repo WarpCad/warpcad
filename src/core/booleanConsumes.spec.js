@@ -367,3 +367,46 @@ describe('TODO/core-076: a merged group’s hidden parts cut without using it up
     expect(volumeOf(cut)).toBeCloseTo(8 * 8 * 2 - 4 * 4 * 2, 6)
   })
 })
+
+describe('TODO/ui-093: a Group’s hidden-by-default parts cut without using it up', () => {
+  /** @returns {WarpDocument} A Group of two cubes with `Cube 2` marked hidden by default. */
+  function markedGroup() {
+    const document = createDocument()
+    document.append({ id: 'c1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [4, 4, 4], center: [0, 0, 0] } }, LOCAL)
+    document.append({ id: 'c2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [4, 4, 4], center: [20, 0, 0] } }, LOCAL)
+    document.append(
+      { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'c1', operands: ['c2'], consumes: ['c1', 'c2'], params: { names: ['Cube 1', 'Cube 2'] } },
+      LOCAL,
+    )
+    document.setPartHidden('g', 'Cube 2', true, LOCAL)
+    return document
+  }
+  const plate = { terminal: 'plate', ref: 'plate' }
+
+  it('a hidden part of a Group stays; a visible part retires it; hidden mixed with visible retires it', () => {
+    const document = markedGroup()
+    const g = /** @type {string} */ (document.currentIdOf('g'))
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: g, ref: { id: g, pieces: 'Cube 2' } }])).toEqual(['plate'])
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: g, ref: { id: g, pieces: 'Cube 1' } }])).toEqual(['plate', g])
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: g, ref: { id: g, pieces: 'Cube 1,Cube 2' } }])).toEqual(['plate', g])
+  })
+
+  it('an unmarked Group retires on a part cut, as before', () => {
+    const document = markedGroup()
+    document.setPartHidden('g', 'Cube 2', false, LOCAL)
+    const g = /** @type {string} */ (document.currentIdOf('g'))
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: g, ref: { id: g, pieces: 'Cube 2' } }])).toEqual(['plate', g])
+  })
+
+  it('a bolt’s tap still retires it, marked or not (scenario 5)', () => {
+    const document = createDocument()
+    document.appendAll(recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document), LOCAL)
+    const id = /** @type {string} */ (document.bodies()[0].recordId)
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: id, ref: { id, pieces: 'tap' } }])).toEqual(['plate', id])
+    document.setPartHidden(id, 'thread', true, LOCAL)
+    document.setPartHidden(id, 'tap', false, LOCAL)
+    document.setPartHidden(id, 'tap', true, LOCAL)
+    const now = /** @type {string} */ (document.currentIdOf(id))
+    expect(consumesOf(document, 'boolean.subtract', [plate, { terminal: now, ref: { id: now, pieces: 'tap' } }])).toEqual(['plate', now])
+  })
+})

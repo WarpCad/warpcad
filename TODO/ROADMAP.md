@@ -62,7 +62,6 @@ this repository still need a green full run before they are pushed.
 | 16a | `FIND` | [`ui-092`](FIND-ui-092-prompts-view-highlight-and-edit.md) A Prompts view: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole | Filed 2026-11-02 at the owner's request; rank not yet reviewed. `testing-014` is closed, so nothing blocks it | opus |
 | 16b | `FIND` | ▶ [`docs-029`](FIND-docs-029-agent-prompting-guide.md) Publish an agent prompting guide (generated tool reference, conventions, worked example) and `llms.txt` | Filed 2026-11-02 at the owner's request: a model asked to write a WarpCad prompt found no usable docs. Rank not yet reviewed | sonnet |
 | 16d | `FIND` | ▶ [`io-024`](FIND-io-024-import-3mf-assembly-as-named-parts.md) Import a 3MF file as one placeable part whose objects are selectable sub-parts | Filed 2026-11-02 at the owner's request: reference one component of an Adafruit board. No new dependency. Rank not yet reviewed | opus |
-| 16f | `FIND` | ▶ [`ui-093`](FIND-ui-093-mark-part-hidden-by-default.md) Mark a part of a group hidden by default, or a hidden part shown by default | Filed 2026-11-02 at the owner's request: the eye hides a part from view, but nothing changes its default. Rank not yet reviewed | sonnet |
 | 16g | `FIND` | ▶ [`ai-034`](FIND-ai-034-assistant-opens-key-sheet-before-key-loads.md) Clicking Assistant before the stored key has loaded opens the key sheet, and it stays open | Filed 2026-11-02: `e2e/ai-scripted.e2e.js` fails intermittently from this race, and the default matrix never runs it. Small | sonnet |
 | 17a | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB of kernel out of the main bundle) | Low; follows `perf-003` | opus |
 | 19 | `FIND` | ▶ [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet flake under load | Low | sonnet |
@@ -111,6 +110,8 @@ this repository still need a green full run before they are pushed.
 
 **Decided 2026-10-31:** the Apple Developer Program membership is now active. The owner step for `build-019` is cleared; `build-019` still waits on `build-017`.
 
+**Deferred 2026-11-02:** where the native app repository (`warpcad-native`) lives. `build-017` assumes `~/src/@WarpCad/warpcad-native`, which is not on this machine — parked, no decision yet.
+
 - **Owner steps on `build-016`** (dual licence): Part 4 (repository settings) and Part 6 (review) are still open in
   `TODO/VERIFY.md`. The row is marked done, so these are tracked only there.
 
@@ -149,7 +150,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Findings | [`docs-029`](FIND-docs-029-agent-prompting-guide.md) Public agent prompting guide: tool reference generated from `src/ai/tools/`, conventions, a worked box-and-lid example, `llms.txt` | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`io-024`](FIND-io-024-import-3mf-assembly-as-named-parts.md) Import a 3MF as one part with selectable sub-parts; a part may hold several meshes; no new dependency | feature | medium | opus | ▶ **ready** |
 | Findings | [`ai-034`](FIND-ai-034-assistant-opens-key-sheet-before-key-loads.md) Clicking Assistant before the stored key has loaded opens the key sheet and leaves it open | finding | medium | sonnet | ▶ **ready** (filed 2026-11-02) |
-| Findings | [`ui-093`](FIND-ui-093-mark-part-hidden-by-default.md) Mark a part of a group hidden by default, or a hidden part shown by default, as one undoable step | feature | medium | sonnet | ▶ **ready** |
 | Findings | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) Two WebKit viewport-scaffold specs fail under parallel load; two app-header screenshots have drifted | finding | medium | sonnet | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 |  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
@@ -298,7 +298,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `docs-029` | Public agent prompting guide: tool reference generated from `src/ai/tools/`, coordinate and unit conventions, variables and booleans, verification, a worked box-and-lid example, `llms.txt`. Filed 2026-11-02 | Feature | — | none |
 | `io-024` | Import a 3MF (the Adafruit Feather's 29 components, converted from STEP) as one placeable part with sub-parts that Align and Subtract can reference. A part may hold several meshes, each with a transform; a hand-rolled zip and XML reader adds no dependency. Direct STEP reading is parked as `io-025`. Filed 2026-11-02 | Feature | — | new 31; 1, 3, 5, 6, 8, 10, 11, 26 |
 | `ai-034` | `open()` reads `hasKey` before `start()` has set it, so an early click opens the key sheet and leaves it open. Reproduced with the scripted provider; the production path has the same shape, by reading. Filed 2026-11-02 | Finding | — | 17, 18, 24 |
-| `ui-093` | Mark a part hidden by default or shown by default: a new `group.setPartHidden` step, a checkbox in the Inspector while drilled into a part; a cut with a hidden part of a Group leaves the Group. Filed 2026-11-02 | Feature | — | 1, 5, 6, 10, 11, 12, 13, 14, 15, 22, 24, 25 |
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `render-007` | Hidden-part toggle-off leaves a steady remnant at the bolt's base under full-matrix load; the 40 px revert check fails at 120. Filed 2026-10-30 | Finding | — | none |
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
@@ -417,7 +416,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 13 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `ui-092`, `docs-029`, `io-024`, `ai-034`, `ui-093`, `testing-010`, `ui-079`, `testing-009`, `render-007`. |
+| [Findings](#findings-open-rows) | 12 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `ui-092`, `docs-029`, `io-024`, `ai-034`, `testing-010`, `ui-079`, `testing-009`, `render-007`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

@@ -2049,3 +2049,50 @@ describe('hardware.bolt as the one fastener op (TODO/core-060)', () => {
     expect(reconcileParamEdit('hardware.bolt', params, ['type', 'spec'])).toEqual(params)
   })
 })
+
+describe('group.setPartHidden — hidden by default (TODO/ui-093)', () => {
+  const base = [
+    { id: 'a', op: 'primitive.cuboid', params: { size: [10, 10, 10], center: [0, 0, 0] } },
+    { id: 'b', op: 'primitive.cuboid', params: { size: [10, 10, 10], center: [30, 0, 0] } },
+    { id: 'g', op: 'group.assemble', target: 'a', operands: ['b'], consumes: ['a', 'b'], params: { names: ['A', 'B'] } },
+  ]
+
+  it('hides B from names and bounds, then shows it again; the id of the body holds', () => {
+    const { byId } = evaluate([
+      ...base,
+      { id: 'g-hide-1', op: 'group.setPartHidden', target: 'g', supersedes: 'g', params: { part: 'B', hidden: true } },
+      { id: 'g-hide-2', op: 'group.setPartHidden', target: 'g-hide-1', supersedes: 'g-hide-1', params: { part: 'B', hidden: false } },
+    ])
+    const hidden = /** @type {any} */ (byId.get('g-hide-1'))
+    expect(hidden.names).toEqual(['A'])
+    const [min, max] = measurements.measureBoundingBox(combine(hidden))
+    expect(max[0] - min[0]).toBeCloseTo(10, 6)
+    const shown = /** @type {any} */ (byId.get('g-hide-2'))
+    expect(shown.names).toEqual(['A', 'B'])
+  })
+
+  it('refuses a pieces address on its operand with the same reason group.removePart gives', () => {
+    /** @param {string} op @param {Record<string, any>} params */
+    const messageOf = (op, params) => {
+      try {
+        evaluate([...base, { id: 'x', op, target: { id: 'g', pieces: 'A' }, params }])
+      } catch (error) {
+        return /** @type {Error} */ (error).message
+      }
+      return ''
+    }
+    const removeMessage = messageOf('group.removePart', { part: 'B' })
+    expect(removeMessage).not.toBe('')
+    const hideMessage = messageOf('group.setPartHidden', { part: 'B', hidden: true })
+    expect(hideMessage).toMatch(/names p/)
+    expect(hideMessage).not.toMatch(/unknown op/)
+  })
+
+  it('an absent part leaves the value unchanged', () => {
+    const { byId } = evaluate([
+      ...base,
+      { id: 'g-hide-1', op: 'group.setPartHidden', target: 'g', supersedes: 'g', params: { part: 'Gone', hidden: true } },
+    ])
+    expect(/** @type {any} */ (byId.get('g-hide-1')).names).toEqual(['A', 'B'])
+  })
+})

@@ -84,6 +84,7 @@ const RELATIONSHIP_VERBS = Object.freeze({
   'transform.mirror': 'Mirror',
   'group.assemble': 'Group',
   'group.merge': 'Merge',
+  'group.setPartHidden': 'Hide part',
   'pattern.repeat': 'Repeat',
 })
 

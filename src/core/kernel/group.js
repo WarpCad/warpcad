@@ -910,6 +910,58 @@ export function removePart(value, partName) {
 }
 
 /**
+ * A new group with one named part marked hidden by default, or shown (`TODO/ui-093`). The
+ * kernel half of `group.setPartHidden`. Only `names` changes: the part stays in `parts`
+ * (still addressable by `pieces`, still counted by `hardwareOf`), so a hidden part drives a
+ * boolean but is left out of the size, the export and whole-body cuts. `names` is rebuilt as
+ * `Object.keys(parts)` filtered to the visible set, so hide-then-show restores the original
+ * list exactly.
+ *
+ * An **absent** part, and a part already in the requested state, return `value` unchanged: a
+ * later parameter change that removes a part must not break a row over a display choice.
+ * Refuses, by name: a bare solid, a non-boolean `hidden`, a part name that is not a
+ * non-empty string, and hiding the last visible part.
+ *
+ * @template {Geom3 | Group} T
+ * @param {T} value
+ * @param {unknown} partName
+ * @param {unknown} hidden
+ * @returns {T}
+ */
+export function setPartHidden(value, partName, hidden) {
+  const op = 'group.setPartHidden'
+  if (!isGroup(value)) {
+    throw new Error(`${op}: this body is a single solid and has no parts to hide`)
+  }
+  if (typeof hidden !== 'boolean') {
+    throw new Error(`${op}: hidden must be a boolean, got ${JSON.stringify(hidden)}`)
+  }
+  if (typeof partName !== 'string' || partName.length === 0) {
+    throw new Error(`${op}: a part name is required, got ${JSON.stringify(partName)}`)
+  }
+  if (!Object.hasOwn(value.parts, partName)) return value
+  if (value.names.includes(partName) === !hidden) return value
+  const visible = hidden
+    ? Object.keys(value.parts).filter((name) => name !== partName && value.names.includes(name))
+    : Object.keys(value.parts).filter((name) => name === partName || value.names.includes(name))
+  if (visible.length === 0) {
+    throw new Error(`${op}: "${partName}" is the last visible part — a group needs one shown part`)
+  }
+  return /** @type {T} */ (
+    /** @type {unknown} */ (
+      Object.freeze({
+        name: value.name,
+        names: Object.freeze(visible),
+        parts: value.parts,
+        holes: value.holes,
+        colors: value.colors,
+        ...metaField(value.meta),
+      })
+    )
+  )
+}
+
+/**
  * Apply one geometry function to a solid, or to **every part and hole** of a group,
  * returning the same kind of value it was given.
  *

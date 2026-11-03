@@ -376,7 +376,7 @@
  * | `moveStep` | the moved row's `pos` |
  * | `removeRecords` (Undo AI turn) | tombstones; the marker if it moves |
  * | `restoreEntries` (Undo merge, `TODO/ui-062`) | whatever its diff is: tombstones for rows that go, a fresh `born` for rows that come back, `rec`/flags for rows put back, `pos` for rows re-ordered, the marker |
- * | `deleteBodies`, `removePart`, `setColorOverride`, `clearColorOverride`, `renameBody` | a new row (through `appendAll`) |
+ * | `deleteBodies`, `removePart`, `setPartHidden`, `setColorOverride`, `clearColorOverride`, `renameBody` | a new row (through `appendAll`) |
  * | `rollBackTo`, `rollForward` | the `rollbackAfter` register |
  * | `setResolution` | the `resolution` register |
  * | `setStandingInstructions` | the `standingInstructions` register |
@@ -916,6 +916,9 @@ export class ReplayRejection extends Error {
  *   `TODO/core-038`: one undoable `style.rename` record; `null`/blank clears the override.
  * @property {(ids: readonly string[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} deleteBodies
  * @property {(id: string, partName: string, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} removePart
+ * @property {(id: string, partName: string, hidden: boolean, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setPartHidden
+ *   `TODO/ui-093`: mark one part of a group hidden by default (`hidden: true`) or shown. One
+ *   undo step; refuses a deleted body, a Repeat, an unknown part and a no-op.
  * @property {(id: string, delta: number) => MoveLegality} canMove
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
@@ -1196,6 +1199,9 @@ const DELETE_OP = 'body.delete'
 
 /** The op `removePart` appends; a real kernel op (`kernel/registry.js`). */
 const REMOVE_PART_OP = 'group.removePart'
+
+/** The op `setPartHidden` appends (`TODO/ui-093`); a real kernel op (`kernel/registry.js`). */
+const SET_PART_HIDDEN_OP = 'group.setPartHidden'
 
 /**
  * The colour override currently in force for a body, read back off its lineage
@@ -3907,6 +3913,11 @@ export function createDocument(options = {}) {
       const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
       return subjectName === undefined ? `Remove ${part}` : `Remove ${part} from ${subjectName}`
     }
+    if (record.op === SET_PART_HIDDEN_OP) {
+      const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
+      const verb = record.params?.hidden === false ? 'Show' : 'Hide'
+      return subjectName === undefined ? `${verb} ${part} by default` : `${verb} ${part} by default on ${subjectName}`
+    }
     // `TODO/core-061`: the targets are the interesting half.
     if (record.op === REPEAT_OP) return repeatLabel(record)
     const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op]
@@ -5644,6 +5655,54 @@ export function createDocument(options = {}) {
           target: currentId,
           supersedes: currentId,
           params: { part: partName },
+        },
+        transaction
+      )
+    },
+
+    /**
+     * `TODO/ui-093`: mark one named part of a group-valued body hidden by default
+     * (`hidden: true`: left out of size, Export and whole-body cuts, still addressable) or
+     * shown. A `group.setPartHidden` record over the body's current terminal, unnamed, like
+     * {@link WarpDocument.removePart}. The kernel's fold leaves an absent part alone (a
+     * later parameter change must not break a row), so the refusals live here, at write
+     * time: a deleted body, a Repeat, a part the current value lacks, and a no-op.
+     *
+     * @param {string} id Any record in the body's lineage.
+     * @param {string} partName
+     * @param {boolean} hidden
+     * @param {TransactionOptions} transaction
+     */
+    setPartHidden(id, partName, hidden, transaction) {
+      if (typeof partName !== 'string' || partName.length === 0) {
+        throw new Error(`document.setPartHidden: a part name is required, got ${JSON.stringify(partName)}`)
+      }
+      if (typeof hidden !== 'boolean') {
+        throw new Error(`document.setPartHidden: hidden must be a boolean, got ${JSON.stringify(hidden)}`)
+      }
+      const root = rootById.get(id)
+      if (root === undefined) throw new Error(`document.setPartHidden: no such body "${id}" in this document`)
+      if (isDeletedRoot(root)) {
+        throw new Error(`document.setPartHidden: ${currentNameOfRoot(root) ?? root} has been deleted`)
+      }
+      if (recordById.get(root)?.op === REPEAT_OP) {
+        throw new Error('document.setPartHidden: a repeat has no parts of its own to mark')
+      }
+      const currentId = /** @type {string} */ (document.currentIdOf(id))
+      const value = scene.byId.get(currentId)
+      if (!isGroup(value) || !Object.hasOwn(value.parts, partName)) {
+        throw new Error(`document.setPartHidden: no part named "${partName}" in ${currentNameOfRoot(root) ?? root}`)
+      }
+      if (value.names.includes(partName) === !hidden) {
+        throw new Error(`document.setPartHidden: "${partName}" is already ${hidden ? 'hidden' : 'shown'} by default`)
+      }
+      return document.append(
+        {
+          id: document.nextId(`${root}-hide`),
+          op: SET_PART_HIDDEN_OP,
+          target: currentId,
+          supersedes: currentId,
+          params: { part: partName, hidden },
         },
         transaction
       )

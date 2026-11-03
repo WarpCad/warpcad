@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-02 at the owner's request)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-03).** `group.setPartHidden` (one undoable step, refused for a Repeat, a deleted body, an unknown part or a no-op), the **Hidden by default** checkbox in the Inspector while drilled into a part, the cut rule that keeps a Group whose named parts are all hidden when a Subtract uses it, the AI `operate` op, the docs, and `e2e/part-default-hidden.e2e.js` (three tests across nine engine-viewport projects). Two additions to the file's list: `e2e/docs/fixtures/one-group.ndjson` for the docs still, and the re-recorded `docs/screenshots/hardware-bolt-fit.png`, because the Inspector now shows the checkbox on a bolt's `tap`. Not covered by automation: acceptance scenario 24 (needs a real API key) and `ui-085` (needs an iPhone). Both are in `TODO/VERIFY.md`. The print-prep split-sheet screenshot flake is tracked as `testing-008`.
 
 ## Goal
 

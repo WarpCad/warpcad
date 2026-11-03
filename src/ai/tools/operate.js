@@ -32,7 +32,7 @@
 import { consumesOf } from '../../core/booleanConsumes.js'
 import { hasMergeableParts, planGroupMerge } from '../../core/groupMerge.js'
 import { RIM_ORIENTATIONS } from '../../core/kernel/fillet.js'
-import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, mirrorRotationDeg } from '../../core/kernel/group.js'
+import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, isGroup, mirrorRotationDeg } from '../../core/kernel/group.js'
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_PLACEMENTS, PLACEMENT_KINDS } from '../../core/kernel/split.js'
 import { DOWEL_STOCKS } from '../../core/kernel/recipes/joint.dowel.js'
@@ -140,6 +140,40 @@ function inPlaceSpec(label, prefix, description, params, recordParams) {
       supersedes: operands[0].terminal,
       params: recordParams(input),
     }),
+  }
+}
+
+/**
+ * `group.setPartHidden` (`TODO/ui-093`): an in-place edit like {@link inPlaceSpec}, but refused
+ * here, at write time, when the body has no such part: the fold leaves an unknown part alone, so
+ * a model that misspelt one would otherwise get a silent no-op. The message lists the body's
+ * real part names (data, not instructions).
+ *
+ * @param {string} label
+ * @param {string} prefix
+ * @param {string} description
+ * @param {JsonSchema} params
+ * @param {(params: Record<string, any>) => Record<string, any>} recordParams
+ * @returns {OperationSpec}
+ */
+function partHiddenSpec(label, prefix, description, params, recordParams) {
+  const spec = inPlaceSpec(label, prefix, description, params, recordParams)
+  return {
+    ...spec,
+    build: (document, operands, input, op) => {
+      const body = document.bodies().find((candidate) => candidate.recordId === operands[0].terminal)
+      const geometry = /** @type {any} */ (body?.geometry)
+      const names = isGroup(geometry) ? Object.keys(geometry.parts) : []
+      if (names.length === 0) throw new Error(`${op}: ${operands[0].name} has no parts to hide`)
+      if (!names.includes(input.part)) {
+        throw new Error(`${op}: no part named ${JSON.stringify(input.part)} in ${operands[0].name} (parts: ${names.join(', ')})`)
+      }
+      const visible = geometry.names
+      if (visible.includes(input.part) === !input.hidden) {
+        throw new Error(`${op}: ${JSON.stringify(input.part)} is already ${input.hidden ? 'hidden' : 'shown'} by default`)
+      }
+      return spec.build(document, operands, input, op)
+    },
   }
 }
 
@@ -344,6 +378,19 @@ export const OPERATIONS = Object.freeze({
       ['sizeMm']
     ),
     (params) => ({ sizeMm: params.sizeMm, keepAspectRatio: params.keepAspectRatio ?? false })
+  ),
+  'group.setPartHidden': partHiddenSpec(
+    'Hide or show a part by default',
+    'hide',
+    'Mark one named part of a group hidden by default (hidden: true: not drawn, left out of the size, Export and whole-body cuts, but still there to cut with) or shown (hidden: false). One undoable step; the last shown part cannot be hidden.',
+    objectSchema(
+      {
+        part: { type: 'string', description: 'The part’s name, as describe_scene lists it.' },
+        hidden: { type: 'boolean', description: 'true to hide it by default, false to show it.' },
+      },
+      ['part', 'hidden']
+    ),
+    (params) => ({ part: params.part, hidden: params.hidden })
   ),
   'modify.bisect': inPlaceSpec(
     'Bisect',

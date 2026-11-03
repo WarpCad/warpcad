@@ -262,3 +262,19 @@ describe('a variable definition row (TODO/ui-059)', () => {
     expect(describeRow({ id: 'var-4', op: 'var.define', params: {} }, new Map())).toBe('Define variable')
   })
 })
+
+describe('hidden-by-default rows (TODO/ui-093)', () => {
+  const group = { id: 'group-1', op: 'group.assemble', name: 'Group 1' }
+
+  it('reads "Hide <part> by default on <body>" and "Show <part> by default on <body>"', () => {
+    const hide = { id: 'h-1', op: 'group.setPartHidden', target: 'group-1', supersedes: 'group-1', params: { part: 'Cube 2', hidden: true } }
+    const show = { id: 'h-2', op: 'group.setPartHidden', target: 'group-1', supersedes: 'group-1', params: { part: 'Cube 2', hidden: false } }
+    const names = buildNameIndex([group, hide, show])
+    expect(describeRow(hide, names)).toBe('Hide Cube 2 by default on Group 1')
+    expect(describeRow(show, names)).toBe('Show Cube 2 by default on Group 1')
+  })
+
+  it('still says something with no part or subject', () => {
+    expect(describeRow({ op: 'group.setPartHidden', params: { hidden: true } }, new Map())).toBe('Hide part by default')
+  })
+})

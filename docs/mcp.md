@@ -140,6 +140,12 @@ that keeps their parts, the way the **Group** panel in the app does (see
 share a part name the call is refused and suggests a prefix. `group.assemble` is for plain solids
 now: it refuses a body with named parts, so a model cannot flatten one without saying so.
 
+**Hiding a part by default.** `operate` with `group.setPartHidden` takes `part` (a part name of one
+body) and `hidden` (true or false). It is the **Hidden by default** box in the Inspector (see
+[Hidden by default](selection-and-inspector.md#hidden-by-default)): one undoable History step that
+leaves the part out of size, export and whole-body cuts without deleting it. A part name the body
+does not have, or a part already in that state, is refused, and so is hiding the last shown part.
+
 The full modelling guide, with a worked example and the reasoning behind the printing defaults, is
 a resource called `warpcad://guide`. Claude is told to read it before its first change. In a
 client that doesn't read it on its own, attach it by hand: in Claude Code, type

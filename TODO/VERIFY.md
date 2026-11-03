@@ -38,6 +38,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-093 — Mark a part hidden or shown by default (2026-11-03 14:20 UTC)
+
+Not covered by a standing acceptance scenario: scenario 24 needs a real API key, and `ui-085` needs a real iPhone. Everything else in the drive is covered by the e2e spec or the hand drive.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Acceptance scenario 24 ("Edit while the Assistant works") with a real model key: a hidden part marked during an AI turn stays hidden when the turn lands. | Open | Needs a real Anthropic key. |
+| 2 | `ui-085` on a real iPhone: the Inspector's **Hidden by default** row wraps, the sheet does not scroll sideways, and tapping the label toggles it. | Open | The e2e checks `scrollWidth` only in emulated WebKit. |
+
 ### ai-033 — Per-project AI step limit (2026-11-02 21:48 UTC)
 
 Not covered by a standing acceptance scenario: scenarios 24 and 25 need a real API key and a live MCP client, and this session had neither. The bar button, sheet and notice were checked only by the e2e spec and the screenshot.

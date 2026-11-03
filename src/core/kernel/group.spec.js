@@ -23,6 +23,7 @@ import {
   mirrorRotationDeg,
   partMetaOf,
   pick,
+  setPartHidden,
   sizeOf,
   snap,
   toGeom3,
@@ -1319,5 +1320,65 @@ describe('resolvePieces', () => {
   it.each(['constructor', 'toString', '__proto__'])('says %s is not a part instead of finding it on the prototype', (name) => {
     const group = add(createGroup('g'), small(), 'only')
     expect(() => combine(group, name)).toThrow(new RegExp(`no part named "${name}"`))
+  })
+})
+
+describe('setPartHidden — mark a part hidden by default, or shown (TODO/ui-093)', () => {
+  /** Two 10 mm cubes, `A` at the origin and `B` shifted 30 mm along x. */
+  function pair() {
+    let group = add(createGroup('Group 1'), big(), 'A')
+    group = add(group, transforms.translate([30, 0, 0], big()), 'B')
+    return group
+  }
+
+  it('hiding B leaves it addressable but out of names and out of the size', () => {
+    const hidden = setPartHidden(pair(), 'B', true)
+    expect(hidden.names).toEqual(['A'])
+    expect(Object.keys(hidden.parts)).toEqual(['A', 'B'])
+    const [min, max] = boundsOf(combine(hidden))
+    expect(max[0] - min[0]).toBeCloseTo(10, 6)
+    // still addressable by pieces
+    const [bMin] = boundsOf(combine(pick(hidden, 'B')))
+    expect(bMin[0]).toBeCloseTo(25, 6)
+    expect(Object.isFrozen(hidden)).toBe(true)
+  })
+
+  it('hide then show restores names exactly and leaves parts, colors and meta alone', () => {
+    let group = add(createGroup('G'), big(), 'A', { color: 0xff0000 })
+    group = add(group, transforms.translate([30, 0, 0], big()), 'B')
+    group = add(group, transforms.translate([60, 0, 0], big()), 'C', { hidden: true })
+    const back = setPartHidden(setPartHidden(group, 'B', true), 'B', false)
+    expect(back.names).toEqual(group.names)
+    expect(back.parts).toEqual(group.parts)
+    expect(back.colors).toEqual(group.colors)
+    expect(back.meta).toEqual(group.meta)
+  })
+
+  it('shows a hidden part, drawing it into names in group order', () => {
+    const group = add(add(createGroup('G'), big(), 'A', { hidden: true }), small(), 'B')
+    expect(group.names).toEqual(['B'])
+    expect(setPartHidden(group, 'A', false).names).toEqual(['A', 'B'])
+  })
+
+  it('returns the value unchanged for an absent part and for a part already in that state', () => {
+    const group = setPartHidden(pair(), 'B', true)
+    expect(setPartHidden(group, 'Nope', true)).toBe(group)
+    expect(setPartHidden(group, 'B', true)).toBe(group)
+    expect(setPartHidden(group, 'A', false)).toBe(group)
+  })
+
+  it('refuses a bare solid, a non-boolean flag, a bad name and the last visible part', () => {
+    expect(() => setPartHidden(big(), 'A', true)).toThrow(/single solid/)
+    expect(() => setPartHidden(pair(), 'A', /** @type {any} */ ('yes'))).toThrow(/boolean/)
+    expect(() => setPartHidden(pair(), '', true)).toThrow(/part name/)
+    expect(() => setPartHidden(pair(), /** @type {any} */ (7), true)).toThrow(/part name/)
+    expect(() => setPartHidden(add(createGroup('G'), big(), 'only'), 'only', true)).toThrow(/last visible/)
+    const one = setPartHidden(pair(), 'B', true)
+    expect(() => setPartHidden(one, 'A', true)).toThrow(/last visible/)
+  })
+
+  it('treats a __proto__ part name as absent', () => {
+    const group = pair()
+    expect(setPartHidden(group, '__proto__', true)).toBe(group)
   })
 })

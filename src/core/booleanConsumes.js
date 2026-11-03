@@ -27,7 +27,8 @@
  * scenario 5 records the bolt leaving the Objects list, and nothing in `core-064` asked to
  * change that.
  *
- * **A merged group's hidden parts cut the same way (`TODO/core-076`).** A group made by
+ * **A merged group's hidden parts cut the same way (`TODO/core-076`), and so do a Group's
+ * hidden-by-default parts (`TODO/ui-093`, root `group.assemble`).** A group made by
  * `group.merge` is a kit of clearances to cut with one at a time, and merging must not take a
  * Pi's drilling away. So a Subtract that names only parts hidden in a body whose lineage root is
  * `group.merge` leaves that body in the scene. Visible parts, or hidden mixed with visible, are a
@@ -55,8 +56,11 @@ import { drillPartsOf } from './kernel/registry.js'
 /** The one op whose cutting operand may survive. */
 const SUBTRACT_OP = 'boolean.subtract'
 
-/** A lineage root whose hidden parts are cut with, not used up. */
-const MERGE_OP = 'group.merge'
+/**
+ * Lineage roots whose hidden parts are cut with, not used up: a merged group (`TODO/core-076`)
+ * and a Group (`TODO/ui-093`, whose parts can be marked hidden by default).
+ */
+const HIDDEN_CUT_ROOTS = new Set(['group.merge', 'group.assemble'])
 
 /**
  * One operand of a boolean about to be written.
@@ -75,7 +79,7 @@ const MERGE_OP = 'group.merge'
  * @property {(id: string) => string | undefined} rootOf The lineage root of any record id.
  * @property {(id: string) => OpRecord | undefined} recordOf
  * @property {(id: string) => readonly string[]} hiddenPartsOf The parts hidden in a record's
- *   value (`TODO/core-076`); `[]` for a solid.
+ *   value (`TODO/core-076`, `TODO/ui-093`); `[]` for a solid.
  */
 
 /**
@@ -108,7 +112,7 @@ export function keepsToolBody(view, op, operand, index) {
   const root = view.rootOf(operand.terminal)
   const creation = root === undefined ? undefined : view.recordOf(root)
   if (creation === undefined) return false
-  if (creation.op === MERGE_OP) {
+  if (HIDDEN_CUT_ROOTS.has(creation.op)) {
     const hidden = view.hiddenPartsOf(operand.terminal)
     return pieces.every((piece) => hidden.includes(piece))
   }

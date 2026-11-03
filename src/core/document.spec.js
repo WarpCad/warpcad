@@ -5,6 +5,7 @@ import modeling from '@jscad/modeling'
 import { createDocument, ReplayRejection } from './document.js'
 import { boundsOf, isGroup } from './kernel/group.js'
 import { registry as realRegistry } from './kernel/registry.js'
+import { recordsForDrop } from './library.js'
 
 // Heavy kernel/library work: slow-but-correct under full-suite load, so a file-level budget (TODO/testing-004).
 vi.setConfig({ testTimeout: 30_000 })
@@ -1859,5 +1860,78 @@ describe('replica-scoped record ids (TODO/data-008)', () => {
     const ids = live.entries.map((entry) => entry.record.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).toEqual(expect.arrayContaining(added))
+  })
+})
+
+describe('setPartHidden — hidden by default is a supersession over the terminal (TODO/ui-093)', () => {
+  /** @returns {import('./document.js').WarpDocument} Two cubes grouped. */
+  function grouped() {
+    const document = createDocument()
+    document.append({ id: 'c1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 0] } }, { origin: 'local' })
+    document.append({ id: 'c2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [10, 10, 10], center: [30, 0, 0] } }, { origin: 'local' })
+    document.append(
+      { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'c1', operands: ['c2'], consumes: ['c1', 'c2'], params: { names: ['Cube 1', 'Cube 2'] } },
+      { origin: 'local' },
+    )
+    return document
+  }
+  const local = { origin: 'local' }
+
+  it('appends an unnamed record that supersedes the terminal and keeps the body id', () => {
+    const document = grouped()
+    const { record } = document.setPartHidden('g', 'Cube 2', true, local)
+    expect(record).toMatchObject({ op: 'group.setPartHidden', target: 'g', supersedes: 'g', params: { part: 'Cube 2', hidden: true } })
+    expect(record.name).toBeUndefined()
+    const [body] = document.bodies()
+    expect(body.id).toBe('g')
+    expect(document.hiddenPartsOf(/** @type {string} */ (document.currentIdOf('g')))).toEqual(['Cube 2'])
+    expect(document.pendingUndo()?.label).toBe('Hide Cube 2 by default on Group 1')
+  })
+
+  it('undo and redo put it back and forth', () => {
+    const document = grouped()
+    document.setPartHidden('g', 'Cube 2', true, local)
+    document.undo()
+    expect(document.hiddenPartsOf(/** @type {string} */ (document.currentIdOf('g')))).toEqual([])
+    document.redo()
+    expect(document.hiddenPartsOf(/** @type {string} */ (document.currentIdOf('g')))).toEqual(['Cube 2'])
+  })
+
+  it('suppressing the row shows the part again', () => {
+    const document = grouped()
+    const { record } = document.setPartHidden('g', 'Cube 2', true, local)
+    document.setSuppressed(/** @type {string} */ (record.id), true, local)
+    expect(document.hiddenPartsOf(/** @type {string} */ (document.currentIdOf('g')))).toEqual([])
+  })
+
+  it('refuses an unknown part, a deleted body, a Repeat, an empty name and a no-op, appending nothing', () => {
+    const document = grouped()
+    const before = document.records.length
+    expect(() => document.setPartHidden('g', 'Nope', true, local)).toThrow(/no part/)
+    expect(() => document.setPartHidden('g', '', true, local)).toThrow(/part name/)
+    expect(() => document.setPartHidden('nope', 'Cube 2', true, local)).toThrow(/no such body/)
+    expect(() => document.setPartHidden('g', 'Cube 2', false, local)).toThrow(/already/)
+    expect(document.records.length).toBe(before)
+    document.deleteBodies(['g'], local)
+    expect(() => document.setPartHidden('g', 'Cube 2', true, local)).toThrow(/deleted/)
+  })
+
+  it('a step for a part a later change removed folds to the value unchanged and breaks no row', () => {
+    const document = grouped()
+    document.append(
+      { id: 'g-hide-x', op: 'group.setPartHidden', target: 'g', supersedes: 'g', params: { part: 'Gone', hidden: true } },
+      local,
+    )
+    expect(document.brokenSteps()).toEqual([])
+    expect(document.hiddenPartsOf(/** @type {string} */ (document.currentIdOf('g')))).toEqual([])
+  })
+
+  it('a bolt’s tap can be shown by default', () => {
+    const document = createDocument()
+    document.appendAll(recordsForDrop('hardware.bolt', { x: 0, y: 0 }, document), local)
+    const id = /** @type {string} */ (document.bodies()[0].recordId)
+    expect(document.hiddenPartsOf(id)).toContain('tap')
+    document.setPartHidden(id, 'tap', false, local)
+    expect(document.hiddenPartsOf(/** @type {string} */ (document.currentIdOf(id)))).not.toContain('tap')
   })
 })

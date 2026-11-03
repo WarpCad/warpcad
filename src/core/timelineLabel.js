@@ -302,6 +302,13 @@ export function describeRow(record, names) {
     return subject === undefined ? `Remove ${part}` : `Remove ${part} from ${subject}`
   }
 
+  // Marking a part hidden by default, or shown (`TODO/ui-093`).
+  if (record.op === 'group.setPartHidden') {
+    const part = typeof params.part === 'string' && params.part.length > 0 ? params.part : 'part'
+    const action = params.hidden === false ? 'Show' : 'Hide'
+    return subject === undefined ? `${action} ${part} by default` : `${action} ${part} by default on ${subject}`
+  }
+
   if (RIM_OPS.has(record.op)) {
     const face = FACE_LABELS[params.orientation] ?? FACE_LABELS['z+']
     const size = `${face} ${formatMm(params.radius)} mm`

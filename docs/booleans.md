@@ -138,6 +138,12 @@ you can cut with the next one. Subtract with a visible part and the group is use
 cutting shape is. A bolt that was never merged is still used up by a cut with its `tap`; one
 merged with something else stays.
 
+A part of a group you marked
+[Hidden by default](selection-and-inspector.md#hidden-by-default) follows the same rule: a
+Subtract with only hidden parts of the group leaves the group in the scene, so you can cut
+the next clearance too. If any piece in the cut is visible, the group is used up as before. A
+bolt's `tap` still uses the bolt up, whether or not you have shown it by default.
+
 **How to select a part:** click the shape once — the whole thing is selected. Click a
 second time, landing on the part you want. The Inspector header now reads a breadcrumb
 like `Raspberry Pi 1 ▸ ethernet`, and the gizmo shrinks to that part alone.

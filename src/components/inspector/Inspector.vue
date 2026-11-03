@@ -127,6 +127,7 @@ import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import ObjectList from './ObjectList.vue'
 import ViewHiddenNote from './ViewHiddenNote.vue'
+import PartDefaultHidden from './PartDefaultHidden.vue'
 import BillOfMaterials from '../display/BillOfMaterials.vue'
 import DeleteButton from './DeleteButton.vue'
 import IntentLine from './IntentLine.vue'
@@ -900,6 +901,9 @@ watch([() => body.value?.id, colorPart], () => {
             colour the whole part; a colour set here stays on {{ colorPart }} either way.
           </p>
         </section>
+
+        <!-- TODO/ui-093: Hidden by default, for the drilled-into part. Absent otherwise. -->
+        <PartDefaultHidden v-if="body.subPart" :body="body" />
 
         <!-- The Parts section (TODO/ui-049, superseding ui-047's Hidden parts): every
              part of a composite in group order, hidden ones labelled, in the object

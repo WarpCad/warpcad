@@ -140,6 +140,10 @@ selected, or from its row in the Inspector's
 [object list](selection-and-inspector.md#picking-one-piece-of-a-hidden-shape), the same
 way you would reach any other hidden piece.
 
+You can make any piece of a group, or of a ready-made shape, hidden by default yourself, or
+show a bolt's `tap`: tap the piece under **Parts** and tick or untick **Hidden by default**.
+See [Hidden by default](selection-and-inspector.md#hidden-by-default).
+
 ## Grouping groups: merging their parts
 
 Select bodies that have their own parts (two groups, a Raspberry Pi and a Cube, two bolts)
