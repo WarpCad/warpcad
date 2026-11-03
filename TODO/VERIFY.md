@@ -38,6 +38,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### render-007 — Hidden-part toggle-off remnant (2026-11-03 20:30 UTC)
+
+The remnant was a Firefox-only paint of the gizmo's Z-arm shadow in the snapshot helper, not an app ghost. Spec fixed. Three sibling specs still use the same `visibility:hidden` snapshot helper and were not changed: they may hit the same paint if a filtered overlay sits in their measured area.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Subtract with a bolt over a cube at phone width, then look for a shadow ghost near the bolt base after Show hidden parts off | Open | |
+| 2 | Firefox, a real window (not the spec): Show hidden parts on, then off, at tablet, and look for a faint grey bar left at the bolt base | Open | |
+
+
 ### docs-029 — Agent prompting guide (2026-11-03)
 
 Not covered by an acceptance scenario, and not runnable unattended: it needs a model with web search and no WarpCad context, handed only the published URL. The page itself, its generated tool list and its worked example are covered by `scripts/agent-docs.spec.js`, `scripts/agent-example.spec.js` and `e2e/agent-prompting-help.e2e.js`. Two lines are only possible after deploy: the home page link in `~/src/@WarpCad/warpcad.github.io` (`docs-027`), and the live URLs.

@@ -5,8 +5,10 @@ kind: finding
 priority: medium
 model: opus
 depends: []
-status: open
+status: done
 ---
+
+> **What actually shipped (2026-11-03).** No app change. The remnant was the gizmo's Z-arm `drop-shadow` (`Gizmo.vue`, `.tgizmo__arm`), which Firefox keeps painting under the snapshot helper's `visibility:hidden`. The fix is in `e2e/inspector-hidden-parts.e2e.js` `snapshotCanvas`: the hidden overlays also get `filter:none` and `backdrop-filter:none`. The 40 px threshold, the poll and the assertion are unchanged. Users are not affected: the app hides the gizmo with `v-if`/`v-show`, and a hand drive at laptop and phone showed a byte-identical canvas after toggle-off.
 
 ## Problem
 

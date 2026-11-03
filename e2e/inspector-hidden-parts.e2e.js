@@ -123,11 +123,20 @@ function sceneBodies(page) {
  * `.check()` on the toggle scrolls that sheet when `ui-051`'s pinned Delete row covers the
  * toggle, which read as thousands of "canvas" pixels changing when the 3D view had not.
  * `visibility`, not `display`, so nothing reflows between snapshots.
+ *
+ * `filter` and `backdrop-filter` are switched off on the hidden overlays too (`TODO/render-007`):
+ * Firefox still paints a `visibility:hidden` SVG element's CSS `drop-shadow`, so the selection
+ * gizmo's Z arm (`.tgizmo__arm`, `Gizmo.vue`) left two faint grey bars in every Firefox snapshot,
+ * straight over the bolt's shank — and they were repainted a pixel apart from one snapshot to the
+ * next. That was the whole "remnant" this spec kept failing on: the WebGL canvas's own pixels were
+ * identical before and after (0 changed), and so was a snapshot with the gizmo `display:none`.
+ * Neither property affects layout, so the no-reflow rule above still holds.
  */
 async function snapshotCanvas(page, key) {
   const handle = await page.addStyleTag({
     content:
-      '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}',
+      '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}' +
+      '[data-testid=viewport] > :not(canvas),[data-testid=viewport] > :not(canvas) *{filter:none !important;backdrop-filter:none !important}',
   })
   try {
     const png = await page.getByTestId('viewport-canvas').screenshot()
