@@ -42,7 +42,7 @@
  */
 
 import { cleanText } from './intent.js'
-import { compareStamps, isReplicaId } from './replica.js'
+import { compareStamps, counterOfId, isReplicaId } from './replica.js'
 
 /** The `op` a dropped prompt's {@link import('./project.js').LoadWarning} carries. */
 export const PROMPT_OP = 'note.prompt'
@@ -417,6 +417,33 @@ function compareIds(a, b) {
 }
 
 /**
+ * `TODO/ui-092`: the prompts' order, oldest first — the counter a prompt id carries
+ * (`prompt-<replica>-<n>`, {@link counterOfId}), then the id itself, so `prompt-x-2` comes before
+ * `prompt-x-10` and two replicas' prompts sort the same in every merge order. The counter counts
+ * one replica's prompts, not a shared clock, so two replicas' prompts interleave by number. An id
+ * with no counter (a legacy or hand-written one) reads `0` and comes first.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+export function comparePromptIds(a, b) {
+  return counterOfId(a) - counterOfId(b) || compareIds(a, b)
+}
+
+/**
+ * `TODO/ui-092`: a prompt map in {@link comparePromptIds} order, for every place that builds one
+ * other than {@link joinPromptMaps} — a loaded file (its section is written in string order), or a
+ * prompt recorded under an id this replica did not mint.
+ *
+ * @param {Iterable<[string, PromptEntry]>} entries
+ * @returns {Map<string, PromptEntry>}
+ */
+export function orderPromptMap(entries) {
+  return new Map([...entries].sort(([a], [b]) => comparePromptIds(a, b)))
+}
+
+/**
  * Two sorted id lists as one, sorted, each once, at most {@link PROMPT_LIMITS.maxProduced}.
  *
  * @param {readonly string[]} a
@@ -433,8 +460,8 @@ export function unionProduced(a, b) {
  * Its reply segments join by {@link joinResponses} (`TODO/ai-032`), so two replicas that both
  * reply keep both. Text never changes after a prompt is recorded, so two texts under one id only come from a
  * hostile file — settled by the smaller string, the same in every merge order. Commutative,
- * associative and idempotent, and needs no stamp. Past {@link PROMPT_LIMITS.maxPrompts}, the
- * first ids in sorted order are kept.
+ * associative and idempotent, and needs no stamp. The result is oldest first
+ * ({@link comparePromptIds}, `TODO/ui-092`); past {@link PROMPT_LIMITS.maxPrompts}, the oldest are kept.
  *
  * @param {ReadonlyMap<string, PromptEntry> | undefined} a
  * @param {ReadonlyMap<string, PromptEntry> | undefined} b
@@ -443,7 +470,7 @@ export function unionProduced(a, b) {
 export function joinPromptMaps(a, b) {
   /** @type {Map<string, PromptEntry>} */
   const joined = new Map()
-  const ids = [...new Set([...(a?.keys() ?? []), ...(b?.keys() ?? [])])].sort(compareIds).slice(0, PROMPT_LIMITS.maxPrompts)
+  const ids = [...new Set([...(a?.keys() ?? []), ...(b?.keys() ?? [])])].sort(comparePromptIds).slice(0, PROMPT_LIMITS.maxPrompts)
   for (const id of ids) {
     const x = a?.get(id)
     const y = b?.get(id)
@@ -573,4 +600,87 @@ export function promptsForBody(document, bodyId) {
   if (prompts.length === 0) return []
   const ids = idsMakingUp(document, bodyId)
   return prompts.filter((prompt) => prompt.produced.some((id) => ids.has(id)))
+}
+
+/**
+ * `TODO/ui-092`: what a prompt did to one live body.
+ *
+ * - `made` — the body's lineage root is in its `produced`.
+ * - `changed` — a later record of the body's own lineage is, the root is not.
+ * - `wentInto` — only a body this one consumed is (through a boolean or a group): the prompt's
+ *   part lives on in this result.
+ *
+ * @typedef {'made' | 'changed' | 'wentInto'} PromptRole
+ */
+
+/**
+ * `TODO/ui-092`: the inverse of {@link promptsForBody}, for the whole document at once.
+ *
+ * `byPrompt` holds every prompt, oldest first, with its live bodies in `bodies()` order — `[]` for
+ * a prompt whose bodies are all gone or that made none. `byBody` holds only the live bodies some
+ * prompt names, each with its prompts oldest first; a body may be `made` by one prompt and
+ * `changed` by another, and both list it.
+ *
+ * @typedef {object} PromptIndex
+ * @property {Map<string, { bodyId: string, role: PromptRole }[]>} byPrompt
+ * @property {Map<string, { promptId: string, role: PromptRole }[]>} byBody
+ */
+
+/**
+ * `TODO/ui-092`: which live bodies each prompt made, changed or went into — built once, by the
+ * same {@link idsMakingUp} rule as {@link promptsForBody}, so the two never disagree: a prompt is
+ * listed for a body exactly when `promptsForBody` would return it. One walk per live body; a view
+ * builds this once per document version and never walks lineages per row.
+ *
+ * @param {Pick<import('./document.js').WarpDocument, 'bodies' | 'lineageOf' | 'prompts'>} document
+ * @returns {PromptIndex}
+ */
+export function promptIndex(document) {
+  const prompts = document.prompts()
+  /** @type {PromptIndex} */
+  const index = { byPrompt: new Map(prompts.map((prompt) => [prompt.id, []])), byBody: new Map() }
+  if (prompts.length === 0) return index
+  for (const body of document.bodies()) {
+    const ids = idsMakingUp(document, body.id)
+    const lineage = document.lineageOf(body.id)
+    const root = lineage[0]?.id ?? body.id
+    const own = new Set(lineage.map((record) => record.id))
+    /** @type {{ promptId: string, role: PromptRole }[]} */
+    const found = []
+    for (const prompt of prompts) {
+      if (!prompt.produced.some((id) => ids.has(id))) continue
+      const role = roleOf(prompt.produced, root, own)
+      found.push({ promptId: prompt.id, role })
+      index.byPrompt.get(prompt.id)?.push({ bodyId: body.id, role })
+    }
+    if (found.length > 0) index.byBody.set(body.id, found)
+  }
+  return index
+}
+
+/**
+ * A prompt already known to touch a body ({@link idsMakingUp}): which way.
+ *
+ * @param {readonly string[]} produced
+ * @param {string} root The body's lineage root.
+ * @param {ReadonlySet<string | undefined>} own Every record id of the body's own lineage.
+ * @returns {PromptRole}
+ */
+function roleOf(produced, root, own) {
+  if (produced.includes(root)) return 'made'
+  if (produced.some((id) => own.has(id))) return 'changed'
+  return 'wentInto'
+}
+
+/**
+ * `TODO/ui-092`: one prompt's live bodies, each with its {@link PromptRole} — {@link promptIndex}'s
+ * `byPrompt` entry. `[]` for an id that names no prompt. A view that shows many prompts reads the
+ * index once instead.
+ *
+ * @param {Pick<import('./document.js').WarpDocument, 'bodies' | 'lineageOf' | 'prompts'>} document
+ * @param {string} promptId
+ * @returns {{ bodyId: string, role: PromptRole }[]}
+ */
+export function promptBodiesWithRoles(document, promptId) {
+  return promptIndex(document).byPrompt.get(promptId) ?? []
 }

@@ -450,6 +450,7 @@ import { AI_STEP_LIMIT, isAiStepLimit, normalizeAiStepLimit } from './aiBudget.j
 import { normalizeGistField, sameGistField } from './gistField.js'
 import {
   PROMPT_LIMITS,
+  orderPromptMap,
   preparePrompt,
   prepareResponse,
   promptsFullReason,
@@ -4712,7 +4713,8 @@ export function createDocument(options = {}) {
       projectId = null
       if (options.merge !== undefined) applyMergeOverlay(options.merge)
       // `TODO/ai-031`: the prompts arrive only inside a version-2 file's merge section, validated.
-      prompts = new Map(options.merge?.prompts ?? [])
+      // `TODO/ui-092`: the section writes them in string order; held oldest first.
+      prompts = orderPromptMap(options.merge?.prompts ?? [])
       mintable = projectId === null && nextEntries.length === 0 && (options.merge?.dead.size ?? 0) === 0
       for (const entry of nextEntries) clock.observe(counterOfId(entry.record.id))
       undoStack.length = 0
@@ -4882,7 +4884,8 @@ export function createDocument(options = {}) {
       if (prompts.size >= PROMPT_LIMITS.maxPrompts) {
         throw new Error(`document.recordPrompt: a project holds at most ${PROMPT_LIMITS.maxPrompts} prompts`)
       }
-      const next = new Map(prompts).set(id, { text: verdict.record.text, produced: verdict.record.produced })
+      // `TODO/ui-092`: oldest first, even for an id this replica did not mint.
+      const next = orderPromptMap(new Map(prompts).set(id, { text: verdict.record.text, produced: verdict.record.produced }))
       checkPromptsRoom('recordPrompt', next)
       prompts = next
       document.version += 1

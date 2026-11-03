@@ -26,6 +26,7 @@ import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kern
 import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { packGeometry } from '../core/kernel/transport.js'
+import { promptIndex as buildPromptIndex } from '../core/prompt.js'
 import { useSelectionStore } from './selection.js'
 
 /** @typedef {import('../core/document.js').Body} Body */
@@ -276,6 +277,16 @@ export const useDocumentStore = defineStore('document', () => {
    * computed that summarises bodies — the timeline preview's — re-reads the cache.
    */
   const measureRevision = ref(0)
+  /**
+   * `TODO/ui-092`: which live bodies each prompt made, changed or went into, and each body's
+   * prompts (`core/prompt.js` `promptIndex`). Built once per document {@link version} — it reads
+   * nothing else reactive, so a measurement landing or a selection change never rebuilds it — and
+   * the view reads it rather than walking lineages per row or per hover. Plain Maps, not reactive.
+   */
+  const promptIndex = computed(() => {
+    void version.value // `raw` is deliberately non-reactive
+    return buildPromptIndex(raw)
+  })
   /** The live scene's measurement stream; a preview has its own, so neither cancels the other. */
   const sceneChannel = createEvaluationChannel('scene')
   const previewChannel = createEvaluationChannel('preview')
@@ -933,6 +944,7 @@ export const useDocumentStore = defineStore('document', () => {
     bodies,
     inactiveBodies,
     count: computed(() => bodies.value.length),
+    promptIndex,
     canUndo,
     canRedo,
     undoLabel,

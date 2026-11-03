@@ -949,3 +949,56 @@ describe('a merge that would pass the prompts budget is refused in words (TODO/u
     expect(human.entries.map((entry) => entry.record.id)).toContain('box-c')
   })
 })
+
+/**
+ * `TODO/ui-092`, part 2: `PromptRow.vue` and `gistReadme.js` both promise the prompts "oldest
+ * first". An id's counter is what says so (`prompt-<replica>-<n>`), so the order holds with 11 prompts
+ * — past the `-10` a plain string sort put before `-2` — before a merge, after it in both orders,
+ * and after a reload of the merged file.
+ */
+describe('the prompts stay oldest first with 11 of them, through a merge and a reload (TODO/ui-092)', () => {
+  const mcp = { origin: 'mcp' }
+  /** @param {any} document */
+  const ids = (document) => document.prompts().map((/** @type {any} */ prompt) => prompt.id)
+  /** @param {any} document */
+  const reload = (document) => {
+    const parsed = parseProject(serializeProject(document))
+    const fresh = createDocument({ replica: 'rrrrrr' })
+    fresh.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
+    return fresh
+  }
+
+  it('one replica’s 11 prompts', () => {
+    const { human, other } = pair()
+    for (let i = 1; i <= 11; i += 1) human.recordPrompt({ text: `request ${i}` }, mcp)
+    const expected = Array.from({ length: 11 }, (_, i) => `prompt-hhhhhh-${i + 1}`)
+    expect(ids(human)).toEqual(expected)
+    expect(ids(reload(human))).toEqual(expected)
+    other.mergeFrom(human.mergeState(), MERGE)
+    expect(ids(other)).toEqual(expected)
+    expect(ids(reload(other))).toEqual(expected)
+  })
+
+  it('two replicas’ prompts, merged in both orders, agree: by counter, then id', () => {
+    const { human, other } = pair()
+    for (let i = 1; i <= 11; i += 1) {
+      human.recordPrompt({ text: `human ${i}` }, mcp)
+      if (i <= 3) other.recordPrompt({ text: `other ${i}` }, mcp)
+    }
+    const humanState = human.mergeState()
+    human.mergeFrom(other.mergeState(), MERGE)
+    other.mergeFrom(humanState, MERGE)
+    const expected = [
+      'prompt-hhhhhh-1', 'prompt-oooooo-1',
+      'prompt-hhhhhh-2', 'prompt-oooooo-2',
+      'prompt-hhhhhh-3', 'prompt-oooooo-3',
+      ...Array.from({ length: 8 }, (_, i) => `prompt-hhhhhh-${i + 4}`),
+    ]
+    expect(ids(human)).toEqual(expected)
+    expect(ids(other)).toEqual(expected)
+    expect(ids(reload(human))).toEqual(expected)
+    // A prompt recorded after the merge comes last.
+    human.recordPrompt({ text: 'human 12' }, mcp)
+    expect(ids(human).at(-1)).toBe('prompt-hhhhhh-12')
+  })
+})

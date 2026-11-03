@@ -7,16 +7,22 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { createDocument } from './document.js'
 import { cleanText } from './intent.js'
 import {
   PROMPT_LIMITS,
   cleanPromptText,
+  comparePromptIds,
   joinPromptMaps,
   preparePrompt,
   prepareResponse,
+  promptBodiesWithRoles,
+  promptIndex,
+  promptsForBody,
   responseTextOf,
   validatePromptRecord,
 } from './prompt.js'
+import { defineVariable } from './variables.js'
 
 describe('cleanPromptText: intent’s rule plus bidi controls', () => {
   it('strips C0 controls like intent does, and keeps tabs and newlines', () => {
@@ -387,5 +393,261 @@ describe('joinPromptMaps: both replicas’ replies', () => {
     expect(validatePromptRecord(file).ok).toBe(true)
     // Joining again with either side changes nothing.
     expect(canon(joinPromptMaps(joinPromptMaps(a, b), b))).toBe(canon(joinPromptMaps(a, b)))
+  })
+})
+
+/**
+ * `TODO/ui-092`, part 2: the prompts' order. `PromptRow.vue` and `gistReadme.js` both promise
+ * "oldest first", and an id is `prompt-<replica>-<n>` with `n` counting that replica's prompts. A
+ * plain string sort put `prompt-x-10` before `prompt-x-2`; the order is the counter, then the id,
+ * the same in every merge order.
+ */
+describe('the prompts’ order: by the id’s counter (TODO/ui-092)', () => {
+  const R = 'aaaaaa'
+  const eleven = Array.from({ length: 11 }, (_, i) => `prompt-${R}-${i + 1}`)
+  /** @param {readonly string[]} ids */
+  const map = (ids) => new Map(ids.map((id) => [id, { text: id, produced: [] }]))
+
+  it('comparePromptIds orders by the counter, not the string', () => {
+    expect([...eleven].reverse().sort(comparePromptIds)).toEqual(eleven)
+    expect(comparePromptIds(`prompt-${R}-2`, `prompt-${R}-10`)).toBeLessThan(0)
+    expect(comparePromptIds(`prompt-${R}-10`, `prompt-${R}-2`)).toBeGreaterThan(0)
+    expect(comparePromptIds(`prompt-${R}-7`, `prompt-${R}-7`)).toBe(0)
+  })
+
+  it('breaks a tie of counters by the id, and puts an id with no counter first', () => {
+    const ids = [`prompt-bbbbbb-1`, `prompt-${R}-2`, 'legacy-b', `prompt-${R}-1`, 'legacy-a']
+    expect([...ids].sort(comparePromptIds)).toEqual(['legacy-a', 'legacy-b', `prompt-${R}-1`, 'prompt-bbbbbb-1', `prompt-${R}-2`])
+  })
+
+  it('11 prompts joined come out oldest first, in both merge orders and both groupings', () => {
+    const odd = map(eleven.filter((_, i) => i % 2 === 0))
+    const even = map(eleven.filter((_, i) => i % 2 === 1))
+    const tail = map(eleven.slice(8))
+    expect([...joinPromptMaps(odd, even).keys()]).toEqual(eleven)
+    expect([...joinPromptMaps(even, odd).keys()]).toEqual(eleven)
+    expect([...joinPromptMaps(joinPromptMaps(odd, even), tail).keys()]).toEqual(eleven)
+    expect([...joinPromptMaps(odd, joinPromptMaps(even, tail)).keys()]).toEqual(eleven)
+    expect([...joinPromptMaps(map([...eleven].reverse()), undefined).keys()]).toEqual(eleven)
+  })
+
+  it('past the cap, the oldest are kept', () => {
+    const ids = Array.from({ length: PROMPT_LIMITS.maxPrompts + 20 }, (_, i) => `prompt-${R}-${i + 1}`)
+    const joined = joinPromptMaps(map(ids.slice(0, 300)), map(ids.slice(300)))
+    expect(joined.size).toBe(PROMPT_LIMITS.maxPrompts)
+    expect([...joined.keys()]).toEqual(ids.slice(0, PROMPT_LIMITS.maxPrompts))
+  })
+})
+
+/**
+ * `TODO/ui-092`, part 2: the inverse of `promptsForBody` — given a prompt, its live bodies, each
+ * with a role — built over the one `idsMakingUp` rule, so the two never disagree.
+ *
+ * - **made**: the body's lineage root is in `produced`.
+ * - **changed**: a later record in its lineage is, the root is not.
+ * - **wentInto**: only a body it consumed is; reported against the live result.
+ */
+describe('promptIndex: which parts a request made (TODO/ui-092)', () => {
+  const mcp = { origin: 'mcp' }
+  const local = { origin: 'local' }
+
+  /** @param {any} document @param {number} [x] */
+  function placeCube(document, x = 0) {
+    const id = document.nextId('cuboid')
+    document.append({ id, op: 'primitive.cuboid', name: document.nextName('Cube'), params: { size: [20, 20, 20], center: [x, 0, 10] } }, mcp)
+    return id
+  }
+
+  /** @param {any} document @param {string} bodyId */
+  function move(document, bodyId) {
+    const terminal = document.bodies().find((/** @type {any} */ body) => body.id === bodyId).recordId
+    const id = document.nextId('move')
+    document.append({ id, op: 'transform.translate', supersedes: terminal, target: terminal, params: { vector: [5, 0, 0], rotation: [0, 0, 0] } }, local)
+    return id
+  }
+
+  /** @param {any} document @param {string} a @param {string} b */
+  function union(document, a, b) {
+    const terminalOf = (/** @type {string} */ id) => document.bodies().find((/** @type {any} */ body) => body.id === id).recordId
+    const [x, y] = [terminalOf(a), terminalOf(b)]
+    const id = document.nextId('bool')
+    document.append({ id, op: 'boolean.union', name: 'Union', target: x, operands: [y], consumes: [x, y] }, local)
+    return id
+  }
+
+  /** @param {any} document @param {string} text @param {string[]} produced */
+  function prompt(document, text, produced) {
+    const stored = document.recordPrompt({ text }, mcp)
+    if (produced.length > 0) document.addPromptProduced(stored.id, produced, mcp)
+    return stored.id
+  }
+
+  it('made: the body’s root is in produced', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const p = prompt(document, 'a cube', [cube])
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(p)).toEqual([{ bodyId: cube, role: 'made' }])
+    expect(index.byBody.get(cube)).toEqual([{ promptId: p, role: 'made' }])
+    expect(promptBodiesWithRoles(document, p)).toEqual([{ bodyId: cube, role: 'made' }])
+  })
+
+  it('changed: only a later record of the lineage is in produced', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const step = move(document, cube)
+    const p = prompt(document, 'move the cube 5 mm', [step])
+    expect(promptIndex(document).byPrompt.get(p)).toEqual([{ bodyId: cube, role: 'changed' }])
+    expect(promptIndex(document).byBody.get(cube)).toEqual([{ promptId: p, role: 'changed' }])
+  })
+
+  it('went into: only a consumed body is in produced; reported against the live result', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const a = placeCube(document)
+    const b = placeCube(document, 10)
+    const p = prompt(document, 'two cubes', [a, b])
+    const result = union(document, a, b)
+    expect(document.bodies().map((/** @type {any} */ body) => body.id)).toEqual([result])
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(p)).toEqual([{ bodyId: result, role: 'wentInto' }])
+    expect(index.byBody.get(result)).toEqual([{ promptId: p, role: 'wentInto' }])
+    expect(index.byBody.has(a)).toBe(false)
+    expect(index.byBody.has(b)).toBe(false)
+  })
+
+  it('a prompt that produced the boolean too made the result', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const a = placeCube(document)
+    const b = placeCube(document, 10)
+    const result = union(document, a, b)
+    const p = prompt(document, 'two cubes, unioned', [a, b, result])
+    expect(promptIndex(document).byPrompt.get(p)).toEqual([{ bodyId: result, role: 'made' }])
+  })
+
+  it('a body made by one prompt and changed by another: both prompts list it, oldest first', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const first = prompt(document, 'a cube', [cube])
+    const step = move(document, cube)
+    const second = prompt(document, 'move it', [step])
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(first)).toEqual([{ bodyId: cube, role: 'made' }])
+    expect(index.byPrompt.get(second)).toEqual([{ bodyId: cube, role: 'changed' }])
+    expect(index.byBody.get(cube)).toEqual([
+      { promptId: first, role: 'made' },
+      { promptId: second, role: 'changed' },
+    ])
+  })
+
+  it('a prompt with no live body, a prompt naming only dead ids: an empty list, never missing', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const none = prompt(document, 'just thinking', [])
+    const ghost = prompt(document, 'from a lost copy', ['cuboid-zzzzzz-9', 'bool-zzzzzz-10'])
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(none)).toEqual([])
+    expect(index.byPrompt.get(ghost)).toEqual([])
+    expect(index.byBody.has(cube)).toBe(false)
+    expect(index.byBody.size).toBe(0)
+    expect(promptBodiesWithRoles(document, 'prompt-aaaaaa-404')).toEqual([])
+  })
+
+  it('a variables-only prompt lists no body, and no body lists it', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const { record } = defineVariable(document, { name: 'wall', kind: 'number', value: 2, unit: 'mm' }, mcp)
+    const p = prompt(document, 'a 2 mm wall variable', [/** @type {string} */ (record.id)])
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(p)).toEqual([])
+    expect(index.byBody.get(cube)).toBeUndefined()
+  })
+
+  it('a deleted body is no longer reported, though the prompt stays', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = placeCube(document)
+    const kept = placeCube(document, 60)
+    const p = prompt(document, 'two cubes', [cube, kept])
+    document.deleteBodies([cube], local)
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(p)).toEqual([{ bodyId: kept, role: 'made' }])
+    expect(index.byBody.has(cube)).toBe(false)
+    expect(document.promptOf(p)).toBeDefined()
+  })
+
+  it('the Fan Duct shape: two prompts, identical produced including dead ids, one live result', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const shell = placeCube(document)
+    const tool = placeCube(document, 5)
+    const result = union(document, shell, tool)
+    const produced = [shell, tool, result, 'cuboid-aaaaaa-90', 'move-aaaaaa-91']
+    const first = prompt(document, 'a 140 × 250 mm fan duct, 1.6 mm walls', produced)
+    const second = prompt(document, 'a 140 × 250 mm fan duct, 1.6 mm walls, again', produced)
+    const index = promptIndex(document)
+    expect(index.byPrompt.get(first)).toEqual([{ bodyId: result, role: 'made' }])
+    expect(index.byPrompt.get(second)).toEqual([{ bodyId: result, role: 'made' }])
+    expect(index.byBody.get(result)).toEqual([
+      { promptId: first, role: 'made' },
+      { promptId: second, role: 'made' },
+    ])
+    expect([...index.byBody.keys()]).toEqual([result])
+  })
+
+  it('an empty document has an empty index', () => {
+    const index = promptIndex(createDocument({ replica: 'aaaaaa' }))
+    expect(index.byPrompt.size).toBe(0)
+    expect(index.byBody.size).toBe(0)
+  })
+
+  it('agrees with promptsForBody on a generated project, both ways (seeded)', () => {
+    /** @type {Set<string>} */
+    const rolesSeen = new Set()
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      let state = seed
+      const random = () => {
+        // mulberry32
+        state = (state + 0x6d2b79f5) | 0
+        let t = Math.imul(state ^ (state >>> 15), 1 | state)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+      }
+      const pick = (/** @type {any[]} */ list) => list[Math.floor(random() * list.length)]
+      const document = createDocument({ replica: 'aaaaaa' })
+      /** @type {string[]} */
+      const written = []
+      for (let step = 0; step < 40; step += 1) {
+        const live = document.bodies().map((/** @type {any} */ body) => body.id)
+        const roll = random()
+        if (roll < 0.3 || live.length === 0) written.push(placeCube(document, step * 30))
+        else if (roll < 0.45) written.push(move(document, pick(live)))
+        else if (roll < 0.6 && live.length >= 2) {
+          const a = pick(live)
+          const b = pick(live.filter((/** @type {string} */ id) => id !== a))
+          written.push(union(document, a, b))
+        } else if (roll < 0.7) document.deleteBodies([pick(live)], local)
+        else {
+          const produced = [...new Set(written.filter(() => random() < 0.25))]
+          if (random() < 0.3) produced.push(`ghost-zzzzzz-${step}`)
+          prompt(document, `request ${step}`, produced)
+        }
+      }
+      const index = promptIndex(document)
+      const prompts = document.prompts()
+      expect(prompts.length, `seed ${seed}`).toBeGreaterThan(0)
+      for (const body of document.bodies()) {
+        const expected = promptsForBody(document, body.id).map((p) => p.id)
+        expect((index.byBody.get(body.id) ?? []).map((entry) => entry.promptId), `seed ${seed}, body ${body.id}`).toEqual(expected)
+      }
+      for (const p of prompts) {
+        const expected = document.bodies().filter((body) => promptsForBody(document, body.id).some((q) => q.id === p.id)).map((body) => body.id)
+        expect(/** @type {any[]} */ (index.byPrompt.get(p.id)).map((entry) => entry.bodyId), `seed ${seed}, prompt ${p.id}`).toEqual(expected)
+        expect(promptBodiesWithRoles(document, p.id)).toEqual(index.byPrompt.get(p.id))
+        for (const { bodyId, role } of /** @type {any[]} */ (index.byPrompt.get(p.id))) {
+          expect(index.byBody.get(bodyId)).toContainEqual({ promptId: p.id, role })
+          rolesSeen.add(role)
+        }
+      }
+    }
+    // The generator reaches every role, so the agreement is not vacuous.
+    expect([...rolesSeen].sort()).toEqual(['changed', 'made', 'wentInto'])
   })
 })
