@@ -40,3 +40,54 @@ test.describe('docs media: agent prompt', () => {
     await shot(page, 'agent-prompt-row.png', { locator: inspector })
   })
 })
+
+/**
+ * `TODO/ui-092` part 3: the Prompts view, for `docs/design-intent.md` ("The prompt is saved with the
+ * part") and `docs/ai-partner.md`. Two requests: the first made two cubes, the second a third one.
+ * The first row is expanded, so its parts are lit in the 3D view.
+ */
+const FIRST = 'Two 20 mm cubes side by side'
+const SECOND = 'A third cube, to the right of the others'
+
+/** @param {import('@playwright/test').Page} page */
+async function twoRequests(page) {
+  await installFakeWebMcp(page)
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await expect.poll(() => registeredNames(page)).toContain('record_prompt')
+  await agentCall(page, 'record_prompt', { prompt: FIRST })
+  await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [-15, 0, 0], params: { size: [20, 20, 20] } })
+  await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [15, 0, 0], params: { size: [20, 20, 20] } })
+  await agentCall(page, 'record_prompt', { prompt: SECOND })
+  await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [45, 0, 0], params: { size: [20, 20, 20] } })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
+}
+
+test.describe('docs media: prompts view', () => {
+  test.skip(({ viewport }) => viewport?.width !== 1440, 'laptop-only')
+
+  test('prompts-view still', async ({ page }) => {
+    await twoRequests(page)
+    await page.getByTestId('inspector-prompts-open').click()
+    const view = page.getByTestId('prompts-view')
+    await expect(view).toBeVisible()
+    await view.getByTestId('prompts-row').first().click()
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-hover-bodies', /.+/)
+    await shot(page, 'prompts-view.png', { locator: page.getByTestId('inspector') })
+  })
+})
+
+test.describe('docs media: prompts view on a phone', () => {
+  test.skip(({ viewport }) => viewport?.width !== 390, 'phone-only')
+
+  test('prompts-view-phone still', async ({ page }) => {
+    await twoRequests(page)
+    const inspector = page.getByTestId('inspector')
+    if ((await inspector.getAttribute('data-open')) !== 'true') await page.getByTestId('inspector-tab').click()
+    await page.getByTestId('inspector-view-prompts').click()
+    const view = page.getByTestId('prompts-view')
+    await expect(view).toBeVisible()
+    await view.getByTestId('prompts-row').first().click()
+    await shot(page, 'prompts-view-phone.png', { locator: inspector })
+  })
+})

@@ -118,7 +118,8 @@ what it does with that. If you don't want an agent to read a project, turn the s
 ## The prompt is saved with the part
 
 Your agent is asked to call `record_prompt` first with your request as you gave it. WarpCad stores
-it in the project, and the **Prompt** row in the Inspector shows it for each shape the agent made.
+it in the project, and the **Prompt** row in the Inspector shows it for each shape the agent made. Every
+request the agent sent is listed in the **Prompts** view, opened from the Inspector.
 See [The prompt is saved with the part](design-intent.md#the-prompt-is-saved-with-the-part) for a
 worked example.
 

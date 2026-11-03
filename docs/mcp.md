@@ -402,9 +402,10 @@ reaches your project.
 
 ## The prompt is saved with the part
 
-Claude Code is asked to call `record_prompt` first with your request as you gave it, and the file
-keeps it. Open the file in WarpCad, select a shape Claude made, and the Inspector's **Prompt** row
-shows your words. A worked example is in
+Claude Code is asked to call `record_prompt` first with your request as you gave it, in one call, and
+the file keeps it. Open the file in WarpCad, select a shape Claude made, and the Inspector's **Prompt**
+row shows your words and a link to the **Prompts** view, which lists every request in the project.
+A worked example is in
 [The prompt is saved with the part](design-intent.md#the-prompt-is-saved-with-the-part).
 
 When it finishes, Claude Code is asked to call `record_response` with its final message, the same
@@ -414,6 +415,8 @@ each. WarpCad saves that reply under your request. Select a shape Claude made an
 under the **Prompt** row, so you, or whoever you send the file to, can read what was asked and
 what came back.
 
+- **One request, one call.** A long request goes in one `record_prompt` call, in full, up to 20,000
+  characters. Claude is not meant to split it across calls. Past 20,000 characters the text is cut.
 - **It refuses without a request.** If Claude never called `record_prompt`, `record_response`
   writes nothing and tells it to record the request first.
 - **A second call adds to the reply** rather than replacing it. At most 20,000 characters are
@@ -424,7 +427,8 @@ what came back.
 **Example.** Ask Claude Code for *a 140 × 250 mm fan duct, 1.6 mm walls*. When it is done, open
 the file in WarpCad and select the duct. Under the request is Claude's answer, for example
 *Built the fan duct: 140 × 250 mm outside…* followed by *Problems met*. To add a reply to a project
-saved before this existed, tap **Add reply…** under the request, paste the text, and tap **Add**
+saved before this existed, open the **Prompts** view, expand the request, tap **Add reply…** in its row,
+paste the text, and tap **Add**
 (see [The reply is saved with your request](ai-partner.md#the-reply-is-saved-with-your-request)).
 
 ## What the file holds

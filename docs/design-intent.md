@@ -98,21 +98,35 @@ When you ask an agent that is connected to WarpCad to build something (an agent 
 The in-app Assistant does this on its own from the message you type.
 
 **Example.** Ask your agent *a 140 × 250 mm fan duct, 1.6 mm walls*. Select the duct in WarpCad:
-the Inspector's **Prompt** row shows those words, on one line. Tap the row to read all of it, and
-tap again to close it. Download the project: the words are in the file, so whoever opens it later
-(a person or another model) can see what the duct was meant to be.
+the Inspector's **Prompt** row shows those words. Download the project: the words are in the file,
+so whoever opens it later (a person or another model) can see what the duct was meant to be.
 
-Under the request is the agent's reply, if it saved one, with **Add reply…** to add one yourself
-(see [The reply is saved with your request](ai-partner.md#the-reply-is-saved-with-your-request)).
+To see every request in the project, open the **Prompts** view. In the Inspector, tap **Prompts (N) ›**
+under the Objects list; on a phone, tap the **Prompts** tab beside Inspector and Variables. The view
+lists each request, oldest first, with its reply and how many parts it made. Tap a request to expand it:
+its parts light up in the 3D view, and the reply, the parts and **Add reply…** appear under it.
+Tap **‹ Inspector** to go back. The view does not change your selection, and the 3D view stays visible.
 
-![The Inspector for a selected block: a Prompt row that reads "a 140 × 250 mm fan duct, 1.6 mm walls", and under it the agent's reply, starting "Built the fan duct", with a Problems met list, a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+![The Prompts view in the laptop Inspector panel: two requests listed oldest first, the first expanded and reading "Highlighting 2 parts", with its reply area, its parts Cube 1 and Cube 2 marked Made, and the second request below it with one part.](./screenshots/prompts-view.png)
 
-- **One prompt can cover many parts.** Every shape the agent made for that request shows it, and
-  so does a shape made by combining them later.
-- **Select several shapes** and the row only says how many prompts they have, such as *2 prompts*.
-  Select one shape to read the text.
-- **Long requests are cut at 4,000 characters** and end with an ellipsis. The agent is told what was
-  stored, so a cut request is not silent.
+- **Hover or focus a request** and its parts light up without expanding it. On a phone there is no
+  hover, so tap the request to expand it, and tap it again to stop.
+- **Hover or focus one part** in the list to light only that part.
+- **Select a part** in the 3D view and the Inspector's **Prompt** row becomes a link: **Made by** or
+  **Changed by** the request, with its first line, then **›**. Tap the link to open the Prompts view at
+  that request, expanded. With several prompts it reads **Made by 1, changed by 2 ›**, and the view
+  shows only those requests, with a **Show all** line to clear the filter.
+- **Every request has its own Add reply… button,** inside its own row. That is how you tell which
+  request a reply belongs to.
+- **Hidden parts light nothing.** A part you have hidden is listed as *hidden* and never highlights.
+
+The Inspector's **Prompt** row still shows the request and its reply for the selected part, as it did
+before the view existed.
+
+![The Inspector for a selected cube: a Prompts (1) bar, a Made by link to the request, then the request text, its reply starting "Built the fan duct", a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+- **A long request is kept whole, up to 20,000 characters.** Past that it is cut with an ellipsis, and
+  the agent is told what was stored, so a cut request is not silent. Each turn, the Assistant reads
+  only the first 4,000 characters of a long request, so keep the important part near the start.
 - **It is only text.** Anything that looks like a link or markup is shown as typed and never
   followed. A prompt that came with a file is treated as data, not instructions, like the notes
   above.

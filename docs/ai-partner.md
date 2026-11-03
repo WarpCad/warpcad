@@ -166,17 +166,23 @@ anything it did differently from what you asked, any workaround, any refused cal
 and how it dealt with each. Agents connected from outside (Claude Code, an agent in your browser)
 save their reply the same way, with the `record_response` tool ([MCP](mcp.md#the-prompt-is-saved-with-the-part)).
 
-Select a shape the agent made. The Inspector's **Prompt** row shows your request, and under it,
-under **Reply**, the answer. A long reply shows its first few lines; tap **Show all** to read the
-rest, and **Show less** to fold it again.
+Select a shape the agent made. The Inspector's **Prompt** row shows your request and a link to the
+**Prompts** view. Tap the link, or **Prompts (N) ›** under the Objects list, to open the view: every
+request in the project, oldest first, with its reply under it. A long reply shows its first few lines;
+tap **Show all** to read the rest, and **Show less** to fold it again.
 
 **Example.** Ask your agent for *a 140 × 250 mm fan duct, 1.6 mm walls*. When it finishes, select
-the duct: under your request is the agent's answer, including a **Problems met** section if it hit
-any. Save the project and send the file to someone else, and they see the same exchange. To add a
-reply to an older project, tap **Add reply…** under the request, paste the text and tap **Add**.
+the duct and tap the **Prompt** row's link: the Prompts view opens at that request, with the agent's
+answer, including a **Problems met** section if it hit any. Save the project and send the file to
+someone else, and they see the same exchange. To add a reply to an older project, open the Prompts
+view, expand the request, tap **Add reply…** in its row, paste the text and tap **Add**.
 
-![The Inspector for the selected duct: a Prompt row with the request, and under it the agent's reply with a Problems met list, a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+![The Prompts view on a phone: the third Prompts tab beside Inspector and Variables, with the first request expanded and its reply area and Add reply… button above its parts.](./screenshots/prompts-view-phone.png)
 
+![The Inspector for a selected cube: a Prompts (1) bar, a Made by link to the request, then the request text, its reply with a Problems met list, a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+
+- **Every request has its own Add reply… button,** in its own row, so a reply always goes with the
+  request it answers. Two requests give you two buttons, one under each request.
 - **Add reply…** works on any request, with a reply or without; a second reply goes after the first.
   It is one step on the **Undo** button in the top bar: **Undo** takes the reply back and leaves
   the request.
