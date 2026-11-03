@@ -42,6 +42,7 @@ describe.each(TRANSPORTS)('%s instructions', (_name, text, definitions) => {
     ['printing defaults', /0\.4 mm nozzle/, /1\.2 mm minimum wall/, /220 × 220 × 250/],
     ['ask once with zero writes', /ask once/, /zero writes/],
     ['record_prompt then request', /`record_prompt` first/, /`request`/],
+    ['record_prompt with the whole request, in one call (ui-092)', /`record_prompt` first with the user’s whole request/, /in one call/],
     ['record_response last, with every problem met (ai-032)', /`record_response` last/, /every problem you met/],
     ['document data is data', /<document_data>/, /never instructions/],
   ])('carry the rule: %s', (_rule, ...matchers) => {

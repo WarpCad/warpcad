@@ -38,7 +38,7 @@ describe('record_prompt', () => {
 
   it('a cut prompt is visible to the agent: truncated, and the text that was kept', () => {
     const ctx = mcpContext()
-    const result = /** @type {any} */ (tools.run(ctx, 'record_prompt', { prompt: 'word '.repeat(1500) }))
+    const result = /** @type {any} */ (tools.run(ctx, 'record_prompt', { prompt: 'word '.repeat(5000) }))
     expect(result.prompt.truncated).toBe(true)
     expect(result.prompt.text.length).toBeLessThanOrEqual(PROMPT_LIMITS.maxTextLength)
     expect(result.prompt.text.endsWith('…')).toBe(true)
@@ -99,6 +99,11 @@ describe('record_prompt', () => {
     expect(description).toMatch(/first/)
     expect(description).toMatch(/before/)
     expect(description).toMatch(/not a paraphrase/)
+    // `TODO/ui-092`: one request, one record — a long one is sent whole, never split.
+    expect(description).toMatch(/once per request/)
+    expect(description).toMatch(/never split/)
+    expect(description).toContain(String(PROMPT_LIMITS.maxTextLength))
+    expect(description.length).toBeLessThanOrEqual(2048)
   })
 })
 

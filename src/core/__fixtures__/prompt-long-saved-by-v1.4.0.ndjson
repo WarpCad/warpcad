@@ -1,0 +1,3 @@
+{"id":"cuboid-aaaaaa-1","op":"primitive.cuboid","name":"Cube 1","params":{"size":[20,20,20],"center":[0,0,10]}}
+{"id":"cuboid-aaaaaa-2","op":"primitive.cuboid","name":"Cube 2","params":{"size":[20,20,20],"center":[40,0,10]}}
+{"warpcad":"project-state","version":2,"origins":{"cuboid-aaaaaa-1":"mcp","cuboid-aaaaaa-2":"mcp"},"merge":{"project":"2piod74miujxrilv","clock":2,"pos":{"cuboid-aaaaaa-1":"2V013aaaaaa","cuboid-aaaaaa-2":"2V013aaaaaa1115aaaaaa"},"stamps":{"cuboid-aaaaaa-1":{"born":[1,"aaaaaa"]},"cuboid-aaaaaa-2":{"born":[2,"aaaaaa"]}},"prompts":[{"id":"prompt-aaaaaa-1","text":"a 20 mm cube","produced":["cuboid-aaaaaa-1"]}]}}

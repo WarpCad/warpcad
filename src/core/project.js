@@ -167,7 +167,7 @@
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume, sameBuildVolume } from './buildVolume.js'
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_RESOLUTION, RESOLUTION_IDS, isResolution } from './kernel/tessellation.js'
-import { MergeSectionError, readMergeSection } from './merge/validate.js'
+import { MERGE_LIMITS, MergeSectionError, readMergeSection } from './merge/validate.js'
 import { encodeMergeSection } from './merge/section.js'
 import { normalizeViewHidden } from './visibility.js'
 import { compareStamps } from './replica.js'
@@ -214,11 +214,26 @@ export class ProjectFormatError extends Error {
 }
 
 /**
+ * `TODO/ui-092`: a document this build will not write, because the file could not be opened
+ * again — its merge section would pass what a reader accepts ({@link MERGE_LIMITS.maxBytes}). The
+ * message is safe to show the user as-is; nothing was written.
+ */
+export class ProjectTooLargeError extends Error {
+  /** @param {string} message */
+  constructor(message) {
+    super(message)
+    this.name = 'ProjectTooLargeError'
+  }
+}
+
+/**
  * Serialise a document to project text.
  *
  * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'resolution' | 'standingInstructions' | 'buildVolume' | 'userParts' | 'mergeState' | 'mergeClock' | 'viewHidden'>>} document
  * @returns {string} `''` for an empty document at the new-document default; otherwise
  *   newline-terminated NDJSON.
+ * @throws {ProjectTooLargeError} When the merge section would pass {@link MERGE_LIMITS.maxBytes}:
+ *   a reader refuses such a file whole, so it is never written (`TODO/ui-092`).
  */
 export function serializeProject(document) {
   const entries = document.entries
@@ -308,7 +323,20 @@ export function serializeProject(document) {
       ...(merge !== null ? { merge } : {}),
     })
   }
-  return serializeNdjson(lines)
+  const text = serializeNdjson(lines)
+  // `TODO/ui-092`: the section can only pass the reader's cap in a file at least that long, so
+  // an ordinary save measures nothing twice. The command layer keeps prompts under their own
+  // budget; this is the backstop for whatever else grew the section.
+  if (merge !== null && text.length > MERGE_LIMITS.maxBytes) {
+    const size = JSON.stringify(merge).length
+    if (size > MERGE_LIMITS.maxBytes) {
+      throw new ProjectTooLargeError(
+        `This project is too large to save: its merge record (prompts, replies and edit history) would take ${size} characters, ` +
+          `over the ${MERGE_LIMITS.maxBytes} a project file may hold, and a file that large could not be opened again. Nothing was written.`
+      )
+    }
+  }
+  return text
 }
 
 /**

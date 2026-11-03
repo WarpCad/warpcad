@@ -41,6 +41,7 @@ import { compareStamps } from '../replica.js'
 import { SECTION_REGISTER_NAMES, LEGACY_STAMP, isLegacyStamp } from './state.js'
 import { keysBetween } from './positionKey.js'
 import { parseViewKey, viewHiddenMapOf } from '../visibility.js'
+import { encodePromptRecord } from '../prompt.js'
 
 /** @typedef {import('../replica.js').Stamp} Stamp */
 /** @typedef {import('./state.js').MergeState} MergeState */
@@ -171,24 +172,12 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
   }
 
   // `TODO/ai-031`: whole records, by id; a prompt that produced nothing yet omits `produced`.
+  // `TODO/ai-032`: the reply's segments ride inside, each with its own stamp, in stamp order; a
+  // tombstone (an Undone reply) carries no text. One encoder, so `promptsStoredSize` (`TODO/ui-092`)
+  // measures exactly what is written here.
   const prompts = [...(state.prompts ?? new Map())]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([id, prompt]) => ({
-      id,
-      text: prompt.text,
-      ...(prompt.produced.length > 0 ? { produced: [...prompt.produced] } : {}),
-      // `TODO/ai-032`: the reply's segments, each with its own stamp, in stamp order.
-      ...(prompt.responses !== undefined && prompt.responses.length > 0
-        ? {
-            responses: prompt.responses.map((/** @type {import('../prompt.js').ResponseSegment} */ segment) =>
-              // A tombstone (`TODO/ai-032`: an Undone reply) carries no text.
-              segment.removed === true
-                ? { id: segment.id, at: encodeStamp(segment.at), removed: true }
-                : { id: segment.id, text: segment.text, at: encodeStamp(segment.at) }
-            ),
-          }
-        : {}),
-    }))
+    .map(([id, prompt]) => encodePromptRecord(id, prompt))
 
   const empty =
     state.projectId === null &&

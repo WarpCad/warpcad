@@ -1,0 +1,7 @@
+[
+  {
+    "id": "prompt-aaaaaa-2",
+    "op": "note.prompt",
+    "message": "prompt \"prompt-aaaaaa-2\" removed — it couldn't be verified as a safe prompt record (its text is over the cap of 4000 characters)"
+  }
+]

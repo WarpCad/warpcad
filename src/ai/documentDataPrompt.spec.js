@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { PROMPTS_IN_CONTEXT, RESPONSE_IN_CONTEXT, promptsBlock, unwrapDocumentData } from './documentData.js'
+import { PROMPTS_IN_CONTEXT, PROMPT_TEXT_IN_CONTEXT, RESPONSE_IN_CONTEXT, promptsBlock, unwrapDocumentData } from './documentData.js'
+import { PROMPT_LIMITS } from '../core/prompt.js'
 
 /**
  * `TODO/ai-031`: a project's recorded prompts reach a model only inside the labelled data block,
@@ -41,6 +42,30 @@ describe('promptsBlock', () => {
     expect(shown.responsesCut).toBe(true)
     const none = /** @type {any[]} */ (unwrapDocumentData(promptsBlock([{ id: 'p', text: 'x', produced: [] }]).split('\n')[1]))
     expect(none[0]).toEqual({ id: 'p', text: 'x', produced: [] })
+  })
+
+  it('cuts each prompt’s text to a fixed share of the context, saying so; a short one is whole (ui-092)', () => {
+    expect(PROMPT_TEXT_IN_CONTEXT).toBe(4000)
+    const long = { id: 'p1', text: 'w'.repeat(PROMPT_LIMITS.maxTextLength), produced: [] }
+    const [shown] = /** @type {any[]} */ (unwrapDocumentData(promptsBlock([long]).split('\n')[1]))
+    expect(shown.text.length).toBe(PROMPT_TEXT_IN_CONTEXT)
+    expect(shown.text.endsWith('…')).toBe(true)
+    expect(shown.textCut).toBe(true)
+    const exact = { id: 'p2', text: 'w'.repeat(PROMPT_TEXT_IN_CONTEXT), produced: [] }
+    const [whole] = /** @type {any[]} */ (unwrapDocumentData(promptsBlock([exact]).split('\n')[1]))
+    expect(whole).toEqual(exact)
+  })
+
+  it('stays bounded however long the stored prompts and replies are (ui-092)', () => {
+    const full = Array.from({ length: PROMPTS_IN_CONTEXT + 3 }, (_, i) => ({
+      id: `p${i}`,
+      text: 'w'.repeat(PROMPT_LIMITS.maxTextLength),
+      produced: [],
+      responses: [{ id: `r${i}`, text: 'r'.repeat(PROMPT_LIMITS.maxResponseLength) }],
+    }))
+    const shown = /** @type {any[]} */ (unwrapDocumentData(promptsBlock(full).split('\n')[1]))
+    const characters = shown.reduce((sum, p) => sum + p.text.length + p.responses.join('').length, 0)
+    expect(characters).toBeLessThanOrEqual(PROMPTS_IN_CONTEXT * (PROMPT_TEXT_IN_CONTEXT + RESPONSE_IN_CONTEXT))
   })
 
   it('keeps only the latest few, so a long-lived project does not flood every turn', () => {

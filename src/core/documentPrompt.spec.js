@@ -27,11 +27,13 @@ import { canonicalJSON } from './merge/state.js'
 import { mergeStates } from './merge/merge.js'
 import { readMergeSection } from './merge/validate.js'
 import { ProjectFormatError, parseProject, serializeProject } from './project.js'
+import { MERGE_LIMITS } from './merge/validate.js'
 import { PROMPT_LIMITS, PROMPT_OP, promptsForBody } from './prompt.js'
 import { withProjectId } from './shareCopy.js'
 import { parseNdjson, serializeNdjson } from './ndjson.js'
 
 const fixtures = import.meta.glob(['./__fixtures__/prompt-*.ndjson'], { query: '?raw', import: 'default', eager: true })
+const warningFixtures = import.meta.glob(['./__fixtures__/prompt-*-warnings.json'], { query: '?raw', import: 'default', eager: true })
 
 const local = { origin: 'local' }
 const mcp = { origin: 'mcp' }
@@ -123,6 +125,20 @@ describe('a prompt through the command layer', () => {
     read.text = 'changed'
     read.produced.push('evil')
     expect(document.promptOf(prompt.id)).toEqual(prompt)
+  })
+
+  it('stores a long request whole, past the old 4,000 and exactly at the cap, through the file (ui-092)', () => {
+    for (const length of [4001, 12_000, PROMPT_LIMITS.maxTextLength]) {
+      const document = createDocument({ replica: 'aaaaaa' })
+      placeCube(document)
+      const words = 'w'.repeat(length)
+      const stored = document.recordPrompt({ text: words }, mcp)
+      expect(stored.text).toBe(words)
+      expect(open(serializeProject(document)).promptOf(stored.id)?.text).toBe(words)
+    }
+    const cut = createDocument().recordPrompt({ text: 'w'.repeat(PROMPT_LIMITS.maxTextLength + 1) }, mcp)
+    expect(cut.text.length).toBe(PROMPT_LIMITS.maxTextLength)
+    expect(cut.text.endsWith('…')).toBe(true)
   })
 
   it('caps the number of prompts a project holds', () => {
@@ -328,6 +344,69 @@ describe('an older build (v1.2.0) meets the record', () => {
     const older = open(savedByOlder, { replica: 'dddddd' })
     older.mergeFrom(open(written).mergeState(), { origin: 'merge' })
     expect(older.prompts()).toEqual(open(written).prompts())
+  })
+})
+
+/**
+ * `TODO/ui-092`: a request longer than a released build's 4,000-character cap. Made by running
+ * real code, not by hand:
+ *
+ * 1. `prompt-long-written.ndjson` — this build: two cubes, a short prompt linked to the first and a
+ *    12,000-character one (a numbered paragraph, repeated) linked to the second, then
+ *    `serializeProject` (replica `aaaaaa`).
+ * 2. `prompt-long-saved-by-v1.4.0.ndjson` — `git archive v1.4.0 src package.json` into a scratch
+ *    folder (this repo's `node_modules` linked in), then that release's own `parseProject`,
+ *    `createDocument().loadEntries(…)` and `serializeProject` on file 1.
+ * 3. `prompt-long-v1.4.0-warnings.json` — the load warnings v1.4.0's `parseProject` gave for file 1.
+ *
+ * Regenerate all three the same way if the format changes; never edit them by hand.
+ */
+describe('a released build (v1.4.0) meets a prompt over its cap (ui-092)', () => {
+  const written = /** @type {string} */ (fixtures['./__fixtures__/prompt-long-written.ndjson'])
+  const savedByOlder = /** @type {string} */ (fixtures['./__fixtures__/prompt-long-saved-by-v1.4.0.ndjson'])
+  const warningsText = /** @type {string | undefined} */ (warningFixtures['./__fixtures__/prompt-long-v1.4.0-warnings.json'])
+
+  /** @returns {{ short: import('./prompt.js').PromptRecord, long: import('./prompt.js').PromptRecord }} */
+  function promptsOfWritten() {
+    const prompts = open(written).prompts()
+    const short = /** @type {import('./prompt.js').PromptRecord} */ (prompts.find((p) => p.text.length <= 4000))
+    const long = /** @type {import('./prompt.js').PromptRecord} */ (prompts.find((p) => p.text.length > 4000))
+    return { short, long }
+  }
+
+  it('the fixtures are present; this build stores the long prompt whole and round-trips the file', () => {
+    expect(written).toBeTypeOf('string')
+    expect(savedByOlder).toBeTypeOf('string')
+    expect(warningsText).toBeTypeOf('string')
+    const { short, long } = promptsOfWritten()
+    expect(open(written).prompts()).toHaveLength(2)
+    expect(short.produced).toHaveLength(1)
+    expect(long.text.length).toBeGreaterThan(4000)
+    expect(long.text.length).toBeLessThanOrEqual(PROMPT_LIMITS.maxTextLength)
+    expect(long.text.endsWith('…')).toBe(false)
+    expect(serializeProject(open(written))).toBe(written)
+  })
+
+  it('v1.4.0 dropped only the long prompt, with one load warning naming it, and kept every record line', () => {
+    const { short, long } = promptsOfWritten()
+    expect(recordLinesOf(savedByOlder)).toEqual(recordLinesOf(written))
+    expect(stateLineOf(savedByOlder).merge.prompts.map((/** @type {any} */ p) => p.id)).toEqual([short.id])
+    const warnings = JSON.parse(/** @type {string} */ (warningsText))
+    expect(warnings).toEqual([{ op: PROMPT_OP, id: long.id, message: expect.stringMatching(/over the cap of 4000 characters/) }])
+    // This build opens what the older one saved, with the short prompt intact and no warning.
+    const parsed = parseProject(savedByOlder)
+    expect(parsed.warnings).toEqual([])
+    expect(open(savedByOlder).prompts()).toEqual([short])
+  })
+
+  it('merging the newer copy back restores the long prompt whole; the other way round keeps it', () => {
+    const older = open(savedByOlder, { replica: 'dddddd' })
+    older.mergeFrom(open(written).mergeState(), { origin: 'merge' })
+    expect(older.prompts()).toEqual(open(written).prompts())
+    expect(open(serializeProject(older)).prompts()).toEqual(open(written).prompts())
+    const newer = open(written, { replica: 'eeeeee' })
+    newer.mergeFrom(open(savedByOlder).mergeState(), { origin: 'merge' })
+    expect(newer.prompts()).toEqual(open(written).prompts())
   })
 })
 
@@ -699,5 +778,109 @@ describe('a previous build meets the reply', () => {
     const replied = document.promptOf(prompt.id)
     document.mergeFrom(open(savedByV12).mergeState(), { origin: 'merge' })
     expect(document.promptOf(prompt.id)).toEqual(replied)
+  })
+})
+
+/**
+ * `TODO/ui-092`: prompts and replies are written whole in the merge section, which a reader refuses
+ * past {@link MERGE_LIMITS.maxBytes} — the whole file with it. 500 prompts of 20,000 characters is
+ * already past that, and before this a save wrote such a file without a word and the next open
+ * refused it. So the command layer keeps every project's prompts and replies under
+ * {@link PROMPT_LIMITS.maxStoredSize} and refuses, in words, the call that would pass it.
+ */
+describe('a project’s prompts and replies stay inside the file’s merge section (ui-092)', () => {
+  /** @param {number} i */
+  const request = (i) => `request ${i} `.padEnd(PROMPT_LIMITS.maxTextLength, 'w')
+  /** @param {string} text */
+  const promptsSizeIn = (text) => JSON.stringify(stateLineOf(text).merge.prompts).length
+
+  it('leaves the rest of the section room under the reader’s cap', () => {
+    expect(PROMPT_LIMITS.maxStoredSize).toBeLessThan(MERGE_LIMITS.maxBytes)
+    // The 500-prompt cap alone no longer bounds it: whole-cap prompts pass it well before then.
+    expect(PROMPT_LIMITS.maxPrompts * PROMPT_LIMITS.maxTextLength).toBeGreaterThan(PROMPT_LIMITS.maxStoredSize)
+  })
+
+  it('refuses the prompt that would pass the budget, in words, changing nothing; the file still opens', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    placeCube(document)
+    /** @type {unknown} */
+    let refusal
+    let recorded = 0
+    for (; recorded < PROMPT_LIMITS.maxPrompts; recorded += 1) {
+      const before = document.version
+      try {
+        document.recordPrompt({ text: request(recorded) }, mcp)
+      } catch (error) {
+        refusal = error
+        expect(document.version).toBe(before)
+        break
+      }
+    }
+    expect(recorded).toBeLessThan(PROMPT_LIMITS.maxPrompts)
+    expect(document.prompts()).toHaveLength(recorded)
+    expect(String(refusal)).toMatch(/prompts and replies are full/)
+    expect(String(refusal)).toContain(String(PROMPT_LIMITS.maxStoredSize))
+    expect(String(refusal)).toMatch(/nothing was recorded/)
+
+    const text = serializeProject(document)
+    expect(promptsSizeIn(text)).toBeLessThanOrEqual(PROMPT_LIMITS.maxStoredSize)
+    expect(JSON.stringify(stateLineOf(text).merge).length).toBeLessThanOrEqual(MERGE_LIMITS.maxBytes)
+    expect(open(text).prompts()).toHaveLength(recorded)
+
+    // A reply that would pass it is refused the same way: never cut to nothing, never half-written.
+    const [first] = document.prompts()
+    const version = document.version
+    expect(() => document.addPromptResponse(first.id, 'r'.repeat(PROMPT_LIMITS.maxResponseLength), mcp)).toThrow(/prompts and replies are full/)
+    expect(() => document.addPromptResponse(first.id, 'r'.repeat(PROMPT_LIMITS.maxResponseLength), local)).toThrow(/prompts and replies are full/)
+    expect(document.version).toBe(version)
+    expect(document.promptOf(first.id)).not.toHaveProperty('responses')
+    expect(document.canUndo()).toBe(false)
+  })
+
+  it('a file already past the budget (written by hand or by another build) opens, saves and merges with itself', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    placeCube(document)
+    const past = Math.ceil(PROMPT_LIMITS.maxStoredSize / (2 * PROMPT_LIMITS.maxTextLength)) + 5
+    const text = withMerge(serializeProject(document), (merge) => ({
+      ...merge,
+      prompts: Array.from({ length: past }, (_, i) => ({
+        id: `prompt-aaaaaa-${1000 + i}`,
+        text: request(i),
+        responses: [{ id: `reply-aaaaaa-${5000 + i}`, text: 'r'.repeat(PROMPT_LIMITS.maxResponseLength), at: [5000 + i, 'aaaaaa'] }],
+      })),
+    }))
+    expect(promptsSizeIn(text)).toBeGreaterThan(PROMPT_LIMITS.maxStoredSize)
+    expect(JSON.stringify(stateLineOf(text).merge).length).toBeLessThanOrEqual(MERGE_LIMITS.maxBytes)
+    const reopened = open(text)
+    expect(reopened.prompts()).toHaveLength(past)
+    expect(open(serializeProject(reopened)).prompts()).toEqual(reopened.prompts())
+    expect(() => reopened.mergeFrom(open(text).mergeState(), { origin: 'merge' })).not.toThrow()
+    expect(() => reopened.recordPrompt({ text: 'one more' }, mcp)).toThrow(/prompts and replies are full/)
+  })
+
+  it('a save whose merge section would pass the reader’s cap is refused in words, never written', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    placeCube(document)
+    const huge = new Map(
+      Array.from({ length: Math.ceil(MERGE_LIMITS.maxBytes / (2 * PROMPT_LIMITS.maxTextLength)) + 5 }, (_, i) => [
+        `prompt-aaaaaa-${1000 + i}`,
+        {
+          text: request(i),
+          produced: [],
+          responses: [{ id: `reply-aaaaaa-${5000 + i}`, text: 'r'.repeat(PROMPT_LIMITS.maxResponseLength), at: { counter: 5000 + i, replica: 'aaaaaa' } }],
+        },
+      ])
+    )
+    // Only a state the command layer cannot reach gets here, so it is handed in directly.
+    const oversized = {
+      entries: document.entries,
+      rollbackAt: () => document.rollbackAt(),
+      mergeClock: () => document.mergeClock(),
+      mergeState: () => ({ ...document.mergeState(), prompts: huge }),
+    }
+    expect(() => serializeProject(oversized)).toThrow(/too large to save/)
+    expect(() => serializeProject(oversized)).toThrow(String(MERGE_LIMITS.maxBytes))
+    // The ordinary document still saves.
+    expect(() => parseProject(serializeProject(document))).not.toThrow()
   })
 })

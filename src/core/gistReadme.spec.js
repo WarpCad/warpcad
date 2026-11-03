@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { DESCRIPTION_LIMITS } from './description.js'
+import { PROMPT_LIMITS } from './prompt.js'
 import { gistLink } from './gistLink.js'
 import {
   MAX_LISTED_BODIES,
@@ -283,6 +284,15 @@ describe('gistReadme — how this was made (the prompts)', () => {
     expect([...sent].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
     expect(text).not.toContain('> tail')
     expect(text).toContain('- and 1 more')
+  })
+
+  it('stays inside the cap with prompts and replies at their stored cap of 20,000 (ui-092)', () => {
+    const whole = { text: 'w'.repeat(PROMPT_LIMITS.maxTextLength), reply: 'r'.repeat(PROMPT_LIMITS.maxResponseLength), bodies: [] }
+    const text = gistReadme(input({ description: '', prompts: [whole, whole, { text: 'tail', bodies: [] }] }))
+    const quoted = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
+    expect([...quoted].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
+    expect(text).toContain('…')
+    expect(text).toContain('- and 2 more')
   })
 
   it('drops a blank prompt rather than listing an empty quote', () => {

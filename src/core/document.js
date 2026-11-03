@@ -448,7 +448,16 @@ import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { cleanDescription } from './description.js'
 import { AI_STEP_LIMIT, isAiStepLimit, normalizeAiStepLimit } from './aiBudget.js'
 import { normalizeGistField, sameGistField } from './gistField.js'
-import { PROMPT_LIMITS, preparePrompt, prepareResponse, tombstoneOf, unionProduced, validatePromptRecord } from './prompt.js'
+import {
+  PROMPT_LIMITS,
+  preparePrompt,
+  prepareResponse,
+  promptsFullReason,
+  promptsStoredSize,
+  tombstoneOf,
+  unionProduced,
+  validatePromptRecord,
+} from './prompt.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { RENAME_OP, nameOverrideOf, normalizeBodyName } from './naming.js'
 import { applyAction, emptyScene } from './replay.js'
@@ -3839,12 +3848,30 @@ export function createDocument(options = {}) {
     const used = held.reduce((sum, segment) => sum + segment.text.length, 0)
     const prepared = prepareResponse(text, PROMPT_LIMITS.maxResponseLength - used)
     if (!prepared.ok) throw new Error(`document.${caller}: ${prepared.reason}`)
-    // Ticks the merge clock: a later reply, here or on another replica, sorts after this one.
-    const at = { counter: stampClock.tick(), replica: stampClock.replica }
+    // The stamp the tick below hands out, so the room is checked before anything changes.
+    const at = { counter: stampClock.now() + 1, replica: stampClock.replica }
     const segment = { id: `reply-${at.replica}-${at.counter}`, text: prepared.text, at }
-    prompts = new Map(prompts).set(id, { ...prompt, responses: [...held, segment] })
+    const next = new Map(prompts).set(id, { ...prompt, responses: [...held, segment] })
+    checkPromptsRoom(caller, next)
+    // Ticks the merge clock: a later reply, here or on another replica, sorts after this one.
+    stampClock.tick()
+    prompts = next
     document.version += 1
     return { id: segment.id, text: segment.text, truncated: prepared.truncated }
+  }
+
+  /**
+   * `TODO/ui-092`: refuse, in words, the write that would take the project's prompts and replies
+   * past {@link PROMPT_LIMITS.maxStoredSize} — the merge section would pass the size a reader
+   * accepts, and the next open would refuse the whole file.
+   *
+   * @param {string} caller
+   * @param {ReadonlyMap<string, import('./prompt.js').PromptEntry>} next The prompts after the write.
+   * @returns {void}
+   */
+  function checkPromptsRoom(caller, next) {
+    const size = promptsStoredSize(next)
+    if (size > PROMPT_LIMITS.maxStoredSize) throw new Error(`document.${caller}: ${promptsFullReason(size)} — nothing was recorded`)
   }
 
   /**
@@ -4855,7 +4882,9 @@ export function createDocument(options = {}) {
       if (prompts.size >= PROMPT_LIMITS.maxPrompts) {
         throw new Error(`document.recordPrompt: a project holds at most ${PROMPT_LIMITS.maxPrompts} prompts`)
       }
-      prompts = new Map(prompts).set(id, { text: verdict.record.text, produced: verdict.record.produced })
+      const next = new Map(prompts).set(id, { text: verdict.record.text, produced: verdict.record.produced })
+      checkPromptsRoom('recordPrompt', next)
+      prompts = next
       document.version += 1
       return { ...verdict.record, produced: [...verdict.record.produced] }
     },
@@ -6017,6 +6046,13 @@ export function createDocument(options = {}) {
       const own = document.mergeState()
       if (relatedness(own, theirs) === 'unrelated') throw new UnrelatedProjectError()
       const merged = mergeStates(own, theirs)
+      // `TODO/ui-092`: prompts join as a grow-only set, so two copies each inside the budget can
+      // join to one past it — and a section past the reader's cap loses the whole file. Refused
+      // in words, before anything changes; a merge that brings no more than this copy holds is not.
+      const mergedPromptsSize = promptsStoredSize(merged.prompts ?? new Map())
+      if (mergedPromptsSize > PROMPT_LIMITS.maxStoredSize && mergedPromptsSize > promptsStoredSize(prompts)) {
+        throw new Error(`document.mergeFrom: ${promptsFullReason(mergedPromptsSize)} — the copies were not merged`)
+      }
       const nextResolution = /** @type {string} */ (merged.registers.resolution?.[0] ?? 'legacy')
       if (!isResolution(nextResolution)) {
         throw new Error(`document.mergeFrom: unknown resolution "${String(nextResolution)}"`)

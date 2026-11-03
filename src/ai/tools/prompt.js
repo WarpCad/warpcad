@@ -121,7 +121,7 @@ export function createRecordPromptTool() {
     name: RECORD_PROMPT,
     description:
       'Record the user’s request in the project, so whoever opens it later (a person or another model) can see why its parts exist. ' +
-      'Call it once, first, before any write for a new request — with the user’s words as you received them, not a paraphrase. ' +
+      'Call it once per request, first, before any write — with all of the user’s words as you received them, not a paraphrase; a long request goes in one call, never split across calls. ' +
       'Every body and step you build afterwards is linked to it and its text becomes their design intent. ' +
       `At most ${PROMPT_LIMITS.maxTextLength} characters are kept; the result echoes the stored text and its id, and says when it was cut.`,
     inputSchema: objectSchema({ prompt: PROMPT_PROPERTY }, ['prompt']),

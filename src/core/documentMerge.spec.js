@@ -25,6 +25,7 @@ import { UnrelatedProjectError, createDocument, undoAfterMergeNote } from './doc
 import { canonicalJSON, highestCounter } from './merge/state.js'
 import { compareStamps } from './replica.js'
 import { parseProject, serializeProject } from './project.js'
+import { PROMPT_LIMITS } from './prompt.js'
 import { defineVariable } from './variables.js'
 
 const MERGE = { origin: 'merge' }
@@ -898,5 +899,53 @@ describe('local Undo after the log is rebuilt with equal-but-new record objects 
     expect(doc.entries.map((entry) => entry.record.id)).toEqual(['box-a'])
     expect(doc.redo()).toBeDefined()
     expect(doc.entries.map((entry) => entry.record.id)).toEqual(['box-a', 'box-b'])
+  })
+})
+
+/**
+ * `TODO/ui-092`: prompts merge as a grow-only set, so two copies each inside the prompts budget can
+ * join to one past it — and a file past the merge section's cap does not open. The merge is refused
+ * in words instead, changing nothing; a merge that adds nothing (or brings no more than this copy
+ * already holds) is never refused.
+ */
+describe('a merge that would pass the prompts budget is refused in words (TODO/ui-092)', () => {
+  const mcp = { origin: 'mcp' }
+  /** @param {string} side @param {number} i */
+  const request = (side, i) => `${side} request ${i} `.padEnd(PROMPT_LIMITS.maxTextLength, 'w')
+
+  it('two copies each inside the budget, whose union is past it: refused, nothing changed, both orders', () => {
+    const { human, other } = pair()
+    const each = Math.ceil((0.6 * PROMPT_LIMITS.maxStoredSize) / PROMPT_LIMITS.maxTextLength)
+    for (let i = 0; i < each; i += 1) {
+      human.recordPrompt({ text: request('human', i) }, mcp)
+      other.recordPrompt({ text: request('other', i) }, mcp)
+    }
+    expect(human.prompts().length + other.prompts().length).toBeLessThanOrEqual(PROMPT_LIMITS.maxPrompts)
+    for (const [into, from] of [[human, other], [other, human]]) {
+      const before = { file: serializeProject(into), state: canonicalJSON(into.mergeState()), version: into.version }
+      expect(() => into.mergeFrom(from.mergeState(), MERGE)).toThrow(/prompts and replies are full/)
+      expect(() => into.mergeFrom(from.mergeState(), MERGE)).toThrow(String(PROMPT_LIMITS.maxStoredSize))
+      expect(serializeProject(into)).toBe(before.file)
+      expect(canonicalJSON(into.mergeState())).toBe(before.state)
+      expect(into.version).toBe(before.version)
+    }
+  })
+
+  it('a merge that only brings prompts this copy already has is never refused, even when full', () => {
+    const { human, other } = pair()
+    let i = 0
+    for (;;) {
+      try {
+        human.recordPrompt({ text: request('human', i) }, mcp)
+        i += 1
+      } catch {
+        break
+      }
+    }
+    other.mergeFrom(human.mergeState(), MERGE)
+    other.append({ ...boxA, id: 'box-c', name: 'Box C' }, local)
+    expect(() => human.mergeFrom(other.mergeState(), MERGE)).not.toThrow()
+    expect(human.prompts()).toHaveLength(i)
+    expect(human.entries.map((entry) => entry.record.id)).toContain('box-c')
   })
 })

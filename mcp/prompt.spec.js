@@ -138,7 +138,7 @@ describe('the instructions name record_prompt, inside the budget', () => {
     it(`${name}: one line to call record_prompt first with the user's request, at most 2,048 characters`, () => {
       const lines = text.split('\n').filter((line) => line.includes('record_prompt'))
       expect(lines).toHaveLength(1)
-      expect(lines[0]).toMatch(/^Call `record_prompt` first with the user’s request/)
+      expect(lines[0]).toMatch(/^Call `record_prompt` first with the user’s whole request, as received, in one call/)
       expect(text.length).toBeLessThanOrEqual(2048)
     })
   }

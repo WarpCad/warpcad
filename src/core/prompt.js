@@ -49,8 +49,13 @@ export const PROMPT_OP = 'note.prompt'
 
 /** Limits enforced on prompts, in code. */
 export const PROMPT_LIMITS = Object.freeze({
-  /** The longest a stored prompt may be, in UTF-16 code units. Longer is cut, with `…`. */
-  maxTextLength: 4000,
+  /**
+   * The longest a stored prompt may be, in UTF-16 code units. Longer is cut, with `…`.
+   * `TODO/ui-092`: 20,000, the reply's cap — raised from 4,000 so a long request stays one
+   * request. A released build (v1.4.0 and before) refuses a longer record at load: it drops that
+   * one prompt with a warning, and a merge with a newer copy brings it back.
+   */
+  maxTextLength: 20_000,
   /**
    * The longest prompt `record_prompt` will even clean: anything longer is refused as over the
    * cap, before any regex walks it (a 1 MB string is a mistake or an attack, not a request).
@@ -70,6 +75,14 @@ export const PROMPT_LIMITS = Object.freeze({
   maxResponseSegments: 100,
   /** The highest stamp counter a segment may carry: the merge section's own ceiling. */
   maxCounter: 2 ** 40,
+  /**
+   * `TODO/ui-092`: the most characters a project's prompts and replies may take in the file,
+   * together — the `prompts` list exactly as the merge section writes it ({@link promptsStoredSize}).
+   * The section is refused whole past `MERGE_LIMITS.maxBytes` (8 MiB, `merge/validate.js`), and
+   * 500 prompts of 20,000 characters are past that on their own, so the command layer refuses the
+   * prompt or reply that would pass this, in words; 2 MiB is left for the rest of the section.
+   */
+  maxStoredSize: 6 * 1024 * 1024,
 })
 
 /** What a prompt id and a produced id may be made of: a record id's alphabet. */
@@ -448,6 +461,76 @@ export function joinPromptMaps(a, b) {
     joined.set(id, { text, produced: unionProduced(x.produced, y.produced), ...(responses.length > 0 ? { responses } : {}) })
   }
   return joined
+}
+
+/**
+ * One prompt as the file writes it in `merge.prompts` (`src/core/merge/section.js`): `produced`
+ * omitted when empty, the reply's segments stamped as `[counter, replica]`, a tombstone without
+ * text (`TODO/ai-032`).
+ *
+ * @param {string} id
+ * @param {PromptEntry} prompt
+ * @returns {{ id: string, text: string, produced?: string[], responses?: object[] }}
+ */
+export function encodePromptRecord(id, prompt) {
+  return {
+    id,
+    text: prompt.text,
+    ...(prompt.produced.length > 0 ? { produced: [...prompt.produced] } : {}),
+    ...(prompt.responses !== undefined && prompt.responses.length > 0
+      ? {
+          responses: prompt.responses.map((segment) =>
+            segment.removed === true
+              ? { id: segment.id, at: [segment.at.counter, segment.at.replica], removed: true }
+              : { id: segment.id, text: segment.text, at: [segment.at.counter, segment.at.replica] }
+          ),
+        }
+      : {}),
+  }
+}
+
+/**
+ * Each entry's written size, once: an entry is never changed in place (every write makes a new
+ * one), so the size of the whole list costs one lookup per prompt after the first time.
+ *
+ * @type {WeakMap<PromptEntry, number>}
+ */
+const storedSizes = new WeakMap()
+
+/**
+ * `TODO/ui-092`: the characters a project's prompts take in the file — `JSON.stringify` of the
+ * `prompts` list the merge section writes, exactly. What {@link PROMPT_LIMITS.maxStoredSize} bounds.
+ *
+ * @param {ReadonlyMap<string, PromptEntry>} prompts
+ * @returns {number} `0` for none: the section writes no list.
+ */
+export function promptsStoredSize(prompts) {
+  if (prompts.size === 0) return 0
+  // `[`, `]` and a comma between each two.
+  let total = 2 + (prompts.size - 1)
+  for (const [id, prompt] of prompts) {
+    let size = storedSizes.get(prompt)
+    if (size === undefined) {
+      size = JSON.stringify(encodePromptRecord(id, prompt)).length
+      storedSizes.set(prompt, size)
+    }
+    total += size
+  }
+  return total
+}
+
+/**
+ * `TODO/ui-092`: why a write past {@link PROMPT_LIMITS.maxStoredSize} is refused, in words a person
+ * or an agent can act on. The caller says what was not done.
+ *
+ * @param {number} size What the prompts would take with the write, from {@link promptsStoredSize}.
+ * @returns {string}
+ */
+export function promptsFullReason(size) {
+  return (
+    `the project's prompts and replies are full: they would take ${size} characters of the project file, ` +
+    `over the ${PROMPT_LIMITS.maxStoredSize} it keeps for them (a project keeps every prompt it is given, so a new request needs a new project)`
+  )
 }
 
 /**

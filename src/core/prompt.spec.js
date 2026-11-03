@@ -62,8 +62,29 @@ describe('preparePrompt: what record_prompt stores, or why not', () => {
     })
   })
 
+  it('has a cap of 20,000 characters, the reply’s, and still refuses past 64,000 (ui-092)', () => {
+    expect(PROMPT_LIMITS.maxTextLength).toBe(20_000)
+    expect(PROMPT_LIMITS.maxTextLength).toBe(PROMPT_LIMITS.maxResponseLength)
+    expect(PROMPT_LIMITS.maxInputLength).toBe(64_000)
+  })
+
+  it('stores a long request whole: past the old 4,000, and exactly at the cap (ui-092)', () => {
+    for (const length of [4001, 12_000, 20_000]) {
+      const words = 'w'.repeat(length)
+      expect(preparePrompt(words)).toEqual({ ok: true, text: words, truncated: false })
+    }
+  })
+
+  it('cuts one character past the cap to exactly the cap, with … (ui-092)', () => {
+    const verdict = preparePrompt('w'.repeat(20_001))
+    expect(verdict.ok && verdict.truncated).toBe(true)
+    if (!verdict.ok) return
+    expect(verdict.text.length).toBe(20_000)
+    expect(verdict.text.endsWith('…')).toBe(true)
+  })
+
   it('cuts an over-cap prompt and says so', () => {
-    const verdict = preparePrompt('word '.repeat(2000))
+    const verdict = preparePrompt('word '.repeat(5000))
     expect(verdict.ok).toBe(true)
     if (!verdict.ok) return
     expect(verdict.truncated).toBe(true)
@@ -142,6 +163,15 @@ describe('validatePromptRecord: a stored record, or why it is refused', () => {
       expect(verdict.reason).toMatch(reason)
     })
   }
+
+  it('accepts a stored text of 4,001 and of exactly 20,000; refuses 20,001 (ui-092)', () => {
+    for (const length of [4001, 20_000]) {
+      const verdict = validatePromptRecord({ id: 'p1', text: 'x'.repeat(length) })
+      expect(verdict.ok && verdict.record.text.length).toBe(length)
+    }
+    const over = validatePromptRecord({ id: 'p1', text: 'x'.repeat(20_001) })
+    expect(over).toEqual({ ok: false, reason: 'its text is over the cap of 20000 characters' })
+  })
 
   it('keeps <img onerror> as text: nothing in a record is parsed', () => {
     const verdict = validatePromptRecord({ id: 'p1', text: '<img src=x onerror=alert(1)>' })
