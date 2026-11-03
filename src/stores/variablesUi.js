@@ -12,8 +12,12 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useVariablesUiStore = defineStore('variablesUi', () => {
-  /** Phone width's single sheet shows one of two views; wider layouts show both stacked. */
-  const view = ref(/** @type {'inspector' | 'variables'} */ ('inspector'))
+  /**
+   * Phone width's single sheet shows one of its views; wider layouts show Inspector and Variables
+   * stacked. `'prompts'` (`TODO/ui-092`) is the Prompts view, which replaces the Inspector's
+   * content at every width.
+   */
+  const view = ref(/** @type {'inspector' | 'variables' | 'prompts'} */ ('inspector'))
   /** Whether the Variables section is expanded (laptop/tablet column). */
   const open = ref(true)
   /** The row **Edit variable** asked to be shown; the row clears it once it has scrolled. */
@@ -46,5 +50,17 @@ export const useVariablesUiStore = defineStore('variablesUi', () => {
     popoverKey.value = popoverKey.value === key ? '' : key
   }
 
-  return { view, open, focusName, popoverKey, announcement, announcementVersion, announce, reveal, togglePopover }
+  /**
+   * The selected body changed: a new selection means "show me that", so the Variables view yields
+   * to the Inspector (`TODO/ui-059`). The Prompts view stays (`TODO/ui-092`): selecting in the 3D
+   * view while reading a request keeps the request on screen. Tapping a part row in the Prompts
+   * view is the one selection that returns to the Inspector, and it does that itself.
+   *
+   * @returns {void}
+   */
+  function followSelection() {
+    if (view.value === 'variables') view.value = 'inspector'
+  }
+
+  return { view, open, focusName, popoverKey, announcement, announcementVersion, announce, reveal, togglePopover, followSelection }
 })

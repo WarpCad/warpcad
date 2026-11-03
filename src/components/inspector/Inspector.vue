@@ -143,6 +143,8 @@ import RepeatSection from './RepeatSection.vue'
 import ConditionRow from './ConditionRow.vue'
 import InspectorViewTabs from './InspectorViewTabs.vue'
 import VariablesPanel from './VariablesPanel.vue'
+import PromptsView from './PromptsView.vue'
+import { usePromptsUiStore } from '../../stores/promptsUi.js'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -190,13 +192,28 @@ const alignReference = useAlignReferenceStore()
 const objectList = useObjectListStore()
 const sketchEditor = useSketchEditorStore()
 const variablesUi = useVariablesUiStore()
+const promptsUi = usePromptsUiStore()
 
 // Phone width shows one view in its single sheet (`TODO/ui-059`): a new selection means "show
 // me that", so the Variables view yields to the Inspector. Wider layouts show both stacked.
+// The Prompts view stays (`TODO/ui-092`): see `variablesUi.followSelection`.
 watch(
   () => described.value.body?.id,
   () => {
-    variablesUi.view = 'inspector'
+    variablesUi.followSelection()
+  },
+)
+
+// --- the Prompts view (TODO/ui-092) -----------------------------------------
+
+/** How many requests the project holds — the Prompts view's precondition is at least one. */
+const promptCount = computed(() => documentStore.promptIndex.byPrompt.size)
+
+// No prompt left to show (an undo, a merge), or the sketch editor opening: back to the Inspector.
+watch(
+  () => promptCount.value === 0 || sketchEditor.active,
+  (closed) => {
+    if (closed && variablesUi.view === 'prompts') promptsUi.close()
   },
 )
 
@@ -711,6 +728,10 @@ watch([() => body.value?.id, colorPart], () => {
       <h2 class="inspector__heading">Inspector</h2>
       <InspectorViewTabs v-if="panelState !== 'sketch'" />
 
+      <!-- The Prompts view (TODO/ui-092): replaces the rest of the sheet while it is up, at every
+           width (`data-view='prompts'`). Mounted only then, so closing it clears its highlight. -->
+      <PromptsView v-if="variablesUi.view === 'prompts' && panelState !== 'sketch' && promptCount > 0" />
+
       <!-- The object list (TODO/ui-049): the whole content at 0 selected, a collapsible
            section at the top of every body state. One mount point, above the state
            branches, so the list does not move when the first check turns "nothing" into
@@ -742,6 +763,20 @@ watch([() => body.value?.id, colorPart], () => {
           <ObjectList @select-intent="onListIntent" />
         </div>
       </section>
+
+      <!-- TODO/ui-092: the Prompts view's way in at tablet and laptop width, directly under the
+           Objects section in every state but the sketch editor. Phone width uses the third tab. -->
+      <button
+        v-if="panelState !== 'sketch' && promptCount > 0"
+        type="button"
+        class="inspector__objects-bar inspector__objects-bar--button inspector__prompts-bar"
+        data-testid="inspector-prompts-open"
+        @click="promptsUi.open()"
+      >
+        <span>Prompts</span>
+        <span class="inspector__objects-count">({{ promptCount }})</span>
+        <span class="inspector__prompts-chevron" aria-hidden="true">›</span>
+      </button>
 
       <!-- Project variables (TODO/ui-059): belong to the project, so mounted in every state with
            nothing to select first. At phone width this is the sheet's second view. -->
@@ -1391,8 +1426,25 @@ watch([() => body.value?.id, colorPart], () => {
   line-height: 1.4;
 }
 
+/* The Prompts view (TODO/ui-092) replaces the rest of the sheet at every width; at phone width the
+   view tabs stay above it. */
+.inspector[data-view='prompts'] .inspector__sheet > :not(.prompts-view):not(.views) {
+  display: none;
+}
+
+.inspector__prompts-chevron {
+  margin-left: auto;
+  padding-right: 8px;
+  font-size: 15px;
+}
+
 /* --- phone: an auto-opening bottom sheet (interaction-model-qa control 3, Q16) */
 @media (max-width: 640px) {
+  /* The third tab opens the Prompts view at phone width; no bar. */
+  .inspector__prompts-bar {
+    display: none;
+  }
+
   .inspector {
     position: absolute;
     right: 0;

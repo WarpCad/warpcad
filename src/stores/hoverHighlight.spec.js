@@ -114,3 +114,134 @@ describe('hover highlight store (TODO/ui-049)', () => {
     expect(doc.raw.records.length).toBe(records)
   })
 })
+
+/**
+ * `TODO/ui-092`, part 3: a Prompts view row lights every part its request made at once. A second,
+ * independent value beside `target`, so the object list and the repair dialog — which call
+ * `clearHover()` with no match — never wipe a row's expansion highlight, and the single-target API
+ * they use is unchanged.
+ */
+describe('hover highlight store — many bodies at once (TODO/ui-092)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function seed() {
+    const doc = useDocumentStore()
+    doc.append({ id: 'cube', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 5] } })
+    doc.append({ id: 'pi', op: 'raspberrypi.bplus', name: 'Raspberry Pi 1', params: {} })
+    doc.append({ id: 'ball', op: 'primitive.sphere', name: 'Sphere 1', params: { diameter: 10, center: [50, 0, 5] } })
+    return doc
+  }
+
+  it('starts with nothing, and hoveredBodyIds is empty', () => {
+    const hover = useHoverHighlightStore()
+    expect(hover.many).toBeNull()
+    expect(hover.hoveredBodyIds).toEqual([])
+  })
+
+  it('sets several bodies as one frozen, sorted value; ids the scene does not hold are dropped', () => {
+    seed()
+    const hover = useHoverHighlightStore()
+    expect(hover.setHoverMany(['pi', 'ghost', 'cube', 'cube'])).toBe(true)
+    expect(hover.many).toEqual(['cube', 'pi'])
+    expect(Object.isFrozen(hover.many)).toBe(true)
+    expect(hover.hoveredBodyIds).toEqual(['cube', 'pi'])
+    // The single-body target is a separate value, untouched.
+    expect(hover.target).toBeNull()
+  })
+
+  it('a repeat write of the same set is refused — the same object, no change reported, in any order', () => {
+    seed()
+    const hover = useHoverHighlightStore()
+    hover.setHoverMany(['cube', 'pi'])
+    const first = hover.many
+    let changes = 0
+    hover.$subscribe(() => {
+      changes += 1
+    }, { flush: 'sync' })
+    expect(hover.setHoverMany(['pi', 'cube'])).toBe(false)
+    expect(hover.setHoverMany(['pi', 'cube', 'ghost'])).toBe(false)
+    expect(hover.many).toBe(first)
+    expect(changes).toBe(0)
+    expect(hover.setHoverMany(['cube'])).toBe(true)
+    expect(hover.many).not.toBe(first)
+    expect(changes).toBe(1)
+  })
+
+  it('nothing in the scene to light: refused when nothing is lit, and clears a set that was', () => {
+    seed()
+    const hover = useHoverHighlightStore()
+    expect(hover.setHoverMany(['ghost'])).toBe(false)
+    expect(hover.setHoverMany([])).toBe(false)
+    expect(hover.many).toBeNull()
+    hover.setHoverMany(['cube'])
+    expect(hover.setHoverMany([])).toBe(true)
+    expect(hover.many).toBeNull()
+  })
+
+  it('clearHoverMany with a match clears only that set; with none, any set', () => {
+    seed()
+    const hover = useHoverHighlightStore()
+    hover.setHoverMany(['cube', 'pi'])
+    hover.clearHoverMany(['cube'])
+    expect(hover.many).toEqual(['cube', 'pi'])
+    hover.clearHoverMany(['pi', 'cube'])
+    expect(hover.many).toBeNull()
+    hover.setHoverMany(['ball'])
+    hover.clearHoverMany()
+    expect(hover.many).toBeNull()
+  })
+
+  it('target and many are independent: clearHover() leaves the set, clearHoverMany() leaves the target; hoveredBodyIds is their union', () => {
+    seed()
+    const hover = useHoverHighlightStore()
+    hover.setHoverMany(['cube', 'pi'])
+    hover.setHover('ball')
+    expect(hover.target).toEqual({ bodyId: 'ball', partName: null })
+    expect(hover.many).toEqual(['cube', 'pi'])
+    expect(hover.hoveredBodyIds).toEqual(['ball', 'cube', 'pi'])
+    hover.clearHover()
+    expect(hover.many).toEqual(['cube', 'pi'])
+    hover.setHover('pi', 'ethernet')
+    expect(hover.hoveredBodyIds).toEqual(['cube', 'pi'])
+    hover.clearHoverMany()
+    expect(hover.target).toEqual({ bodyId: 'pi', partName: 'ethernet' })
+    expect(hover.hoveredBodyIds).toEqual(['pi'])
+  })
+
+  it('a body that leaves the scene is pruned from the set — a fresh frozen value — and the set clears when none remain', () => {
+    const doc = seed()
+    const hover = useHoverHighlightStore()
+    hover.setHoverMany(['cube', 'ball'])
+    const first = hover.many
+    doc.undo() // the sphere
+    expect(hover.many).toEqual(['cube'])
+    expect(hover.many).not.toBe(first)
+    expect(Object.isFrozen(hover.many)).toBe(true)
+    const pruned = hover.many
+    doc.undo() // the Pi: not in the set, so the set is the same object
+    expect(hover.many).toBe(pruned)
+    doc.undo() // the cube
+    expect(hover.many).toBeNull()
+  })
+
+  it('rollback prunes the set too', () => {
+    seed()
+    const hover = useHoverHighlightStore()
+    hover.setHoverMany(['cube', 'pi', 'ball'])
+    useTimelineCommands().rollBackTo('cube')
+    expect(hover.many).toEqual(['cube'])
+  })
+
+  it('is view state only', () => {
+    const doc = seed()
+    const hover = useHoverHighlightStore()
+    const version = doc.version
+    const records = doc.raw.records.length
+    hover.setHoverMany(['cube', 'pi'])
+    hover.clearHoverMany()
+    expect(doc.version).toBe(version)
+    expect(doc.raw.records.length).toBe(records)
+  })
+})

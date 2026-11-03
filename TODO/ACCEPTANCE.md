@@ -3092,6 +3092,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
 
 **Also re-drive**: Not yet hand-driven since ui-063 changed Snap/Align operand naming; drive once at the next milestone check (ui-063).
 
+**Last run**: 2026-11-03 21:30 UTC (`ui-092` part 3, uncommitted tree) — **PASS (prompts and a reply survive)** at laptop 1440x900 Chromium (native pickers off, so **Download copy**): an agent request made a Cube and a Cylinder; in the Prompts view **Add reply…** saved a reply; after `Saved` and a reload the row read `2 parts · Reply` with the same parts (`Cube 1 Made`, `Cylinder 1 Made`) and the reply text; **Download copy**, a Sphere dropped in, **Open…** the copy with **Replace**: 2 bodies, the Prompts view (left open across the Open…) showed the one request, `2 parts · Reply`. No console or page errors. Not driven: the Union step, History rows, the hosted half.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium. Cube and Cylinder unioned, Position read -26.72 / -26.72 / 25, reload: same Position and Size. Also a Group with `Cube 2` hidden by default reloaded still hidden at 40 x 40 x 40 with no Show all.
 **Last run**: 2026-11-02 20:55 UTC (`core-077`, uncommitted tree) — **PASS (partial)** at laptop 1440x900 Chromium, dev server, real page reload: Group 1 came back under "Restored your last session" with Cube 1 still red. Not driven: a File › Save and re-open round trip.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium: a merged body with hidden parts came back from a reload. The file round trip is byte-identical (`project.spec.js`).
@@ -4110,6 +4111,7 @@ the top bar (`merge-toast` / `merge-banner`), **Show** (`merge-banner-show`), **
 
 **Also re-drive**: check by hand (ui-091): merge a copy from a second profile whose description differs; the later edit wins.
 
+**Last run**: 2026-11-03 21:30 UTC (`ui-092` part 3, uncommitted tree) — **PASS (merge with prompts on both sides)** at laptop 1440x900 WebKit, two browser contexts, real **Download copy** / **Open…** / **Merge file…** through the browser's download and file chooser: A's agent request made a Cube and a Cylinder; B opened A's file and its agent request made a Sphere; A merged B's file **with the Prompts view open and its first row expanded**: `Merged 1 step from b.ndjson`, the view showed both requests (`2 parts`, `1 part`), the expanded row stayed expanded and lit. **Undo merge** took the Sphere out; B's request stays listed reading `No parts left` (prompts are a grow-only set, so Undo merge does not remove the record), A's row still lit. No console or page errors. Not driven: the conflict (step 6), the reload (step 7), phone width.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS (merge of a record)** at laptop 1440x900 Chromium, two browser contexts: B opened A's file, grouped two new Cubes and marked `Cube 3` hidden by default, downloaded; A moved its Cube then **Merge file…**: `Merged 4 steps from B.ndjson`, the Group arrived with `Cube 3` still `hidden` (Size 40 x 40 x 40), A's moved Cube kept its position, header Undo label unchanged; **Undo merge** removed the Group. Not driven: the conflict (step 6) and reload (step 7).
 **Last run**: 2026-11-02 21:03 UTC (`core-077`, uncommitted tree) — **PASS (partial)** at laptop 1440x900 Chromium, two browser contexts, dev server: device A dropped a Cube and a Cylinder and saved a copy; device B opened that copy, dropped a Sphere and saved its own copy; A chose File › Merge file… and picked B's copy: 3 bodies, the Sphere arrived. Undo merge: back to 2. The copies were moved by a stubbed save and open picker, not a real Download. Not driven: step 3 (move a Cube on A and read the header Undo label) and step 6 (a conflict, Show, Suppress).
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium: **File ▾ → Merge file…** with a copy holding a `group.merge`, the merged group intact beside the copy's new body.
@@ -4342,15 +4344,23 @@ parts header in words and My parts is unchanged; a second file replaces the firs
    front. Open the Assistant. Read the **Browser agents** chip and the line under the header.
 2. In the page's DevTools Console run `document.modelContext` (an object means it is available).
 3. Ask your browser agent: *"Add ten evenly spaced 10 mm cubes along X."*
-4. Read History and the viewport. Then tap **Undo AI turn**.
+4. Read History and the viewport. Before undoing, open the **Prompts** view (`TODO/ui-092`: the
+   **Prompts (N) ›** bar under Objects at tablet and laptop width, the third **Prompts** tab in the
+   sheet at phone width). Move the pointer over the request; on a phone, tap it, then tap it again.
+   Select one cube and tap **Made by… ›** in the Inspector. Then tap **Undo AI turn**.
 5. *Drive it differently on purpose:* send the tab to the background and ask again; turn the chip
    off and on; open the Live MCP access dialog.
 
 **Expect**: The chip says "on" with a tool count, or says exactly why there are none (hidden tab,
 registration refused). The header and the disabled box give the same no-key sentence. Ten distinct
 cubes are visible, History shows rows marked **via webmcp**, and one Undo AI turn removes them
-all. On the hosted app the Live MCP dialog points to Browser agents instead of `npm run dev`.
+all. On the hosted app the Live MCP dialog points to Browser agents instead of `npm run dev`. The
+Prompts view lists the request once, **10 parts**; hovering it (or tapping it open on a phone) lights
+all ten cubes in the hover tint and says **Highlighting 10 parts** when expanded, and leaving (or a
+second tap) clears it; **Made by… ›** opens that request expanded, with one **Add reply…** inside its
+row. After **Undo AI turn** the request stays, reading **No parts left**.
 
+**Last run**: 2026-11-03 21:30 UTC (`ui-092` part 3, uncommitted tree) — **PASS with the WebMCP stand-in, not a real agent**, ad-hoc Playwright drive on the e2e preview build. Laptop 1440x900 Chromium, real jittered mouse: 23 tools, chip `Browser agents · on — 23 tools`; ten 10 mm cubes; **Prompts (1) ›** opened the view, the row read `10 parts · No reply`, hovering it lit all ten (`data-hover-bodies` 10 ids, 10 x-ray twins) and moving off cleared it; a second prompt and a 30 mm sphere made **Prompts (2)**; the sphere's link read `Made by Now a 30 mm sphere above the first cube ›` (the first prompt's text did not leak), hovering it lit only the sphere, tapping it opened that row expanded with one **Add reply…**; the first **Undo AI turn** left 10 cubes and the rows `10 parts` / `No parts left` (this drive found the row reading `No parts` and it was fixed before this run), the second left 0 bodies with both prompts still listed and nothing lit. Phone 390x844 WebKit, touch only: no bar, a **Prompts** tab; a tap on the row lit both cubes with `Highlighting 2 parts`, a second tap cleared it, the sheet top at 373 of 844 px, no sideways scroll. No console or page errors. Not driven: a real agent, background tab, chip off/on, Live MCP dialog.
 **Last run**: 2026-10-28 17:30 UTC (`ai-031`) — **PASS with the WebMCP stand-in, not a real agent** at laptop 1440x900 Chromium on the production build: 21 tools registered, `record_prompt` echoed its id and text, ten 10 mm cubes along X at 20 mm spacing all visible (10), a second prompt and a 30 mm sphere above them (11, Inspector showed `PROMPT Now a 30 mm sphere above the fi…`, the first prompt's text did not leak onto it), the first **Undo AI turn** removed only the sphere (10), the second removed the ten cubes (0). No console or page errors. Not driven: background tab, phone/tablet, real agent, chip off/on, Live MCP dialog.
 **Last run**: 2026-10-17 UTC (`ai-024`) — **PASS** on the hosted app (old build) in Chrome with the flag, laptop width, Claude in Chrome as the agent, with `navigator.modelContext` aliased by hand: ten 10 mm cubes along X at 20 mm spacing, ten History/Objects rows, one Undo AI turn left 0 objects. Without the alias the agent found no tools. Not driven: background tab, phone/tablet, the new chip text on a real agent run. The fake-`document.modelContext` e2e (`e2e/webmcp.e2e.js`) passes at three viewports.
 

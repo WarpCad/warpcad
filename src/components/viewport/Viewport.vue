@@ -564,6 +564,15 @@ const hoverTwins = []
 /** @type {Mesh | null} */
 let hoverTransient = null
 const hoverTwinCount = ref(0)
+/**
+ * `TODO/ui-092`: the hover store's many-body set, copied at hover-change rate so
+ * {@link paintBodies} looks bodies up without allocating per pass.
+ *
+ * @type {Set<string>}
+ */
+const hoverManySet = new Set()
+/** The whole-body hover {@link paintBodies} hands a body in {@link hoverManySet}: one shared value. */
+const HOVER_WHOLE_BODY = Object.freeze({ partName: null })
 const hoverTransientName = ref('')
 
 /**
@@ -2101,6 +2110,8 @@ function removeHoverArtifacts() {
  */
 function applyHover() {
   removeHoverArtifacts()
+  hoverManySet.clear()
+  for (const id of hoverHighlight.many ?? []) hoverManySet.add(id)
   const target = hoverHighlight.target
   const object = target ? bodyMeshes.get(target.bodyId) : undefined
   if (target && object && xrayHoverMaterial && bodyMaterial) {
@@ -2124,7 +2135,18 @@ function applyHover() {
     }
     // `TODO/ui-089`: hovering the row of something the user hid lights nothing up.
     meshes = meshes.filter(isDrawn)
-    for (const mesh of meshes) hoverTwins.push(addXrayTwin(mesh, xrayHoverMaterial))
+    // A body that is also in the many-body set gets its whole-body twins below instead.
+    if (!hoverManySet.has(target.bodyId)) for (const mesh of meshes) hoverTwins.push(addXrayTwin(mesh, xrayHoverMaterial))
+  }
+  // `TODO/ui-092`: every part a Prompts view row's request made, each whole, each with its own
+  // twin so a part inside another still shows. Hidden ones light nothing (`TODO/ui-089`).
+  if (xrayHoverMaterial) {
+    for (const bodyId of hoverManySet) {
+      const object = bodyMeshes.get(bodyId)
+      if (!object) continue
+      const meshes = object instanceof ThreeGroup ? /** @type {Mesh[]} */ (object.children) : [/** @type {Mesh} */ (object)]
+      for (const mesh of meshes) if (isDrawn(mesh) && !mesh.userData.hoverTransient) hoverTwins.push(addXrayTwin(mesh, xrayHoverMaterial))
+    }
   }
   hoverTwinCount.value = hoverTwins.length
   paintBodies()
@@ -2198,7 +2220,7 @@ function paintBodies() {
       shared,
       cache: colorMaterials,
       recipeColors: object.userData.recipeColors,
-      hover: hoverTarget?.bodyId === id ? { partName: hoverTarget.partName } : null,
+      hover: hoverManySet.has(id) ? HOVER_WHOLE_BODY : hoverTarget?.bodyId === id ? { partName: hoverTarget.partName } : null,
     })
   }
   colorMaterials.endPass()
@@ -2244,7 +2266,7 @@ function applyMaterialTheme() {
   colorMaterials?.setHighlights({ selected: palette.selected, secondary: palette.secondary, hover: palette.hover })
   // A hovered body with no colour of its own wears a copy of the palette colour, keyed by
   // that colour: a scheme switch needs a repaint to pick up the new one.
-  if (hoverHighlight.target) paintBodies()
+  if (hoverHighlight.target || hoverHighlight.many) paintBodies()
 }
 
 // --- gizmo drag (TODO/ui-012) ---------------------------------------------
@@ -3773,7 +3795,8 @@ onMounted(() => {
     watch(() => alignReference.originOnly, applySelectionMaterial),
     // The object list's hover (`TODO/ui-049`). The store hands out a fresh object only on
     // a real change, so this fires at hover-change rate, never pointer rate.
-    watch(() => hoverHighlight.target, applyHover),
+    // `TODO/ui-092`: a Prompts view row's parts, at the same change rate.
+    watch([() => hoverHighlight.target, () => hoverHighlight.many], applyHover),
     // A Repeat session's target outlines (`TODO/ui-069`): its seed and ticked targets.
     watch(() => [repeatSession.seed?.bodyId, repeatSession.outlined.join(',')], applyRepeatOutlines),
     // The Inspector's colour picker, while it is open (`TODO/ui-037`): the mesh
@@ -3900,6 +3923,7 @@ onBeforeUnmount(() => {
     :data-selected-count="selection.count"
     :data-xray-twins="xrayTwinCount"
     :data-hover="hoverHighlight.target ? (hoverHighlight.target.partName === null ? hoverHighlight.target.bodyId : `${hoverHighlight.target.bodyId}/${hoverHighlight.target.partName}`) : ''"
+    :data-hover-bodies="hoverHighlight.hoveredBodyIds.join(',')"
     :data-hover-twins="hoverTwinCount"
     :data-repeat-outlines="repeatOutlineCount"
     :data-hover-transient="hoverTransientName"

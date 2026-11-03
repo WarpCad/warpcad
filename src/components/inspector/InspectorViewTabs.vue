@@ -1,19 +1,28 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The phone-width sheet's two views (`TODO/ui-059`): **Inspector** and **Variables**, in the
- * one bottom sheet the Inspector already is — not a new surface. Hidden at tablet and laptop
- * width, where the Variables section simply stacks in the column.
+ * The phone-width sheet's views (`TODO/ui-059`): **Inspector** and **Variables**, in the
+ * one bottom sheet the Inspector already is — not a new surface — and, when the project holds a
+ * prompt, a third, **Prompts** (`TODO/ui-092`). Hidden at tablet and laptop width, where the
+ * Variables section simply stacks in the column and the Prompts view opens from its own bar.
  */
+import { computed } from 'vue'
+
+import { useDocumentStore } from '../../stores/document.js'
+import { usePromptsUiStore } from '../../stores/promptsUi.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 
 const ui = useVariablesUiStore()
+const prompts = usePromptsUiStore()
+const documentStore = useDocumentStore()
+const hasPrompts = computed(() => documentStore.promptIndex.byPrompt.size > 0)
 </script>
 
 <template>
   <div class="views" role="tablist" aria-label="Sheet view" data-testid="inspector-views">
     <button type="button" role="tab" class="views__tab" :aria-selected="ui.view === 'inspector'" data-testid="inspector-view-inspector" @click="ui.view = 'inspector'">Inspector</button>
     <button type="button" role="tab" class="views__tab" :aria-selected="ui.view === 'variables'" data-testid="inspector-view-variables" @click="ui.view = 'variables'">Variables</button>
+    <button v-if="hasPrompts" type="button" role="tab" class="views__tab" :aria-selected="ui.view === 'prompts'" data-testid="inspector-view-prompts" @click="prompts.open()">Prompts</button>
   </div>
 </template>
 

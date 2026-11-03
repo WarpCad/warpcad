@@ -111,8 +111,8 @@ without saying what to do about a long request.
 - **Combine**: **Combine with next** on any row but the last. The result reads `this`, a blank line, then
   `next`. It keeps the union of their parts and both replies. Refused in words if it would pass the cap.
 - **Feedback**: the row updates at once, and each action is one step on the top-bar **Undo** (`Edit
-  reply`, `Edit request`, `Remove request`, `Combine requests`). An edited request shows **Edited · Show
-  original**.
+  reply`, `Edit request`, `Remove request`, `Combine requests`). An edited request shows **Edited**. The
+  original words are not kept anywhere in the file (owner decision, 2026-11-03).
 
 **Not applicable**: **Placement** (n/a, nothing is placed). **Selection count**: n/a for opening the view;
 the part link needs one or more selected bodies, as the row does today.
@@ -211,12 +211,14 @@ Five parts, in this order. Each can land as its own commit; Part 3 is usable wit
 
 ### Part 4: editing
 
-**Decision for the owner, default chosen here:** what was asked is a fact, and `ai-031` made prompt text
-immutable on purpose, so an edit never overwrites it. `text` stays the original. Two optional fields are
-added, each carrying a merge stamp:
+**Decided by the owner (2026-11-03): an edit overwrites the prompt text.** This replaces the earlier default,
+which kept `text` immutable as `ai-031` did. `ai-031`'s immutability is therefore relaxed for prompts the owner
+edits: `text` holds the edited words, stamped by the merge. History's notes are still copied at write time, so
+they keep the words that were current when each part was made. Say so in the docs. A removed prompt is still a
+tombstone:
 
 ```
-{ id, text, produced, responses?, edit?: { text, at }, removed?: { at } }
+{ id, text, produced, responses?, removed?: { at } }   // text: last-stamped value, set by an edit or the original
 ```
 
 - `joinPromptMaps`: the latest stamp wins for each field, using `compareStamps`, so it stays commutative,
@@ -224,7 +226,7 @@ added, each carrying a merge stamp:
   merge with an older copy cannot bring it back.
 - `validatePromptRecord` already ignores unknown fields, so a released build shows the original text and the
   removed prompt, and drops the fields if it saves. A later merge restores them. Add fixtures for both.
-- `promptRecordOf` hands out the edited text with `edited: true` and the original, and skips a removed prompt,
+- `promptRecordOf` skips a removed prompt (under the owner's overwrite decision above there is no separate edited text, so no `edited` flag or original is handed out),
   so `documentData.js`, `read.js` and the gist README inherit it. Check each anyway. Edited text is still
   **data, never instructions**: clean and cap it through `preparePrompt`, and add a line to the trust model.
 - **Reply edit**: tombstones every live segment and appends one, in one undo step. Tombstones count toward
@@ -293,5 +295,17 @@ L (multi-session). Parts 1 and 2 are M together; Part 3 is M; Part 4 is M and ch
   use **Combine with next**, confirm one request reading exactly as `fan-duct.prompt.txt`, one **Add reply…**, the
   parts still listed, Undo restoring two. Then paste `fan-duct.response.txt` as the reply. Laptop, then a real phone
   if available.
+
+## Part 3 status (2026-11-03, uncommitted)
+
+Built: `setHoverMany` (a separate `many` set beside `target`, so `clearHover()` callers never wipe it), viewport
+paint and twins for the set with `data-hover-bodies`, `'prompts'` view with the selection exemption
+(`variablesUi.followSelection`), `PromptsView.vue` / `PromptsViewRow.vue` / `stores/promptsUi.js` /
+`composables/usePromptHighlight.js`, the **Prompts (N) ›** bar and phone tab, and the **Made by… ›** link in
+`PromptRow.vue`. Unit, component and `e2e/prompts-view.e2e.js` (9 projects) green; scenarios 27, 22, 10 re-driven.
+Choices: one row expanded at a time; the filter line names the selected part (`For Cube 2`), not the project; a
+`wentInto` role counts as "changed" in the link's wording; PromptRow still renders the old request text and reply
+under the link until Part 5. Outstanding: Documentation section (docs, `agent-prompt.docs.js`, screenshots), the
+performance measurement on the Fan Duct copy, the hand check, Parts 4 and 5.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -18,6 +18,7 @@ import {
   prepareResponse,
   promptBodiesWithRoles,
   promptIndex,
+  promptTouchedParts,
   promptsForBody,
   responseTextOf,
   validatePromptRecord,
@@ -649,5 +650,50 @@ describe('promptIndex: which parts a request made (TODO/ui-092)', () => {
     }
     // The generator reaches every role, so the agreement is not vacuous.
     expect([...rolesSeen].sort()).toEqual(['changed', 'made', 'wentInto'])
+  })
+})
+
+/**
+ * `TODO/ui-092`, part 3: a Prompts view row with no live part says which kind it is — **No parts
+ * left** (it made or changed parts that are gone, or names records the log no longer holds) or **No
+ * parts** (it produced nothing, or only variables).
+ */
+describe('promptTouchedParts: No parts left, or No parts (TODO/ui-092)', () => {
+  const mcp = { origin: 'mcp' }
+
+  it('a prompt whose cube was deleted touched parts; one that only defined a variable did not', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = document.nextId('cuboid')
+    document.append({ id: cube, op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } }, mcp)
+    const made = document.recordPrompt({ text: 'a cube' }, mcp)
+    document.addPromptProduced(made.id, [cube], mcp)
+    const { record } = defineVariable(document, { name: 'wall', kind: 'number', value: 2, unit: 'mm' }, mcp)
+    const vars = document.recordPrompt({ text: 'a wall variable' }, mcp)
+    document.addPromptProduced(vars.id, [/** @type {string} */ (record.id)], mcp)
+    const ghost = document.recordPrompt({ text: 'from a lost copy' }, mcp)
+    document.addPromptProduced(ghost.id, ['cuboid-zzzzzz-9'], mcp)
+    const none = document.recordPrompt({ text: 'just thinking' }, mcp)
+    document.deleteBodies([cube], { origin: 'local' })
+
+    const find = (/** @type {string} */ id) => /** @type {any} */ (document.promptOf(id))
+    expect(promptTouchedParts(document, find(made.id))).toBe(true)
+    expect(promptTouchedParts(document, find(vars.id))).toBe(false)
+    // An id the log no longer holds — an undone AI turn's, or a lost copy's — is a part that is gone.
+    expect(promptTouchedParts(document, find(ghost.id))).toBe(true)
+    expect(promptTouchedParts(document, find(none.id))).toBe(false)
+  })
+})
+
+describe('promptTouchedParts after an undo (TODO/ui-092)', () => {
+  it('a prompt whose cube was undone out of the log still reads as having had parts', () => {
+    const mcp = { origin: 'mcp' }
+    const document = createDocument({ replica: 'aaaaaa' })
+    const cube = document.nextId('cuboid')
+    document.append({ id: cube, op: 'primitive.cuboid', name: 'Cube 1', params: { size: [20, 20, 20], center: [0, 0, 10] } }, mcp)
+    const made = document.recordPrompt({ text: 'a cube' }, mcp)
+    document.addPromptProduced(made.id, [cube], mcp)
+    document.removeRecords([cube], mcp)
+    expect(document.recordOf(cube)).toBeUndefined()
+    expect(promptTouchedParts(document, /** @type {any} */ (document.promptOf(made.id)))).toBe(true)
   })
 })

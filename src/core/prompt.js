@@ -684,3 +684,28 @@ function roleOf(produced, root, own) {
 export function promptBodiesWithRoles(document, promptId) {
   return promptIndex(document).byPrompt.get(promptId) ?? []
 }
+
+/**
+ * `variables.js`'s `VARIABLE_OP_PREFIX`, repeated here so this module does not pull the kernel
+ * registry in through `variables.js`. `prompt.spec.js` drives it with a real `defineVariable`.
+ */
+const VARIABLE_RECORD_PREFIX = 'var.'
+
+/**
+ * `TODO/ui-092`, part 3: whether a prompt ever made or changed a part. A Prompts view row with no
+ * live part reads **No parts left** when this is `true`, and **No parts** when the prompt produced
+ * nothing, or only variables this log still holds. An id this log no longer holds counts as a part
+ * that is gone: an **Undo AI turn** takes its records out of the log, and the request's row should
+ * then say its parts are gone, not that it never made any. Call it only for a prompt the index lists
+ * no live body for: it reads records by id.
+ *
+ * @param {Pick<import('./document.js').WarpDocument, 'recordOf'>} document
+ * @param {PromptRecord} prompt
+ * @returns {boolean}
+ */
+export function promptTouchedParts(document, prompt) {
+  return prompt.produced.some((id) => {
+    const record = document.recordOf(id)
+    return record === undefined || !(typeof record.op === 'string' && record.op.startsWith(VARIABLE_RECORD_PREFIX))
+  })
+}

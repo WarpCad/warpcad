@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * What the pointer (or keyboard focus) is resting on in the Inspector's object list —
- * **UI only**, never the document (`TODO/ui-049`).
+ * **UI only**, never the document (`TODO/ui-049`) — and, since `TODO/ui-092`, every part one
+ * request in the Prompts view made, lit at once.
  *
  * The viewport reads this and paints the named body, or only the named part, in a hover
  * tint with its own x-ray twin, so a row in the list can be matched to geometry on the
@@ -15,9 +16,20 @@
  * {@link setHover} refuses a repeat of the current target outright, so moving within a row
  * costs the viewport nothing: it repaints and swaps its hover twin only on a real change.
  *
+ * ## Several bodies at once (`TODO/ui-092`)
+ *
+ * {@link setHoverMany} lights a set of bodies — a Prompts view row's parts — as a second value,
+ * {@link many}, beside {@link target}. The two are independent: `target` stays the one-body case
+ * the object list and the repair dialog write (and clear with no match), so neither can wipe a
+ * row's highlight, and the viewport paints their union ({@link hoveredBodyIds}). The same rules
+ * hold: a fresh frozen value per change, a repeat of the current set refused.
+ *
  * ## Never stale
  *
- * A highlight on geometry the pointer is not over is a bug. The list clears the target on
+ * A highlight on geometry the pointer is not over is a bug — with one deliberate exception: an
+ * **expanded** Prompts view row keeps its parts lit (that is the touch path, since a phone has no
+ * hover), says so on screen (**Highlighting N parts**), and clears on collapse, on closing the
+ * view and on unmount. The list clears the target on
  * `pointerleave` and when it unmounts (a selection change swaps the Inspector's content);
  * this store clears it itself when the hovered body leaves the live scene — undo, rollback,
  * a boolean that consumed it — because nothing in the list gets a `pointerleave` for a row
@@ -29,7 +41,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { shallowRef, watch } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 
 import { useDocumentStore } from './document.js'
 import { useTimelineStore } from './timeline.js'
@@ -51,6 +63,24 @@ export const useHoverHighlightStore = defineStore('hoverHighlight', () => {
    * @type {import('vue').ShallowRef<Readonly<HoverTarget> | null>}
    */
   const target = shallowRef(null)
+
+  /**
+   * `TODO/ui-092`: the bodies a Prompts view row lights at once — sorted, frozen, never empty —
+   * or `null`. Independent of {@link target}.
+   *
+   * @type {import('vue').ShallowRef<readonly string[] | null>}
+   */
+  const many = shallowRef(null)
+
+  /**
+   * Every body lit right now: {@link target}'s body and {@link many}, sorted, no repeats. What
+   * the viewport announces as `data-hover-bodies`.
+   */
+  const hoveredBodyIds = computed(() => {
+    const ids = new Set(many.value ?? [])
+    if (target.value) ids.add(target.value.bodyId)
+    return Object.freeze([...ids].sort())
+  })
 
   /** The scene the list is showing: a History preview's prefix, else the live one. */
   function announcedBodies() {
@@ -88,11 +118,54 @@ export const useHoverHighlightStore = defineStore('hoverHighlight', () => {
     target.value = null
   }
 
+  /**
+   * `TODO/ui-092`: light several bodies at once. Ids the scene does not hold are dropped; the
+   * rest are kept sorted and without repeats, as one fresh frozen value.
+   *
+   * @param {readonly string[]} bodyIds
+   * @returns {boolean} Whether {@link many} changed — `false` for the same set again (in any
+   *   order), and for nothing to light while nothing is lit. Nothing to light while a set is lit
+   *   clears it.
+   */
+  function setHoverMany(bodyIds) {
+    const inScene = new Set(announcedBodies().map((body) => body.id))
+    const next = [...new Set(bodyIds)].filter((id) => inScene.has(id)).sort()
+    const current = many.value
+    if (next.length === 0) {
+      if (current === null) return false
+      many.value = null
+      return true
+    }
+    if (sameIds(current, next)) return false
+    many.value = Object.freeze(next)
+    return true
+  }
+
+  /**
+   * Clear the set — only if it is still `match` (any order), when one is given, so a row that
+   * lost the highlight to another row never takes the other row's away.
+   *
+   * @param {readonly string[]} [match]
+   * @returns {void}
+   */
+  function clearHoverMany(match) {
+    const current = many.value
+    if (!current) return
+    if (match && !sameIds(current, [...new Set(match)].sort())) return
+    many.value = null
+  }
+
   // A body that leaves the live scene takes its highlight with it. Synchronous, so no frame
   // is ever painted with a tint aimed at a body the viewport has just removed.
   watch(
     () => documentStore.bodies,
     (live) => {
+      const set = many.value
+      if (set) {
+        const liveIds = new Set(live.map((body) => body.id))
+        const kept = set.filter((id) => liveIds.has(id))
+        if (kept.length !== set.length) many.value = kept.length === 0 ? null : Object.freeze(kept)
+      }
       const current = target.value
       if (!current) return
       const body = live.find((candidate) => candidate.id === current.bodyId)
@@ -107,5 +180,14 @@ export const useHoverHighlightStore = defineStore('hoverHighlight', () => {
     { flush: 'sync' },
   )
 
-  return { target, setHover, clearHover }
+  return { target, many, hoveredBodyIds, setHover, clearHover, setHoverMany, clearHoverMany }
 })
+
+/**
+ * @param {readonly string[] | null} a Sorted.
+ * @param {readonly string[]} b Sorted.
+ * @returns {boolean}
+ */
+function sameIds(a, b) {
+  return a !== null && a.length === b.length && a.every((id, index) => id === b[index])
+}
