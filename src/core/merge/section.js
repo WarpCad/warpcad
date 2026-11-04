@@ -26,11 +26,15 @@
  *   the state line dropped as stale is not, so the two never disagree;
  * - the **prompts** (`TODO/ai-031`, `src/core/prompt.js`) are written whole, as `prompts: [{ id,
  *   text, produced? }]` sorted by id, beside `gist` and for the same reason: an older build ignores
- *   an unknown section key. They carry no stamp — they merge as a grow-only set — and `produced`
- *   is omitted when empty. A prompt's reply (`TODO/ai-032`) rides inside its record as
+ *   an unknown section key. They merge as a grow-only set by id, and `produced` is omitted when
+ *   empty. A prompt's reply (`TODO/ai-032`) rides inside its record as
  *   `responses: [{ id, text, at: [counter, replica] }]`, each segment stamped — a released build
  *   that knows prompts ignores the field it does not know, as it ignores the section key. A
- *   segment taken back is a tombstone, `{ id, at, removed: true }`, with no text;
+ *   segment taken back is a tombstone, `{ id, at, removed: true }`, with no text. `TODO/ui-092`,
+ *   part 4: an edited request carries `textAt: [counter, replica]` and `edited: true` beside its
+ *   (overwritten) `text`, and a removed one `removed: { at: [counter, replica] }` — fields a
+ *   released build ignores, so it shows the edited text and the removed prompt and drops them if
+ *   it saves; a merge with a copy that has them restores them (`src/core/prompt.js`);
  * - an all-default document writes **no section**, so a legacy file opened and saved
  *   unchanged is byte-identical and still says version 1.
  *

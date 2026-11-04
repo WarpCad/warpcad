@@ -21,11 +21,16 @@ import { agentCall, installFakeWebMcp, registeredNames } from './support/fakeWeb
  *   scene leaves the highlight, under a resting pointer.
  * - **Made by… ›** opens the right row; several prompts filter the list; a part row selects that
  *   body and returns to the Inspector.
+ * - Part 4, editing: **Edit reply**, **Edit request** (then **Edited**; past 20,000 characters it is
+ *   refused in words), **Remove request** and **Combine with next** (not on the last row), each
+ *   one step on the top-bar **Undo** and **Redo**, and a reload that keeps them. A 5,000-character
+ *   request is stored whole.
  *
  * ## Engines and viewports, stated (`CLAUDE.md`)
  *
  * All three viewports with a snapshot at each: this changes the Inspector's layout and the phone
- * sheet. All three engines: the highlight is WebGL painting (tint and x-ray twins).
+ * sheet. All three engines: the highlight is WebGL painting (tint and x-ray twins), and the edits
+ * are document state persisted through IndexedDB and read back after a reload.
  */
 
 const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'prompts-view-snapshots')
@@ -515,5 +520,170 @@ test('Made by… › opens the right request; several prompts filter the list; a
   await expect(page.getByTestId('prompts-view')).toBeVisible()
   await expect(item(page, '0')).toHaveAttribute('data-marked', 'true')
   await expect(item(page, '1')).toHaveAttribute('data-marked', 'false')
+  expect(errors).toEqual([])
+})
+
+/** @param {import('@playwright/test').Page} page */
+async function waitForAutosave(page) {
+  await expect(page.getByTestId('save-status-text')).toHaveText(/^Saved · \d\d:\d\d$/, { timeout: 15_000 })
+}
+
+/**
+ * Press Undo or Redo in the top bar, after checking it names the step.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {'undo' | 'redo'} which
+ * @param {string} label
+ * @param {import('@playwright/test').TestInfo} testInfo
+ */
+async function history(page, which, label, testInfo) {
+  const button = page.getByTestId(`${which}-button`)
+  await expect(button).toHaveAttribute(`data-${which}-label`, label)
+  await expect(button).toBeEnabled()
+  await press(page, button, testInfo)
+}
+
+const EDITED_SECOND = 'A third cube on the right; move B 10 mm back, along +Y'
+const REPLY = 'Placed C and moved B.'
+const EDITED_REPLY = 'Placed C; moved B 10 mm back.'
+
+test('editing (part 4): Edit reply, Edit request, Remove request, Combine with next — each undone and redone, and kept by a reload', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(240_000)
+  const errors = await boot(page)
+  const ids = await seed(page)
+  // The agent's reply lands on the request it is bound to: the second.
+  const replied = await agentCall(page, 'record_response', { response: REPLY })
+  expect(replied.ok, JSON.stringify(replied)).toBe(true)
+  await openPromptsView(page, testInfo)
+  const viewport = hoverBodies(page)
+
+  // Expanded, a row offers every edit; the last row has no Combine with next.
+  await press(page, item(page, '1').getByTestId('prompts-row'), testInfo)
+  await expect(item(page, '1').getByTestId('prompt-reply-text')).toHaveText(REPLY)
+  await expect(item(page, '1').getByTestId('prompts-edit-request')).toBeVisible()
+  await expect(item(page, '1').getByTestId('prompts-remove-request')).toBeVisible()
+  await expect(item(page, '1').getByTestId('prompts-combine-next')).toHaveCount(0)
+  for (const control of await item(page, '1').locator('[data-testid="prompts-row-edits"] button, [data-testid="prompt-reply-edit"], [data-testid="prompt-reply-remove"], [data-testid="prompt-reply-add"]').all()) {
+    // To 1/100 px: Firefox lays out in 1/60 px units and reports a 44 px button as 43.99997.
+    expect(Math.round(((await control.boundingBox())?.height ?? 0) * 100) / 100).toBeGreaterThanOrEqual(44)
+  }
+  expect(await noSidewaysScroll(page)).toBe(true)
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `prompts-edit-${testInfo.project.name}.png`) })
+
+  // Edit reply: a text area holding the whole reply; Save; Undo; Redo.
+  await press(page, item(page, '1').getByTestId('prompt-reply-edit'), testInfo)
+  const replyInput = item(page, '1').getByTestId('prompt-reply-edit-input')
+  await expect(replyInput).toHaveValue(REPLY)
+  await replyInput.fill(EDITED_REPLY)
+  expect(await noSidewaysScroll(page)).toBe(true)
+  await press(page, item(page, '1').getByTestId('prompt-reply-edit-save'), testInfo)
+  await expect(item(page, '1').getByTestId('prompt-reply-text')).toHaveText(EDITED_REPLY)
+  await history(page, 'undo', 'Edit reply', testInfo)
+  await expect(item(page, '1').getByTestId('prompt-reply-text')).toHaveText(REPLY)
+  await history(page, 'redo', 'Edit reply', testInfo)
+  await expect(item(page, '1').getByTestId('prompt-reply-text')).toHaveText(EDITED_REPLY)
+
+  // Edit request: past the cap it is refused in words and nothing changes; then saved, it reads Edited.
+  await press(page, item(page, '1').getByTestId('prompts-edit-request'), testInfo)
+  const requestInput = item(page, '1').getByTestId('prompts-edit-request-input')
+  await expect(requestInput).toHaveValue(SECOND)
+  await requestInput.fill('x'.repeat(20_001))
+  await press(page, item(page, '1').getByTestId('prompts-edit-request-save'), testInfo)
+  await expect(item(page, '1').getByTestId('prompts-row-problem')).toContainText('over the cap of 20000')
+  await expect(page.getByTestId('undo-button')).toHaveAttribute('data-undo-label', 'Edit reply')
+  await requestInput.fill(EDITED_SECOND)
+  await press(page, item(page, '1').getByTestId('prompts-edit-request-save'), testInfo)
+  await expect(item(page, '1').getByTestId('prompts-row-full')).toHaveText(EDITED_SECOND)
+  await expect(item(page, '1').getByTestId('prompts-row-edited')).toHaveText('Edited')
+  await expect(item(page, '1').getByTestId('prompts-row-problem')).toHaveCount(0)
+  await history(page, 'undo', 'Edit request', testInfo)
+  await expect(item(page, '1').getByTestId('prompts-row-full')).toHaveText(SECOND)
+  await expect(item(page, '1').getByTestId('prompts-row-edited')).toHaveCount(0)
+  await history(page, 'redo', 'Edit request', testInfo)
+  await expect(item(page, '1').getByTestId('prompts-row-full')).toHaveText(EDITED_SECOND)
+
+  // Remove request: the record only — its parts stay. Undo brings it back in its place.
+  await press(page, item(page, '1').getByTestId('prompts-remove-request'), testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(1)
+  await expect(viewport).toHaveAttribute('data-body-count', '3')
+  await history(page, 'undo', 'Remove request', testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(2)
+  await expect(item(page, '1').getByTestId('prompts-row-text')).toHaveText(EDITED_SECOND)
+  await history(page, 'redo', 'Remove request', testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(1)
+  await history(page, 'undo', 'Remove request', testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(2)
+
+  // Combine with next, from the first row: one request, this then a blank line then next; all
+  // three parts; the second's reply. Undo restores two; Redo combines again.
+  const firstRow = item(page, '0').getByTestId('prompts-row')
+  if ((await firstRow.getAttribute('aria-expanded')) !== 'true') await press(page, firstRow, testInfo)
+  await expect(item(page, '0').getByTestId('prompts-combine-next')).toBeVisible()
+  await press(page, item(page, '0').getByTestId('prompts-combine-next'), testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(1)
+  await expect(item(page, '0').getByTestId('prompts-row-full')).toHaveText(`${FIRST}\n\n${EDITED_SECOND}`)
+  expect(await item(page, '0').getByTestId('prompts-row-full').textContent()).toBe(`${FIRST}\n\n${EDITED_SECOND}`)
+  await expect(item(page, '0').getByTestId('prompts-row-edited')).toHaveText('Edited')
+  await expect(item(page, '0').getByTestId('prompts-row-parts')).toHaveText('3 parts')
+  await expect(item(page, '0').getByTestId('prompt-reply-text')).toHaveText(EDITED_REPLY)
+  await expect(item(page, '0').getByTestId('prompt-reply-add')).toHaveCount(1)
+  await expect(item(page, '0').getByTestId('prompts-combine-next')).toHaveCount(0)
+  await expect(viewport).toHaveAttribute('data-hover-bodies', sorted(ids.a, ids.b, ids.c))
+  await history(page, 'undo', 'Combine requests', testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(2)
+  await expect(item(page, '0').getByTestId('prompts-row-text')).toHaveText('Two 20 mm cubes side by side')
+  await expect(item(page, '0').getByTestId('prompts-row-edited')).toHaveCount(0)
+  await expect(item(page, '1').getByTestId('prompts-row-text')).toHaveText(EDITED_SECOND)
+  await history(page, 'redo', 'Combine requests', testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(1)
+  expect(await noSidewaysScroll(page)).toBe(true)
+
+  // A reload keeps the combined request, its Edited label, its parts and its reply.
+  await waitForAutosave(page)
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '3')
+  await openPromptsView(page, testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(1)
+  await expect(item(page, '0').getByTestId('prompts-row-edited')).toHaveText('Edited')
+  await expect(item(page, '0').getByTestId('prompts-row-parts')).toHaveText('3 parts')
+  await press(page, item(page, '0').getByTestId('prompts-row'), testInfo)
+  await expect(item(page, '0').getByTestId('prompts-row-full')).toHaveText(`${FIRST}\n\n${EDITED_SECOND}`)
+  expect(await item(page, '0').getByTestId('prompts-row-full').textContent()).toBe(`${FIRST}\n\n${EDITED_SECOND}`)
+  await expect(item(page, '0').getByTestId('prompt-reply-text')).toHaveText(EDITED_REPLY)
+  expect(errors).toEqual([])
+})
+
+test('a 5,000-character request is stored whole, and kept by a reload', async ({ page }, testInfo) => {
+  test.setTimeout(120_000)
+  const errors = await boot(page)
+  const paragraph = (/** @type {number} */ i) => `Section ${i}: a long request, as the owner sends one.`.padEnd(499, '.')
+  // Ten paragraphs on their own lines, past the old 4,000 cap, exactly 5,000 characters.
+  const long = Array.from({ length: 10 }, (_, i) => paragraph(i + 1)).join('\n').padEnd(5000, '.')
+  expect(long).toHaveLength(5000)
+  const recorded = await agentCall(page, 'record_prompt', { prompt: long })
+  expect(recorded.ok, JSON.stringify(recorded)).toBe(true)
+  const made = await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], params: { size: [20, 20, 20] } })
+  expect(made.ok, JSON.stringify(made)).toBe(true)
+  await openPromptsView(page, testInfo)
+  await expect(page.getByTestId('prompts-row')).toHaveCount(1)
+  await press(page, item(page, '0').getByTestId('prompts-row'), testInfo)
+  const full = item(page, '0').getByTestId('prompts-row-full')
+  await expect(full).toHaveText(long)
+  // Exactly, newlines and all — `toHaveText` alone folds whitespace.
+  expect(await full.textContent()).toBe(long)
+  expect(await page.evaluate(async () => {
+    const documentModule = await /** @type {any} */ (window).__e2eImport('/src/stores/document.js')
+    return documentModule.useDocumentStore().raw.prompts()[0].text.length
+  })).toBe(5000)
+  expect(await noSidewaysScroll(page)).toBe(true)
+  await waitForAutosave(page)
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  await openPromptsView(page, testInfo)
+  await press(page, item(page, '0').getByTestId('prompts-row'), testInfo)
+  await expect(item(page, '0').getByTestId('prompts-row-full')).toHaveText(long)
+  expect(await item(page, '0').getByTestId('prompts-row-full').textContent()).toBe(long)
   expect(errors).toEqual([])
 })

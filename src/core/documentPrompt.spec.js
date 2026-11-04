@@ -884,3 +884,372 @@ describe('a project’s prompts and replies stay inside the file’s merge secti
     expect(() => parseProject(serializeProject(document))).not.toThrow()
   })
 })
+
+/**
+ * `TODO/ui-092`, part 4: the local user edits what was recorded. Each command is one step on the
+ * user's Undo, refused inside a batch, and for the local user only (agents get no tool for any of
+ * it). An edit **overwrites** the prompt's text, stamped (owner decision, 2026-11-03); a removed
+ * prompt is a tombstone, `removed: { at }`. Undo and Redo write again with newer stamps, so they
+ * hold through the merge every in-place Save runs first.
+ */
+describe('editing prompts and replies (ui-092 part 4)', () => {
+  /** Two cubes, three requests (the first two with a reply), as an agent leaves them. */
+  function project() {
+    const document = createDocument({ replica: 'aaaaaa' })
+    const first = placeCube(document, 0)
+    const second = placeCube(document, 40)
+    const p1 = document.recordPrompt({ text: 'Part one of the request', produced: [first] }, mcp)
+    const p2 = document.recordPrompt({ text: 'Part two of the request', produced: [second] }, mcp)
+    const p3 = document.recordPrompt({ text: 'Something else' }, mcp)
+    document.addPromptResponse(p1.id, 'Reply to part one', mcp)
+    document.addPromptResponse(p2.id, 'Reply to part two', mcp)
+    return { document, p1, p2, p3, first, second }
+  }
+  /** @param {any} document @param {string} id */
+  const textOf = (document, id) => document.promptOf(id)?.text
+  /** @param {any} document @param {string} id */
+  const replyOf = (document, id) => document.promptOf(id)?.responses?.map((/** @type {any} */ r) => r.text)
+
+  it('Edit request overwrites the text, marks it Edited, and is one undo step; Undo and Redo hold', () => {
+    const { document, p1 } = project()
+    expect(document.promptOf(p1.id)).not.toHaveProperty('edited')
+    const version = document.version
+    document.editPromptText(p1.id, '  The whole request, edited  ', local)
+    expect(document.version).toBeGreaterThan(version)
+    expect(document.promptOf(p1.id)).toMatchObject({ text: 'The whole request, edited', edited: true })
+    expect(document.pendingUndo()?.label).toBe('Edit request')
+    document.undo()
+    expect(document.promptOf(p1.id)).toEqual(p1.id === undefined ? undefined : { ...document.promptOf(p1.id), text: 'Part one of the request' })
+    expect(document.promptOf(p1.id)).not.toHaveProperty('edited')
+    expect(document.pendingRedo()?.label).toBe('Edit request')
+    document.redo()
+    expect(textOf(document, p1.id)).toBe('The whole request, edited')
+    // Its parts and reply are untouched.
+    expect(document.promptOf(p1.id)?.produced).toEqual(p1.produced)
+    expect(replyOf(document, p1.id)).toEqual(['Reply to part one'])
+  })
+
+  it('Edit request is cleaned and capped like a prompt: 20,000 is kept whole, past it is refused in words, changing nothing', () => {
+    const { document, p1 } = project()
+    document.editPromptText(p1.id, 'w'.repeat(PROMPT_LIMITS.maxTextLength), local)
+    expect(textOf(document, p1.id)).toHaveLength(PROMPT_LIMITS.maxTextLength)
+    const version = document.version
+    const label = document.pendingUndo()?.label
+    expect(() => document.editPromptText(p1.id, 'x'.repeat(PROMPT_LIMITS.maxTextLength + 1), local)).toThrow(/over the cap of 20000/)
+    expect(() => document.editPromptText(p1.id, ' \u0007 ', local)).toThrow(/empty/)
+    expect(() => document.editPromptText(p1.id, 42, local)).toThrow(/text/)
+    expect(document.version).toBe(version)
+    expect(document.pendingUndo()?.label).toBe(label)
+    expect(textOf(document, p1.id)).toHaveLength(PROMPT_LIMITS.maxTextLength)
+  })
+
+  it('the same text is no change and no undo step; an unknown or removed prompt is refused by name', () => {
+    const { document, p1, p2 } = project()
+    expect(document.editPromptText(p1.id, 'Part one of the request', local)).toBe(false)
+    expect(document.canUndo()).toBe(false)
+    expect(() => document.editPromptText('prompt-zzzzzz-9', 'x', local)).toThrow(/no prompt/)
+    document.removePrompt(p2.id, local)
+    expect(() => document.editPromptText(p2.id, 'x', local)).toThrow(/removed|no prompt/)
+  })
+
+  it('every command is the local user’s only, and refused inside a batch, which stays atomic', () => {
+    const { document, p1, p2 } = project()
+    const commands = [
+      (/** @type {any} */ doc, /** @type {any} */ t) => doc.editPromptText(p1.id, 'edited', t),
+      (/** @type {any} */ doc, /** @type {any} */ t) => doc.removePrompt(p1.id, t),
+      (/** @type {any} */ doc, /** @type {any} */ t) => doc.editPromptReply(p1.id, 'new reply', t),
+      (/** @type {any} */ doc, /** @type {any} */ t) => doc.removePromptReply(p1.id, t),
+      (/** @type {any} */ doc, /** @type {any} */ t) => doc.combinePrompts(p1.id, p2.id, t),
+    ]
+    const before = document.prompts()
+    for (const command of commands) {
+      expect(() => command(document, /** @type {any} */ ({}))).toThrow(/origin/)
+      expect(() => command(document, mcp)).toThrow(/local user/)
+      expect(() => document.batch((/** @type {any} */ doc) => command(doc, local))).toThrow(/batch/)
+    }
+    expect(document.prompts()).toEqual(before)
+    expect(document.canUndo()).toBe(false)
+  })
+
+  it('Remove request hides the record only: its parts stay; one undo step; Undo brings it back where it was', () => {
+    const { document, p2 } = project()
+    const bodies = document.bodies().length
+    document.removePrompt(p2.id, local)
+    expect(document.promptOf(p2.id)).toBeUndefined()
+    expect(document.prompts().map((p) => p.id)).not.toContain(p2.id)
+    expect(document.bodies()).toHaveLength(bodies)
+    expect(document.pendingUndo()?.label).toBe('Remove request')
+    expect(document.removePrompt(p2.id, local)).toBe(false)
+    expect(document.pendingUndo()?.label).toBe('Remove request')
+    document.undo()
+    expect(document.prompts().map((p) => p.text)).toEqual(['Part one of the request', 'Part two of the request', 'Something else'])
+    expect(replyOf(document, p2.id)).toEqual(['Reply to part two'])
+    document.redo()
+    expect(document.promptOf(p2.id)).toBeUndefined()
+  })
+
+  it('a removed prompt is a tombstone in the file, still not shown after a reload', () => {
+    const { document, p2 } = project()
+    document.removePrompt(p2.id, local)
+    const text = serializeProject(document)
+    const stored = stateLineOf(text).merge.prompts.find((/** @type {any} */ p) => p.id === p2.id)
+    expect(stored.removed).toEqual({ at: [expect.any(Number), 'aaaaaa'] })
+    const reopened = open(text)
+    expect(reopened.promptOf(p2.id)).toBeUndefined()
+    expect(reopened.prompts()).toHaveLength(2)
+    expect(serializeProject(reopened)).toBe(text)
+  })
+
+  it('an agent still bound to a removed prompt is refused in words, and nothing comes back', () => {
+    const { document, p2 } = project()
+    document.removePrompt(p2.id, local)
+    expect(() => document.recordPrompt({ id: p2.id, text: 'Part two of the request' }, mcp)).toThrow(/removed/)
+    expect(document.promptOf(p2.id)).toBeUndefined()
+  })
+
+  it('Edit reply tombstones every live segment and appends one, in one undo step; Undo puts the old reply back', () => {
+    const { document, p1 } = project()
+    document.addPromptResponse(p1.id, 'A second segment', mcp)
+    document.editPromptReply(p1.id, 'One reply, edited by hand', local)
+    expect(replyOf(document, p1.id)).toEqual(['One reply, edited by hand'])
+    expect(document.pendingUndo()?.label).toBe('Edit reply')
+    const stored = stateLineOf(serializeProject(document)).merge.prompts.find((/** @type {any} */ p) => p.id === p1.id)
+    expect(stored.responses.filter((/** @type {any} */ r) => r.removed === true)).toHaveLength(2)
+    expect(JSON.stringify(stored)).not.toContain('A second segment')
+    document.undo()
+    expect(replyOf(document, p1.id)).toEqual(['Reply to part one', 'A second segment'])
+    document.redo()
+    expect(replyOf(document, p1.id)).toEqual(['One reply, edited by hand'])
+    expect(() => document.editPromptReply(p1.id, '   ', local)).toThrow(/empty/)
+    expect(() => document.editPromptReply(p1.id, 'r'.repeat(PROMPT_LIMITS.maxResponseLength + 1), local)).toThrow(/over the cap of 20000/)
+  })
+
+  it('Remove reply takes the whole reply back as one undo step', () => {
+    const { document, p1 } = project()
+    document.removePromptReply(p1.id, local)
+    expect(document.promptOf(p1.id)).not.toHaveProperty('responses')
+    expect(document.pendingUndo()?.label).toBe('Remove reply')
+    document.undo()
+    expect(replyOf(document, p1.id)).toEqual(['Reply to part one'])
+    // A prompt with no reply has nothing to remove: no change, no step.
+    const { document: fresh, p3 } = project()
+    expect(fresh.removePromptReply(p3.id, local)).toBe(false)
+    expect(fresh.canUndo()).toBe(false)
+  })
+
+  it('tombstones count toward the segment cap: an edit that would pass it is refused in words, changing nothing', () => {
+    const { document, p3 } = project()
+    for (let i = 0; i < PROMPT_LIMITS.maxResponseSegments - 1; i += 1) {
+      document.addPromptResponse(p3.id, `segment ${i}`, mcp)
+      document.removePromptResponse(p3.id, /** @type {any} */ (document.promptOf(p3.id)?.responses?.[0]).id, mcp)
+    }
+    document.addPromptResponse(p3.id, 'the last live one', mcp)
+    const version = document.version
+    expect(() => document.editPromptReply(p3.id, 'one more', local)).toThrow(/reply to this prompt is full.*100 segments/)
+    expect(document.version).toBe(version)
+    expect(replyOf(document, p3.id)).toEqual(['the last live one'])
+    expect(document.canUndo()).toBe(false)
+  })
+
+  it('Combine with next: one request reading this, a blank line, then next; parts unioned; both replies; one undo step', () => {
+    const { document, p1, p2, first, second } = project()
+    document.combinePrompts(p1.id, p2.id, local)
+    expect(document.prompts().map((p) => p.id)).toEqual([p1.id, expect.not.stringMatching(p2.id)])
+    const combined = document.promptOf(p1.id)
+    expect(combined?.text).toBe('Part one of the request\n\nPart two of the request')
+    expect(combined?.edited).toBe(true)
+    expect(combined?.produced).toEqual([first, second].sort())
+    expect(replyOf(document, p1.id)).toEqual(['Reply to part one', 'Reply to part two'])
+    expect(document.promptOf(p2.id)).toBeUndefined()
+    expect(document.pendingUndo()?.label).toBe('Combine requests')
+    document.undo()
+    expect(document.prompts().map((p) => p.text)).toEqual(['Part one of the request', 'Part two of the request', 'Something else'])
+    expect(document.promptOf(p1.id)?.produced).toEqual([first])
+    expect(document.promptOf(p1.id)).not.toHaveProperty('edited')
+    expect(replyOf(document, p1.id)).toEqual(['Reply to part one'])
+    expect(replyOf(document, p2.id)).toEqual(['Reply to part two'])
+    document.redo()
+    expect(textOf(document, p1.id)).toBe('Part one of the request\n\nPart two of the request')
+    expect(document.promptOf(p2.id)).toBeUndefined()
+  })
+
+  it('Combine is refused in words past the 20,000 cap, for a request that is not the next one, and changes nothing', () => {
+    const { document, p1, p2, p3 } = project()
+    document.editPromptText(p1.id, 'a'.repeat(15_000), local)
+    document.editPromptText(p2.id, 'b'.repeat(15_000), local)
+    const before = document.prompts()
+    const version = document.version
+    expect(() => document.combinePrompts(p1.id, p2.id, local)).toThrow(/would be 30002 characters, over the cap of 20000/)
+    expect(() => document.combinePrompts(p1.id, p3.id, local)).toThrow(/not the next request/)
+    expect(() => document.combinePrompts(p3.id, p1.id, local)).toThrow(/not the next request/)
+    expect(document.prompts()).toEqual(before)
+    expect(document.version).toBe(version)
+  })
+
+  it('an edit that would pass the stored budget is refused in words before anything changes', () => {
+    const document = createDocument({ replica: 'aaaaaa' })
+    placeCube(document)
+    const filler = (/** @type {number} */ i) => `request ${i} `.padEnd(PROMPT_LIMITS.maxTextLength, 'w')
+    let last = document.recordPrompt({ text: 'short' }, mcp)
+    for (let i = 0; ; i += 1) {
+      try {
+        document.recordPrompt({ text: filler(i).slice(0, 15_000) }, mcp)
+      } catch {
+        break
+      }
+    }
+    last = /** @type {any} */ (document.prompts()[0])
+    const before = document.prompts()
+    const version = document.version
+    expect(() => document.editPromptText(last.id, 'e'.repeat(PROMPT_LIMITS.maxTextLength), local)).toThrow(/prompts and replies are full/)
+    expect(() => document.editPromptReply(last.id, 'r'.repeat(PROMPT_LIMITS.maxResponseLength), local)).toThrow(/prompts and replies are full/)
+    expect(document.prompts()).toEqual(before)
+    expect(document.version).toBe(version)
+    expect(document.canUndo()).toBe(false)
+  })
+})
+
+/**
+ * `TODO/ui-092`, part 4: replay safety. Merging an older copy never brings back a removed prompt
+ * or an old text; merging a newer copy brings the edit in; and an Undo survives the merge an
+ * in-place Save runs before it writes.
+ */
+describe('edited and removed prompts merge (ui-092 part 4)', () => {
+  function saved() {
+    const a = createDocument({ replica: 'aaaaaa' })
+    placeCube(a)
+    const p1 = a.recordPrompt({ text: 'first' }, mcp)
+    const p2 = a.recordPrompt({ text: 'second' }, mcp)
+    a.addPromptResponse(p1.id, 'the reply', mcp)
+    return { a, p1, p2, older: serializeProject(a) }
+  }
+
+  it('an older copy brings back neither the old text, the old reply, nor a removed prompt, in both directions and through the file', () => {
+    const { a, p1, p2, older } = saved()
+    a.editPromptText(p1.id, 'first, edited', local)
+    a.editPromptReply(p1.id, 'the reply, edited', local)
+    a.removePrompt(p2.id, local)
+    const after = a.prompts()
+    a.mergeFrom(open(older).mergeState(), { origin: 'merge' })
+    expect(a.prompts()).toEqual(after)
+    const b = open(older, { replica: 'bbbbbb' })
+    b.mergeFrom(open(serializeProject(a)).mergeState(), { origin: 'merge' })
+    expect(b.prompts()).toEqual(after)
+    expect(open(serializeProject(b)).prompts()).toEqual(after)
+    const sa = open(serializeProject(a)).mergeState()
+    const so = open(older).mergeState()
+    expect(canonicalJSON(mergeStates(sa, so))).toBe(canonicalJSON(mergeStates(so, sa)))
+    expect(canonicalJSON(mergeStates(sa, sa))).toBe(canonicalJSON(sa))
+  })
+
+  it('a newer copy brings the edit in; a later edit on the other replica wins', () => {
+    const { a, p1, older } = saved()
+    const b = open(older, { replica: 'bbbbbb' })
+    a.editPromptText(p1.id, 'edited on A', local)
+    b.mergeFrom(open(serializeProject(a)).mergeState(), { origin: 'merge' })
+    expect(b.promptOf(p1.id)).toMatchObject({ text: 'edited on A', edited: true })
+    b.editPromptText(p1.id, 'edited on B, later', local)
+    a.mergeFrom(open(serializeProject(b)).mergeState(), { origin: 'merge' })
+    expect(textOf(a, p1.id)).toBe('edited on B, later')
+  })
+
+  it('Undo of an edit, a removal and a combine holds through the merge an in-place Save runs first', () => {
+    const { a, p1, p2 } = saved()
+    for (const act of [
+      () => a.editPromptText(p1.id, 'edited', local),
+      () => a.removePrompt(p2.id, local),
+      () => a.combinePrompts(p1.id, p2.id, local),
+    ]) {
+      const before = a.prompts()
+      act()
+      const file = serializeProject(a) // saved with the change in it
+      a.undo()
+      a.mergeFrom(open(file).mergeState(), { origin: 'merge' }) // the next Save merges the file first
+      expect(a.prompts().map((p) => [p.id, p.text, Boolean(p.edited)])).toEqual(before.map((p) => [p.id, p.text, Boolean(p.edited)]))
+    }
+  })
+
+  it('Undo after a merge changed the same request since is dropped with a note, changing nothing', () => {
+    const { a, p1, older } = saved()
+    a.editPromptText(p1.id, 'edited on A', local)
+    const b = open(older, { replica: 'bbbbbb' })
+    b.mergeFrom(open(serializeProject(a)).mergeState(), { origin: 'merge' })
+    b.editPromptText(p1.id, 'edited on B, later', local)
+    a.mergeFrom(open(serializeProject(b)).mergeState(), { origin: 'merge' })
+    const undone = a.undo()
+    expect(undone?.note).toMatch(/"Edit request" can't be undone/)
+    expect(textOf(a, p1.id)).toBe('edited on B, later')
+    expect(a.canUndo()).toBe(false)
+  })
+
+  /** @param {any} document @param {string} id */
+  function textOf(document, id) {
+    return document.promptOf(id)?.text
+  }
+})
+
+/**
+ * `TODO/ui-092`, part 4: the previous builds meet an edited and a removed prompt. Made by running
+ * real code, never by hand:
+ *
+ * 1. `prompt-edit-before.ndjson` — the build before part 4 (`git archive 32c656e src package.json`,
+ *    this repo's `node_modules` linked in): two cubes, three prompts, the first two with a reply,
+ *    `serializeProject` (replica `aaaaaa`).
+ * 2. `prompt-edit-written.ndjson` — this build opens file 1 as replica `aaaaaa`, edits the first
+ *    request and its reply, removes the second, and serialises.
+ * 3. `prompt-edit-saved-by-32c656e.ndjson` and `prompt-edit-saved-by-v1.4.0.ndjson` — those builds'
+ *    own `parseProject`, `createDocument().loadEntries(…)` and `serializeProject` on file 2.
+ *
+ * Regenerate them the same way if the format changes.
+ */
+describe('previous builds meet an edited and a removed prompt (ui-092 part 4)', () => {
+  const before = /** @type {string} */ (fixtures['./__fixtures__/prompt-edit-before.ndjson'])
+  const written = /** @type {string} */ (fixtures['./__fixtures__/prompt-edit-written.ndjson'])
+  const savedByHead = /** @type {string} */ (fixtures['./__fixtures__/prompt-edit-saved-by-32c656e.ndjson'])
+  const savedByV14 = /** @type {string} */ (fixtures['./__fixtures__/prompt-edit-saved-by-v1.4.0.ndjson'])
+
+  it('the fixtures are present; the written one has an edit and a tombstone and round-trips', () => {
+    for (const text of [before, written, savedByHead, savedByV14]) expect(text).toBeTypeOf('string')
+    const stored = stateLineOf(written).merge.prompts
+    expect(stored.filter((/** @type {any} */ p) => p.edited === true)).toHaveLength(1)
+    expect(stored.filter((/** @type {any} */ p) => p.removed !== undefined)).toHaveLength(1)
+    expect(open(written).prompts()).toHaveLength(2)
+    expect(serializeProject(open(written))).toBe(written)
+  })
+
+  it('a file from before part 4 opens with no warning and saves unchanged', () => {
+    expect(parseProject(before).warnings).toEqual([])
+    expect(open(before).prompts()).toHaveLength(3)
+    expect(serializeProject(open(before))).toBe(before)
+  })
+
+  it('merging the file from before part 4 brings back neither the old words nor the removed prompt', () => {
+    const document = open(written, { replica: 'eeeeee' })
+    document.mergeFrom(open(before).mergeState(), { origin: 'merge' })
+    expect(document.prompts()).toEqual(open(written).prompts())
+  })
+
+  for (const [name, saved] of /** @type {[string, () => string][]} */ ([
+    ['32c656e (parts 1-3)', () => savedByHead],
+    ['v1.4.0', () => savedByV14],
+  ])) {
+    it(`${name} shows the edited words and the removed prompt, keeps every record line, and drops only the new fields`, () => {
+      const text = saved()
+      expect(recordLinesOf(text)).toEqual(recordLinesOf(written))
+      expect(JSON.stringify(stateLineOf(text).merge)).not.toMatch(/"textAt"|"edited"|"removed":\{/)
+      const shown = open(text).prompts()
+      expect(shown).toHaveLength(3)
+      expect(shown.map((p) => p.text)).toEqual(stateLineOf(written).merge.prompts.map((/** @type {any} */ p) => p.text))
+    })
+
+    it(`merging the newer copy back into what ${name} saved restores the edit and the removal; the other way round keeps them`, () => {
+      const older = open(saved(), { replica: 'dddddd' })
+      older.mergeFrom(open(written).mergeState(), { origin: 'merge' })
+      expect(older.prompts()).toEqual(open(written).prompts())
+      expect(open(serializeProject(older)).prompts()).toEqual(open(written).prompts())
+      const newer = open(written, { replica: 'eeeeee' })
+      newer.mergeFrom(open(saved()).mergeState(), { origin: 'merge' })
+      expect(newer.prompts()).toEqual(open(written).prompts())
+    })
+  }
+})

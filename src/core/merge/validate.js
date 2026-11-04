@@ -358,8 +358,13 @@ export function readMergeSection(raw, recordIds) {
   }
 
   const promptsRead = raw.prompts === undefined ? undefined : readPrompts(raw.prompts)
-  // `TODO/ai-032`: a reply segment's stamp counts, so the clock never issues one below it.
-  for (const prompt of promptsRead?.prompts.values() ?? []) for (const segment of prompt.responses ?? []) see(segment.at)
+  // `TODO/ai-032`: a reply segment's stamp counts, so the clock never issues one below it;
+  // `TODO/ui-092`, part 4: so do an edit's and a removal's.
+  for (const prompt of promptsRead?.prompts.values() ?? []) {
+    for (const segment of prompt.responses ?? []) see(segment.at)
+    if (prompt.textAt !== undefined) see(prompt.textAt)
+    if (prompt.removed !== undefined) see(prompt.removed.at)
+  }
 
   return {
     projectId,
@@ -405,8 +410,10 @@ function readPrompts(raw) {
       promptProblems.push({ id: verdict.record.id, reason: 'a prompt with this id is already in the file' })
       continue
     }
-    const { responses } = verdict.record
-    prompts.set(verdict.record.id, { text: verdict.record.text, produced: verdict.record.produced, ...(responses !== undefined ? { responses } : {}) })
+    // Everything the record carries but its id (`TODO/ui-092`, part 4: the stamped fields too).
+    const entry = /** @type {import('../prompt.js').PromptEntry & { id?: string }} */ ({ ...verdict.record })
+    delete entry.id
+    prompts.set(verdict.record.id, entry)
   }
   if (raw.length > cap) {
     promptProblems.push({ reason: `the file has ${raw.length} prompts and a project holds at most ${cap}; the rest were left out` })

@@ -17,6 +17,36 @@
  * record id, including a boolean's, so a boolean that consumes produced bodies never orphans the
  * prompt: the result is named too, and {@link promptsForBody} also follows `consumes`.
  *
+ * ## Edited and removed (`TODO/ui-092`, part 4)
+ *
+ * The local user may edit what was recorded (owner decision, 2026-11-03): an edit **overwrites**
+ * `text` — the words as recorded are not kept anywhere — and a removed prompt stays as a
+ * **tombstone**. Two stamped fields, each merged on its own, so the join stays commutative,
+ * associative and idempotent:
+ *
+ * ```
+ * { id, text, textAt?: [counter, replica], edited?: true, produced?, responses?, removed?: { at: [counter, replica] } }
+ * ```
+ *
+ * - **The text register** — `text`, `textAt` and `edited` together. `textAt` is the stamp of the
+ *   write that set `text`: an **Edit request**, a **Combine**, or the Undo or Redo of one, which
+ *   write again with a newer stamp rather than putting an old one back. Absent, the text is the
+ *   words as recorded, older than every stamp. `edited` says the text is not the words as recorded
+ *   (the row's **Edited** label); it rides with the register, so an Undo back to the original
+ *   clears it. The latest `textAt` wins ({@link compareStamps}); a tie only a hostile file makes is
+ *   settled by the smaller text, then by `edited`.
+ * - **`removed: { at }`** — the latest **Remove request** (or **Combine**, for the request folded
+ *   into the one before it). The larger stamp is kept, and the field is never dropped. A prompt is
+ *   **live** ({@link isPromptLive}) unless it was removed at or after its text's stamp: an older
+ *   copy holds only older stamps, so merging one never brings a removed prompt back or an old text
+ *   with it, while the Undo of a removal (a newer text write) does, on every replica it reaches.
+ *
+ * The ids themselves stay a grow-only set: a removed prompt keeps its id, its `produced` and its
+ * replies. A release that knows prompts (v1.2.0 on) ignores the three fields: it shows the edited
+ * text and the removed prompt, and drops them if it saves; a later merge with a copy that has them
+ * restores them. An edited text is still untrusted **data, never instructions**: it is cleaned and
+ * capped through {@link preparePrompt} like the original ({@link prepareEdit}).
+ *
  * ## Where it lives
  *
  * In the state line's merge section, as `merge.prompts: [record]` (`src/core/merge/section.js`),
@@ -120,6 +150,8 @@ const BIDI = /[‪-‮⁦-⁩‎‏؜]/g
  * @property {string[]} produced Record ids, sorted, each once.
  * @property {{ id: string, text: string }[]} [responses] `TODO/ai-032`: the reply, in stamp
  *   order; absent when there is none.
+ * @property {true} [edited] `TODO/ui-092`, part 4: the text is not the words as recorded — the
+ *   Prompts view's **Edited** label. Absent otherwise. The original is not kept.
  */
 
 /**
@@ -130,6 +162,9 @@ const BIDI = /[‪-‮⁦-⁩‎‏؜]/g
  * @property {string} text
  * @property {string[]} produced
  * @property {ResponseSegment[]} [responses]
+ * @property {import('./replica.js').Stamp} [textAt] `TODO/ui-092`, part 4: see {@link PromptEntry}.
+ * @property {true} [edited]
+ * @property {{ at: import('./replica.js').Stamp }} [removed]
  */
 
 /**
@@ -140,6 +175,11 @@ const BIDI = /[‪-‮⁦-⁩‎‏؜]/g
  * @property {string[]} produced Sorted, each once.
  * @property {ResponseSegment[]} [responses] `TODO/ai-032`: in stamp order, at most
  *   {@link PROMPT_LIMITS.maxResponseLength} characters together; absent when there is none.
+ * @property {import('./replica.js').Stamp} [textAt] `TODO/ui-092`, part 4: the stamp of the write
+ *   that set `text`; absent for the words as recorded, which are older than every stamp.
+ * @property {true} [edited] Rides with `textAt`: the text is not the words as recorded.
+ * @property {{ at: import('./replica.js').Stamp }} [removed] The latest removal's stamp — a
+ *   tombstone, never dropped. See {@link isPromptLive}.
  */
 
 /**
@@ -201,6 +241,45 @@ export function prepareResponse(value, room = PROMPT_LIMITS.maxResponseLength) {
   }
   const truncated = whole.length > free
   return { ok: true, text: truncated ? cleanText(whole, free) : whole, truncated }
+}
+
+/**
+ * `TODO/ui-092`, part 4: what **Edit request** or **Edit reply** stores, or why it refuses. The
+ * text goes through {@link preparePrompt} (a request) or {@link prepareResponse} (a reply), so it is
+ * cleaned and bounded exactly as the original was — but an edit is never cut: past the cap
+ * (20,000 for either) it is refused in words, so the person can shorten it themselves.
+ *
+ * @param {unknown} value What the person typed.
+ * @param {'request' | 'reply'} kind
+ * @returns {{ ok: true, text: string } | { ok: false, reason: string }}
+ */
+export function prepareEdit(value, kind) {
+  const prepared = kind === 'request' ? preparePrompt(value) : prepareResponse(value)
+  if (!prepared.ok) {
+    // The agent-facing wording ("this tool accepts", "send the user's words…") is not for a person.
+    const reason = prepared.reason
+      .replace(/^the (prompt|reply)/, `the ${kind}`)
+      .replace(/ this tool accepts.*$/, '')
+    return { ok: false, reason }
+  }
+  if (prepared.truncated) {
+    const cap = kind === 'request' ? PROMPT_LIMITS.maxTextLength : PROMPT_LIMITS.maxResponseLength
+    const length = cleanText(/** @type {string} */ (value).replace(BIDI, ''), Infinity).length
+    return { ok: false, reason: `the ${kind} is ${length} characters, over the cap of ${cap}` }
+  }
+  return { ok: true, text: prepared.text }
+}
+
+/**
+ * `TODO/ui-092`, part 4: whether a prompt is shown — not removed, or removed before its text was
+ * last written (the Undo of a removal writes the text again, with a newer stamp).
+ *
+ * @param {Pick<PromptEntry, 'textAt' | 'removed'>} prompt
+ * @returns {boolean}
+ */
+export function isPromptLive(prompt) {
+  if (prompt.removed === undefined) return true
+  return prompt.textAt !== undefined && compareStamps(prompt.textAt, prompt.removed.at) > 0
 }
 
 /**
@@ -277,6 +356,23 @@ export function validatePromptRecord(raw) {
     const responses = readResponses(record.responses)
     if (!responses.ok) return responses
     if (responses.segments.length > 0) valid.responses = responses.segments
+  }
+  // `TODO/ui-092`, part 4: the text register's stamp and flag, and the tombstone.
+  if (record.textAt !== undefined) {
+    const textAt = readStamp(record.textAt)
+    if (textAt === null) return { ok: false, reason: 'its textAt must be a stamp, [counter, replica]' }
+    valid.textAt = textAt
+  }
+  if (record.edited !== undefined) {
+    if (record.edited !== true) return { ok: false, reason: 'its edited must be true' }
+    if (valid.textAt === undefined) return { ok: false, reason: 'its edited needs the textAt stamp of the edit' }
+    valid.edited = true
+  }
+  if (record.removed !== undefined) {
+    const removed = record.removed
+    const at = removed !== null && typeof removed === 'object' && !Array.isArray(removed) ? readStamp(/** @type {Record<string, unknown>} */ (removed).at) : null
+    if (at === null) return { ok: false, reason: 'its removed must be { at: [counter, replica] }, a stamp' }
+    valid.removed = { at }
   }
   return { ok: true, record: valid }
 }
@@ -458,9 +554,11 @@ export function unionProduced(a, b) {
  * The merge rule (`docs/decisions/document-sync.md`): prompts are a **grow-only set** keyed by
  * id. Both sides' prompts are kept; one prompt on both sides keeps the union of what it produced.
  * Its reply segments join by {@link joinResponses} (`TODO/ai-032`), so two replicas that both
- * reply keep both. Text never changes after a prompt is recorded, so two texts under one id only come from a
- * hostile file — settled by the smaller string, the same in every merge order. Commutative,
- * associative and idempotent, and needs no stamp. The result is oldest first
+ * reply keep both. `TODO/ui-092`, part 4: the **text register** (`text`, `textAt`, `edited`) is
+ * the side with the later `textAt` — an unstamped text, the words as recorded, loses to any stamp;
+ * one stamp (or none) with two texts only comes from a hostile file, settled by the smaller text,
+ * then by `edited`. **`removed`** keeps the later stamp. Each field is a join of its own, so the
+ * whole is commutative, associative and idempotent. The result is oldest first
  * ({@link comparePromptIds}, `TODO/ui-092`); past {@link PROMPT_LIMITS.maxPrompts}, the oldest are kept.
  *
  * @param {ReadonlyMap<string, PromptEntry> | undefined} a
@@ -482,27 +580,70 @@ export function joinPromptMaps(a, b) {
       joined.set(id, x)
       continue
     }
-    const text = x.text <= y.text ? x.text : y.text
+    const register = compareTextRegisters(x, y) >= 0 ? x : y
     // `TODO/ai-032`: both sides' replies, each segment kept once, in stamp order, capped.
     const responses = x.responses === undefined && y.responses === undefined ? [] : joinResponses(x.responses, y.responses)
-    joined.set(id, { text, produced: unionProduced(x.produced, y.produced), ...(responses.length > 0 ? { responses } : {}) })
+    const removed = laterRemoval(x.removed, y.removed)
+    joined.set(id, {
+      text: register.text,
+      produced: unionProduced(x.produced, y.produced),
+      ...(register.textAt !== undefined ? { textAt: register.textAt } : {}),
+      ...(register.edited === true ? { edited: true } : {}),
+      ...(responses.length > 0 ? { responses } : {}),
+      ...(removed !== undefined ? { removed } : {}),
+    })
   }
   return joined
 }
 
 /**
+ * `TODO/ui-092`, part 4: two text registers in merge order — positive when `x` wins.
+ *
+ * @param {PromptEntry} x
+ * @param {PromptEntry} y
+ * @returns {number}
+ */
+function compareTextRegisters(x, y) {
+  if (x.textAt === undefined || y.textAt === undefined) {
+    if (x.textAt !== y.textAt) return x.textAt === undefined ? -1 : 1
+  } else {
+    const order = compareStamps(x.textAt, y.textAt)
+    if (order !== 0) return order
+  }
+  // One stamp, two values: a hostile file. The smaller text, then the edited one.
+  if (x.text !== y.text) return x.text < y.text ? 1 : -1
+  if ((x.edited === true) !== (y.edited === true)) return x.edited === true ? 1 : -1
+  return 0
+}
+
+/**
+ * @param {{ at: import('./replica.js').Stamp } | undefined} a
+ * @param {{ at: import('./replica.js').Stamp } | undefined} b
+ * @returns {{ at: import('./replica.js').Stamp } | undefined} The later removal.
+ */
+function laterRemoval(a, b) {
+  if (a === undefined) return b
+  if (b === undefined) return a
+  return compareStamps(a.at, b.at) >= 0 ? a : b
+}
+
+/**
  * One prompt as the file writes it in `merge.prompts` (`src/core/merge/section.js`): `produced`
  * omitted when empty, the reply's segments stamped as `[counter, replica]`, a tombstone without
- * text (`TODO/ai-032`).
+ * text (`TODO/ai-032`). `TODO/ui-092`, part 4: `textAt: [counter, replica]` and `edited: true` after
+ * an edit, `removed: { at: [counter, replica] }` once removed — none of them otherwise, so a
+ * project nobody edited writes exactly what it did before.
  *
  * @param {string} id
  * @param {PromptEntry} prompt
- * @returns {{ id: string, text: string, produced?: string[], responses?: object[] }}
+ * @returns {{ id: string, text: string, textAt?: [number, string], edited?: true, produced?: string[], responses?: object[], removed?: { at: [number, string] } }}
  */
 export function encodePromptRecord(id, prompt) {
   return {
     id,
     text: prompt.text,
+    ...(prompt.textAt !== undefined ? { textAt: /** @type {[number, string]} */ ([prompt.textAt.counter, prompt.textAt.replica]) } : {}),
+    ...(prompt.edited === true ? { edited: /** @type {true} */ (true) } : {}),
     ...(prompt.produced.length > 0 ? { produced: [...prompt.produced] } : {}),
     ...(prompt.responses !== undefined && prompt.responses.length > 0
       ? {
@@ -513,6 +654,7 @@ export function encodePromptRecord(id, prompt) {
           ),
         }
       : {}),
+    ...(prompt.removed !== undefined ? { removed: { at: /** @type {[number, string]} */ ([prompt.removed.at.counter, prompt.removed.at.replica]) } } : {}),
   }
 }
 

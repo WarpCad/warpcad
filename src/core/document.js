@@ -450,7 +450,9 @@ import { AI_STEP_LIMIT, isAiStepLimit, normalizeAiStepLimit } from './aiBudget.j
 import { normalizeGistField, sameGistField } from './gistField.js'
 import {
   PROMPT_LIMITS,
+  isPromptLive,
   orderPromptMap,
+  prepareEdit,
   preparePrompt,
   prepareResponse,
   promptsFullReason,
@@ -653,7 +655,7 @@ import {
  * inverse is position-independent and survives that.
  *
  * @typedef {object} LogRevision
- * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution' | 'revise' | 'reply'} kind
+ * @property {'replace' | 'suppress' | 'reorder' | 'rollback' | 'resolution' | 'revise' | 'reply' | 'prompts'} kind
  *   `resolution` (`TODO/core-035`) revises no entry at all — only the design
  *   resolution the whole log is folded at. `revise` (`TODO/ui-052`) swaps several
  *   entries' records and Leave-broken flags at once — see `items`.
@@ -676,6 +678,34 @@ import {
  *   tombstones the segment (`removePromptResponse`); Redo appends the text again as a new
  *   segment, since a tombstone is never revived. Handled by `undo`/`redo` themselves, never by
  *   {@link applyRevision}, and refused inside a `batch`.
+ * @property {PromptEdit[]} [prompts] `prompts` (`TODO/ui-092`, part 4): the requests an **Edit
+ *   request**, **Remove request**, **Edit reply**, **Remove reply** or **Combine requests** changed,
+ *   each as it read before and after — no log entry at all. Undo writes `before` again and Redo
+ *   `after`, each with newer stamps, so either holds through a merge; when a request no longer
+ *   reads as the step left it (a merged change edited it since), the step is dropped with a note.
+ *   Handled by `undo`/`redo` themselves, and refused inside a `batch`.
+ */
+
+/**
+ * `TODO/ui-092`, part 4: a request as an edit command sees it — what a reader is shown.
+ *
+ * @typedef {object} PromptState
+ * @property {string} text
+ * @property {boolean} edited
+ * @property {boolean} live Not removed.
+ * @property {string[]} replies The live reply segments' texts, in order.
+ */
+
+/**
+ * `TODO/ui-092`, part 4: one request an edit command changed.
+ *
+ * @typedef {object} PromptEdit
+ * @property {string} id
+ * @property {PromptState} before
+ * @property {PromptState} after
+ * @property {string[]} [added] Record ids the step added to its `produced` (a Combine): Undo
+ *   takes exactly these back out — locally; `produced` merges as a union, so a copy saved with
+ *   them brings them back.
  */
 
 /**
@@ -887,6 +917,27 @@ export class ReplayRejection extends Error {
  * @property {(id: string, ids: readonly string[], transaction: TransactionOptions) => void} addPromptProduced
  *   `TODO/ai-031`: link record ids to a stored prompt (sorted, each once, capped). A version bump
  *   when anything was added; never an undo step. Throws for an id that names no prompt.
+ * @property {(id: string, text: unknown, transaction: TransactionOptions) => boolean} editPromptText
+ *   `TODO/ui-092`, part 4, **Edit request**: overwrite a request's text, cleaned and capped through
+ *   `preparePrompt` (`prepareEdit`), stamped, marked edited. The words as recorded are not kept.
+ *   `false`, changing nothing, for the same text. Like every command below: the local user's only
+ *   (agents get no tool for it), one undo step with its label, refused inside a `batch`, and a
+ *   refusal throws in words before anything changes — no prompt or a removed one, empty, not text,
+ *   over 20,000 characters, or the project's stored budget (`promptsFullReason`).
+ * @property {(id: string, transaction: TransactionOptions) => boolean} removePrompt
+ *   `TODO/ui-092`, part 4, **Remove request**: tombstone a request (`removed: { at }`). Its parts,
+ *   `produced` and reply stay. `false` when it is already removed.
+ * @property {(id: string, text: unknown, transaction: TransactionOptions) => boolean} editPromptReply
+ *   `TODO/ui-092`, part 4, **Edit reply**: the reply becomes `text`, one segment — the live
+ *   segments are tombstoned, the new text appended. Refused past 20,000 characters, or when the
+ *   segments (tombstones count) would pass `maxResponseSegments`. `false` for the same reply.
+ * @property {(id: string, transaction: TransactionOptions) => boolean} removePromptReply
+ *   `TODO/ui-092`, part 4, **Remove reply**: tombstone every live segment. `false` with none.
+ * @property {(id: string, nextId: string, transaction: TransactionOptions) => void} combinePrompts
+ *   `TODO/ui-092`, part 4, **Combine with next**: `id`'s text becomes its own, a blank line, then
+ *   `nextId`'s (marked edited); `nextId` is removed; `id` gains `nextId`'s `produced` and, appended,
+ *   its live reply segments. `nextId` must be the next live request. Refused past the text cap or
+ *   the reply's caps.
  * @property {() => import('./visibility.js').ViewHiddenState | null} viewHidden `TODO/ui-089`:
  *   what the user hid, in the state line's shape, without stale switches (a body no record
  *   names, a part the body no longer has); `null` when nothing is hidden.
@@ -1725,7 +1776,9 @@ export function createDocument(options = {}) {
   let prompts = new Map()
   /**
    * `TODO/ai-031`: a stored prompt as the read API hands it out — a fresh copy; `TODO/ai-032`:
-   * its live reply segments as `{ id, text }`, in stamp order, only when there are any.
+   * its live reply segments as `{ id, text }`, in stamp order, only when there are any. Only for a
+   * live prompt: `prompts()` and `promptOf` skip a removed one (`TODO/ui-092`, part 4), so every
+   * reader — the Prompts view, `documentData.js`, `read.js`, the gist README — inherits that.
    *
    * @param {string} id
    * @param {import('./prompt.js').PromptEntry} prompt
@@ -1739,6 +1792,8 @@ export function createDocument(options = {}) {
       text: prompt.text,
       produced: [...prompt.produced],
       ...(responses.length > 0 ? { responses: responses.map((segment) => ({ id: segment.id, text: segment.text })) } : {}),
+      // `TODO/ui-092`, part 4: the row's **Edited** label. The words as recorded are not kept.
+      ...(prompt.edited === true ? { edited: /** @type {true} */ (true) } : {}),
     }
   }
   /**
@@ -3841,6 +3896,7 @@ export function createDocument(options = {}) {
   function appendResponseSegment(caller, id, text) {
     const prompt = prompts.get(id)
     if (prompt === undefined) throw new Error(`document.${caller}: there is no prompt "${id}"`)
+    if (!isPromptLive(prompt)) throw new Error(`document.${caller}: the prompt "${id}" was removed from this project`)
     const held = prompt.responses ?? []
     if (held.length >= PROMPT_LIMITS.maxResponseSegments) {
       throw new Error(`document.${caller}: the reply to this prompt is full: it already holds ${PROMPT_LIMITS.maxResponseSegments} segments, the cap`)
@@ -3895,6 +3951,174 @@ export function createDocument(options = {}) {
     prompts = new Map(prompts).set(id, { ...prompt, responses: next })
     document.version += 1
     return true
+  }
+
+  /**
+   * `TODO/ui-092`, part 4: a request as the edit commands see it, or `null` for an id the project
+   * does not hold.
+   *
+   * @param {string} id
+   * @returns {PromptState | null}
+   */
+  function promptStateOf(id) {
+    const prompt = prompts.get(id)
+    if (prompt === undefined) return null
+    return {
+      text: prompt.text,
+      edited: prompt.edited === true,
+      live: isPromptLive(prompt),
+      replies: (prompt.responses ?? []).filter((segment) => segment.removed !== true).map((segment) => segment.text),
+    }
+  }
+
+  /**
+   * @param {PromptState | null} a
+   * @param {PromptState} b
+   * @returns {boolean}
+   */
+  function samePromptState(a, b) {
+    return (
+      a !== null &&
+      a.text === b.text &&
+      a.edited === b.edited &&
+      a.live === b.live &&
+      a.replies.length === b.replies.length &&
+      a.replies.every((text, i) => text === b.replies[i])
+    )
+  }
+
+  /**
+   * `TODO/ui-092`, part 4: the one writer every prompt edit, and its Undo and Redo, goes through.
+   * Each request is moved to `state` with **new** stamps from the merge clock — never an old stamp
+   * put back — so the write wins over every copy saved before it:
+   *
+   * - a new text, flag or a revival writes the text register (`text`, `textAt`, `edited`);
+   * - a removal writes `removed: { at }`, after the text, so it is the later of the two;
+   * - a different reply keeps the live segments it shares with `state` from the start, tombstones
+   *   the rest and appends the new ones (a tombstone is never revived).
+   *
+   * All or nothing: the reply's caps (tombstones count toward the segment cap) and the project's
+   * stored budget are checked on the whole result, and a refusal throws in words with nothing
+   * changed.
+   *
+   * @param {string} caller
+   * @param {readonly { id: string, state: PromptState, add?: readonly string[], remove?: readonly string[] }[]} writes
+   *   `add` / `remove`: record ids to put into or take out of `produced`.
+   * @returns {void}
+   */
+  function writePromptStates(caller, writes) {
+    let counter = stampClock.now()
+    const stamp = () => {
+      counter += 1
+      return { counter, replica: stampClock.replica }
+    }
+    const next = new Map(prompts)
+    for (const { id, state, add, remove } of writes) {
+      const prompt = next.get(id)
+      if (prompt === undefined) throw new Error(`document.${caller}: there is no prompt "${id}"`)
+      /** @type {import('./prompt.js').PromptEntry} */
+      const written = { ...prompt }
+      const live = isPromptLive(prompt)
+      if (state.text !== prompt.text || state.edited !== (prompt.edited === true) || (state.live && !live)) {
+        written.text = state.text
+        written.textAt = stamp()
+        if (state.edited) written.edited = true
+        else delete written.edited
+      }
+      if (!state.live && live) written.removed = { at: stamp() }
+      const held = prompt.responses ?? []
+      const liveSegments = held.filter((segment) => segment.removed !== true)
+      let shared = 0
+      while (shared < liveSegments.length && shared < state.replies.length && liveSegments[shared].text === state.replies[shared]) shared += 1
+      if (shared < liveSegments.length || shared < state.replies.length) {
+        const leaving = new Set(liveSegments.slice(shared))
+        const adding = state.replies.slice(shared)
+        if (held.length + adding.length > PROMPT_LIMITS.maxResponseSegments) {
+          throw new Error(
+            `document.${caller}: the reply to this prompt is full: this would make ${held.length + adding.length} segments, ` +
+              `counting the ones taken back, over the cap of ${PROMPT_LIMITS.maxResponseSegments} segments — nothing was changed`
+          )
+        }
+        const length = state.replies.reduce((sum, text) => sum + text.length, 0)
+        if (length > PROMPT_LIMITS.maxResponseLength) {
+          throw new Error(`document.${caller}: the reply would be ${length} characters, over the cap of ${PROMPT_LIMITS.maxResponseLength} — nothing was changed`)
+        }
+        const segments = held.map((segment) => (leaving.has(segment) ? tombstoneOf(segment) : segment))
+        for (const text of adding) {
+          const at = stamp()
+          segments.push({ id: `reply-${at.replica}-${at.counter}`, text, at })
+        }
+        if (segments.length > 0) written.responses = segments
+        else delete written.responses
+      }
+      if (add !== undefined && add.length > 0) written.produced = unionProduced(written.produced, [...add].sort())
+      if (remove !== undefined && remove.length > 0) {
+        const out = new Set(remove)
+        written.produced = written.produced.filter((recordId) => !out.has(recordId))
+      }
+      next.set(id, written)
+    }
+    checkPromptsRoom(caller, next)
+    // Ticks the merge clock past every stamp handed out: a later write sorts after these.
+    while (stampClock.now() < counter) stampClock.tick()
+    prompts = next
+    document.version += 1
+  }
+
+  /**
+   * `TODO/ui-092`, part 4: the checks every prompt edit command makes first — an origin, the local
+   * user's own (agents get no tool for any of this), and not inside a `batch` (a batch's composite
+   * step cannot carry a prompt part, as with **Add reply…**).
+   *
+   * @param {string} caller
+   * @param {TransactionOptions} transaction
+   * @returns {void}
+   */
+  function requireLocalPromptEdit(caller, transaction) {
+    requireOrigin(caller, transaction)
+    if (transaction.origin !== 'local') {
+      throw new Error(`document.${caller}: only the local user edits a request or its reply — there is no tool for it`)
+    }
+    if (batchDepth > 0) throw new Error(`document.${caller}: an edit to a request cannot be part of a batch`)
+  }
+
+  /**
+   * @param {string} caller
+   * @param {string} id
+   * @returns {PromptState} A live request's state.
+   */
+  function livePromptState(caller, id) {
+    const state = promptStateOf(id)
+    if (state === null) throw new Error(`document.${caller}: there is no prompt "${id}"`)
+    if (!state.live) throw new Error(`document.${caller}: the prompt "${id}" was removed from this project`)
+    return state
+  }
+
+  /**
+   * `TODO/ui-092`, part 4: write the edit and push it as one local undo step.
+   *
+   * @param {string} caller
+   * @param {TransactionOptions} transaction
+   * @param {string} label
+   * @param {PromptEdit[]} edits
+   * @returns {void}
+   */
+  function commitPromptEdit(caller, transaction, label, edits) {
+    writePromptStates(
+      caller,
+      edits.map((edit) => ({ id: edit.id, state: edit.after, ...(edit.added !== undefined ? { add: edit.added } : {}) }))
+    )
+    /** @type {HistoryStep} */
+    const step = {
+      origin: 'local',
+      label: transaction.label ?? label,
+      records: [],
+      meta: transaction.meta,
+      revision: { kind: 'prompts', prompts: edits },
+    }
+    undoStack.push(step)
+    keepRestore(undoStack, step, null)
+    redoStack.length = 0
   }
 
   /**
@@ -4458,6 +4682,26 @@ export function createDocument(options = {}) {
         return step
       }
 
+      // `TODO/ui-092`, part 4: a prompt edit touched no log entry either. Its Undo writes the
+      // requests as they read before, with newer stamps — unless one no longer reads as the step
+      // left it (a merged change edited it since), which drops the step with a note instead.
+      const promptEdits = step.revision?.kind === 'prompts' ? step.revision.prompts : undefined
+      if (promptEdits !== undefined) {
+        if (!promptEdits.every((edit) => samePromptState(promptStateOf(edit.id), edit.after))) {
+          undoStack.pop()
+          document.version += 1
+          return { ...step, dropped: 'revised', note: undoAfterMergeNote(step.label, 'revised') }
+        }
+        writePromptStates(
+          'undo',
+          promptEdits.map((edit) => ({ id: edit.id, state: edit.before, ...(edit.added !== undefined ? { remove: edit.added } : {}) }))
+        )
+        undoStack.pop()
+        redoStack.push(step)
+        keepRestore(redoStack, step, null)
+        return step
+      }
+
       // `TODO/core-030`: nothing has touched the document since this step, so
       // the state before it is exactly what re-folding the log without it would
       // produce — the fold is deterministic — and it is put back instead, O(1).
@@ -4562,6 +4806,24 @@ export function createDocument(options = {}) {
         undoStack.push(redone)
         keepRestore(undoStack, redone, null)
         return redone
+      }
+
+      // `TODO/ui-092`, part 4: the mirror — write the requests as the step left them, newer stamps.
+      const promptEdits = step.revision?.kind === 'prompts' ? step.revision.prompts : undefined
+      if (promptEdits !== undefined) {
+        if (!promptEdits.every((edit) => samePromptState(promptStateOf(edit.id), edit.before))) {
+          redoStack.pop()
+          document.version += 1
+          return { ...step, dropped: 'revised', note: undoAfterMergeNote(step.label, 'revised').replace("can't be undone", "can't be redone").replace('Undo list', 'Redo list') }
+        }
+        writePromptStates(
+          'redo',
+          promptEdits.map((edit) => ({ id: edit.id, state: edit.after, ...(edit.added !== undefined ? { add: edit.added } : {}) }))
+        )
+        redoStack.pop()
+        undoStack.push(step)
+        keepRestore(undoStack, step, null)
+        return step
       }
 
       // The mirror of undo's restore (`TODO/core-030`): still at the state this
@@ -4860,12 +5122,15 @@ export function createDocument(options = {}) {
     },
 
     prompts() {
-      return [...prompts].map(([id, prompt]) => promptRecordOf(id, prompt))
+      /** @type {import('./prompt.js').PromptRecord[]} */
+      const list = []
+      for (const [id, prompt] of prompts) if (isPromptLive(prompt)) list.push(promptRecordOf(id, prompt))
+      return list
     },
 
     promptOf(id) {
       const prompt = prompts.get(id)
-      return prompt === undefined ? undefined : promptRecordOf(id, prompt)
+      return prompt === undefined || !isPromptLive(prompt) ? undefined : promptRecordOf(id, prompt)
     },
 
     recordPrompt(input, transaction) {
@@ -4877,6 +5142,9 @@ export function createDocument(options = {}) {
       if (!verdict.ok) throw new Error(`document.recordPrompt: ${verdict.reason}`)
       const existing = prompts.get(id)
       if (existing !== undefined) {
+        // `TODO/ui-092`, part 4: a request the person removed stays removed — an agent still bound
+        // to it is told so (`linkProduced` reports it beside the result) and nothing comes back.
+        if (!isPromptLive(existing)) throw new Error(`document.recordPrompt: the prompt "${id}" was removed from this project`)
         if (existing.text !== verdict.record.text) throw new Error(`document.recordPrompt: a different prompt already has the id "${id}"`)
         document.addPromptProduced(id, verdict.record.produced, transaction)
         return /** @type {import('./prompt.js').PromptRecord} */ (document.promptOf(id))
@@ -4929,6 +5197,70 @@ export function createDocument(options = {}) {
     removePromptResponse(id, segmentId, transaction) {
       requireOrigin('removePromptResponse', transaction)
       return tombstoneResponseSegment('removePromptResponse', id, segmentId)
+    },
+
+    editPromptText(id, text, transaction) {
+      requireLocalPromptEdit('editPromptText', transaction)
+      const before = livePromptState('editPromptText', id)
+      const prepared = prepareEdit(text, 'request')
+      if (!prepared.ok) throw new Error(`document.editPromptText: ${prepared.reason} — nothing was changed`)
+      if (prepared.text === before.text) return false
+      commitPromptEdit('editPromptText', transaction, 'Edit request', [{ id, before, after: { ...before, text: prepared.text, edited: true } }])
+      return true
+    },
+
+    removePrompt(id, transaction) {
+      requireLocalPromptEdit('removePrompt', transaction)
+      const before = promptStateOf(id)
+      if (before === null) throw new Error(`document.removePrompt: there is no prompt "${id}"`)
+      if (!before.live) return false
+      commitPromptEdit('removePrompt', transaction, 'Remove request', [{ id, before, after: { ...before, live: false } }])
+      return true
+    },
+
+    editPromptReply(id, text, transaction) {
+      requireLocalPromptEdit('editPromptReply', transaction)
+      const before = livePromptState('editPromptReply', id)
+      const prepared = prepareEdit(text, 'reply')
+      if (!prepared.ok) throw new Error(`document.editPromptReply: ${prepared.reason} — nothing was changed`)
+      if (before.replies.length === 1 && before.replies[0] === prepared.text) return false
+      // Every live segment is tombstoned and the new text appended as one. (The writer keeps a
+      // leading segment that already reads exactly the new text rather than copying it, so an
+      // edit down to the first segment uses no new one; the reply reads the same either way.)
+      commitPromptEdit('editPromptReply', transaction, 'Edit reply', [{ id, before, after: { ...before, replies: [prepared.text] } }])
+      return true
+    },
+
+    removePromptReply(id, transaction) {
+      requireLocalPromptEdit('removePromptReply', transaction)
+      const before = livePromptState('removePromptReply', id)
+      if (before.replies.length === 0) return false
+      commitPromptEdit('removePromptReply', transaction, 'Remove reply', [{ id, before, after: { ...before, replies: [] } }])
+      return true
+    },
+
+    combinePrompts(id, nextId, transaction) {
+      requireLocalPromptEdit('combinePrompts', transaction)
+      const first = livePromptState('combinePrompts', id)
+      const second = livePromptState('combinePrompts', nextId)
+      const order = [...prompts].filter(([, prompt]) => isPromptLive(prompt)).map(([promptId]) => promptId)
+      if (order[order.indexOf(id) + 1] !== nextId) {
+        throw new Error(`document.combinePrompts: "${nextId}" is not the next request after "${id}" — only a request and the one after it combine`)
+      }
+      const text = `${first.text}\n\n${second.text}`
+      if (text.length > PROMPT_LIMITS.maxTextLength) {
+        throw new Error(
+          `document.combinePrompts: the combined request would be ${text.length} characters, over the cap of ${PROMPT_LIMITS.maxTextLength} — nothing was changed`
+        )
+      }
+      const own = /** @type {import('./prompt.js').PromptEntry} */ (prompts.get(id))
+      const theirs = /** @type {import('./prompt.js').PromptEntry} */ (prompts.get(nextId))
+      const mine = new Set(own.produced)
+      const added = theirs.produced.filter((recordId) => !mine.has(recordId))
+      commitPromptEdit('combinePrompts', transaction, 'Combine requests', [
+        { id, before: first, after: { ...first, text, edited: true, replies: [...first.replies, ...second.replies] }, ...(added.length > 0 ? { added } : {}) },
+        { id: nextId, before: second, after: { ...second, live: false } },
+      ])
     },
 
     viewHidden() {

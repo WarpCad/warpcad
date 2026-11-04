@@ -10,12 +10,22 @@
  * for this request, `PromptReply.vue`), and its parts, each with its role (**Made**, **Changed**,
  * **Went into**) and **hidden** when the user hid it. Tapping a part selects it.
  *
- * Presentational: it reports pointer, focus and press events up, and the view decides what is lit
+ * It reports pointer, focus and press events up, and the view decides what is lit
  * (`usePromptHighlight`). Untrusted text — `{{ }}` only: no `v-html`, no Markdown, no links.
+ *
+ * **Editing** (`TODO/ui-092`, part 4), only in an expanded row and only while the project can be
+ * edited (`editable`: not the read-only Watch view of an AI turn, not a History preview): **Edit
+ * request** (a text area with the whole request; **Save** overwrites it, and the row then reads
+ * **Edited**), **Remove request** (the record only — its parts stay), **Combine with next** on any
+ * row but the last, and the reply's **Add reply…**, **Edit reply** and **Remove reply**. Each goes
+ * through the document store as the local user, so it is one step on the top-bar Undo, and the
+ * row updates at once. A refusal (over the 20,000-character cap, the reply full) is said in words
+ * under the controls, nothing changed.
  */
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import { responseTextOf } from '../../core/prompt.js'
+import { useDocumentStore } from '../../stores/document.js'
 import PromptReply from '../ai/PromptReply.vue'
 
 const props = defineProps({
@@ -30,6 +40,10 @@ const props = defineProps({
   marked: { type: Boolean, default: false },
   /** How many of its parts are lit right now because of this row; 0 when another surface has the highlight. */
   highlighting: { type: Number, default: 0 },
+  /** `TODO/ui-092`, part 4: the edit controls are offered (the project can be edited now). */
+  editable: { type: Boolean, default: false },
+  /** The next request's id, for **Combine with next**; `''` on the last row. */
+  nextId: { type: String, default: '' },
 })
 
 const emit = defineEmits({
@@ -55,6 +69,69 @@ const detailId = computed(() => `prompts-detail-${props.prompt.id}`)
 
 /** @type {Record<import('../../core/prompt.js').PromptRole, string>} */
 const ROLE_LABELS = { made: 'Made', changed: 'Changed', wentInto: 'Went into' }
+
+// --- editing (`TODO/ui-092`, part 4) ---------------------------------------
+
+const documentStore = useDocumentStore()
+const editingRequest = ref(false)
+const requestDraft = ref('')
+const problem = ref('')
+/** @type {import('vue').Ref<HTMLTextAreaElement | null>} */
+const requestField = ref(null)
+
+/** @param {unknown} error */
+function say(error) {
+  problem.value = error instanceof Error ? error.message.replace(/^document\.\w+: /, '') : String(error)
+}
+
+async function openRequestEdit() {
+  problem.value = ''
+  requestDraft.value = props.prompt.text
+  editingRequest.value = true
+  await nextTick()
+  requestField.value?.focus()
+}
+
+function cancelRequestEdit() {
+  editingRequest.value = false
+  requestDraft.value = ''
+  problem.value = ''
+}
+
+function saveRequestEdit() {
+  try {
+    documentStore.editPromptText(props.prompt.id, requestDraft.value)
+    cancelRequestEdit()
+  } catch (error) {
+    say(error)
+  }
+}
+
+function removeRequest() {
+  problem.value = ''
+  try {
+    documentStore.removePrompt(props.prompt.id)
+  } catch (error) {
+    say(error)
+  }
+}
+
+function combineWithNext() {
+  problem.value = ''
+  try {
+    documentStore.combinePrompts(props.prompt.id, props.nextId)
+  } catch (error) {
+    say(error)
+  }
+}
+
+// Collapsing the row, or the project becoming read-only, closes the form unsaved.
+watch(
+  () => props.expanded && props.editable,
+  (open) => {
+    if (!open) cancelRequestEdit()
+  },
+)
 </script>
 
 <template>
@@ -85,6 +162,10 @@ const ROLE_LABELS = { made: 'Made', changed: 'Changed', wentInto: 'Went into' }
         <span data-testid="prompts-row-parts">{{ partsLabel }}</span>
         <span aria-hidden="true"> · </span>
         <span data-testid="prompts-row-reply">{{ hasReply ? 'Reply' : 'No reply' }}</span>
+        <template v-if="prompt.edited">
+          <span aria-hidden="true"> · </span>
+          <span data-testid="prompts-row-edited">Edited</span>
+        </template>
         <template v-if="marked">
           <span aria-hidden="true"> · </span>
           <span class="row__mark" data-testid="prompts-row-marked">Selected part</span>
@@ -98,8 +179,22 @@ const ROLE_LABELS = { made: 'Made', changed: 'Changed', wentInto: 'Went into' }
         Highlighting {{ highlighting }} {{ highlighting === 1 ? 'part' : 'parts' }}
       </p>
       <span class="detail__label">Request</span>
-      <p class="detail__text" data-testid="prompts-row-full">{{ prompt.text }}</p>
-      <PromptReply :prompt="prompt" />
+      <form v-if="editingRequest" class="edit" data-testid="prompts-edit-request-form" @submit.prevent="saveRequestEdit">
+        <label class="detail__label" :for="`request-edit-${prompt.id}`">Edit the request</label>
+        <textarea :id="`request-edit-${prompt.id}`" ref="requestField" v-model="requestDraft" class="edit__field" rows="8" data-testid="prompts-edit-request-input" />
+        <div class="edit__actions">
+          <button type="button" class="edit__button" data-testid="prompts-edit-request-cancel" @click="cancelRequestEdit">Cancel</button>
+          <button type="submit" class="edit__button edit__button--confirm" data-testid="prompts-edit-request-save" :disabled="requestDraft.trim() === ''">Save</button>
+        </div>
+      </form>
+      <p v-else class="detail__text" data-testid="prompts-row-full">{{ prompt.text }}</p>
+      <div v-if="editable && !editingRequest" class="edit__actions edit__actions--start" data-testid="prompts-row-edits">
+        <button type="button" class="edit__button" data-testid="prompts-edit-request" @click="openRequestEdit">Edit request</button>
+        <button type="button" class="edit__button" data-testid="prompts-remove-request" @click="removeRequest">Remove request</button>
+        <button v-if="nextId !== ''" type="button" class="edit__button" data-testid="prompts-combine-next" @click="combineWithNext">Combine with next</button>
+      </div>
+      <p v-if="problem !== ''" class="edit__problem" role="alert" data-testid="prompts-row-problem">{{ problem }}</p>
+      <PromptReply :prompt="prompt" :edits="editable" :read-only="!editable" />
       <template v-if="parts.length > 0">
         <span class="detail__label">Parts</span>
         <ul class="parts" aria-label="Parts">
@@ -234,6 +329,77 @@ const ROLE_LABELS = { made: 'Made', changed: 'Changed', wentInto: 'Went into' }
   overflow-y: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.edit__field {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 8em;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 16px; /* 16px: iOS Safari does not zoom the page on focus. */
+  resize: vertical;
+}
+
+/* Wraps rather than scrolling sideways at 390 px; each button stays a 44 px target. */
+.edit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.edit__actions--start {
+  justify-content: flex-start;
+  padding: 2px 0 4px;
+}
+
+.edit__button {
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.edit__button--confirm {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.edit__button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.edit__button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.edit__problem {
+  margin: 0;
+  color: var(--danger);
 }
 
 .parts {

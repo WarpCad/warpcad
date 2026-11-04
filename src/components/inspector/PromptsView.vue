@@ -23,11 +23,13 @@ import { usePromptHighlight, usePromptParts } from '../../composables/usePromptH
 import { useDocumentStore } from '../../stores/document.js'
 import { usePromptsUiStore } from '../../stores/promptsUi.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 import PromptsViewRow from './PromptsViewRow.vue'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
 const ui = usePromptsUiStore()
+const timeline = useTimelineStore()
 const { partsOf } = usePromptParts()
 const highlight = usePromptHighlight()
 
@@ -55,6 +57,26 @@ const shown = computed(() => {
   if (only === null) return rows.value
   return rows.value.filter((row) => only.includes(row.prompt.id))
 })
+
+/**
+ * `TODO/ui-092`, part 4: the edit controls are offered only while the project can be edited — not
+ * while the viewport previews something else (the read-only Watch of an AI turn, a History step,
+ * a shared view), when Undo is off too.
+ */
+const editable = computed(() => !timeline.previewing)
+
+/**
+ * The request **Combine with next** would fold in: the next one in the project, and only when it
+ * is shown too (a filtered list never combines with a row the person cannot see).
+ *
+ * @param {string} promptId
+ * @returns {string} `''` for none.
+ */
+function nextIdOf(promptId) {
+  const at = rows.value.findIndex((row) => row.prompt.id === promptId)
+  const next = rows.value[at + 1]?.prompt.id ?? ''
+  return next !== '' && shown.value.some((row) => row.prompt.id === next) ? next : ''
+}
 
 // --- what is lit ---------------------------------------------------------
 
@@ -170,6 +192,8 @@ watch(
         :expanded="ui.expandedId === row.prompt.id"
         :marked="row.marked"
         :highlighting="highlightingOf(row)"
+        :editable="editable"
+        :next-id="nextIdOf(row.prompt.id)"
         @toggle="ui.toggle(row.prompt.id)"
         @enter="(target, event) => onEnter(row.prompt.id, target, event)"
         @leave="(target, event) => onLeave(row.prompt.id, target, event)"

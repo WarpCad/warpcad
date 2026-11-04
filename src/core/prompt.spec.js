@@ -13,6 +13,8 @@ import {
   PROMPT_LIMITS,
   cleanPromptText,
   comparePromptIds,
+  encodePromptRecord,
+  isPromptLive,
   joinPromptMaps,
   preparePrompt,
   prepareResponse,
@@ -696,4 +698,125 @@ describe('promptTouchedParts after an undo (TODO/ui-092)', () => {
     expect(document.recordOf(cube)).toBeUndefined()
     expect(promptTouchedParts(document, /** @type {any} */ (document.promptOf(made.id)))).toBe(true)
   })
+})
+
+/**
+ * `TODO/ui-092`, part 4: an edit **overwrites** the prompt's text (owner decision, 2026-11-03), and
+ * a removed prompt is a tombstone. Two stamped fields:
+ *
+ * - the **text register** — `text`, its stamp `textAt` (absent: the words as recorded, older than
+ *   any stamp) and `edited` (the text is not the words as recorded) — the latest stamp wins;
+ * - **`removed: { at }`** — the latest removal's stamp, kept for ever.
+ *
+ * A prompt is live unless it was removed at or after its text's stamp, so an older copy (which
+ * holds only older stamps) never brings a removed prompt back, while Undo of a removal (a newer
+ * text write) does.
+ */
+describe('joinPromptMaps: an edit overwrites, a removal is a tombstone (ui-092 part 4)', () => {
+  /** @param {number} counter @param {string} [replica] */
+  const at = (counter, replica = 'aaaaaa') => ({ counter, replica })
+  const canon = (/** @type {Map<string, any>} */ m) => JSON.stringify([...m].sort())
+  /** @param {object} entry */
+  const one = (entry) => new Map([['p', { text: 'as recorded', produced: [], ...entry }]])
+
+  it('the later-stamped text wins, with its edited flag, in both orders; an unstamped text loses to any stamp', () => {
+    const recorded = one({})
+    const edited = one({ text: 'edited once', textAt: at(3), edited: true })
+    const later = one({ text: 'edited on B', textAt: at(5, 'bbbbbb'), edited: true })
+    expect(joinPromptMaps(recorded, edited).get('p')).toEqual({ text: 'edited once', produced: [], textAt: at(3), edited: true })
+    expect(joinPromptMaps(edited, recorded).get('p')).toEqual({ text: 'edited once', produced: [], textAt: at(3), edited: true })
+    expect(joinPromptMaps(edited, later).get('p')?.text).toBe('edited on B')
+    expect(joinPromptMaps(later, edited).get('p')?.text).toBe('edited on B')
+    // An Undo back to the words as recorded is a newer write without the flag: it wins too.
+    const undone = one({ text: 'as recorded', textAt: at(7) })
+    expect(joinPromptMaps(later, undone).get('p')).toEqual({ text: 'as recorded', produced: [], textAt: at(7) })
+  })
+
+  it('a removal hides the prompt; an older copy cannot bring it back, in either order', () => {
+    const removed = one({ removed: { at: at(4) } })
+    const older = one({})
+    expect(isPromptLive(/** @type {any} */ (older.get('p')))).toBe(true)
+    expect(isPromptLive(/** @type {any} */ (removed.get('p')))).toBe(false)
+    for (const joined of [joinPromptMaps(removed, older), joinPromptMaps(older, removed)]) {
+      expect(joined.get('p')?.removed).toEqual({ at: at(4) })
+      expect(isPromptLive(/** @type {any} */ (joined.get('p')))).toBe(false)
+    }
+    // An edit made before the removal stays removed with it.
+    const editedBefore = one({ text: 'edited', textAt: at(2), edited: true })
+    expect(isPromptLive(/** @type {any} */ (joinPromptMaps(removed, editedBefore).get('p')))).toBe(false)
+  })
+
+  it('the latest removal stamp is kept; a text written after it (Undo of Remove) brings the prompt back, in both orders', () => {
+    const removed = one({ removed: { at: at(4) } })
+    const removedLater = one({ removed: { at: at(6, 'bbbbbb') } })
+    expect(joinPromptMaps(removed, removedLater).get('p')?.removed).toEqual({ at: at(6, 'bbbbbb') })
+    expect(joinPromptMaps(removedLater, removed).get('p')?.removed).toEqual({ at: at(6, 'bbbbbb') })
+    const restored = one({ textAt: at(5), removed: { at: at(4) } })
+    expect(isPromptLive(/** @type {any} */ (restored.get('p')))).toBe(true)
+    expect(isPromptLive(/** @type {any} */ (joinPromptMaps(restored, removed).get('p')))).toBe(true)
+    expect(isPromptLive(/** @type {any} */ (joinPromptMaps(removed, restored).get('p')))).toBe(true)
+    // …but not past a later removal.
+    expect(isPromptLive(/** @type {any} */ (joinPromptMaps(restored, removedLater).get('p')))).toBe(false)
+  })
+
+  it('is commutative, associative and idempotent over text writes, removals, produced and replies, in every order', () => {
+    const segment = (/** @type {string} */ id, /** @type {string} */ text, /** @type {number} */ counter) => ({ id, text, at: at(counter) })
+    /** @type {Map<string, any>[]} */
+    const variants = [
+      one({}),
+      one({ produced: ['c1'] }),
+      one({ text: 'edit A', textAt: at(3), edited: true }),
+      one({ text: 'edit B', textAt: at(3, 'bbbbbb'), edited: true, produced: ['c2'] }),
+      one({ text: 'as recorded', textAt: at(8) }),
+      one({ removed: { at: at(4) } }),
+      one({ removed: { at: at(9, 'cccccc') }, responses: [segment('r1', 'one', 1)] }),
+      one({ text: 'edit C', textAt: at(10), edited: true, removed: { at: at(4) }, responses: [{ ...segment('r1', '', 1), removed: true }, segment('r2', 'two', 2)] }),
+      new Map([['q', { text: 'another', produced: [], removed: { at: at(2) } }]]),
+    ]
+    for (const a of variants) {
+      expect(canon(joinPromptMaps(a, a))).toBe(canon(a))
+      for (const b of variants) {
+        expect(canon(joinPromptMaps(a, b))).toBe(canon(joinPromptMaps(b, a)))
+        for (const c of variants) {
+          expect(canon(joinPromptMaps(joinPromptMaps(a, b), c))).toBe(canon(joinPromptMaps(a, joinPromptMaps(b, c))))
+        }
+      }
+    }
+  })
+})
+
+describe('validatePromptRecord and encodePromptRecord: the stamped fields (ui-092 part 4)', () => {
+  const base = { id: 'p1', text: 'a fan duct' }
+
+  it('reads textAt, edited and removed, and writes them back the same way', () => {
+    const raw = { ...base, textAt: [7, 'aaaaaa'], edited: true, removed: { at: [9, 'bbbbbb'] } }
+    const verdict = validatePromptRecord(raw)
+    expect(verdict).toEqual({
+      ok: true,
+      record: { ...base, produced: [], textAt: { counter: 7, replica: 'aaaaaa' }, edited: true, removed: { at: { counter: 9, replica: 'bbbbbb' } } },
+    })
+    if (!verdict.ok) return
+    const { id, ...entry } = verdict.record
+    expect(encodePromptRecord(id, entry)).toEqual(raw)
+    // A record without them writes none of them: a file with no edit is unchanged.
+    expect(encodePromptRecord('p1', { text: 'a fan duct', produced: [] })).toEqual(base)
+  })
+
+  /** @type {[string, Record<string, unknown>, RegExp][]} */
+  const bad = [
+    ['a textAt that is not a stamp', { textAt: 'yesterday' }, /textAt|stamp/],
+    ['a textAt with a bad replica', { textAt: [3, 'NOPE'] }, /textAt|stamp/],
+    ['an edited that is not true', { textAt: [3, 'aaaaaa'], edited: 'yes' }, /edited/],
+    ['an edited with no textAt', { edited: true }, /edited/],
+    ['a removed that is not an object', { removed: true }, /removed/],
+    ['a removed with no stamp', { removed: {} }, /removed|stamp/],
+    ['a removed with a bad stamp', { removed: { at: [0, 'aaaaaa'] } }, /removed|stamp/],
+  ]
+  for (const [label, fields, reason] of bad) {
+    it(`refuses ${label}, naming why`, () => {
+      const verdict = validatePromptRecord({ ...base, ...fields })
+      expect(verdict.ok).toBe(false)
+      if (!verdict.ok) expect(verdict.reason).toMatch(reason)
+    })
+  }
 })

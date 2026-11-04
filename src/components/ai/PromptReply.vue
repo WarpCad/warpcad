@@ -10,6 +10,11 @@
  * the local user, so it is one undo step (`Add reply`) and Undo takes it back. A refusal (empty,
  * or the reply already at its 20,000-character cap) is said under the text area, nothing changed.
  *
+ * `TODO/ui-092`, part 4: in the Prompts view (`edits`), a reply also has **Edit reply** — a text
+ * area holding the whole reply; **Save** makes it one segment — and **Remove reply**, each one
+ * undo step (`Edit reply`, `Remove reply`). `readOnly` (the Watch view of an AI turn, a History
+ * preview) shows the reply with no control at all. A refusal is said in words, nothing changed.
+ *
  * Untrusted text — it arrives from agents and from any opened file — so it is rendered with
  * `{{ }}` interpolation only: no `v-html`, no Markdown, no link made or followed.
  */
@@ -21,6 +26,10 @@ import { useDocumentStore } from '../../stores/document.js'
 const props = defineProps({
   /** The prompt, as `promptsForBody` hands it out. */
   prompt: { type: /** @type {import('vue').PropType<import('../../core/prompt.js').PromptRecord>} */ (Object), required: true },
+  /** `TODO/ui-092`, part 4: offer **Edit reply** and **Remove reply** (the Prompts view). */
+  edits: { type: Boolean, default: false },
+  /** No control at all: the project cannot be edited right now. */
+  readOnly: { type: Boolean, default: false },
 })
 
 const documentStore = useDocumentStore()
@@ -30,6 +39,11 @@ const draft = ref('')
 const problem = ref('')
 /** @type {import('vue').Ref<HTMLTextAreaElement | null>} */
 const field = ref(null)
+/** `TODO/ui-092`, part 4: the **Edit reply** form is open. */
+const editing = ref(false)
+const editDraft = ref('')
+/** @type {import('vue').Ref<HTMLTextAreaElement | null>} */
+const editField = ref(null)
 
 const reply = computed(() => responseTextOf(props.prompt))
 /** Long enough that the collapsed view (four lines) hides some of it. */
@@ -48,6 +62,44 @@ function cancel() {
   problem.value = ''
 }
 
+/** @param {unknown} error */
+function say(error) {
+  problem.value = error instanceof Error ? error.message.replace(/^document\.\w+: /, '') : String(error)
+}
+
+async function openEdit() {
+  cancel()
+  editing.value = true
+  editDraft.value = reply.value
+  await nextTick()
+  editField.value?.focus()
+}
+
+function cancelEdit() {
+  editing.value = false
+  editDraft.value = ''
+  problem.value = ''
+}
+
+function saveEdit() {
+  try {
+    documentStore.editPromptReply(props.prompt.id, editDraft.value)
+    cancelEdit()
+  } catch (error) {
+    say(error)
+  }
+}
+
+function remove() {
+  cancel()
+  cancelEdit()
+  try {
+    documentStore.removePromptReply(props.prompt.id)
+  } catch (error) {
+    say(error)
+  }
+}
+
 function add() {
   try {
     documentStore.addPromptResponse(props.prompt.id, draft.value)
@@ -63,21 +115,36 @@ watch(
   () => {
     expanded.value = false
     cancel()
+    cancelEdit()
   },
 )
 </script>
 
 <template>
   <div class="reply" data-testid="prompt-reply" :data-prompt-id="prompt.id">
-    <template v-if="reply !== ''">
+    <template v-if="reply !== '' && !editing">
       <span class="reply__label">Reply</span>
       <p class="reply__text" :class="{ 'reply__text--collapsed': !expanded }" data-testid="prompt-reply-text">{{ reply }}</p>
       <button v-if="long" type="button" class="reply__toggle" data-testid="prompt-reply-toggle" :aria-expanded="expanded ? 'true' : 'false'" @click="expanded = !expanded">
         {{ expanded ? 'Show less' : 'Show all' }}
       </button>
     </template>
-    <button v-if="!adding" type="button" class="reply__add" data-testid="prompt-reply-add" @click="open">Add reply…</button>
-    <form v-else class="reply__form" data-testid="prompt-reply-form" @submit.prevent="add">
+    <form v-if="editing" class="reply__form" data-testid="prompt-reply-edit-form" @submit.prevent="saveEdit">
+      <label class="reply__label" :for="`reply-edit-${prompt.id}`">Reply</label>
+      <textarea :id="`reply-edit-${prompt.id}`" ref="editField" v-model="editDraft" class="reply__field" rows="8" data-testid="prompt-reply-edit-input" />
+      <p v-if="problem !== ''" class="reply__problem" role="alert" data-testid="prompt-reply-problem">{{ problem }}</p>
+      <div class="reply__actions">
+        <button type="button" class="reply__button" data-testid="prompt-reply-edit-cancel" @click="cancelEdit">Cancel</button>
+        <button type="submit" class="reply__button reply__button--confirm" data-testid="prompt-reply-edit-save" :disabled="editDraft.trim() === ''">Save</button>
+      </div>
+    </form>
+    <div v-if="edits && !readOnly && reply !== '' && !editing && !adding" class="reply__edits">
+      <button type="button" class="reply__button" data-testid="prompt-reply-edit" @click="openEdit">Edit reply</button>
+      <button type="button" class="reply__button" data-testid="prompt-reply-remove" @click="remove">Remove reply</button>
+    </div>
+    <p v-if="problem !== '' && !editing && !adding" class="reply__problem" role="alert" data-testid="prompt-reply-problem">{{ problem }}</p>
+    <button v-if="!readOnly && !editing && !adding" type="button" class="reply__add" data-testid="prompt-reply-add" @click="open">Add reply…</button>
+    <form v-else-if="!readOnly && adding" class="reply__form" data-testid="prompt-reply-form" @submit.prevent="add">
       <label class="reply__label" :for="`reply-${prompt.id}`">Paste the agent's reply</label>
       <textarea :id="`reply-${prompt.id}`" ref="field" v-model="draft" class="reply__field" rows="6" data-testid="prompt-reply-input" />
       <p v-if="problem !== ''" class="reply__problem" role="alert" data-testid="prompt-reply-problem">{{ problem }}</p>
@@ -188,6 +255,13 @@ watch(
 .reply__actions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Wraps rather than scrolling sideways at 390 px; each button stays a 44 px target. */
+.reply__edits {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

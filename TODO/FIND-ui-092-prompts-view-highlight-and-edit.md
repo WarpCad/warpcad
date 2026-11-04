@@ -308,4 +308,19 @@ Choices: one row expanded at a time; the filter line names the selected part (`F
 under the link until Part 5. Outstanding: Documentation section (docs, `agent-prompt.docs.js`, screenshots), the
 performance measurement on the Fan Duct copy, the hand check, Parts 4 and 5.
 
+## Part 4 status (2026-11-03, uncommitted)
+
+Built: the stamped fields (`src/core/prompt.js` module note): a text register (`text`, `textAt: [counter,
+replica]`, `edited: true`; absent `textAt` is the words as recorded, older than any stamp) merged
+last-stamp-wins, and `removed: { at }` merged as the later stamp; a prompt is live unless removed at or after
+its text's stamp, so an older copy never revives it and Undo of a removal (a newer text write) does. The
+`edit` field is not used. Local-only commands `editPromptText`, `removePrompt`, `editPromptReply`,
+`removePromptReply` and `combinePrompts` (one undo step each, refused in a batch and for any other origin;
+Undo/Redo write again with newer stamps and drop the step with a note if a merge changed the request since),
+store wrappers, and the controls in an expanded Prompts view row (off while `timeline.previewing`). Fixtures
+from 32c656e and v1.4.0. Unit, store and `e2e/prompts-view.e2e.js` (9 projects) green; scenarios 10 and 22
+re-driven. Choices: Undo of **Combine** takes `next`'s ids back out of `produced` locally only (a union, so a
+saved copy brings them back); **Undo merge** leaves a removal the merged copy made. Outstanding: the
+Documentation section and the trust-model and merge-rule lines in `docs/decisions/`, the hand check, Part 5.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

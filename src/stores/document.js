@@ -472,6 +472,65 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * `TODO/ui-092`, part 4: the Prompts view's edits — core's commands as the local user, each one
+   * undo step with its label (`Edit request`, `Remove request`, `Edit reply`, `Remove reply`,
+   * `Combine requests`) whose Undo leaves the selection where it was. Each throws core's refusal
+   * in words, changing nothing; `false` where core says nothing changed.
+   *
+   * @param {string} promptId
+   * @param {string} text
+   * @returns {boolean}
+   */
+  function editPromptText(promptId, text) {
+    const changed = raw.editPromptText(promptId, text, { origin: 'local', label: 'Edit request', meta: selectionMeta() })
+    refresh()
+    return changed
+  }
+
+  /**
+   * @param {string} promptId
+   * @returns {boolean}
+   */
+  function removePrompt(promptId) {
+    const changed = raw.removePrompt(promptId, { origin: 'local', label: 'Remove request', meta: selectionMeta() })
+    refresh()
+    return changed
+  }
+
+  /**
+   * @param {string} promptId
+   * @param {string} text
+   * @returns {boolean}
+   */
+  function editPromptReply(promptId, text) {
+    const changed = raw.editPromptReply(promptId, text, { origin: 'local', label: 'Edit reply', meta: selectionMeta() })
+    refresh()
+    return changed
+  }
+
+  /**
+   * @param {string} promptId
+   * @returns {boolean}
+   */
+  function removePromptReply(promptId) {
+    const changed = raw.removePromptReply(promptId, { origin: 'local', label: 'Remove reply', meta: selectionMeta() })
+    refresh()
+    return changed
+  }
+
+  /**
+   * **Combine with next**: `promptId` and the request after it, as one.
+   *
+   * @param {string} promptId
+   * @param {string} nextId
+   * @returns {void}
+   */
+  function combinePrompts(promptId, nextId) {
+    raw.combinePrompts(promptId, nextId, { origin: 'local', label: 'Combine requests', meta: selectionMeta() })
+    refresh()
+  }
+
+  /**
    * Hide or show one body, or one of its parts, in the view (`TODO/ui-089`) — core's
    * `setViewHidden`, a `local` document change that bumps the version but is not an undo step,
    * like the build volume.
@@ -914,12 +973,16 @@ export const useDocumentStore = defineStore('document', () => {
   function redo() {
     const step = raw.pendingRedo()
     if (!step) return { ok: false }
+    /** @type {ReturnType<typeof raw.redo>} */
+    let redone
     try {
-      raw.redo()
+      redone = raw.redo()
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
     refresh()
+    // `TODO/ui-092`, part 4: a prompt edit a merged change has since overtaken is dropped, as Undo does.
+    if (redone?.note !== undefined) return { ok: true, label: step.label, note: redone.note }
     // A row action revises records rather than adding any (`TODO/ui-052`'s revise among
     // them), so it has no records of its own to select: put back the selection it was
     // made from instead of clearing it.
@@ -972,6 +1035,11 @@ export const useDocumentStore = defineStore('document', () => {
     setAiRecordsPerTurn,
     setViewHidden,
     addPromptResponse,
+    editPromptText,
+    removePrompt,
+    editPromptReply,
+    removePromptReply,
+    combinePrompts,
     showAll,
     deleteBodies,
     removePart,

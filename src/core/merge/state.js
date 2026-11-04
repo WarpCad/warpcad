@@ -187,6 +187,16 @@ export function canonicalJSON(state) {
             ]),
           ]
         : []),
+      // `TODO/ui-092`, part 4: the text register's stamp and flag, and the tombstone.
+      ...(prompt.textAt !== undefined || prompt.removed !== undefined
+        ? [
+            {
+              textAt: prompt.textAt === undefined ? null : [prompt.textAt.counter, prompt.textAt.replica],
+              edited: prompt.edited === true,
+              removed: prompt.removed === undefined ? null : [prompt.removed.at.counter, prompt.removed.at.replica],
+            },
+          ]
+        : []),
     ]),
   })
 }
@@ -213,7 +223,12 @@ export function highestCounter(state) {
   for (const name of REGISTER_NAMES) see(state.registers[name]?.[1])
   for (const [, stamp] of state.parts.values()) see(stamp)
   for (const [, stamp] of state.viewHidden.values()) see(stamp)
-  // `TODO/ai-032`: a reply segment's stamp, so the next one written sorts after it.
-  for (const prompt of (state.prompts ?? new Map()).values()) for (const segment of prompt.responses ?? []) see(segment.at)
+  // `TODO/ai-032`: a reply segment's stamp, so the next one written sorts after it; `TODO/ui-092`,
+  // part 4: an edit's and a removal's too.
+  for (const prompt of (state.prompts ?? new Map()).values()) {
+    for (const segment of prompt.responses ?? []) see(segment.at)
+    see(prompt.textAt)
+    see(prompt.removed?.at)
+  }
   return highest
 }
