@@ -3822,3 +3822,16 @@ One limit is recorded openly: cutting with the whole multi-part model takes abou
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 29 parts → TODO/done/io-024-import-3mf-assembly-as-named-parts.md, Testing and acceptance 31 (driven with the owner's real file, implementation agent, 2026-11-04); no new dependency → TODO spec "What a part is" and package.json unchanged in the commit; 624 ms whole-model Subtract → implementation agent's perf drive, 2026-11-04, recorded in TODO/FIND-core-079-whole-model-subtract-off-main-thread.md; hand-written reader with caps → TODO spec Proposed fix 2 and 4, shipped in src/core/zip.js and src/io/meshFormats/threeMf.js.
 **To Add:** none
+
+## 2026-11-04T19:06:47Z — Hand test runs now count for the commit check
+
+**Post:** A test gate that trusts only the agent's own runs wastes time. WarpCad's commit check read a "green" file that only the agent's test step wrote. A suite the developer ran by hand never counted, so the agent re-ran the full 20-minute suite before every commit.
+
+The fix removes that file. The unit and e2e reporters already store every finished run, whoever started it, and the check now reads those results. Changes outside src/ don't make them stale, and a targeted run that passes no longer replaces a full pass.
+
+This session, the full unit suite passed 8131 tests and the stored check came back green with no re-run. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #DevTools
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 20-minute re-run before commit → the user's report in this session; hand run counts → `stamp check` exit 0 this session on the stored results; 8131 unit tests passed in full → bare `npm run test:unit` output this session; a targeted passing run keeps a full pass → `recordRun` and its spec in scripts/todo-progress.spec.js, 35 of 35 passing this session.
+**To Add:** none

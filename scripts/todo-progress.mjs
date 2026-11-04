@@ -1,39 +1,32 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Progress + green-stamp helper for the TODO runner (`/fix-todo`, `/run-todos`, `/test`).
+// Progress + green-check helper for the TODO runner (`/fix-todo`, `/run-todos`, `/test`, `/commit`).
 //
 //   node scripts/todo-progress.mjs step <id> <1-9> [--state=running] [--model=sonnet] [--note="..."]
 //   node scripts/todo-progress.mjs done <id>
 //   node scripts/todo-progress.mjs batch <done>/<size>
-//   node scripts/todo-progress.mjs stamp set | check | gate [--wait=60]
-//   node scripts/todo-progress.mjs stamp results | attest | verify-push   (TODO/build-014)
+//   node scripts/todo-progress.mjs stamp check | results | attest | verify-push   (TODO/build-014)
 //
 // `step`/`done`/`batch` write small JSON files under `.todo-progress/` (gitignored). A
 // Claude Code mod (`~/.claude/dev-mods/.../todo-progress`) polls that directory to show
 // what each running TODO is doing — the file format below is its contract.
 //
-// `stamp` records a fingerprint of the working tree's *code* (everything tracked or
-// untracked-but-not-ignored, minus TODO/, chat/ and .todo-progress/, which no test reads)
-// when a full test run goes green. `stamp check` exits 0 if the tree is unchanged since,
-// so a later caller (the commit gate) can skip re-running an identical, already-green suite.
-// The fingerprint is a sha256 (the "token" printed by `set`/`check`/`gate`).
+// There is no separate "green" file to set. The unit and e2e reporters (scripts/test-progress/)
+// store every finished run in `.todo-progress/_runs.json` (fingerprint, scope, counts, failing
+// test ids), whoever started it: a hand run, `/test`, or a run the pre-push hook asks for.
 //
-// `stamp gate` is for a caller that is about to start a test run: exit 1 = go ahead and run,
-// exit 0 = the tree already passed, skip it. With a stale stamp it exits 1 at once. With a
-// matching one it asks "run again?" on a terminal (y = run, anything else = skip); with no
-// terminal it waits `--wait` seconds (default 60) so the run can be cancelled, then exits 1.
-//
-// The unit and e2e reporters (scripts/test-progress/) also store each finished run in
-// `.todo-progress/_runs.json` (fingerprint, scope, counts, failing test ids). `stamp results`
-// prints it, `stamp attest` prints the `Known-failures:` commit-message trailer for the
-// current tree, and `stamp verify-push` is the `.githooks/pre-push` entry point: it refuses a
-// push of main unless both suites ran in full on the pushed commit. It never runs tests.
+//   stamp check        exits 0 when both suites have a stored full run, unmoved and failure-free,
+//                      on the current code (`greenStatus`); exits 1 and names the stale suite
+//                      otherwise. `/test` and `/commit` use it to skip a re-run. It never runs tests.
+//   stamp results      prints what is stored.
+//   stamp attest       prints the `Known-failures:` commit-message trailer for the current tree.
+//   stamp verify-push  the `.githooks/pre-push` entry point: refuses a push of main unless both
+//                      suites ran in full on the pushed commit. It never runs tests.
 
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createInterface } from 'node:readline'
 import { parseArgs } from 'node:util'
-import { attestLines, fingerprint, prune, readRuns, verifyPush, SUITE_COMMANDS } from './todo-progress-lib.mjs'
+import { attestLines, fingerprint, greenStatus, prune, readRuns, verifyPush, SUITE_COMMANDS } from './todo-progress-lib.mjs'
 
 const DIR = '.todo-progress'
 const STEP_NAMES = [
@@ -111,7 +104,7 @@ if (cmd === 'step') {
   const m = /^(\d+)\/(\d+)$/.exec(a ?? '')
   if (!m) throw new Error('usage: batch <done>/<size>')
   writeJson(file('_batch'), { done: Number(m[1]), size: Number(m[2]), updatedAt: new Date().toISOString() })
-} else if (cmd === 'stamp' && (a === 'set' || a === 'check' || a === 'gate' || a === 'results' || a === 'attest' || a === 'verify-push')) {
+} else if (cmd === 'stamp' && (a === 'check' || a === 'results' || a === 'attest' || a === 'verify-push')) {
   if (a === 'verify-push') {
     const stdin = process.stdin.isTTY ? '' : readFileSync(0, 'utf8')
     const { ok, lines } = verifyPush(stdin)
@@ -133,31 +126,13 @@ if (cmd === 'step') {
     }
   } else if (a === 'attest') {
     for (const l of attestLines(readRuns(), fp)) console.log(l)
-  } else if (a === 'set') {
-    writeJson(file('_green'), { fingerprint: fp, at: new Date().toISOString() })
-    console.log(`green-stamp: set ${fp}`)
-  } else if (a === 'check') {
-    const ok = readJson(file('_green'))?.fingerprint === fp
-    console.log(ok ? `green-stamp: match ${fp} (tree unchanged since last green run)` : 'green-stamp: stale')
-    process.exit(ok ? 0 : 1)
   } else {
-    const prev = readJson(file('_green'))
-    if (prev?.fingerprint !== fp) {
-      console.log('green-stamp: stale, run the tests')
-      process.exit(1)
-    }
-    console.log(`Tests already passed on this exact code: ${fp} (at ${prev.at}).`)
-    if (process.stdin.isTTY) {
-      const rl = createInterface({ input: process.stdin, output: process.stdout })
-      const answer = await new Promise((r) => rl.question('Run them again? [y/N] ', r))
-      rl.close()
-      process.exit(/^y/i.test(answer.trim()) ? 1 : 0)
-    }
-    const seconds = Number(values.wait)
-    console.log(`No terminal to ask: waiting ${seconds}s, then running again. Cancel now to skip.`)
-    await new Promise((r) => setTimeout(r, seconds * 1000))
-    process.exit(1)
+    // check: the same answer for an agent and for a person, read from the stored runs.
+    const { green, lines } = greenStatus(readRuns(), fp)
+    for (const l of lines) console.log(l)
+    console.log(green ? `green: every suite passed in full on ${fp.slice(0, 12)}` : `not green on ${fp.slice(0, 12)}`)
+    process.exit(green ? 0 : 1)
   }
 } else {
-  throw new Error('usage: step | done | batch | stamp set|check|gate|results|attest|verify-push (see header of scripts/todo-progress.mjs)')
+  throw new Error('usage: step | done | batch | stamp check|results|attest|verify-push (see header of scripts/todo-progress.mjs)')
 }

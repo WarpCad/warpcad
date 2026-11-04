@@ -25,21 +25,28 @@ avoidable token cost in the TODO workflow. So:
 - **Stop at the first red stage.** Later stages can't be trusted on a tree that already
   fails an earlier one, and running them just buys more output to read. Say which
   stages were skipped.
-- **Green-stamp.** After a *full* green run, `node scripts/todo-progress.mjs stamp set`.
-  Before starting a full run, `node scripts/todo-progress.mjs stamp gate` — it exits 1
-  at once on a stale stamp (run the tests). On a match (the code is byte-identical to a
-  tree that already passed everything, sha256 token printed) it asks "Run them again?" on a
-  terminal, or with no terminal waits 60s (`--wait=N`) and then exits 1; exit 0 means
-  skip, and you report "green (stamp match <token>, not re-run)". Callers
-  that need an *independent* check (the `/run-todos` loop verifying an agent's claim)
-  pass `--force` in the brief, which skips the check. A *targeted* run (one spec file),
-  a `one`-scope run, or a run that skipped an engine never sets the stamp (see Scope below).
-- **Stored results (`TODO/build-014`).** Separately from the stamp, the vitest and playwright
-  reporters write every finished run to `.todo-progress/_runs.json` (fingerprint, `full`/`partial`
-  scope, counts, failing test ids). A full, unfiltered e2e run therefore records itself with no extra
-  step. `.githooks/pre-push` reads that file and refuses a push of `main` unless unit and e2e both ran
-  in full on the pushed commit. A `one`, `changed` or `fast` run stores `partial`, which never vouches
-  for a push. `node scripts/todo-progress.mjs stamp results` shows what is stored.
+- **The stored results are the green check (`TODO/build-014`).** The vitest and playwright
+  reporters write every finished run to `.todo-progress/_runs.json` (fingerprint of `src/`,
+  `full`/`partial` scope, counts, failing test ids). They do this for every run, whoever starts
+  it: `/test`, a run typed by hand, or anything else. Nothing else records a pass, and nothing
+  needs to be set afterwards. `node scripts/todo-progress.mjs stamp check` reads that file.
+  - Exit 0: both suites have a stored *full*, unmoved, failure-free run on the current `src/`.
+    Report `green (stored run, not re-run)` and skip the suite.
+  - Exit 1: it prints which suite is stale and the command that refreshes it. Run the suite.
+  - Changes outside `src/` (docs, `TODO/`, `chat/`, config, lockfiles, `e2e/` specs) do not
+    make the check stale, by design. Only code under `src/` does.
+  - The caller passes `force` in its brief to skip the check and run the suite anyway. The
+    `/run-todos` verification does this, so an agent's claim is checked by a fresh run.
+  - A *targeted* run (one spec file), a `one`-, `changed`- or `fast`-scope run, or one that skipped
+    an engine stores `partial`, which never makes the tree green. A clean partial run on code the
+    stored full run already covers leaves that full run in place (`recordRun`), so a targeted run
+    does not cost the next commit a full re-run. A partial run that fails is stored, and the tree
+    is then not green until a full run passes.
+  - `node scripts/todo-progress.mjs stamp results` shows what is stored.
+  - `.githooks/pre-push` reads the same file and refuses a push of `main` unless unit and e2e both
+    ran in full on the pushed commit.
+  - Never write `_runs.json` by hand, and never run a suite just to refresh the check: run it once
+    and the reporters record it.
 
 ### Scope — full matrix, or one e2e project
 
@@ -62,13 +69,13 @@ projects, and it is the expensive part of a run. The caller picks a scope in the
   Create it with `touch .test-fast` when the user asks for fast; **delete it** (`rm -f .test-fast`)
   when they ask for the full suite again or when a task needs a `full` run. Typecheck and unit
   still run in full. Like `one`, report it as `green (fast: chromium-laptop + webkit-tablet)`
-  and **never `stamp set`** after it. Firefox is not run, so say so in the report. The file is
+  and it stores a partial run, so it cannot make the tree green. Firefox is not run, so say so in the report. The file is
   per-developer and never committed.
 - **`changed` — test what's changing, on every engine.** When a task's diff stays inside
   one area, run only the specs that cover it, but run them across **all engine-viewport
   projects** rather than one:
   1. List the changed files (`git diff --name-only HEAD`, plus untracked).
-  2. Unit: `npm run test:unit -- --run related <changed src files>` (Vitest's `related`
+  2. Unit: `npm run test:unit -- related <changed src files>` (Vitest's `related`
      follows imports), plus any `.spec.js` the TODO's Testing section names.
   3. E2E: the `*.e2e.js` specs the TODO's Testing section names, plus specs whose filename
      or `data-testid`s match the touched `src/components/<category>/` or subsystem (grep
@@ -99,8 +106,8 @@ projects, and it is the expensive part of a run. The caller picks a scope in the
   local machine in `full` scope. A skipped engine is a coverage gap, not a pass: note it
   so the user knows the cross-engine claim in `CLAUDE.md` Browser Support is unverified for it.
 - **A `one` or `changed` run, or one that skipped Firefox, is not a full green.** Report it as
-  `green (one: <project>)` / `green (firefox skipped)`, and **never `stamp set`** after it —
-  the stamp means "everything passed". Only a `full`, Firefox-included run sets it.
+  `green (one: <project>)` / `green (firefox skipped)`. It stores a partial run, which never makes
+  the tree green for `stamp check`. Only a `full`, Firefox-included run passes that check.
 - Which scope a workflow uses: `/fix-todo` Step 5 and `/run-todos` default to `changed`
   when the area is confined, else `full`; either accepts `one` (see their own notes). A milestone's last task, or anything
   touching the kernel/WebGL/persistence, should still get one `full` run locally.
@@ -129,7 +136,7 @@ Once the test harness is scaffolded, the root `package.json` should chain the su
 with `run-s` (or equivalent), something like:
 
 ```
-typecheck  →  test:unit -- --run  →  test:browser -- --run  →  test:storybook -- --run  →  test:e2e:headless
+typecheck  →  test:unit  →  test:browser -- --run  →  test:storybook -- --run  →  test:e2e:headless
 ```
 
 So a full run is up to five stages in order: **typecheck, unit, browser, component
@@ -166,7 +173,7 @@ avoid re-running stages that already passed.
 | Stage | Command | Warm baseline | Abort timeout |
 |---|---|---|---|
 | Typecheck | `npm run typecheck` | ~1s (2026-09-06, ui-010) | 30s |
-| Unit | `npm run test:unit -- --run` | ~1s / 223 tests (2026-09-06, ui-010) | 60s |
+| Unit | `npm run test:unit` | ~1s / 223 tests (2026-09-06, ui-010) | 60s |
 | Browser | `npm run test:browser -- --run` | *(stage not defined in package.json)* | 90s |
 | Component workshop | `npm run test:storybook -- --run` | *(stage not defined in package.json)* | 90s |
 | E2E | `npm run test:e2e:headless` (or a `--project=` subset, see Scope) | ~31s / 225 tests, 9-way matrix (2026-09-06, ui-010) | 180s |

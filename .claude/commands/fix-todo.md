@@ -102,11 +102,11 @@ typecheck + unit part of it:
 
 | category | suite |
 |---|---|
-| `core` | `npm run test:unit -- --run` (the kernel's tests are plain Node — fast, run them all) |
-| `data` | `npm run test:unit -- --run`, plus any persistence/round-trip fixture tests |
-| `render` | `npm run test:unit -- --run` plus browser/e2e-headless suites if the change is visible on canvas |
-| `ui` | `npm run test:unit -- --run` (add browser/component-workshop/e2e suites if the affected files touch components, stories, or flows those suites cover) |
-| `io` | `npm run test:unit -- --run`, plus any fixture-file round-trip tests |
+| `core` | `npm run test:unit` (the kernel's tests are plain Node — fast, run them all) |
+| `data` | `npm run test:unit`, plus any persistence/round-trip fixture tests |
+| `render` | `npm run test:unit` plus browser/e2e-headless suites if the change is visible on canvas |
+| `ui` | `npm run test:unit` (add browser/component-workshop/e2e suites if the affected files touch components, stories, or flows those suites cover) |
+| `io` | `npm run test:unit`, plus any fixture-file round-trip tests |
 | `perf` | run the relevant benchmark from `.claude/prompts/perf-benchmark.md` to capture a **before** number, then the unit suite |
 | `testing` | run whatever suite(s) the finding is trying to add coverage to |
 | `docs` | no test suite; skip straight to Step 4 |
@@ -193,9 +193,9 @@ be a different tier, so compare the two exactly, not just "is it Opus-tier":
 ## Step 5 — Full verification
 
 Run the complete suite set (not just the targeted tests) to catch regressions
-elsewhere: run the `test` skill (`/test`) — **once**. Haiku runs it, sets the green
-stamp on success, and everything downstream (the `/commit` gate) reuses that stamp
-instead of re-running an identical tree.
+elsewhere: run the `test` skill (`/test`) — **once**. Haiku runs it; the reporters record
+the result in `.todo-progress/_runs.json` on their own, and everything downstream (the
+`/commit` gate, `stamp check`) reads that record instead of re-running an identical tree.
 
 **Default scope is `changed`.** When the diff stays inside one area, ask `/test` for the
 `changed` scope: the specs that cover what you touched (the TODO's Testing section plus
@@ -207,8 +207,8 @@ run the e2e stage as a single randomly-chosen engine-viewport project plus `guar
 instead of the 9-way matrix; typecheck and unit still run in full. **In the Claude app /
 Claude Code on the web (`CLAUDE_CODE_REMOTE=true`), skip the Firefox projects** (Firefox runs only in VS Code or a local terminal) —
 they don't start reliably there. Pass the scope through in Haiku's brief and quote the
-project it ran in the Step 9 report. A `one`-scope or Firefox-skipped run doesn't set the
-green stamp, so `/commit` will re-run; that is intended. See `/test` "Scope".
+project it ran in the Step 9 report. A `one`-scope or Firefox-skipped run stores a partial
+result, so `/commit` will re-run the suite; that is intended. See `/test` "Scope".
 
 All stages must be green before moving on. Fix any regression before continuing,
 following `/test`'s escalation ladder (this task's tier x2 → Opus once → stop) —
@@ -316,8 +316,8 @@ This entry becomes part of Step 9's commit, not a separate one.
 ## Step 9 — Commit
 
 Hand off to the `/commit` skill for message formatting, the pre-commit test
-gate (already satisfied by Step 5 — `/commit` Step 8 checks the green stamp and does
-not re-run an identical tree), and the social-post drafts. Make sure the commit message body references the TODO id
+gate (already satisfied by Step 5 — `/commit` Step 8 runs `stamp check`, which reads the stored
+result and does not re-run an identical tree), and the social-post drafts. Make sure the commit message body references the TODO id
 and mentions the file move, e.g.:
 
 ```

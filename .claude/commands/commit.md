@@ -50,7 +50,7 @@ Every point where the skill would stop for an answer has a fixed answer instead:
 |---|---|
 | Step 1: which changes | If anything is staged, commit exactly that plus Step 7's post files. If nothing is staged, stage all changes except anything that looks like a secret (`.env*`, keys, tokens). One commit, never split. Name whatever was left out in the final report. |
 | Step 2: unclear intent | Work it out from the diff, `git log` and any TODO file involved. If the why still isn't supported, describe what changed and leave the why out rather than guess. |
-| Step 8: tests | Run `node scripts/todo-progress.mjs stamp check` first. On a match, skip `/test`. Don't use `stamp gate` here: on a match it asks "Run them again?", or with no terminal waits 60s and then re-runs. On a stale stamp, run `/test`. If it's red, follow "Red tests under `yolo`" below. |
+| Step 8: tests | Run `npm run typecheck`, then `node scripts/todo-progress.mjs stamp check`. Exit 0 skips the suite. Exit 1 runs `/test` once. If it's red, follow "Red tests under `yolo`" below. |
 | Step 9: confirmation | Don't wait. Still print everything Step 9 says to show. |
 | Step 10: push prompt | Don't ask and don't push, unless the request itself said to push. |
 
@@ -265,11 +265,14 @@ something published publicly.
 
 ## Step 8 — Verify tests pass
 
-Before committing, run the `test` skill (`/test`) to run the full suite and confirm
-everything is green. `/test` checks the green stamp first
-(`node scripts/todo-progress.mjs stamp check`), so a tree that `/fix-todo` Step 5 already
-proved green is not re-run. Do the licensing gate below *first* — if it edits files, the
-stamp is stale and the suite will legitimately re-run once.
+Before committing, confirm everything is green. Run `npm run typecheck` (about a second) and
+then `node scripts/todo-progress.mjs stamp check`. Exit 0 means the unit and e2e runs already
+stored in `.todo-progress/_runs.json` passed in full on the current `src/`, whether they were
+started by `/test`, `/fix-todo` or by hand. Skip the suite and report it as
+`green (stored run, not re-run)`. Exit 1 means run the `test` skill (`/test`) once, and it runs
+the suites; the reporters record the result. Do the licensing gate below *first*. If it edits
+`src/` files, the stored run goes stale and the suite will legitimately re-run once; edits
+outside `src/` do not.
 
 **All tests must be green before proceeding.** Do not commit until every suite is clean.
 If a suite is red, stop and report it to the caller or user; this skill doesn't fix tests

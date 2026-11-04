@@ -9,6 +9,7 @@ import {
   attestLines,
   fingerprint,
   fingerprintOfCommit,
+  greenStatus,
   prune,
   readRuns,
   recordRun,
@@ -84,12 +85,12 @@ describe('prune', () => {
   it('keeps _-prefixed records and removes an old step file', () => {
     const dir = mkdtempSync(join(tmpdir(), 'tpp-'))
     dirs.push(dir)
-    for (const f of ['_runs.json', '_green.json', 'old-001.json']) writeFileSync(join(dir, f), '{}')
+    for (const f of ['_runs.json', '_batch.json', 'old-001.json']) writeFileSync(join(dir, f), '{}')
     const old = new Date(Date.now() - 2 * 86_400_000)
-    for (const f of ['_runs.json', '_green.json', 'old-001.json']) utimesSync(join(dir, f), old, old)
+    for (const f of ['_runs.json', '_batch.json', 'old-001.json']) utimesSync(join(dir, f), old, old)
     prune(dir)
     expect(existsSync(join(dir, '_runs.json'))).toBe(true)
-    expect(existsSync(join(dir, '_green.json'))).toBe(true)
+    expect(existsSync(join(dir, '_batch.json'))).toBe(true)
     expect(existsSync(join(dir, 'old-001.json'))).toBe(false)
   })
 })
@@ -109,6 +110,78 @@ describe('recordRun / readRuns', () => {
   })
 })
 
+describe('green check (stamp check)', () => {
+  const FP = 'f'.repeat(64)
+  const run = (over = {}) => ({ fingerprint: FP, scope: 'full', passed: 3, failed: 0, skipped: 0, failures: [], at: '2026-11-04T10:00:00Z', ...over })
+
+  it('is green only when both suites stored a full, unmoved, failure-free run on this code', () => {
+    expect(greenStatus({ unit: run(), e2e: run() }, FP).green).toBe(true)
+  })
+
+  it('names the suite and command for each reason it is not green', () => {
+    const cases = [
+      [{ unit: run() }, 'e2e: no result stored', 'npm run test:e2e:headless'],
+      [{ unit: run(), e2e: run({ scope: 'partial' }) }, 'e2e: the stored run was partial', 'npm run test:e2e:headless'],
+      [{ unit: run({ moved: true }), e2e: run() }, 'unit: the tree changed while it was running', 'npm run test:unit'],
+      [{ unit: run({ fingerprint: 'zzz' }), e2e: run() }, 'unit: it ran on different code', 'npm run test:unit'],
+      [{ unit: run({ failed: 2, failures: ['a > b', 'c > d'] }), e2e: run() }, 'unit: 2 failing test(s)', 'npm run test:unit'],
+    ]
+    for (const [runs, line, command] of cases) {
+      const s = greenStatus(runs, FP)
+      expect(s.green).toBe(false)
+      const text = s.lines.join('\n')
+      expect(text).toContain(line)
+      expect(text).toContain(command)
+    }
+  })
+
+  it('reads the same stored record a hand run writes: the reporter output is the only input', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tpg-'))
+    dirs.push(dir)
+    const path = join(dir, '_runs.json')
+    // Two recorders, as a hand run of each suite would have left them.
+    const unit = createRunRecorder('unit', { fingerprint: () => FP, record: (s, r) => recordRun(s, r, path) })
+    unit.start()
+    unit.finish({ scope: 'full', passed: 9, failed: 0, skipped: 0, failures: [] })
+    const e2e = createRunRecorder('e2e', { fingerprint: () => FP, record: (s, r) => recordRun(s, r, path) })
+    e2e.start()
+    e2e.finish({ scope: 'full', passed: 9, failed: 0, skipped: 0, failures: [] })
+    expect(greenStatus(readRuns(path), FP).green).toBe(true)
+  })
+
+  it('stays green after a targeted partial run on the same code, which does not replace the full pass', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tpp2-'))
+    dirs.push(dir)
+    const path = join(dir, '_runs.json')
+    recordRun('unit', run(), path)
+    recordRun('e2e', run(), path)
+    recordRun('e2e', run({ scope: 'partial', passed: 1 }), path)
+    expect(greenStatus(readRuns(path), FP).green).toBe(true)
+  })
+
+  it('a partial run that failed is stored, so the tree is no longer green', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tpp3-'))
+    dirs.push(dir)
+    const path = join(dir, '_runs.json')
+    recordRun('unit', run(), path)
+    recordRun('e2e', run(), path)
+    recordRun('e2e', run({ scope: 'partial', failed: 1, failures: ['x > y > p'] }), path)
+    const s = greenStatus(readRuns(path), FP)
+    expect(s.green).toBe(false)
+    // The failing partial replaced the full pass, so the stored e2e run is partial, not green.
+    expect(s.lines.join('\n')).toContain('e2e: the stored run was partial')
+  })
+
+  it('a partial run on different code does not keep a stale full pass', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tpp4-'))
+    dirs.push(dir)
+    const path = join(dir, '_runs.json')
+    recordRun('e2e', run(), path)
+    recordRun('e2e', run({ fingerprint: 'other', scope: 'partial' }), path)
+    expect(readRuns(path).e2e.fingerprint).toBe('other')
+  })
+})
+
 describe('verifyPush', () => {
   const TIP = 'a'.repeat(40)
   const REMOTE = 'b'.repeat(40)
@@ -122,8 +195,8 @@ describe('verifyPush', () => {
   it.each([
     ['a missing entry', { unit: run() }, 'e2e: no result stored', 'npm run test:e2e:headless'],
     ['a partial scope', { unit: run(), e2e: run({ scope: 'partial' }) }, 'e2e: the stored run was partial', 'npm run test:e2e:headless'],
-    ['a moved tree', { unit: run({ moved: true }), e2e: run() }, 'unit: the tree changed while it was running', 'npm run test:unit -- --run'],
-    ['different code', { unit: run({ fingerprint: 'zzz' }), e2e: run() }, 'unit: it ran on different code', 'npm run test:unit -- --run'],
+    ['a moved tree', { unit: run({ moved: true }), e2e: run() }, 'unit: the tree changed while it was running', 'npm run test:unit'],
+    ['different code', { unit: run({ fingerprint: 'zzz' }), e2e: run() }, 'unit: it ran on different code', 'npm run test:unit'],
   ])('refuses on %s, naming the suite and the command', (_n, runs, suiteLine, command) => {
     const r = verifyPush(stdin(), { git: gitWith(), runs })
     expect(r.ok).toBe(false)

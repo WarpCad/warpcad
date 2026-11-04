@@ -22,7 +22,7 @@ PUBLISH-CHECKLIST.md
 .docs-movies/
 test-report-for-coding-agents/
 
-# TODO-runner progress + green stamp (see scripts/todo-progress.mjs)
+# TODO-runner progress + stored test results (see scripts/todo-progress.mjs)
 .todo-progress/
 
 # Live test progress for the Claude Code progress/ETA mod (see scripts/test-progress/)

@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Library half of `scripts/todo-progress.mjs`: the code fingerprint, the stored test-run
-// results (`.todo-progress/_runs.json`) and the pre-push check (TODO/build-014). It lives in
-// its own module because the CLI runs top-level code on import, so the test reporters and the
-// pre-push hook could not import it.
+// results (`.todo-progress/_runs.json`), the green check and the pre-push check (TODO/build-014).
+// It lives in its own module because the CLI runs top-level code on import, so the test
+// reporters and the pre-push hook could not import it.
 //
 // "This code" means the same thing everywhere here: a sha256 over the tracked-or-untracked,
 // non-ignored files under src/ only. Tests, docs, lockfiles and config do not move the number.
-// The green stamp, the stored results and the push check all compare that one number.
+// The stored results, the green check and the push check all compare that one number.
+//
+// There is one record of "the tests passed", and the reporters write it on every run, whoever
+// started it: a hand run, `/test`, or any other caller. Nothing else sets it, so `stamp check`
+// and the pre-push check read the same file and give the same answer.
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
@@ -21,7 +25,7 @@ export const TRAILER = 'Known-failures'
 
 /** Command that (re)produces each suite's stored result, named in a refusal. */
 export const SUITE_COMMANDS = {
-  unit: 'npm run test:unit -- --run',
+  unit: 'npm run test:unit',
   e2e: 'npm run test:e2e:headless',
 }
 
@@ -99,7 +103,7 @@ export function readJson(path) {
 
 /**
  * Delete step files untouched for over a day so the directory can't grow forever. Names starting
- * with `_` (`_green`, `_batch`, `_runs`) are records that must outlive a weekly push, so they stay.
+ * with `_` (`_batch`, `_runs`) are records that must outlive a weekly push, so they stay.
  * @param {string} [dir]
  * @param {number} [now] epoch ms
  */
@@ -121,13 +125,31 @@ export function readRuns(path = RUNS_FILE) {
 }
 
 /**
- * Store the latest run of one suite, replacing that suite's previous entry.
+ * Does this stored run prove that every test passed on the code with fingerprint `fp`?
+ * Only a full, unmoved run with no failures does. Partial runs never vouch, whatever they passed.
+ * @param {RunRecord|undefined} r
+ * @param {string} fp
+ * @returns {boolean}
+ */
+export function vouches(r, fp) {
+  return !!r && r.fingerprint === fp && r.scope === 'full' && !r.moved && r.failed === 0 && r.failures.length === 0
+}
+
+/**
+ * Store the latest run of one suite, replacing that suite's previous entry, with one exception:
+ * a clean partial run (a `one`, `changed` or `fast` scope) on the same code as a stored run that
+ * vouches for it leaves that stored run alone. Otherwise a targeted run on a tree that already
+ * passed in full would make the next commit re-run the whole suite. A partial run that failed
+ * is always stored, so the failure is visible.
  * @param {'unit'|'e2e'} suite
  * @param {RunRecord} record
  * @param {string} [path]
  */
 export function recordRun(suite, record, path = RUNS_FILE) {
   const all = readRuns(path)
+  const prev = all[suite]
+  const cleanPartial = record.scope === 'partial' && record.failed === 0 && record.failures.length === 0
+  if (cleanPartial && vouches(prev, record.fingerprint)) return
   all[suite] = record
   mkdirSync(DIR, { recursive: true })
   writeFileSync(`${path}.tmp`, JSON.stringify(all, null, 2) + '\n')
@@ -171,6 +193,28 @@ function whyNot(suite, r, fp) {
   if (r.scope !== 'full') return 'the stored run was partial (a filter was passed)'
   if (r.fingerprint !== fp) return 'it ran on different code than the commit being pushed'
   return null
+}
+
+/**
+ * Is the tree with fingerprint `fp` green? Both suites must have a stored run that vouches for
+ * it. Used by `stamp check` (the agent's skip test, and the same answer for a human) and named in
+ * the output so a stale tree says which suite to run.
+ * @param {Runs} runs
+ * @param {string} fp
+ * @returns {{ green: boolean, lines: string[] }}
+ */
+export function greenStatus(runs, fp) {
+  const lines = []
+  let green = true
+  for (const [suite, command] of Object.entries(SUITE_COMMANDS)) {
+    const r = runs[suite]
+    const why = whyNot(suite, r, fp) ?? (r.failed ? `${r.failed} failing test(s)` : null)
+    if (why) {
+      green = false
+      lines.push(`${suite}: ${why}. Run: ${command}`)
+    } else lines.push(`${suite}: passed in full on this code (${r.at})`)
+  }
+  return { green, lines }
 }
 
 /**

@@ -77,7 +77,7 @@ e2e to `chromium-laptop` + `webkit-tablet` and skips Firefox), say so and ask wi
 `AskUserQuestion` before doing anything else:
 
 - **Proceed in fast mode** (Recommended when iterating) — leave the file; every `/test` run in
-  this batch is `fast`, reports as `green (fast: …)`, and never sets the green stamp.
+  this batch is `fast`, reports as `green (fast: …)`, and stores a partial result, so `stamp check` never passes on it.
 - **Clear it** — `rm -f .test-fast`, so the batch runs the normal `changed`/`full` scopes.
 - **Explain more** — say what fast mode skips, then ask again.
 - **Pause** — stop the tick until the user comes back.
@@ -247,15 +247,15 @@ done in the right order, because this loop's context is the one that accumulates
   that look disproportionate** — not the whole commit every tick.
 - **Scope.** The default is `/test`'s `changed` scope (all engines, only the specs for the
   area the task touched; `full` when it touched shared infrastructure). The agent's own
-  Step 5 run uses it, so run the same scope when re-verifying with `--force`.
+  Step 5 run uses it, so run the same scope when re-verifying with `force`.
   If the user started the loop with `--one-suite` (or the runner is in the
   Claude app / Claude Code on the web, `CLAUDE_CODE_REMOTE=true`), tell the agent and
   Haiku to use `/test`'s `one` scope for the e2e stage, and **never include Firefox
   projects in the cloud**. Pass the flag to each `/fix-todo` brief too. Log the scope in
   the Runner Log line so a skipped engine is visible, and still run one `full` local
   suite at each milestone boundary.
-- Re-run the suite through `/test` with `--force` in the brief (skips the green-stamp
-  shortcut — the stamp was written by the agent's own run, so it can't be the
+- Re-run the suite through `/test` with `force` in the brief (skips the `stamp check`
+  shortcut — the stored result was written by the agent's own run, so it can't be the
   independent check). Haiku runs it; you read the compact report. Don't take the agent's
   reported output as sufficient on its own.
 - **Read its Step 6 acceptance-scenario report.** If it reports a FAIL, or if it skipped

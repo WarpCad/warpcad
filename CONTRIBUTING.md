@@ -38,7 +38,7 @@ CI does not run on push or pull request, because hosted minutes cost money. A pr
 (`.githooks/pre-push`, installed by `npm install` through the `prepare` script) is the gate instead.
 It does not run the tests; it checks they ran on the commit you are pushing.
 
-1. `npm run test:unit -- --run`
+1. `npm run test:unit`
 2. `npm run test:e2e:headless` (the full nine-project matrix, about 25 minutes)
 3. `node scripts/todo-progress.mjs stamp attest`. If it prints `Known-failures:` lines, paste them
    into a commit message in the range you are pushing. It prints nothing when everything passed.
@@ -55,8 +55,11 @@ push refused: the tests have not run on 1bcfd6e4a.
   e2e: no result stored. Run: npm run test:e2e:headless
 ```
 
-The fingerprint covers every file except `TODO/` and `chat/`, so a commit that edits `docs/`,
-`CLAUDE.md` or any other `*.md` after the last run invalidates the stored results and needs a re-run.
+The fingerprint covers the tracked and untracked (not ignored) files under `src/`, and nothing else.
+A commit that edits only `docs/`, `TODO/`, `chat/`, `CLAUDE.md` or other `*.md`, config or lockfiles keeps
+the stored results valid. A change under `src/`, including a unit spec beside its source, invalidates them.
+Editing an `e2e/` spec does not invalidate them either, so re-run `npm run test:e2e:headless` after
+changing one before pushing.
 `git push --no-verify` skips the hook; the Git LFS upload of the docs GIFs is part of the same hook,
 so `--no-verify` skips that too.
 

@@ -2644,3 +2644,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 29 parts from a 3MF of the Feather's STEP → TODO/done/io-024-import-3mf-assembly-as-named-parts.md (Testing and acceptance 31); align to one part → acceptance scenario 31, PASS at laptop and phone viewports (implementation agent's drive, 2026-11-04); unit 357 files / 8125 tests passed → full stage this session.
 **To Add:** none
+
+## 2026-11-04T19:06:47Z — Hand test runs now count for the commit check
+
+**Post:** A green test run you start by hand now counts for the commit check. Before, the agent re-ran the full 20-minute suite even when you had just passed it. The stored results decide now, whoever ran them. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #DevTools
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** re-ran the 20-minute suite before commit → the user's report in this session; hand runs count now → `stamp check` exit 0 this session, reading `.todo-progress/_runs.json` (unit passed in full, 8131 tests; e2e passed in full, stored 2026-11-04T15:54Z); typecheck exit 0 this session.
+**To Add:** none
