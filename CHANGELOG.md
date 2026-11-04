@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.6.0](https://github.com/WarpCad/warpcad/compare/v1.5.0...v1.6.0) (2026-11-04)
+
+### Features
+
+* **ai:** formula tools and prompt rule, part 3 of 4 (TODO/core-078) ([86aa7cc](https://github.com/WarpCad/warpcad/commit/86aa7cc7db99b2683ed3d214ab3491525a5a520f))
+* **ai:** per-project AI step limit, default 1,000 (TODO/ai-033) ([79182d9](https://github.com/WarpCad/warpcad/commit/79182d99e0cf4764fe44b70167c2999740242074))
+* **core:** calculated variables fold, part 2 of 4 (TODO/core-078) ([e9e816f](https://github.com/WarpCad/warpcad/commit/e9e816fbc1329d42df4314d3ad0ed1b967a2916d))
+* **core:** formula language, part 1 of calculated variables (TODO/core-078) ([e5a2012](https://github.com/WarpCad/warpcad/commit/e5a20124d8a0918f42beb51d304ab64e87d7403b))
+* **core:** Group merges parts of groups, with a prefix (TODO/core-076) ([a95c042](https://github.com/WarpCad/warpcad/commit/a95c042cfd171658439f842ac549573b55f3d6f4))
+* **core:** index which parts each prompt made, changed or passed through (TODO/ui-092, part 2) ([4a3ad43](https://github.com/WarpCad/warpcad/commit/4a3ad4367c8a6e3030415209ab73faa52b4ed36f))
+* **core:** keep a long request as one prompt, up to 20,000 characters (TODO/ui-092, part 1) ([48330d6](https://github.com/WarpCad/warpcad/commit/48330d69f8e9ba8d1d08e5e50b9bdda89a37e58f))
+* **core:** mark a Group's part hidden by default (TODO/ui-093) ([97f11b4](https://github.com/WarpCad/warpcad/commit/97f11b4cdbb30e2aae1c7edee1453f2c22f2694c))
+* **docs:** publish an agent prompting guide with a generated tool reference (TODO/docs-029) ([cc45a06](https://github.com/WarpCad/warpcad/commit/cc45a06ca243921c17560f9a8c05883b421213fa))
+* **docs:** record every docs picture in light and dark (TODO/docs-030) ([3a00437](https://github.com/WarpCad/warpcad/commit/3a004377dcbe100449a74175ac8021e781f55070))
+* **io:** import a 3MF as one part with selectable sub-parts (TODO/io-024) ([747d5a9](https://github.com/WarpCad/warpcad/commit/747d5a98b821c7368b67e09df44a24984f35c3be))
+* **ui:** a Prompts view that shows what each request made (TODO/ui-092, part 3) ([47ece2b](https://github.com/WarpCad/warpcad/commit/47ece2b3fd648a9886a745a680fa3a6da2364d8d))
+* **ui:** edit and remove requests and replies in the Prompts view (TODO/ui-092, part 4) ([1ca8f29](https://github.com/WarpCad/warpcad/commit/1ca8f29cea2694bd0c42d1f5529a626341344b67))
+* **ui:** the Inspector's Prompt row links to the Prompts view (TODO/ui-092, part 5) ([b1d60ee](https://github.com/WarpCad/warpcad/commit/b1d60ee3cfdf30bf3c53169e2e00e7038629589e))
+* **variables:** formula panel, docs and acceptance, part 4 of 4 (TODO/core-078) ([c12e33c](https://github.com/WarpCad/warpcad/commit/c12e33ceb8a2acb50b50f7cf0d633fd8f4c77527))
+
+### Bug Fixes
+
+* **ai:** answer an early Assistant click once the stored key has loaded (TODO/ai-034) ([7973287](https://github.com/WarpCad/warpcad/commit/797328714fe45c2d4ff25ebc1934db64b0d7cee8))
+* **build:** count hand test runs for the commit green check ([ff41aee](https://github.com/WarpCad/warpcad/commit/ff41aeec1d6992d2977c8ad2b28e4b7cd5963406))
+* **core:** keep a recoloured body's colour through a plain Group (TODO/core-077) ([65c848b](https://github.com/WarpCad/warpcad/commit/65c848ba5b8544fa5c1d4697f3b3dddbd75be3d3))
+
+### Performance Improvements
+
+* **boot:** defer the code the app does not use at boot (TODO/perf-003) ([1b1eeed](https://github.com/WarpCad/warpcad/commit/1b1eeed2387e3e3585ad4147de5efab9d29c77a3))
+
 ## [1.5.0](https://github.com/WarpCad/warpcad/compare/v1.4.0...v1.5.0) (2026-11-02)
 
 ### Features
