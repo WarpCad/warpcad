@@ -98,6 +98,8 @@ const UNNAMED = '(unnamed)'
  * @property {string} [unit] A number's unit: `mm`, `deg` or `''`.
  * @property {number} [min]
  * @property {number} [max]
+ * @property {string} [formula] A calculated variable's formula as a person reads it
+ *   (`TODO/FIND-core-078`) — shown as a code span, so it can never inject Markdown.
  * @property {readonly { value: unknown, label: string }[]} [options] An enum's choices.
  */
 
@@ -367,8 +369,21 @@ function cell(text) {
 }
 
 /**
+ * A table cell holding one code span: a formula (`TODO/FIND-core-078`). Literal to GitHub — no
+ * HTML, no link, no mention — once it cannot close early: backticks are dropped (only a bracketed
+ * name can hold one) and a pipe is `\|`, which GFM honours inside a code span in a table.
+ *
+ * @param {unknown} text
+ * @returns {string}
+ */
+function codeCell(text) {
+  const line = cap(oneLine(text), MAX_CELL_CHARS).replace(/`/g, '').trim()
+  return line === '' ? '—' : `\`${line.replace(/\|/g, '\\|')}\``
+}
+
+/**
  * **Variables** (`TODO/io-023`): a table of every project variable in definition order — name,
- * value and range. The **Range** column is left out when no variable has one (a number with
+ * value and range, and (`TODO/FIND-core-078`) a **Formula** column when any variable is calculated. The **Range** column is left out when no variable has one (a number with
  * neither `min` nor `max` has none), rather than shown blank. Capped by
  * {@link MAX_LISTED_VARIABLES}, the rest counted.
  *
@@ -383,14 +398,19 @@ function variablesSection(variables) {
     name: cell(variable.name),
     value: cell(variableValueText(variable)),
     range: cell(variableRangeText(variable)),
+    formula: typeof variable.formula === 'string' ? codeCell(variable.formula) : '—',
   }))
   const ranged = rows.some((row) => row.range !== '—')
+  const calculated = listed.some((variable) => typeof variable.formula === 'string')
+  /** @type {('name' | 'value' | 'range' | 'formula')[]} */
+  const columns = ['name', 'value', ...(ranged ? /** @type {const} */ (['range']) : []), ...(calculated ? /** @type {const} */ (['formula']) : [])]
+  const headings = { name: 'Name', value: 'Value', range: 'Range', formula: 'Formula' }
   const lines = [
     '## Variables',
     '',
-    ranged ? '| Name | Value | Range |' : '| Name | Value |',
-    ranged ? '| --- | --- | --- |' : '| --- | --- |',
-    ...rows.map((row) => (ranged ? `| ${row.name} | ${row.value} | ${row.range} |` : `| ${row.name} | ${row.value} |`)),
+    `| ${columns.map((column) => headings[column]).join(' | ')} |`,
+    `| ${columns.map(() => '---').join(' | ')} |`,
+    ...rows.map((row) => `| ${columns.map((column) => row[column]).join(' | ')} |`),
   ]
   const more = usable.length - listed.length
   if (more > 0) lines.push('', `- and ${more} more`)

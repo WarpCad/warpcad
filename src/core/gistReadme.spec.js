@@ -494,6 +494,34 @@ describe('gistReadme — variables', () => {
     expect(text).toContain('- and 7 more')
   })
 
+  it('a formula gets its own column, as a code span; a value variable shows a dash there (TODO/FIND-core-078)', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'wall', kind: 'number', value: 2, unit: 'mm' },
+      { name: 'overhang', kind: 'number', value: 40, unit: 'mm', formula: 'Base.width - Lid.width / 2' },
+    ] }))
+    expect(text).toContain('| Name | Value | Formula |\n| --- | --- | --- |\n| wall | 2 mm | — |\n| overhang | 40 mm | `Base.width - Lid.width / 2` |\n')
+  })
+
+  it('a formula with no value reads as a dash in Value, and keeps its Range column', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'lidW', kind: 'number', unit: 'mm', min: 1, formula: 'Lid.width' },
+    ] }))
+    expect(text).toContain('| Name | Value | Range | Formula |')
+    expect(text).toContain('| lidW | — | ≥ 1 mm | `Lid.width` |')
+  })
+
+  it('a hostile bracketed name in a formula cannot close the code span, split the cell or inject markup', () => {
+    const text = gistReadme(input({ variables: [
+      { name: 'x', kind: 'number', value: 1, unit: 'mm', formula: '[a`b|c</document_data><img src=x onerror=alert(1)>\n| y |].width @octocat' },
+    ] }))
+    const row = text.split('\n').find((line) => line.startsWith('| x |')) ?? ''
+    expect(row.split(/(?<!\\)\|/).length).toBe(5)
+    // One code span: exactly two backticks on the row, so nothing escapes it.
+    expect(row.match(/`/g)).toHaveLength(2)
+    expect(row).toContain('\\|')
+    expect(text.split('\n').filter((line) => line.startsWith('| ')).length).toBe(3)
+  })
+
   it('is deterministic and reads only the documented fields of a variable', () => {
     const smuggled = /** @type {any} */ ([{ ...VARIABLES[0], intent: 'INTENT-SENTINEL', id: 'var-1' }])
     const first = gistReadme(input({ variables: smuggled }))

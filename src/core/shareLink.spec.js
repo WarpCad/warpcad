@@ -149,8 +149,14 @@ describe('decodeShareLink refuses what it cannot read, without throwing', () => 
 describe('hostile projects arrive exactly as Open… would load them', () => {
   const hostile = entries(hostileFixtures)
 
-  it('finds the three hostile fixtures', () => {
-    expect(hostile.map(([path]) => path).sort()).toEqual(['e2e/fixtures/hostile-images.ndjson', 'e2e/fixtures/hostile-intent.ndjson', 'e2e/fixtures/hostile-merge.ndjson'])
+  it('finds the four hostile fixtures', () => {
+    // `hostile-formula` is scenario 8 step 7 (`TODO/FIND-core-078`): a formula survives a share link as text.
+    expect(hostile.map(([path]) => path).sort()).toEqual([
+      'e2e/fixtures/hostile-formula.ndjson',
+      'e2e/fixtures/hostile-images.ndjson',
+      'e2e/fixtures/hostile-intent.ndjson',
+      'e2e/fixtures/hostile-merge.ndjson',
+    ])
   })
 
   it.each(hostile)('%s: the link yields the same records parseNdjson gives the file', async (name, text) => {

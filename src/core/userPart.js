@@ -51,6 +51,7 @@ import { RUNTIME_OP_PREFIX, lookupEntry, registry, setRuntimeEntries } from './k
 import { policyFor } from './kernel/tessellation.js'
 import { foldColorOverrides } from './colorOverride.js'
 import { REPEAT_OP } from './repeat.js'
+import { literalParamsOf } from './variables.js'
 import { MESH_ASSET_OP, MESH_LIMITS, formatCount, formatLimit, validateMeshAsset } from '../io/meshAsset.js'
 import { matrixProblem } from '../io/meshMatrix.js'
 
@@ -1302,8 +1303,10 @@ export function capturePart(document, bodyId, options) {
     if (!isAllowedOp(record.op)) {
       throw new UserPartError(`"${label}" can't be saved as a part: step "${name}" (${record.op}) is not allowed in a part`)
     }
+    // A bound field is saved as the value its row used: a part carries no variables
+    // (`TODO/FIND-core-078`; before it, a binding reached the rebuild check as an object).
     /** @type {any} */
-    const params = JSON.parse(JSON.stringify(record.params ?? {}))
+    const params = literalParamsOf(document, record)
     if (record.op === SKETCH_OP && Array.isArray(params.slices)) {
       for (const slice of params.slices) if (isPlainObject(slice)) delete slice.image
     }

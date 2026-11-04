@@ -74,8 +74,10 @@ with `defineProperty`, so even a hostile *param key* such as `__proto__` stays a
 
 `condition.js` made this choice for the same reason. Someone who places the enclosure first
 and defines `piModel` second must still be able to bind to it. Only active, unsuppressed
-definitions count. Reading a value can never create a cycle, because a variable never
-depends on a record. Like conditions, any append to a document that uses variables re-folds
+definitions count. A plain variable never depends on a record, so reading one can never
+create a cycle. A **measuring formula** (`var.derive`, `TODO/FIND-core-078`) does read records:
+it is worked out at each row that binds it, from the bodies just above that row, so a geometric
+cycle cannot be written. See [`formula-language.md`](formula-language.md). Like conditions, any append to a document that uses variables re-folds
 the whole log (through `insertAt`), so a new definition also repairs an earlier binding.
 
 ## What can be bound: inherited, not invented
@@ -126,17 +128,14 @@ the same transaction, and removes the definition. A **condition** that reads the
 no literal to keep, so it still refuses, by name. Silently dropping the condition would show
 or hide geometry, and the condition has to be edited first.
 
-## Why no expressions yet
+## Expressions: now formulas
 
-`outer = inner + 2 * wall` is the likely next request, and the jscad1 projects do compute
-like that. It brings cycle detection, an evaluator that has to be safe on hostile files
-(`ACCEPTANCE.md` scenario 8) and a story for units, and none of that is needed for "one
-switch drives many parts". When it is wanted, it is its own task. That task would add a
-bounded, non-Turing-complete evaluator behind the same `{ "$var" }` slot, for example a
-`var.derive` record. The binding format does not change. This build already skips any
-`var.*` op it does not know, with a named load warning, so a file from that future build
-opens here with its derived variables missing and their bindings broken. The file is never
-refused.
+`outer = inner + 2 * wall` was the expected next request, and it arrived as `TODO/FIND-core-078`:
+a `var.derive` record holding a formula in a small language this project defines, read by a
+hand-written parser and interpreter with no `eval`. The binding format did not change: a field
+binds a formula with the same `{ "$var": "name" }`. The language, the rule for when a formula reads
+a part, the security model and the library comparison are in
+[`formula-language.md`](formula-language.md).
 
 ## What the jscad1 `const` pattern maps onto
 
@@ -146,7 +145,7 @@ refused.
 | `RaspberryPi.BPlus(piVersion)` | the Pi record's `params: { model: { "$var": "piVersion" } }` |
 | `if (piVersion === 4) case = case.subtract(avJack)` | the subtract record's `when: { var: 'piVersion', in: [4] }` |
 | `const wall = 2; cube({ size: [wall, 20, 10] })` | `size: [{ "$var": "wall" }, 20, 10]` |
-| `const outer = inner + 2 * wall` | not yet. See "Why no expressions yet" |
+| `const outer = inner + 2 * wall` | a `var.derive` row, `{ name: 'outer', formula: 'inner + 2 * wall' }` ([`formula-language.md`](formula-language.md)) |
 
 ## Hostile-input caps (`VARIABLE_LIMITS`, enforced in code)
 

@@ -5,22 +5,43 @@
  * and, for a choice, its options as a comma-separated list. It only parses what was typed;
  * core's `defineVariable` judges the name, kind, range and options, and its reason is what
  * the panel shows.
+ *
+ * **Formula** (`TODO/FIND-core-078`) swaps the value for a formula box with **Insert…** and a
+ * preview line; **Create** stays disabled while the preview shows an error (or the box is
+ * empty). It submits `{ kind: 'formula', name, formula, unit }`, which the panel hands to
+ * `defineFormula`. The preview writes nothing.
  */
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { parseNumeric } from '../../composables/numericEntry.js'
-import { parseOptionList } from '../../composables/variableEntry.js'
+import { useVariableCommands } from '../../composables/useVariableCommands.js'
+import { formulaPreviewLine, parseOptionList } from '../../composables/variableEntry.js'
+import FormulaEditor from './FormulaEditor.vue'
 
 const emit = defineEmits(['submit', 'cancel'])
 
+const commands = useVariableCommands()
+
 const name = ref('')
-const kind = ref(/** @type {'number' | 'boolean' | 'enum'} */ ('number'))
+const kind = ref(/** @type {'number' | 'boolean' | 'enum' | 'formula'} */ ('number'))
 const value = ref('0')
 const unit = ref('mm')
 const flag = ref(false)
 const options = ref('')
+const formula = ref('')
+
+const preview = computed(() => formulaPreviewLine(commands.previewFormula(formula.value), unit.value))
+const blocked = computed(() => kind.value === 'formula' && !preview.value.ok)
 
 function submit() {
+  if (blocked.value) return
+  if (kind.value === 'formula') {
+    /** @type {Record<string, any>} */
+    const definition = { kind: 'formula', name: name.value.trim(), formula: formula.value }
+    if (unit.value !== '') definition.unit = unit.value
+    emit('submit', definition)
+    return
+  }
   /** @type {Record<string, any>} */
   const definition = { name: name.value.trim(), kind: kind.value }
   if (kind.value === 'number') {
@@ -47,12 +68,16 @@ function submit() {
         <option value="number">Number</option>
         <option value="boolean">Yes / no</option>
         <option value="enum">Choice</option>
+        <option value="formula">Formula</option>
       </select>
     </label>
+    <div v-if="kind === 'formula'" class="vadd__field">Formula
+      <FormulaEditor v-model="formula" :preview="preview" label="Formula" @enter="submit" />
+    </div>
     <label v-if="kind === 'number'" class="vadd__field">Value
       <input v-model="value" class="vadd__input" type="text" inputmode="decimal" data-testid="variable-add-value" />
     </label>
-    <label v-if="kind === 'number'" class="vadd__field">Unit
+    <label v-if="kind === 'number' || kind === 'formula'" class="vadd__field">Unit
       <select v-model="unit" class="vadd__input" data-testid="variable-add-unit">
         <option value="mm">mm</option>
         <option value="deg">deg</option>
@@ -64,7 +89,7 @@ function submit() {
       <input v-model="options" class="vadd__input" type="text" autocapitalize="off" placeholder="4, 5" data-testid="variable-add-options" />
     </label>
     <div class="vadd__actions">
-      <button type="submit" class="vadd__btn vadd__btn--primary" data-testid="variable-add-create">Add variable</button>
+      <button type="submit" class="vadd__btn vadd__btn--primary" :disabled="blocked" data-testid="variable-add-create">{{ kind === 'formula' ? 'Create' : 'Add variable' }}</button>
       <button type="button" class="vadd__btn" data-testid="variable-add-cancel" @click="emit('cancel')">Cancel</button>
     </div>
   </form>
@@ -124,6 +149,12 @@ function submit() {
 
 .vadd__btn--primary {
   border-color: var(--accent);
+}
+
+.vadd__btn:disabled {
+  border-color: var(--border);
+  color: var(--text-3);
+  cursor: not-allowed;
 }
 
 .vadd__input:focus-visible,

@@ -30,14 +30,20 @@
  *   repeats too** or **Leave them broken** (`stores/repeat.js`'s `deleteConfirm`, shared with
  *   the Delete key's own instance of this command), answered by {@link resolveDelete}.
  *
+ * A body a **formula** measures (`TODO/FIND-core-078`) is not refused: formula reads are kept out
+ * of core's reference checks on purpose, and the fold names each broken row afterwards. Before
+ * the tap, {@link formulaNote} says which formulas read it and how many parameters they feed —
+ * core's `formulaReadsOf`, the dependents path for formulas. Undo remains the safety net.
+ *
  * The mutation itself, the selection bookkeeping and the undo meta live in
  * `src/stores/document.js` (`deleteBodies`/`removePart`); this file only decides.
  *
  * @module composables/useDeleteCommands
  */
 
-import { computed, ref } from 'vue'
+import { computed, ref, toRaw } from 'vue'
 
+import { formulaReadsOf } from '../core/variables.js'
 import { useDocumentStore } from '../stores/document.js'
 import { usePlacementStore } from '../stores/placement.js'
 import { useRepeatStore } from '../stores/repeat.js'
@@ -110,6 +116,36 @@ export function useDeleteCommands() {
   })
 
   const enabled = computed(() => reason.value === '')
+
+  /**
+   * `TODO/FIND-core-078`: the formulas that measure a body about to be deleted, and what they
+   * feed, as one sentence — `half and quarter read Base. Deleting it breaks 1 parameter that
+   * uses them.` — or `''`.
+   */
+  const formulaNote = computed(() => {
+    void documentStore.version
+    const current = target.value
+    if (!current || current.kind !== 'bodies') return ''
+    const raw = toRaw(documentStore.raw)
+    /** @type {Map<string, Set<string>>} */
+    const readers = new Map()
+    for (const id of current.ids) {
+      for (const formula of formulaReadsOf(raw, id)) {
+        const keys = readers.get(formula.name) ?? new Set()
+        for (const consumer of formula.consumers) keys.add(`${consumer.recordId}\u0000${consumer.path ?? consumer.kind}`)
+        readers.set(formula.name, keys)
+      }
+    }
+    if (readers.size === 0) return ''
+    const names = [...readers.keys()]
+    const listed = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+    const fed = new Set([...readers.values()].flatMap((keys) => [...keys])).size
+    const bodies = current.ids.length === 1 ? (documentStore.bodies.find((body) => body.id === current.ids[0])?.name ?? 'it') : `these ${current.ids.length} objects`
+    const verb = names.length === 1 ? 'reads' : 'read'
+    const them = names.length === 1 ? 'it' : 'them'
+    const tail = fed === 0 ? `Deleting ${current.ids.length === 1 ? 'it' : 'them'} leaves ${names.length === 1 ? 'that formula' : 'those formulas'} without a value.` : `Deleting ${current.ids.length === 1 ? 'it' : 'them'} breaks ${fed} parameter${fed === 1 ? '' : 's'} that use${fed === 1 ? 's' : ''} ${them}.`
+    return `${listed} ${verb} ${bodies}. ${tail}`
+  })
 
   /** What the button says, and what it will do. */
   const label = computed(() => {
@@ -187,5 +223,5 @@ export function useDeleteCommands() {
     }
   }
 
-  return { target, enabled, reason, label, describe, error, run, resolveDelete }
+  return { target, enabled, reason, label, describe, error, formulaNote, run, resolveDelete }
 }

@@ -8,6 +8,7 @@ import { useDocumentStore } from '../stores/document.js'
 import { useRepeatStore } from '../stores/repeat.js'
 import { useSelectionStore } from '../stores/selection.js'
 import { useDeleteCommands } from './useDeleteCommands.js'
+import { useVariableCommands } from './useVariableCommands.js'
 
 /**
  * Delete on a linked Repeat (`TODO/ui-069`, the controls for `TODO/core-061` decisions 7 and 8):
@@ -127,5 +128,46 @@ describe('deleting the body the repeats follow', () => {
     expect(commands.run()).toBe(true)
     expect(repeat.deleteConfirm).toBeNull()
     expect(documentStore.bodies.some((body) => body.id === 'bolt-1' || body.id === 'rep-1')).toBe(false)
+  })
+})
+
+/**
+ * `TODO/FIND-core-078`: deleting a body a formula measures. Formula reads stay out of
+ * `referencedIdsOf` on purpose, so core does not refuse; the button says, before the tap,
+ * which formulas will stop working and how much they feed. Undo is still the safety net.
+ */
+describe('deleting a body a formula measures', () => {
+  function formulaScene() {
+    setActivePinia(createPinia())
+    const documentStore = useDocumentStore()
+    const tx = { origin: /** @type {const} */ ('local') }
+    documentStore.append({ id: 'base-1', op: 'primitive.cuboid', name: 'Base', params: { size: [60, 20, 10], center: [0, 0, 5] } }, tx)
+    documentStore.append({ id: 'c-1', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [10, 10, 10], center: [0, 80, 5] } }, tx)
+    const variables = useVariableCommands()
+    variables.defineFormula({ name: 'half', formula: 'Base.width / 2', unit: 'mm' })
+    variables.defineFormula({ name: 'quarter', formula: 'half / 2', unit: 'mm' })
+    variables.bind('c-1', 'size.0', 'quarter')
+    return { documentStore, selection: useSelectionStore(), commands: useDeleteCommands() }
+  }
+
+  it('names every formula that reads it, directly or through another, and what they feed', () => {
+    const { selection, commands } = formulaScene()
+    selection.select('base-1')
+    expect(commands.formulaNote.value).toBe('half and quarter read Base. Deleting it breaks 1 parameter that uses them.')
+  })
+
+  it('says nothing for a body no formula reads', () => {
+    const { selection, commands } = formulaScene()
+    selection.select('c-1')
+    expect(commands.formulaNote.value).toBe('')
+  })
+
+  it('the delete still goes through, as one Undo step, and the bound row is broken by name', () => {
+    const { documentStore, selection, commands } = formulaScene()
+    selection.select('base-1')
+    expect(commands.run()).toBe(true)
+    expect(documentStore.raw.brokenSteps().map((step) => step.id)).toContain('c-1')
+    expect(documentStore.undo().ok).toBe(true)
+    expect(documentStore.raw.brokenSteps()).toEqual([])
   })
 })

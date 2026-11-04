@@ -13,13 +13,14 @@
  *
  * All the deciding — enabled or not, why not, body or part — is `useDeleteCommands`,
  * the same command the Delete/Backspace keys call. No confirm dialog: Undo is the
- * safety net, as it is for every other step.
+ * safety net, as it is for every other step. A body a formula measures says so under the button
+ * before the tap (`TODO/FIND-core-078`), naming the formulas and what they feed.
  */
 import { useDeleteCommands } from '../../composables/useDeleteCommands.js'
 import { useRepeatStore } from '../../stores/repeat.js'
 
 const commands = useDeleteCommands()
-const { enabled, reason, label, describe, error, target } = commands
+const { enabled, reason, label, describe, error, target, formulaNote } = commands
 
 /**
  * `TODO/ui-069`: deleting a body that repeats follow asks first — the one question this button
@@ -49,6 +50,7 @@ const repeat = useRepeatStore()
       <span>{{ label }}</span>
     </button>
     <p v-if="!enabled" class="delete__reason" data-testid="inspector-delete-reason">{{ reason }}</p>
+    <p v-if="enabled && formulaNote" class="delete__reason" data-testid="inspector-delete-formulas">{{ formulaNote }}</p>
     <p v-if="error" class="delete__reason" data-testid="inspector-delete-error" role="alert">{{ error }}</p>
     <div v-if="repeat.deleteConfirm" class="delete__confirm" role="alertdialog" data-testid="delete-repeats-confirm" :aria-label="repeat.deleteConfirm.question">
       <p class="delete__question" data-testid="delete-repeats-question">{{ repeat.deleteConfirm.question }}</p>

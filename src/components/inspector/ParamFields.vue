@@ -356,6 +356,7 @@ function onEnumChange(event, field) {
                 :name="component.bound.name"
                 :problem="component.bound.problem"
                 :shown="boundShown(field, component)"
+                :note="variableCommands.variesNoteOf(body.bind?.recordId ?? '', `${field.key}.${index}`)"
                 @edit="variablesUi.reveal(component.bound.name)"
                 @unbind="onUnbind(`${field.key}.${index}`)"
               />
@@ -412,6 +413,7 @@ function onEnumChange(event, field) {
               :name="field.bound.name"
               :problem="field.bound.problem"
               :shown="boundShown(field)"
+              :note="variableCommands.variesNoteOf(body.bind?.recordId ?? '', field.key)"
               @edit="variablesUi.reveal(/** @type {any} */ (field.bound).name)"
               @unbind="onUnbind(field.key)"
             />
@@ -457,6 +459,7 @@ function onEnumChange(event, field) {
               :name="field.bound.name"
               :problem="field.bound.problem"
               :shown="boundShown(field)"
+              :note="variableCommands.variesNoteOf(body.bind?.recordId ?? '', field.key)"
               @edit="variablesUi.reveal(/** @type {any} */ (field.bound).name)"
               @unbind="onUnbind(field.key)"
             />

@@ -8,12 +8,16 @@
  * A value that would break something is *held* and handed to the repair dialog by the
  * panel; this row shows it pending until the dialog decides. Every refusal is core's own
  * reason string.
+ *
+ * A **formula** row (`TODO/FIND-core-078`) shows its value read-only and its formula as text
+ * below, which edits on tap — `VariableFormulaView.vue`. Its **⋯** is the same Rename and Delete.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
+import VariableFormulaView from './VariableFormulaView.vue'
 
 const props = defineProps({
   row: {
@@ -46,6 +50,12 @@ const shown = computed(() => {
 })
 
 const unit = computed(() => (variable.value.kind === 'number' ? (variable.value.unit ?? '') : ''))
+
+/** "used by 2", and "· read by 1 formula" when formulas read it too. */
+const usedText = computed(() => {
+  const formulas = props.row.formulas ?? 0
+  return `used by ${props.row.parameters}${formulas > 0 ? ` · read by ${formulas} formula${formulas === 1 ? '' : 's'}` : ''}`
+})
 
 // "Edit variable" on a chip scrolls here and lights the row until the next interaction.
 watch(
@@ -106,16 +116,17 @@ function commitRename() {
     ref="root"
     class="vrow"
     :data-testid="`variable-row-${variable.name}`"
-    :data-kind="variable.kind"
+    :data-kind="row.formula !== undefined ? 'formula' : variable.kind"
     :data-value="String(variable.value)"
     :data-pending="held !== undefined ? 'true' : 'false'"
   >
     <div class="vrow__head">
       <span class="vrow__name" data-testid="variable-name">{{ variable.label ? `${variable.label} · ` : '' }}{{ variable.name }}</span>
-      <span class="vrow__used" :data-testid="`variable-used-${variable.name}`">used by {{ row.parameters }}</span>
+      <span class="vrow__used" :data-testid="`variable-used-${variable.name}`">{{ usedText }}</span>
       <button type="button" class="vrow__more" :aria-expanded="menu" :aria-label="`${variable.name} actions`" :data-testid="`variable-menu-${variable.name}`" @click="menu = !menu">⋯</button>
     </div>
-    <div class="vrow__edit">
+    <VariableFormulaView v-if="row.formula !== undefined" :row="row" />
+    <div v-else class="vrow__edit">
       <label v-if="variable.kind === 'boolean'" class="vrow__check">
         <input type="checkbox" :checked="held !== undefined ? Boolean(held) : Boolean(variable.value)" :data-testid="`variable-value-${variable.name}`" @change="onFlag" />
         {{ variable.value ? 'yes' : 'no' }}

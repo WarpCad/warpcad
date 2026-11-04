@@ -76,7 +76,7 @@ import { relatedness } from '../core/merge/merge.js'
 import { parseProject, serializeProject } from '../core/project.js'
 import { responseTextOf } from '../core/prompt.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
-import { variablesOf } from '../core/variables.js'
+import { displayFormulaOf, isFormula, variablesOf } from '../core/variables.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useGistStore } from '../stores/gist.js'
 import { mergeStateOfProject, useMergeStore } from '../stores/merge.js'
@@ -193,7 +193,8 @@ export function useGistPublish(options = {}) {
       description: raw.description(),
       bodies: bodyNames(),
       prompts: choice.prompts === false ? [] : promptsForReadme(),
-      variables: variablesOf(raw),
+      // A formula as a person reads it (names, not `#ids`), `TODO/FIND-core-078`.
+      variables: variablesOf(raw).map((variable) => (isFormula(variable) ? { ...variable, formula: displayFormulaOf(raw, variable) } : variable)),
     }
   }
 

@@ -6,17 +6,16 @@ priority: high
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-03 at the owner's request)
 depends: []
-status: open
+status: done
 ---
 
-> **Progress (2026-11-04):** Part 1, the language, is in: `src/core/formula.js` and
-> `src/core/formula.spec.js`, with the guard tests. Part 2, the fold (`var.derive`, both tiers, the
-> "varies" note, rename/delete/impact, load warnings), is in with its unit tests and benchmark. Its
-> load-refusal gap is accepted for now, matching `var.define`, and the decision doc (Part 4) must record it.
-> Part 3, the AI tools (`define_formula`, `set_formula`, `evaluate_formula`, the `list_variables` additions,
-> the prompt rule and the regenerated tool reference), is in. Part 4 (panel, e2e, docs, media, acceptance
-> scenario 33, and the decision doc, which records the Part 3 decisions) is still open. This
-> file stays in `TODO/` until Part 4 lands. The `part-default-hidden` e2e flake is tracked in
+> **Shipped (2026-11-04), four parts, four commits:** `34a59c5` the formula language (`src/core/formula.js`, no eval, no
+> dependency); `7363051` the fold (`var.derive`, both evaluation tiers, the "varies" note, rename, delete and impact);
+> `51fb54f` the AI tools (`define_formula`, `set_formula`, `evaluate_formula`, the prompt rule); and Part 4, the
+> Variables panel with Insert…, the chip and "varies" notes, `docs/variables.md`, `docs/decisions/formula-language.md`,
+> acceptance scenario 33 and scenario 8 step 7. Accepted gaps, recorded in the decision doc: a measuring formula that fails
+> only during the fold can still make a load refuse the file when other rows depend on it (matches `var.define`); and a
+> printed formula drops redundant parentheses. The `part-default-hidden` e2e flake that appeared with Part 1 is tracked in
 > `TODO/FIND-testing-016-part-default-hidden-canvas-same-flakes.md`, not here.
 
 ## Goal

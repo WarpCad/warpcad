@@ -9,8 +9,13 @@
  * parameters on 2 parts changed"); a value that would break a dependent is held and handed to
  * the repair dialog `ui-052` already has. Deleting a variable something reads opens the usage
  * dialog — there is no plain destructive delete. Every refusal shows core's reason verbatim.
+ *
+ * Formulas (`TODO/FIND-core-078`): **+ → Formula** creates one (one Undo step). When a part a
+ * formula measures changes — a field edit on another body, or Undo — the same blast-radius line
+ * says which formula moved and what that reached: *overhang 40 mm → 60 mm — 1 parameter on 1
+ * part changed*. A change the panel made itself announces its own line instead.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { VariableInUseError, useVariableCommands } from '../../composables/useVariableCommands.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -49,8 +54,23 @@ function attempt(action) {
 
 /** @param {Record<string, any>} definition */
 function onAdd(definition) {
-  if (attempt(() => commands.define(/** @type {any} */ (definition)))) adding.value = false
+  const { kind, ...rest } = definition
+  const action = kind === 'formula' ? () => commands.defineFormula(/** @type {any} */ (rest)) : () => commands.define(/** @type {any} */ (definition))
+  if (attempt(action)) adding.value = false
 }
+
+// A formula's value moved because something it measures did (TODO/FIND-core-078).
+let formulaValues = commands.formulaValues()
+watch(
+  () => documentStore.version,
+  (version) => {
+    const before = formulaValues
+    formulaValues = commands.formulaValues()
+    if (ui.announcementVersion === version) return
+    const lines = commands.formulaChanges(before)
+    if (lines.length > 0) ui.announce(lines.join('; '), version)
+  },
+)
 
 /** @param {string} name @param {number | boolean | string} value */
 function onSet(name, value) {

@@ -6,6 +6,10 @@
  * Variables section to that row) and **Unbind** (rewrite the field to its current literal —
  * nothing jumps). A binding that cannot resolve shows core's reason in an error state
  * rather than a silent literal.
+ *
+ * For a formula (`TODO/FIND-core-078`) the value is the one **this row used**, and `note` says
+ * when a later step changed what it measures (`Reads Base before step 12 (Move Base) changed it
+ * (uses 34 mm, now 41 mm)`).
  */
 import { ref } from 'vue'
 
@@ -17,6 +21,8 @@ defineProps({
   shown: { type: String, default: '' },
   /** Core's reason this binding cannot resolve, when it cannot. */
   problem: { type: String, default: '' },
+  /** A formula read before a later change, in words — `''` when there is none. */
+  note: { type: String, default: '' },
 })
 
 const emit = defineEmits(['edit', 'unbind'])
@@ -33,6 +39,7 @@ const menu = ref(false)
     </button>
     <span v-if="!problem" class="chip__value" data-testid="param-chip-value">{{ shown }}</span>
     <p v-if="problem" class="chip__error" role="alert" data-testid="param-chip-error">Variable {{ problem }}</p>
+    <p v-if="note && !problem" class="chip__note" data-testid="param-chip-note">{{ note }}</p>
     <div v-if="menu" class="chip__menu" data-testid="param-chip-menu">
       <p class="chip__full">{{ name }}</p>
       <button type="button" class="chip__item" data-testid="param-chip-edit" :disabled="Boolean(problem)" @click="menu = false; emit('edit')">Edit variable</button>
@@ -98,6 +105,15 @@ const menu = ref(false)
   margin: 0;
   font-size: 12px;
   color: var(--danger, var(--text-1));
+}
+
+.chip__note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--warn, var(--text-2));
+  overflow-wrap: anywhere;
 }
 
 .chip__menu {

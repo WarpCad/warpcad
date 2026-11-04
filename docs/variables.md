@@ -19,9 +19,9 @@ sheet has two tabs, **Inspector** and **Variables**), so there is no new panel t
 
 | Control | What it does |
 |---|---|
-| **+** | Adds a variable by hand: a name, a kind (**Number**, **Yes / no** or **Choice**), a starting value, and for a choice the options as a comma-separated list such as `4, 5`. |
+| **+** | Adds a variable by hand: a name, a kind (**Number**, **Yes / no**, **Choice** or **Formula**), a starting value, and for a choice the options as a comma-separated list such as `4, 5`. A **Formula** is calculated instead; see [Formulas](#formulas). |
 | The value | Edits the variable in place: a number box, a checkbox, or a dropdown, to match its kind. A number is **millimetres** (or **degrees** for an angle) — the same units the Inspector's own fields use. |
-| **used by N** | How many fields and conditions currently read it. |
+| **used by N** | How many fields and conditions currently read it, including the ones that read it through a formula. *read by 1 formula* is added when a formula uses it. |
 | **⋯** | **Rename** (every field bound to it follows, in one step) and **Delete**. |
 
 Names are letters, digits and underscores, starting with a letter or underscore, up to 40
@@ -117,6 +117,140 @@ flagged broken with the same reason. Undo brings the variable back.
 
 ![The example as a recording: bind Model, condition the cube, switch piModel from 4 to 5, then Undo.](./media/pi-model-switch.gif)
 
+## Formulas
+
+A **formula** is a variable that is calculated. Its value comes from other variables and from
+the measured size and position of your shapes and their parts, so it stays right when those
+change. It is the same idea as writing `cameraCase.parts.caseShell.size().z / 2` in a JSCAD
+file, except you never write the number down yourself.
+
+You bind a field to a formula exactly as you bind it to any other variable, and the field
+follows whenever a shape the formula measures changes.
+
+![The formula form in the Variables section: the name overhang, the formula Base.width - (Lid.width / 2) in a box with an Insert… button beside it, and the preview line reading = 40 mm under it.](./screenshots/variable-formula-editor.png)
+
+### Example: a third cube sized from two others
+
+1. Drag in a Cube and name it `Base`. Set **Size X** to `60`. Drag in a second Cube and name it `Lid`;
+   leave **Size X** at `40`.
+2. With nothing selected, open **Variables**, press **+** and choose **Formula**. Name it `overhang`.
+3. Type `Base.width - (Lid.width / 2)`. The line below the box reads **= 40 mm**. Press **Create**.
+4. Drag in a third Cube. Press the link button beside **Size X** and choose `overhang`. The field
+   becomes a chip reading 40.
+5. Select `Base` and change **Size X** to `80`. The third cube's Size X becomes 60, and a line says what
+   changed. Press **Undo** once and it returns to 40.
+
+The line in step 5 reads *overhang 40 mm → 60 mm — 1 parameter on 1 part changed*. It appears in the
+Variables section (the **Variables** tab on a phone).
+
+### Writing a formula
+
+While you type, the line under the box shows the value (**= 40 mm**) or says what is wrong and
+where, such as *expected ")" but found the end at character 28*. **Create** and **Save** stay off
+until the formula works.
+
+![The formula form showing an error: the box holds an unfinished formula and the line below it names the problem and the character it starts at, with Create turned off.](./screenshots/variable-formula-error.png)
+
+**Insert…** beside the box lists every shape, then its parts (hidden parts too, marked
+*hidden*), then what to measure. Your choice goes in where the cursor is. You never need to
+type a bracket or remember a name, which helps most on a phone.
+
+After you press **Create**, the row shows the value (marked *calculated*, so you can't type over
+it) with the formula underneath. Tap the formula to change it. **⋯** has **Rename** and
+**Delete**, as for any variable. Creating, changing, renaming and deleting a formula are each
+**one** Undo step.
+
+WarpCad saves a formula in a tidy form, so brackets that change nothing are dropped:
+`Base.width - (Lid.width / 2)` is shown as `Base.width - Lid.width / 2`. It is the same sum.
+
+A field can also start a formula. In its link list, **New formula from this value…** opens a
+name and a formula box that already holds the field's current number, so nothing moves until
+you edit it. **Create and bind** adds the formula and binds the field in one step.
+
+### What you can measure
+
+`Shape.quantity` measures a whole shape. `Shape.part.quantity` measures one named part of it,
+hidden or not. A shape with no part measures the parts you can see, the same box the
+Inspector's **Bounds** line shows.
+
+| Quantity | What it is |
+|---|---|
+| `width`, `depth`, `height` | The size along X, Y and Z |
+| `size.x`, `size.y`, `size.z` | The same three, by axis |
+| `min.x`, `min.y`, `min.z` | The left, front and bottom faces |
+| `max.x`, `max.y`, `max.z` | The right, back and top faces |
+| `center.x`, `center.y`, `center.z` | The middle of the box |
+
+Everything is in **millimetres**, measured along the **world** axes, with Z up. A part you
+have rotated is measured as it sits: its `width` is how far it reaches along world X, not along
+its own edge. A distance between two faces is a subtraction: `box.top.max.z - box.board.max.z`.
+
+**Names with spaces or hyphens go in square brackets**: `[Cube 1].width`,
+`BPlus.[pi-mb].height`. If two shapes have the same name, WarpCad asks you to pick one by its id
+(`#cube-a1-3.width`); **Insert…** does this for you. Renaming a shape later doesn't break a
+formula, because the file stores the shape's id and the panel shows its current name.
+
+### Functions
+
+| Function | What it does |
+|---|---|
+| `abs(x)`, `min(a, b, …)`, `max(a, b, …)`, `clamp(x, low, high)` | The usual |
+| `round(x)`, `floor(x)`, `ceil(x)` | To a whole number |
+| `roundTo(x, step)`, `floorTo(x, step)`, `ceilTo(x, step)` | To a multiple of `step`, e.g. a wall to a nozzle width: `ceilTo(2.5, 0.4)` is 2.8 |
+| `sqrt(x)`, `pow(x, y)`, `hypot(a, b, …)` | Roots, powers, the length of a diagonal |
+| `sin`, `cos`, `tan`, `asin`, `acos`, `atan2(y, x)` | Trigonometry, in **degrees**, like every angle in WarpCad |
+| `pi()` | 3.14159… (with brackets, so a shape named `pi` still works) |
+| `inch(x)` | Inches to millimetres: `inch(3 / 8)` is 9.525 |
+| `if(test, a, b)` | `a` when the test is true, else `b`. Only the side it takes is worked out, so `if(piModel == 5, pi.fan.height, 0)` is fine on a Pi 4, which has no fan |
+
+You can use `+ - * /`, brackets, comparisons (`== != < <= > >=`) and `&& || !` inside `if`. A
+choice variable can be compared with one of its options, such as `piModel == 5`. A formula's
+result is always a number.
+
+A formula that can't be worked out says why. It never quietly becomes 0. Dividing by zero,
+`sqrt(-1)`, a shape that was deleted, or a part a model does not have each give an error that
+names the problem, in the Variables row and in the History.
+
+### A formula reads a shape as it stands just above the step that uses it
+
+WarpCad works out a formula **at each step that uses it**, from the shapes as they are just
+before that step in the History. That is what a line in a JSCAD file does: it measures `head`
+when the line runs. Two things follow:
+
+- A step can't use a formula that measures a shape added further down the History. The link
+  list says so instead of binding, with a reason such as *reads Base, which is not built until step 7*.
+- If you move or resize a shape **later** in the History, a step that measured it earlier keeps
+  the earlier value. WarpCad doesn't hide this. The chip and the formula's row both show a note
+  such as *Reads Base before step 12 (Move Base) changed it (uses 34 mm, now 41 mm)*. Only a real
+  difference shows: moving `Base` changes `Base.max.z` but not `Base.width`, so a formula on the
+  width stays quiet.
+
+Editing a shape's own fields, as in the example, rebuilds everything after it, so that never
+leaves a note.
+
+**Delete** on a shape that a formula measures still works (Undo brings it back). Under the button,
+before you tap it, WarpCad says which formulas read the shape and how many fields they feed.
+
+**Save to library** saves a bound field as the number it has at that step. A saved part carries no
+variables.
+
+### From JSCAD
+
+| In a JSCAD file | As a formula |
+|---|---|
+| `part.size().z`, `util.size(part).z` | `Shape.part.height` |
+| `calcSnap(a, b, 'z', 'inside+')` | a subtraction of two faces: `a.max.z - b.max.z` |
+| `centroid()` | `Shape.center.x` (the middle of the box) |
+| `util.inch(3 / 8)` | `inch(3 / 8)` |
+| `util.nearest.over(2.5, 0.2)` | `ceilTo(2.5, 0.2)` |
+| `Math.PI`, `Math.abs(x)` | `pi()`, `abs(x)` |
+| `const outer = inner + 2 * wall` | a formula `inner + 2 * wall` named `outer` |
+
+`.snap()` and `.align()` stay operations (**Align** and snapping in the 3D view), not formulas.
+
+An assistant can do all of this too: see `define_formula`, `set_formula` and
+`evaluate_formula` in [the AI partner](ai-partner.md) and [Connect Claude Code](mcp.md).
+
 ## Good to know
 
 - A variable is part of the project: it is saved with it, reopens with it and appears in the
@@ -124,8 +258,8 @@ flagged broken with the same reason. Undo brings the variable back.
   there.
 - On a phone with an empty scene there is no sheet to hold the tab yet. Place something and
   it appears, or bind a field and the variable is created for you.
-- A variable holds one value. It cannot be a formula of other variables (`outer = inner +
-  2 × wall`) yet.
+- A **formula** is saved as text. A file shared with you can't run code through it: WarpCad reads
+  it with its own small calculator, which can only do sums and measure shapes.
 
 ## See also
 

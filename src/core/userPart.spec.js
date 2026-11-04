@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { createDocument } from './document.js'
+import { bindParam, defineFormula, defineVariable } from './variables.js'
 import { piBoltRepeated } from './__fixtures__/piScenes.js'
 import { boundsOf, evaluate, evaluateOp, isGroup, policyFor } from './kernel/index.js'
 import { hiddenNamesOf, volumeOf } from './kernel/group.js'
@@ -749,5 +750,32 @@ describe('a part of several meshes, each placed by a matrix (TODO/io-024)', () =
     const { definitions, problems } = validateUserPartSet([inner, outer])
     expect(definitions.map((definition) => definition.op)).toEqual(['user.feather'])
     expect(problems).toEqual([{ op: 'user.board-pair', reason: expect.stringMatching(/triangles/) }])
+  })
+})
+
+describe('capturePart — a bound field is saved as the value its row used (TODO/FIND-core-078)', () => {
+  const tx = { origin: /** @type {const} */ ('local') }
+
+  it('a variable and a measuring formula both become literals, and the part rebuilds the same size', () => {
+    const doc = createDocument()
+    doc.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [60, 10, 10], center: [0, 0, 5] } }, tx)
+    doc.append({ id: 'c', op: 'primitive.cuboid', name: 'C', params: { size: [10, 10, 10], center: [80, 0, 5] } }, tx)
+    defineVariable(doc, { name: 'wall', kind: 'number', value: 8, unit: 'mm' }, tx)
+    bindParam(doc, 'c', 'size.1', 'wall', tx)
+    defineFormula(doc, { name: 'half', formula: 'Base.width / 2', unit: 'mm' }, tx)
+    bindParam(doc, 'c', 'size.0', 'half', tx)
+
+    const definition = capturePart(doc, 'c', { name: 'Half block' })
+    expect(JSON.stringify(definition)).not.toContain('$var')
+    expect(definition.records[0]?.params?.size).toEqual([30, 8, 10])
+  })
+
+  it('the document itself keeps its bindings', () => {
+    const doc = createDocument()
+    doc.append({ id: 'c', op: 'primitive.cuboid', name: 'C', params: { size: [10, 10, 10], center: [80, 0, 5] } }, tx)
+    defineVariable(doc, { name: 'wall', kind: 'number', value: 8, unit: 'mm' }, tx)
+    bindParam(doc, 'c', 'size.1', 'wall', tx)
+    capturePart(doc, 'c', { name: 'Block' })
+    expect(doc.recordOf('c')?.params?.size?.[1]).toEqual({ $var: 'wall' })
   })
 })

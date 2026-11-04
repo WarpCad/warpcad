@@ -2,9 +2,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+import { translateRecord } from '../core/transform.js'
 import { VariableError, VariableInUseError } from '../core/variables.js'
 import { useDocumentStore } from '../stores/document.js'
 import { useSelectionStore } from '../stores/selection.js'
+import { useParamCommands } from './useParamCommands.js'
 import { useVariableCommands } from './useVariableCommands.js'
 
 /**
@@ -204,5 +206,155 @@ describe('useVariableCommands (TODO/ui-059)', () => {
     selection.clear()
     doc.undo()
     expect(selection.ids).toEqual(['cube-1'])
+  })
+})
+
+/**
+ * `TODO/FIND-core-078`: formulas from the panel — the Documentation example, through the same
+ * store a person's taps go through, with the real kernel folding the cubes.
+ */
+describe('useVariableCommands — formulas (TODO/FIND-core-078)', () => {
+  /** @type {ReturnType<typeof useDocumentStore>} */
+  let doc
+  /** @type {ReturnType<typeof useVariableCommands>} */
+  let commands
+
+  /** @param {string} id */
+  const widthOf = (id) => {
+    const bounds = /** @type {[number[], number[]]} */ (doc.bodies.find((body) => body.id === id)?.bounds)
+    return bounds[1][0] - bounds[0][0]
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    doc = useDocumentStore()
+    commands = useVariableCommands()
+    doc.append({ id: 'base-1', op: 'primitive.cuboid', name: 'Base', params: { size: [60, 20, 10], center: [0, 0, 5] } }, { origin: 'local' })
+    doc.append({ id: 'lid-1', op: 'primitive.cuboid', name: 'Lid', params: { size: [40, 20, 10], center: [0, 40, 5] } }, { origin: 'local' })
+    doc.append({ id: 'c-1', op: 'primitive.cuboid', name: 'Cube 3', params: { size: [10, 10, 10], center: [0, 80, 5] } }, { origin: 'local' })
+  })
+
+  it('previews a value, an error with its position, and nothing for an empty box', () => {
+    expect(commands.previewFormula('Base.width - (Lid.width / 2)')).toEqual({ value: 40 })
+    const error = /** @type {{ error: string }} */ (commands.previewFormula('Base.width - (Lid.width / 2'))
+    expect(error.error).toMatch(/at character 28/)
+    expect(commands.previewFormula('   ')).toBeNull()
+    expect(commands.previewFormula('Nobody.width')).toEqual({ error: expect.stringMatching(/no body named Nobody/) })
+  })
+
+  it('previews nothing into the document: no step, no Undo', () => {
+    const depth = doc.raw.canUndo()
+    const length = doc.raw.entries.length
+    commands.previewFormula('Base.width * 2')
+    expect(doc.raw.entries.length).toBe(length)
+    expect(doc.raw.canUndo()).toBe(depth)
+  })
+
+  it('an edit preview names a loop the save would refuse', () => {
+    commands.defineFormula({ name: 'overhang', formula: 'Base.width - (Lid.width / 2)', unit: 'mm' })
+    expect(commands.previewFormula('overhang + 1', 'overhang')).toEqual({ error: expect.stringMatching(/circle/) })
+  })
+
+  it('the Documentation example: create, bind, change Base, one Undo', () => {
+    commands.defineFormula({ name: 'overhang', formula: 'Base.width - (Lid.width / 2)', unit: 'mm' })
+    const row = commands.list().find((candidate) => candidate.variable.name === 'overhang')
+    // Shown by name, in the printer's canonical form (brackets that change nothing are dropped);
+    // stored by id.
+    expect(row).toMatchObject({ valueLabel: '40 mm', formula: 'Base.width - Lid.width / 2', parameters: 0 })
+    expect(doc.raw.recordOf(/** @type {string} */ (row?.variable.id))?.params?.formula).toBe('#base-1.width - #lid-1.width / 2')
+
+    commands.bind('c-1', 'size.0', 'overhang')
+    expect(widthOf('c-1')).toBeCloseTo(40, 6)
+    expect(commands.list()[0]).toMatchObject({ parameters: 1, parts: 1 })
+
+    const before = commands.formulaValues()
+    useParamCommands().setParamComponent('base-1', 'size', 0, 80)
+    expect(widthOf('c-1')).toBeCloseTo(60, 6)
+    expect(commands.formulaChanges(before)).toEqual(['overhang 40 mm → 60 mm — 1 parameter on 1 part changed'])
+
+    expect(doc.undo().ok).toBe(true)
+    expect(widthOf('c-1')).toBeCloseTo(40, 6)
+    expect(widthOf('base-1')).toBeCloseTo(60, 6)
+  })
+
+  it('create, edit, rename and delete are one Undo step each', () => {
+    commands.defineFormula({ name: 'half', formula: 'Base.width / 2', unit: 'mm' })
+    commands.bind('c-1', 'size.0', 'half')
+    const steps = doc.raw.canUndo()
+
+    const set = commands.setFormula('half', 'Base.width / 3')
+    expect(set).toEqual({ committed: true, summary: 'half 30 mm → 20 mm — 1 parameter on 1 part changed' })
+    expect(widthOf('c-1')).toBeCloseTo(20, 6)
+    doc.undo()
+    expect(widthOf('c-1')).toBeCloseTo(30, 6)
+    expect(doc.raw.canUndo()).toBe(steps)
+
+    commands.rename('half', 'halfBase')
+    expect(doc.raw.recordOf('c-1')?.params?.size?.[0]).toEqual({ $var: 'halfBase' })
+    doc.undo()
+    expect(doc.raw.recordOf('c-1')?.params?.size?.[0]).toEqual({ $var: 'half' })
+
+    commands.remove('half', { keepValues: true })
+    expect(commands.list()).toEqual([])
+    expect(doc.raw.recordOf('c-1')?.params?.size?.[0]).toBe(30)
+    doc.undo()
+    expect(commands.list()).toHaveLength(1)
+  })
+
+  it('a formula edit that would break a dependent is held for the repair dialog, nothing written', () => {
+    commands.defineFormula({ name: 'half', formula: 'Base.width / 2', unit: 'mm' })
+    commands.bind('c-1', 'size.0', 'half')
+    const length = doc.raw.entries.length
+    const result = commands.setFormula('half', 'Base.width - 100')
+    expect(result).toMatchObject({ needsRepair: true, edit: { variable: 'half' } })
+    expect('breakages' in result && result.breakages.length).toBeGreaterThan(0)
+    expect(doc.raw.entries.length).toBe(length)
+    expect(doc.raw.recordOf('c-1')?.params?.size?.[0]).toEqual({ $var: 'half' })
+  })
+
+  it('setFormula on a value variable is core\'s refusal, by name', () => {
+    commands.define({ name: 'wall', kind: 'number', value: 2, unit: 'mm' })
+    expect(() => commands.setFormula('wall', '3')).toThrow(VariableError)
+  })
+
+  it('New formula from this value… creates and binds in one step, changing nothing on screen', () => {
+    const steps = doc.raw.canUndo()
+    commands.bindToNewFormula('c-1', 'size.0', { name: 'cWidth', formula: '10', unit: 'mm' })
+    expect(doc.raw.recordOf('c-1')?.params?.size?.[0]).toEqual({ $var: 'cWidth' })
+    expect(widthOf('c-1')).toBeCloseTo(10, 6)
+    doc.undo()
+    expect(doc.raw.recordOf('c-1')?.params?.size?.[0]).toBe(10)
+    expect(commands.list()).toEqual([])
+    expect(doc.raw.canUndo()).toBe(steps)
+  })
+
+  it('a value variable read by a formula counts what the formula feeds, not the formula itself', () => {
+    commands.define({ name: 'wall', kind: 'number', value: 2, unit: 'mm' })
+    commands.defineFormula({ name: 'inner', formula: 'Base.width - 2 * wall', unit: 'mm' })
+    commands.bind('c-1', 'size.0', 'inner')
+    const wall = commands.list().find((row) => row.variable.name === 'wall')
+    expect(wall).toMatchObject({ parameters: 1, parts: 1 })
+    expect(commands.set('wall', 3)).toEqual({ committed: true, summary: 'wall 2 mm → 3 mm — 1 parameter on 1 part changed' })
+  })
+
+  it('a reading taken before a later move carries the note on its chip; an unaffected one does not', () => {
+    commands.defineFormula({ name: 'baseTop', formula: 'Base.max.z', unit: 'mm' })
+    commands.defineFormula({ name: 'baseW', formula: 'Base.width', unit: 'mm' })
+    commands.bind('c-1', 'size.2', 'baseTop')
+    commands.bind('c-1', 'size.1', 'baseW')
+    expect(commands.variesNoteOf('c-1', 'size.2')).toBe('')
+    doc.raw.append(translateRecord(doc.raw, 'base-1', [0, 0, 5]), { origin: 'local' })
+    doc.refresh()
+    expect(commands.variesNoteOf('c-1', 'size.2')).toMatch(/^Reads Base before step \d+/)
+    expect(commands.variesNoteOf('c-1', 'size.1')).toBe('')
+  })
+
+  it('a formula with an error lists with a dash and the reason, never "undefined"', () => {
+    commands.defineFormula({ name: 'lidW', formula: 'Lid.width', unit: 'mm' })
+    commands.bind('c-1', 'size.0', 'lidW')
+    doc.deleteBodies(['lid-1'])
+    const row = commands.list().find((candidate) => candidate.variable.name === 'lidW')
+    expect(row?.valueLabel).toBe('—')
+    expect(row?.variable.error).toMatch(/Lid|deleted|lid-1/)
   })
 })

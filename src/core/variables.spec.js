@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { LOCAL } from './__fixtures__/piScenes.js'
@@ -1429,6 +1432,38 @@ describe('calculated variables — load, merge and hostile files', () => {
     const document = createDocument()
     document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
     expect(document.bodies().map((body) => body.id)).toEqual(['ok'])
+  })
+
+  it('e2e/fixtures/hostile-formula.ndjson (scenario 8 step 7) opens: every problem named, the rest intact, nothing run', () => {
+    const before = Object.getOwnPropertyNames(Object.prototype).sort()
+    const text = readFileSync(join(process.cwd(), 'e2e/fixtures/hostile-formula.ndjson'), 'utf-8')
+    const parsed = parseProject(text)
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
+    // The plate and the block bound to the good formula build; the cube bound to the loop is broken by name.
+    expect(document.bodies().map((body) => body.id).sort()).toEqual(['block-2', 'plate-1'])
+    expect(sizeOf(document, 'block-2')[0]).toBeCloseTo(20, 6)
+    const looped = document.brokenSteps().find((step) => step.id === 'cube-3')
+    expect(looped?.reason).toMatch(/loopA/)
+    // Every hostile formula is unusable and says why: a load warning or the table's own error.
+    const named = parsed.warnings.map((warning) => warning.message)
+    const variables = new Map(variablesOf(document).map((variable) => [variable.name, variable]))
+    for (let index = 1; index <= 25; index += 1) {
+      const name = `h${index}`
+      const variable = variables.get(name)
+      const warned = named.some((message) => message.includes(`"${name}"`))
+      expect(warned || typeof variable?.error === 'string', name).toBe(true)
+      expect(variable?.value, name).toBeUndefined()
+    }
+    expect(variables.get('loopA')?.error).toMatch(/loopA → loopB → loopA|loopB → loopA → loopB/)
+    expect(variables.get('c33')?.error).toMatch(/more than 32 formulas/)
+    expect(variables.get('c31')?.value).toBe(32)
+    // A __proto__ or constructor name is refused by name, never a prototype write.
+    expect(variables.has('__proto__')).toBe(false)
+    expect(variables.has('constructor')).toBe(false)
+    expect(named.some((message) => message.includes('__proto__'))).toBe(true)
+    expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(before)
+    expect(/** @type {any} */ (globalThis).__pwned).toBeUndefined()
   })
 
   it('an unknown var.* record is still skipped with a warning, so a file from a newer build opens', () => {

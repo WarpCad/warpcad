@@ -1827,6 +1827,29 @@ function rewriteSlot(params, path, value) {
 }
 
 /**
+ * A record's params with **every** binding replaced by the value its row used — a deep copy
+ * (`TODO/FIND-core-078`). What Save to library writes: a saved part carries no variables, so a
+ * bound field becomes the number on screen, and a measuring formula the value it had **at that
+ * row** (`document.boundValuesOf`), not its end-of-log value. A binding with no value (it does
+ * not resolve) is left as it is, for the part's own rebuild check to refuse by name.
+ *
+ * @param {WarpDocument} document
+ * @param {OpRecord} record
+ * @returns {Record<string, any>}
+ */
+export function literalParamsOf(document, record) {
+  /** @type {Record<string, any>} */
+  let params = JSON.parse(JSON.stringify(record.params ?? {}))
+  const bindings = bindingsOf(record)
+  if (bindings.length === 0 || record.id === undefined) return params
+  const used = document.boundValuesOf(record.id) ?? {}
+  for (const { path } of bindings) {
+    if (Object.hasOwn(used, path)) params = rewriteSlot(params, path, used[path])
+  }
+  return params
+}
+
+/**
  * A stored formula's text with its tree rewritten (`formula.js`'s `rewriteFormula`): renames,
  * keep-values deletes. Text that does not parse is left exactly as it is.
  *

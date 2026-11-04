@@ -80,6 +80,14 @@ just clicked, not both at once).
 
 **Also re-drive**: re-run the closed-finding repros after any panel-layout change: ui-072 (phone Library drag), ui-043 and ui-027 (phone toolbar), ui-015 (tablet toolbar vs gizmo), ui-070 (phone Inspector tab over the Library sheet). Also re-run the ui-072 repro (phone Library drag registers) after any Library sheet or pop-out change (ui-081). Also drive by hand with the Assistant sheets overlaying the viewport at phone width; both bodies stay visible after closing (ai-029).
 
+**Last run**: 2026-11-04 UTC (`core-078` Part 4, step 7 only, uncommitted tree, dev server, exploratory script) — **PASS**
+at Chromium and WebKit, 1440x900 and 390x844: `hostile-formula.ndjson` opened through **File ▾ → Open…**; Plate and
+Block rendered, Block 20 mm; the looped cube was the one broken History row (*… bound to "loopA", whose formula
+can't be used: its formula goes round in a circle: loopA → loopB → loopA*); 28 formula rows named their error, the
+5,000-character formula and the three reserved names were skipped by name in the load line; no `<img>` element,
+`window.__pwned` undefined, zero dialogs, zero off-origin requests, console clean. **Found and fixed by driving it:**
+a stored formula that does not parse was shown raw, so the right-to-left override in `h23` reached the row; the
+panel now shows control and direction characters as `�`. Not driven: Firefox, the assistant.
 **Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: a Cube and a Cylinder dropped at two points both stayed (2 bodies), and each Objects row selected only itself. Not driven: phone, WebKit.
 **Last run**: 2026-11-03 20:30 UTC (`render-007`, uncommitted tree) — **PARTIAL PASS**, Show hidden parts re-driven by hand at laptop 1440x900 and phone 390x844 Chromium (Library drag of a Cube and a Bolt over it, bolt selected, toggle on then off). The 3D view was byte-identical before and after toggle-off at both sizes; the shown frame differs, so the overlay drew. Steps 3–5 (the breadcrumb, the base/second-operand ordering and Subtract) were **not** re-driven in this check.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900, 820x1180 and 390x844 Chromium (real mouse at laptop, trusted CDP touch at tablet and phone, jittered Library drags): a Cube then a Cylinder, both remained (2 bodies); at laptop a click on open grid left 0 selected and a click on the cube selected one.
@@ -2856,12 +2864,30 @@ fully-rendered scene. Console clean.
    `e2e/fixtures/hostile-merge.ndjson` through **File ▾ → Open…**: a version-2 state line whose
    `merge` section carries a stamp counter of 9 × 10¹⁵, a `clock` of the same size and a
    `__proto__` tombstone. Then open a file whose state line says `"version":3`.
+7. *Hostile formulas (standing step, added by `core-078`).* Open `e2e/fixtures/hostile-formula.ndjson`
+   through **File ▾ → Open…**. It holds a Plate, a Block whose Size X is bound to a good formula
+   (`#plate-1.width / 2`), a cube bound to a formula loop (`loopA → loopB → loopA`), 25 hostile formulas
+   (`constructor.constructor("return this")()`, `__proto__.width`, `#__proto__.width`, `alert(1)`,
+   `fetch("x")`, `import("x")`, `window.location`, a backtick string, `a=1`, `()=>1`, `1;while(1);`, a
+   5,000-character formula, 600 `(`, 999 `-`, a 999-digit number, a Cyrillic look-alike name, a
+   right-to-left override and `</document_data>` and `<img onerror>` inside brackets), a variable named
+   `__proto__` (both kinds) and one named `constructor`, and a chain of 34 formulas, one past the cap.
+   Open **Variables** and read every row; open **History**.
 
 **Expect (step 6, `data-011`)**: the hostile-merge file is refused **by name** (*Couldn't open
 from-a-stranger.ndjson: project-state: merge: `clock` is above 1099511627776, which no clock
 reaches*), the project already open is untouched and no later edit can be starved of a turn; the
 version-3 file is refused with *This project was saved by a newer WarpCad. Update the app to
 open it. The file was not changed.* No dialog, console clean.
+
+**Expect (step 7, `core-078`)**: the file **opens**. Plate and Block render, the Block 20 mm wide (half the
+Plate); the looped cube is a broken History row naming the loop. Each hostile formula is a row, or a load
+warning, that says why it can't be used, by name; none has a value. `__proto__` and `constructor` are refused
+as names. In the 34-formula chain, `c32` and `c33` say they chain through more than 32 formulas; `c0`-`c31` work
+(`c31` is 32).
+Every bracketed name shows as literal characters, and a direction override shows as a visible marker, never
+reordering the row. `window.__pwned` stays undefined; zero dialogs, zero
+requests off the app's origin, console clean; the page stays responsive.
 
 **Expect**: A well-formed remote document loads and renders as expected (step 2). A
 malformed record in an otherwise-valid document is skipped and reported rather than
@@ -4610,5 +4636,57 @@ merge two Pis and read the suggested prefix; keep one Pi whole with **Hide this 
 
 **Last run**: 2026-11-02 21:03 UTC (`core-077`, uncommitted tree) — **PASS (partial)** at laptop 1440x900 Chromium, dev server, the owner's real file opened read-only (not saved): Group 1 and Clearances selected, Group pressed, prefix `clearance-` and **Hide these parts** ticked, Group pressed. Result: one body, Group 1, 50.8 × 22.86 × 11.84 mm, which matches the Hide-on size. The Parts list reads 21 entries: the 16 original parts, then the five `clearance-` parts, each tagged HIDDEN. The Inspector's "3 hidden" is the original file's Pads, Header16 and Header12, already hidden before the merge; the clearance parts are hidden by the merge. Steps 4–5 driven afterwards: the shell (60 × 30 × 20 mm, centred on the board) was the base, and `Group 1 › clearance-Screen clearance` then `clearance-Light clearance` were added as cutters through the Objects list's expander and part checks. Group 1 stayed at 50.8 × 22.86 × 11.84 mm, and the shell became Subtract 5 with visible pockets, the board showing through them. Undo ×8 went back to Group 1 and Clearances; Redo once restored the merge. Colours and hides checked: before the merge Clearances was whole-body red with no hidden parts and Group 1 had Pads, Header16 and Header12 view-hidden; after the seven undos both were back the same (Clearances red, no hidden parts). After Redo the merge had 21 parts with five HIDDEN, and under **Show hidden parts** the five clearances read red. Not checked: the pocket size against the clearance's own bounds (22.7 × 11.8 × 10 mm).
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** with the owner's real file on a dev server, real jittered pointer, fresh profiles: Chromium at 1440x900, 820x1180 and 390x844 (trusted CDP touch), 66/66 checks; WebKit at 390x844 touch, 22/22; Firefox at 1440x900, 22/22. Every Done means number held: one body named `Group 1`, 21 parts, 50.8 × 22.86 × 11.84 mm, `clearance-Screen clearance` 22.7 × 11.8 × 10 mm, no part moved, `Pads`/`Header16`/`Header12` hidden, the clearances red under **Show hidden parts**, two cuts each leaving the board, Undo restoring both operands and Redo the merge; Hide unticked gave 21 visible and 50.8 × 32.86 × 21.84 mm. Driven differently, PASS: `Clearances` first (named `Clearances`), a colliding prefix corrected, a moved and rotated group, one hidden whole, a third group, commit straight after a drag, a hidden part from the Objects list at phone width, a Cube before a Pi, two Pis (`Raspberry Pi 2-`, 66 parts), a Pi kept whole with **Hide this part**. **Found and fixed by driving it:** prefixed part rows all truncated to `clearance…`. **Not driven:** a real phone's on-screen keyboard (logged in `TODO/VERIFY.md`).
+
+### 33. Calculate a size from two parts
+
+Added by `core-078` (calculated variables). A new capability class: a value worked out from other parts'
+measured sizes, which follows them when they change.
+
+**Steps**:
+1. Drag in a Cube and name it `Base`. Set **Size X** to `60`. Drag in a second Cube and name it `Lid`;
+   leave **Size X** at `40`.
+2. With nothing selected, open **Variables**, press **+** and choose **Formula**. Name it `overhang`.
+3. Type `Base.width - (Lid.width / 2)`. The line below the box reads **= 40 mm**. Press **Create**.
+4. Drag in a third Cube. Press the link button beside **Size X** and choose `overhang`. The field
+   becomes a chip reading 40.
+5. Select `Base` and change **Size X** to `80`. The third cube's Size X becomes 60, and a line says what
+   changed. Press **Undo** once and it returns to 40.
+6. Move `Base` up with the gizmo (or its **Position Z**): a later step in the History.
+7. Add a second formula, `baseTop`, as `Base.max.z`, using **Insert…** (Base → The whole Base → Top face),
+   and bind the third cube's **Size Z** to it.
+8. Save, reload.
+
+*Drive it differently*: build the formula entirely with **Insert…** on a phone; type an unfinished formula
+and press Enter; measure a hidden part (a Pi's) and a name with a space (`[Cube 1]`); give two bodies the
+same name and read what the formula box says; bind a formula to a body placed **after** the one it measures,
+and to one placed before; delete `Base` and read the note under **Delete**, then Undo; **New formula from
+this value…** on a field; rename `overhang` from **⋯**.
+
+**Expect**:
+- Step 3: an unfinished formula names its error and the character it starts at, and **Create** stays off
+  until it works.
+- Step 4: one Undo step for the bind; the chip reads 40.
+- Step 5: the chip reads 60, the line reads *overhang 40 mm → 60 mm — 1 parameter on 1 part changed*, one
+  Undo restores 40 everywhere.
+- Step 6: moving Base changes nothing about `overhang` (width is unchanged) and **no** note appears.
+- Step 7: the third cube's Size Z is Base's top **as it stood above the third cube's step**; because Base was
+  moved later, the chip and the `baseTop` row carry *Reads Base before step N (…) changed it (uses … mm, now
+  … mm)*.
+- Step 8: both formulas, both chips, their values and the note come back.
+- At 390 px, 820 px and 1440 px: the form is in the Variables tab of the sheet on a phone, the box is full
+  width and 44 px or taller, **Insert…** is a bottom sheet, and nothing scrolls sideways.
+- Never: a formula that silently becomes 0, a chip showing the end-of-History value when its row used another,
+  or a formula's text rendered as markup.
+
+**Last run**: 2026-11-04 UTC (`core-078` Part 4, uncommitted tree, dev server, an exploratory script with a
+jittered real pointer and fresh profiles) — **PASS** at Chromium 1440x900, Chromium 820x1180 (touch) and WebKit
+390x844 (touch), 15/15 checks each: the unfinished formula named *at character 28* with **Create** off and Enter
+creating nothing; **= 40 mm**; the chip at 40, then 60 with *overhang 40 mm → 60 mm — 1 parameter on 1 part
+changed*, one Undo back to 40; Base moved 10 mm up by **Position Z** (not the gizmo) left `overhang` quiet;
+`baseTop` built entirely with **Insert…** (`Base.max.z`, **= 50 mm** at the end of the History) bound to the third
+cube's Size Z read **40** with *Reads Base before step 7 (Move Base) changed it (uses 40 mm, now 50 mm)* on the
+chip and on the row; after Saved and a reload both chips, values and the note came back; no sideways scroll;
+**Delete** on Base said *overhang and baseTop read Base. Deleting it breaks 2 parameters that use them.*; console
+clean. Not driven: a gizmo drag for step 6, a hidden part, duplicate names, Firefox.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
