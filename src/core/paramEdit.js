@@ -432,7 +432,7 @@ export function stepParamEditability(record) {
   if (record.op === 'asset.mesh' || record.op === 'import.mesh') return { editable: false, blockedBy: record.op }
   // A project variable (`TODO/core-050`) changes through `setVariable`, which validates its
   // kind, range and options — never through a generic step edit of its definition.
-  if (record.op === 'var.define') return { editable: false, blockedBy: record.op }
+  if (record.op === 'var.define' || record.op === 'var.derive') return { editable: false, blockedBy: record.op }
   // A boolean or a group: its geometry *is* its operands, and the params a user
   // would be editing do not exist. Section 15: "This step has no parameters".
   if (record.consumes !== undefined) return { editable: false, blockedBy: record.op }

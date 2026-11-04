@@ -32,8 +32,15 @@
  * (the real tab endpoint, per call), the chat path's fork → `mergeFrom` landing, and the
  * **Undo AI turn** inverse of each.
  *
+ * `TODO/FIND-core-078` adds, behind `--formulas`, the 24-body scene with 25 extra cubes — once with
+ * literal sizes, once with **50 measuring bindings** (each cube's X and Y bound to formulas that
+ * read the boards' and bolts' bounds) — so the difference is the fold time formulas add; and the
+ * hostile worst case, a file whose formula consumers exhaust `maxNodeVisitsPerFold`. The
+ * measuring rows are skipped on a build without `var.derive`, so the same command runs before.
+ *
  * Usage:
  *   node bench/fold-benchmark.mjs                 # all scenes, 11 runs each
+ *   node bench/fold-benchmark.mjs --formulas      # plus the formula scenes
  *   node bench/fold-benchmark.mjs --runs 21 --json /tmp/fold.json
  *   node bench/fold-benchmark.mjs --ai-turns --runs 5 [--ai-sizes 200,1000,5000] [--json /tmp/ai.json]
  *
@@ -65,6 +72,10 @@ const option = (flag, fallback) => {
 }
 const RUNS = Number(option('--runs', '11'))
 const JSON_OUT = option('--json')
+const FORMULAS = args.includes('--formulas')
+const ONLY_FORMULAS = args.includes('--only-formulas')
+/** `TODO/FIND-core-078`: `var.derive`, or undefined on a build from before it. */
+const FORMULA_OP = (await import('../src/core/variables.js')).FORMULA_OP
 
 /** @param {number[]} samples */
 function stats(samples) {
@@ -104,9 +115,42 @@ function twentyFourScene() {
   }).flat()
 }
 
+/**
+ * `TODO/FIND-core-078`: 25 cubes after the 24-body scene, each one's X and Y either literal or
+ * bound to one of five formulas that measure the boards and bolts — 50 measuring bindings.
+ *
+ * @param {boolean} bound
+ */
+function formulaScene(bound) {
+  const formulas = [
+    ['boardW', '#pit0.width / 10'],
+    ['boardD', '#pit1.depth / 10'],
+    ['boltH', '#boltt0.height / 3'],
+    ['stack', '(#pit2.max.z - #pit2.min.z) * 2'],
+    ['offset', '#pit3.center.x / 100 + 1'],
+  ]
+  const definitions = bound ? formulas.map(([name, formula]) => ({ id: `var-${name}`, op: FORMULA_OP, params: { name, formula } })) : []
+  const cubes = Array.from({ length: 25 }, (unused, index) => ({
+    id: `fc${index}`,
+    op: 'primitive.cuboid',
+    name: `Formula cube ${index + 1}`,
+    params: {
+      size: bound ? [{ $var: formulas[index % 5][0] }, { $var: formulas[(index + 1) % 5][0] }, 5] : [8, 8, 5],
+      center: [(index % 5) * 30, 700 + Math.floor(index / 5) * 30, 2.5],
+    },
+  }))
+  return [...twentyFourScene(), ...definitions, ...cubes]
+}
+
 const SCENES = {
-  'fillet-50 (data-004, 200 records)': filletScene(50),
-  '24-bodies (perf-001)': twentyFourScene(),
+  ...(ONLY_FORMULAS
+    ? {}
+    : {
+        'fillet-50 (data-004, 200 records)': filletScene(50),
+        '24-bodies (perf-001)': twentyFourScene(),
+      }),
+  ...(FORMULAS || ONLY_FORMULAS ? { '24-bodies + 25 cubes, literal sizes': formulaScene(false) } : {}),
+  ...((FORMULAS || ONLY_FORMULAS) && FORMULA_OP !== undefined ? { '24-bodies + 25 cubes, 50 measuring bindings': formulaScene(true) } : {}),
 }
 
 /** @param {readonly any[]} records */

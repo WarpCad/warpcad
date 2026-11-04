@@ -32,7 +32,7 @@ import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from '
 import { lookupEntry, normalizedParams, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
 import { currentParamsRecordOf } from './paramEdit.js'
 import { REPEAT_OP, moveRefusalText } from './repeat.js'
-import { bindabilityError, bindableParams, isBinding, resolveParams, variablesOf } from './variables.js'
+import { bindabilityError, bindableParams, isBinding, isFormula, resolveParams, variablesOf } from './variables.js'
 
 /** @typedef {import('./document.js').Body} Body */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -295,11 +295,17 @@ function fieldFor(key, value) {
  * builder can still draw — `0` inside a list, nothing for a whole value — and carries the
  * problem, so the chip's error state says why rather than the field silently vanishing.
  *
+ * A slot bound to a **measuring formula** (`TODO/FIND-core-078`) shows the value **its row
+ * used** — `used`, from `document.boundValuesOf` — never one re-derived here: the formula's
+ * table value is its value at the end of the log, which a later step may have changed.
+ *
  * @param {Record<string, any>} params The record's own params, bindings as written.
  * @param {ReadonlyMap<string, import('./variables.js').Variable> | undefined} variables
+ * @param {Readonly<Record<string, number | boolean | string>>} [used] What each bound slot's
+ *   row used, by path.
  * @returns {{ params: Record<string, any>, bound: Map<string, FieldBinding> }}
  */
-function shownParamsOf(params, variables) {
+function shownParamsOf(params, variables, used = undefined) {
   /** @type {Map<string, FieldBinding>} */
   const bound = new Map()
   if (variables === undefined) return { params, bound }
@@ -310,17 +316,22 @@ function shownParamsOf(params, variables) {
   for (const [key, value] of Object.entries(params)) {
     if (isBinding(value)) {
       const name = String(value.$var)
-      const problem = problems.get(key)
+      const rowValue = isFormula(variables.get(name)) && used !== undefined && Object.hasOwn(used, key) ? used[key] : undefined
+      const problem = rowValue === undefined ? problems.get(key) : undefined
       bound.set(key, problem === undefined ? { name } : { name, problem })
-      if (problem !== undefined) delete shown[key]
+      if (rowValue !== undefined) shown[key] = rowValue
+      else if (problem !== undefined) delete shown[key]
     } else if (Array.isArray(value) && value.some((entry) => isBinding(entry))) {
       const next = Array.isArray(shown[key]) ? shown[key].slice() : value.slice()
       value.forEach((entry, index) => {
         if (!isBinding(entry)) return
         const name = String(entry.$var)
-        const problem = problems.get(`${key}.${index}`)
-        bound.set(`${key}.${index}`, problem === undefined ? { name } : { name, problem })
-        if (problem !== undefined) next[index] = 0
+        const path = `${key}.${index}`
+        const rowValue = isFormula(variables.get(name)) && used !== undefined && Object.hasOwn(used, path) ? used[path] : undefined
+        const problem = rowValue === undefined ? problems.get(path) : undefined
+        bound.set(path, problem === undefined ? { name } : { name, problem })
+        if (rowValue !== undefined) next[index] = rowValue
+        else if (problem !== undefined) next[index] = 0
       })
       shown[key] = next
     }
@@ -472,9 +483,11 @@ export function rotationOf(body) {
  *   by default. A test passes a fake (CLAUDE.md: "always mock at the boundary").
  * @param {ReadonlyMap<string, import('./variables.js').Variable>} [variables] The project's
  *   variables (`TODO/ui-059`): a bound param shows the variable's value, marked bound.
+ * @param {Readonly<Record<string, number | boolean | string>>} [used] What each bound slot of
+ *   the shown record used at its row (`document.boundValuesOf`, `TODO/FIND-core-078`).
  * @returns {BodyDescription}
  */
-export function describeBody(body, ops = defaultRegistry, variables = undefined) {
+export function describeBody(body, ops = defaultRegistry, variables = undefined, used = undefined) {
   // `lookupEntry`, not `ops[body.op]`: a placed user part (`TODO/ui-055`) is a runtime entry
   // under `user.*`, reachable only through the real catalogue.
   const entry = lookupEntry(body.op, ops)
@@ -520,7 +533,7 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined)
   // record; the first edit does (`paramEdit.js`).
   const rawParams = repeat?.sourceParams ?? body.params ?? {}
   const own = shownEntry?.kind === 'composite' ? normalizedParams(shownOp, rawParams) : rawParams
-  const { params: shown, bound } = shownParamsOf(own, variables)
+  const { params: shown, bound } = shownParamsOf(own, variables, repeat === undefined ? used : undefined)
   return {
     id: body.id,
     name: body.name,
@@ -795,9 +808,10 @@ export function describeSelection(bodies, selectedIds, options = {}) {
           body: describeSubPart(body, subPart.partName, options.records ?? [], ops, variables),
         }
       }
-      const description = describeBody(body, ops, variables)
-      if (document === undefined) return { state: 'single', count: 1, body: description }
+      if (document === undefined) return { state: 'single', count: 1, body: describeBody(body, ops, variables) }
       const creation = currentParamsRecordOf(document.lineageOf(body.id))
+      const used = creation?.id === undefined ? undefined : document.boundValuesOf(creation.id)
+      const description = describeBody(body, ops, variables, used)
       return {
         state: 'single',
         count: 1,

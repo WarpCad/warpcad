@@ -481,11 +481,18 @@ import {
   VARIABLE_LIMITS,
   VARIABLE_OP,
   bindingCountOf,
+  bindingsOf,
+  formulaValuesAt,
+  isFormula,
+  isVariableOp,
+  measuringBindingOf,
   readVariables,
   resolveRecord,
   usesVariables,
   variableRecordError,
 } from './variables.js'
+import { FORMULA_LIMITS } from './formula.js'
+import { formulaReaderOf, quantityOf } from './formulaRead.js'
 import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { counterOfId, createClock, createProjectId, createReplicaId } from './replica.js'
@@ -964,6 +971,21 @@ export class ReplayRejection extends Error {
  * @property {(changes: readonly RecordRevision[], transaction: TransactionOptions, options?: { append?: readonly OpRecord[], remove?: readonly string[] }) => { scene: Scene }} reviseRecords
  * @property {() => import('./variables.js').Variable[]} variables `TODO/core-050`: the project
  *   variables the current fold resolved bindings against, in log order.
+ * @property {() => Map<string, import('./variables.js').FormulaResult>} formulaResults
+ *   `TODO/FIND-core-078`: what the last fold worked out for each formula variable — its value
+ *   (or error) at the end of the active log, and `varies`: rows that read it before a later
+ *   step changed what it measures. Fresh copies.
+ * @property {(recordId: string) => Readonly<Record<string, number | boolean | string>> | undefined} boundValuesOf
+ *   `TODO/FIND-core-078`: the value each bound slot of a folded row actually used, by slot path
+ *   (`size.0`) — for a measuring formula, the value at that row, which a chip shows. `undefined`
+ *   for a row with no bindings, or one not in the active fold.
+ * @property {(recordId: string | null) => import('./formula.js').FormulaRead} formulaReadAt
+ *   `TODO/FIND-core-078`: a formula reader for the bodies as they stand just above the row
+ *   `recordId` (or at the end of the active log, for `null`), as the fold reads them there.
+ * @property {() => import('./formula.js').FormulaLookup} formulaLookup `TODO/FIND-core-078`:
+ *   body names ↔ lineage-root ids for `formula.js`'s `formulaToStored`/`formulaToDisplay` —
+ *   every body the active fold built that is not deleted, consumed ones included (a formula
+ *   may measure a cutter that went into a Subtract).
  * @property {() => Map<string, OpRecord>} assets Every folded `asset.image` record, by id
  *   (`TODO/sketch-003`) — the reference photos sketch slices name. Never bodies.
  * @property {() => Map<string, OpRecord>} meshAssets Every folded top-level `asset.mesh`
@@ -1483,6 +1505,16 @@ function intentFor(transaction, record) {
 const DEFAULT_RESTORABLE_STEPS = 50
 
 /**
+ * A length for a sentence, in millimetres: at most three decimals, no trailing zeros.
+ *
+ * @param {number} valueMm
+ * @returns {string}
+ */
+function millimetres(valueMm) {
+  return String(Number(valueMm.toFixed(3)))
+}
+
+/**
  * Index every record in an entry list by id — including the ones a fold is
  * *skipping*, which is the point: the record a suppressed step's dependant is
  * missing is precisely one the derived indexes no longer hold.
@@ -1677,6 +1709,21 @@ export function createDocument(options = {}) {
    * @type {Map<string, import('./variables.js').Variable>}
    */
   let variableTable = new Map()
+  /**
+   * `TODO/FIND-core-078`: what the current fold worked out for measuring formulas — each one's
+   * value at the end of the active log, the values each binding row used, and the rows that
+   * read a value a later step changed. `null` when the log has no measuring formula. Derived,
+   * and put back with the rest when a re-fold is refused.
+   * @type {{ endValues: Map<string, import('./variables.js').FormulaOutcome>, rowValues: Map<string, Map<string, number>>, varies: Map<string, import('./variables.js').FormulaVaries[]> } | null}
+   */
+  let formulaState = null
+  /**
+   * `TODO/FIND-core-078`: per fold, set by {@link foldActive} while it folds when the log has a
+   * measuring formula — the shared node budget, the log positions a reader judges "above this
+   * row" by, and what each binding row read.
+   * @type {{ budget: { visits: number }, indexById: Map<string, number>, suppressedIds: Set<string>, activeCount: number, uses: { recordId: string, index: number, bindings: { path: string, name: string }[], values: Map<string, number>, reads: import('./formulaRead.js').FormulaReading[] }[] } | null}
+   */
+  let formulaFold = null
   let scene = emptyScene()
   /**
    * `TODO/core-061`: what each folded `pattern.repeat` built — members, broken members, members
@@ -2703,9 +2750,9 @@ export function createDocument(options = {}) {
     // lineage or a body, and is read by the fold from the log (`variables.js`), not from
     // here. Its shape is checked loudly, like a photo's; a duplicate name is the fold's to
     // report, because it depends on the rest of the log.
-    if (record.op === VARIABLE_OP) {
+    if (isVariableOp(record.op)) {
       const problem = variableRecordError(record)
-      if (problem !== null) throw new Error(`document.append: ${VARIABLE_OP} ${String(record.id)} refused — ${problem}`)
+      if (problem !== null) throw new Error(`document.append: ${record.op} ${String(record.id)} refused — ${problem}`)
       originById.set(/** @type {string} */ (record.id), origin)
       recordById.set(/** @type {string} */ (record.id), record)
       return
@@ -2966,7 +3013,19 @@ export function createDocument(options = {}) {
       cache: foldCache,
       policy: policyFor(resolution),
       seedName: view.nameOf(params.seed.id),
-      resolve: (step) => (usesVariables(step) ? resolveRecord(step, variableTable).record : step),
+      resolve: (step) => {
+        if (!usesVariables(step)) return step
+        // `TODO/FIND-core-078` (v1): a member has no row of its own to measure from, so a step
+        // bound to a measuring formula is refused by name rather than quietly measuring
+        // something other than its source did. A plain formula replays like any variable.
+        const measured = measuringBindingOf(step, variableTable)
+        if (measured !== null) {
+          throw new Error(
+            `a repeat can't replay ${measured.path}, which is bound to "${measured.name}" — that formula measures parts, and a repeated step has no place in the history to measure them from`
+          )
+        }
+        return resolveRecord(step, variableTable).record
+      },
       passedThrough: (id) => passedThroughIds.has(id),
       memberState: (target) => {
         const when = params.when?.[target]
@@ -3041,6 +3100,7 @@ export function createDocument(options = {}) {
       mergedInto: new Map(mergedInto),
       recordById: new Map(recordById),
       variableTable,
+      formulaState,
       scene,
       repeatStatusById: new Map(repeatStatusById),
       passedThroughIds: new Set(passedThroughIds),
@@ -3056,6 +3116,7 @@ export function createDocument(options = {}) {
     mergedInto.clear()
     recordById.clear()
     variableTable = new Map()
+    formulaState = null
     scene = emptyScene()
     repeatStatusById = new Map()
     passedThroughIds = new Set()
@@ -3067,6 +3128,7 @@ export function createDocument(options = {}) {
     for (const [key, value] of snapshot.mergedInto) mergedInto.set(key, value)
     for (const [key, value] of snapshot.recordById) recordById.set(key, value)
     variableTable = snapshot.variableTable
+    formulaState = snapshot.formulaState
     scene = snapshot.scene
     repeatStatusById = new Map(snapshot.repeatStatusById)
     passedThroughIds = new Set(snapshot.passedThroughIds)
@@ -3373,17 +3435,22 @@ export function createDocument(options = {}) {
     // `TODO/core-050`: the project variables, read once from the whole active log — so a
     // binding resolves whether its variable is defined before or after it.
     const usesVars = nextEntries.some((entry) => usesVariables(entry.record))
-    const { variables, problems: variableProblems } = usesVars
-      ? readVariables(nextEntries, activeCount)
-      : { variables: new Map(), problems: new Map() }
+    // `TODO/FIND-core-078`: one node budget for every formula this fold works out, plain and
+    // measuring alike, so what a file can cost is bounded whatever it says.
+    const budget = { visits: FORMULA_LIMITS.maxNodeVisitsPerFold }
+    const { variables, problems: variableProblems, measuring } = usesVars
+      ? readVariables(nextEntries, activeCount, { budget })
+      : { variables: new Map(), problems: new Map(), measuring: false }
     variableTable = variables
+    formulaState = null
+    formulaFold = measuring ? formulaFoldOf(nextEntries, activeCount, budget) : null
     const context = nextEntries.some((entry) => entry.record.when !== undefined || hasMemberConditions(entry.record))
       ? conditionContextOf(nextEntries, activeCount, variables)
       : null
     // `TODO/core-061`: what a repeat row needs from the whole active log, not just its prefix.
     foldContext = context
     foldDeletedRoots = new Set()
-    if (nextEntries.some((entry) => entry.record.op === REPEAT_OP)) {
+    if (measuring || nextEntries.some((entry) => entry.record.op === REPEAT_OP)) {
       for (let index = 0; index < activeCount && index < nextEntries.length; index += 1) {
         const entry = nextEntries[index]
         if (entry.suppressed === true || entry.record.op !== DELETE_OP || typeof entry.record.supersedes !== 'string') continue
@@ -3391,7 +3458,7 @@ export function createDocument(options = {}) {
       }
     }
     try {
-      return foldActiveRows(nextEntries, activeCount, byId, tolerateAll, {
+      const outcome = foldActiveRows(nextEntries, activeCount, byId, tolerateAll, {
         tolerated,
         broken,
         inactive,
@@ -3401,10 +3468,142 @@ export function createDocument(options = {}) {
         usesVars,
         context,
       })
+      if (formulaFold !== null) formulaState = settleFormulas(nextEntries, activeCount, byId, variables, formulaFold, { inactive, broken, skipped })
+      return outcome
     } finally {
       foldContext = null
       foldDeletedRoots = new Set()
+      formulaFold = null
     }
+  }
+
+  /**
+   * The per-fold formula state for a log with a measuring formula (`TODO/FIND-core-078`).
+   *
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} activeCount
+   * @param {{ visits: number }} budget
+   * @returns {NonNullable<typeof formulaFold>}
+   */
+  function formulaFoldOf(nextEntries, activeCount, budget) {
+    /** @type {Map<string, number>} */
+    const indexById = new Map()
+    /** @type {Set<string>} */
+    const suppressedIds = new Set()
+    nextEntries.forEach((entry, index) => {
+      const id = entry.record.id
+      if (id === undefined) return
+      if (!indexById.has(id)) indexById.set(id, index)
+      if (entry.suppressed === true) suppressedIds.add(id)
+    })
+    return { budget, indexById, suppressedIds, activeCount, uses: [] }
+  }
+
+  /**
+   * A formula reader for the fold **as it stands now** — so called from row `atIndex` it reads
+   * exactly "this lineage as of this row" (`terminalByRoot`, never `currentIdOf`, which walks a
+   * consumed cutter through to the boolean that absorbed it).
+   *
+   * @param {number} atIndex
+   * @param {Map<string, OpRecord>} byId
+   * @param {NonNullable<typeof formulaFold>} fold
+   * @param {{ inactive: Map<string, InactiveBy>, broken: Map<string, string>, skipped: Map<string, string> }} left
+   * @param {import('./formulaRead.js').FormulaReading[]} [reads] Appended to, one per read.
+   * @returns {import('./formula.js').FormulaRead}
+   */
+  function foldReaderAt(atIndex, byId, fold, left, reads) {
+    return formulaReaderOf({
+      atIndex,
+      activeCount: fold.activeCount,
+      rootOf: (id) => (byId.has(id) ? rootIdIn(id, byId) : undefined),
+      indexOf: (root) => fold.indexById.get(root) ?? -1,
+      suppressed: (root) => fold.suppressedIds.has(root),
+      deleted: (root) => foldDeletedRoots.has(root),
+      leftOut: (root) => (left.inactive.has(root) ? 'condition' : 'broken'),
+      terminalOf: (root) => (rootById.get(root) === root ? terminalByRoot.get(root) ?? root : undefined),
+      geometryOf: (id) => scene.byId.get(id),
+      nameOf: (root) => displayNameOf(root, byId),
+      ...(reads !== undefined ? { onRead: (/** @type {import('./formulaRead.js').FormulaReading} */ reading) => reads.push(reading) } : {}),
+    })
+  }
+
+  /**
+   * After the rows (`TODO/FIND-core-078`): each measuring formula's value at the end of the
+   * active log, the value each binding row used, and — only where the two really differ — a
+   * `varies` entry naming the later step that changed what the row read. Silent would be the
+   * "wrong geometry, no error" class; moving Base changes `Base.max.z` but not `Base.width`, and
+   * only the first is reported.
+   *
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} activeCount
+   * @param {Map<string, OpRecord>} byId
+   * @param {Map<string, import('./variables.js').Variable>} variables
+   * @param {NonNullable<typeof formulaFold>} fold
+   * @param {{ inactive: Map<string, InactiveBy>, broken: Map<string, string>, skipped: Map<string, string> }} left
+   * @returns {NonNullable<typeof formulaState>}
+   */
+  function settleFormulas(nextEntries, activeCount, byId, variables, fold, left) {
+    const names = [...variables.values()].filter((variable) => isFormula(variable) && variable.measuring === true).map((variable) => variable.name)
+    const endValues = formulaValuesAt(names, variables, { read: foldReaderAt(activeCount, byId, fold, left), budget: fold.budget })
+    /** @type {Map<string, Map<string, number>>} */
+    const rowValues = new Map()
+    /** @type {Map<string, import('./variables.js').FormulaVaries[]>} */
+    const varies = new Map()
+    for (const use of fold.uses) {
+      rowValues.set(use.recordId, use.values)
+      for (const { path, name } of use.bindings) {
+        const used = use.values.get(name)
+        const end = endValues.get(name)
+        if (used === undefined || end === undefined || !('value' in end)) continue
+        if (Math.abs(end.value - used) <= 1e-9 * Math.max(1, Math.abs(used))) continue
+        const change = laterChangeOf(nextEntries, activeCount, use)
+        const what = change === null ? 'a part' : change.bodyName
+        const when = change === null ? 'a later step' : `step ${change.step} (${change.label})`
+        const list = varies.get(name) ?? []
+        list.push({
+          recordId: use.recordId,
+          path,
+          valueMm: used,
+          nowMm: end.value,
+          atStep: use.index + 1,
+          ...(change !== null ? { changedAtStep: change.step } : {}),
+          note: `Reads ${what} before ${when} changed it (uses ${millimetres(used)} mm, now ${millimetres(end.value)} mm)`,
+        })
+        varies.set(name, list)
+      }
+    }
+    return { endValues, rowValues, varies }
+  }
+
+  /**
+   * The first later step that changed something a row read, or `null`: walk each read body's
+   * lineage past the row, measuring each folded record, until one gives a different number.
+   *
+   * @param {readonly DocumentEntry[]} nextEntries
+   * @param {number} activeCount
+   * @param {NonNullable<typeof formulaFold>['uses'][number]} use
+   * @returns {{ step: number, label: string, bodyName: string } | null}
+   */
+  function laterChangeOf(nextEntries, activeCount, use) {
+    for (const reading of use.reads) {
+      for (let index = use.index + 1; index < activeCount && index < nextEntries.length; index += 1) {
+        const entry = nextEntries[index]
+        const id = entry.record.id
+        if (entry.suppressed === true || id === undefined || rootById.get(id) !== reading.root || recordById.get(id) !== entry.record) continue
+        const geometry = scene.byId.get(id)
+        if (geometry === undefined) continue
+        /** @type {number | null} */
+        let now = null
+        try {
+          now = quantityOf(geometry, reading.part, reading.quantity)
+        } catch {
+          // Emptied by a later step: that step changed it.
+        }
+        if (now !== null && Math.abs(now - reading.value) <= 1e-9 * Math.max(1, Math.abs(reading.value))) continue
+        return { step: index + 1, label: labelFor([entry.record]), bodyName: currentNameOfRoot(reading.root) ?? reading.root }
+      }
+    }
+    return null
   }
 
   /**
@@ -3425,6 +3624,33 @@ export function createDocument(options = {}) {
     } finally {
       repeatTolerant = false
     }
+  }
+
+  /**
+   * Fold step 4 for a log with a measuring formula (`TODO/FIND-core-078`): resolve the row's
+   * bindings with a reader for the bodies just above it, and keep what it read — the value each
+   * formula had here (for `boundValuesOf` and the varies report) and each part reading.
+   *
+   * @param {OpRecord} record
+   * @param {Map<string, import('./variables.js').Variable>} variables
+   * @param {string} recordName
+   * @param {number} index
+   * @param {Map<string, OpRecord>} byId
+   * @param {{ inactive: Map<string, InactiveBy>, broken: Map<string, string>, skipped: Map<string, string> }} left
+   * @returns {import('./variables.js').ResolveOutcome}
+   */
+  function resolveMeasured(record, variables, recordName, index, byId, left) {
+    const fold = /** @type {NonNullable<typeof formulaFold>} */ (formulaFold)
+    /** @type {import('./formulaRead.js').FormulaReading[]} */
+    const reads = []
+    const outcome = resolveRecord(record, variables, { recordName, read: foldReaderAt(index, byId, fold, left, reads), budget: fold.budget })
+    if (outcome.errors.length === 0 && outcome.formulaValues !== undefined && record.id !== undefined) {
+      /** @type {Map<string, number>} */
+      const values = new Map()
+      for (const [name, value] of outcome.formulaValues) if ('value' in value) values.set(name, value.value)
+      fold.uses.push({ recordId: record.id, index, bindings: bindingsOf(record), values, reads })
+    }
+    return outcome
   }
 
   /**
@@ -3466,7 +3692,7 @@ export function createDocument(options = {}) {
       // 0. A project variable (`TODO/core-050`) builds nothing. One that cannot be used — a
       //    bad name, a second definition of a name — is a broken row, never a refused log,
       //    and every binding to it is then reported by name below.
-      if (record.op === VARIABLE_OP) {
+      if (isVariableOp(record.op)) {
         const problem = variableProblems.get(key)
         if (problem !== undefined) {
           broken.set(key, `variable can't be used: ${problem}`)
@@ -3554,7 +3780,9 @@ export function createDocument(options = {}) {
                   `${recordName} is past this project's limit of ${VARIABLE_LIMITS.maxBindingsPerDocument} variable bindings`,
                 ],
               }
-            : resolveRecord(record, variables, { recordName })
+            : formulaFold === null
+              ? resolveRecord(record, variables, { recordName })
+              : resolveMeasured(record, variables, recordName, index, byId, { inactive, broken, skipped })
         if (outcome.errors.length > 0) {
           broken.set(key, `binding can't be resolved: ${outcome.errors[0]}`)
           const creates = record.supersedes === undefined && record.consumes === undefined
@@ -4157,9 +4385,9 @@ export function createDocument(options = {}) {
       return subjectName === undefined ? 'Reset color' : `Reset color of ${subjectName}`
     }
     // `TODO/core-050`: a variable definition is named by the variable, not placed.
-    if (record.op === VARIABLE_OP) {
+    if (isVariableOp(record.op)) {
       const name = typeof record.params?.name === 'string' ? record.params.name : record.id ?? 'variable'
-      return `Define ${name}`
+      return record.op === VARIABLE_OP ? `Define ${name}` : `Calculate ${name}`
     }
     if (record.op === REMOVE_PART_OP) {
       const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
@@ -5775,7 +6003,111 @@ export function createDocument(options = {}) {
      * against, in log order — fresh copies, never the fold's own table.
      */
     variables() {
-      return [...variableTable.values()].map((variable) => ({ ...variable }))
+      const results = document.formulaResults()
+      return [...variableTable.values()].map((variable) => {
+        const result = results.get(variable.name)
+        if (result === undefined) return { ...variable }
+        const { value: _value, error: _error, ...rest } = variable
+        return {
+          ...rest,
+          ...(result.value !== undefined ? { value: result.value } : {}),
+          ...(result.error !== undefined ? { error: result.error } : {}),
+          varies: result.varies,
+        }
+      })
+    },
+
+    /**
+     * `TODO/FIND-core-078`: each formula variable's outcome at the end of the active log, and
+     * the rows that read it before a later change — fresh copies.
+     */
+    formulaResults() {
+      /** @type {Map<string, import('./variables.js').FormulaResult>} */
+      const results = new Map()
+      for (const variable of variableTable.values()) {
+        if (!isFormula(variable)) continue
+        const end = formulaState?.endValues.get(variable.name)
+        const outcome = end ?? (variable.error !== undefined ? { error: variable.error } : typeof variable.value === 'number' ? { value: variable.value } : undefined)
+        results.set(variable.name, {
+          ...(outcome !== undefined && 'value' in outcome ? { value: outcome.value } : {}),
+          ...(outcome !== undefined && 'error' in outcome ? { error: outcome.error } : {}),
+          varies: (formulaState?.varies.get(variable.name) ?? []).map((entry) => ({ ...entry })),
+        })
+      }
+      return results
+    },
+
+    /** `TODO/FIND-core-078`: the value each bound slot of a folded row used. */
+    boundValuesOf(recordId) {
+      const record = recordById.get(recordId)
+      if (record === undefined) return undefined
+      const bindings = bindingsOf(record)
+      if (bindings.length === 0) return undefined
+      const measured = formulaState?.rowValues.get(recordId)
+      /** @type {Record<string, number | boolean | string>} */
+      const values = {}
+      for (const { path, name } of bindings) {
+        const value = measured?.get(name) ?? variableTable.get(name)?.value
+        if (value !== undefined) Object.defineProperty(values, path, { value, enumerable: true, writable: true, configurable: true })
+      }
+      return values
+    },
+
+    /** `TODO/FIND-core-078`: a formula reader as of one row, after the fold. */
+    formulaReadAt(recordId) {
+      const activeCount = rollbackAt ?? entries.length
+      let atIndex = activeCount
+      if (recordId !== null) {
+        atIndex = indexOfRecord(recordId)
+        if (atIndex === -1) throw new Error(`document.formulaReadAt: there is no step "${recordId}"`)
+      }
+      const byId = recordMapOf(entries)
+      /** @type {Map<string, number>} */
+      const indexById = new Map()
+      /** @type {Set<string>} */
+      const suppressedIds = new Set()
+      /** Lineage root → the last folded record of it above `atIndex`. */
+      /** @type {Map<string, string>} */
+      const lastAbove = new Map()
+      /** @type {Set<string>} */
+      const deleted = new Set()
+      entries.forEach((entry, index) => {
+        const id = entry.record.id
+        if (id === undefined) return
+        if (!indexById.has(id)) indexById.set(id, index)
+        if (entry.suppressed === true) {
+          suppressedIds.add(id)
+          return
+        }
+        if (index >= activeCount) return
+        if (entry.record.op === DELETE_OP && typeof entry.record.supersedes === 'string') deleted.add(rootIdIn(entry.record.supersedes, byId))
+        const root = rootById.get(id)
+        if (index < atIndex && root !== undefined && recordById.get(id) === entry.record && scene.byId.has(id)) lastAbove.set(root, id)
+      })
+      return formulaReaderOf({
+        atIndex,
+        activeCount,
+        rootOf: (id) => (byId.has(id) ? rootIdIn(id, byId) : undefined),
+        indexOf: (root) => indexById.get(root) ?? -1,
+        suppressed: (root) => suppressedIds.has(root),
+        deleted: (root) => deleted.has(root),
+        leftOut: (root) => (inactiveById.has(root) ? 'condition' : 'broken'),
+        terminalOf: (root) => lastAbove.get(root),
+        geometryOf: (id) => scene.byId.get(id),
+        nameOf: (root) => displayNameOf(root, byId),
+      })
+    },
+
+    /** `TODO/FIND-core-078`: body names ↔ root ids for the formula printer. */
+    formulaLookup() {
+      return {
+        idsNamed: (name) => rootOrder.filter((root) => !isDeletedRoot(root) && currentNameOfRoot(root) === name),
+        nameOf: (id) => (rootById.has(id) ? currentNameOfRoot(id) ?? null : null),
+        rootOf: (id) => {
+          const root = rootById.get(id)
+          return root === undefined || isDeletedRoot(root) ? null : root
+        },
+      }
     },
 
     /**

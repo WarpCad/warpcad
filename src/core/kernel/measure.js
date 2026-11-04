@@ -92,6 +92,25 @@ export function cachedMeasurementOf(geometry) {
   return cache.get(geometry)
 }
 
+/** @type {WeakMap<object, BoundsMm>} */
+const boundsCache = new WeakMap()
+
+/**
+ * A body's or part's world-axis box, memoised by geometry object (`TODO/FIND-core-078`): a
+ * formula may read the same body at every row that binds it, and a group with holes measures
+ * through a union. Immutable geometry makes identity "unchanged", as for {@link cachedMeasurementOf}.
+ *
+ * @param {Geom3 | Group} geometry
+ * @returns {BoundsMm}
+ */
+export function memoBoundsOf(geometry) {
+  const known = boundsCache.get(geometry)
+  if (known !== undefined) return known
+  const bounds = boundsOf(geometry)
+  boundsCache.set(geometry, bounds)
+  return bounds
+}
+
 /**
  * Record a measurement for a geometry object — from the worker, or from the fallback.
  *

@@ -33,6 +33,28 @@
  * the enclosure first and defines `piModel` second must still be able to bind to it. A
  * variable never depends on a record, so reading one can never make a cycle.
  *
+ * ## Formula variables (`TODO/FIND-core-078`)
+ *
+ * A `var.derive` record holds a **formula** (`src/core/formula.js`) instead of a value: a
+ * number worked out from other variables and from the measured bounds of bodies and parts.
+ * Nothing computed is stored — no value, no tree — and the text is re-parsed on every read.
+ * It is bound exactly like any variable, `{ "$var": "overhang" }`; a formula never sits in a
+ * param slot. It shares the variable namespace (first definition of a name wins) and the
+ * `maxVariables` cap.
+ *
+ * Two tiers. A **plain** formula reads no part, directly or through another formula: it is
+ * worked out once here in {@link readVariables}, in dependency order, independent of where it
+ * sits in the log, exactly like a `var.define`. Formula-to-formula loops are found here and
+ * named (`a → b → a`). A **measuring** formula reads a part: it has no value of its own and
+ * is worked out **at each row that binds it**, against the bodies as they stand just above
+ * that row ({@link resolveRecord} with a `read`, `document.js`'s fold step 4). So the old
+ * rule, "a variable never depends on a record", now holds for the plain tier only; the row
+ * order is what keeps the measuring tier free of cycles — a row can only read rows above it.
+ *
+ * A formula that cannot be used stays in the table with its `error`, so a binding says
+ * "bound to overhang, whose formula can't be used: …", never "not defined". Its result goes
+ * through the same slot checks as a literal (Security item 8).
+ *
  * ## A binding that cannot be resolved is reported, never guessed
  *
  * A missing variable, a wrong kind, a value outside the param's own limits, an enum value
@@ -45,6 +67,18 @@
  * @module core/variables
  */
 
+import {
+  FORMULA_LIMITS,
+  FormulaError,
+  checkFormula,
+  evaluateFormula,
+  formulaReferences,
+  formulaToDisplay,
+  formulaToStored,
+  parseFormula,
+  printFormula,
+  rewriteFormula,
+} from './formula.js'
 import { lookupEntry, paramOptions } from './kernel/registry.js'
 import { isReservedStepParam, stepParamEditability } from './paramEdit.js'
 
@@ -59,8 +93,21 @@ import { isReservedStepParam, stepParamEditability } from './paramEdit.js'
 /** The op of a variable definition record. */
 export const VARIABLE_OP = 'var.define'
 
+/** The op of a formula variable (`TODO/FIND-core-078`). */
+export const FORMULA_OP = 'var.derive'
+
 /** Every op in the variable family starts with this; a newer one is skipped on load. */
 export const VARIABLE_OP_PREFIX = 'var.'
+
+/**
+ * Is this one of the variable ops this build knows — a value or a formula?
+ *
+ * @param {unknown} op
+ * @returns {boolean}
+ */
+export function isVariableOp(op) {
+  return op === VARIABLE_OP || op === FORMULA_OP
+}
 
 /** The one key a binding object carries. */
 export const BINDING_KEY = '$var'
@@ -97,16 +144,54 @@ const MAX_WALK_DEPTH = 32
 /**
  * A variable as the fold reads it — the definition record's params, plus its record id.
  *
+ * A formula variable (`formula` present) is always `kind: 'number'`. Its `value` is absent when
+ * it cannot be used (`error` says why) and, before a fold, when it is `measuring` — its value
+ * then depends on the row that reads it, and {@link variablesOf} fills in the value at the end
+ * of the active log.
+ *
  * @typedef {object} Variable
- * @property {string} id The `var.define` record's id.
+ * @property {string} id The `var.define` or `var.derive` record's id.
  * @property {string} name
  * @property {'number' | 'boolean' | 'enum'} kind
- * @property {number | boolean | string} value
+ * @property {number | boolean | string} [value]
  * @property {string} [label]
  * @property {'mm' | 'deg' | ''} [unit]
  * @property {number} [min]
  * @property {number} [max]
  * @property {readonly VariableOption[]} [options]
+ * @property {string} [formula] The stored formula text (bodies as `#id`).
+ * @property {boolean} [measuring] It reads a part, directly or through another formula.
+ * @property {string} [error] Why the formula cannot be used.
+ * @property {readonly FormulaVaries[]} [varies] Where a row read a value that later changed
+ *   (from {@link variablesOf} only).
+ */
+
+/**
+ * A row that read a measuring formula before a later step changed what it measures.
+ *
+ * @typedef {object} FormulaVaries
+ * @property {string} recordId The row that binds the formula.
+ * @property {string} path The bound slot.
+ * @property {number} valueMm What that row used.
+ * @property {number} nowMm The formula's value at the end of the active log.
+ * @property {number} atStep The binding row's 1-based step.
+ * @property {number} [changedAtStep] The 1-based step that changed it, when one can be named.
+ * @property {string} note `Reads Base before step 12 (Move Base) changed it (uses 34 mm, now 41 mm)`.
+ */
+
+/**
+ * A formula's outcome at one row: its value, or why it has none.
+ *
+ * @typedef {{ value: number } | { error: string }} FormulaOutcome
+ */
+
+/**
+ * What a document's last fold worked out for each formula (`TODO/FIND-core-078`).
+ *
+ * @typedef {object} FormulaResult
+ * @property {number} [value] At the end of the active log.
+ * @property {string} [error]
+ * @property {FormulaVaries[]} varies
  */
 
 /**
@@ -140,7 +225,8 @@ const MAX_WALK_DEPTH = 32
  * @typedef {object} VariableConsumer
  * @property {string} recordId
  * @property {string} name The record's display name — its own, else its id.
- * @property {'binding' | 'condition'} kind
+ * @property {'binding' | 'condition' | 'formula'} kind `formula`: a `var.derive` whose formula
+ *   names the variable (`name` is then the formula's own name).
  * @property {string} [path] For a binding, the slot it fills.
  */
 
@@ -313,9 +399,52 @@ export function variableDefinitionError(definition) {
 }
 
 /**
- * Why a whole `var.define` record is malformed, or `null` — its params, plus the record
- * fields a definition may never carry (it builds nothing, continues no lineage, reads
- * nothing, and is never conditional).
+ * Why a formula definition (a `var.derive` record's params) is malformed, or `null`
+ * (`TODO/FIND-core-078`). Only its **shape**: a name, formula text of at most
+ * `FORMULA_LIMITS.maxLength` characters, and a `number` variable's optional label, unit and
+ * range. Whether the text parses, type-checks and evaluates is {@link readVariables}'s — a
+ * formula with a problem in its text is kept, with that problem, so it can be fixed.
+ *
+ * @param {unknown} definition
+ * @returns {string | null}
+ */
+export function formulaDefinitionError(definition) {
+  if (!isPlainObject(definition)) return 'a formula definition must be an object'
+  const nameError = variableNameError(definition.name)
+  if (nameError !== null) return nameError
+  const { name, formula } = definition
+  if (typeof formula !== 'string') return `formula "${name}" must be text, got ${typeof formula}`
+  if (formula.length > FORMULA_LIMITS.maxLength) {
+    return `formula "${name}" is ${formula.length} characters long — at most ${FORMULA_LIMITS.maxLength}`
+  }
+  if (definition.label !== undefined) {
+    if (typeof definition.label !== 'string') return `formula "${name}": its label must be text`
+    if (definition.label.length > VARIABLE_LIMITS.maxLabelLength) {
+      return `formula "${name}": its label is longer than ${VARIABLE_LIMITS.maxLabelLength} characters`
+    }
+  }
+  if (definition.unit !== undefined && !VARIABLE_UNITS.includes(definition.unit)) {
+    return `formula "${name}": unit ${JSON.stringify(definition.unit)} is not one of mm, deg or none`
+  }
+  for (const key of /** @type {const} */ (['min', 'max'])) {
+    const limit = definition[key]
+    if (limit !== undefined && (typeof limit !== 'number' || !Number.isFinite(limit))) {
+      return `formula "${name}": ${key} must be a finite number`
+    }
+  }
+  if (definition.min !== undefined && definition.max !== undefined && definition.min > definition.max) {
+    return `formula "${name}": min ${definition.min} is above max ${definition.max}`
+  }
+  const allowed = new Set(['name', 'formula', 'label', 'unit', 'min', 'max'])
+  const stranger = Object.keys(definition).find((key) => !allowed.has(key))
+  if (stranger !== undefined) return `formula "${name}" has an unknown field ${JSON.stringify(stranger.slice(0, 40))}`
+  return null
+}
+
+/**
+ * Why a whole `var.define` or `var.derive` record is malformed, or `null` — its params, plus
+ * the record fields a definition may never carry (it builds nothing, continues no lineage,
+ * reads nothing, and is never conditional).
  *
  * @param {OpRecord} record
  * @returns {string | null}
@@ -327,7 +456,7 @@ export function variableRecordError(record) {
       return `a variable definition may not carry \`${field}\` — it builds nothing and reads nothing`
     }
   }
-  return variableDefinitionError(record.params)
+  return record.op === FORMULA_OP ? formulaDefinitionError(record.params) : variableDefinitionError(record.params)
 }
 
 /**
@@ -448,24 +577,93 @@ export function usesVariables(record) {
 // --- reading the table ------------------------------------------------------------
 
 /**
+ * What the fold keeps about a formula beside its {@link Variable}: the tree it parsed, the
+ * formulas it reads, and the names it reads at all. Keyed by the frozen variable object, so a
+ * copy (`{ ...variable }`) never carries it out of this module.
+ *
+ * @typedef {object} FormulaInternals
+ * @property {import('./formula.js').FormulaNode} tree
+ * @property {string[]} names Every variable the formula names.
+ * @property {string[]} formulas The named variables that are formulas.
+ */
+
+/** @type {WeakMap<object, FormulaInternals>} */
+const formulaInternals = new WeakMap()
+
+/**
+ * Is this variable a formula (`var.derive`)?
+ *
+ * @param {Variable | undefined} variable
+ * @returns {boolean}
+ */
+export function isFormula(variable) {
+  return variable !== undefined && typeof variable.formula === 'string'
+}
+
+/**
+ * A name for an error message: control and direction characters removed, cut to 60.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function quoted(text) {
+  const clean = String(text).replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+  return clean.length > 60 ? `${clean.slice(0, 60)}…` : clean
+}
+
+/**
+ * Why a formula's value is outside its own `min`/`max`, or `null`. They never clamp.
+ *
+ * @param {Variable} variable
+ * @param {number} value
+ * @returns {string | null}
+ */
+function rangeProblem(variable, value) {
+  const { min, max } = variable
+  if ((min !== undefined && value < min) || (max !== undefined && value > max)) {
+    return `"${variable.name}" works out to ${value}, outside its own range ${min ?? '-∞'} to ${max ?? '∞'}`
+  }
+  return null
+}
+
+/**
+ * @param {unknown} error
+ * @returns {string}
+ */
+function formulaMessage(error) {
+  if (error instanceof FormulaError) return error.message
+  throw error
+}
+
+/**
  * Every usable variable in a log, by name, and why each unusable definition is not.
  *
  * Only the **active** part counts — before the rollback marker, not suppressed — the same
  * rows the fold reads. The first definition of a name wins; a later one is a problem
  * (`problems` is keyed by record id, or `#<step>` for a record with none).
  *
+ * Formulas (`TODO/FIND-core-078`) are parsed from their text here, every time, type-checked,
+ * checked for loops and for chains past `FORMULA_LIMITS.maxChainDepth`, and the plain ones
+ * worked out in dependency order. A formula that fails any of that is in the table with its
+ * `error`; a measuring one has no `value` (`measuring: true` says why). `measuring` in the
+ * result says whether any usable formula measures parts, so the fold knows to build a reader.
+ *
  * @param {readonly DocumentEntry[]} entries
  * @param {number} [activeCount]
- * @returns {{ variables: Map<string, Variable>, problems: Map<string, string> }}
+ * @param {{ budget?: { visits: number } }} [options] `budget`: node visits shared with the rest
+ *   of one fold (`FORMULA_LIMITS.maxNodeVisitsPerFold`); a fresh one by default.
+ * @returns {{ variables: Map<string, Variable>, problems: Map<string, string>, measuring: boolean }}
  */
-export function readVariables(entries, activeCount = entries.length) {
+export function readVariables(entries, activeCount = entries.length, options = {}) {
   /** @type {Map<string, Variable>} */
   const variables = new Map()
   /** @type {Map<string, string>} */
   const problems = new Map()
+  /** @type {string[]} */
+  const formulaNames = []
   for (let index = 0; index < activeCount && index < entries.length; index += 1) {
     const entry = entries[index]
-    if (entry.suppressed === true || entry.record?.op !== VARIABLE_OP) continue
+    if (entry.suppressed === true || !isVariableOp(entry.record?.op)) continue
     const { record } = entry
     const key = record.id ?? `#${index + 1}`
     const problem = variableRecordError(record)
@@ -482,19 +680,248 @@ export function readVariables(entries, activeCount = entries.length) {
       problems.set(key, `a project holds at most ${VARIABLE_LIMITS.maxVariables} variables`)
       continue
     }
+    if (record.op === FORMULA_OP) {
+      formulaNames.push(params.name)
+      variables.set(params.name, /** @type {Variable} */ (Object.freeze({ id: /** @type {string} */ (record.id), ...params, kind: 'number' })))
+      continue
+    }
     variables.set(params.name, /** @type {Variable} */ (Object.freeze({ id: /** @type {string} */ (record.id), ...params })))
   }
-  return { variables, problems }
+  if (formulaNames.length === 0) return { variables, problems, measuring: false }
+  const measuring = settleFormulas(variables, formulaNames, options.budget ?? { visits: FORMULA_LIMITS.maxNodeVisitsPerFold })
+  return { variables, problems, measuring }
+}
+
+/**
+ * Parse, check, order and (for the plain tier) evaluate every formula in `variables`,
+ * replacing each placeholder entry with its settled, frozen one. Linear in the formulas and
+ * their references: each is parsed once, each edge walked once, each plain formula
+ * evaluated once against values already worked out.
+ *
+ * @param {Map<string, Variable>} variables Mutated.
+ * @param {readonly string[]} formulaNames In log order.
+ * @param {{ visits: number }} budget
+ * @returns {boolean} Whether any usable formula measures parts.
+ */
+function settleFormulas(variables, formulaNames, budget) {
+  /** @type {Map<string, { tree: import('./formula.js').FormulaNode | null, names: string[], formulas: string[], reads: boolean, error?: string, depth: number, measuring: boolean }>} */
+  const info = new Map()
+  for (const name of formulaNames) {
+    const variable = /** @type {Variable} */ (variables.get(name))
+    /** @type {import('./formula.js').FormulaNode | null} */
+    let tree = null
+    /** @type {string | undefined} */
+    let error
+    let names = /** @type {string[]} */ ([])
+    let reads = false
+    try {
+      tree = parseFormula(/** @type {string} */ (variable.formula))
+      const references = formulaReferences(tree)
+      names = references.variables
+      reads = references.reads.length > 0
+      const named = references.reads.find((read) => read.body.kind !== 'id')
+      if (named !== undefined) {
+        error = `it names the body ${quoted(named.body.text)} by name — a saved formula names each body by its #id`
+      } else {
+        checkFormula(tree, variables)
+      }
+    } catch (caught) {
+      error = formulaMessage(caught)
+    }
+    const formulas = names.filter((other) => isFormula(variables.get(other)))
+    info.set(name, { tree, names, formulas, reads, ...(error !== undefined ? { error } : {}), depth: 0, measuring: false })
+  }
+
+  // Loops, named; and a dependency order (post-order: what a formula reads comes first).
+  /** @type {Map<string, 1 | 2>} */
+  const state = new Map()
+  /** @type {string[]} */
+  const stack = []
+  /** @type {string[]} */
+  const order = []
+  /** @param {string} name */
+  const visit = (name) => {
+    state.set(name, 1)
+    stack.push(name)
+    for (const next of /** @type {NonNullable<ReturnType<typeof info.get>>} */ (info.get(name)).formulas) {
+      const seen = state.get(next)
+      if (seen === 1) {
+        const loop = [...stack.slice(stack.indexOf(next)), next]
+        const text = loop.join(' → ')
+        for (const member of loop) {
+          const entry = info.get(member)
+          if (entry !== undefined && entry.error === undefined) entry.error = `its formula goes round in a circle: ${text}`
+        }
+      } else if (seen === undefined) {
+        visit(next)
+      }
+    }
+    stack.pop()
+    state.set(name, 2)
+    order.push(name)
+  }
+  for (const name of formulaNames) if (!state.has(name)) visit(name)
+
+  let anyMeasuring = false
+  for (const name of order) {
+    const entry = /** @type {NonNullable<ReturnType<typeof info.get>>} */ (info.get(name))
+    let depth = 1
+    let measuring = entry.reads
+    for (const next of entry.formulas) {
+      const other = info.get(next)
+      if (other === undefined) continue
+      depth = Math.max(depth, other.depth + 1)
+      measuring = measuring || other.measuring
+    }
+    entry.depth = depth
+    entry.measuring = measuring
+    if (entry.error === undefined && depth > FORMULA_LIMITS.maxChainDepth) {
+      entry.error = `it chains through more than ${FORMULA_LIMITS.maxChainDepth} formulas`
+    }
+    const variable = /** @type {Variable} */ (variables.get(name))
+    /** @type {Record<string, any>} */
+    const settled = { ...variable, measuring }
+    if (entry.error !== undefined || entry.tree === null) {
+      settled.error = entry.error ?? 'it cannot be read'
+    } else if (!measuring) {
+      try {
+        const value = evaluateFormula(entry.tree, { variables, budget })
+        const range = rangeProblem(variable, value)
+        if (range === null) settled.value = value
+        else settled.error = range
+      } catch (caught) {
+        settled.error = formulaMessage(caught)
+      }
+    }
+    if (settled.error === undefined && measuring) anyMeasuring = true
+    const frozen = /** @type {Variable} */ (Object.freeze(settled))
+    if (entry.tree !== null) formulaInternals.set(frozen, { tree: entry.tree, names: entry.names, formulas: entry.formulas })
+    variables.set(name, frozen)
+  }
+  return anyMeasuring
+}
+
+/**
+ * A {@link FormulaOutcome} as a formula's evaluator sees the variable.
+ *
+ * @param {FormulaOutcome} outcome
+ * @returns {import('./formula.js').FormulaVariable}
+ */
+function asFormulaVariable(outcome) {
+  return 'value' in outcome ? { kind: 'number', value: outcome.value } : { kind: 'number', error: outcome.error }
+}
+
+/**
+ * Work out formulas **at one row** (`TODO/FIND-core-078`): each named formula, and every
+ * formula it reads, once — a measuring one through `read`, which answers for the bodies as
+ * they stand just above the row; a plain one from the table, where {@link readVariables}
+ * already worked it out. Names that are not formulas are skipped.
+ *
+ * @param {readonly string[]} names
+ * @param {ReadonlyMap<string, Variable>} variables From {@link readVariables}.
+ * @param {{ read?: import('./formula.js').FormulaRead, budget?: { visits: number } }} [context]
+ * @returns {Map<string, FormulaOutcome>}
+ */
+export function formulaValuesAt(names, variables, context = {}) {
+  /** @type {Map<string, FormulaOutcome>} */
+  const results = new Map()
+  /** @param {string} name */
+  const visit = (name) => {
+    if (results.has(name)) return
+    const variable = variables.get(name)
+    if (variable === undefined || !isFormula(variable)) return
+    if (variable.error !== undefined) {
+      results.set(name, { error: variable.error })
+      return
+    }
+    const inner = formulaInternals.get(variable)
+    if (variable.measuring !== true || inner === undefined) {
+      results.set(name, typeof variable.value === 'number' ? { value: variable.value } : { error: 'it has no value' })
+      return
+    }
+    for (const next of inner.formulas) visit(next)
+    /** @type {Map<string, import('./formula.js').FormulaVariable>} */
+    const table = new Map()
+    for (const other of inner.names) {
+      const known = results.get(other)
+      const entry = known !== undefined ? asFormulaVariable(known) : variables.get(other)
+      if (entry !== undefined) table.set(other, entry)
+    }
+    try {
+      const value = evaluateFormula(inner.tree, {
+        variables: table,
+        ...(context.read !== undefined ? { read: context.read } : {}),
+        ...(context.budget !== undefined ? { budget: context.budget } : {}),
+      })
+      const range = rangeProblem(variable, value)
+      results.set(name, range === null ? { value } : { error: range })
+    } catch (caught) {
+      results.set(name, { error: formulaMessage(caught) })
+    }
+  }
+  for (const name of names) visit(name)
+  return results
+}
+
+/**
+ * The first slot of `record` bound to a **measuring** formula, or `null` — what a repeat,
+ * which has no row to measure from, refuses by name (`TODO/FIND-core-078`, v1).
+ *
+ * @param {OpRecord} record
+ * @param {ReadonlyMap<string, Variable>} variables
+ * @returns {{ path: string, name: string } | null}
+ */
+export function measuringBindingOf(record, variables) {
+  for (const { path, name } of bindingsOf(record)) {
+    const variable = variables.get(name)
+    if (isFormula(variable) && variable?.measuring === true) return { path, name }
+  }
+  return null
+}
+
+/**
+ * Every well-placed binding in a record — a whole value or one array element — as its slot
+ * path and the variable it names.
+ *
+ * @param {OpRecord} record
+ * @returns {{ path: string, name: string }[]}
+ */
+export function bindingsOf(record) {
+  /** @type {{ path: string, name: string }[]} */
+  const found = []
+  if (!hasBindings(record)) return found
+  walkBindings(record.params ?? {}, (path, binding, placement) => {
+    if (placement !== 'nested' && typeof binding.$var === 'string') found.push({ path, name: binding.$var })
+  })
+  return found
 }
 
 /**
  * The variables a document currently has, in log order — what a Variables panel lists.
  *
- * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'>} document
+ * A measuring formula carries the value its last fold worked out at the **end of the active
+ * log**, and `varies` (`TODO/FIND-core-078`): the rows that read it before a later change. A
+ * bound field's chip shows the value **its row** used instead — `document.boundValuesOf`.
+ *
+ * @param {Pick<WarpDocument, 'entries' | 'rollbackAt'> & Partial<Pick<WarpDocument, 'formulaResults'>>} document
  * @returns {Variable[]}
  */
 export function variablesOf(document) {
-  return [...readVariables(document.entries, document.rollbackAt() ?? document.entries.length).variables.values()]
+  const list = [...readVariables(document.entries, document.rollbackAt() ?? document.entries.length).variables.values()]
+  if (!list.some(isFormula)) return list
+  const results = document.formulaResults?.()
+  return list.map((variable) => {
+    if (!isFormula(variable)) return variable
+    const result = results?.get(variable.name)
+    if (result === undefined) return variable.measuring === true ? variable : { ...variable, varies: [] }
+    const { value: _value, error: _error, ...rest } = variable
+    return {
+      ...rest,
+      ...(result.value !== undefined ? { value: result.value } : {}),
+      ...(result.error !== undefined ? { error: result.error } : {}),
+      varies: result.varies,
+    }
+  })
 }
 
 /**
@@ -546,6 +973,14 @@ export function resolveParams(params, variables) {
     const variable = variables.get(name)
     if (variable === undefined) {
       errors.push({ path, name, reason: `"${name}" is not defined in this project` })
+      return
+    }
+    if (typeof variable.error === 'string') {
+      errors.push({ path, name, reason: `whose formula can't be used: ${variable.error}` })
+      return
+    }
+    if (variable.value === undefined) {
+      errors.push({ path, name, reason: 'which measures parts, so it only has a value at the step that uses it' })
       return
     }
     replacements.push({ slot, value: variable.value })
@@ -635,7 +1070,15 @@ function slotProblem(variable, field, placement) {
   return null
 }
 
-/** @type {WeakMap<object, { key: string, result: { record: OpRecord, errors: string[] } }>} */
+/**
+ * @typedef {object} ResolveOutcome
+ * @property {OpRecord} record
+ * @property {string[]} errors
+ * @property {Map<string, FormulaOutcome>} [formulaValues] What each formula this record reads
+ *   (and each formula those read) worked out to at this row, when it reads any.
+ */
+
+/** @type {WeakMap<object, { key: string, result: ResolveOutcome }>} */
 const resolveMemo = new WeakMap()
 
 /**
@@ -643,14 +1086,20 @@ const resolveMemo = new WeakMap()
  * own op schema — the one function the fold calls before a record reaches the kernel.
  *
  * Returns the **same record object** when it carries no binding, and the same resolved
- * object as last time while the variables it reads are unchanged — so the kernel's per-
- * record fold cache (`TODO/core-031`, keyed by record identity) still hits.
+ * object as last time while the values it reads are unchanged — so the kernel's per-record
+ * fold cache (`TODO/core-031`, keyed by record identity) still hits. The memo is keyed on each
+ * formula's **computed value**, never its text (`TODO/FIND-core-078`): a part edit that leaves
+ * a measured number unchanged hands back the same object.
+ *
+ * A measuring formula is worked out here, through `read` — the bodies as they stand just
+ * above this record's row. Without a `read` it has no value, and the binding says so.
  *
  * @param {OpRecord} record
  * @param {ReadonlyMap<string, Variable>} variables
- * @param {{ tables?: ParamTables, recordName?: string }} [options] `tables` replaces the
- *   real size tables (a spec's fake); `recordName` is how the errors name the record.
- * @returns {{ record: OpRecord, errors: string[] }}
+ * @param {{ tables?: ParamTables, recordName?: string, read?: import('./formula.js').FormulaRead, budget?: { visits: number } }} [options]
+ *   `tables` replaces the real size tables (a spec's fake); `recordName` is how the errors name
+ *   the record; `read` measures parts at this row; `budget` is the fold's shared node budget.
+ * @returns {ResolveOutcome}
  */
 export function resolveRecord(record, variables, options = {}) {
   if (!hasBindings(record)) return { record, errors: [] }
@@ -660,14 +1109,65 @@ export function resolveRecord(record, variables, options = {}) {
   walkBindings(record.params ?? {}, (_path, binding) => {
     used.push(typeof binding.$var === 'string' ? binding.$var : '')
   })
+  /** @type {Map<string, FormulaOutcome> | null} */
+  let formulaValues = null
+  let table = variables
+  if (used.some((name) => isFormula(variables.get(name)))) {
+    formulaValues = formulaValuesAt(used, variables, {
+      ...(options.read !== undefined ? { read: options.read } : {}),
+      ...(options.budget !== undefined ? { budget: options.budget } : {}),
+    })
+    table = withFormulaValues(variables, used, formulaValues)
+  }
   const memoable = options.tables === undefined
-  const key = memoable ? JSON.stringify([options.recordName ?? null, used.map((name) => variables.get(name) ?? null)]) : ''
+  const key = memoable ? JSON.stringify([options.recordName ?? null, used.map((name) => memoKeyOf(table.get(name)))]) : ''
   const memo = memoable ? resolveMemo.get(record) : undefined
   if (memo !== undefined && memo.key === key) return memo.result
 
-  const result = resolveUncached(record, variables, options)
+  const resolved = resolveUncached(record, table, options)
+  /** @type {ResolveOutcome} */
+  const result = formulaValues === null ? resolved : { ...resolved, formulaValues }
   if (memoable) resolveMemo.set(record, { key, result })
   return result
+}
+
+/**
+ * What a variable contributes to {@link resolveRecord}'s memo key: the whole definition for a
+ * value, and only the **outcome** for a formula — its number, or its error — never its text, so
+ * a rename that rewrites a formula without changing its value keeps the fold cache warm.
+ *
+ * @param {Variable | undefined} variable
+ * @returns {unknown}
+ */
+function memoKeyOf(variable) {
+  if (variable === undefined) return null
+  if (!isFormula(variable)) return variable
+  return variable.error !== undefined ? { name: variable.name, error: variable.error } : { name: variable.name, value: variable.value ?? null }
+}
+
+/**
+ * The variables a record reads, with each formula's value (or error) at this row in place.
+ *
+ * @param {ReadonlyMap<string, Variable>} variables
+ * @param {readonly string[]} used
+ * @param {ReadonlyMap<string, FormulaOutcome>} values
+ * @returns {Map<string, Variable>}
+ */
+function withFormulaValues(variables, used, values) {
+  /** @type {Map<string, Variable>} */
+  const table = new Map()
+  for (const name of used) {
+    const variable = variables.get(name)
+    if (variable === undefined) continue
+    const outcome = values.get(name)
+    if (outcome === undefined) {
+      table.set(name, variable)
+      continue
+    }
+    const { value: _value, error: _error, ...rest } = variable
+    table.set(name, Object.freeze('value' in outcome ? { ...rest, value: outcome.value } : { ...rest, error: outcome.error }))
+  }
+  return table
 }
 
 /**
@@ -698,7 +1198,8 @@ function resolveUncached(record, variables, options) {
 
   const resolved = resolveParams(params, variables)
   for (const error of resolved.errors) {
-    errors.push(`${subject}'s ${error.path} is bound to ${error.name ? `"${error.name}"` : 'nothing'}: ${error.reason}`)
+    const joiner = error.reason.startsWith('whose ') || error.reason.startsWith('which ') ? ', ' : ': '
+    errors.push(`${subject}'s ${error.path} is bound to ${error.name ? `"${error.name}"` : 'nothing'}${joiner}${error.reason}`)
   }
   if (errors.length > 0) return { record, errors }
 
@@ -781,6 +1282,7 @@ export function bindableParams(op, params, tables = undefined, variables = undef
    * @returns {'number' | 'boolean' | null}
    */
   const literalKind = (value) => {
+    if (isBinding(value) && isFormula(variables?.get(String(value.$var)))) return 'number'
     const actual = isBinding(value) ? variables?.get(String(value.$var))?.value : value
     if (typeof actual === 'number' && Number.isFinite(actual)) return 'number'
     if (typeof actual === 'boolean') return 'boolean'
@@ -838,7 +1340,13 @@ export function consumersOf(entries, name) {
   /** @type {VariableConsumer[]} */
   const consumers = []
   for (const { record } of entries) {
-    if (record.op === VARIABLE_OP) continue
+    if (record.op === FORMULA_OP) {
+      if (formulaNamesOf(record).includes(name) && record.params?.name !== name) {
+        consumers.push({ recordId: record.id ?? '', name: String(record.params?.name ?? record.id), kind: 'formula' })
+      }
+      continue
+    }
+    if (isVariableOp(record.op)) continue
     const display = typeof record.name === 'string' && record.name.length > 0 ? record.name : record.id ?? record.op
     const recordId = record.id ?? ''
     if (hasBindings(record)) {
@@ -849,6 +1357,63 @@ export function consumersOf(entries, name) {
     if (isPlainObject(record.when) && record.when.var === name) consumers.push({ recordId, name: display, kind: 'condition' })
   }
   return consumers
+}
+
+/** @type {WeakMap<object, string[]>} */
+const formulaNamesMemo = new WeakMap()
+
+/**
+ * The variables a `var.derive` record's formula names, or `[]` when its text does not parse.
+ * Memoised per record object (records are immutable once in the log).
+ *
+ * @param {OpRecord} record
+ * @returns {string[]}
+ */
+function formulaNamesOf(record) {
+  const memo = formulaNamesMemo.get(record)
+  if (memo !== undefined) return memo
+  let names = /** @type {string[]} */ ([])
+  const text = record.params?.formula
+  if (typeof text === 'string' && text.length <= FORMULA_LIMITS.maxLength) {
+    try {
+      names = formulaReferences(parseFormula(text)).variables
+    } catch (error) {
+      formulaMessage(error)
+    }
+  }
+  formulaNamesMemo.set(record, names)
+  return names
+}
+
+/**
+ * Every consumer of a variable **and** of every formula that reads it, transitively
+ * (`TODO/FIND-core-078`): changing `wall` reaches whatever binds a formula that reads `wall`.
+ * The formulas themselves are listed too (kind `formula`). Each record and slot once.
+ *
+ * @param {readonly DocumentEntry[]} entries
+ * @param {string} name
+ * @returns {VariableConsumer[]}
+ */
+export function transitiveConsumersOf(entries, name) {
+  /** @type {VariableConsumer[]} */
+  const all = []
+  const seenNames = new Set([name])
+  const seen = new Set()
+  const queue = [name]
+  while (queue.length > 0) {
+    const next = /** @type {string} */ (queue.shift())
+    for (const consumer of consumersOf(entries, next)) {
+      const key = `${consumer.recordId}\u0000${consumer.kind}\u0000${consumer.path ?? ''}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      all.push(consumer)
+      if (consumer.kind === 'formula' && !seenNames.has(consumer.name)) {
+        seenNames.add(consumer.name)
+        queue.push(consumer.name)
+      }
+    }
+  }
+  return all
 }
 
 // --- the commands -------------------------------------------------------------------------
@@ -991,6 +1556,9 @@ export function setVariable(document, name, value, transaction) {
  */
 export function setVariableRevision(document, name, value) {
   const variable = requireVariable(document, name)
+  if (isFormula(variable)) {
+    throw new VariableError(`"${name}" is a formula, not a value — change its formula with setFormula`)
+  }
   const record = requireRecord(document, variable.id)
   const params = { ...record.params, value }
   const problem = variableDefinitionError(params)
@@ -1081,7 +1649,10 @@ function bindRevisionOf(document, recordId, path, name, table) {
     throw new VariableError(`${subject}'s ${path} takes ${slot.kind === 'enum' ? 'a choice' : slot.kind === 'boolean' ? 'a yes/no' : 'a number'}, and "${name}" is ${variable.kind === 'enum' ? 'a choice' : variable.kind === 'boolean' ? 'a yes/no' : 'a number'}`)
   }
   const params = withSlotValue(record.params ?? {}, slot, { [BINDING_KEY]: name })
-  const check = resolveRecord({ ...record, params }, table, { recordName: subject })
+  // A measuring formula is checked where it will be read: just above this row, so a forward
+  // read or a body reading itself while it is created is refused here, by name.
+  const read = isFormula(variable) && variable.measuring === true ? document.formulaReadAt(recordId) : undefined
+  const check = resolveRecord({ ...record, params }, table, { recordName: subject, ...(read !== undefined ? { read } : {}) })
   if (check.errors.length > 0) throw new VariableError(check.errors[0])
   return { revision: { id: recordId, record: { ...record, params } }, subject }
 }
@@ -1111,7 +1682,11 @@ export function unbindParam(document, recordId, path, transaction) {
   if (variable === undefined) {
     throw new VariableError(`${subject}'s ${path} is bound to "${String(current.$var)}", which is not defined — there is no current value to keep; type one in instead`)
   }
-  const params = withSlotValue(record.params ?? {}, slot, variable.value)
+  const kept = keptValueOf(document, recordId, path, variable)
+  if (kept === undefined) {
+    throw new VariableError(`${subject}'s ${path} is bound to "${variable.name}", which has no value at this step — there is no current value to keep; type one in instead`)
+  }
+  const params = withSlotValue(record.params ?? {}, slot, kept)
   return document.reviseRecords([{ id: recordId, record: { ...record, params } }], labelled(transaction, `Unbind ${subject} ${path}`))
 }
 
@@ -1132,18 +1707,24 @@ export function renameVariable(document, from, to, transaction) {
   const nameError = variableNameError(to)
   if (nameError !== null) throw new VariableError(nameError)
   if (from === to) return { scene: document.scene }
-  if (tableOf(document).has(to) || document.entries.some((entry) => entry.record.op === VARIABLE_OP && entry.record.params?.name === to)) {
+  if (tableOf(document).has(to) || document.entries.some((entry) => isVariableOp(entry.record.op) && entry.record.params?.name === to)) {
     throw new VariableError(`a variable named "${to}" is already defined`)
   }
   /** @type {RecordRevision[]} */
   const changes = []
   for (const { record } of document.entries) {
     if (record.id === undefined) continue
-    if (record.id === variable.id) {
-      changes.push({ id: record.id, record: { ...record, params: { ...record.params, name: to } } })
+    let next = record
+    if (record.id === variable.id) next = { ...record, params: { ...record.params, name: to } }
+    // `TODO/FIND-core-078`: a formula naming it is rewritten on its tree, never its text —
+    // suppressed and rolled-back rows included, so they do not dangle when brought back.
+    if (record.op === FORMULA_OP && formulaNamesOf(record).includes(from)) {
+      next = { ...next, params: { ...next.params, formula: rewriteFormulaText(/** @type {string} */ (record.params?.formula), { variable: (name) => (name === from ? to : undefined) }) } }
+    }
+    if (record.id === variable.id || record.op === FORMULA_OP) {
+      if (next !== record) changes.push({ id: record.id, record: next })
       continue
     }
-    let next = record
     if (hasBindings(record)) {
       const params = rewriteBindings(record.params ?? {}, from, () => ({ [BINDING_KEY]: to }))
       if (params !== record.params) next = { ...next, params }
@@ -1170,6 +1751,7 @@ export function renameVariable(document, from, to, transaction) {
 export function deleteVariable(document, name, transaction, options = {}) {
   const variable = requireVariable(document, name)
   const consumers = consumersOf(document.entries, name).map((consumer) => {
+    if (consumer.kind === 'formula') return consumer
     const record = document.entries.find((entry) => entry.record.id === consumer.recordId)?.record
     return record === undefined ? consumer : { ...consumer, name: displayNameOf(document, record) }
   })
@@ -1178,12 +1760,337 @@ export function deleteVariable(document, name, transaction, options = {}) {
   if (conditions.length > 0) {
     throw new VariableInUseError(name, conditions, ' as a condition, which has no value to keep')
   }
+  // A formula that reads it gets its value written in as a number — so only a number can be
+  // kept there; a yes/no or a choice a formula compares has no literal to stand in for it.
+  const readers = consumers.filter((consumer) => consumer.kind === 'formula')
+  const endValue = variablesOf(document).find((candidate) => candidate.name === name)?.value
+  if (readers.length > 0 && typeof endValue !== 'number') {
+    throw new VariableInUseError(name, readers, ' in a formula, which has no number to keep')
+  }
   /** @type {RecordRevision[]} */
   const changes = []
   for (const { record } of document.entries) {
-    if (record.id === undefined || record.op === VARIABLE_OP || !hasBindings(record)) continue
-    const params = rewriteBindings(record.params ?? {}, name, () => variable.value)
+    if (record.id === undefined || record.id === variable.id) continue
+    if (record.op === FORMULA_OP) {
+      if (!formulaNamesOf(record).includes(name)) continue
+      const formula = rewriteFormulaText(/** @type {string} */ (record.params?.formula), { variable: (other) => (other === name ? /** @type {number} */ (endValue) : undefined) })
+      changes.push({ id: record.id, record: { ...record, params: { ...record.params, formula } } })
+      continue
+    }
+    if (isVariableOp(record.op) || !hasBindings(record)) continue
+    /** @type {Record<string, any>} */
+    let params = record.params ?? {}
+    for (const { path, name: bound } of bindingsOf(record)) {
+      if (bound !== name) continue
+      const kept = keptValueOf(document, record.id, path, variable)
+      if (kept === undefined) {
+        throw new VariableError(`${displayNameOf(document, record)}'s ${path} is bound to "${name}", which has no value at that step — there is no current value to keep`)
+      }
+      params = rewriteSlot(params, path, kept)
+    }
     if (params !== record.params) changes.push({ id: record.id, record: { ...record, params } })
   }
   return document.reviseRecords(changes, labelled(transaction, `Delete variable ${name}`), { remove: [variable.id] })
+}
+
+/**
+ * The value a bound slot keeps when it stops following its variable: what its row used
+ * (`boundValuesOf`, which a measuring formula needs), else the variable's own value.
+ *
+ * @param {WarpDocument} document
+ * @param {string} recordId
+ * @param {string} path
+ * @param {Variable} variable
+ * @returns {number | boolean | string | undefined}
+ */
+function keptValueOf(document, recordId, path, variable) {
+  if (!isFormula(variable)) return variable.value
+  const used = document.boundValuesOf(recordId)?.[path]
+  return used !== undefined ? used : variable.value
+}
+
+/**
+ * Params with the one binding at `path` replaced by `value`.
+ *
+ * @param {Record<string, any>} params
+ * @param {string} path
+ * @param {unknown} value
+ * @returns {Record<string, any>}
+ */
+function rewriteSlot(params, path, value) {
+  /** @type {Slot | undefined} */
+  let found
+  walkBindings(params, (candidate, _binding, placement, slot) => {
+    if (candidate === path && placement !== 'nested') found = slot
+  })
+  return found === undefined ? params : withSlotValue(params, found, value)
+}
+
+/**
+ * A stored formula's text with its tree rewritten (`formula.js`'s `rewriteFormula`): renames,
+ * keep-values deletes. Text that does not parse is left exactly as it is.
+ *
+ * @param {string} text
+ * @param {import('./formula.js').FormulaRewrite} rewrite
+ * @returns {string}
+ */
+function rewriteFormulaText(text, rewrite) {
+  try {
+    return printFormula(rewriteFormula(parseFormula(text), rewrite))
+  } catch (error) {
+    formulaMessage(error)
+    return text
+  }
+}
+
+// --- formulas (`TODO/FIND-core-078`) ------------------------------------------------------
+
+/**
+ * A formula definition as a command takes it: `formula` in the form people type (`Base.width`,
+ * `[Cube 1].height`) or the stored form (`#cube-a1-3.width`).
+ *
+ * @typedef {object} FormulaDefinition
+ * @property {string} name
+ * @property {string} formula
+ * @property {string} [label]
+ * @property {'mm' | 'deg' | ''} [unit]
+ * @property {number} [min]
+ * @property {number} [max]
+ */
+
+/**
+ * The stored form of a typed formula, refused by name — `formula.js`'s `formulaToStored`
+ * against the document's bodies.
+ *
+ * @param {WarpDocument} document
+ * @param {unknown} text
+ * @returns {string}
+ * @throws {VariableError}
+ */
+function storedFormulaOf(document, text) {
+  if (typeof text !== 'string') throw new VariableError(`a formula must be text, got ${typeof text}`)
+  if (text.length > FORMULA_LIMITS.maxLength) {
+    throw new VariableError(`a formula is at most ${FORMULA_LIMITS.maxLength} characters long (this one is ${text.length})`)
+  }
+  try {
+    return formulaToStored(text, document.formulaLookup())
+  } catch (error) {
+    throw new VariableError(formulaMessage(error))
+  }
+}
+
+/**
+ * A formula variable as the table would hold it with `record` added (or replacing the record
+ * of the same id), and the table itself — what every formula command checks before writing.
+ *
+ * @param {WarpDocument} document
+ * @param {OpRecord} record
+ * @returns {{ variable: Variable, table: Map<string, Variable> }}
+ * @throws {VariableError} When the formula cannot be used — at the end of the log, for one
+ *   that measures parts.
+ */
+function previewFormula(document, record) {
+  const activeCount = document.rollbackAt() ?? document.entries.length
+  const active = document.entries.slice(0, activeCount)
+  const at = active.findIndex((entry) => entry.record.id === record.id)
+  const entries = at === -1 ? [...active, { record, origin: 'local' }] : active.map((entry, index) => (index === at ? { ...entry, record } : entry))
+  const { variables } = readVariables(entries)
+  const name = /** @type {string} */ (record.params?.name)
+  const variable = variables.get(name)
+  if (variable === undefined || variable.id !== record.id) throw new VariableError(`a variable named "${name}" is already defined`)
+  const outcome = formulaValuesAt([name], variables, { read: document.formulaReadAt(null) }).get(name)
+  if (outcome !== undefined && 'error' in outcome) throw new VariableError(`formula "${name}" can't be used: ${outcome.error}`)
+  return { variable, table: variables }
+}
+
+/**
+ * Validate a formula definition against the document and build its `var.derive` record.
+ *
+ * @param {WarpDocument} document
+ * @param {FormulaDefinition} definition
+ * @returns {{ record: OpRecord, table: Map<string, Variable> }}
+ * @throws {VariableError}
+ */
+function newFormulaRecord(document, definition) {
+  if (!isPlainObject(definition)) throw new VariableError('a formula definition must be an object')
+  const nameError = variableNameError(definition.name)
+  if (nameError !== null) throw new VariableError(nameError)
+  const table = tableOf(document)
+  if (table.has(definition.name)) throw new VariableError(`a variable named "${definition.name}" is already defined`)
+  if (table.size >= VARIABLE_LIMITS.maxVariables) {
+    throw new VariableError(`a project holds at most ${VARIABLE_LIMITS.maxVariables} variables`)
+  }
+  /** @type {Record<string, any>} */
+  const params = JSON.parse(JSON.stringify({ ...definition, formula: storedFormulaOf(document, definition.formula) }))
+  const problem = formulaDefinitionError(params)
+  if (problem !== null) throw new VariableError(problem)
+  const record = { id: document.nextId('var'), op: FORMULA_OP, params }
+  return { record, table: previewFormula(document, record).table }
+}
+
+/**
+ * Define a formula variable — one appended `var.derive` record, one Undo step. Refused, with
+ * nothing written, when the formula cannot be used (a syntax or type error, a loop, a body
+ * name two bodies share, a part a body does not have, a value outside its own range).
+ *
+ * @param {WarpDocument} document
+ * @param {FormulaDefinition} definition
+ * @param {TransactionOptions} transaction
+ * @returns {{ record: OpRecord, scene: import('./replay.js').Scene }}
+ * @throws {VariableError}
+ */
+export function defineFormula(document, definition, transaction) {
+  const { record } = newFormulaRecord(document, definition)
+  return document.append(record, labelled(transaction, `Calculate ${definition.name}`))
+}
+
+/**
+ * The revision {@link setFormula} commits — what an impact check previews.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @param {string} formula As typed, or stored.
+ * @returns {RecordRevision | null} `null` when the stored formula is unchanged.
+ * @throws {VariableError}
+ */
+export function setFormulaRevision(document, name, formula) {
+  const variable = requireVariable(document, name)
+  if (!isFormula(variable)) throw new VariableError(`"${name}" is a value, not a formula — change it with setVariable`)
+  const record = requireRecord(document, variable.id)
+  const stored = storedFormulaOf(document, formula)
+  if (record.params?.formula === stored) return null
+  const next = { ...record, params: { ...record.params, formula: stored } }
+  previewFormula(document, next)
+  return { id: variable.id, record: next }
+}
+
+/**
+ * Change a formula — a `reviseRecords` on its one record, so every bound param takes the new
+ * value in **one** re-fold and **one** Undo step. Run `dependents.js`'s impact check first.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @param {string} formula
+ * @param {TransactionOptions} transaction
+ * @returns {{ scene: import('./replay.js').Scene }}
+ * @throws {VariableError}
+ */
+export function setFormula(document, name, formula, transaction) {
+  const revision = setFormulaRevision(document, name, formula)
+  if (revision === null) return { scene: document.scene }
+  return document.reviseRecords([revision], labelled(transaction, `Change formula ${name}`))
+}
+
+/**
+ * Create a formula **and** bind one slot to it as **one** Undo step — "New formula from this
+ * value…", the shape of {@link bindParamToNewVariable}.
+ *
+ * @param {WarpDocument} document
+ * @param {string} recordId
+ * @param {string} path
+ * @param {FormulaDefinition} definition
+ * @param {TransactionOptions} transaction
+ * @returns {{ scene: import('./replay.js').Scene }}
+ * @throws {VariableError} Nothing is written in that case.
+ */
+export function bindParamToNewFormula(document, recordId, path, definition, transaction) {
+  const { record, table } = newFormulaRecord(document, definition)
+  const { revision, subject } = bindRevisionOf(document, recordId, path, definition.name, table)
+  return document.reviseRecords([revision], labelled(transaction, `Calculate ${definition.name} and bind ${subject} ${path}`), {
+    append: [record],
+  })
+}
+
+/**
+ * Work a formula out **without writing anything** — what a preview line or an agent checking
+ * its sum asks. `at` is a record id to read as of that row (the bodies just above it); omitted,
+ * the end of the active log.
+ *
+ * @param {WarpDocument} document
+ * @param {string} text As typed, or stored.
+ * @param {{ at?: string }} [options]
+ * @returns {{ value: number, stored: string, reads: { body: string, part: string | null, quantity: string }[] }}
+ * @throws {VariableError} With the formula's own named error.
+ */
+export function evaluateFormulaIn(document, text, options = {}) {
+  const stored = storedFormulaOf(document, text)
+  try {
+    const tree = parseFormula(stored)
+    const table = tableOf(document)
+    checkFormula(tree, table)
+    const references = formulaReferences(tree)
+    const read = document.formulaReadAt(options.at ?? null)
+    const values = formulaValuesAt(references.variables, table, { read })
+    /** @type {Map<string, import('./formula.js').FormulaVariable>} */
+    const variables = new Map()
+    for (const name of references.variables) {
+      const outcome = values.get(name)
+      const entry = outcome !== undefined ? asFormulaVariable(outcome) : table.get(name)
+      if (entry !== undefined) variables.set(name, entry)
+    }
+    const value = evaluateFormula(tree, { variables, read })
+    return {
+      value,
+      stored,
+      reads: references.reads.map((reading) => ({ body: reading.body.text, part: reading.part, quantity: reading.quantity })),
+    }
+  } catch (error) {
+    throw new VariableError(formulaMessage(error))
+  }
+}
+
+/**
+ * A formula variable's text as a person reads it: body ids swapped for current names, in
+ * brackets where needed (`formula.js`'s `formulaToDisplay`). Stored text that does not parse
+ * is shown as it is.
+ *
+ * @param {WarpDocument} document
+ * @param {Pick<Variable, 'formula'>} variable
+ * @returns {string}
+ */
+export function displayFormulaOf(document, variable) {
+  const stored = variable.formula ?? ''
+  try {
+    return formulaToDisplay(stored, document.formulaLookup())
+  } catch (error) {
+    formulaMessage(error)
+    return stored
+  }
+}
+
+/**
+ * The formulas that measure one body — directly, or through another formula — and what binds
+ * each, for the delete path's dependents list (`TODO/FIND-core-078`). Formula reads are kept
+ * out of `referencedIdsOf` on purpose: its row-order checks would pre-empt the fold's named
+ * errors.
+ *
+ * @param {WarpDocument} document
+ * @param {string} rootId
+ * @returns {{ name: string, recordId: string, consumers: VariableConsumer[] }[]}
+ */
+export function formulaReadsOf(document, rootId) {
+  const table = tableOf(document)
+  /** @type {Set<string>} */
+  const direct = new Set()
+  for (const variable of table.values()) {
+    if (!isFormula(variable)) continue
+    try {
+      const { reads } = formulaReferences(parseFormula(/** @type {string} */ (variable.formula)))
+      if (reads.some((reading) => reading.body.kind === 'id' && (document.rootOf(reading.body.text) ?? reading.body.text) === rootId)) direct.add(variable.name)
+    } catch (error) {
+      formulaMessage(error)
+    }
+  }
+  /** @type {Set<string>} */
+  const affected = new Set(direct)
+  for (const name of direct) {
+    for (const consumer of transitiveConsumersOf(document.entries, name)) if (consumer.kind === 'formula') affected.add(consumer.name)
+  }
+  return [...table.values()]
+    .filter((variable) => affected.has(variable.name))
+    .map((variable) => ({
+      name: variable.name,
+      recordId: variable.id,
+      consumers: consumersOf(document.entries, variable.name).filter((consumer) => consumer.kind !== 'formula'),
+    }))
 }

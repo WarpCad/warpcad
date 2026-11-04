@@ -289,6 +289,10 @@ export function describeRow(record, names) {
   if (record.op === 'var.define') {
     return typeof params.name === 'string' && params.name.length > 0 ? `Define ${params.name}` : 'Define variable'
   }
+  // A formula variable (`TODO/FIND-core-078`): it calculates rather than defines.
+  if (record.op === 'var.derive') {
+    return typeof params.name === 'string' && params.name.length > 0 ? `Calculate ${params.name}` : 'Calculate variable'
+  }
 
   // A linked Repeat (`TODO/core-061`): the targets are the interesting half.
   if (record.op === 'pattern.repeat') {

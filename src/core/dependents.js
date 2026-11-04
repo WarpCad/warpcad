@@ -33,7 +33,7 @@ import { createDocument, foldableEntry } from './document.js'
 import { isGroup } from './kernel/group.js'
 import { nameOverrideOf } from './naming.js'
 import { paramOptions, partAliasesOf } from './kernel/registry.js'
-import { consumersOf, resolveParams, setVariableRevision, variablesOf } from './variables.js'
+import { resolveParams, setVariableRevision, transitiveConsumersOf, variablesOf } from './variables.js'
 import { REPEAT_OP } from './repeat.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -420,12 +420,15 @@ export function brokenReferencesOf(document, bodyId) {
  * @param {string} name
  * @param {number | boolean | string} value
  * @returns {{ breakages: Breakage[], preview: WarpDocument, consumers: import('./variables.js').VariableConsumer[] }}
- *   `consumers` is every binding and condition that reads the variable, in log order.
+ *   `consumers` is every binding and condition that reads the variable, and every formula that
+ *   reads it with what binds that formula (`TODO/FIND-core-078`, transitively).
  * @throws {import('./variables.js').VariableError} For an unknown variable, or a value
  *   outside the variable's own kind, range or options — the value itself is wrong.
  */
 export function variableImpactOf(document, name, value) {
-  const consumers = consumersOf(document.entries, name)
+  // `TODO/FIND-core-078`: transitive — changing `wall` reaches whatever binds a formula that
+  // reads `wall`. The formulas themselves are listed too (kind `formula`).
+  const consumers = transitiveConsumersOf(document.entries, name)
   const revision = setVariableRevision(document, name, value)
   if (revision === null) return { breakages: [], preview: previewOf(document, []), consumers }
   const preview = previewOf(document, [revision])
@@ -433,7 +436,10 @@ export function variableImpactOf(document, name, value) {
   const activeCount = document.rollbackAt() ?? document.entries.length
   const activeIds = new Set(document.entries.slice(0, activeCount).map((entry) => entry.record.id))
   const boundRoots = new Set(
-    consumers.map((consumer) => document.rootOf(consumer.recordId)).filter((id) => id !== undefined),
+    consumers
+      .filter((consumer) => consumer.kind !== 'formula')
+      .map((consumer) => document.rootOf(consumer.recordId))
+      .filter((id) => id !== undefined),
   )
 
   /** @type {Breakage[]} */

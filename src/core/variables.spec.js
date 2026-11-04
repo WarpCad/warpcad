@@ -3,27 +3,38 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { LOCAL } from './__fixtures__/piScenes.js'
 import { createDocument } from './document.js'
+import { variableImpactOf } from './dependents.js'
+import { FORMULA_LIMITS } from './formula.js'
+import { describeSelection } from './inspector.js'
 import { boundsOf, hiddenNamesOf, isGroup, volumeOf } from './kernel/group.js'
 import { parseProject, serializeProject } from './project.js'
 import { resetUserParts, setLibraryParts } from './userPart.js'
 import {
+  FORMULA_OP,
   VARIABLE_LIMITS,
   VARIABLE_OP,
   VariableError,
   VariableInUseError,
   bindParam,
+  bindParamToNewFormula,
   bindParamToNewVariable,
   bindableParams,
   consumersOf,
+  defineFormula,
   defineVariable,
   deleteVariable,
+  displayFormulaOf,
+  evaluateFormulaIn,
+  formulaReadsOf,
   readVariables,
   renameVariable,
   resolveParams,
   resolveRecord,
+  setFormula,
   setVariable,
   unbindParam,
   variableDefinitionError,
+  variablesOf,
 } from './variables.js'
 import { recordLinesOf } from './__fixtures__/projectText.js'
 
@@ -798,5 +809,647 @@ describe('create-and-bind is one Undo step (TODO/ui-059)', () => {
     expect(() => bindParamToNewVariable(document, 'pi-1', 'nope', wallVar(), LOCAL)).toThrow(/nope/)
     expect(document.entries).toHaveLength(entries)
     expect(document.recordOf('pi-1')?.params?.model).toBe(4)
+  })
+})
+
+// =====================================================================================
+// `TODO/FIND-core-078` part 2 — calculated variables in the fold (`var.derive`).
+//
+// Kernel real, plain Node. Geometry at 1e-6 mm (precision 6). A formula is evaluated at each row
+// that binds it, against the bodies as they stand just above that row.
+// =====================================================================================
+
+/**
+ * @param {string} id
+ * @param {string} name
+ * @param {any[]} size Millimetres, or bindings.
+ * @param {number[]} [center]
+ * @returns {OpRecord}
+ */
+const cuboid = (id, name, size, center = [0, 0, size[2] / 2]) => ({ id, op: 'primitive.cuboid', name, params: { size, center } })
+
+/** @param {readonly object[]} records @returns {string} One record per line, no state line. */
+const ndjsonOf = (records) => `${records.map((record) => JSON.stringify(record)).join('\n')}\n`
+
+/** @param {Record<string, any>} params @param {string} [id] */
+const formulaRecord = (params, id = `var-${params.name}`) => ({ id, op: FORMULA_OP, params })
+
+/** @param {WarpDocument} document @param {string} name */
+const formulaOf = (document, name) => variablesOf(document).find((variable) => variable.name === name)
+
+/** @param {WarpDocument} document @param {string} name */
+const formulaIdOf = (document, name) => /** @type {string} */ (formulaOf(document, name)?.id)
+
+/** @param {WarpDocument} document @param {string} id */
+const reasonOf = (document, id) => document.brokenSteps().find((step) => step.id === id)?.reason ?? ''
+
+/**
+ * The owner's request: two parts in a group, and a third cube placed after it.
+ *
+ * @returns {WarpDocument}
+ */
+function ownerScene() {
+  const document = createDocument()
+  document.append(cuboid('c1', 'Cube 1', [60, 20, 10], [0, 0, 5]), LOCAL)
+  document.append(cuboid('c2', 'Cube 2', [40, 20, 10], [100, 0, 5]), LOCAL)
+  document.append(
+    { id: 'g', op: 'group.assemble', name: 'group1', target: 'c1', operands: ['c2'], consumes: ['c1', 'c2'], params: { names: ['part1', 'part2'] } },
+    LOCAL,
+  )
+  document.append(cuboid('c', 'C', [10, 10, 10], [0, 60, 5]), LOCAL)
+  return document
+}
+
+/**
+ * Base, then C, then nothing else: the simplest "C reads Base" scene.
+ *
+ * @returns {WarpDocument}
+ */
+function baseThenC() {
+  const document = createDocument()
+  document.append(cuboid('base', 'Base', [40, 30, 10], [0, 0, 5]), LOCAL)
+  document.append(cuboid('c', 'C', [10, 10, 10], [0, 60, 5]), LOCAL)
+  return document
+}
+
+describe('calculated variables — the owner’s example, end to end (FIND-core-078)', () => {
+  it('group1.part1.width - (group1.part2.width / 2) drives C, follows part1, and one Undo restores it', () => {
+    const document = ownerScene()
+    defineFormula(document, { name: 'overhang', formula: 'group1.part1.width - (group1.part2.width / 2)', unit: 'mm' }, LOCAL)
+    const record = document.recordOf(formulaIdOf(document, 'overhang'))
+    expect(record?.op).toBe(FORMULA_OP)
+    // Stored by body id, never by name; nothing computed is stored.
+    expect(record?.params).toEqual({ name: 'overhang', formula: '#g.part1.width - #g.part2.width / 2', unit: 'mm' })
+    expect(formulaOf(document, 'overhang')?.value).toBeCloseTo(40, 6)
+    expect(displayFormulaOf(document, /** @type {any} */ (formulaOf(document, 'overhang')))).toBe('group1.part1.width - group1.part2.width / 2')
+
+    bindParam(document, 'c', 'size.0', 'overhang', LOCAL)
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(40, 6)
+    expect(document.boundValuesOf('c')).toEqual({ 'size.0': 40 })
+
+    // part1's width, through the replace path.
+    document.replaceRecord('c1', cuboid('c1', 'Cube 1', [80, 20, 10], [0, 0, 5]), LOCAL)
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(60, 6)
+    expect(formulaOf(document, 'overhang')?.value).toBeCloseTo(60, 6)
+    expect(document.brokenSteps()).toEqual([])
+
+    document.undo()
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(40, 6)
+    expect(formulaOf(document, 'overhang')?.value).toBeCloseTo(40, 6)
+  })
+
+  it('bindParamToNewFormula defines and binds as one Undo step', () => {
+    const document = ownerScene()
+    const depth = document.canUndo()
+    bindParamToNewFormula(document, 'c', 'size.1', { name: 'half', formula: 'group1.part2.width / 2' }, LOCAL)
+    expect(sizeOf(document, 'c')[1]).toBeCloseTo(20, 6)
+    document.undo()
+    expect(document.recordOf('c')?.params?.size).toEqual([10, 10, 10])
+    expect(formulaOf(document, 'half')).toBeUndefined()
+    expect(document.canUndo()).toBe(depth)
+  })
+
+  it('a timeline row reads "Calculate overhang"', () => {
+    const document = ownerScene()
+    defineFormula(document, { name: 'overhang', formula: '1 + 1' }, LOCAL)
+    expect(document.timeline().at(-1)?.label).toBe('Calculate overhang')
+  })
+
+  it('defineFormula refuses a formula that cannot be used, and writes nothing', () => {
+    const document = ownerScene()
+    const length = document.entries.length
+    expect(() => defineFormula(document, { name: 'x', formula: 'group1.part1.width +' }, LOCAL)).toThrow(VariableError)
+    expect(() => defineFormula(document, { name: 'x', formula: 'nobody.width' }, LOCAL)).toThrow(/nobody/)
+    expect(() => defineFormula(document, { name: 'x', formula: 'group1.fan.width' }, LOCAL)).toThrow(/part1, part2/)
+    expect(() => defineFormula(document, { name: 'x', formula: '1 / 0' }, LOCAL)).toThrow(/division by zero/)
+    expect(() => defineFormula(document, { name: 'x', formula: '5', min: 10 }, LOCAL)).toThrow(/10/)
+    expect(document.entries).toHaveLength(length)
+  })
+
+  it('two bodies with one name are refused and listed', () => {
+    const document = createDocument()
+    document.append(cuboid('s1', 'Screw', [5, 5, 5]), LOCAL)
+    document.append(cuboid('s2', 'Screw', [5, 5, 5], [20, 0, 2.5]), LOCAL)
+    expect(() => defineFormula(document, { name: 'x', formula: 'Screw.width' }, LOCAL)).toThrow(/s1, s2/)
+    defineFormula(document, { name: 'x', formula: '#s2.width' }, LOCAL)
+    expect(formulaOf(document, 'x')?.value).toBeCloseTo(5, 6)
+  })
+})
+
+describe('calculated variables — read at the consumer’s row', () => {
+  it('place C, then define, then bind: works', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width / 2' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(20, 6)
+  })
+
+  it('a forward read is refused up front by bindParam, naming the step', () => {
+    const document = createDocument()
+    document.append(cuboid('c', 'C', [10, 10, 10]), LOCAL)
+    document.append(cuboid('base', 'Base', [40, 30, 10], [0, 60, 5]), LOCAL)
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    expect(() => bindParam(document, 'c', 'size.0', 'w', LOCAL)).toThrow(/reads Base, which is not built until step 2/)
+    expect(document.recordOf('c')?.params?.size).toEqual([10, 10, 10])
+  })
+
+  it('a body reading itself while it is being created is the same named refusal', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'own', formula: 'C.height + 1' }, LOCAL)
+    expect(() => bindParam(document, 'c', 'size.2', 'own', LOCAL)).toThrow(/reads C, which is not built until step 2/)
+  })
+
+  it('a later step reading its own body works (pitablet:76)', () => {
+    const document = createDocument()
+    document.append(cuboid('lcd', 'LCD', [20, 20, 4]), LOCAL)
+    document.append({ id: 'grow', op: 'modify.enlarge', target: 'lcd', supersedes: 'lcd', params: { deltaMm: [0, 0, 0] } }, LOCAL)
+    defineFormula(document, { name: 'fill', formula: '10 - LCD.height' }, LOCAL)
+    bindParam(document, 'grow', 'deltaMm.2', 'fill', LOCAL)
+    expect(sizeOf(document, 'lcd')[2]).toBeCloseTo(10, 6)
+    expect(document.brokenSteps()).toEqual([])
+  })
+
+  it('a moveStep that turns a good read into a forward read leaves a named broken row, no crash', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    document.moveStep('c', -1, LOCAL)
+    expect(reasonOf(document, 'c')).toMatch(/reads Base, which is not built until step 2/)
+    expect(reasonOf(document, 'c')).toMatch(/"w"/)
+  })
+
+  it('reads a hidden part; a body with no part is its visible parts', () => {
+    const document = ownerScene()
+    document.setPartHidden('g', 'part2', true, LOCAL)
+    expect(evaluateFormulaIn(document, 'group1.part2.width').value).toBeCloseTo(40, 6)
+    expect(evaluateFormulaIn(document, 'group1.width').value).toBeCloseTo(60, 6)
+  })
+
+  it('reads a consumed cutter as itself, never as the Subtract it went into', () => {
+    const document = createDocument()
+    document.append(cuboid('plate', 'Plate', [40, 40, 10]), LOCAL)
+    document.append(cuboid('k', 'Cutter', [10, 10, 20]), LOCAL)
+    document.append({ id: 'cut', op: 'boolean.subtract', name: 'Cut', target: 'plate', operands: ['k'], consumes: ['plate', 'k'] }, LOCAL)
+    document.append(cuboid('c', 'C', [5, 5, 5], [0, 60, 2.5]), LOCAL)
+    defineFormula(document, { name: 'hole', formula: 'Cutter.width' }, LOCAL)
+    expect(document.currentIdOf('k')).toBe('cut') // currentIdOf walks through, deliberately
+    bindParam(document, 'c', 'size.0', 'hole', LOCAL)
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(10, 6)
+    expect(sizeOf(document, 'cut')[0]).toBeCloseTo(40, 6)
+  })
+
+  it('reads a rotated part’s extent along world X', () => {
+    const document = createDocument()
+    document.append(cuboid('r', 'Rot', [10, 20, 5]), LOCAL)
+    document.append({ id: 'r-rot', op: 'transform.rotate', target: 'r', supersedes: 'r', params: { angles: [0, 0, 90] } }, LOCAL)
+    expect(evaluateFormulaIn(document, 'Rot.width').value).toBeCloseTo(20, 6)
+    expect(evaluateFormulaIn(document, 'Rot.depth').value).toBeCloseTo(10, 6)
+    expect(evaluateFormulaIn(document, 'Rot.center.x').value).toBeCloseTo(0, 6)
+  })
+
+  it('a deleted body is a named error, wherever the delete sits', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    document.deleteBodies(['base'], LOCAL)
+    expect(reasonOf(document, 'c')).toMatch(/reads Base, which has been deleted/)
+  })
+
+  it('a suppressed body is a named error', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    document.setSuppressed('base', true, LOCAL)
+    expect(reasonOf(document, 'c')).toMatch(/reads Base, which is suppressed/)
+  })
+
+  it('a body its condition leaves out is a named error', () => {
+    const document = createDocument()
+    defineVariable(document, { name: 'flag', kind: 'boolean', value: true }, LOCAL)
+    document.append({ ...cuboid('base', 'Base', [40, 30, 10]), when: { var: 'flag', in: [true] } }, LOCAL)
+    document.append(cuboid('c', 'C', [10, 10, 10], [0, 60, 5]), LOCAL)
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    setVariable(document, 'flag', false, LOCAL)
+    expect(reasonOf(document, 'c')).toMatch(/reads Base, which its condition leaves out/)
+  })
+
+  it('a part a variant lost is a named error listing the parts it has', () => {
+    const document = createDocument()
+    defineVariable(document, PI_MODEL, LOCAL)
+    document.append({ id: 'pi-1', op: 'raspberrypi.bplus', name: 'Pi', params: { model: { $var: 'piModel' } } }, LOCAL)
+    document.append(cuboid('c', 'C', [10, 10, 10], [0, 120, 5]), LOCAL)
+    defineFormula(document, { name: 'jack', formula: 'Pi.avjack.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'jack', LOCAL)
+    expect(document.brokenSteps()).toEqual([])
+    setVariable(document, 'piModel', 5, LOCAL)
+    expect(reasonOf(document, 'c')).toMatch(/Pi has no part avjack — its parts are: .*mb/)
+  })
+
+  it('an empty body reads as a named error, never 0; so does a body that does not exist', () => {
+    const document = createDocument()
+    document.append(cuboid('a', 'A', [5, 5, 5], [0, 0, 0]), LOCAL)
+    document.append(cuboid('b', 'B', [5, 5, 5], [50, 0, 0]), LOCAL)
+    document.append({ id: 'x', op: 'boolean.intersect', name: 'Empty', target: 'a', operands: ['b'], consumes: ['a', 'b'] }, LOCAL)
+    expect(() => evaluateFormulaIn(document, 'Empty.width')).toThrow(/reads Empty, which is empty — there is nothing to measure/)
+    expect(() => evaluateFormulaIn(document, 'Empty.min.x')).toThrow(/is empty/)
+    expect(() => evaluateFormulaIn(createDocument(), '#nobody.width')).toThrow(/there is no body #nobody/)
+  })
+
+  it('a rollback marker above the consumer: the consumer is inactive, the formula still has its value', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    document.rollBackTo('base', LOCAL)
+    expect(document.brokenSteps()).toEqual([])
+    expect(document.bodies().map((body) => body.id)).toEqual(['base'])
+    document.rollForward(LOCAL)
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(40, 6)
+  })
+
+  it('a hostile result gets no further than a hostile literal or a var.define (Security item 8)', () => {
+    // A count-like param (a gear's teeth) cannot be bound at all: gear.spur describes no params.
+    expect(bindableParams('gear.spur', { teeth: 24, moduleMm: 2, thicknessMm: 8 })).toEqual([])
+    // 1e9 into an undescribed op: the kernel receives the same number either way.
+    const literal = createDocument()
+    literal.append(cuboid('c', 'C', [1e9, 5, 5]), LOCAL)
+    const bound = createDocument()
+    defineFormula(bound, { name: 'many', formula: '1000 * 1000 * 1000' }, LOCAL)
+    bound.append(cuboid('c', 'C', [{ $var: 'many' }, 5, 5]), LOCAL)
+    expect(sizeOf(bound, 'c')).toEqual(sizeOf(literal, 'c'))
+    // A value its slot refuses: the same named slot refusal a var.define gets.
+    /** @param {(document: WarpDocument) => void} define */
+    const boltWith = (define) => {
+      const document = createDocument()
+      define(document)
+      document.append({ id: 'bolt', op: 'hardware.bolt', name: 'Bolt', params: { spec: 'm3', length: { $var: 'len' } } }, LOCAL)
+      return reasonOf(document, 'bolt')
+    }
+    const viaFormula = boltWith((document) => defineFormula(document, { name: 'len', formula: '0 - 5' }, LOCAL))
+    const viaValue = boltWith((document) => defineVariable(document, { name: 'len', kind: 'number', value: -5 }, LOCAL))
+    expect(viaFormula).toMatch(/must be greater than 0/)
+    expect(viaFormula).toBe(viaValue)
+  })
+})
+
+describe('calculated variables — a read taken before a later change is reported', () => {
+  it('a later move reports max.z and not width; the chip uses the row’s value', () => {
+    const document = baseThenC()
+    document.append(cuboid('d', 'D', [10, 10, 10], [60, 60, 5]), LOCAL)
+    defineFormula(document, { name: 'top', formula: 'Base.max.z' }, LOCAL)
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.2', 'top', LOCAL)
+    bindParam(document, 'd', 'size.0', 'w', LOCAL)
+    document.append({ id: 'lift', op: 'transform.translate', target: 'base', supersedes: 'base', params: { vector: [0, 0, 5] } }, LOCAL)
+
+    const results = document.formulaResults()
+    expect(results.get('top')?.value).toBeCloseTo(15, 6)
+    const [varies] = /** @type {any} */ (results.get('top')).varies
+    expect(varies).toMatchObject({ recordId: 'c', path: 'size.2', atStep: 2 })
+    expect(varies.valueMm).toBeCloseTo(10, 6)
+    expect(varies.nowMm).toBeCloseTo(15, 6)
+    expect(varies.changedAtStep).toBe(document.entries.findIndex((entry) => entry.record.id === 'lift') + 1)
+    expect(varies.note).toMatch(/Reads Base before step \d+ .*changed it \(uses 10 mm, now 15 mm\)/)
+    expect(results.get('w')?.varies).toEqual([])
+    // C keeps the value its row read; the chip says so.
+    expect(sizeOf(document, 'c')[2]).toBeCloseTo(10, 6)
+    expect(document.boundValuesOf('c')).toEqual({ 'size.2': 10 })
+    expect(formulaOf(document, 'top')?.varies).toHaveLength(1)
+    // The Inspector's chip carries the row's value, not the end-of-log one.
+    const { body } = describeSelection(document.bodies(), ['c'], { document })
+    const size = /** @type {any} */ (body?.params.find((field) => field.key === 'size'))
+    expect(size.components[2]).toMatchObject({ value: 10, bound: { name: 'top' } })
+  })
+
+  it('an upstream param edit reports nothing — the consumer simply follows', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'top', formula: 'Base.max.z' }, LOCAL)
+    bindParam(document, 'c', 'size.2', 'top', LOCAL)
+    document.replaceRecord('base', cuboid('base', 'Base', [40, 30, 20], [0, 0, 10]), LOCAL)
+    expect(sizeOf(document, 'c')[2]).toBeCloseTo(20, 6)
+    expect(document.formulaResults().get('top')?.varies).toEqual([])
+  })
+})
+
+describe('calculated variables — cycles, chains and budgets', () => {
+  /** @param {OpRecord[]} records */
+  const loaded = (records) => {
+    const document = createDocument()
+    document.loadEntries(entriesOf(records))
+    return document
+  }
+
+  it.each([
+    ['a → a', [formulaRecord({ name: 'a', formula: 'a + 1' })], /a → a/],
+    ['a → b → a', [formulaRecord({ name: 'a', formula: 'b + 1' }), formulaRecord({ name: 'b', formula: 'a * 2' })], /a → b → a/],
+    [
+      'through three formulas',
+      [formulaRecord({ name: 'a', formula: 'b' }), formulaRecord({ name: 'b', formula: 'c' }), formulaRecord({ name: 'c', formula: 'a' })],
+      /a → b → c → a/,
+    ],
+  ])('a cycle %s is named, and a consumer says why', (_label, records, pattern) => {
+    const document = loaded([...records, cuboid('c', 'C', [{ $var: 'a' }, 5, 5])])
+    const { variables } = readVariables(document.entries)
+    expect(variables.get('a')?.error).toMatch(pattern)
+    expect(reasonOf(document, 'c')).toMatch(/bound to "a", whose formula can't be used/)
+  })
+
+  it('a chain past maxChainDepth is refused by name; one inside it works', () => {
+    const records = [formulaRecord({ name: 'f0', formula: '1' })]
+    for (let index = 1; index <= FORMULA_LIMITS.maxChainDepth + 1; index += 1) {
+      records.push(formulaRecord({ name: `f${index}`, formula: `f${index - 1} + 1` }))
+    }
+    const { variables } = readVariables(entriesOf(records))
+    expect(variables.get(`f${FORMULA_LIMITS.maxChainDepth - 1}`)?.value).toBe(FORMULA_LIMITS.maxChainDepth)
+    expect(variables.get(`f${FORMULA_LIMITS.maxChainDepth + 1}`)?.error).toMatch(/32/)
+  })
+
+  it('doubling across 500 formulas finishes in linear time', () => {
+    const records = [formulaRecord({ name: 'd0', formula: '1' })]
+    // Past maxChainDepth on purpose: the chain error must cost nothing either.
+    for (let index = 1; index < 500; index += 1) records.push(formulaRecord({ name: `d${index}`, formula: `d${index - 1} + d${index - 1}` }))
+    const started = performance.now()
+    const { variables } = readVariables(entriesOf(records))
+    expect(performance.now() - started).toBeLessThan(500)
+    expect(variables.get('d20')?.value).toBe(2 ** 20)
+    expect(variables.get('d499')?.error).toMatch(/32/)
+  })
+
+  it('consumers past maxNodeVisitsPerFold load broken with the budget named, and the file still opens', () => {
+    const ones = Array.from({ length: 120 }, () => '1').join(' + ')
+    const records = [cuboid('base', 'Base', [40, 30, 10]), formulaRecord({ name: 'm0', formula: `#base.width + ${ones}` })]
+    for (let index = 1; index < 32; index += 1) records.push(formulaRecord({ name: `m${index}`, formula: `m${index - 1} + ${ones}` }))
+    for (let index = 0; index < 200; index += 1) records.push(cuboid(`c${index}`, `C${index}`, [{ $var: 'm31' }, 5, 5], [index * 10, 50, 2.5]))
+    const document = loaded(records)
+    const broken = document.brokenSteps()
+    expect(broken.length).toBeGreaterThan(0)
+    expect(broken.length).toBeLessThan(200)
+    expect(broken.every((step) => /calculation budget/.test(step.reason))).toBe(true)
+    expect(document.bodies().length).toBeGreaterThan(1)
+  })
+
+  it('formulas reading formulas reading parts: measured once per row, in order', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'a', formula: 'Base.width' }, LOCAL)
+    defineFormula(document, { name: 'b', formula: 'a / 4' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'b', LOCAL)
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(10, 6)
+    expect(formulaOf(document, 'b')).toMatchObject({ measuring: true })
+  })
+})
+
+describe('calculated variables — the fold cache and repeats', () => {
+  it('an unrelated edit leaves a formula-bound body’s geometry the very same object (core-031)', () => {
+    const document = ownerScene()
+    document.append(cuboid('u', 'Unrelated', [5, 5, 5], [300, 0, 2.5]), LOCAL)
+    defineFormula(document, { name: 'overhang', formula: 'group1.part1.width - group1.part2.width / 2' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'overhang', LOCAL)
+    const before = bodyOf(document, 'c').geometry
+    document.replaceRecord('u', cuboid('u', 'Unrelated', [7, 7, 7], [300, 0, 3.5]), LOCAL)
+    expect(bodyOf(document, 'c').geometry).toBe(before)
+  })
+
+  it('the memo keys on a formula’s value, not its text: renaming what it reads keeps the cache warm', () => {
+    const document = baseThenC()
+    defineVariable(document, wallVar({ value: 4 }), LOCAL)
+    defineFormula(document, { name: 'w', formula: 'Base.width / wall' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    const before = bodyOf(document, 'c').geometry
+    renameVariable(document, 'wall', 'thickness', LOCAL)
+    expect(document.recordOf(formulaIdOf(document, 'w'))?.params?.formula).toBe('#base.width / thickness')
+    expect(bodyOf(document, 'c').geometry).toBe(before)
+  })
+
+  /** A pin aligned to part1 of a three-part group: what a repeat replays onto part2 and part3. */
+  function pinScene() {
+    const document = createDocument()
+    document.append(cuboid('c1', 'Cube 1', [60, 20, 10], [0, 0, 5]), LOCAL)
+    document.append(cuboid('c2', 'Cube 2', [40, 20, 10], [100, 0, 5]), LOCAL)
+    document.append(cuboid('c3', 'Cube 3', [40, 20, 10], [200, 0, 5]), LOCAL)
+    document.append(
+      { id: 'g', op: 'group.assemble', name: 'group1', target: 'c1', operands: ['c2', 'c3'], consumes: ['c1', 'c2', 'c3'], params: { names: ['part1', 'part2', 'part3'] } },
+      LOCAL,
+    )
+    document.append(cuboid('pin', 'Pin', [4, 4, 4], [0, 50, 2]), LOCAL)
+    document.append({ id: 'pin-al', op: 'group.align', target: 'pin', supersedes: 'pin', operands: [{ id: 'g', pieces: 'part1' }], params: { axes: 'xy', deltaMm: 0 } }, LOCAL)
+    // A step after the seed-referencing one: the member re-runs it, binding and all.
+    document.append({ id: 'pin-grow', op: 'modify.enlarge', target: 'pin-al', supersedes: 'pin-al', params: { deltaMm: [0, 0, 0] } }, LOCAL)
+    return document
+  }
+  const repeatRecord = { id: 'rep', op: 'pattern.repeat', params: { source: 'pin', seed: { id: 'g', pieces: 'part1' }, targets: ['part2', 'part3'] } }
+
+  it('a repeated step bound to a plain formula replays it', () => {
+    const document = pinScene()
+    defineFormula(document, { name: 'pinSize', formula: '2 + 3' }, LOCAL)
+    bindParam(document, 'pin-grow', 'deltaMm.0', 'pinSize', LOCAL)
+    document.append(repeatRecord, LOCAL)
+    const rep = /** @type {any} */ (bodyOf(document, 'rep').geometry)
+    const [min, max] = boundsOf(rep.parts.part2)
+    expect(max[0] - min[0]).toBeCloseTo(9, 6)
+  })
+
+  it('a repeated step bound to a measuring formula is refused by name (v1)', () => {
+    const document = pinScene()
+    defineFormula(document, { name: 'pinSize', formula: 'group1.part1.depth / 4' }, LOCAL)
+    bindParam(document, 'pin-grow', 'deltaMm.0', 'pinSize', LOCAL)
+    expect(sizeOf(document, 'pin')[0]).toBeCloseTo(9, 6)
+    expect(() => document.append(repeatRecord, LOCAL)).toThrow(/pinSize.*measures parts|measures parts.*pinSize/)
+  })
+})
+
+describe('calculated variables — rename, delete, impact', () => {
+  /** wall (a number), f = wall * 2 bound to Cube 1, g = wall + 1 on a suppressed row. */
+  function wallScene() {
+    const document = createDocument()
+    defineVariable(document, wallVar(), LOCAL)
+    document.append(cuboid('cube-1', 'Cube 1', [10, 20, 10]), LOCAL)
+    defineFormula(document, { name: 'f', formula: 'wall * 2' }, LOCAL)
+    defineFormula(document, { name: 'g', formula: 'wall + 1' }, LOCAL)
+    bindParam(document, 'cube-1', 'size.0', 'f', LOCAL)
+    document.setSuppressed(formulaIdOf(document, 'g'), true, LOCAL)
+    return document
+  }
+
+  it('consumersOf names a formula that reads the variable, kind "formula"', () => {
+    const document = wallScene()
+    const fId = formulaIdOf(document, 'f')
+    expect(consumersOf(document.entries, 'wall')).toEqual(
+      expect.arrayContaining([expect.objectContaining({ recordId: fId, kind: 'formula', name: 'f' })]),
+    )
+    expect(consumersOf(document.entries, 'f')).toEqual([expect.objectContaining({ recordId: 'cube-1', kind: 'binding', path: 'size.0' })])
+  })
+
+  it('renameVariable rewrites formula trees too, suppressed rows included, as one Undo step', () => {
+    const document = wallScene()
+    const gId = /** @type {string} */ (document.entries.find((entry) => entry.record.params?.name === 'g')?.record.id)
+    renameVariable(document, 'wall', 'thickness', LOCAL)
+    expect(document.recordOf(formulaIdOf(document, 'f'))?.params?.formula).toBe('thickness * 2')
+    expect(document.recordOf(gId)?.params?.formula).toBe('thickness + 1')
+    expect(sizeOf(document, 'cube-1')[0]).toBeCloseTo(4, 6)
+    document.undo()
+    expect(document.recordOf(formulaIdOf(document, 'f'))?.params?.formula).toBe('wall * 2')
+    expect(document.recordOf(gId)?.params?.formula).toBe('wall + 1')
+  })
+
+  it('renaming a formula renames its bindings and the formulas that read it', () => {
+    const document = wallScene()
+    defineFormula(document, { name: 'h', formula: 'f + 1' }, LOCAL)
+    renameVariable(document, 'f', 'doubled', LOCAL)
+    expect(document.recordOf('cube-1')?.params?.size[0]).toEqual({ $var: 'doubled' })
+    expect(document.recordOf(formulaIdOf(document, 'h'))?.params?.formula).toBe('doubled + 1')
+    expect(document.brokenSteps()).toEqual([])
+  })
+
+  it('renaming a body costs nothing: the formula stores its id and shows the new name', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    document.renameBody('base', 'Plate', LOCAL)
+    expect(document.recordOf(formulaIdOf(document, 'w'))?.params?.formula).toBe('#base.width')
+    expect(displayFormulaOf(document, /** @type {any} */ (formulaOf(document, 'w')))).toBe('Plate.width')
+    expect(sizeOf(document, 'c')[0]).toBeCloseTo(40, 6)
+  })
+
+  it('deleteVariable without keepValues lists the formula that reads it', () => {
+    const document = wallScene()
+    let thrown
+    try {
+      deleteVariable(document, 'wall', LOCAL)
+    } catch (error) {
+      thrown = error
+    }
+    expect(thrown).toBeInstanceOf(VariableInUseError)
+    expect(/** @type {VariableInUseError} */ (thrown).consumers.map((consumer) => consumer.kind)).toEqual(['formula', 'formula'])
+    expect(/** @type {Error} */ (thrown).message).toMatch(/\bf\b/)
+  })
+
+  it('deleteVariable with keepValues writes the value into each formula, suppressed rows included, as one Undo step', () => {
+    const document = wallScene()
+    const gId = /** @type {string} */ (document.entries.find((entry) => entry.record.params?.name === 'g')?.record.id)
+    deleteVariable(document, 'wall', LOCAL, { keepValues: true })
+    expect(document.recordOf(formulaIdOf(document, 'f'))?.params?.formula).toBe('2 * 2')
+    expect(document.recordOf(gId)?.params?.formula).toBe('2 + 1')
+    expect(sizeOf(document, 'cube-1')[0]).toBeCloseTo(4, 6)
+    document.undo()
+    expect(document.recordOf(formulaIdOf(document, 'f'))?.params?.formula).toBe('wall * 2')
+    expect(readVariables(document.entries).variables.has('wall')).toBe(true)
+  })
+
+  it('deleting a formula with keepValues turns its bindings into the values each row used', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width / 4' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    deleteVariable(document, 'w', LOCAL, { keepValues: true })
+    expect(document.recordOf('c')?.params?.size).toEqual([10, 10, 10])
+    expect(formulaOf(document, 'w')).toBeUndefined()
+    document.undo()
+    expect(document.recordOf('c')?.params?.size[0]).toEqual({ $var: 'w' })
+  })
+
+  it('setVariable on a formula is refused, naming setFormula; setFormula changes it as one step', () => {
+    const document = wallScene()
+    expect(() => setVariable(document, 'f', 5, LOCAL)).toThrow(/setFormula/)
+    setFormula(document, 'f', 'wall * 3', LOCAL)
+    expect(sizeOf(document, 'cube-1')[0]).toBeCloseTo(6, 6)
+    document.undo()
+    expect(sizeOf(document, 'cube-1')[0]).toBeCloseTo(4, 6)
+  })
+
+  it('the impact check is transitive: shrinking wall breaks a formula-bound cube, named before commit', () => {
+    const document = createDocument()
+    defineVariable(document, wallVar({ value: 5 }), LOCAL)
+    document.append(cuboid('cube-1', 'Cube 1', [10, 20, 10]), LOCAL)
+    document.append({ id: 'mv', op: 'transform.translate', target: 'cube-1', supersedes: 'cube-1', params: { vector: [1, 0, 0] } }, LOCAL)
+    defineFormula(document, { name: 'gap', formula: 'wall - 3' }, LOCAL)
+    bindParam(document, 'cube-1', 'size.0', 'gap', LOCAL)
+    const { breakages, consumers } = variableImpactOf(document, 'wall', 3)
+    expect(consumers.map((consumer) => consumer.recordId)).toEqual(expect.arrayContaining(['cube-1']))
+    expect(breakages.map((breakage) => breakage.dependentRecordId)).toEqual(expect.arrayContaining(['mv']))
+    expect(document.recordOf(formulaIdOf(document, 'gap'))?.params?.formula).toBe('wall - 3')
+  })
+
+  it('formulaReadsOf lists the formulas that measure a body, and what binds them', () => {
+    const document = baseThenC()
+    defineFormula(document, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'w', LOCAL)
+    expect(formulaReadsOf(document, 'base')).toEqual([expect.objectContaining({ name: 'w', consumers: [expect.objectContaining({ recordId: 'c' })] })])
+    expect(formulaReadsOf(document, 'c')).toEqual([])
+  })
+})
+
+describe('calculated variables — load, merge and hostile files', () => {
+  it('a var.derive line round-trips byte-identically', () => {
+    const document = ownerScene()
+    defineFormula(document, { name: 'overhang', formula: 'group1.part1.width - (group1.part2.width / 2)', unit: 'mm', label: 'Overhang' }, LOCAL)
+    bindParam(document, 'c', 'size.0', 'overhang', LOCAL)
+    const text = serializeProject(document)
+    const parsed = parseProject(text)
+    expect(parsed.warnings).toEqual([])
+    const reloaded = createDocument()
+    reloaded.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
+    expect(serializeProject(reloaded)).toBe(text)
+    expect(sizeOf(reloaded, 'c')[0]).toBeCloseTo(40, 6)
+  })
+
+  it('a malformed, over-cap or cyclic formula is a named load warning, never a refused file', () => {
+    const lines = [
+      cuboid('c1', 'C1', [{ $var: 'bad' }, 5, 5]),
+      { id: 'u1', op: 'transform.translate', target: 'c1', supersedes: 'c1', params: { vector: [1, 0, 0] } },
+      cuboid('c2', 'C2', [{ $var: 'loopy' }, 5, 5], [20, 0, 2.5]),
+      cuboid('c3', 'C3', [{ $var: 'huge' }, 5, 5], [40, 0, 2.5]),
+      cuboid('ok', 'OK', [5, 5, 5], [60, 0, 2.5]),
+      formulaRecord({ name: 'bad', formula: '1 +' }),
+      formulaRecord({ name: 'loopy', formula: 'loopy * 2' }),
+      formulaRecord({ name: 'huge', formula: '1'.repeat(FORMULA_LIMITS.maxLength + 1) }),
+      formulaRecord({ name: 'tree', formula: '1', tree: { type: 'number', value: 1 } }),
+    ]
+    const parsed = parseProject(ndjsonOf(lines))
+    const messages = parsed.warnings.map((warning) => warning.message).join('\n')
+    expect(messages).toMatch(/"bad"/)
+    expect(messages).toMatch(/"loopy".*loopy → loopy/)
+    expect(messages).toMatch(/"huge"/)
+    expect(messages).toMatch(/"tree".*unknown field/)
+    const document = createDocument()
+    document.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, { merge: parsed.merge })
+    expect(document.bodies().map((body) => body.id)).toEqual(['ok'])
+  })
+
+  it('an unknown var.* record is still skipped with a warning, so a file from a newer build opens', () => {
+    const parsed = parseProject(ndjsonOf([cuboid('ok', 'OK', [5, 5, 5]), { id: 'v', op: 'var.future', params: { name: 'x' } }]))
+    expect(parsed.warnings.map((warning) => warning.message).join('\n')).toMatch(/var\.future.*newer version/)
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['ok'])
+  })
+
+  it('a formula on one copy, the body renamed on the other: it still resolves after the merge', () => {
+    const base = baseThenC().entries.map((entry) => structuredClone(entry.record))
+    const ours = createDocument({ replica: 'oooooo', actions: structuredClone(base) })
+    const theirs = createDocument({ replica: 'tttttt', actions: structuredClone(base) })
+    defineFormula(ours, { name: 'w', formula: 'Base.width' }, LOCAL)
+    bindParam(ours, 'c', 'size.0', 'w', LOCAL)
+    theirs.renameBody('base', 'Plate', LOCAL)
+    ours.mergeFrom(theirs.mergeState(), { origin: 'merge' })
+    expect(sizeOf(ours, 'c')[0]).toBeCloseTo(40, 6)
+    expect(displayFormulaOf(ours, /** @type {any} */ (formulaOf(ours, 'w')))).toBe('Plate.width')
+  })
+
+  it('a formula and a var.define of one name on two copies: the first wins, the other is named', () => {
+    const base = baseThenC().entries.map((entry) => structuredClone(entry.record))
+    const ours = createDocument({ replica: 'oooooo', actions: structuredClone(base) })
+    const theirs = createDocument({ replica: 'tttttt', actions: structuredClone(base) })
+    defineFormula(ours, { name: 'w', formula: 'Base.width' }, LOCAL)
+    defineVariable(theirs, wallVar({ name: 'w' }), LOCAL)
+    ours.mergeFrom(theirs.mergeState(), { origin: 'merge' })
+    const defs = ours.entries.filter((entry) => entry.record.params?.name === 'w')
+    expect(defs).toHaveLength(2)
+    expect(reasonOf(ours, /** @type {string} */ (defs[1].record.id))).toMatch(/already defined/)
+  })
+
+  it('an AI fork landing is re-validated from the text, never trusted', () => {
+    const live = baseThenC()
+    const fork = createDocument({ replica: 'aaaaaa', actions: live.entries.map((entry) => structuredClone(entry.record)) })
+    fork.loadEntries([...fork.entries, ...entriesOf([formulaRecord({ name: 'sneaky', formula: 'Base.width +' }, 'var-ai-1')])], null, undefined, { tolerateAll: true })
+    live.mergeFrom(fork.mergeState(), { origin: 'ai' })
+    expect(formulaOf(live, 'sneaky')?.error).toMatch(/./)
+    expect(formulaOf(live, 'sneaky')?.value).toBeUndefined()
   })
 })

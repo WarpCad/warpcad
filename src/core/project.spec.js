@@ -482,9 +482,16 @@ describe('project variables on load (TODO/core-050) — caps and hostile input a
   })
 
   it('a variable record from a newer build (var.*) is skipped with a warning, not a refused file', () => {
+    // `var.derive` was this test's example until `TODO/FIND-core-078` made it a known op.
+    const parsed = parseProject([JSON.stringify({ id: 'd1', op: 'var.lookup', params: { name: 'outer', table: 'inner' } }), cube('cube-1')].join('\n'))
+    expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-1'])
+    expect(parsed.warnings).toEqual([{ id: 'd1', op: 'var.lookup', message: expect.stringMatching(/newer version/) }])
+  })
+
+  it('a var.derive in a shape this build does not accept is dropped by name, not a refused file (TODO/FIND-core-078)', () => {
     const parsed = parseProject([JSON.stringify({ id: 'd1', op: 'var.derive', params: { name: 'outer', expr: 'inner + 2' } }), cube('cube-1')].join('\n'))
     expect(parsed.entries.map((entry) => entry.record.id)).toEqual(['cube-1'])
-    expect(parsed.warnings).toEqual([{ id: 'd1', op: 'var.derive', message: expect.stringMatching(/newer version/) }])
+    expect(parsed.warnings).toEqual([{ id: 'd1', op: 'var.derive', message: expect.stringMatching(/formula "outer" skipped — .*must be text/) }])
   })
 
   it('more bindings than the cap is one warning, quickly — and the excess loads as broken rows', async () => {

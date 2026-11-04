@@ -118,6 +118,13 @@
  * as an unknown op — the honest outcome for a file it cannot fold — which is recorded in
  * `docs/decisions/project-variables.md`.
  *
+ * A **formula variable** (`var.derive`, `TODO/FIND-core-078`) is the same posture, re-checked
+ * from its text on every load. A record whose shape is wrong (a formula that is not text, or is
+ * longer than `FORMULA_LIMITS.maxLength`, an unknown field) is dropped like a bad `var.define`.
+ * One whose text is merely unusable (it does not parse, is over a cap, goes round in a circle,
+ * divides by zero) is **kept** — it is text, and the person can fix it — with a warning naming
+ * it, and the steps bound to it load left broken. Nothing about a formula refuses a file.
+ *
  * ## Merge metadata (`TODO/data-011`)
  *
  * What lets two copies of one project be merged after either was closed goes in a `merge`
@@ -179,10 +186,13 @@ import { ASSET_OP, validateImageAsset } from '../sketch/imageAsset.js'
 import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
 import { USER_PART_LIMITS, isUserPartOp, requiredUserParts, validateUserPartSet } from './userPart.js'
 import {
+  FORMULA_OP,
   VARIABLE_LIMITS,
   VARIABLE_OP,
   VARIABLE_OP_PREFIX,
   bindingCountOf,
+  isVariableOp,
+  readVariables,
   variableRecordError,
 } from './variables.js'
 
@@ -432,19 +442,46 @@ export const MESH_REMOVED = "imported mesh removed — it couldn't be verified a
  */
 function variableDropReason(record, names) {
   if (typeof record.op !== 'string' || !record.op.startsWith(VARIABLE_OP_PREFIX)) return null
-  if (record.op !== VARIABLE_OP) {
+  if (!isVariableOp(record.op)) {
     return `${record.op} is a variable record from a newer version of WarpCad — skipped; the rest of the project loads`
   }
   const problem = variableRecordError(/** @type {any} */ (record))
   const label = typeof record.params?.name === 'string' ? JSON.stringify(record.params.name.slice(0, VARIABLE_LIMITS.maxNameLength + 8)) : 'with no name'
-  if (problem !== null) return `variable ${label} skipped — ${problem}`
+  const noun = record.op === FORMULA_OP ? 'formula' : 'variable'
+  if (problem !== null) return `${noun} ${label} skipped — ${problem}`
   const name = record.params.name
-  if (names.has(name)) return `variable ${label} skipped — a variable named "${name}" is already defined`
+  if (names.has(name)) return `${noun} ${label} skipped — a variable named "${name}" is already defined`
   if (names.size >= VARIABLE_LIMITS.maxVariables) {
-    return `variable ${label} skipped — a project holds at most ${VARIABLE_LIMITS.maxVariables} variables`
+    return `${noun} ${label} skipped — a project holds at most ${VARIABLE_LIMITS.maxVariables} variables`
   }
   names.add(name)
   return null
+}
+
+/**
+ * The formulas a loaded file keeps but cannot use (`TODO/FIND-core-078`), by name → why: read
+ * from their text with the same {@link readVariables} the fold runs, so a file is never trusted
+ * for an earlier check. One warning each. Bounded: every cap in `FORMULA_LIMITS` applies, and a
+ * measuring formula is not evaluated here (that needs the fold).
+ *
+ * @param {DocumentEntry[]} entries
+ * @param {LoadWarning[]} warnings Appended to.
+ * @returns {Map<string, string>}
+ */
+function unusableFormulasOf(entries, warnings) {
+  /** @type {Map<string, string>} */
+  const unusable = new Map()
+  if (!entries.some((entry) => entry.record.op === FORMULA_OP)) return unusable
+  for (const variable of readVariables(entries).variables.values()) {
+    if (variable.formula === undefined || variable.error === undefined) continue
+    unusable.set(variable.name, variable.error)
+    warnings.push({
+      id: variable.id,
+      op: FORMULA_OP,
+      message: `formula "${variable.name}" can't be used — ${variable.error}; the steps bound to it load as broken`,
+    })
+  }
+  return unusable
 }
 
 /**
@@ -452,13 +489,16 @@ function variableDropReason(record, names) {
  * every record past the binding cap — plus whatever builds on them, so the load tolerates
  * them as broken rows instead of refusing the whole file (`TODO/core-050`, the posture
  * `readUserParts` takes for a missing part). One warning per missing name, one for the cap.
+ * A formula in `unusable` (`TODO/FIND-core-078`) is defined but cannot be used: its consumers
+ * are flagged the same way, under the warning {@link unusableFormulasOf} already gave.
  *
  * @param {DocumentEntry[]} entries Mutated: affected entries get `leftBroken`.
  * @param {ReadonlySet<string>} names The variables the file defines (usable ones only).
  * @param {LoadWarning[]} warnings Appended to.
+ * @param {ReadonlyMap<string, string>} [unusable] Formulas kept but unusable, by name.
  * @returns {void}
  */
-function flagUnresolvableBindings(entries, names, warnings) {
+function flagUnresolvableBindings(entries, names, warnings, unusable = new Map()) {
   /** @type {Set<string>} */
   const brokenIds = new Set()
   /** @type {Set<string>} */
@@ -476,6 +516,10 @@ function flagUnresolvableBindings(entries, names, warnings) {
         broken = true
       }
       for (const name of boundNamesOf(record)) {
+        if (unusable.has(name)) {
+          broken = true
+          continue
+        }
         if (names.has(name)) continue
         missing.add(name)
         broken = true
@@ -806,7 +850,7 @@ export function parseProject(text) {
   }
 
   const { userParts, unavailableParts } = readUserParts(state?.parts, entries, warnings)
-  flagUnresolvableBindings(entries, variableNames, warnings)
+  flagUnresolvableBindings(entries, variableNames, warnings, unusableFormulasOf(entries, warnings))
 
   return {
     entries,

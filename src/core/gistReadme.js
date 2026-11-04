@@ -94,7 +94,7 @@ const UNNAMED = '(unnamed)'
  * @typedef {object} GistReadmeVariable
  * @property {string} name
  * @property {string} kind `number`, `boolean` or `enum`.
- * @property {unknown} value
+ * @property {unknown} [value] Absent for a formula that has no value (`TODO/FIND-core-078`).
  * @property {string} [unit] A number's unit: `mm`, `deg` or `''`.
  * @property {number} [min]
  * @property {number} [max]

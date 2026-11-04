@@ -10,10 +10,12 @@ status: open
 ---
 
 > **Progress (2026-11-04):** Part 1, the language, is in: `src/core/formula.js` and
-> `src/core/formula.spec.js`, with the guard tests. Parts 2 (fold and `var.derive`), 3 (AI tools)
-> and 4 (panel, e2e, docs, media, acceptance scenario 33) are still open. This file stays in
-> `TODO/` until Part 4 lands. The e2e run that accompanied Part 1 had one unrelated failure,
-> `part-default-hidden` (a canvas snapshot that passes alone), which is recorded in the commit trailer.
+> `src/core/formula.spec.js`, with the guard tests. Part 2, the fold (`var.derive`, both tiers, the
+> "varies" note, rename/delete/impact, load warnings), is in with its unit tests and benchmark. Its
+> load-refusal gap is accepted for now, matching `var.define`, and the decision doc (Part 4) must record it.
+> Part 3 (AI tools) and Part 4 (panel, e2e, docs, media, acceptance scenario 33) are still open. This
+> file stays in `TODO/` until Part 4 lands. The `part-default-hidden` e2e flake is tracked in
+> `TODO/FIND-testing-016-part-default-hidden-canvas-same-flakes.md`, not here.
 
 ## Goal
 
