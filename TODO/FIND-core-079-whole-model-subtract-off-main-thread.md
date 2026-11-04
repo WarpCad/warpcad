@@ -2,7 +2,7 @@
 title: Subtract with a whole multi-part model as the cutter blocks the main thread for 624 ms
 category: core
 kind: perf
-priority: medium
+priority: low
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-04 from io-024's measurements)
 depends: [io-024]
