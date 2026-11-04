@@ -3,6 +3,10 @@
 Use this skill when asked to refactor a Vue view, or proactively when you encounter
 a view or component that is large, complex, or hard to test.
 
+Every question or confirmation below goes through `AskUserQuestion`, with the options
+`CLAUDE.md` "Asking the user" requires. Quoted wording is the question's text, not
+something to print and wait on.
+
 ---
 
 ## When to Offer This Refactor

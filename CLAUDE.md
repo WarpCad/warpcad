@@ -521,6 +521,40 @@ it. In short:
   (`.claude/prompts/project-audit.md`) and the backlog loop as if they're unrelated;
   `TODO/BUDGET.md` tracks both.
 
+## Asking the user
+
+**Every question to the user goes through `AskUserQuestion`, never as plain text.** The prompt is
+what reaches the user's phone and other devices. A question in plain text sends nothing, so the
+session sits idle until they happen to look, the prompt cache expires, and the next turn costs far
+more. This covers anything that waits on an answer: a yes, a go-ahead, "want me to…", a commit
+confirmation, a clarification. If a sensible default exists, take it and say so instead of asking.
+
+- **Every question offers "Explain more", and either "Defer" or "Pause".** The tool allows four
+  options, so that leaves two real answers. Put your recommendation first, marked "(Recommended)",
+  and name any further answers in the question text. The user can type anything else through the
+  automatic "Other".
+- **Explain more:** explain what the decision changes, what evidence exists, and what each answer
+  would do, then ask the same question again.
+- **Defer** when other work can go on without the answer: write the open question where it will be
+  found again (the owning `TODO/` or `docs/decisions/` file, or your closing message), then carry on
+  with whatever doesn't depend on it.
+- **Pause** when nothing can go on without the answer: stop, say in one line what is waiting, and
+  ask nothing further until the user comes back.
+- **Make the question stand alone.** It may be read on a phone with nothing else on screen, so
+  include the facts needed to answer it.
+- **More than four questions, or answers that need writing out:** print the list, then ask one
+  prompt: **Ready to answer** (typed in "Other" or in the next message), **Explain more**, **Pause**.
+  Add **Draft answers for me to correct** only if the skill lets you propose answers.
+- **A subagent cannot ask.** It returns the question to its caller, and the caller asks.
+- **If the tool isn't available** (a non-interactive run), follow the skill's fallback, or say what
+  is needed in a closing statement.
+
+The owner's machine enforces this with a user-level hook, `~/.claude/hooks/ask-guard.mjs`, which is
+not part of this repo: it refuses a prompt missing those options, and sends back, once, a message
+that ends by asking something. Delivery depends on two settings in `~/.claude/settings.json`:
+`inputNeededNotifEnabled` (push when a question is waiting) and `dialogExpiry: "never"` (by default a
+question forwarded to a remote device is cancelled after five minutes).
+
 ## Licensing (applies to every file you create or edit)
 
 This project is copyleft on purpose, and the prompts and specs that build it are a major part

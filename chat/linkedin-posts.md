@@ -3796,3 +3796,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** every figure (20 files, 486 and 305 calls, 31 hostile strings, 200,000 fuzzed strings) and the design → TODO/FIND-core-078-calculated-variables.md; the prototype run is that file's report, not rerun this session; not built → the same file, status: open.
 **To Add:** none
+
+## 2026-11-04T13:52:04Z — Question routing and /commit yolo mode
+
+**Post:** WarpCad is built with an AI partner doing much of the work, and the rules that drive it live in plain Markdown. This change tightens one of them. Every question the assistant asks now goes through a structured prompt tool, not plain text, because a plain-text question sends no notification and the session sits idle until someone looks.
+
+The commit helper also gained a yolo mode. It answers its own stop points with fixed defaults, runs the test suites, and commits only when they are green. It never pushes on its own. The commit that carries this touches eight Markdown files and no code.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 8 Markdown files, no code → git diff --stat (this session); question routing → CLAUDE.md "Asking the user"; yolo defaults and no push → .claude/commands/commit.md yolo table and Step 10; tests green this session → typecheck exit 0, unit 8036 passed, e2e 0 failed.
+**To Add:** none

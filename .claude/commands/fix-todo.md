@@ -5,6 +5,10 @@ green, implement the fix with TDD, verify again — including the acceptance-sce
 and regression-surface checks below, which is what this project's second attempt
 skipped — retire the file, and commit.
 
+Every question or confirmation below goes through `AskUserQuestion`, with the options
+`CLAUDE.md` "Asking the user" requires. Quoted wording is the question's text, not
+something to print and wait on.
+
 Trigger on requests like "fix the todo core-013", "do core-013", "implement
 ui-007", or `/fix-todo core-013`. The user will give a category-number id
 (e.g. `core-013`), not the full filename.

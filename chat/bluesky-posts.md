@@ -2626,3 +2626,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 20 project files, the vocabulary, no eval, no new dependency → TODO/FIND-core-078-calculated-variables.md; not built → the same file, status: open.
 **To Add:** none
+
+## 2026-11-04T13:52:04Z — Question routing and /commit yolo mode
+
+**Post:** WarpCad's process prompts now send every question through a structured prompt, so it reaches the owner's phone instead of sitting in a chat log. The /commit helper also got a yolo mode: it answers its own stop points with fixed defaults, runs the tests, and commits only on green. It never pushes on its own. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 8 Markdown files, 170 insertions and 22 deletions → git diff --stat (this session); every question goes through AskUserQuestion, sent to the phone → CLAUDE.md "Asking the user" section; yolo never pushes → .claude/commands/commit.md Step 10; green run this session → typecheck exit 0, unit 8036 passed, e2e 5064 passed and 0 failed.
+**To Add:** none

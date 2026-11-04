@@ -79,6 +79,8 @@ e2e to `chromium-laptop` + `webkit-tablet` and skips Firefox), say so and ask wi
 - **Proceed in fast mode** (Recommended when iterating) — leave the file; every `/test` run in
   this batch is `fast`, reports as `green (fast: …)`, and never sets the green stamp.
 - **Clear it** — `rm -f .test-fast`, so the batch runs the normal `changed`/`full` scopes.
+- **Explain more** — say what fast mode skips, then ask again.
+- **Pause** — stop the tick until the user comes back.
 
 Ask once per run, not once per tick: a later tick of the same `/loop` reuses the answer from
 this conversation (re-check only that the file still matches it). If the question can't be asked
@@ -300,11 +302,17 @@ Report to the user, in plain output (not just the Runner Log):
 - **If Step 3 flagged a milestone boundary**, say so explicitly and ask for the
   five-minute free-form human pass at phone/tablet/laptop viewports before continuing
   — per `CLAUDE.md`'s Verification section, this is the one check with no scripted
-  expectations, and it only works if a human actually does it. Don't schedule the next
-  batch until that's confirmed done (or the user explicitly says to proceed without
-  it).
+  expectations, and it only works if a human actually does it. Ask with
+  `AskUserQuestion`: **Done — continue**, **Continue without it**, **Explain more**,
+  **Defer** (schedule the longer check-in below and ask again on that tick). Don't
+  schedule the next batch until that's confirmed done (or the user explicitly says to
+  proceed without it).
 - Any acceptance-scenario or regression-surface concerns surfaced during the batch,
   even if ultimately resolved before commit.
+
+Every question in this loop goes through `AskUserQuestion`, per `CLAUDE.md` "Asking the
+user". That is what reaches the user overnight, and a check-in nobody saw is what makes a
+stuck batch expensive.
 
 Then call `ScheduleWakeup`:
 
@@ -314,6 +322,8 @@ Then call `ScheduleWakeup`:
 - **Stopped on a pre-existing failure or an unresolved acceptance-scenario FAIL** —
   don't call `ScheduleWakeup` at all; this needs the user's attention before any
   further automated ticking, same as `/fix-todo`'s own rule for a pre-existing failure.
+  Name the failure and ask with `AskUserQuestion`: **Fix it now**, **It's expected —
+  carry on**, **Explain more**, **Pause**.
 - **Batch complete, no milestone boundary** — schedule a check-in at a delay the user
   is comfortable with (default `1200`-`1800`, i.e. 20-30 minutes, per
   `ScheduleWakeup`'s own guidance for an idle tick with no specific external signal to

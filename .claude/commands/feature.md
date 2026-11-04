@@ -3,12 +3,18 @@
 You are guiding a full Test-Driven Development feature cycle for the CAD project.
 Follow every phase in order. Do not skip ahead.
 
+Every question or confirmation below goes through `AskUserQuestion`, with the options
+`CLAUDE.md` "Asking the user" requires. Quoted wording is the question's text, not
+something to print and wait on.
+
 ---
 
 ## PHASE 1 — Discovery: Ask first, code never
 
-Before touching any file, ask ALL of these questions in a single message.
-Wait for the user's answers before continuing.
+Before touching any file, print ALL of these questions in a single message, then ask
+`CLAUDE.md`'s prompt for a long list of questions (Ready to answer, Explain more, Pause).
+These answers are the user's to give, so don't offer to draft them. Wait for the user's
+answers before continuing.
 
 **Ask:**
 1. In one sentence, what should this feature do for the user?

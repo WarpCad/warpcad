@@ -149,12 +149,12 @@ Ask about the **first** question with `AskUserQuestion`. Offer four options:
 - Your recommended answer, labelled with "(Recommended)" at the end.
 - The strongest real alternative.
 - **Defer** — the question stays open and nothing changes.
-- **More detail please** — explain the question further before deciding.
+- **Explain more** — explain the question further before deciding.
 
 The user can type any other answer through the automatic "Other" choice.
 
 For an owed human pass, offer these instead: **Done — record it**, **Not yet**, **Defer**,
-**More detail please**.
+**Explain more**.
 
 Then stop. Do not start any other work in the same turn.
 
@@ -171,7 +171,7 @@ Then stop. Do not start any other work in the same turn.
   uncommitted.
 - **Defer:** record `**Deferred YYYY-MM-DD:** <question> — parked, no decision yet.` in the same
   place, and leave the question on the list for the next run. Change nothing else.
-- **More detail please:** read the code, the decision page, and the task file the question depends
+- **Explain more:** read the code, the decision page, and the task file the question depends
   on. Then answer with: what the decision changes in the code, what evidence exists (cite
   `file:line`), what each option would do, and your recommendation with its reason. Then ask the
   same question again with the same options. Allow two rounds of detail. After that, say what is

@@ -7,7 +7,7 @@ The goal is a draft worth publishing — not a polished-by-AI version that still
 
 ## Step 1 — Interview first
 
-Before editing, ask the user these questions in one message and wait for their answers.
+Before editing, print these questions in one message, then ask `CLAUDE.md`'s prompt for a long list of questions (Ready to answer, Explain more, Pause) and wait for their answers. Any later question or confirmation in this skill also goes through `AskUserQuestion`, per `CLAUDE.md` "Asking the user".
 **Do not make up answers. Do not invent anecdotes, details, or examples, unless they are from the code, commit messages, or documentation.**
 
 1. What is the one thing you most want a reader to take away from this piece?

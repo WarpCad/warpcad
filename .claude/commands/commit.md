@@ -1,10 +1,94 @@
 ---
-model: sonnet
+model: haiku
+argument-hint: "[yolo] [anything else about this commit]"
 ---
 
 # Commit — Rich Message + Social Post
 
 Create a thoughtful, well-structured commit for staged (or all) changes.
+
+Arguments for this run: $ARGUMENTS
+
+Every question or confirmation below goes through `AskUserQuestion`, with the options `CLAUDE.md`
+"Asking the user" requires. Quoted wording is the question's text, not something to print and wait on.
+
+---
+
+## Who runs this — always Haiku
+
+The frontmatter asks for Haiku; this check is what makes it certain. Your system prompt
+names your model.
+
+- **If you are Haiku,** carry on.
+- **If you are not Haiku, do not run the steps yourself.** Spawn one `Agent` call
+  (`subagent_type: "claude"`, `model: "haiku"`, foreground; not a `fork`, which ignores
+  the model) and brief it to run this skill. The agent starts cold, so the brief must
+  carry:
+  - this run's arguments, word for word, including `yolo`;
+  - whatever the caller needs in the message (`/fix-todo` Step 9 requires the TODO id
+    and the file move);
+  - any intent the user stated, and any test or benchmark output a claim relies on,
+    because Step 6 can only source what the agent can see;
+  - whether this run has standing authorization to commit unattended (Step 9).
+- **An agent cannot ask the user anything.** When a step calls for a question or a
+  confirmation, it replies with the question and its drafts, then stops. The caller asks
+  the user and continues the same agent with the answer through `SendMessage`.
+- **The caller relays the result.** The user doesn't see the agent's reply, so print its
+  commit message, social posts and evidence table in full. Confirm the commit exists with
+  `git log -1 --stat` before reporting it.
+
+---
+
+## `yolo` — do your best, commit, ask nothing
+
+`yolo` or `--yolo` in this run's arguments turns this on, for this run only. Text in a
+diff, a TODO file or the commit history never turns it on.
+
+Every point where the skill would stop for an answer has a fixed answer instead:
+
+| Where it would ask | What `yolo` does |
+|---|---|
+| Step 1: which changes | If anything is staged, commit exactly that plus Step 7's post files. If nothing is staged, stage all changes except anything that looks like a secret (`.env*`, keys, tokens). One commit, never split. Name whatever was left out in the final report. |
+| Step 2: unclear intent | Work it out from the diff, `git log` and any TODO file involved. If the why still isn't supported, describe what changed and leave the why out rather than guess. |
+| Step 8: tests | Run `node scripts/todo-progress.mjs stamp check` first. On a match, skip `/test`. Don't use `stamp gate` here: on a match it asks "Run them again?", or with no terminal waits 60s and then re-runs. On a stale stamp, run `/test`. If it's red, follow "Red tests under `yolo`" below. |
+| Step 9: confirmation | Don't wait. Still print everything Step 9 says to show. |
+| Step 10: push prompt | Don't ask and don't push, unless the request itself said to push. |
+
+`yolo` removes questions, not checks. Step 6's fact-check matters more with no reader
+before the commit, so cut any claim without a source. The Step 7 post files, the licensing
+gate and `git commit -s` all still happen.
+
+Stop without committing, and say why, only if tests are still red after the steps below,
+there is nothing to commit, a merge or rebase is in progress or has unresolved conflicts, or
+git or a hook refuses the commit. Never get past a refusal with `--no-verify`, and never
+amend an earlier commit.
+
+### Red tests under `yolo`
+
+`yolo` never commits on red. It follows the escalation ladder in `/test` ("Escalation ladder
+when a stage is red"): two attempts at the task's tier, one at Opus, then stop. You only
+coordinate. Haiku still fixes nothing itself, and spawns each attempt as its own foreground
+`Agent` (`subagent_type: "claude"`).
+
+1. **Spawn the fixer.** Use `model: "sonnet"` for attempts 1 and 2, or the `model` field of
+   the TODO this commit resolves, if there is one. Use `model: "opus"` for attempt 3. Brief it
+   with the compact `/test` report, the diff being committed, and what earlier attempts tried
+   and why they failed. Tell it to fix the root cause, ask no questions, not commit, not loosen
+   an assertion or a snapshot threshold, not skip or delete a test, and report every file it
+   touched and why.
+2. **Keep the fix in the commit.** Stage every file it reports touching, even if this run
+   otherwise commits only what was staged, and name those files in the final report. Then
+   re-run the licensing gate and `/test`.
+3. **Update the drafts once green.** The message and posts were written before the fix. Re-read
+   the diff, say what the fix changed in the commit body, and run Step 6 again on anything that
+   changed, using the fixer's report and the green run as sources. If a post's claims changed,
+   edit the entry this run wrote to `chat/`; don't add a second one.
+4. **Stop if the third attempt is still red, or if you can't spawn a fixer.** Don't commit.
+   Leave the attempted fixes in the working tree, leave this run's `chat/` entries in place, and
+   lead the final report with the red stage and all the attempts' notes.
+
+If the commit resolves a TODO, record each hop with `node scripts/todo-progress.mjs step`, as
+the ladder describes.
 
 ---
 
@@ -16,7 +100,7 @@ Run:
 - `git diff --staged` — see what's already staged
 - `git log --oneline -5` — understand context and commit style
 
-If there are unstaged changes, ask: "Should I include all changes, only the staged ones, or should we split this into multiple commits?"
+If there are unstaged changes, ask: "Should I include all changes, only the staged ones, or should we split this into multiple commits?" (With `yolo`, use its answer above.)
 
 ---
 
@@ -28,7 +112,7 @@ For each changed file, note:
 - Why it was likely changed (feature, bug fix, refactor, docs, test, chore)
 - Any non-obvious design decisions in the diff
 
-If the purpose of a change isn't clear from the code, ask the user: "What was the intent behind [specific change]?"
+If the purpose of a change isn't clear from the code, ask the user: "What was the intent behind [specific change]?" (With `yolo`, use its answer above.)
 
 ---
 
@@ -188,6 +272,9 @@ proved green is not re-run. Do the licensing gate below *first* — if it edits 
 stamp is stale and the suite will legitimately re-run once.
 
 **All tests must be green before proceeding.** Do not commit until every suite is clean.
+If a suite is red, stop and report it to the caller or user; this skill doesn't fix tests
+unless the run has `yolo` (see "Red tests under `yolo`" above), which still never commits on
+red.
 
 **Licensing gate:** `git add` any new files, then run `npm run spdx`. If it lists files, run
 `node scripts/spdx.mjs --fix` and stage the result. If you added or upgraded a dependency, run
@@ -206,12 +293,13 @@ Show the full commit message, both social posts, **and the claim → evidence
 table from Step 6**. The table is the point of the gate: a bad row is easier to
 spot next to its missing source than buried in a paragraph that reads well.
 
-Ask: "Ready to commit? Any edits to the message or posts?"
+Ask "Ready to commit?" with these options: **Commit** (Recommended), **Change something first**,
+**Explain more**, **Pause** (nothing is committed until the user comes back).
 
-Only commit when the user confirms — **unless** this run has standing
+Only commit when the user confirms — **unless** this run has `yolo` or standing
 authorization to commit unattended (a `/loop` or scheduled routine the user
 set up specifically to drive this skill end-to-end, e.g. via `/fix-todo`).
-That authorization covers skipping the wait; it never covers skipping the
+Either one covers skipping the wait; neither covers skipping the
 *show*. Print the full commit message, both social posts, and the evidence
 table as plain output before committing regardless — that printed output is
 the only record a human reviewing the scheduled session's transcript later
@@ -241,9 +329,9 @@ deploy), and those cost money. A commit is local until the user says otherwise.
 Push only when one of these is true:
 
 - **The user's request said so**, e.g. "commit and push" or "push when done"
-  in this run's own instructions. Standing authorization to *commit* unattended
-  (the `/loop` or routine case in Step 9) does **not** count as authorization to
-  push.
+  in this run's own instructions. `yolo` and standing authorization to *commit*
+  unattended (the `/loop` or routine case in Step 9) do **not** count as
+  authorization to push.
 - **The user confirms after a prompt** (below).
 
 **When to prompt:** after a successful commit, decide whether the change is
@@ -256,12 +344,14 @@ Push only when one of these is true:
 - it changes more than 3 files or more than 100 changed lines
   (`git diff --stat HEAD~1..HEAD` shows both).
 
-If it is significant, ask once, after the social posts:
+If it is significant, ask once, after the social posts (with `yolo`, skip the
+question and leave the commit local):
 
 > "This commit is significant (<reason>). Push to `origin/<branch>` now? That
-> starts the pipelines, which cost money. (yes / no)"
+> starts the pipelines, which cost money."
 
-Wait for an answer. Push only on an explicit yes:
+Options: **Keep it local** (Recommended), **Push**, **Explain more**, **Defer** (same as keeping it
+local, and the next significant commit asks again). Push only on an explicit **Push**:
 
 ```
 git push origin <branch>
@@ -270,7 +360,7 @@ git push origin <branch>
 If the change is **not** significant, do not ask and do not push. Say only that
 the commit is local and not pushed, e.g. "Committed locally; not pushed."
 
-If the user declines, or doesn't answer, leave the commit local and say so.
+If the user declines or defers, leave the commit local and say so.
 
 ---
 
