@@ -98,7 +98,7 @@ When you ask an agent that is connected to WarpCad to build something (an agent 
 The in-app Assistant does this on its own from the message you type.
 
 **Example.** Ask your agent *a 140 × 250 mm fan duct, 1.6 mm walls*. Select the duct in WarpCad:
-the Inspector's **Prompt** row shows those words. Download the project: the words are in the file,
+the Inspector's **Prompt** row shows the request's first line as a link. Download the project: the words are in the file,
 so whoever opens it later (a person or another model) can see what the duct was meant to be.
 
 To see every request in the project, open the **Prompts** view. In the Inspector, tap **Prompts (N) ›**
@@ -118,12 +118,18 @@ Tap **‹ Inspector** to go back. The view does not change your selection, and t
   shows only those requests, with a **Show all** line to clear the filter.
 - **Every request has its own Add reply… button,** inside its own row. That is how you tell which
   request a reply belongs to.
+- **Edit or remove a request** from its expanded row. **Edit request** overwrites the words, and the row
+  then shows **Edited**. The words the agent recorded are not kept, so **History**'s notes still show
+  the words from when each part was made. **Remove request** hides the request; its parts stay.
+- **Combine with next** joins a request with the one below it, as one request with both replies. It is
+  refused, with the reason in words, if the joined text would pass the 20,000-character limit.
+- Every one of these is one step on **Undo** in the top bar.
 - **Hidden parts light nothing.** A part you have hidden is listed as *hidden* and never highlights.
 
-The Inspector's **Prompt** row still shows the request and its reply for the selected part, as it did
-before the view existed.
+The Inspector's **Prompt** row is a link to the request. The request and its reply are read in the
+**Prompts** view.
 
-![The Inspector for a selected cube: a Prompts (1) bar, a Made by link to the request, then the request text, its reply starting "Built the fan duct", a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+![The Inspector for a selected cube: a Prompts (1) bar, then a Made by link that shows the request's first line and a single chevron.](./screenshots/agent-prompt-row.png)
 - **A long request is kept whole, up to 20,000 characters.** Past that it is cut with an ellipsis, and
   the agent is told what was stored, so a cut request is not silent. Each turn, the Assistant reads
   only the first 4,000 characters of a long request, so keep the important part near the start.

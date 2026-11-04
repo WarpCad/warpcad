@@ -32,12 +32,16 @@ test.describe('docs media: agent prompt', () => {
     if (!(await page.getByTestId('object-list').isVisible())) await page.getByTestId('inspector-objects-header').click()
     await page.getByTestId(`objects-row-${made.applied[0].bodyId}`).click()
     const inspector = page.getByTestId('inspector')
-    await expect(page.getByTestId('inspector-prompt')).toContainText('fan duct')
+    await expect(page.getByTestId('inspector-prompt-link')).toContainText('fan duct')
     const replied = await agentCall(page, 'record_response', { response: REPLY })
     expect(replied.ok, JSON.stringify(replied)).toBe(true)
+    await shot(page, 'agent-prompt-row.png', { locator: inspector })
+    await page.getByTestId('inspector-prompt-link').click()
+    const row = page.getByTestId('prompts-view').getByTestId('prompts-row').first()
+    // The link opens its request already expanded; expanding it again would fold it.
+    if ((await row.getAttribute('aria-expanded')) !== 'true') await row.click()
     await expect(page.getByTestId('prompt-reply-text')).toContainText('Built the fan duct')
     await expect(page.getByTestId('prompt-reply-add')).toBeVisible()
-    await shot(page, 'agent-prompt-row.png', { locator: inspector })
   })
 })
 

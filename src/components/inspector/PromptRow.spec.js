@@ -11,13 +11,19 @@ import { useDocumentStore } from '../../stores/document.js'
 import PromptRow from './PromptRow.vue'
 
 /**
- * `TODO/ai-031` — the Inspector's **Prompt** row: the request an agent was given, for a selected
- * body it produced. Collapsed by default; text only, never markup. With several bodies
- * selected it counts the prompts and shows no text.
+ * The Inspector's **Prompt** row (`TODO/ai-031`), after `TODO/ui-092` part 5: a compact link to
+ * the Prompts view and nothing else. One prompt reads **Made by** and its first line, then **›**;
+ * several read a count. The request text, the reply and **Add reply…** never render here (they
+ * live in the Prompts view, `src/components/ai/PromptReply.spec.js`), and several prompts' texts
+ * are never joined into one row. Text only, never markup. The link's wording, its click and its
+ * hover are covered in `PromptsView.spec.js`.
  */
 
 const mcp = { origin: 'mcp' }
 const cube = (id, x = 0) => ({ id, op: 'primitive.cuboid', name: `Cube ${id}`, params: { size: [10, 10, 10], center: [x, 0, 5] } })
+
+const FIRST = 'a 140 × 250 mm fan duct, 1.6 mm walls\nwith a 45° chamfer at the lip'
+const SECOND = 'now a mounting tab'
 
 function setup() {
   setActivePinia(createPinia())
@@ -26,130 +32,96 @@ function setup() {
   raw.append(cube('c1'), mcp)
   raw.append(cube('c2', 20), mcp)
   raw.append(cube('c3', 40), { origin: 'local' })
-  const first = raw.recordPrompt({ text: 'a 140 × 250 mm fan duct, 1.6 mm walls' }, mcp)
+  const first = raw.recordPrompt({ text: FIRST }, mcp)
   raw.addPromptProduced(first.id, ['c1'], mcp)
-  const second = raw.recordPrompt({ text: 'now a mounting tab' }, mcp)
+  const second = raw.recordPrompt({ text: SECOND }, mcp)
   raw.addPromptProduced(second.id, ['c2'], mcp)
-  documentStore.version += 1
-  return documentStore
+  raw.addPromptResponse(first.id, 'Built the fan duct: 140 × 250 mm outside.', mcp)
+  documentStore.refresh()
+  return { documentStore, first: first.id, second: second.id }
 }
 
-describe('PromptRow', () => {
-  it('shows the prompt for one selected body, collapsed; a tap expands it', async () => {
+/** Nothing of the old surface: no request text, no reply, no Add reply…. */
+function expectLinkOnly(wrapper) {
+  expect(wrapper.find('[data-testid="inspector-prompt-text"]').exists()).toBe(false)
+  expect(wrapper.find('[data-testid="prompt-reply"]').exists()).toBe(false)
+  expect(wrapper.find('[data-testid="prompt-reply-text"]').exists()).toBe(false)
+  expect(wrapper.find('[data-testid="prompt-reply-add"]').exists()).toBe(false)
+  expect(wrapper.text()).not.toContain('Built the fan duct')
+  expect(wrapper.text()).not.toContain('Add reply')
+  expect(wrapper.findAll('button')).toHaveLength(1)
+}
+
+describe('PromptRow — the compact link only (TODO/ui-092, part 5)', () => {
+  it('one prompt: the row is the link, Made by and the first line only; no request text, reply or Add reply…', () => {
     setup()
     const wrapper = mount(PromptRow, { props: { bodyIds: ['c1'] } })
     const row = wrapper.get('[data-testid="inspector-prompt"]')
-    expect(row.text()).toContain('Prompt')
-    expect(row.text()).toContain('a 140 × 250 mm fan duct, 1.6 mm walls')
-    expect(row.attributes('aria-expanded')).toBe('false')
-    expect(row.classes()).toContain('prompt--collapsed')
-    await row.trigger('click')
-    expect(row.attributes('aria-expanded')).toBe('true')
-    expect(row.classes()).not.toContain('prompt--collapsed')
+    const link = row.get('[data-testid="inspector-prompt-link"]')
+    expect(link.get('[data-testid="inspector-prompt-link-lead"]').text()).toBe('Made by')
+    expect(link.get('[data-testid="inspector-prompt-link-text"]').text()).toBe('a 140 × 250 mm fan duct, 1.6 mm walls')
+    expect(row.text()).not.toContain('with a 45° chamfer at the lip')
+    expect(link.attributes('aria-expanded')).toBeUndefined()
+    expectLinkOnly(wrapper)
+  })
+
+  it('a body two prompts made: a count, and neither text, never the two joined', () => {
+    const { documentStore } = setup()
+    const third = documentStore.raw.recordPrompt({ text: 'and make the first one taller' }, mcp)
+    documentStore.raw.addPromptProduced(third.id, ['c1'], mcp)
+    documentStore.refresh()
+    const wrapper = mount(PromptRow, { props: { bodyIds: ['c1'] } })
+    expect(wrapper.get('[data-testid="inspector-prompt-link-lead"]').text()).toBe('2 prompts')
+    expect(wrapper.find('[data-testid="inspector-prompt-link-text"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('fan duct')
+    expect(wrapper.text()).not.toContain('taller')
+    expectLinkOnly(wrapper)
   })
 
   it('renders nothing for a body no prompt produced', () => {
     setup()
     const wrapper = mount(PromptRow, { props: { bodyIds: ['c3'] } })
     expect(wrapper.find('[data-testid="inspector-prompt"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="inspector-prompt-link"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="prompt-reply-add"]').exists()).toBe(false)
   })
 
-  it('with several bodies selected: "N prompts", and no text', () => {
+  it('several bodies selected: the same link — "2 prompts", no text, no reply', () => {
     setup()
     const wrapper = mount(PromptRow, { props: { bodyIds: ['c1', 'c2', 'c3'] } })
     const row = wrapper.get('[data-testid="inspector-prompt"]')
-    expect(row.text()).toBe('2 prompts')
+    expect(row.get('[data-testid="inspector-prompt-link-lead"]').text()).toBe('2 prompts')
     expect(row.text()).not.toContain('fan duct')
+    expect(row.text()).not.toContain(SECOND)
+    expectLinkOnly(wrapper)
+    // One prompt behind several bodies: the one-prompt link, not a "1 prompt" count.
     const one = mount(PromptRow, { props: { bodyIds: ['c1', 'c3'] } })
-    expect(one.get('[data-testid="inspector-prompt"]').text()).toBe('1 prompt')
+    expect(one.get('[data-testid="inspector-prompt-link-lead"]').text()).toBe('Made by')
+    expectLinkOnly(one)
   })
 
   it('is inert text: <img onerror> is shown, never run', () => {
-    setup()
-    const documentStore = useDocumentStore()
+    const { documentStore } = setup()
     const raw = documentStore.raw
     const hostile = raw.recordPrompt({ text: '<img src=x onerror="window.__pwned=1"><b>x</b>' }, mcp)
     raw.addPromptProduced(hostile.id, ['c3'], mcp)
-    documentStore.version += 1
+    documentStore.refresh()
     const wrapper = mount(PromptRow, { props: { bodyIds: ['c3'] } })
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('b').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="inspector-prompt"]').text()).toContain('<img src=x onerror="window.__pwned=1"><b>x</b>')
+    expect(wrapper.get('[data-testid="inspector-prompt-link-text"]').text()).toBe('<img src=x onerror="window.__pwned=1"><b>x</b>')
   })
 
   it('follows the document: a prompt linked later appears', async () => {
-    const documentStore = setup()
+    const { documentStore } = setup()
     const wrapper = mount(PromptRow, { props: { bodyIds: ['c3'] } })
     expect(wrapper.find('[data-testid="inspector-prompt"]').exists()).toBe(false)
     const raw = documentStore.raw
     const prompt = raw.recordPrompt({ text: 'late' }, mcp)
     raw.addPromptProduced(prompt.id, ['c3'], mcp)
-    documentStore.version += 1
+    documentStore.refresh()
     await wrapper.vm.$nextTick()
-    expect(wrapper.get('[data-testid="inspector-prompt"]').text()).toContain('late')
-  })
-})
-
-/**
- * `TODO/ai-032` — the reply under the request, and **Add reply…**: one undo step through the
- * document store, as the local user.
- */
-describe('PromptRow — the reply', () => {
-  it('shows a saved reply under the request, collapsed with Show all when long; text only', async () => {
-    const documentStore = setup()
-    const [first] = documentStore.raw.prompts()
-    const long = `Placed it.\n\n## Problems met\n- <img src=x onerror="window.__pwned=1"> @name\n${'line\n'.repeat(10)}`
-    documentStore.raw.addPromptResponse(first.id, long, mcp)
-    documentStore.version += 1
-    const wrapper = mount(PromptRow, { props: { bodyIds: ['c1'] } })
-    const text = wrapper.get('[data-testid="prompt-reply-text"]')
-    expect(text.text()).toContain('Problems met')
-    expect(wrapper.find('img').exists()).toBe(false)
-    expect(text.classes()).toContain('reply__text--collapsed')
-    const toggle = wrapper.get('[data-testid="prompt-reply-toggle"]')
-    expect(toggle.text()).toBe('Show all')
-    await toggle.trigger('click')
-    expect(text.classes()).not.toContain('reply__text--collapsed')
-  })
-
-  it('shows no reply and no Add reply… for several selected bodies', () => {
-    setup()
-    const wrapper = mount(PromptRow, { props: { bodyIds: ['c1', 'c2'] } })
-    expect(wrapper.find('[data-testid="prompt-reply"]').exists()).toBe(false)
-  })
-
-  it('Add reply… appends through the store as one local undo step; Undo removes it; Cancel adds nothing', async () => {
-    const documentStore = setup()
-    const wrapper = mount(PromptRow, { props: { bodyIds: ['c1'] } })
-    expect(wrapper.find('[data-testid="prompt-reply-text"]').exists()).toBe(false)
-    await wrapper.get('[data-testid="prompt-reply-add"]').trigger('click')
-    await wrapper.get('[data-testid="prompt-reply-input"]').setValue('not this one')
-    await wrapper.get('[data-testid="prompt-reply-cancel"]').trigger('click')
-    expect(documentStore.raw.prompts()[0]).not.toHaveProperty('responses')
-
-    await wrapper.get('[data-testid="prompt-reply-add"]').trigger('click')
-    expect(wrapper.get('[data-testid="prompt-reply-submit"]').attributes('disabled')).toBeDefined()
-    await wrapper.get('[data-testid="prompt-reply-input"]').setValue('The duct is 140 × 250 mm.')
-    await wrapper.get('[data-testid="prompt-reply-form"]').trigger('submit')
-    expect(wrapper.find('[data-testid="prompt-reply-form"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="prompt-reply-text"]').text()).toBe('The duct is 140 × 250 mm.')
-    expect(documentStore.raw.pendingUndo()?.label).toBe('Add reply')
-
-    expect(documentStore.undo().ok).toBe(true)
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('[data-testid="prompt-reply-text"]').exists()).toBe(false)
-  })
-
-  it('says why a reply was refused, leaving the form open', async () => {
-    const documentStore = setup()
-    const [first] = documentStore.raw.prompts()
-    documentStore.raw.addPromptResponse(first.id, 'a'.repeat(20_000), mcp)
-    documentStore.version += 1
-    const wrapper = mount(PromptRow, { props: { bodyIds: ['c1'] } })
-    await wrapper.get('[data-testid="prompt-reply-add"]').trigger('click')
-    await wrapper.get('[data-testid="prompt-reply-input"]').setValue('more')
-    await wrapper.get('[data-testid="prompt-reply-form"]').trigger('submit')
-    expect(wrapper.get('[data-testid="prompt-reply-problem"]').text()).toMatch(/full/)
-    expect(wrapper.find('[data-testid="prompt-reply-form"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="inspector-prompt-link-text"]').text()).toBe('late')
+    expectLinkOnly(wrapper)
   })
 })

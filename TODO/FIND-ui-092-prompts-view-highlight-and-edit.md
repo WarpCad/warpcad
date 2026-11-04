@@ -323,4 +323,16 @@ re-driven. Choices: Undo of **Combine** takes `next`'s ids back out of `produced
 saved copy brings them back); **Undo merge** leaves a removal the merged copy made. Outstanding: the
 Documentation section and the trust-model and merge-rule lines in `docs/decisions/`, the hand check, Part 5.
 
+## Part 5 status (2026-11-03, uncommitted)
+
+Built: `PromptRow.vue` is the link only, `inspector-prompt` (a wrapper kept for the specs that read it) around
+`inspector-prompt-link`. Gone from the Inspector: the request-text button and its expand state, the joined
+`text`, the **N prompts** count paragraph, and the `PromptReply` mount (`PromptReply.vue` stays, used by
+`PromptsViewRow.vue`). Several bodies with one prompt now read **Made by …›** rather than **1 prompt**.
+`PromptRow.spec.js` asserts the link-only surface; its reply tests moved to `src/components/ai/PromptReply.spec.js`,
+driven through the expanded Prompts view row. `e2e/prompt-response.e2e.js` and `e2e/prompt-record.e2e.js` moved to
+the link and the Prompts view, with the same test ids. Outstanding: `e2e/docs/agent-prompt.docs.js`'s
+`agent-prompt-row still` still expects the reply in the Inspector, and `agent-prompt-row.png` and the prose in
+`ai-partner.md`, `design-intent.md`, `mcp.md` and `webmcp.md` still describe it (the docs step).
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

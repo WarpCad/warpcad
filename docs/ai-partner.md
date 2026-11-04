@@ -166,8 +166,7 @@ anything it did differently from what you asked, any workaround, any refused cal
 and how it dealt with each. Agents connected from outside (Claude Code, an agent in your browser)
 save their reply the same way, with the `record_response` tool ([MCP](mcp.md#the-prompt-is-saved-with-the-part)).
 
-Select a shape the agent made. The Inspector's **Prompt** row shows your request and a link to the
-**Prompts** view. Tap the link, or **Prompts (N) ›** under the Objects list, to open the view: every
+Select a shape the agent made. The Inspector's **Prompt** row is a link to your request. Tap it, or **Prompts (N) ›** under the Objects list, to open the view: every
 request in the project, oldest first, with its reply under it. A long reply shows its first few lines;
 tap **Show all** to read the rest, and **Show less** to fold it again.
 
@@ -179,10 +178,14 @@ view, expand the request, tap **Add reply…** in its row, paste the text and ta
 
 ![The Prompts view on a phone: the third Prompts tab beside Inspector and Variables, with the first request expanded and its reply area and Add reply… button above its parts.](./screenshots/prompts-view-phone.png)
 
-![The Inspector for a selected cube: a Prompts (1) bar, a Made by link to the request, then the request text, its reply with a Problems met list, a Show all link and an Add reply… button.](./screenshots/agent-prompt-row.png)
+![The Inspector for a selected cube: a Prompts (1) bar, then a Made by link that shows the request's first line and a single chevron.](./screenshots/agent-prompt-row.png)
 
 - **Every request has its own Add reply… button,** in its own row, so a reply always goes with the
   request it answers. Two requests give you two buttons, one under each request.
+- **Edit reply** replaces the whole reply with the text you type, and **Remove reply** takes it away.
+  Both are one step on **Undo**. They are only offered to you, not to the agent.
+- **Agents cannot edit or remove** a request or reply, and a request you have removed refuses any new
+  reply or prompt from the agent, with the reason in words.
 - **Add reply…** works on any request, with a reply or without; a second reply goes after the first.
   It is one step on the **Undo** button in the top bar: **Undo** takes the reply back and leaves
   the request.

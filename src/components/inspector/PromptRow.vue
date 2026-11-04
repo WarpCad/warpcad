@@ -1,75 +1,45 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The Inspector's **Prompt** row (`TODO/ai-031`): the request an agent was given, for a selected
- * body it produced (`promptsForBody` — the body's own steps, or a body a boolean consumed into
- * it). Read-only; collapsed to one ellipsised line by default, and a tap (or Enter/Space — it is
- * a button) shows the whole text, wrapped. Nothing renders for a body no prompt produced, which
- * is every body a person made by hand.
+ * The Inspector's **Prompt** row (`TODO/ai-031`): for a selected body a recorded prompt made or
+ * changed, a compact 44 px link to the Prompts view (`TODO/ui-092`, part 3). Nothing renders for a
+ * body no prompt produced, which is every body a person made by hand.
  *
- * Under the request, for one selected body, each prompt's saved reply and its **Add reply…**
- * control (`TODO/ai-032`, `src/components/ai/PromptReply.vue`).
+ * Read from the document store's prompt index, never a lineage walk: one prompt reads **Made by**
+ * or **Changed by** and its first line, then **›**; several read **Made by 1, changed by 2 ›**, or
+ * **2 prompts ›** where the roles match. Several bodies selected get the same link. It opens the
+ * Prompts view with that request expanded and scrolled into view, or filtered to the several. A
+ * mouse over it lights the requests' parts, as a row in the view does.
  *
- * With several bodies selected it says how many prompts produced them — "2 prompts" — and shows
- * no text: one Inspector row is no place to read several requests side by side.
- *
- * **The link (`TODO/ui-092`, part 3).** First, a compact 44 px link to the Prompts view
- * (`inspector-prompt-link`), read from the document store's prompt index: one prompt reads
- * **Made by** or **Changed by** and its first line, then **›**; several read **Made by 1, changed
- * by 2 ›**, or **2 prompts ›** where the roles match. It opens the Prompts view with that request
- * expanded and scrolled into view, or filtered to the several. A mouse over it lights the
- * requests' parts, as a row in the view does. The request text and reply below it are the old
- * surface, removed by the finding's Part 5.
+ * The request's full text, its reply and **Add reply…** live in the Prompts view, one per request
+ * (`PromptsViewRow.vue`, `src/components/ai/PromptReply.vue`), never here (`TODO/ui-092`, part 5):
+ * one Inspector row is no place to read several requests, and joining them is what showed two
+ * unlabelled **Add reply…** buttons on the Fan Duct project.
  *
  * Untrusted text (it arrives from agents and from any opened file), so it is rendered with
  * `{{ }}` text interpolation only: no `v-html`, no Markdown, no link is ever made or followed.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 
-import { promptsForBody } from '../../core/prompt.js'
 import { usePromptHighlight, usePromptParts } from '../../composables/usePromptHighlight.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { usePromptsUiStore } from '../../stores/promptsUi.js'
-import PromptReply from '../ai/PromptReply.vue'
 
 const props = defineProps({
-  /** The selected bodies' ids (lineage roots). One shows the text; several show a count. */
+  /** The selected bodies' ids (lineage roots). */
   bodyIds: { type: Array, required: true },
 })
 
 const documentStore = useDocumentStore()
-const expanded = ref(false)
-
-/** Every distinct prompt that produced any selected body, in the order recorded. */
-const prompts = computed(() => {
-  void documentStore.version // `raw` is deliberately non-reactive
-  const raw = documentStore.raw
-  /** @type {Map<string, import('../../core/prompt.js').PromptRecord>} */
-  const found = new Map()
-  for (const id of /** @type {string[]} */ (props.bodyIds)) {
-    for (const prompt of promptsForBody(raw, id)) found.set(prompt.id, prompt)
-  }
-  return [...found.values()]
-})
-
-const single = computed(() => props.bodyIds.length === 1)
-const text = computed(() => prompts.value.map((prompt) => prompt.text).join('\n\n'))
-const countLabel = computed(() => `${prompts.value.length} ${prompts.value.length === 1 ? 'prompt' : 'prompts'}`)
-
-// A different selection starts collapsed again.
-watch(
-  () => props.bodyIds.join('\u0000'),
-  () => {
-    expanded.value = false
-    highlight.clear()
-  },
-)
-
-// --- the link to the Prompts view (TODO/ui-092) ---------------------------
-
 const promptsUi = usePromptsUiStore()
 const { drawnIdsOf } = usePromptParts()
 const highlight = usePromptHighlight()
+
+// A different selection drops a mouse highlight the old one left.
+watch(
+  () => props.bodyIds.join('\u0000'),
+  () => highlight.clear(),
+)
 
 /** @type {Record<import('../../core/prompt.js').PromptRole, number>} */
 const ROLE_RANK = { made: 0, changed: 1, wentInto: 2 }
@@ -126,46 +96,34 @@ function onLinkLeave(event) {
 </script>
 
 <template>
-  <button
-    v-if="linked.length > 0"
-    type="button"
-    class="prompt-link"
-    data-testid="inspector-prompt-link"
-    :data-prompt-ids="linked.map((entry) => entry.promptId).join(',')"
-    title="Open the request in the Prompts view"
-    @click="openLink"
-    @pointermove="onLinkMove"
-    @pointerleave="onLinkLeave"
-  >
-    <span class="prompt-link__lead" data-testid="inspector-prompt-link-lead">{{ linkLabel.lead }}</span>
-    <span v-if="linkLabel.text !== ''" class="prompt-link__text" data-testid="inspector-prompt-link-text">{{ linkLabel.text }}</span>
-    <span class="prompt-link__chevron" aria-hidden="true">›</span>
-  </button>
-  <template v-if="prompts.length > 0">
+  <div v-if="linked.length > 0" class="prompt-row" data-testid="inspector-prompt">
     <button
-      v-if="single"
       type="button"
-      class="prompt"
-      :class="{ 'prompt--collapsed': !expanded }"
-      data-testid="inspector-prompt"
-      :aria-expanded="expanded ? 'true' : 'false'"
-      :title="expanded ? 'Show less' : 'The request this was built from — tap to read it all'"
-      @click="expanded = !expanded"
+      class="prompt-link"
+      data-testid="inspector-prompt-link"
+      :data-prompt-ids="linked.map((entry) => entry.promptId).join(',')"
+      title="Open the request in the Prompts view"
+      @click="openLink"
+      @pointermove="onLinkMove"
+      @pointerleave="onLinkLeave"
     >
-      <span class="prompt__label">Prompt</span>
-      <span class="prompt__text" data-testid="inspector-prompt-text">{{ text }}</span>
+      <span class="prompt-link__lead" data-testid="inspector-prompt-link-lead">{{ linkLabel.lead }}</span>
+      <span v-if="linkLabel.text !== ''" class="prompt-link__text" data-testid="inspector-prompt-link-text">{{ linkLabel.text }}</span>
+      <span class="prompt-link__chevron" aria-hidden="true">›</span>
     </button>
-    <!-- `TODO/ai-032`: each prompt's saved reply, and Add reply…, under the request. -->
-    <template v-if="single">
-      <PromptReply v-for="prompt in prompts" :key="prompt.id" :prompt="prompt" />
-    </template>
-    <p v-else class="prompt prompt--count" data-testid="inspector-prompt">{{ countLabel }}</p>
-  </template>
+  </div>
 </template>
 
 <style scoped>
-.prompt-link {
+.prompt-row {
+  /* Like the intent line: never squeezed below its link in the scrolling Inspector column. */
   flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.prompt-link {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -212,63 +170,5 @@ function onLinkLeave(event) {
   margin-left: auto;
   color: var(--accent);
   font-size: 15px;
-}
-
-.prompt {
-  /* Like the intent line: never squeezed below its text in the scrolling Inspector column. */
-  flex-shrink: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  width: 100%;
-  max-width: 100%;
-  min-height: var(--tap);
-  margin: 0;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-2);
-  font-family: inherit;
-  font-size: 12px;
-  line-height: 1.45;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.prompt--count {
-  align-items: center;
-  cursor: default;
-  color: var(--text-3);
-}
-
-.prompt__label {
-  flex: 0 0 auto;
-  color: var(--text-3);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.prompt__text {
-  flex: 1;
-  min-width: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.prompt--collapsed {
-  align-items: center;
-}
-
-.prompt--collapsed .prompt__text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.prompt:hover .prompt__text,
-.prompt:focus-visible .prompt__text {
-  color: var(--text-1);
 }
 </style>

@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The reply saved under one prompt (`TODO/ai-032`), shown below the request in the Inspector's
- * **Prompt** row: what the agent said back — headline numbers, deviations, a **Problems met**
- * section — collapsed to a few lines, with **Show all** to read the rest.
+ * The reply saved under one prompt (`TODO/ai-032`), shown below the request in its expanded row
+ * of the Prompts view (`PromptsViewRow.vue`, `TODO/ui-092` — no longer in the Inspector's
+ * **Prompt** row, which is only a link since part 5): what the agent said back — headline numbers,
+ * deviations, a **Problems met** section — collapsed to a few lines, with **Show all** to read the
+ * rest.
  *
  * **Add reply…** (decision 4) is how a reply reaches a prompt after the fact (the Fan Duct file):
  * it opens a text area; **Add** appends the text as one segment through the document store as

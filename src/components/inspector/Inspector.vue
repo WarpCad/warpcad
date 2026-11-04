@@ -797,7 +797,7 @@ watch([() => body.value?.id, colorPart], () => {
         <p class="inspector__count" data-testid="inspector-multi">
           {{ described.count }} selected
         </p>
-        <!-- TODO/ai-031: how many recorded prompts produced the selection — a count, no text. -->
+        <!-- TODO/ai-031, ui-092: the link to the prompts that produced the selection — no text. -->
         <PromptRow :body-ids="selection.ids" />
         <p class="inspector__note">
           Select a single object to see its parameters. Operations that work on several
@@ -887,7 +887,7 @@ watch([() => body.value?.id, colorPart], () => {
         <SaveToLibraryButton v-if="!body.subPart" />
         <!-- TODO/ai-003: why this body exists, when a step in its history recorded it. -->
         <IntentLine v-if="!body.subPart" :body-id="body.id" />
-        <!-- TODO/ai-031: the request an agent was given that produced this body, collapsed. -->
+        <!-- TODO/ai-031, ui-092: Made by… ›, the link to the request in the Prompts view. -->
         <PromptRow v-if="!body.subPart" :body-ids="[body.id]" />
         <!-- TODO/io-007: its size, and whether it fits the printer — per print piece. -->
         <FitBadge v-if="!body.subPart" :body-id="body.id" />

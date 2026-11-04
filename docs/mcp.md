@@ -404,15 +404,15 @@ reaches your project.
 
 Claude Code is asked to call `record_prompt` first with your request as you gave it, in one call, and
 the file keeps it. Open the file in WarpCad, select a shape Claude made, and the Inspector's **Prompt**
-row shows your words and a link to the **Prompts** view, which lists every request in the project.
+row is a link to your words; the **Prompts** view lists every request in the project and its reply.
 A worked example is in
 [The prompt is saved with the part](design-intent.md#the-prompt-is-saved-with-the-part).
 
 When it finishes, Claude Code is asked to call `record_response` with its final message, the same
 text it shows you, ending with a **Problems met** section: anything it did differently from what
 you asked, any workaround, any call WarpCad refused, any check that failed, and how it dealt with
-each. WarpCad saves that reply under your request. Select a shape Claude made and the reply is
-under the **Prompt** row, so you, or whoever you send the file to, can read what was asked and
+each. WarpCad saves that reply under your request. Open the **Prompts** view and expand the
+request, and the reply is under it, so you, or whoever you send the file to, can read what was asked and
 what came back.
 
 - **One request, one call.** A long request goes in one `record_prompt` call, in full, up to 20,000
