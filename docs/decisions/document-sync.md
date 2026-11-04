@@ -420,6 +420,20 @@ The user chose, on 2026-10-17, that the step a person made should win the tie.
 - The merge banner and the conflict reason are worded as before. They name the step that lost
   and the one it lost to.
 
+### As built: `ui-092` part 4 (2026-11-03), prompts can be edited and removed
+
+- **The text register.** A prompt's `text`, its `textAt` stamp and its `edited` flag are merged as one
+  unit: the latest `textAt` wins under `compareStamps`. A missing `textAt` means the words as recorded,
+  which count as older than any stamp. Undo back to the original wording writes a newer stamp, so the
+  **Edited** label clears and the merge keeps it.
+- **Removal is a tombstone with a stamp.** `removed: { at }` is kept at the later stamp and never
+  dropped. A prompt is live unless it was removed at or after its text's stamp. Merging an older copy
+  holds only older stamps, so it cannot bring back a removed request or old wording.
+- **Undo and Redo write newer stamps,** never the old values. A merge before Save therefore cannot
+  undo them.
+- **Why a register, not the old `edit` field.** Each field is its own simple join, so the merge stays
+  commutative, associative and idempotent (the merge-law tests cover every order).
+
 ### Sources
 
 `Initial design.md` §1 ("Document model / sync — proposed as deferred, not resolved")

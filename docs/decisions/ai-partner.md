@@ -475,6 +475,9 @@ context that means anything a loaded project carries can be a prompt injection:
   validated at load (a bad record is dropped and named, never repaired), shown by the Inspector
   as text only, and given to a model only in the labelled `prompts` data block or a tool result,
   never as an instruction, whoever recorded it;
+- edited requests (`ui-092` part 4): a request the user edits overwrites the stored text. The edited
+  words are cleaned and capped by the same `preparePrompt` as a recorded request, and are data, never
+  instructions. No agent tool can edit or remove a request or reply; only the local user can.
 - saved replies (`ai-032`): an agent's final message stored under its prompt as segments
   (`record_response`, the in-app chat at the end of a turn, or **Add reply…** by hand) — the same
   cleaning as a prompt, capped at 20,000 characters per prompt, validated at load (a bad segment
