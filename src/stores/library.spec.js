@@ -381,3 +381,26 @@ describe('start', () => {
     setLibraryParts([])
   })
 })
+
+describe('importedToast (TODO/io-024)', () => {
+  it('names the parts and the duplicates skipped for a 3MF assembly, and only mentions skips that happened', async () => {
+    const { importedToast } = await import('./library.js')
+    const assembly = /** @type {any} */ ({ ok: true, kind: 'assembly', parts: new Array(29), triangleCount: 29718, duplicates: 58, skippedObjects: 0 })
+    expect(importedToast('feather.3mf', assembly, '51.3 × 22.9 × 6.37 mm')).toBe(
+      'Imported feather.3mf, 29 parts, 29,718 triangles, 51.3 × 22.9 × 6.37 mm. 58 exact duplicates skipped.'
+    )
+    expect(importedToast('feather.3mf', { ...assembly, duplicates: 0 }, '1 × 2 × 3 mm')).toBe('Imported feather.3mf, 29 parts, 29,718 triangles, 1 × 2 × 3 mm.')
+    expect(importedToast('a.3mf', { ...assembly, duplicates: 1, skippedObjects: 2 }, '')).toBe(
+      'Imported a.3mf, 29 parts, 29,718 triangles. 1 exact duplicate skipped. 2 support or other non-model objects skipped.'
+    )
+  })
+
+  it('an STL, and a 3MF of one part, read as before', async () => {
+    const { importedToast } = await import('./library.js')
+    expect(importedToast('bracket.stl', /** @type {any} */ ({ kind: 'mesh', triangleCount: 12 }), '40 × 20 × 10 mm')).toBe(
+      'Imported bracket.stl — 12 triangles, 40 × 20 × 10 mm'
+    )
+    const one = /** @type {any} */ ({ kind: 'assembly', parts: [{}], triangleCount: 12, duplicates: 0, skippedObjects: 0 })
+    expect(importedToast('plate.3mf', one, '2 × 3 × 4 mm')).toBe('Imported plate.3mf — 12 triangles, 2 × 3 × 4 mm')
+  })
+})

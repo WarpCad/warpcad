@@ -629,3 +629,125 @@ describe('capturePart — user colour overrides (TODO/core-054)', () => {
     expect(validateUserPart(stray).ok).toBe(false)
   })
 })
+
+describe('a part of several meshes, each placed by a matrix (TODO/io-024)', () => {
+  /** @param {[number, number, number]} size */
+  async function boxRecord(size) {
+    const { importMeshBytes } = await import('../io/meshJob.js')
+    const { binaryStl, boxTriangles } = await import('../io/__fixtures__/stl.js')
+    const result = await importMeshBytes('box.stl', binaryStl(boxTriangles(size)))
+    if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
+    return result.record
+  }
+  /** A grid mesh of `2 × n × n` triangles. @param {number} n */
+  async function gridRecord(n) {
+    const { importMeshBytes } = await import('../io/meshJob.js')
+    const { binaryStl, gridTriangles } = await import('../io/__fixtures__/stl.js')
+    const result = await importMeshBytes('grid.stl', binaryStl(gridTriangles(n, 1, 0)))
+    if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
+    return result.record
+  }
+  /** @param {number} dx */
+  const moved = (dx) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, dx, 0, 0, 1]
+
+  /**
+   * @param {any[]} assets
+   * @param {{ target: string, matrix?: unknown, unitsStated?: unknown }[]} placed
+   */
+  function assembly(assets, placed) {
+    const parts = placed.map((entry, index) => ({
+      id: `p${index + 1}`,
+      op: 'import.mesh',
+      target: entry.target,
+      params: {
+        name: `Part ${index + 1}`,
+        triangleCount: 12,
+        unitScale: 1,
+        unitsConfirmed: true,
+        unitsStated: entry.unitsStated ?? true,
+        recenter: false,
+        matrix: entry.matrix ?? moved(index * 5),
+      },
+    }))
+    return {
+      op: 'user.feather',
+      name: 'feather',
+      version: 1,
+      result: 'model',
+      params: [],
+      records: [
+        ...assets.map((asset) => ({ id: asset.id, op: asset.op, params: { ...asset.params } })),
+        ...parts,
+        ...(parts.length > 1
+          ? [{ id: 'model', op: 'group.assemble', operands: parts.map((part) => part.id), params: { names: parts.map((part) => part.params.name) } }]
+          : []),
+      ],
+    }
+  }
+
+  it('one asset used by ten import.mesh records validates', async () => {
+    const resistor = await boxRecord([1.625, 0.81, 0.38])
+    const verdict = validateUserPart(assembly([resistor], Array.from({ length: 10 }, () => ({ target: resistor.id }))))
+    expect(verdict.ok, verdict.ok ? '' : verdict.reason).toBe(true)
+  })
+
+  it('thirteen distinct assets in one part validate (the cap is the definition size, not the count)', async () => {
+    const assets = []
+    for (let index = 0; index < 13; index += 1) assets.push(await boxRecord([1 + index, 2, 3]))
+    const verdict = validateUserPart(assembly(assets, assets.map((asset) => ({ target: asset.id }))))
+    expect(verdict.ok, verdict.ok ? '' : verdict.reason).toBe(true)
+    expect(USER_PART_LIMITS.maxMeshAssetsPerPart).toBeGreaterThanOrEqual(13)
+  })
+
+  it('refuses a matrix that is non-finite, the wrong length, singular or not affine', async () => {
+    const box = await boxRecord([2, 2, 2])
+    const bad = [
+      [Number.NaN, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0.5, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1e9, 0, 0, 1],
+    ]
+    for (const matrix of bad) {
+      const verdict = validateUserPart(assembly([box], [{ target: box.id }, { target: box.id, matrix }]))
+      expect(verdict.ok).toBe(false)
+      expect(verdict.ok ? '' : verdict.reason).toMatch(/record "p2".*matrix/)
+    }
+  })
+
+  it('refuses unitsStated that is not true or false', async () => {
+    const box = await boxRecord([2, 2, 2])
+    const verdict = validateUserPart(assembly([box], [{ target: box.id, unitsStated: 'yes' }, { target: box.id }]))
+    expect(verdict.ok ? '' : verdict.reason).toMatch(/unitsStated/)
+  })
+
+  it('caps the triangles drawn across every instance: one asset placed many times', async () => {
+    // 2 × 120 × 120 = 28,800 triangles; nine placements is 259,200, over the 250 k cap.
+    const grid = await gridRecord(120)
+    const eight = validateUserPart(assembly([grid], Array.from({ length: 8 }, () => ({ target: grid.id }))))
+    expect(eight.ok, eight.ok ? '' : eight.reason).toBe(true)
+    const nine = validateUserPart(assembly([grid], Array.from({ length: 9 }, () => ({ target: grid.id }))))
+    expect(nine.ok).toBe(false)
+    expect(nine.ok ? '' : nine.reason).toMatch(/259,200 triangles.*250 k/)
+  })
+
+  it('counts instanced triangles through nested parts too', async () => {
+    const grid = await gridRecord(120)
+    const inner = assembly([grid], Array.from({ length: 8 }, () => ({ target: grid.id })))
+    const outer = {
+      op: 'user.board-pair',
+      name: 'board pair',
+      version: 1,
+      result: 'both',
+      params: [],
+      records: [
+        { id: 'a', op: 'user.feather', params: {} },
+        { id: 'b', op: 'user.feather', params: {} },
+        { id: 'both', op: 'group.assemble', operands: ['a', 'b'], params: { names: ['a', 'b'] } },
+      ],
+    }
+    const { definitions, problems } = validateUserPartSet([inner, outer])
+    expect(definitions.map((definition) => definition.op)).toEqual(['user.feather'])
+    expect(problems).toEqual([{ op: 'user.board-pair', reason: expect.stringMatching(/triangles/) }])
+  })
+})

@@ -19,7 +19,8 @@ self.addEventListener('message', async (/** @type {MessageEvent} */ event) => {
   try {
     if (kind === 'import') {
       const result = await importMeshFile(event.data.file)
-      const transfer = result.ok ? [result.preview.positions.buffer, result.preview.indices.buffer] : []
+      // An assembly (`TODO/io-024`) carries no preview; its records are text, copied.
+      const transfer = result.ok && 'preview' in result ? [result.preview.positions.buffer, result.preview.indices.buffer] : []
       self.postMessage({ id, ok: true, result }, /** @type {any} */ (transfer))
       return
     }

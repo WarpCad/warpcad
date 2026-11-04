@@ -56,6 +56,7 @@ import { assertRecordColor } from './colors.js'
 // Node ESM does not — and `CLAUDE.md` requires `src/core/` to be testable in plain
 // Node. Destructuring the default export works under both.
 const { booleans, measurements, primitives, transforms } = modeling
+const { geom3 } = modeling.geometries
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {[number, number, number]} Vec3Mm A millimetre vector, Z-up. */
@@ -351,7 +352,6 @@ const DEG = Math.PI / 180
  * @returns {BoundsMm} `[min, max]` in the local frame anchored at `pivotMm`.
  */
 export function localBoundsOf(value, rotationDeg, pivotMm) {
-  const geometry = toGeom3(value)
   const x = rotationDeg?.[0] ?? 0
   const y = rotationDeg?.[1] ?? 0
   const z = rotationDeg?.[2] ?? 0
@@ -360,20 +360,44 @@ export function localBoundsOf(value, rotationDeg, pivotMm) {
   }
   // An unrotated body's local box *is* its world box, bit for bit — worth
   // short-circuiting both for the cost and so nothing drifts by a float epsilon
-  // in the overwhelmingly common case.
-  if (x === 0 && y === 0 && z === 0) return boundsOf(geometry)
+  // in the overwhelmingly common case. `boundsOf` measures a hole-free group's visible
+  // parts without a union (TODO/io-024: a 29-part 3MF took 0.5 s to union on every selection).
+  if (x === 0 && y === 0 && z === 0) return boundsOf(value)
 
-  const pivot = pivotMm ?? centroidOf(geometry)
-  let turned = transforms.translate(
-    /** @type {Vec3Mm} */ ([-pivot[0], -pivot[1], -pivot[2]]),
-    geometry
-  )
-  if (z !== 0) turned = transforms.rotate([0, 0, -z * DEG], turned)
-  if (y !== 0) turned = transforms.rotate([0, -y * DEG, 0], turned)
-  if (x !== 0) turned = transforms.rotate([-x * DEG, 0, 0], turned)
-  return boundsOf(
-    transforms.translate(/** @type {Vec3Mm} */ ([pivot[0], pivot[1], pivot[2]]), turned)
-  )
+  const pivot = pivotMm ?? centroidOf(value)
+  /** @param {Geom3} solid @returns {BoundsMm} */
+  const unturned = (solid) => {
+    let turned = transforms.translate(/** @type {Vec3Mm} */ ([-pivot[0], -pivot[1], -pivot[2]]), solid)
+    if (z !== 0) turned = transforms.rotate([0, 0, -z * DEG], turned)
+    if (y !== 0) turned = transforms.rotate([0, -y * DEG, 0], turned)
+    if (x !== 0) turned = transforms.rotate([-x * DEG, 0, 0], turned)
+    return boundsOf(transforms.translate(/** @type {Vec3Mm} */ ([pivot[0], pivot[1], pivot[2]]), turned))
+  }
+  // A hole-free group: the box of a union is the union of its parts' boxes, so un-turn each
+  // visible part on its own (TODO/io-024). A group with holes still needs the real solid.
+  if (isGroup(value) && value.holes.length === 0 && value.names.length > 0) {
+    const solids = resolvePieces(value)
+      .map((name) => value.parts[name])
+      .filter((part) => part.polygons.length > 0)
+    if (solids.length > 0) {
+      /** @type {Vec3Mm} */
+      const min = [Infinity, Infinity, Infinity]
+      /** @type {Vec3Mm} */
+      const max = [-Infinity, -Infinity, -Infinity]
+      for (const solid of solids) {
+        const [partMin, partMax] = unturned(solid)
+        for (let axis = 0; axis < 3; axis += 1) {
+          if (partMin[axis] < min[axis]) min[axis] = partMin[axis]
+          if (partMax[axis] > max[axis]) max[axis] = partMax[axis]
+        }
+      }
+      return [
+        [min[0] + 0, min[1] + 0, min[2] + 0],
+        [max[0] + 0, max[1] + 0, max[2] + 0],
+      ]
+    }
+  }
+  return unturned(toGeom3(value))
 }
 
 /**
@@ -571,6 +595,23 @@ export function toGeom3(value) {
 }
 
 /**
+ * A solid to **draw**, never to measure or cut with: a hole-free group's visible parts side by
+ * side in one solid, with no union, else {@link toGeom3}. The drag ghost uses it (`TODO/io-024`):
+ * a 29-part imported model took half a second to union in the pointer path, and a see-through
+ * preview looks the same either way. A group with holes is combined, so the holes show.
+ *
+ * @param {Geom3 | Group} value
+ * @returns {Geom3}
+ */
+export function drawnSolidOf(value) {
+  if (!isGroup(value)) return value
+  if (value.holes.length > 0 || value.names.length === 0) return toGeom3(value)
+  const names = resolvePieces(value)
+  if (names.length === 1) return value.parts[names[0]]
+  return geom3.create(names.flatMap((name) => geom3.toPolygons(value.parts[name])))
+}
+
+/**
  * Resolve a comma-separated piece list against a group, defaulting to its visible
  * `names`.
  *
@@ -635,28 +676,40 @@ export function combine(group, pieces, options = {}) {
  * @param {number} [options.colorAlpha] Its alpha in `(0, 1]`; defaults to 1.
  * @param {PartMeta} [options.meta] The part's role (`TODO/core-075`); re-adding a name
  *   without one clears it, as it does a colour.
+ * @param {() => Geom3} [options.lazy] When `object` is a group: where its combined solid comes
+ *   from, read the first time the part is (`TODO/io-024`). The fold's scene group uses this, so
+ *   a placed 29-part model is not unioned on the main thread at every drop and load; nothing in
+ *   the app reads that solid, and when something does, it is the same value `combine` gives.
  * @returns {Group}
  */
 export function add(group, object, partName, options = {}) {
   if (!partName) throw new Error('add: a part name is required')
+  // `parts` is a plain object: `parts['__proto__'] = solid` sets its prototype and the part is
+  // gone while `names` still lists it. Refused by name, never lost (TODO/io-024; a 3MF's object
+  // names arrive from the file).
+  if (REFUSED_PART_NAMES.has(partName)) throw new Error(`add: "${partName}" cannot be a part name`)
   assertRecordColor(options.color, options.colorAlpha, `add: part "${partName}"`)
-  const parts = { ...group.parts }
+  const parts = copyParts(group.parts)
   const colors = { ...group.colors }
   // Re-adding a name replaces the part, so it replaces (or clears) its colour too.
   delete colors[partName]
 
   if (isGroup(object)) {
-    parts[partName] = combine(object, options.pieces)
+    if (options.lazy !== undefined && !options.subpartPrefix) {
+      setLazyPart(parts, partName, options.lazy)
+    } else {
+      setPart(parts, partName, combine(object, options.pieces))
+    }
     if (options.subpartPrefix) {
       for (const key of Object.keys(object.parts)) {
-        parts[options.subpartPrefix + key] = object.parts[key]
+        setPart(parts, options.subpartPrefix + key, object.parts[key])
         const subColor = object.colors?.[key]
         if (subColor) colors[options.subpartPrefix + key] = subColor
         else delete colors[options.subpartPrefix + key]
       }
     }
   } else {
-    parts[partName] = object
+    setPart(parts, partName, object)
   }
   if (options.color !== undefined) {
     colors[partName] = Object.freeze({ color: options.color, alpha: options.colorAlpha ?? 1 })
@@ -673,6 +726,56 @@ export function add(group, object, partName, options = {}) {
     holes: group.holes,
     colors: Object.freeze(colors),
     ...metaField(meta),
+  })
+}
+
+/**
+ * A copy of a group's `parts` that keeps a lazily combined part lazy (`add`'s `lazy` option): a
+ * spread would read — and so union — every one of them.
+ *
+ * @param {Readonly<Record<string, Geom3>>} source
+ * @returns {Record<string, Geom3>}
+ */
+function copyParts(source) {
+  /** @type {Record<string, Geom3>} */
+  const out = {}
+  for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(source))) {
+    Object.defineProperty(
+      out,
+      name,
+      descriptor.get !== undefined
+        ? { get: descriptor.get, enumerable: true, configurable: true }
+        : { value: descriptor.value, writable: true, enumerable: true, configurable: true }
+    )
+  }
+  return out
+}
+
+/**
+ * Set one part, replacing whatever was there — a value or a lazy part alike.
+ *
+ * @param {Record<string, Geom3>} parts
+ * @param {string} name
+ * @param {Geom3} value
+ */
+function setPart(parts, name, value) {
+  Object.defineProperty(parts, name, { value, writable: true, enumerable: true, configurable: true })
+}
+
+/**
+ * Set one part to be computed the first time it is read, and kept.
+ *
+ * @param {Record<string, Geom3>} parts
+ * @param {string} name
+ * @param {() => Geom3} compute
+ */
+function setLazyPart(parts, name, compute) {
+  /** @type {Geom3 | undefined} */
+  let memo
+  Object.defineProperty(parts, name, {
+    get: () => (memo ??= compute()),
+    enumerable: true,
+    configurable: true,
   })
 }
 

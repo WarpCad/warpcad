@@ -31,8 +31,8 @@ afterEach(() => {
 describe('importMeshBytes', () => {
   it('turns a binary STL into a validated asset.mesh record and the row’s numbers', async () => {
     const result = await importMeshBytes('bracket.stl', binaryStl(cubeTriangles(42, [5, 5, 5])))
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
+    expect(result.ok && result.kind).toBe('mesh')
+    if (!result.ok || result.kind !== 'mesh') return
     expect(validateMeshAsset(result.record).ok).toBe(true)
     expect(result.name).toBe('bracket')
     expect(result.format).toBe('binary')
@@ -183,7 +183,7 @@ describe('meshClient', () => {
 describe('meshPartDefinition — an import is an ordinary user part', () => {
   async function imported() {
     const result = await importMeshBytes('bracket.stl', binaryStl(cubeTriangles(10)))
-    if (!result.ok) throw new Error(result.reason)
+    if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
     return result
   }
 
@@ -209,6 +209,9 @@ describe('meshPartDefinition — an import is an ordinary user part', () => {
       unitScale: 1,
       units: 'mm',
       unitsConfirmed: false,
+      unitsStated: false,
+      partCount: 1,
+      sizeKey: `${result.record.id}|1`,
     })
     expect(meshPartInfo({ ...definition, records: [{ id: 'a', op: 'primitive.cuboid', params: {} }] })).toBeNull()
   })

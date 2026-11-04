@@ -61,7 +61,7 @@ this repository still need a green full run before they are pushed.
 | 16 | `FIND` | ▶ [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note wording | Small | sonnet |
 | 16a | `FIND` | [`ui-092`](FIND-ui-092-prompts-view-highlight-and-edit.md) A Prompts view: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole | Filed 2026-11-02 at the owner's request; rank not yet reviewed. `testing-014` is closed, so nothing blocks it | opus |
 | 16b | `FIND` | ▶ [`core-078`](FIND-core-078-calculated-variables.md) Calculated variables: a formula language over variables and part sizes (`a.b.width - c.d.width / 2`), no eval, no new dependency | Filed 2026-11-03 at the owner's request: an AI run could not express a calculated value. Rank not yet reviewed. Touches the same Inspector files as `ui-092`, whose five parts are committed | opus |
-| 16d | `FIND` | ▶ [`io-024`](FIND-io-024-import-3mf-assembly-as-named-parts.md) Import a 3MF file as one placeable part whose objects are selectable sub-parts | Filed 2026-11-02 at the owner's request: reference one component of an Adafruit board. No new dependency. Rank not yet reviewed | opus |
+| 16e | `FIND` | ▶ [`core-079`](FIND-core-079-whole-model-subtract-off-main-thread.md) Whole-model Subtract blocks the main thread for 624 ms; move the composite union off it | Filed 2026-11-04 from io-024. Rank not yet reviewed | opus |
 | 17a | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB of kernel out of the main bundle) | Low; follows `perf-003` | opus |
 | 19 | `FIND` | ▶ [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet flake under load | Low | sonnet |
 | 21 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
@@ -135,19 +135,8 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | M19 — Native iOS app | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store readiness; stops at the owner's Submit | feature | high | sonnet | ⏳ after `build-019`, `testing-011` |
 | M20 — Home page | [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) Verify the domain, move `warpcad.com` DNS off Squarespace, enforce HTTPS; `app` untouched. Owner steps | feature | medium | sonnet | ⏳ after `docs-027` |
 | M18 — Launch | [`core-065`](M18-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ⏸ **parked** (decided 2026-10-17: keep the Albany table for now) |
-| Findings | [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | finding | medium | sonnet | ▶ **ready** (found 2026-10-24 by the `ui-083` commit gate) |
-| Findings | [`ui-090`](FIND-ui-090-objects-section-hides-show-all-when-a-body-is-selected.md) The Objects section collapses while a body is selected, hiding its "N hidden · Show all" line exactly when a split piece has just been hidden; keep the summary in the header | finding | medium | sonnet | ▶ **ready** (found 2026-10-26 by the `ui-089` hand pass) |
-| Findings | [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro with the phone header entry | feature | medium | sonnet | ▶ **ready** after `ui-075` |
-| Findings | [`ui-078`](FIND-ui-078-phone-header-width-budget.md) The 390 px header has no width budget left; decide the layout before `ui-077` | finding | medium | sonnet | ▶ **ready** after `ui-075` |
-| Findings | [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet still differs under full-suite load | finding | low | sonnet | ▶ **ready** |
-| Findings | [`testing-013`](FIND-testing-013-getting-started-tour-times-out-under-full-load.md) Getting-started docs tour times out at 30 s in the full matrix, passes alone | finding | medium | sonnet | ▶ **ready** (filed 2026-10-27 from the core-075 full run) |
 | M5 — Hardware Library | [`core-074`](M05-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator | feature | medium | opus | ▶ **ready** (dependency on `core-073` dropped 2026-10-24) |
 | M5 — Hardware Library | [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields | feature | medium | sonnet | ⏳ after `core-074`, `ui-052` |
-| Findings | [`ui-074`](FIND-ui-074-repeat-note-wording.md) Repeat body Inspector note says the repeats follow every move | finding | low | sonnet | ▶ **ready** |
-| Findings | [`ui-092`](FIND-ui-092-prompts-view-highlight-and-edit.md) A Prompts view from the Inspector: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole | feature | medium | opus | ▶ **ready** |
-| Findings | [`core-078`](FIND-core-078-calculated-variables.md) Calculated variables: a formula language over variables and part sizes, no eval, no new dependency | feature | high | opus | ▶ **ready** |
-| Findings | [`io-024`](FIND-io-024-import-3mf-assembly-as-named-parts.md) Import a 3MF as one part with selectable sub-parts; a part may hold several meshes; no new dependency | feature | medium | opus | ▶ **ready** |
-| Findings | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) Two WebKit viewport-scaffold specs fail under parallel load; two app-header screenshots have drifted | finding | medium | sonnet | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
 |  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
 |  | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet; waits on `ui-062` |
@@ -292,7 +281,6 @@ Open findings that belong to no single milestone. Closed findings are in
 |---|---|---|---|---|
 | `testing-006` | Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | 24, 25 |
 | `ui-078` | The 390 px header has no width budget left after `ui-075`; decide the layout before `ui-077`. Filed 2026-10-18 | Finding | `ui-075` | 24, 25 |
-| `io-024` | Import a 3MF (the Adafruit Feather's 29 components, converted from STEP) as one placeable part with sub-parts that Align and Subtract can reference. A part may hold several meshes, each with a transform; a hand-rolled zip and XML reader adds no dependency. Direct STEP reading is parked as `io-025`. Filed 2026-11-02 | Feature | — | new 31; 1, 3, 5, 6, 8, 10, 11, 26 |
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `ui-074` | Repeat body Inspector note says the repeats follow every move, but a later Pi move moves only the Pi. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | `ui-092` | A Prompts view from the Inspector: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole. Filed 2026-11-02 | Feature | — | 10, 22, 27, 30 |
@@ -411,7 +399,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 10 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `ui-092`, `core-078`, `io-024`, `testing-010`, `ui-079`, `testing-009`. |
+| [Findings](#findings-open-rows) | 10 | `testing-006`, `ui-078`, `testing-008`, `ui-074`, `ui-092`, `core-078`, `core-079`, `testing-010`, `ui-079`, `testing-009`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

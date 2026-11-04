@@ -260,3 +260,22 @@ describe('validateMeshAsset refuses, by name, and never throws', () => {
     expect(() => decodeMeshAsset({ ...record, params: { ...record.params, triangleCount: 11 } })).toThrow(/length/)
   })
 })
+
+describe('the verdict memo holds a whole 3MF assembly (TODO/io-024)', () => {
+  it('thirteen distinct meshes decoded twice are served from the memo the second time', async () => {
+    const { buildMeshAsset: build, decodeMeshAsset: decode, weldMesh: weld } = await import('./meshAsset.js')
+    const { binaryStl: stl, boxTriangles: box } = await import('./__fixtures__/stl.js')
+    const { parseStl: parse } = await import('./meshFormats/stl.js')
+    const records = []
+    for (let index = 0; index < 13; index += 1) {
+      const parsed = parse(stl(box([1 + index, 2, 3])))
+      if (!parsed.ok) throw new Error(parsed.reason)
+      const welded = weld(parsed.positions, parsed.indices)
+      if (!welded.ok) throw new Error(welded.reason)
+      records.push(await build(welded))
+    }
+    const first = records.map((record) => decode(record).positions)
+    const second = records.map((record) => decode(JSON.parse(JSON.stringify(record))).positions)
+    second.forEach((positions, index) => expect(positions).toBe(first[index]))
+  })
+})

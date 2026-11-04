@@ -47,7 +47,7 @@ import { evaluateOp } from '../core/kernel/index.js'
 import { MAX_PART_FILE_CHARS, parsePartFile, partFileName, serializePartFile } from '../core/userPartFile.js'
 import { formatCount } from '../io/meshAsset.js'
 import { cancelModelImport, importModelFile } from '../io/meshClient.js'
-import { UNIT_SCALES, meshPartDefinition, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
+import { UNIT_SCALES, meshAssemblyDefinition, meshPartDefinition, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
 import { renderPartThumbnail } from '../render/partThumbnail.js'
 import { downloadBytes } from '../storage/download.js'
 import { createUserLibrary, loadUserLibrary } from '../storage/userLibrary.js'
@@ -57,6 +57,35 @@ import { useTimelineStore } from './timeline.js'
 
 /** The face budget of an imported model's thumbnail (the default is 40,000). */
 const MESH_THUMBNAIL_FACES = 12_000
+
+/**
+ * What the toast says after an import. An STL, or a 3MF of one part: the file, its triangles and
+ * size. A 3MF of several parts (`TODO/io-024`) also says how many, and how many exact duplicates
+ * and non-model objects were skipped, only when there were any.
+ *
+ * @param {string} fileName
+ * @param {import('../io/meshJob.js').MeshImportSuccess | import('../io/meshJob.js').MeshAssemblySuccess} result
+ * @param {string} sizeText
+ * @returns {string}
+ */
+export function importedToast(fileName, result, sizeText) {
+  const triangles = `${formatCount(result.triangleCount)} triangles`
+  if (result.kind !== 'assembly' || result.parts.length === 1) {
+    const skipped = result.kind === 'assembly' ? skippedSentences(result) : ''
+    return `Imported ${fileName} — ${triangles}${sizeText ? `, ${sizeText}` : ''}${skipped ? `.${skipped}` : ''}`
+  }
+  return `Imported ${fileName}, ${formatCount(result.parts.length)} parts, ${triangles}${sizeText ? `, ${sizeText}` : ''}.${skippedSentences(result)}`
+}
+
+/** @param {import('../io/meshJob.js').MeshAssemblySuccess} result */
+function skippedSentences(result) {
+  let text = ''
+  if (result.duplicates > 0) text += ` ${formatCount(result.duplicates)} exact duplicate${result.duplicates === 1 ? '' : 's'} skipped.`
+  if (result.skippedObjects > 0) {
+    text += ` ${formatCount(result.skippedObjects)} support or other non-model object${result.skippedObjects === 1 ? '' : 's'} skipped.`
+  }
+  return text
+}
 
 /** How long the "Saved <name>" toast stays, ms. */
 const TOAST_MS = 4500
@@ -68,6 +97,9 @@ const TOAST_MS = 4500
  * @property {number} triangleCount
  * @property {keyof typeof UNIT_SCALES | null} units
  * @property {boolean} unitsConfirmed
+ * @property {boolean} unitsStated The file stated its units (3MF), so the row offers no Units
+ *   control and no "Units assumed" badge (`TODO/io-024`).
+ * @property {number} partCount Placed meshes: the row's **N parts** tag when more than one.
  * @property {[number, number, number] | null} sizeMm Bounding box in mm at the current units;
  *   `null` if the stored mesh no longer decodes.
  * @property {string} sizeText `"42 × 18 × 6 mm"`, or `''`.
@@ -229,7 +261,7 @@ export const useLibraryStore = defineStore('library', () => {
     const definition = effectiveUserPart(op)
     const info = definition === undefined ? null : meshPartInfo(definition)
     if (definition === undefined || info === null) return null
-    const key = `${info.assetId}|${info.unitScale}`
+    const key = info.sizeKey
     if (!sizeCache.has(key)) {
       try {
         sizeCache.set(key, meshPartSizeMm(definition))
@@ -242,6 +274,8 @@ export const useLibraryStore = defineStore('library', () => {
       triangleCount: info.triangleCount,
       units: info.units,
       unitsConfirmed: info.unitsConfirmed,
+      unitsStated: info.unitsStated,
+      partCount: info.partCount,
       sizeMm,
       sizeText: sizeMm === null ? '' : formatSizeMm(sizeMm),
     }
@@ -629,7 +663,11 @@ export const useLibraryStore = defineStore('library', () => {
     try {
       const name = importedNameFor(result.name)
       const op = `${USER_PREFIX}${slugify(name)}`
-      const definition = meshPartDefinition({ record: result.record, name, triangleCount: result.triangleCount, op })
+      // A 3MF is an assembly of placed meshes (`TODO/io-024`); one part of it is an ordinary mesh row.
+      const definition =
+        result.kind === 'assembly'
+          ? meshAssemblyDefinition({ assets: result.assets, parts: result.parts, name, op, unitScale: result.unitScale })
+          : meshPartDefinition({ record: result.record, name, triangleCount: result.triangleCount, op })
       await backendOf().save(definition, { thumbnail: null })
       await reload()
       // The thumbnail is drawn once, from the part as the registry now builds it.
@@ -649,10 +687,7 @@ export const useLibraryStore = defineStore('library', () => {
       }
       revealOp.value = op
       const info = meshRowInfo(op)
-      showToast(
-        `Imported ${file.name} — ${formatCount(result.triangleCount)} triangles` +
-          (info?.sizeText ? `, ${info.sizeText}` : '')
-      )
+      showToast(importedToast(file.name, result, info?.sizeText ?? ''))
       return { ok: true, op }
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)

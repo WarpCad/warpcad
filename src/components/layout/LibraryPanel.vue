@@ -107,7 +107,7 @@ const library = useLibraryStore()
 const isOpen = ref(false)
 const importInput = ref(/** @type {HTMLInputElement | null} */ (null))
 const modelInput = ref(/** @type {HTMLInputElement | null} */ (null))
-/** The file types **Import model file…** offers (`.stl` today); no `capture`, so a phone offers Files. */
+/** The file types **Import model file…** offers (`.stl`, `.3mf`); no `capture`, so a phone offers Files. */
 const modelAccept = acceptAttribute()
 const fileDragOver = ref(false)
 const panelEl = ref(/** @type {HTMLElement | null} */ (null))
@@ -372,7 +372,7 @@ onBeforeUnmount(() => {
           Your saved parts could not all be read: {{ library.loadProblem }}
         </p>
         <p v-if="library.userRows.length === 0" class="library__hint" data-testid="library-user-empty">
-          Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL — and it appears here.
+          Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL or 3MF — and it appears here.
         </p>
         <ul class="library__rows" data-testid="library-rows-user">
           <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />

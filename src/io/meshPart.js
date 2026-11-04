@@ -11,12 +11,25 @@
  * before placement, never as a per-instance edit. `unitsConfirmed` is what turns the row's
  * "Units assumed: mm" badge off.
  *
+ * ## An assembly (`TODO/io-024`)
+ *
+ * A 3MF can hold many placed components. Its part is `[asset.mesh …, import.mesh …,
+ * group.assemble]`: one `asset.mesh` per **distinct** mesh, one `import.mesh` per placed part,
+ * each with its own `matrix` (millimetres, applied after `unitScale`), and one flat
+ * `group.assemble` named `model` over them, so the existing group selection, sub-part addressing,
+ * Align and Subtract work on each part unchanged. `recenter` is off on every record: the whole
+ * assembly's offset is baked into each matrix at import, so it lands centred and the parts keep
+ * their places relative to each other. A 3MF of one part is the ordinary `[asset.mesh,
+ * import.mesh]` pair. A 3MF states its units, so its records carry `unitsStated: true`, and
+ * {@link withUnits} refuses to re-read it.
+ *
  * Framework-free and pure.
  *
  * @module io/meshPart
  */
 
 import { MESH_ASSET_OP, decodeMeshAsset, meshBounds } from './meshAsset.js'
+import { emptyPlacedBounds, growPlacedBounds } from './meshMatrix.js'
 import { USER_PART_PREFIX, slugify } from '../core/userPart.js'
 
 /** The op that builds a body from an `asset.mesh`. */
@@ -50,6 +63,18 @@ export const UNIT_SCALES = Object.freeze({ mm: 1, cm: 10, inch: 25.4 })
  * @property {MeshUnits | null} units Which offered unit that scale is; `null` for another one
  *   (set by the assistant, say).
  * @property {boolean} unitsConfirmed Whether the person chose or confirmed the units.
+ * @property {boolean} unitsStated Whether the file stated its units (3MF does), so there is
+ *   nothing to choose (`TODO/io-024`).
+ * @property {number} partCount Placed meshes: 1 for an STL, one per component for a 3MF.
+ * @property {string} sizeKey What the size depends on: a cache key for {@link meshPartSizeMm}.
+ */
+
+/**
+ * @typedef {object} AssemblyPart One placed mesh of an imported assembly.
+ * @property {string} name
+ * @property {string} assetId The `asset.mesh` it draws.
+ * @property {number} triangleCount
+ * @property {readonly number[]} matrix 16 numbers, `mat4` order, millimetres, offset baked in.
  */
 
 /**
@@ -80,15 +105,66 @@ export function meshPartDefinition({ record, name, triangleCount, op, units = 'm
 }
 
 /**
+ * The part an imported assembly becomes (`TODO/io-024`): one `asset.mesh` per distinct mesh, one
+ * `import.mesh` per part, and a flat `group.assemble` over them — or, for one part, the ordinary
+ * mesh pair.
+ *
+ * @param {{ assets: readonly MeshAssetRecord[], parts: readonly AssemblyPart[], name: string, op?: string, unitScale?: number }} options
+ * @returns {MeshPartDefinition}
+ */
+export function meshAssemblyDefinition({ assets, parts, name, op, unitScale = 1 }) {
+  const label = String(name).trim() || 'Imported model'
+  if (parts.length === 0) throw new Error('an assembly needs at least one part')
+  const single = parts.length === 1
+  const placed = parts.map((part, index) => ({
+    id: single ? MESH_MODEL_ID : `p${index + 1}`,
+    op: IMPORT_MESH_OP,
+    target: part.assetId,
+    params: {
+      name: single ? label : part.name,
+      triangleCount: part.triangleCount,
+      unitScale,
+      unitsConfirmed: true,
+      unitsStated: true,
+      recenter: false,
+      matrix: [...part.matrix],
+    },
+  }))
+  const used = new Set(parts.map((part) => part.assetId))
+  return {
+    op: op ?? `${USER_PART_PREFIX}${slugify(label)}`,
+    name: label,
+    version: 1,
+    result: MESH_MODEL_ID,
+    records: [
+      ...assets.filter((asset) => used.has(asset.id)).map((asset) => ({ id: asset.id, op: MESH_ASSET_OP, params: { ...asset.params } })),
+      ...placed,
+      ...(single
+        ? []
+        : [{ id: MESH_MODEL_ID, op: 'group.assemble', operands: placed.map((record) => record.id), params: { names: parts.map((part) => part.name) } }]),
+    ],
+    params: [],
+  }
+}
+
+/**
+ * Every `import.mesh` of a mesh part, each with its asset — or `null` when the part is not one.
+ * Every one of them, not the first: the first is one component of an assembly (`TODO/io-024`).
+ *
  * @param {{ records: readonly any[] }} definition
- * @returns {{ asset: any, model: any } | null}
+ * @returns {{ asset: any, model: any }[] | null}
  */
 function meshRecordsOf(definition) {
   const records = Array.isArray(definition?.records) ? definition.records : []
-  const model = records.find((record) => record?.op === IMPORT_MESH_OP)
-  if (model === undefined) return null
-  const asset = records.find((record) => record?.op === MESH_ASSET_OP && record.id === model.target)
-  return asset === undefined ? null : { asset, model }
+  const assets = new Map(records.filter((record) => record?.op === MESH_ASSET_OP).map((record) => [record.id, record]))
+  const found = []
+  for (const model of records) {
+    if (model?.op !== IMPORT_MESH_OP) continue
+    const asset = assets.get(model.target)
+    if (asset === undefined) return null
+    found.push({ asset, model })
+  }
+  return found.length === 0 ? null : found
 }
 
 /**
@@ -100,18 +176,25 @@ function meshRecordsOf(definition) {
 export function meshPartInfo(definition) {
   const found = meshRecordsOf(definition)
   if (found === null) return null
-  const { asset, model } = found
+  const { asset, model } = found[0]
   const unitScale = typeof model.params?.unitScale === 'number' ? model.params.unitScale : 1
   const units = /** @type {MeshUnits | undefined} */ (
     /** @type {MeshUnits[]} */ (Object.keys(UNIT_SCALES)).find((key) => UNIT_SCALES[key] === unitScale)
   )
+  const single = found.length === 1
+  const name = single && typeof model.params?.name === 'string' ? model.params.name : String(/** @type {any} */ (definition).name ?? '')
   return {
     assetId: asset.id,
-    name: typeof model.params?.name === 'string' ? model.params.name : '',
-    triangleCount: asset.params?.triangleCount ?? 0,
+    name,
+    triangleCount: found.reduce((total, entry) => total + (entry.asset.params?.triangleCount ?? 0), 0),
     unitScale,
     units: units ?? null,
-    unitsConfirmed: model.params?.unitsConfirmed === true,
+    unitsConfirmed: found.every((entry) => entry.model.params?.unitsConfirmed === true),
+    unitsStated: found.every((entry) => entry.model.params?.unitsStated === true),
+    partCount: found.length,
+    sizeKey: single
+      ? `${asset.id}|${unitScale}`
+      : `${String(/** @type {any} */ (definition).op ?? '')}@${String(/** @type {any} */ (definition).version ?? '')}`,
   }
 }
 
@@ -127,7 +210,11 @@ export function meshPartInfo(definition) {
  */
 export function withUnits(definition, units) {
   if (!Object.hasOwn(UNIT_SCALES, units)) throw new Error(`units must be one of ${Object.keys(UNIT_SCALES).join(', ')}`)
-  if (meshRecordsOf(definition) === null) throw new Error(`${definition.name} is not an imported model`)
+  const found = meshRecordsOf(definition)
+  if (found === null) throw new Error(`${definition.name} is not an imported model`)
+  if (found.some((entry) => entry.model.params?.unitsStated === true)) {
+    throw new Error(`${definition.name}'s file states its units, so they are not chosen here`)
+  }
   return {
     ...definition,
     version: definition.version + 1,
@@ -141,7 +228,8 @@ export function withUnits(definition, units) {
 
 /**
  * A mesh part's bounding-box size in millimetres, at its current units — the row's
- * "42 × 18 × 6 mm". Decodes the asset (validated), so call it once per row, not per frame.
+ * "42 × 18 × 6 mm"; for an assembly, the whole model's box. Decodes the assets (validated), so
+ * call it once per row, not per frame.
  *
  * @param {{ records: readonly any[] }} definition
  * @returns {[number, number, number]}
@@ -150,8 +238,18 @@ export function withUnits(definition, units) {
 export function meshPartSizeMm(definition) {
   const found = meshRecordsOf(definition)
   if (found === null) throw new Error('not an imported model')
-  const { positions } = decodeMeshAsset(found.asset)
-  const { min, max } = meshBounds(positions)
-  const scale = typeof found.model.params?.unitScale === 'number' ? found.model.params.unitScale : 1
-  return [(max[0] - min[0]) * scale, (max[1] - min[1]) * scale, (max[2] - min[2]) * scale]
+  if (found.length === 1 && found[0].model.params?.matrix === undefined) {
+    const { positions } = decodeMeshAsset(found[0].asset)
+    const { min, max } = meshBounds(positions)
+    const scale = typeof found[0].model.params?.unitScale === 'number' ? found[0].model.params.unitScale : 1
+    return [(max[0] - min[0]) * scale, (max[1] - min[1]) * scale, (max[2] - min[2]) * scale]
+  }
+  // An assembly: every part where its matrix puts it (`TODO/io-024`).
+  const bounds = emptyPlacedBounds()
+  for (const { asset, model } of found) {
+    const scale = typeof model.params?.unitScale === 'number' ? model.params.unitScale : 1
+    growPlacedBounds(bounds, decodeMeshAsset(asset).positions, scale, Array.isArray(model.params?.matrix) ? model.params.matrix : null)
+  }
+  const { min, max } = bounds
+  return [max[0] - min[0], max[1] - min[1], max[2] - min[2]]
 }

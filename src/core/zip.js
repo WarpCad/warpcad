@@ -11,10 +11,23 @@
  * File names are written UTF-8 with the language-encoding flag set. No timestamps beyond a
  * fixed 1980-01-01 — the bytes depend only on the files, so the same export is the same zip.
  *
+ * ## Reading a zip someone else wrote (`TODO/io-024`)
+ *
+ * A 3MF is a zip, deflated, from any program. {@link listZipEntries} finds its entries through
+ * the **central directory**, not the local headers, because a writer may leave a local header's
+ * sizes zero and put them in a data descriptor after the data. {@link readZipEntry} then reads
+ * one entry — stored or deflated — on demand, so a 3MF's thumbnails are never inflated at all.
+ * Encryption, zip64 and split archives are refused; every offset is checked against the file;
+ * every CRC is verified; and a deflated entry is inflated with `./shareLink.js`'s bounded inflate,
+ * which stops the moment output passes the caller's limit. The bytes are untrusted throughout:
+ * every refusal is `{ ok: false, reason }` in words, never a throw.
+ *
  * Framework-free: bytes in, bytes out.
  *
  * @module core/zip
  */
+
+import { inflate } from './shareLink.js'
 
 /** CRC-32 (IEEE) lookup table, built once. */
 const CRC_TABLE = (() => {
@@ -139,4 +152,149 @@ export function readZip(zip) {
     at = start + size
   }
   return files
+}
+
+// --- reading a zip from elsewhere (TODO/io-024) ------------------------------------------
+
+/** The reader's caps, in one place. */
+export const ZIP_LIMITS = Object.freeze({
+  /** Entries one package may list. The Feather's 3MF lists 90. */
+  maxEntries: 10_000,
+})
+
+/**
+ * @typedef {object} ZipEntry One central-directory entry.
+ * @property {string} name
+ * @property {number} method 0 stored, 8 deflated.
+ * @property {number} crc
+ * @property {number} compressedSize
+ * @property {number} uncompressedSize
+ * @property {number} localOffset Where its local header starts.
+ */
+
+/** @typedef {{ ok: false, reason: string }} ZipRefusal */
+
+const END_SIGNATURE = 0x06054b50
+const CENTRAL_SIGNATURE = 0x02014b50
+const LOCAL_SIGNATURE = 0x04034b50
+const ZIP64_LOCATOR_SIGNATURE = 0x07064b50
+const END_SIZE = 22
+const MAX_COMMENT = 0xffff
+
+/** @param {string} reason @returns {ZipRefusal} */
+function refuse(reason) {
+  return { ok: false, reason }
+}
+
+/**
+ * The entries of a zip, by name, read from its central directory. Never throws.
+ *
+ * @param {Uint8Array} zip
+ * @param {{ maxEntries?: number }} [limits]
+ * @returns {{ ok: true, entries: Map<string, ZipEntry> } | ZipRefusal}
+ */
+export function listZipEntries(zip, limits = {}) {
+  try {
+    const maxEntries = limits.maxEntries ?? ZIP_LIMITS.maxEntries
+    if (!(zip instanceof Uint8Array) || zip.length < END_SIZE) return refuse('it is not a zip package')
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
+    // The end record is the last thing in the file, followed only by its own comment.
+    let end = -1
+    const lowest = Math.max(0, zip.length - END_SIZE - MAX_COMMENT)
+    for (let at = zip.length - END_SIZE; at >= lowest; at -= 1) {
+      if (view.getUint32(at, true) === END_SIGNATURE && at + END_SIZE + view.getUint16(at + 20, true) <= zip.length) {
+        end = at
+        break
+      }
+    }
+    if (end === -1) return refuse('it is not a zip package')
+    if (end >= 20 && view.getUint32(end - 20, true) === ZIP64_LOCATOR_SIGNATURE) return refuse('it is a zip64 package, which is not read')
+    const disk = view.getUint16(end + 4, true)
+    const directoryDisk = view.getUint16(end + 6, true)
+    const onDisk = view.getUint16(end + 8, true)
+    const total = view.getUint16(end + 10, true)
+    const directorySize = view.getUint32(end + 12, true)
+    const directoryOffset = view.getUint32(end + 16, true)
+    if (total === 0xffff || directorySize === 0xffffffff || directoryOffset === 0xffffffff) {
+      return refuse('it is a zip64 package, which is not read')
+    }
+    if (disk !== 0 || directoryDisk !== 0 || onDisk !== total) return refuse('it is split across several files, which is not read')
+    if (total > maxEntries) return refuse(`it holds more than ${maxEntries} files`)
+    if (directoryOffset + directorySize > end) return refuse('its central directory runs past the end of the file (truncated?)')
+
+    const decoder = new TextDecoder('utf-8')
+    /** @type {Map<string, ZipEntry>} */
+    const entries = new Map()
+    let at = directoryOffset
+    const stop = directoryOffset + directorySize
+    for (let index = 0; index < total; index += 1) {
+      if (at + 46 > stop || view.getUint32(at, true) !== CENTRAL_SIGNATURE) return refuse('its central directory is damaged')
+      const flags = view.getUint16(at + 8, true)
+      const method = view.getUint16(at + 10, true)
+      const crc = view.getUint32(at + 16, true)
+      const compressedSize = view.getUint32(at + 20, true)
+      const uncompressedSize = view.getUint32(at + 24, true)
+      const nameLength = view.getUint16(at + 28, true)
+      const extraLength = view.getUint16(at + 30, true)
+      const commentLength = view.getUint16(at + 32, true)
+      const localOffset = view.getUint32(at + 42, true)
+      const next = at + 46 + nameLength + extraLength + commentLength
+      if (next > stop) return refuse('its central directory is damaged')
+      const name = decoder.decode(zip.subarray(at + 46, at + 46 + nameLength))
+      if (flags & 0x0041) return refuse(`"${name}" is encrypted`)
+      if (compressedSize === 0xffffffff || uncompressedSize === 0xffffffff || localOffset === 0xffffffff) {
+        return refuse('it is a zip64 package, which is not read')
+      }
+      if (method !== 0 && method !== 8) return refuse(`"${name}" uses compression method ${method}; only stored and deflated are read`)
+      if (entries.has(name)) return refuse(`it lists "${name}" twice`)
+      entries.set(name, { name, method, crc, compressedSize, uncompressedSize, localOffset })
+      at = next
+    }
+    return { ok: true, entries }
+  } catch (error) {
+    return refuse(`it could not be read as a zip (${error instanceof Error ? error.message : 'unknown error'})`)
+  }
+}
+
+/**
+ * Read one entry's bytes: stored, or inflated up to `maxBytes`. Checks where its data lies, its
+ * size and its CRC. Never throws.
+ *
+ * @param {Uint8Array} zip
+ * @param {ZipEntry} entry From {@link listZipEntries} of the same bytes.
+ * @param {number} maxBytes The largest the entry may be once read.
+ * @returns {Promise<{ ok: true, bytes: Uint8Array } | ZipRefusal>}
+ */
+export async function readZipEntry(zip, entry, maxBytes) {
+  try {
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
+    const tooLarge = () => refuse(`"${entry.name}" is larger than ${Math.round(maxBytes / (1024 * 1024))} MB once unpacked`)
+    if (entry.uncompressedSize > maxBytes) return tooLarge()
+    if (entry.localOffset + 30 > zip.length) return refuse(`"${entry.name}" starts past the end of the file (truncated?)`)
+    if (view.getUint32(entry.localOffset, true) !== LOCAL_SIGNATURE) return refuse(`"${entry.name}" is damaged`)
+    const start = entry.localOffset + 30 + view.getUint16(entry.localOffset + 26, true) + view.getUint16(entry.localOffset + 28, true)
+    const stop = start + entry.compressedSize
+    if (stop > zip.length) return refuse(`"${entry.name}" runs past the end of the file (truncated?)`)
+    const stored = zip.subarray(start, stop)
+    /** @type {Uint8Array} */
+    let bytes
+    if (entry.method === 0) {
+      bytes = stored
+    } else {
+      /** @type {Uint8Array | 'too-large'} */
+      let inflated
+      try {
+        inflated = await inflate(stored, maxBytes)
+      } catch {
+        return refuse(`"${entry.name}" is damaged: its compressed data cannot be unpacked`)
+      }
+      if (inflated === 'too-large') return tooLarge()
+      bytes = inflated
+    }
+    if (bytes.length !== entry.uncompressedSize) return refuse(`"${entry.name}" is damaged: its size does not match the directory`)
+    if (crc32(bytes) !== entry.crc) return refuse(`"${entry.name}" is damaged: its CRC does not match`)
+    return { ok: true, bytes }
+  } catch (error) {
+    return refuse(`"${entry.name}" could not be read (${error instanceof Error ? error.message : 'unknown error'})`)
+  }
 }

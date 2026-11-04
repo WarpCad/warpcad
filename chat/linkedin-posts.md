@@ -3809,3 +3809,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 8 Markdown files, no code → git diff --stat (this session); question routing → CLAUDE.md "Asking the user"; yolo defaults and no push → .claude/commands/commit.md yolo table and Step 10; tests green this session → typecheck exit 0, unit 8036 passed, e2e 0 failed.
 **To Add:** none
+
+## 2026-11-04T15:55:35Z — 3MF import as selectable parts (io-024)
+
+**Post:** A component library is only useful if you can point at one part of it. Until now WarpCad imported a 3MF or STL as one fused shell, so a board with 29 components was one outline to design against.
+
+WarpCad now reads a 3MF file as a set of parts. The Adafruit Feather, converted from STEP to 3MF in FreeCAD, arrives as 29 parts, each placed where it sits on the board. You click once to select the whole board, click again to narrow to one part, and use that part's own size to align a cube or cut a pocket. The reader is hand-written on the zip and XML standards, with no new dependency, and it caps the work a hostile file can ask for.
+
+One limit is recorded openly: cutting with the whole multi-part model takes about 624 ms on the main thread, against 179 ms for the single-shell STL. That is filed as a follow-up rather than hidden. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 29 parts → TODO/done/io-024-import-3mf-assembly-as-named-parts.md, Testing and acceptance 31 (driven with the owner's real file, implementation agent, 2026-11-04); no new dependency → TODO spec "What a part is" and package.json unchanged in the commit; 624 ms whole-model Subtract → implementation agent's perf drive, 2026-11-04, recorded in TODO/FIND-core-079-whole-model-subtract-off-main-thread.md; hand-written reader with caps → TODO spec Proposed fix 2 and 4, shipped in src/core/zip.js and src/io/meshFormats/threeMf.js.
+**To Add:** none

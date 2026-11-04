@@ -429,15 +429,24 @@ function isPlainObject(value) {
 }
 
 /**
- * The last few params a validation passed or failed, by their data string: a part is
+ * The last params a validation passed or failed, by their data string: a part is
  * validated each time a layer is set (`userPart.js`), and a multi-megabyte decode on every
  * one of those is wasted work. Keyed by the full string (compared by value), so a different
  * mesh can never be served another's verdict.
  *
+ * Sized for a 3MF assembly (`TODO/io-024`): the Feather holds 13 distinct meshes, and an Undo
+ * re-validates and re-folds every one, so a memo of 8 missed on every lookup. It holds
+ * {@link VERDICT_MEMO_SIZE} entries and at most {@link VERDICT_MEMO_CHARS} characters of data —
+ * the memory bound, since one entry can be a 5 MiB mesh.
+ *
  * @type {Map<string, { vertexCount: number, triangleCount: number, verdict: DecodeOutcome }>}
  */
 const verdicts = new Map()
-const VERDICT_MEMO_SIZE = 8
+/** Entries the verdict memo holds. */
+export const VERDICT_MEMO_SIZE = 64
+/** Base64 characters the verdict memo holds across every entry (≈ 36 MiB decoded). */
+export const VERDICT_MEMO_CHARS = 48 * 1024 * 1024
+let verdictChars = 0
 
 /** @typedef {{ ok: true, mesh: IndexedMesh, vertexCount: number, triangleCount: number } | { ok: false, reason: string }} DecodeOutcome */
 
@@ -475,8 +484,17 @@ function inspectParams(params) {
   if (memo !== undefined && memo.vertexCount === vertexCount && memo.triangleCount === triangleCount) return memo.verdict
 
   const verdict = decodeChecked(dataBase64, vertexCount, triangleCount, byteLength)
+  if (memo !== undefined) {
+    verdicts.delete(dataBase64)
+    verdictChars -= dataBase64.length
+  }
   verdicts.set(dataBase64, { vertexCount, triangleCount, verdict })
-  if (verdicts.size > VERDICT_MEMO_SIZE) verdicts.delete(/** @type {string} */ (verdicts.keys().next().value))
+  verdictChars += dataBase64.length
+  while (verdicts.size > 1 && (verdicts.size > VERDICT_MEMO_SIZE || verdictChars > VERDICT_MEMO_CHARS)) {
+    const oldest = /** @type {string} */ (verdicts.keys().next().value)
+    verdicts.delete(oldest)
+    verdictChars -= oldest.length
+  }
   return verdict
 }
 

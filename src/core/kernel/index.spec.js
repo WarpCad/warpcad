@@ -681,3 +681,48 @@ describe('record colour threads through the fold alongside hidden (TODO/core-026
     ).toThrow(/"a".*colour/)
   })
 })
+
+describe('the scene group combines a group-valued body only when read (TODO/io-024)', () => {
+  const records = [
+    { id: 'a', op: 'primitive.cuboid', params: { size: [10, 10, 10] } },
+    { id: 'b', op: 'primitive.cuboid', params: { size: [4, 4, 4], center: [8, 0, 0] } },
+    { id: 'g', op: 'group.assemble', name: 'Assembly', operands: ['a', 'b'], params: { names: ['a', 'b'] } },
+  ]
+
+  it('folds a named group without a union, and the part reads as the combined solid', async () => {
+    const { vi } = await import('vitest')
+    const spy = vi.spyOn(modeling.booleans, 'union')
+    try {
+      const { group } = evaluate(records)
+      expect(spy).not.toHaveBeenCalled()
+      expect(group.names).toEqual(['Assembly'])
+      const part = group.parts.Assembly
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(group.parts.Assembly).toBe(part)
+      const [min, max] = modeling.measurements.measureBoundingBox(part)
+      expect(min[0]).toBeCloseTo(-5, 9)
+      expect(max[0]).toBeCloseTo(10, 9)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('stays unread while later records are added to the scene, with or without the fold cache', async () => {
+    const { vi } = await import('vitest')
+    for (const cache of [null, new WeakMap()]) {
+      const spy = vi.spyOn(modeling.booleans, 'union')
+      try {
+        const first = evaluate(records, { cache })
+        const second = evaluate([{ id: 'c', op: 'primitive.cuboid', name: 'Cube', params: { size: [1, 1, 1] } }], {
+          initial: first,
+          cache,
+        })
+        expect(second.group.names).toEqual(['Assembly', 'Cube'])
+        expect(spy).not.toHaveBeenCalled()
+        expect(modeling.measurements.measureVolume(second.group.parts.Assembly)).toBeCloseTo(1000 + 64, 6)
+      } finally {
+        spy.mockRestore()
+      }
+    }
+  })
+})

@@ -13,6 +13,7 @@ import {
   centroidOf,
   combine,
   createGroup,
+  drawnSolidOf,
   enlarge,
   fit,
   isGroup,
@@ -1380,5 +1381,101 @@ describe('setPartHidden — mark a part hidden by default, or shown (TODO/ui-093
   it('treats a __proto__ part name as absent', () => {
     const group = pair()
     expect(setPartHidden(group, '__proto__', true)).toBe(group)
+  })
+})
+
+describe('add() and a hostile part name (TODO/io-024)', () => {
+  it('a part named __proto__, constructor or prototype is refused by name, never lost silently', async () => {
+    const { evaluate } = await import('./index.js')
+    for (const hostile of ['__proto__', 'constructor', 'prototype']) {
+      expect(() =>
+        evaluate([
+          { id: 'a', op: 'primitive.cuboid', params: { size: [1, 1, 1] } },
+          { id: 'b', op: 'primitive.cuboid', params: { size: [2, 2, 2] } },
+          { id: 'g', op: 'group.assemble', operands: ['a', 'b'], params: { names: [hostile, 'b'] } },
+        ])
+      ).toThrow(new RegExp(`"${hostile}" cannot be a part name`))
+    }
+  })
+})
+
+describe('a hole-free group is measured without a union (TODO/io-024)', () => {
+  const { booleans, primitives, transforms } = modeling
+  /** Three overlapping boxes, one of them hidden. */
+  function threeBoxes() {
+    let group = createGroup('assembly')
+    group = add(group, primitives.cuboid({ size: [50, 20, 2], center: [0, 0, 1] }), 'board')
+    group = add(group, primitives.cuboid({ size: [16, 24, 3] , center: [10, 0, 3] }), 'module')
+    group = add(group, primitives.cuboid({ size: [100, 100, 100] }), 'clearance', { hidden: true })
+    return group
+  }
+
+  it('localBoundsOf with no rotation is boundsOf, and unions nothing', async () => {
+    const { vi } = await import('vitest')
+    const group = threeBoxes()
+    const expected = boundsOfUnion(group)
+    const spy = vi.spyOn(booleans, 'union')
+    try {
+      const [min, max] = localBoundsOf(group, [0, 0, 0])
+      expect(spy).not.toHaveBeenCalled()
+      for (let axis = 0; axis < 3; axis += 1) {
+        expect(min[axis]).toBeCloseTo(expected[0][axis], 9)
+        expect(max[axis]).toBeCloseTo(expected[1][axis], 9)
+      }
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('localBoundsOf of a turned group un-turns each visible part and unions nothing', async () => {
+    const { vi } = await import('vitest')
+    const turned = mapGeometry(threeBoxes(), (solid) => transforms.rotate([0.3, -0.2, 0.7], solid))
+    const pivot = [1, 2, 3]
+    // The old answer: un-turn the union.
+    const expectedSolid = toGeom3(turned)
+    const expected = localBoundsOf(expectedSolid, [0.3 * 57.29577951308232, -0.2 * 57.29577951308232, 0.7 * 57.29577951308232], pivot)
+    const spy = vi.spyOn(booleans, 'union')
+    try {
+      const [min, max] = localBoundsOf(turned, [0.3 * 57.29577951308232, -0.2 * 57.29577951308232, 0.7 * 57.29577951308232], pivot)
+      expect(spy).not.toHaveBeenCalled()
+      for (let axis = 0; axis < 3; axis += 1) {
+        expect(min[axis]).toBeCloseTo(expected[0][axis], 6)
+        expect(max[axis]).toBeCloseTo(expected[1][axis], 6)
+      }
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  /** @param {any} group */
+  function boundsOfUnion(group) {
+    return modeling.measurements.measureBoundingBox(toGeom3(group))
+  }
+})
+
+describe('drawnSolidOf: what a ghost draws (TODO/io-024)', () => {
+  const { booleans, geometries, primitives } = modeling
+  it('puts a hole-free group\'s visible parts side by side, never a union', async () => {
+    const { vi } = await import('vitest')
+    let group = createGroup('g')
+    group = add(group, primitives.cuboid({ size: [10, 10, 10] }), 'a')
+    group = add(group, primitives.cuboid({ size: [4, 4, 4], center: [3, 0, 0] }), 'b')
+    group = add(group, primitives.cuboid({ size: [99, 99, 99] }), 'hidden', { hidden: true })
+    const spy = vi.spyOn(booleans, 'union')
+    try {
+      const drawn = drawnSolidOf(group)
+      expect(spy).not.toHaveBeenCalled()
+      expect(geometries.geom3.toPolygons(drawn)).toHaveLength(12)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('is the solid itself for a solid, and the real combination for a group with holes', () => {
+    const cube = primitives.cuboid({ size: [2, 2, 2] })
+    expect(drawnSolidOf(cube)).toBe(cube)
+    let group = add(createGroup('g'), primitives.cuboid({ size: [10, 10, 10] }), 'a')
+    group = { ...group, holes: [primitives.cuboid({ size: [2, 2, 20] })] }
+    expect(modeling.measurements.measureVolume(drawnSolidOf(/** @type {any} */ (group)))).toBeCloseTo(1000 - 40, 6)
   })
 })

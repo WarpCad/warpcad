@@ -57,7 +57,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
     <template v-else>
       <h2 class="library-section-popout__heading" data-testid="library-heading-user">My parts</h2>
       <p v-if="library.userRows.length === 0" class="library-section-popout__hint" data-testid="library-user-empty">
-        Nothing saved yet. Select a group, then choose Save to library… — or choose Import model… under ⋯ for an STL — and it appears here.
+        Nothing saved yet. Select a group, then choose Save to library… — or choose Import model… under ⋯ for an STL or 3MF — and it appears here.
       </p>
       <ul class="library-section-popout__rows" data-testid="library-rows-user">
         <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />

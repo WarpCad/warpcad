@@ -6,8 +6,14 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-02 at the owner's request)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-04).** The 3MF reader, the zip central-directory reader, multi-mesh part assemblies, the Library
+> row (**N parts** tag, `unitsStated`, duplicate count in the toast), the e2e spec, the docs and acceptance scenario 31 all
+> landed. Whole-model Subtract is 624 ms on the main thread (part-by-part 1,082 ms, the STL 179 ms); that is recorded as a
+> known limitation and filed as `core-079`. Left open on purpose, not a gap: a hole in a part is not a part, and names
+> are only what the file has.
 
 ## Goal
 

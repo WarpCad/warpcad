@@ -212,22 +212,29 @@ describe('the format registry', () => {
     expect(formatForName('bracket.STL')?.id).toBe('stl')
     expect(formatForName('bracket.stl')?.id).toBe('stl')
     expect(formatForName('bracket.obj')).toBeNull()
-    expect(acceptAttribute()).toBe('.stl')
+    expect(acceptAttribute()).toBe('.stl,.3mf')
   })
 
-  it('sniffs a file with no extension rather than trusting the name', () => {
-    const result = parseMeshFile('scan', binaryStl(CUBE))
+  it('sniffs a file with no extension rather than trusting the name', async () => {
+    const result = await parseMeshFile('scan', binaryStl(CUBE))
     expect(result.ok).toBe(true)
   })
 
-  it('refuses an unsupported extension by naming what it takes', () => {
-    const result = parseMeshFile('part.step', asciiBytes('ISO-10303-21;'))
+  it('refuses an unsupported extension by naming what it takes', async () => {
+    const result = await parseMeshFile('part.obj', asciiBytes('v 0 0 0'))
     expect(result.ok).toBe(false)
     expect(result.ok ? '' : result.reason).toMatch(/STL/)
   })
 
-  it('still refuses a text file renamed x.stl', () => {
-    const result = parseMeshFile('x.stl', asciiBytes('just some notes'))
+  it('refuses a STEP file by name, saying what to export instead (TODO/io-024)', async () => {
+    for (const name of ['part.step', 'part.STP']) {
+      const result = await parseMeshFile(name, asciiBytes('ISO-10303-21;'))
+      expect(result.ok ? '' : result.reason).toBe('STEP files are not read yet. Export 3MF or STL from your CAD program')
+    }
+  })
+
+  it('still refuses a text file renamed x.stl', async () => {
+    const result = await parseMeshFile('x.stl', asciiBytes('just some notes'))
     expect(result.ok).toBe(false)
     expect(result.ok ? '' : result.reason).toMatch(/^Not a valid STL/)
   })

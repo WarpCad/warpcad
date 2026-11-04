@@ -387,8 +387,16 @@ onBeforeUnmount(() => {
         :title="`Imported model, ${row.mesh.triangleCount.toLocaleString('en-US')} triangles`"
         >Mesh</span
       >
+      <span
+        v-if="row.mesh.partCount > 1"
+        class="library__tag"
+        data-testid="library-mesh-parts"
+        :title="`${row.mesh.partCount} parts, each selectable on its own once placed`"
+        >{{ row.mesh.partCount }} parts</span
+      >
       <span class="library__mesh-size" data-testid="library-mesh-size">{{ row.mesh.sizeText }}</span>
-      <label class="library__choice library__choice--mesh">
+      <!-- A 3MF states its units (TODO/io-024): nothing to choose, nothing assumed. -->
+      <label v-if="!row.mesh.unitsStated" class="library__choice library__choice--mesh">
         <span class="library__choice-label">Units</span>
         <select
           class="library__choice-select"
@@ -403,7 +411,7 @@ onBeforeUnmount(() => {
         </select>
       </label>
       <span
-        v-if="!row.mesh.unitsConfirmed"
+        v-if="!row.mesh.unitsConfirmed && !row.mesh.unitsStated"
         class="library__badge"
         data-testid="library-mesh-assumed"
         title="STL files carry no units. Check the size above; change Units if it looks wrong."

@@ -15,7 +15,7 @@ import { exportBodies } from '../../export.js'
 import { importMeshBytes } from '../../../io/meshJob.js'
 import { parseStl } from '../../../io/meshFormats/stl.js'
 import { weldMesh } from '../../../io/meshAsset.js'
-import { binaryStl, cubeTriangles, gridTriangles } from '../../../io/__fixtures__/stl.js'
+import { binaryStl, boxTriangles, cubeTriangles, gridTriangles } from '../../../io/__fixtures__/stl.js'
 
 const { measurements } = modeling
 
@@ -25,7 +25,7 @@ const { measurements } = modeling
  */
 async function cubeAsset(size, origin) {
   const result = await importMeshBytes('cube.stl', binaryStl(cubeTriangles(size, origin)))
-  if (!result.ok) throw new Error(result.reason)
+  if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
   return result.record
 }
 
@@ -42,6 +42,13 @@ function build(asset, params = {}) {
 function bounds(solid) {
   const [min, max] = boundsOf(solid)
   return { min, max }
+}
+
+/** @param {[number, number, number]} size */
+async function boxAsset(size) {
+  const result = await importMeshBytes('box.stl', binaryStl(boxTriangles(size)))
+  if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
+  return result.record
 }
 
 describe('import.mesh — placement', () => {
@@ -72,7 +79,7 @@ describe('import.mesh — placement', () => {
 
   it('places a flat (zero-height) mesh on the ground plane', async () => {
     const result = await importMeshBytes('plate.stl', binaryStl(gridTriangles(4, 5, 7)))
-    if (!result.ok) throw new Error(result.reason)
+    if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
     const { min, max } = bounds(build(result.record))
     expect(min[2]).toBeCloseTo(0, 9)
     expect(max[2]).toBeCloseTo(0, 9)
@@ -175,10 +182,86 @@ describe('import.mesh — watertight round trip (io-004’s criterion)', () => {
       triangle.map((corner) => corner.map((value) => value + (index % 3) * 0.2 * tolerance))
     )
     const result = await importMeshBytes('sloppy.stl', binaryStl(/** @type {any} */ (sloppy)))
-    if (!result.ok) throw new Error(result.reason)
+    if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
     expect(result.vertexCount).toBe(8)
     const solid = build(result.record)
     const written = exportBodies([{ id: 'model', name: 'Cube', geometry: solid }], 'stl')
     expect(openEdgesOfStl(written.bytes)).toBe(0)
+  })
+})
+
+describe('import.mesh — a placement matrix (TODO/io-024)', () => {
+  /** @param {number} dx @param {number} dy @param {number} dz */
+  const moved = (dx, dy, dz) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, dx, dy, dz, 1]
+
+  it('ten import.mesh records on one asset give ten solids at ten transforms, from one asset record', async () => {
+    const asset = await boxAsset([1.625, 0.81, 0.38])
+    /** @type {any[]} */
+    const records = [asset]
+    for (let index = 0; index < 10; index += 1) {
+      records.push({ id: `p${index + 1}`, op: 'import.mesh', target: asset.id, params: { unitScale: 1, recenter: false, matrix: moved(index * 3, 1, 0) } })
+    }
+    const { byId } = evaluate(records)
+    for (let index = 0; index < 10; index += 1) {
+      const { min, max } = bounds(byId.get(`p${index + 1}`))
+      expect(min[0]).toBeCloseTo(index * 3, 6)
+      expect(max[0]).toBeCloseTo(index * 3 + 1.625, 6)
+      expect(min[1]).toBeCloseTo(1, 6)
+      expect(max[2]).toBeCloseTo(0.38, 6)
+    }
+    // The memo is keyed by the matrix too: not one resistor in one place.
+    expect(byId.get('p1')).not.toBe(byId.get('p2'))
+  })
+
+  it('applies the matrix after the unit scale, in millimetres', async () => {
+    const { min, max } = bounds(build(await cubeAsset(1), { recenter: false, unitScale: 25.4, matrix: moved(100, 0, 0) }))
+    expect(min[0]).toBeCloseTo(100, 6)
+    expect(max[0]).toBeCloseTo(125.4, 5)
+  })
+
+  it('a FreeCAD quarter turn with 2.22045e-16 terms lands where 3MF says', async () => {
+    // 3MF row-vector "2.22045e-16 -1 0 1 2.22045e-16 0 0 0 1 4.445 11.43 1.57", in mat4 order.
+    const matrix = [2.22045e-16, -1, 0, 0, 1, 2.22045e-16, 0, 0, 0, 0, 1, 0, 4.445, 11.43, 1.57, 1]
+    const solid = build(await boxAsset([10, 20, 5]), { recenter: false, matrix })
+    const { min, max } = bounds(solid)
+    expect(min[0]).toBeCloseTo(4.445, 6)
+    expect(max[0]).toBeCloseTo(24.445, 6)
+    expect(min[1]).toBeCloseTo(1.43, 6)
+    expect(max[1]).toBeCloseTo(11.43, 6)
+    expect(min[2]).toBeCloseTo(1.57, 6)
+    expect(max[2]).toBeCloseTo(6.57, 6)
+    expect(measurements.measureVolume(solid)).toBeCloseTo(1000, 4)
+  })
+
+  it('a mirrored instance keeps outward winding (positive volume, normals out)', async () => {
+    const mirror = [-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    const solid = build(await cubeAsset(10), { recenter: false, matrix: mirror })
+    expect(measurements.measureVolume(solid)).toBeCloseTo(1000, 6)
+    const { min, max } = bounds(solid)
+    expect(min[0]).toBeCloseTo(-10, 6)
+    expect(max[0]).toBeCloseTo(0, 6)
+    // Every face normal points away from the centre.
+    for (const polygon of modeling.geometries.geom3.toPolygons(solid)) {
+      const plane = modeling.geometries.poly3.plane(polygon)
+      const centroid = polygon.vertices.reduce((sum, v) => [sum[0] + v[0] / 3, sum[1] + v[1] / 3, sum[2] + v[2] / 3], [0, 0, 0])
+      const outward = [centroid[0] + 5, centroid[1] - 5, centroid[2] - 5]
+      expect(plane[0] * outward[0] + plane[1] * outward[1] + plane[2] * outward[2]).toBeGreaterThan(0)
+    }
+    expect(openEdgesOf(makeWatertight(solid)).openEdges).toBe(0)
+  })
+
+  it('refuses a matrix that is the wrong length, non-finite, singular or not affine', async () => {
+    const asset = await cubeAsset(10)
+    const singular = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+    const projective = [1, 0, 0, 0.5, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    const nan = [Number.NaN, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    for (const matrix of [[1, 0, 0], singular, projective, nan, 'identity']) {
+      expect(() => build(asset, { recenter: false, matrix })).toThrow(/import\.mesh: matrix/)
+    }
+  })
+
+  it('refuses unitsStated that is not true or false', async () => {
+    const asset = await cubeAsset(10)
+    expect(() => build(asset, { unitsStated: 'yes' })).toThrow(/unitsStated/)
   })
 })

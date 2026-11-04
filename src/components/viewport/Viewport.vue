@@ -124,7 +124,7 @@ import {
 import { colorIntToCssHex, ownOverrideOf } from '../../core/colorOverride.js'
 import { PICK_OFFSETS_PX, firstDrawnHit, isDrawn, nearestOnPlane, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
 import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
-import { evaluateOp, policyFor, toGeom3 } from '../../core/kernel/index.js'
+import { drawnSolidOf, evaluateOp, policyFor, toGeom3 } from '../../core/kernel/index.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import {
   boxAtPoint,
@@ -2666,8 +2666,10 @@ function ghostGeometryFor(key, op, overrides) {
   const cacheKey = `${key}@${resolution}`
   let geometry = ghostGeometry.get(cacheKey)
   if (!geometry) {
+    // `drawnSolidOf`, not `toGeom3`: a group's parts side by side, never a union in the pointer
+    // path (TODO/io-024 — a 29-part 3MF took half a second to union here).
     geometry = geom3ToBufferGeometry(
-      toGeom3(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN, overrides), { policy: policyFor(resolution) })),
+      drawnSolidOf(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN, overrides), { policy: policyFor(resolution) })),
     )
     ghostGeometry.set(cacheKey, geometry)
   }

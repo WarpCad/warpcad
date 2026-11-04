@@ -51,7 +51,8 @@ import { RUNTIME_OP_PREFIX, lookupEntry, registry, setRuntimeEntries } from './k
 import { policyFor } from './kernel/tessellation.js'
 import { foldColorOverrides } from './colorOverride.js'
 import { REPEAT_OP } from './repeat.js'
-import { MESH_ASSET_OP, validateMeshAsset } from '../io/meshAsset.js'
+import { MESH_ASSET_OP, MESH_LIMITS, formatCount, formatLimit, validateMeshAsset } from '../io/meshAsset.js'
+import { matrixProblem } from '../io/meshMatrix.js'
 
 const { geom3 } = modeling.geometries
 
@@ -118,10 +119,18 @@ export const USER_PART_LIMITS = Object.freeze({
   /** One definition's JSON size, in UTF-16 code units — not counting an imported mesh's data. */
   maxDefinitionBytes: 1_000_000,
   /**
-   * Imported meshes (`asset.mesh`, `TODO/io-009`) one part may hold. A mesh's own data is
-   * capped by `MESH_LIMITS` (`src/io/meshAsset.js`), not by `maxDefinitionBytes`.
+   * Imported meshes (`asset.mesh`, `TODO/io-009`) one part may hold — a 3MF assembly holds one
+   * per distinct component (`TODO/io-024`; the Feather is 13). A mesh's own data is capped by
+   * `MESH_LIMITS` (`src/io/meshAsset.js`), and every mesh together by `maxMeshDefinitionBytes`,
+   * which is the real cap: a part that passes can always be exported as a part file.
    */
-  maxMeshAssetsPerPart: 1,
+  maxMeshAssetsPerPart: 256,
+  /**
+   * Triangles a part draws across every `import.mesh` instance, nested parts included
+   * (`TODO/io-024`): one 250 k-triangle asset placed 499 times passes every per-record check and
+   * is 125 million triangles. The same cap one STL file has.
+   */
+  maxInstancedTriangles: MESH_LIMITS.maxTriangles,
   /**
    * A definition holding a mesh, whole, in UTF-16 code units: a cap-sized mesh's base64 plus
    * room for its records, and still under the part file's 8 M-character limit with a
@@ -177,6 +186,33 @@ const OP_PATTERN = /^user\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
 const ID_PATTERN = /^[A-Za-z0-9_-]+$/
 const PARAM_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/
 const SKETCH_OP = 'primitive.sketch'
+
+/**
+ * The refusal for a part drawing more triangles, across its mesh instances, than one file may hold.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function tooManyInstancedTriangles(count) {
+  return `the part draws ${formatCount(count)} triangles across its placed meshes — at most ${formatLimit(USER_PART_LIMITS.maxInstancedTriangles)}`
+}
+
+/**
+ * The triangles a definition's own `import.mesh` records draw, not counting nested parts.
+ *
+ * @param {{ records: readonly any[] }} definition Already valid.
+ * @returns {number}
+ */
+function ownInstancedTriangles(definition) {
+  /** @type {Map<string, number>} */
+  const meshTriangles = new Map()
+  let total = 0
+  for (const record of definition.records) {
+    if (record.op === MESH_ASSET_OP) meshTriangles.set(record.id, record.params.triangleCount)
+    else if (record.op === IMPORT_MESH_OP) total += meshTriangles.get(String(refId(record.target))) ?? 0
+  }
+  return total
+}
 
 /** A part that cannot be validated, expanded or captured — a message safe to show as-is. */
 export class UserPartError extends Error {
@@ -362,6 +398,9 @@ function normalizeDefinition(raw) {
   /** @type {Map<string, string>} id → op, for the records read so far */
   const opOf = new Map()
   let meshes = 0
+  /** @type {Map<string, number>} asset.mesh id → its triangle count */
+  const meshTriangles = new Map()
+  let instancedTriangles = 0
   /** @type {OpRecord[]} */
   const records = raw.records.map((/** @type {unknown} */ candidate, /** @type {number} */ index) => {
     const label = `record ${index + 1}`
@@ -393,10 +432,11 @@ function normalizeDefinition(raw) {
     if (recordOp === MESH_ASSET_OP) {
       meshes += 1
       if (meshes > USER_PART_LIMITS.maxMeshAssetsPerPart) {
-        throw fail(`a part holds more than ${USER_PART_LIMITS.maxMeshAssetsPerPart} mesh`)
+        throw fail(`a part holds more than ${USER_PART_LIMITS.maxMeshAssetsPerPart} meshes`)
       }
       const verdict = validateMeshAsset(candidate)
       if (!verdict.ok) throw fail(`record "${id}": the imported mesh can't be used — ${verdict.reason}`)
+      meshTriangles.set(id, verdict.triangleCount)
     }
     if (recordOp === SKETCH_OP && Array.isArray(candidate.params?.slices)) {
       if (candidate.params.slices.some((/** @type {any} */ slice) => isPlainObject(slice) && slice.image !== undefined)) {
@@ -445,6 +485,18 @@ function normalizeDefinition(raw) {
     if (recordOp === IMPORT_MESH_OP) {
       if (record.target === undefined || meshRefs.length !== 1 || meshRefs[0] !== record.target || record.operands !== undefined) {
         throw fail(`record "${id}": import.mesh must take one asset.mesh record of this part as its target`)
+      }
+      // The placement arrives in shared part files (`TODO/io-024`): the kernel's own check, here.
+      if (record.params.matrix !== undefined) {
+        const problem = matrixProblem(record.params.matrix)
+        if (problem !== null) throw fail(`record "${id}": ${problem}`)
+      }
+      if (record.params.unitsStated !== undefined && typeof record.params.unitsStated !== 'boolean') {
+        throw fail(`record "${id}": unitsStated must be true or false`)
+      }
+      instancedTriangles += meshTriangles.get(String(refId(record.target))) ?? 0
+      if (instancedTriangles > USER_PART_LIMITS.maxInstancedTriangles) {
+        throw fail(tooManyInstancedTriangles(instancedTriangles))
       }
     } else if (meshRefs.length > 0) {
       throw fail(`record "${id}": only import.mesh may use an asset.mesh record`)
@@ -602,41 +654,48 @@ function graphProblems(definitions) {
   }
 
   // Depth and expanded size, memoised; a cyclic part is already a problem and is skipped.
-  /** @type {Map<string, { depth: number, size: number }>} */
+  /** @type {Map<string, { depth: number, size: number, triangles: number }>} */
   const measured = new Map()
   const cap = USER_PART_LIMITS.maxExpandedRecords
-  /** @param {string} op @returns {{ depth: number, size: number }} */
+  const triangleCap = USER_PART_LIMITS.maxInstancedTriangles
+  /** @param {string} op @returns {{ depth: number, size: number, triangles: number }} */
   const measure = (op) => {
     const known = measured.get(op)
     if (known !== undefined) return known
     // Placeholder while measuring, so a cycle that slipped through cannot recurse forever.
-    measured.set(op, { depth: Infinity, size: Infinity })
+    measured.set(op, { depth: Infinity, size: Infinity, triangles: Infinity })
     const definition = definitions.get(op)
     let depth = 1
     let size = 0
+    // Mesh instances nested parts draw count too (`TODO/io-024`): a part placing a mesh part
+    // 400 times draws 400 times its triangles.
+    let triangles = definition === undefined ? 0 : ownInstancedTriangles(definition)
     if (definition !== undefined) {
       for (const record of definition.records) {
         if (isUserPartOp(record.op) && definitions.has(record.op) && !problems.has(record.op) && record.op !== op) {
           const child = measure(record.op)
           depth = Math.max(depth, child.depth + 1)
           size += child.size
+          triangles += child.triangles
         } else {
           size += 1
         }
-        if (size > cap) break
+        if (size > cap || triangles > triangleCap) break
       }
     }
-    const result = { depth, size: Math.min(size, cap + 1) }
+    const result = { depth, size: Math.min(size, cap + 1), triangles: Math.min(triangles, triangleCap + 1) }
     measured.set(op, result)
     return result
   }
   for (const op of definitions.keys()) {
     if (problems.has(op)) continue
-    const { depth, size } = measure(op)
+    const { depth, size, triangles } = measure(op)
     if (depth > USER_PART_LIMITS.maxNestingDepth) {
       problems.set(op, `parts are nested more than ${USER_PART_LIMITS.maxNestingDepth} deep`)
     } else if (size > cap) {
       problems.set(op, `it expands to more than ${cap} records`)
+    } else if (triangles > triangleCap) {
+      problems.set(op, `it draws more than ${formatLimit(triangleCap)} triangles across its placed meshes`)
     }
   }
 

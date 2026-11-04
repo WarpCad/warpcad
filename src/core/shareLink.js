@@ -97,14 +97,14 @@ async function deflate(bytes) {
 
 /**
  * Inflate `bytes`, aborting as soon as the output passes `limit` so a tiny deflate bomb never
- * gets to allocate its full size.
+ * gets to allocate its full size. Shared with the 3MF zip reader (`./zip.js`, `TODO/io-024`).
  *
  * @param {Uint8Array} bytes
  * @param {number} limit Maximum output length in bytes.
  * @returns {Promise<Uint8Array | 'too-large'>} The output, or `'too-large'`.
  * @throws When `bytes` is not a complete `deflate-raw` stream.
  */
-async function inflate(bytes, limit) {
+export async function inflate(bytes, limit) {
   const source = new Blob([/** @type {BlobPart} */ (bytes)]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
   const reader = source.getReader()
   /** @type {Uint8Array[]} */

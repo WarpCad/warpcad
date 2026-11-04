@@ -115,6 +115,24 @@ function partOf(cached) {
 }
 
 /**
+ * Add a named record's value to the fold's scene group. A group-valued body goes in **lazily**
+ * (`TODO/io-024`): its combined solid is computed the first time the scene group's part is read,
+ * through {@link partOf}, so it is still computed at most once per cache entry and is the same
+ * object every time. Nothing in the app reads it, and a 29-part imported model took 0.4 s to
+ * union on the main thread at every drop and load.
+ *
+ * @param {Group} group
+ * @param {{ value: Geom3 | Group, part?: Geom3 }} built A cache entry, or a holder for a fresh value.
+ * @param {OpRecord} record Named.
+ * @returns {Group}
+ */
+function addToScene(group, built, record) {
+  const name = /** @type {string} */ (record.name)
+  if (!isGroup(built.value)) return add(group, /** @type {Geom3} */ (built.value), name, partOptions(record))
+  return add(group, built.value, name, { ...partOptions(record), lazy: () => partOf(/** @type {CachedBuild} */ (built)) })
+}
+
+/**
  * What a named record passes to `add()` beyond its value: `hidden`, and the part colour
  * that rides alongside it (TODO/core-026). One helper so the cached and fresh-build
  * paths cannot drift apart — a colour that only survived one of them is exactly the
@@ -272,7 +290,7 @@ export function evaluate(records, options = {}) {
           }
           byId.set(record.id, cached.value)
         }
-        if (record.name) group = add(group, partOf(cached), record.name, partOptions(record))
+        if (record.name) group = addToScene(group, cached, record)
         continue
       }
     }
@@ -414,7 +432,7 @@ export function evaluate(records, options = {}) {
     }
 
     if (record.name) {
-      group = add(group, built === undefined ? value : partOf(built), record.name, partOptions(record))
+      group = addToScene(group, built ?? { value }, record)
     }
   }
 
@@ -477,6 +495,7 @@ export {
   centroidOf,
   combine,
   createGroup,
+  drawnSolidOf,
   isGroup,
   pick,
   sizeOf,

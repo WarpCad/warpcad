@@ -80,6 +80,7 @@ just clicked, not both at once).
 
 **Also re-drive**: re-run the closed-finding repros after any panel-layout change: ui-072 (phone Library drag), ui-043 and ui-027 (phone toolbar), ui-015 (tablet toolbar vs gizmo), ui-070 (phone Inspector tab over the Library sheet). Also re-run the ui-072 repro (phone Library drag registers) after any Library sheet or pop-out change (ui-081). Also drive by hand with the Assistant sheets overlaying the viewport at phone width; both bodies stay visible after closing (ai-029).
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: a Cube and a Cylinder dropped at two points both stayed (2 bodies), and each Objects row selected only itself. Not driven: phone, WebKit.
 **Last run**: 2026-11-03 20:30 UTC (`render-007`, uncommitted tree) — **PARTIAL PASS**, Show hidden parts re-driven by hand at laptop 1440x900 and phone 390x844 Chromium (Library drag of a Cube and a Bolt over it, bolt selected, toggle on then off). The 3D view was byte-identical before and after toggle-off at both sizes; the shown frame differs, so the overlay drew. Steps 3–5 (the breadcrumb, the base/second-operand ordering and Subtract) were **not** re-driven in this check.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900, 820x1180 and 390x844 Chromium (real mouse at laptop, trusted CDP touch at tablet and phone, jittered Library drags): a Cube then a Cylinder, both remained (2 bodies); at laptop a click on open grid left 0 selected and a click on the cube selected one.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium, real Library drags: a Cube and a Sphere, both remain.
@@ -1534,6 +1535,7 @@ aligned to the board's mounting holes, not at an arbitrary offset position.
 
 **Also re-drive**: re-drive at 820x1180 and a hand-resized ~720 px window, on WebKit and one other engine (ui-079).
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: a Pi 5 dropped whole (15 visible parts of 38); during a slow, wobbling drag of the Camera Module over the board its ghost showed and snapped, and after release it sat on the board (2 bodies). `io-024` changed the drag ghost (a hole-free group is now drawn part by part instead of unioned in the pointer path), so this is the check that matters. `snap-placement`, `rpi-mounting-holes`, `raspberrypi-screen-library` and `repeat-placement` pass at chromium-laptop and webkit-tablet. The 3MF of scenario 31 renders all 29 parts. Not driven: phone.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium: a Pi 5 and a Camera Module, snapped, then merged. The Camera row opened with `Camera Module 1-`, 57 parts, and the snapped assembly did not move.
 **Last run**: 2026-10-26 22:58 UTC (`ui-087` stage 1, uncommitted tree) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 26-step Library drags, fresh profile, dev server). Raspberry Pi dropped, Camera Module dragged toward it: `data-snapped` true for 7 of 26 samples, both bodies remained (1 then 2). Re-driven because the shared operation-popover frame gained a grip. The Align popover itself was driven under scenario 1.
 **Last run**: 2026-10-26 07:16 UTC (`ui-086`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`, jittered 26-step Library drags, fresh profile, dev server). Re-driven because the Align popover became seven icon buttons per axis. Cube dropped, Cylinder dragged beside it: `data-snapped` true and 2 guides over the last six mid-drag samples; on release both bodies remained (2) and the cylinder sat aligned to the cube. Console and page errors: none.
@@ -2104,6 +2106,7 @@ Subtract now leaves.
 
 **Also re-drive**: Not yet hand-driven since ui-063 changed Snap/Align operand naming; drive once at the next milestone check (ui-063).
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS (partial)**: the boolean-with-one-part path, driven with the 3MF of scenario 31: a Cube minus only the Feather's `Part 25`, at laptop Chromium, phone Chromium (trusted touch) and phone WebKit, left one Subtract body with no main-thread long task, and Undo brought both back. `e2e/pi-hole-subtract.e2e.js` and `boolean-operations.e2e.js` pass at chromium-laptop. **Not re-driven by hand:** the bolt's `tap` and its 61 108.343 mm³ figure.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium, real mouse and a real Library drag. An unmarked Bolt dropped on a 40 mm Cube, Cube checked first, then the bolt's `tap` row, **Subtract**: one body left (`Subtract 1`, 40 x 40 x 40) with a pocket in the screenshot, and the Bolt gone from the scene. The bolt's `tap` was still used up.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium: a never-merged bolt from a real Library drag is used up by a cut with its `tap`. A merged bolt stays, by the new rule (`booleanConsumes.spec.js`).
 **Last run**: 2026-10-17 UTC (`core-060`) — **PASS** at laptop 1440x900 Chromium (real `page.mouse`; phone 390x844 Chromium flat-head pass only, the hex phone drive timed out on an object-list click in my driver and was not retried). A 40 mm cube (64000 mm3) with a Bolt / screw dropped onto it, cube check + the bolt's `tap` check, Subtract. **Hex head**: 3637.6 mm3 removed against a metal volume of 2920.8 (clearance-sized hole). **Flat head** (Type changed in the Inspector): 2957.5 removed against 2338.5 metal, the grown cone, i.e. the countersink. Remainders 60362.4 and 61042.5. Console clean.
@@ -2485,6 +2488,7 @@ member mesh narrows to that sub-part (step 6), with the breadcrumb showing the p
 depth. Clicking the breadcrumb's "Group" segment (step 7) steps back up to whole-group
 selection.
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** with the 3MF at laptop Chromium: a first click on the imported Feather selected the whole model (Size 51.25 × 22.86 × 6.37, no part crumb), a second click narrowed to `Part 22` (breadcrumb `Objects ▸ esp8266 feather 2 ▸ Part 22`, Size 24 × 16 × 2.95); the breadcrumb's model segment steps back up (`e2e/import-3mf.e2e.js`, passing at chromium laptop and phone, webkit tablet, firefox laptop). `io-024` changed `localBoundsOf` to measure a hole-free group part by part instead of unioning it, so `group-subpart-selection`, `snap-align-operation`, `snap-align-both-subparts`, `rotate-dial` and `gizmo-transform` were re-run and pass at chromium-laptop. Not driven: Steps 1-2's Pi + camera + screen group.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium, real mouse. Pi, Camera Module and 7-inch Touch Display grouped with **Merge parts** unticked on each row: a click on open grid deselected, a click on the Pi selected the Group (Bounds 294.3 x 173.8 x 22.4), a second click read `Objects > Group 1 > Raspberry Pi 1`, and a click on the camera read `... > Camera Module 1`. Not driven: the Snap of the camera (scenario 3).
 **Last run**: 2026-11-02 20:55 UTC (`core-077`, uncommitted tree) — **PASS (partial)** at laptop 1440x900 Chromium, dev server, real mouse: Cube 1 red, Cube 2 blue, both selected and grouped; the group still shows Cube 1 red. Selecting Group 1 then clicking Cube 2 again drilled in: the Inspector breadcrumb read Objects › Group 1 › Cube 2 and showed the part's size, position and the note that a colour set here stays on Cube 2. Not driven: stepping back to Group 1 from the breadcrumb and the gizmo retarget.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS (partial)** at laptop Chromium: step 2 as rewritten, unticking both rows gave today's whole-unit `group.assemble` with two parts. Drilling and the breadcrumb were re-driven on a merged group (a part from a Group-made member shows its own fields). The first-click-on-canvas half was covered by `e2e/group-subpart-selection.e2e.js`, unedited and green, not by hand.
@@ -2867,6 +2871,7 @@ image, no script, no dialog, nothing executed; **Project settings…** says the 
 came with the file and offers **Use this project's instructions** rather than treating them
 as the user's own.
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: `hostile-merge.ndjson` refused by name (*project-state: merge: `clock` is above 1099511627776, which no clock reaches*). New for `io-024`: a saved project whose 3MF part had one placement matrix tampered to 17 numbers opened with *skipped 1 step (user.esp8266-feather): part "esp8266 feather" … can't be loaded: record "p1": matrix must be a list of 16 numbers*; the Cube in the same file loaded and nothing else was lost; console clean. Hostile 3MF files themselves (DOCTYPE, ENTITY, a component cycle, nested bombs, `p:path`, bad indices, hostile names) are covered by `threeMf.spec.js`. Not driven: hostile-intent, the version-3 file, the assistant.
 **Last run**: 2026-10-15 UTC (`io-009`) — **PASS** at laptop 1440x900 Chromium. `hostile-images`, `hostile-intent` and `hostile-merge` fixtures: no script ran, the app stayed up, the image was dropped by name and the merge file refused by name. New step: a saved project whose imported part's `asset.mesh` has a NaN coordinate opened with a named warning (*part lbracket can't be loaded … a coordinate …*) and the rest of the project intact.
 **Last run**: 2026-09-05 — PASS (already covered by an automated test, not yet
 hand-driven through the UI: `core-002`'s `src/core/replay.spec.js`, the test named
@@ -3092,6 +3097,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
 
 **Also re-drive**: Not yet hand-driven since ui-063 changed Snap/Align operand naming; drive once at the next milestone check (ui-063).
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: a Cube + Cylinder union survived a reload; **Download copy** gave `warpcad-project-20261104-0923.ndjson`; with a Sphere added, File ▾ → Open… → Replace brought back exactly the union. A placed 3MF assembly (two copies and a Cube) also survived a reload at laptop Chromium, phone Chromium and phone WebKit (scenario 31). Hosted half not driven.
 **Last run**: 2026-11-03 17:40 UTC (`ui-092` part 4, uncommitted tree) — **PASS (an edited request survives)** at phone 390x844 WebKit, touch only, ad-hoc Playwright drive on the dev server with the WebMCP stand-in: two agent requests over three cubes and a reply on the second; in the **Prompts** tab, a tap expanded the first row and **Combine with next** left one row, `3 parts · Reply · Edited`, no sideways scroll; the chip went to `Saved · 17:39` on its own; after a reload (`Restored your last session`) the row was unchanged, its text exactly the first request, a blank line, then the second, and the reply intact; **Download copy** (label `Download copy`), a cube added by the agent, **Open…** the copy with **Replace**: `Opened … · 3 steps`, 3 bodies, the same one combined row. No console or page errors. Not driven: the Library drags and Union, History rows, the hosted half.
 **Last run**: 2026-11-03 21:30 UTC (`ui-092` part 3, uncommitted tree) — **PASS (prompts and a reply survive)** at laptop 1440x900 Chromium (native pickers off, so **Download copy**): an agent request made a Cube and a Cylinder; in the Prompts view **Add reply…** saved a reply; after `Saved` and a reload the row read `2 parts · Reply` with the same parts (`Cube 1 Made`, `Cylinder 1 Made`) and the reply text; **Download copy**, a Sphere dropped in, **Open…** the copy with **Replace**: 2 bodies, the Prompts view (left open across the Open…) showed the one request, `2 parts · Reply`. No console or page errors. Not driven: the Union step, History rows, the hosted half.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium. Cube and Cylinder unioned, Position read -26.72 / -26.72 / 25, reload: same Position and Size. Also a Group with `Cube 2` hidden by default reloaded still hidden at 40 x 40 x 40 with no Show all.
@@ -3373,6 +3379,7 @@ Control names: header **File ▾ → Export…** (`file-export`), which opens th
   two or more bodies in the scope — see the 2026-09-21 re-check.)
 - Step 7: a single `.glb` file downloads and shows the same shape.
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: Cube and Cylinder united, `union-1.stl` 10,284 bytes with **0 open edges** after a weld, `union-1.obj` and `union-1.glb` written. With the 3MF assembly of scenario 31: exported whole as one STL (1.0 s in the export worker, no main-thread gap over 17 ms) it has 106 open and 61 non-manifold edges, from the union of parts that sit face to face on the board plus the file's own broken `JSTPH` and `KMR2`; **Print pieces** refuses at `Part 19` (`JSTPH`, 12 open edges) with its reason. Export at the *draft* resolution with the model placed works (`core-053`'s repro). Not opened in a slicer.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium, real downloads parsed as binary STL. Scope Selection and Format STL were the defaults. Group with `Cube 2` hidden by default, whole-scene Export: 12 triangles, extent 40 x 40 x 40 (one cube). The same Group with `Cube 2` hidden by the eye instead: 24 triangles, extent 116.54 x 167.81 x 40 (both cubes), as the `ui-093` table says.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium: the downloaded STL's largest X was -20 mm, where a hidden part would have reached 70 mm.
 **Last run**: 2026-10-27 UTC (`core-075` stage 4, uncommitted tree) — **PASS (by e2e only)**. Print pieces writing `assembly.txt` for a half lap is covered by `e2e/print-prep-keys.e2e.js` across all 9 engine-viewport projects; Union export by hand was not re-driven and no slicer/viewer was opened (the standing gap).
@@ -4336,6 +4343,7 @@ parts header in words and My parts is unchanged; a second file replaces the firs
 
 **Also re-drive**: re-drive at 820x1180 and a hand-resized ~720 px window, on WebKit and one other engine (ui-079).
 
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop 1440x900 Chromium with Adafruit's own Feather STL (33,722 triangles, a real file from the wild): the row read **Mesh**, 51.3 × 22.9 × 6.37 mm and **Units assumed: mm**, with its Units control (an STL row is unchanged by `io-024`); the model dropped; the Inspector showed the not-parametric note; Subtract of an overlapping Cylinder left one body; a reload kept it; File ▸ New kept the part in My parts; `x.stl` was refused with *Not a valid STL: …* and nothing added; a second file chosen while a slow 3MF was still being read replaced it (only the STL row was added). `e2e/import-model.e2e.js` passes at chromium-laptop. Not driven: the units switch, exporting the STL part, WebKit.
 **Last run**: 2026-10-21 UTC (`ui-084`, uncommitted tree) — **PASS** at tablet 820x1180 and 900x1000 on Chromium and WebKit: Import model... from the rail's ... menu, a 40 x 20 x 10 mm STL appeared as a My parts tile whose pop-out read the true size; the model and a cylinder dropped; Subtract left one body with a pocket (checked in the screenshot). Export, reload and the hostile-input variants were not re-driven. Console and page errors: none.
 **Previous run**: 2026-10-15 UTC (`io-009`) — **PASS** at laptop 1440x900 Chromium and phone 390x844 Chromium + WebKit for the import/size/target parts (real `page.mouse`, jittered 24-step drags, fresh profile). A hand-made sloppy ASCII L-bracket STL (T-junction at the inner corner, 3 decimals): row read 40 × 20 × 40 mm; placed complete; Subtract left one `boolean.subtract` body; the exported STL had 0 open edges and a volume of 4067 mm³ (a Monte Carlo check of bracket minus the cylinder gave 4023 ± 70). Reload kept the part and body; File ▸ New kept the part. Not driven: a real third-party STL, a slicer.
 
@@ -4497,6 +4505,76 @@ scenario):
 
 **Last run**: 2026-10-28 UTC (`io-017`, Stage 2) — **PASS** with one flagged gap, hand-driven with an exploratory Playwright script (jittered pointer and CDP touch at 390x844, Chromium, two to four separate contexts, the fake gist API of `e2e/support/fakeGistApi.js`, a sentinel token, no real network). Steps 1-8: the token sheet was a bottom sheet with the field first and focused, a password-type field, and the token never in the DOM afterwards; Connect showed *Connected as hand-tester*, kind and expiry; **Publish** tapped twice quickly created exactly one gist, copied `…/#/gist/<id>` and showed *Published · secret · 09:13*; B's cold open showed the Shared view with no editor chrome and the hash cleared; B's **Make my own copy** gave an editor whose Share sheet offered **Connect**, not **Update** (the copy does not own A's gist); after A added a Cylinder and tapped **Update gist** a fresh context read 3 bodies from the same link; A pasting its own link got **Open it to edit** and **Make a copy** (no read-only copy) and Open it to edit gave the editor with 3 bodies; **Stop sharing** then confirm made the link show *Can't show this shared project / can't be found* with **Start WarpCad**. No request left the fake origins and the token went only to `api.github.com`. **Gap:** at 390 px the **Published** chip exists but is hidden (Share is under File ▾), so there is no persistent indicator. Not driven: the rate-limited and truncated-file modes (covered by `e2e/gist-share.e2e.js`), Firefox/WebKit, a real iPhone keyboard and clipboard.
 **Re-checked**: 2026-10-31 04:37 UTC (`io-023`, uncommitted drive script, dev server on `/` at 390x844 Chromium, fake gist API, human-path clicks) — **PASS** for the publish, README and popup steps: File ▾ → Project settings description saved; Share (via File ▾ at 390 px) → connect → Done → **Publish to a gist**; README order description, Open link, How this was made (request, reply), Variables with `40–120 mm` and `—`; cold open of the link in a fresh context shows the About popup over the model with the description, **View the model** dismisses it; B **Make my own copy** gives 1 body; owner edits the description and **Update gist** patches the same gist; unticking **Include prompts** removes How this was made while Variables and the description stay. **Not driven**: Step 6 with a third body, Step 7 (owner open-to-edit), Step 8 (stop sharing), the two-device clash of step 10, WebKit, and a real iPhone.
+
+### 31. Import a 3MF and use one part as a reference
+
+Added 2026-11-04 with `TODO/io-024`: the first file from outside that becomes **several selectable
+parts** rather than one shell. It shares scenario 26's import rules, scenario 6's selection depth and
+scenario 8's hostile-input rule. Control names: **Import model file…** (`library-import-model`), the
+My parts row's **Mesh** and **N parts** tags (`library-mesh-tag`, `library-mesh-parts`), the
+Objects list's ▸ (`objects-expand-<id>`) and part rows (`objects-part-<id>-<name>`, checks
+`objects-part-check-<id>-<name>`), **⇔ Align** and its top line (`align-operands`).
+
+**Steps** (driven with the owner's real file, `~/Downloads/esp8266 feather.3mf`, a FreeCAD export of
+Adafruit's Feather HUZZAH ESP8266 STEP, which is never committed):
+1. Open the Library, expand **My parts**, tap **Import model file…** and choose the `.3mf`.
+2. Read the row and the toast.
+3. Drag the row into the view and release. Drag a **Cube** in beside it.
+4. Click the board once; read the Inspector. Click again on the large module (the ESP-12); read the
+   breadcrumb and the size.
+5. Hold **Shift** and click the Cube; press **⇔ Align** and read the top line. Then pick the Cube
+   first and tick `Part 22` in the Objects list instead; Align; tap **X center**.
+6. Select a plate (the Cube), tick one part (say `Part 25`, the USB connector) in the Objects list,
+   tap **Subtract**; Undo.
+7. **File ▾ → Export**: the whole model as STL, then **Print pieces**.
+8. Reload; then **File ▾ → New**.
+9. *Drive it differently on purpose:* drop the row, Undo, drop it twice, and check the second copy is
+   whole; choose a second file while the first is still being read; at phone width, pick a 1.6 mm
+   resistor from the Objects list.
+
+**Expect**:
+- Step 2: **29 parts**, not 87; **Mesh**; 51.3 × 22.9 × 6.37 mm; no **Units** control and no *Units
+  assumed* badge (3MF states its units); the toast *Imported esp8266 feather.3mf, 29 parts, 29,718
+  triangles, 51.3 × 22.9 × 6.37 mm. 58 exact duplicates skipped.*
+- Step 3: the whole model lands centred on the pointer with its lowest point on the ground, every
+  part in place relative to the others.
+- Step 4: the whole is selected first (51.26 × 22.86 × 6.37), then `Part 22` alone: 24 × 16 × 2.95,
+  sitting on the board at Z = 1.57. `Part 1` (the board) reads 50.8 × 22.86 × 1.57, and the ten
+  `10K` resistors (`Part 6` … `Part 15`) are each in their own place on the board, none at the
+  origin.
+- Step 5: the top line names the part on the side it was picked (*Aligning esp8266 feather 1 › Part
+  22 to Cube 1*: the model moves; then *Aligning Cube 1 to esp8266 feather 1 › Part 22*: the Cube
+  moves), and the Cube's X centre lands on the part's to 0.01 mm.
+- Step 6: one Subtract body; a visible part used to cut uses its model up, as any cutting shape is;
+  Undo brings both back.
+- Step 7: the STL is written; open edges are reported, naming `JSTPH` (`Part 19`) and `KMR2`
+  (`Part 23`), which are broken in the source file. Print pieces refuses at `Part 19` with its reason.
+- Step 8: both copies and the Cube come back; after File ▸ New the part is still in My parts.
+- Step 9: the second copy has all 29 parts and the same size; the second file replaces the first;
+  at 390 px the Objects list shows 29 rows of 44 px, scrolls inside its sheet, never sideways, and a
+  tapped resistor reads 1.63 × 0.81 × 0.38.
+- At 390 px, 820 px and 1440 px: no horizontal scroll; the row's ⋯ menu stays inside the window.
+- Never: three boards stacked in one place, a pile of parts at the origin, one resistor where there
+  are ten, a part named by the file that vanishes, or a main-thread stall when selecting the model.
+
+**Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS, with one open item** at laptop 1440x900 Chromium, phone 390x844 Chromium
+(trusted CDP touch) and phone 390x844 WebKit, the owner's real file. Every Step 2-9 expectation above
+held on all three: 29 parts, the toast word for word (58 duplicates), no Units control, both dropped
+copies 51.255 × 22.860 × 6.370 with min Z 0, `Part 1` 50.800 × 22.860 × 1.570, `Part 22`
+24.000 × 16.000 × 2.950 at Z 1.570, ten distinct `10K` places all on the board top, 29 list rows of
+44 px scrolling inside the Inspector sheet with no sideways scroll, `Part 7` tapped at 1.63 × 0.81 ×
+0.38, both Align orders as written (the Cube's X centre on `Part 22`'s exactly), one-part Subtract with
+no long task and Undo, reload, File ▸ New; console clean. Laptop only: first click whole (51.25 ×
+22.86 × 6.37), second click `Part 22`. A second file chosen during a slow read replaced it. Export:
+the whole model as one STL has 106 open and 61 non-manifold edges after a weld (Adafruit's one-shell
+STL of the board: 6 and 10); 27 of 29 parts are closed; Print pieces refuses at `Part 19` (`JSTPH`,
+12 open edges); `Part 23` (`KMR2`) has 6. `ui-055`'s repros (⋯ menu inside the window, the row not
+covered, no page growth) and Export part file (13 meshes, reads back clean) pass at 820x1180
+Chromium and WebKit, 390x844 WebKit and 1440x900 Chromium. **Open:** Subtract with the **whole**
+model as the cutter holds the main thread for **624 ms** (the union of 29 parts in the append fold;
+Adafruit's one-shell STL: 179 ms). Selecting the model does not stall: the click's script is 6 ms,
+and its one 33 ms frame is a GPU commit, the same for a 30 k-triangle STL. Not driven: a real phone,
+Firefox by hand (its e2e passes), a slicer.
 
 ### 32. Merge two groups, one prefixed, and cut with a hidden part
 

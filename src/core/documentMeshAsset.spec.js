@@ -36,7 +36,7 @@ const fakeRegistry = Object.freeze({
 /** @param {Parameters<typeof cubeTriangles>} args */
 async function meshRecord(...args) {
   const result = await importMeshBytes('bracket.stl', binaryStl(cubeTriangles(...args)))
-  if (!result.ok) throw new Error(result.reason)
+  if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
   return result.record
 }
 
@@ -161,7 +161,7 @@ describe('an imported mesh as a user part', () => {
 describe('the part caps, sized for a mesh', () => {
   it('a mesh part over the 1,000,000-character definition cap is still a valid part — its mesh is capped by MESH_LIMITS instead', async () => {
     const result = await importMeshBytes('plate.stl', binaryStl(gridTriangles(200)))
-    if (!result.ok) throw new Error(result.reason)
+    if (!result.ok || result.kind !== 'mesh') throw new Error(result.ok ? 'not one mesh' : result.reason)
     const definition = meshPartDefinition({ record: result.record, name: 'Plate', triangleCount: result.triangleCount })
     expect(JSON.stringify(definition).length).toBeGreaterThan(USER_PART_LIMITS.maxDefinitionBytes)
     const verdict = validateUserPart(definition)
@@ -183,12 +183,15 @@ describe('the part caps, sized for a mesh', () => {
     expect(verdict.ok ? '' : verdict.reason).toMatch(/larger than/)
   })
 
-  it('refuses more than one mesh in a part', async () => {
+  it('refuses more meshes in a part than maxMeshAssetsPerPart (a 3MF assembly may hold several, TODO/io-024)', async () => {
     const part = await bracketPart()
-    const second = await meshRecord(11)
-    const verdict = validateUserPart({ ...part, records: [second, ...part.records] })
+    const extra = []
+    for (let index = 0; index < USER_PART_LIMITS.maxMeshAssetsPerPart; index += 1) extra.push(await meshRecord(1 + index / 100))
+    const atCap = validateUserPart({ ...part, records: [...extra.slice(1), ...part.records] })
+    expect(atCap.ok, atCap.ok ? '' : atCap.reason).toBe(true)
+    const verdict = validateUserPart({ ...part, records: [...extra, ...part.records] })
     expect(verdict.ok).toBe(false)
-    expect(verdict.ok ? '' : verdict.reason).toMatch(/more than 1 mesh/)
+    expect(verdict.ok ? '' : verdict.reason).toMatch(new RegExp(`more than ${USER_PART_LIMITS.maxMeshAssetsPerPart} meshes`))
   })
 
   it('refuses an import.mesh whose target is not an asset.mesh of the part', async () => {

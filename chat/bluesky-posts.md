@@ -2635,3 +2635,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 8 Markdown files, 170 insertions and 22 deletions → git diff --stat (this session); every question goes through AskUserQuestion, sent to the phone → CLAUDE.md "Asking the user" section; yolo never pushes → .claude/commands/commit.md Step 10; green run this session → typecheck exit 0, unit 8036 passed, e2e 5064 passed and 0 failed.
 **To Add:** none
+
+## 2026-11-04T15:55:35Z — 3MF import as selectable parts (io-024)
+
+**Post:** WarpCad can now import a 3MF file as one part with selectable sub-parts. An Adafruit Feather converted from STEP comes in as 29 parts instead of one fused shell, so a cube can be aligned to a single component. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 29 parts from a 3MF of the Feather's STEP → TODO/done/io-024-import-3mf-assembly-as-named-parts.md (Testing and acceptance 31); align to one part → acceptance scenario 31, PASS at laptop and phone viewports (implementation agent's drive, 2026-11-04); unit 357 files / 8125 tests passed → full stage this session.
+**To Add:** none

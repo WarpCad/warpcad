@@ -42,7 +42,9 @@ steps that built it, so it can be resized if you choose to expose a size (below)
 
 You do not have to build every part: if you already have a model as an **STL** file (from
 Thingiverse, a scan, a bracket someone else designed), **Import model file…** in the My
-parts header turns it into a part you can drag into the view like any other.
+parts header turns it into a part you can drag into the view like any other. A **3MF** file
+keeps the model's separate components as parts you can select one by one: see
+[Importing a model with its parts: 3MF](#importing-a-model-with-its-parts-3mf).
 
 1. Open the Library and expand **My parts** (on a phone, tap **Library** first).
 2. Tap **Import model file…** and choose `bracket.stl`. A *Reading bracket.stl…* line shows
@@ -64,8 +66,9 @@ parts header turns it into a part you can drag into the view like any other.
 
 ### What it reads, and its limits
 
-- **Formats:** binary and ASCII **STL** (`.stl`). OBJ, 3MF and glTF are planned; the importer
-  is built so each is one more reader.
+- **Formats:** binary and ASCII **STL** (`.stl`), and **3MF** (`.3mf`), which keeps a model's
+  components as separate parts (below). OBJ and glTF are planned; the importer is built so
+  each is one more reader.
 - **Size caps:** a file up to 25 MB and **250,000 triangles**, and a stored mesh up to 5 MB.
   A file over a cap is refused with its reason shown under the **My parts** header, and nothing
   is added. A file that is not an STL, or is cut short, is refused the same way.
@@ -76,12 +79,91 @@ parts header turns it into a part you can drag into the view like any other.
   Intersect work as with any body), but not change its dimensions as numbers.
 - **STEP, IGES and BREP are out of scope.** Those are exact solid models, not triangle meshes,
   and reading them needs a different kind of geometry engine than this app has. "STEP does not
-  import" is how the app is built, not a bug. Export STL from your other program instead.
+  import" is how the app is built, not a bug. Export STL from your other program instead, or
+  3MF, to keep the parts. A `.step` or `.stp` file dropped on the panel is refused with *STEP
+  files are not read yet. Export 3MF or STL from your CAD program*.
 - **Exporting the part** (⋯ ▸ **Export part file**) carries the mesh. It is refused with a
   reason if the file would be larger than **Import part file…** reads (8 million characters).
 
-On a laptop you can also drop a `.stl` file straight onto the Library panel. Touch screens
-have no file drag, so the button is the way in there.
+On a laptop you can also drop a `.stl` or `.3mf` file straight onto the Library panel. Touch
+screens have no file drag, so the button is the way in there.
+
+## Importing a model with its parts: 3MF
+
+An STL is one fused shell: a circuit board's STL has nothing to design against but its
+outline. A **3MF** file can hold each component of the model separately, and WarpCad keeps
+them: the import is **one part** you drag in as a whole, and each component inside it is a
+**sub-part** you can select, measure, align against or cut with, exactly like the named parts
+of a Raspberry Pi ([Selecting a part inside a group](groups.md#selecting-a-part-inside-a-group)).
+
+Many parts are published as STEP. WarpCad does not read STEP yet, so convert it to 3MF in
+another program first. FreeCAD (free) does it; the steps below were checked with FreeCAD 1.1.4.
+
+### Example: the Adafruit Feather HUZZAH ESP8266
+
+Millimetres, Z up.
+
+1. Download `2821 Adafruit ESP8266 Feather.step` from Adafruit's
+   [CAD parts repository](https://github.com/adafruit/Adafruit_CAD_Parts/tree/main/2821%20Feather%20HUZZAH%20ESP8266).
+   Open it in FreeCAD with **File ▸ Import…**. The Model tree shows one top item,
+   **Adafruit ESP8266 Feather v4**, holding a **PCB Component** group with the board and its
+   28 components.
+2. In the Model tree, click **only the top item**, then **File ▸ Export…**, choose the type
+   **3D Manufacturing Format (\*.3mf)**, and save `feather.3mf`. (If you select every item in the
+   tree instead, FreeCAD writes each component three times over. WarpCad notices the exact copies
+   and skips them, so the result is the same; the toast just says how many it skipped.)
+3. In WarpCad, open the Library, expand **My parts**, tap **Import model file…**, and choose the
+   `.3mf`. The row reads **Mesh**, **29 parts** and **51.3 × 22.9 × 6.37 mm**, and a toast
+   reads *Imported feather.3mf, 29 parts, 29,718 triangles, 51.3 × 22.9 × 6.37 mm.* (The
+   triangle count depends on FreeCAD's export settings.)
+4. Drag the row into the view and release. Drag a **Cube** in beside it.
+5. **Click the board once**: all of it is selected, and the Inspector shows the whole model's
+   size. **Click again on the large 24 × 16 mm module** (the ESP-12): the breadcrumb reads
+   `feather 1 ▸ Part 22`, and the Inspector shows that part's own size, 24 × 16 × 2.95 mm.
+6. Hold **Shift** and click the Cube, then press **⇔ Align**. The popover's top line reads
+   **Aligning feather 1 › Part 22 to Cube 1**: the board is the shape you picked first, so it
+   moves, and the part you addressed is what is measured. Tap the button you want, say
+   **X center**. To move the **Cube** against the part instead, pick the Cube first, then
+   tick `Part 22` under the board in the Inspector's **Objects** list.
+7. To cut a pocket for a connector, follow
+   [Cutting with just one part](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape):
+   select the plate, tick the part in the Objects list, and tap **Subtract**. A part used as a
+   cutting shape uses the model up, as any cutting shape is; drag in another copy, or Undo.
+
+![The Objects list expanded under an imported 3MF model: one row per part, Part 1 to Part 3, with Part 2 selected and the breadcrumb reading Objects, feather 1, Part 2](./screenshots/import-3mf-parts.png)
+
+![Choose a 3MF with Import model file, drag its row into the view, click the model twice to narrow to one part, Shift-click a cube and press Align: the popover names the part](./media/import-3mf-align.gif)
+
+**Small parts are easier to reach from the list.** A 1.6 mm resistor is hard to hit with a
+click and impossible with a finger. Select the model, open the Inspector's **Objects** list,
+and expand it with its **▸**: every part has its own row. Tap a row to select that part, or
+its check box to add it to what is already selected.
+
+### What a 3MF import keeps, and what it does not
+
+- **Each placed component is one part**, in the place the file puts it. The whole model lands
+  centred under the pointer with its lowest point on the ground, and the parts keep their
+  places relative to each other. A component placed twice is two parts; an exact copy at the
+  same place is skipped and counted in the toast.
+- **Names only if the file has them.** A part takes its object's name from the file. FreeCAD
+  writes no names, so its parts are `Part 1`, `Part 2`, … in the file's order. Click a part
+  and read its size to tell them apart. A name used twice is numbered: `10K 1`, `10K 2`.
+- **A hole in a part is not a part.** A board's mounting holes are holes in the `Board` mesh,
+  not parts of their own, so you can align against `Board` or the ESP-12 module, but not
+  against one mounting hole by itself (unlike the Raspberry Pi, whose holes are named parts).
+- **Units come from the file.** A 3MF says which units it is in, so the row has no **Units**
+  control and no *Units assumed* badge.
+- **Not parametric**, like an STL: sizes are measurements, not settings.
+- **Ignored:** colours and materials, thumbnails and slices. Beam lattices are refused. A 3MF
+  whose objects live in separate files inside the package (the *production extension*, which
+  some slicers write) is refused in words rather than imported in part; so is a file that
+  requires an extension WarpCad does not understand.
+- **The same caps as an STL:** 25 MB per file and 250,000 triangles in the whole model, every
+  placed copy counted.
+- **Exporting:** a component the source file left broken stays broken. In the Feather's file,
+  `Part 19` (the JST connector) has 12 edges shared by more than two triangles and `Part 23`
+  (the button) has 6 open edges, so **Export ▸ Print pieces** refuses at `Part 19` with its
+  reason.
 
 ## When Save to library… is available
 

@@ -19,6 +19,16 @@
  * its lowest point on Z = 0. A scan's origin is wherever the scanner left it; this puts the
  * part *on* the ground plane under the drop point instead.
  *
+ * ## A placement matrix (`TODO/io-024`)
+ *
+ * A part imported from a 3MF holds several `import.mesh` records, one per placed component, each
+ * with a `matrix`: 16 numbers in JSCAD `mat4` order, in millimetres, applied **after**
+ * `unitScale` (and after `recenter`, when both are set — the 3MF importer sets `recenter: false`
+ * and bakes the whole assembly's offset into every matrix, so the parts keep their places
+ * relative to each other). A matrix with a negative determinant (a mirror) reverses each
+ * triangle's winding, so normals still point out. The matrix is checked here by the same
+ * `matrixProblem` the part validator runs.
+ *
  * ## Watertight
  *
  * Every triangle becomes a polygon whose corners are **the same vertex arrays** wherever the
@@ -31,7 +41,9 @@
  * A part's expansion copies its records on every fold, so neither op can lean on the fold
  * cache's record identity. Instead `meshAsset.js` memoises the decode by the data string
  * itself (after re-checking every field), and the build is memoised by the decoded value and
- * placement, a few entries each. Geometry values are
+ * placement — the matrix included, or ten resistors would be one resistor in one place. The
+ * build memo holds {@link BUILD_MEMO_SIZE} placements and at most {@link BUILD_MEMO_TRIANGLES}
+ * triangles, so a 3MF assembly's every part survives an Undo re-fold. Geometry values are
  * immutable in this kernel, so handing the same `Geom3` to two folds is safe.
  *
  * @module core/kernel/recipes/importMesh
@@ -40,6 +52,7 @@
 import modeling from '@jscad/modeling'
 
 import { decodeMeshAsset } from '../../../io/meshAsset.js'
+import { linearDeterminant, matrixProblem } from '../../../io/meshMatrix.js'
 
 const { geom3 } = modeling.geometries
 
@@ -59,14 +72,22 @@ const { geom3 } = modeling.geometries
 /** The narrowest and widest unit scale accepted (millimetres per file unit). */
 export const UNIT_SCALE_RANGE = Object.freeze({ min: 1e-3, max: 1e3 })
 
-const BUILD_MEMO_SIZE = 4
+/**
+ * Placements the build memo holds. A 3MF assembly is one placement per part (the Feather is 29),
+ * and an Undo re-folds every one of them, so this is well above a real assembly; a part holds at
+ * most `USER_PART_LIMITS.maxRecords` records anyway.
+ */
+export const BUILD_MEMO_SIZE = 512
+/** Triangles the build memo holds across every entry — the memory bound, whatever the count. */
+export const BUILD_MEMO_TRIANGLES = 2_000_000
 
 /** @type {WeakMap<Float32Array, MeshValue>} decoded positions (shared by `meshAsset.js`'s memo) → value */
 const decoded = new WeakMap()
 /** @type {WeakMap<MeshValue, Map<string, Geom3>>} */
 const built = new WeakMap()
-/** @type {MeshValue[]} The values `built` holds builds for, oldest first. */
+/** @type {{ mesh: MeshValue, key: string, triangles: number }[]} The builds held, oldest first. */
 const builtOrder = []
+let builtTriangles = 0
 
 /**
  * Whether a fold value is a decoded mesh.
@@ -104,10 +125,18 @@ export function meshValueOf(params) {
 }
 
 /**
+ * @typedef {object} MeshPlacement
+ * @property {number} unitScale Millimetres per file unit.
+ * @property {boolean} recenter
+ * @property {readonly number[] | null} [matrix] Applied last, in millimetres; `null` or absent
+ *   for none.
+ */
+
+/**
  * Read and check `import.mesh`'s placement params.
  *
  * @param {Record<string, any>} params
- * @returns {{ unitScale: number, recenter: boolean }}
+ * @returns {MeshPlacement}
  * @throws {Error}
  */
 function placementOf(params) {
@@ -119,18 +148,26 @@ function placementOf(params) {
   }
   const recenter = params?.recenter ?? true
   if (typeof recenter !== 'boolean') throw new Error('import.mesh: recenter must be true or false')
-  return { unitScale, recenter }
+  const unitsStated = params?.unitsStated ?? false
+  if (typeof unitsStated !== 'boolean') throw new Error('import.mesh: unitsStated must be true or false')
+  const matrix = params?.matrix ?? null
+  if (matrix !== null) {
+    const problem = matrixProblem(matrix)
+    if (problem !== null) throw new Error(`import.mesh: ${problem}`)
+  }
+  return { unitScale, recenter, matrix }
 }
 
 /**
  * Build the solid for a decoded mesh at a placement. Pure; memoised.
  *
  * @param {MeshValue} mesh
- * @param {{ unitScale: number, recenter: boolean }} placement
+ * @param {MeshPlacement} placement
  * @returns {Geom3}
  */
 export function solidFromMesh(mesh, placement) {
-  const key = `${placement.unitScale}|${placement.recenter}`
+  const matrix = placement.matrix ?? null
+  const key = `${placement.unitScale}|${placement.recenter}|${matrix === null ? '' : matrix.join(',')}`
   const known = built.get(mesh)?.get(key)
   if (known !== undefined) return known
 
@@ -163,29 +200,56 @@ export function solidFromMesh(mesh, placement) {
   /** @type {[number, number, number][]} One array per welded vertex, shared by every polygon using it. */
   const vertices = new Array(vertexCount)
   for (let vertex = 0; vertex < vertexCount; vertex += 1) {
-    vertices[vertex] = [
-      positions[vertex * 3] * unitScale + offsetX + 0,
-      positions[vertex * 3 + 1] * unitScale + offsetY + 0,
-      positions[vertex * 3 + 2] * unitScale + offsetZ + 0,
-    ]
+    const x = positions[vertex * 3] * unitScale + offsetX
+    const y = positions[vertex * 3 + 1] * unitScale + offsetY
+    const z = positions[vertex * 3 + 2] * unitScale + offsetZ
+    vertices[vertex] =
+      matrix === null
+        ? [x + 0, y + 0, z + 0]
+        : [
+            matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12] + 0,
+            matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13] + 0,
+            matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14] + 0,
+          ]
   }
+  // A mirror turns every triangle inside out; swapping two corners turns it back.
+  const mirrored = matrix !== null && linearDeterminant(matrix) < 0
   const polygons = new Array(indices.length / 3)
   for (let triangle = 0; triangle < polygons.length; triangle += 1) {
-    polygons[triangle] = {
-      vertices: [vertices[indices[triangle * 3]], vertices[indices[triangle * 3 + 1]], vertices[indices[triangle * 3 + 2]]],
-    }
+    const a = vertices[indices[triangle * 3]]
+    const b = vertices[indices[triangle * 3 + 1]]
+    const c = vertices[indices[triangle * 3 + 2]]
+    polygons[triangle] = { vertices: mirrored ? [a, c, b] : [a, b, c] }
   }
   const solid = geom3.create(/** @type {any} */ (polygons))
+  remember(mesh, key, solid, polygons.length)
+  return solid
+}
 
+/**
+ * Hold a build, dropping the oldest while the memo is over either bound.
+ *
+ * @param {MeshValue} mesh
+ * @param {string} key
+ * @param {Geom3} solid
+ * @param {number} triangles
+ */
+function remember(mesh, key, solid, triangles) {
   let byPlacement = built.get(mesh)
   if (byPlacement === undefined) {
     byPlacement = new Map()
     built.set(mesh, byPlacement)
-    builtOrder.push(mesh)
-    if (builtOrder.length > BUILD_MEMO_SIZE) built.delete(/** @type {MeshValue} */ (builtOrder.shift()))
   }
   byPlacement.set(key, solid)
-  return solid
+  builtOrder.push({ mesh, key, triangles })
+  builtTriangles += triangles
+  while (builtOrder.length > 1 && (builtOrder.length > BUILD_MEMO_SIZE || builtTriangles > BUILD_MEMO_TRIANGLES)) {
+    const oldest = /** @type {{ mesh: MeshValue, key: string, triangles: number }} */ (builtOrder.shift())
+    builtTriangles -= oldest.triangles
+    const held = built.get(oldest.mesh)
+    held?.delete(oldest.key)
+    if (held !== undefined && held.size === 0) built.delete(oldest.mesh)
+  }
 }
 
 /**
