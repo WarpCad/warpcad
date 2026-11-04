@@ -108,6 +108,9 @@ Lengths are millimetres, Z is up and angles are in degrees, as in the app.
 | `unbind_param` | yes | Untie it again, e.g. `{ "id": "pi-1", "path": "model" }`. It keeps the value it has now. |
 | `rename_variable` | yes | Rename a variable everywhere it's used, e.g. `{ "from": "piModel", "to": "boardModel" }`. |
 | `delete_variable` | yes | Delete a variable, e.g. `{ "name": "piModel", "keepValues": true }`. Without `keepValues`, it's refused while anything still uses it. |
+| `evaluate_formula` | no | Work out a formula without changing anything, e.g. `{ "formula": "group1.part1.width - (group1.part2.width / 2)" }`. The result gives the value, the formula as the file stores it, and which parts it reads, or says by name why it can't be worked out. |
+| `define_formula` | yes | Add a variable that is calculated from other variables and from the size of shapes and their parts, e.g. `{ "name": "overhang", "formula": "group1.part1.width - (group1.part2.width / 2)", "unit": "mm" }`. Tie sizes to it with `bind_param`; they follow when the parts it reads change. |
+| `set_formula` | yes | Change a formula, e.g. `{ "name": "overhang", "formula": "group1.part1.width" }`. Like `set_variable`, nothing changes if the new value would break something, and the result names what would break. `set_variable` refuses a formula. |
 | `set_description` | yes | Set the project's [description for people](design-intent.md#describe-your-project-for-people), e.g. `{ "description": "A **wall-mounted** fan duct for a closet." }`. Bold, italic, `code` and `- ` lists only; an empty string clears it. |
 
 **Example: switch the board.** In a case design where the Pi's model is tied to a `piModel`
@@ -115,6 +118,14 @@ variable, ask Claude Code *make this case for a Pi 5*. Claude calls `set_variabl
 "piModel", "value": 5 }` instead of hunting for the Pi in the History, and the result reads
 *piModel Pi 4 → Pi 5 — 3 parameters on 2 parts changed*. Open the file in the app and the Variables
 panel shows the new value, with one History change for it.
+
+**Example: a size that follows another part.** In a project with a group `group1` holding
+`part1` (60 mm wide) and `part2` (40 mm wide), and a third box `C`, ask Claude Code *make C as wide
+as part1 less half of part2*. Claude calls `evaluate_formula` to check the sum (it returns 40),
+then `define_formula` with the name `overhang`, then `bind_param` to tie C's width to it. Open the
+file in the app: C is 40 mm wide, and the Variables panel lists `overhang`. Make `part1` 80 mm wide
+and C becomes 60 mm. Claude is told to do this rather than write down 40, which would be wrong as
+soon as `part1` changed.
 
 **Example: the same screw on every hole.** With a bolt already on a Pi's `hole1`, ask Claude Code
 *put the same screw on the other three holes*. Claude calls `describe_body` on the Pi to read its

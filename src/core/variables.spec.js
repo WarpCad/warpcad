@@ -978,6 +978,23 @@ describe('calculated variables — read at the consumer’s row', () => {
     expect(reasonOf(document, 'c')).toMatch(/"w"/)
   })
 
+  it('evaluateFormulaIn names what it reads — each body by id and current name, and each variable — and writes nothing', () => {
+    const document = ownerScene()
+    defineVariable(document, wallVar(), LOCAL)
+    const before = JSON.stringify(document.entries)
+    const result = evaluateFormulaIn(document, 'group1.part1.width - wall')
+    expect(result.value).toBeCloseTo(58, 6)
+    expect(result.stored).toBe('#g.part1.width - wall')
+    expect(result.reads).toEqual({ variables: ['wall'], parts: [{ bodyId: 'g', body: 'group1', part: 'part1', quantity: 'width' }] })
+    expect(JSON.stringify(document.entries)).toBe(before)
+  })
+
+  it('evaluateFormulaIn refuses an unknown `at` step by name, as a VariableError', () => {
+    const document = ownerScene()
+    expect(() => evaluateFormulaIn(document, '1 + 1', { at: 'nope' })).toThrow(VariableError)
+    expect(() => evaluateFormulaIn(document, '1 + 1', { at: 'nope' })).toThrow(/no step "nope"/)
+  })
+
   it('reads a hidden part; a body with no part is its visible parts', () => {
     const document = ownerScene()
     document.setPartHidden('g', 'part2', true, LOCAL)

@@ -131,6 +131,17 @@ describe('variable rows (TODO/ai-014)', () => {
     ])
     expect(items[0]).toMatchObject({ status: 'ok', label: 'Set piModel to 5', summary: 'piModel Pi 4 → Pi 5 — 1 parameter on 1 part changed' })
   })
+
+  it('names the formula tools (FIND-core-078); a set_formula row carries the blast radius too', () => {
+    expect(describeCall('evaluate_formula', { formula: '1 + 1' }, undefined)).toBe('Worked out a formula')
+    expect(describeCall('define_formula', { name: 'overhang' }, undefined)).toBe('Calculated overhang')
+    expect(describeCall('set_formula', { name: 'overhang' }, undefined)).toBe('Changed formula overhang')
+    const items = run([
+      { type: 'tool_call', id: 't1', name: 'set_formula', input: { name: 'overhang', formula: 'Base.width' } },
+      { type: 'tool_result', id: 't1', name: 'set_formula', isError: false, result: { summary: 'overhang 40 mm → 60 mm — 1 parameter on 1 part changed', breakages: [] } },
+    ])
+    expect(items[0]).toMatchObject({ status: 'ok', label: 'Changed formula overhang', summary: 'overhang 40 mm → 60 mm — 1 parameter on 1 part changed' })
+  })
 })
 
 describe('turn ending', () => {

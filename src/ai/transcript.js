@@ -51,6 +51,7 @@ const READ_LABELS = {
   get_selection: 'Checked the selection',
   list_ops: 'Checked what operations exist',
   list_variables: 'Read the variables',
+  evaluate_formula: 'Worked out a formula',
   select: 'Selected a body',
 }
 
@@ -119,6 +120,9 @@ export function describeCall(name, input, result, nameOf) {
   }
   if (name === 'rename_variable') return `Renamed ${word(input?.from)} to ${word(input?.to)}`
   if (name === 'delete_variable') return `Deleted variable ${word(input?.name)}`
+  // `TODO/FIND-core-078`: the formula tools (`evaluate_formula` is a read, above).
+  if (name === 'define_formula') return `Calculated ${word(input?.name)}`
+  if (name === 'set_formula') return `Changed formula ${word(input?.name)}`
   // `TODO/core-061`.
   if (name === 'repeat') {
     const count = Array.isArray(input?.targets) ? input.targets.length : 0
@@ -186,7 +190,7 @@ function checkDetails(name, result) {
       ...(typeof first?.message === 'string' ? { summary: first.message } : {}),
     }
   }
-  if (name === 'set_variable') {
+  if (name === 'set_variable' || name === 'set_formula') {
     // `TODO/ai-014`: how far the change reached, as the Variables panel announces it.
     return typeof result?.summary === 'string' ? { summary: result.summary } : {}
   }

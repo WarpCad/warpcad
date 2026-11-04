@@ -2009,11 +2009,12 @@ export function bindParamToNewFormula(document, recordId, path, definition, tran
  * @param {WarpDocument} document
  * @param {string} text As typed, or stored.
  * @param {{ at?: string }} [options]
- * @returns {{ value: number, stored: string, reads: { body: string, part: string | null, quantity: string }[] }}
- * @throws {VariableError} With the formula's own named error.
+ * @returns {{ value: number, stored: string, reads: FormulaInputs }}
+ * @throws {VariableError} With the formula's own named error, or for an `at` that is no step.
  */
 export function evaluateFormulaIn(document, text, options = {}) {
   const stored = storedFormulaOf(document, text)
+  if (options.at !== undefined) requireRecord(document, options.at)
   try {
     const tree = parseFormula(stored)
     const table = tableOf(document)
@@ -2029,13 +2030,54 @@ export function evaluateFormulaIn(document, text, options = {}) {
       if (entry !== undefined) variables.set(name, entry)
     }
     const value = evaluateFormula(tree, { variables, read })
-    return {
-      value,
-      stored,
-      reads: references.reads.map((reading) => ({ body: reading.body.text, part: reading.part, quantity: reading.quantity })),
-    }
+    return { value, stored, reads: inputsOfTree(document, tree) }
   } catch (error) {
     throw new VariableError(formulaMessage(error))
+  }
+}
+
+/**
+ * What a formula reads: the variables it names, and each part reading with the body's lineage-root
+ * id and its current name (`null` for a body that no longer exists).
+ *
+ * @typedef {object} FormulaInputs
+ * @property {string[]} variables
+ * @property {{ bodyId: string, body: string | null, part: string | null, quantity: string }[]} parts
+ */
+
+/**
+ * What a stored formula reads (`TODO/FIND-core-078`) — what an agent's `list_variables` and
+ * `define_formula` report. Text that does not parse reads nothing.
+ *
+ * @param {WarpDocument} document
+ * @param {string} stored
+ * @returns {FormulaInputs}
+ */
+export function formulaInputsOf(document, stored) {
+  try {
+    return inputsOfTree(document, parseFormula(stored))
+  } catch (error) {
+    formulaMessage(error)
+    return { variables: [], parts: [] }
+  }
+}
+
+/**
+ * @param {WarpDocument} document
+ * @param {import('./formula.js').FormulaNode} tree A stored formula's tree (bodies by `#id`).
+ * @returns {FormulaInputs}
+ */
+function inputsOfTree(document, tree) {
+  const lookup = document.formulaLookup()
+  const { variables, reads } = formulaReferences(tree)
+  return {
+    variables,
+    parts: reads.map((reading) => ({
+      bodyId: reading.body.text,
+      body: reading.body.kind === 'id' ? lookup.nameOf(reading.body.text) : reading.body.text,
+      part: reading.part,
+      quantity: reading.quantity,
+    })),
   }
 }
 

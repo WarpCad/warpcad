@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { piAndCube, snapCubeTo } from '../core/__fixtures__/piScenes.js'
 import { createDocument } from '../core/document.js'
+import { boundsOf } from '../core/kernel/group.js'
 import { recordsForDrop } from '../core/library.js'
 import { serializeProject } from '../core/project.js'
 import { translateRecord } from '../core/transform.js'
@@ -882,6 +883,69 @@ describe('runTurn — project variables land and undo as one AI turn (TODO/ai-01
     expect(result.result.breakages[0].reason).toMatch(/Pi 5/)
     expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
     expect(ctx.aiTurns).toHaveLength(0)
+  })
+})
+
+// --- TODO/FIND-core-078: the failure that prompted calculated variables -----------------------------
+
+describe('runTurn — a calculated size lands and undoes as one AI turn (TODO/FIND-core-078)', () => {
+  const LOCAL = { origin: 'local' }
+  /** @param {string} id @param {string} name @param {any[]} size @param {number[]} center */
+  const cuboid = (id, name, size, center) => ({ id, op: 'primitive.cuboid', name, params: { size, center } })
+  const OWNER = 'group1.part1.width - (group1.part2.width / 2)'
+
+  /** The owner's scene: part1's width is the user's variable `w1`, part2 is 40 mm, and C comes after. */
+  function ownerScene() {
+    const document = createDocument()
+    defineVariable(document, { name: 'w1', kind: 'number', value: 60, unit: 'mm' }, LOCAL)
+    document.append(cuboid('c1', 'Cube 1', [{ $var: 'w1' }, 20, 10], [0, 0, 5]), LOCAL)
+    document.append(cuboid('c2', 'Cube 2', [40, 20, 10], [100, 0, 5]), LOCAL)
+    document.append(
+      { id: 'g', op: 'group.assemble', name: 'group1', target: 'c1', operands: ['c2'], consumes: ['c1', 'c2'], params: { names: ['part1', 'part2'] } },
+      LOCAL,
+    )
+    document.append(cuboid('c', 'C', [10, 10, 10], [0, 60, 5]), LOCAL)
+    return document
+  }
+
+  /** @param {import('../core/document.js').WarpDocument} document @returns {number} C's built X extent, in mm. */
+  const widthOfC = (document) => {
+    const [min, max] = boundsOf(/** @type {any} */ (document.bodies().find((body) => body.id === 'c')).geometry)
+    return max[0] - min[0]
+  }
+
+  it('evaluate, define, bind, change a part: C follows, nothing is on the local stack, and Undo AI turn restores the file byte-for-byte', async () => {
+    const document = ownerScene()
+    const before = serializeProject(document)
+    const undoTop = document.pendingUndo()
+    const client = scriptedProvider([
+      { calls: [call('evaluate_formula', { formula: OWNER })] },
+      { calls: [call('define_formula', { name: 'overhang', formula: OWNER, unit: 'mm', rationale: 'C overhangs by half the lid' })] },
+      { calls: [call('bind_param', { id: 'c', path: 'size.0', name: 'overhang' })] },
+      { calls: [call('set_variable', { name: 'w1', value: 80 })] },
+      { text: 'C is now part1 less half of part2, and follows them.' },
+    ])
+    const { ctx, events } = setup({ client, document })
+    const outcome = await runTurn({ userMessage: 'make C overhang by part1 less half of part2', ctx })
+
+    expect(outcome.status).toBe('done')
+    const results = events.filter((e) => e.type === 'tool_result')
+    expect(results.every((e) => e.isError === false)).toBe(true)
+    expect(results[0].result.value).toBeCloseTo(40, 6)
+    expect(results[1].result.variable.value).toBeCloseTo(40, 6)
+    const formula = document.entries.find((entry) => entry.record.op === 'var.derive')
+    expect(formula?.origin).toBe('ai')
+    expect(formula?.record.params).toEqual({ name: 'overhang', formula: '#g.part1.width - #g.part2.width / 2', unit: 'mm' })
+    expect(document.recordOf('c')?.params?.size[0]).toEqual({ $var: 'overhang' })
+    expect(variablesOf(document).find((variable) => variable.name === 'overhang')?.value).toBeCloseTo(60, 6)
+    expect(widthOfC(document)).toBeCloseTo(60, 6)
+    expect(document.pendingUndo()).toBe(undoTop)
+    expect(ctx.aiTurns).toHaveLength(1)
+
+    undoAiTurn(document, ctx.aiTurns[0])
+    expect(recordLinesOf(serializeProject(document))).toBe(recordLinesOf(before))
+    expect(widthOfC(document)).toBeCloseTo(10, 6)
+    expect(document.pendingUndo()).toBe(undoTop)
   })
 })
 

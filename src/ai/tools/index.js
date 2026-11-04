@@ -44,13 +44,16 @@
  * | `set_reference_scale` | no document write | Browser only. `{ sliceId, fromPx, toPx, distanceMm, label?, checks? }`: an attached image's scale from a printed length; cross-checks other dimensions. |
  * | `locate_in_image` | no | Browser only. `{ sliceId, query, boxesPx }`: boxes in image pixels and in sketch-plane mm; refused until the image is scaled. |
  * | `save_to_library` | **never** | Browser only. `{ id, name, expose? }`: *proposes* a My parts save; the user's Confirm tap saves it. |
- * | `list_variables` | no | `{ id? }`: every project variable — name, kind, value (and in words), unit or options, and `usedBy` (each step and slot that reads it). With `id`, also the slots that step can bind (`bindableParams`), or core's reason it cannot. |
+ * | `list_variables` | no | `{ id? }`: every project variable — name, kind, value (and in words), unit or options, and `usedBy` (each step and slot that reads it); a formula also its `formula` (as a person reads it), `stored`, `reads`, `error` and `varies`. With `id`, also the slots that step can bind (`bindableParams`), or core's reason it cannot. |
  * | `define_variable` | yes | `{ name, kind, value, label?, unit?, min?, max?, options? }`: one `var.define` record (`TODO/ai-014`). Counted as one record. |
  * | `set_variable` | yes | `{ name, value }`: every bound param follows, in one revision. Runs `variableImpactOf` first; a value that would break a dependent writes nothing and returns `breakages`. Returns `changedParams`, `parts`, `summary`. |
  * | `bind_param` | yes | `{ id, path, name }`: bind one slot (`model`, `size.2`) of a step to a variable. Refused in core's words for a slot `bindableParams` does not offer (a rotate step, a boolean) or a kind that does not fit. |
  * | `unbind_param` | yes | `{ id, path }`: the slot keeps its current value as a literal. |
  * | `rename_variable` | yes | `{ from, to }`: the definition and every binding and condition, in one revision. |
  * | `delete_variable` | yes | `{ name, keepValues? }`: refused with `usedBy` while anything reads it, unless `keepValues` rewrites the bindings to literals first. |
+ * | `define_formula` | yes | `{ name, formula, label?, unit?, min?, max? }`: one `var.derive` record (`TODO/FIND-core-078`), a number worked out from variables and part sizes (`group1.part1.width - group1.part2.width / 2`). Takes body names or `#ids`; returns the value, the stored form (bodies by id) and what it reads. Counted as one record. |
+ * | `set_formula` | yes | `{ name, formula }`: one revision; runs `formulaImpactOf` first, and a formula that would break a dependent writes nothing and returns `breakages`. |
+ * | `evaluate_formula` | no | `{ formula, at? }`: the value, stored form and reads, or the named error, **without writing**; `at` reads the parts as they stand just above that step. |
  *
  * Every write tool also takes an optional `rationale`: one line saying why. With the turn's
  * request (`ctx.request`, or else the bound prompt's text) it is saved as each new record's
@@ -64,8 +67,8 @@
  * every write tool, on every transport, says which request it was made for — a boolean's result
  * included — without any tool knowing about prompts. `describe_body` returns a body's prompts.
  *
- * The variable tools are not kernel ops: `var.define` is never in `list_ops`, and `create` /
- * `apply_records` cannot write one (`docs/decisions/project-variables.md`). Their writes are
+ * The variable tools are not kernel ops: `var.define` and `var.derive` are never in `list_ops`, and
+ * `create` / `apply_records` cannot write one (`docs/decisions/project-variables.md`). Their writes are
  * thin wrappers over `src/core/variables.js` — see `./variables.js` for their result shapes.
  *
  * A write returns `{ applied: [{ batchStep, tool, bodyId, recordIds }], scene }`, the

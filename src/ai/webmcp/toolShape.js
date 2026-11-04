@@ -40,6 +40,7 @@ const READ_ONLY_TOOLS = new Set([
   'check_printability',
   'describe_body',
   'describe_scene',
+  'evaluate_formula',
   'get_selection',
   'get_timeline',
   'list_ops',

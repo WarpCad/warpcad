@@ -281,6 +281,43 @@ describe('variableImpactOf — a variable edit is an edit of every bound record 
   })
 })
 
+describe('formulaImpactOf — a formula edit is checked like a value edit (TODO/FIND-core-078)', () => {
+  /** A 40 mm cube whose X and Y follow the formula `side`, a fillet on it, and a later cube. */
+  async function formulaTower() {
+    const { bindParam, defineFormula } = await import('./variables.js')
+    const document = createDocument()
+    document.append({ id: 'base-1', op: 'primitive.cuboid', name: 'Base 1', params: { size: [40, 40, 40], center: [0, 0, 0] } }, LOCAL)
+    document.append({ id: 'rim-1', op: 'modify.filletRim', target: 'base-1', supersedes: 'base-1', params: { radius: 6, orientation: 'z+' } }, LOCAL)
+    defineFormula(document, { name: 'side', formula: '20 * 2' }, LOCAL)
+    bindParam(document, 'base-1', 'size.0', 'side', LOCAL)
+    bindParam(document, 'base-1', 'size.1', 'side', LOCAL)
+    return document
+  }
+
+  it('shrinking a formula-bound size reports the fillet that no longer fits, by name, and writes nothing', async () => {
+    const { formulaImpactOf } = await import('./dependents.js')
+    const document = await formulaTower()
+    const text = JSON.stringify(document.entries)
+    const { breakages, consumers } = formulaImpactOf(document, 'side', '5 * 2')
+    expect(consumers.map((consumer) => consumer.recordId)).toEqual(['base-1', 'base-1'])
+    const rim = breakages.find((breakage) => breakage.dependentRecordId === 'rim-1')
+    expect(rim?.relationship).toBe('Fillet')
+    expect(rim?.reason).toMatch(/wider than the cross-section/)
+    expect(JSON.stringify(document.entries)).toBe(text)
+  })
+
+  it('a formula that still fits breaks nothing; an unchanged one previews nothing; a value variable is refused by name', async () => {
+    const { formulaImpactOf } = await import('./dependents.js')
+    const { defineVariable } = await import('./variables.js')
+    const document = await formulaTower()
+    expect(formulaImpactOf(document, 'side', '25 * 2').breakages).toEqual([])
+    expect(formulaImpactOf(document, 'side', '20 * 2').breakages).toEqual([])
+    defineVariable(document, { name: 'wall', kind: 'number', value: 2 }, LOCAL)
+    expect(() => formulaImpactOf(document, 'wall', '3')).toThrow(/"wall" is a value, not a formula/)
+    expect(() => formulaImpactOf(document, 'nope', '3')).toThrow(/nope/)
+  })
+})
+
 describe('a bound enum is named by its value, not as an object (TODO/ui-059)', () => {
   it('the breakage reason names "Pi 5" when the model is a variable', async () => {
     const { bindParamToNewVariable } = await import('./variables.js')

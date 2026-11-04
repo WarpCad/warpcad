@@ -33,7 +33,7 @@ import { createDocument, foldableEntry } from './document.js'
 import { isGroup } from './kernel/group.js'
 import { nameOverrideOf } from './naming.js'
 import { paramOptions, partAliasesOf } from './kernel/registry.js'
-import { resolveParams, setVariableRevision, transitiveConsumersOf, variablesOf } from './variables.js'
+import { resolveParams, setFormulaRevision, setVariableRevision, transitiveConsumersOf, variablesOf } from './variables.js'
 import { REPEAT_OP } from './repeat.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -426,10 +426,37 @@ export function brokenReferencesOf(document, bodyId) {
  *   outside the variable's own kind, range or options — the value itself is wrong.
  */
 export function variableImpactOf(document, name, value) {
+  return definitionImpactOf(document, name, setVariableRevision(document, name, value))
+}
+
+/**
+ * What would changing a formula newly break (`TODO/FIND-core-078`)? {@link variableImpactOf}'s
+ * check, with the formula's revised record as the candidate: every row bound to it, directly or
+ * through another formula, is folded with the new value in a throwaway document.
+ *
+ * @param {WarpDocument} document The live document. Not modified.
+ * @param {string} name
+ * @param {string} formula As typed, or stored.
+ * @returns {{ breakages: Breakage[], preview: WarpDocument, consumers: import('./variables.js').VariableConsumer[] }}
+ * @throws {import('./variables.js').VariableError} For an unknown name, a value variable, or a
+ *   formula that cannot be used.
+ */
+export function formulaImpactOf(document, name, formula) {
+  return definitionImpactOf(document, name, setFormulaRevision(document, name, formula))
+}
+
+/**
+ * The impact of one revised definition record — a value or a formula.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @param {RecordRevision | null} revision `null`: nothing changes.
+ * @returns {{ breakages: Breakage[], preview: WarpDocument, consumers: import('./variables.js').VariableConsumer[] }}
+ */
+function definitionImpactOf(document, name, revision) {
   // `TODO/FIND-core-078`: transitive — changing `wall` reaches whatever binds a formula that
   // reads `wall`. The formulas themselves are listed too (kind `formula`).
   const consumers = transitiveConsumersOf(document.entries, name)
-  const revision = setVariableRevision(document, name, value)
   if (revision === null) return { breakages: [], preview: previewOf(document, []), consumers }
   const preview = previewOf(document, [revision])
   const already = brokenKeysOf(document)

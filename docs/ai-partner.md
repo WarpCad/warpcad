@@ -331,7 +331,7 @@ appears at the top of **My parts** in the Library, and you can drag it into any 
 
 The Assistant can use your project's [variables](variables.md), the same way you do in the
 **Variables** panel. To *make this for a Pi 5*, it changes the `piModel` variable once instead of
-editing the Pi, and everything tied to it follows. It has seven tools for this:
+editing the Pi, and everything tied to it follows. It has ten tools for this:
 
 | Tool | Changes the project? | For example |
 |---|---|---|
@@ -342,6 +342,9 @@ editing the Pi, and everything tied to it follows. It has seven tools for this:
 | `unbind_param` | yes | `{ "id": "pi-1", "path": "model" }` unties it, keeping its current model. |
 | `rename_variable` | yes | `{ "from": "piModel", "to": "boardModel" }` |
 | `delete_variable` | yes | `{ "name": "wall", "keepValues": true }` |
+| `evaluate_formula` | no | `{ "formula": "Base.width / 2" }` works out a formula without changing anything. |
+| `define_formula` | yes | `{ "name": "overhang", "formula": "group1.part1.width - (group1.part2.width / 2)", "unit": "mm" }` adds a calculated variable. |
+| `set_formula` | yes | `{ "name": "overhang", "formula": "group1.part1.width" }` changes it. |
 
 Before it changes a value, the Assistant checks what the change would break, exactly as the
 Variables panel does. If a Pi 5 would leave a shape snapped to a connector the Pi 5 doesn't have,
@@ -353,6 +356,21 @@ is told why if it tries.
 **Send**. An activity row appears, *Set piModel to 5*, with a second line that reads *piModel
 Pi 4 → Pi 5 — 3 parameters on 2 parts changed*. The Variables panel shows **Pi 5**. Tap **Undo AI turn** and it is
 back to **Pi 4**, with every part where it was.
+
+### Sizes that follow another part
+
+When a size depends on another part, the Assistant makes it a **formula**: a variable worked out
+from the sizes and positions of shapes and their parts, such as
+`group1.part1.width - (group1.part2.width / 2)`. It is told never to work the number out and type
+it in, because that number is wrong as soon as the part changes. It checks the sum with
+`evaluate_formula` first, then adds the formula with `define_formula` and ties a size to it with
+`bind_param`. Changing a formula is checked for breakage first, exactly like changing a value.
+
+**Example.** With a group `group1` holding `part1` (60 mm wide) and `part2` (40 mm wide), and a
+third box `C`, type *make C as wide as part1 less half of part2* and tap **Send**. Activity rows
+appear: *Worked out a formula*, *Calculated overhang* and *Bound C size.0 to overhang*. C is now
+40 mm wide. Tap **Undo AI turn** and the formula and the tie are gone in one step, with C back at
+its own width. Without the undo, change `part1`'s width to 80 mm and C becomes 60 mm.
 
 ## Repeating a part on matching holes
 

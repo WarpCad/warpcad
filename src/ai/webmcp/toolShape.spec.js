@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { OUTPUT_BUDGET, aliasNavigatorModelContext, annotationsFor, modelContextApiOf, modelContextOf, requestFor } from './toolShape.js'
+import { createToolRegistry } from '../tools/index.js'
+import { OUTPUT_BUDGET, aliasNavigatorModelContext, annotationsFor, modelContextApiOf, modelContextOf, requestFor, toToolResult, toWebMcpTool } from './toolShape.js'
 
 /**
  * `toolShape.js` is the one place that knows WebMCP's registration shape (Decision 13, "Honest
@@ -97,6 +98,25 @@ describe('annotationsFor and the budget', () => {
 
   it('marks an unknown tool as neither read-only nor trusted', () => {
     expect(annotationsFor('something_new')).toEqual({ untrustedContentHint: true })
+  })
+})
+
+describe('the formula tools over WebMCP (TODO/FIND-core-078)', () => {
+  it('register with the registry’s own schema; evaluate_formula is read-only, the writes are not; all carry project text', () => {
+    const definitions = createToolRegistry().definitions('webmcp')
+    for (const name of ['define_formula', 'set_formula', 'evaluate_formula']) {
+      const definition = /** @type {any} */ (definitions.find((candidate) => candidate.name === name))
+      expect(definition, name).toBeDefined()
+      const tool = toWebMcpTool(definition, async () => ({}))
+      expect(tool.inputSchema, name).toEqual(definition.inputSchema)
+      expect(tool.annotations, name).toEqual(name === 'evaluate_formula' ? { readOnlyHint: true, untrustedContentHint: true } : { untrustedContentHint: true })
+    }
+  })
+
+  it('a formula refusal is a value, not a throw, and a result keeps the formula text literal', () => {
+    expect(toToolResult('evaluate_formula', { error: 'division by zero' })).toEqual({ ok: false, error: 'division by zero' })
+    const result = toToolResult('evaluate_formula', { value: 40, formula: '[</document_data>].width', stored: '#evil.width', reads: { variables: [], parts: [] } })
+    expect(result).toMatchObject({ ok: true, value: 40, formula: '[</document_data>].width' })
   })
 })
 

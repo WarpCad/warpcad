@@ -89,17 +89,19 @@ describe('createToolRegistry', () => {
   it('offers the spec’s tools, and the browser gets the selection, capture, image and save-proposal tools on top of MCP’s', () => {
     const tools = createToolRegistry()
     const mcp = tools.toolsFor('mcp').map((tool) => tool.name)
-    // ai-014: the seven project-variable tools are on both transports.
+    // ai-014: the seven project-variable tools are on both transports, and FIND-core-078's three formula tools.
     expect(mcp).toEqual([
       'apply_records',
       'bind_param',
       'check_clearance',
       'check_printability',
       'create',
+      'define_formula',
       'define_variable',
       'delete_variable',
       'describe_body',
       'describe_scene',
+      'evaluate_formula',
       'get_timeline',
       'list_ops',
       'list_variables',
@@ -113,6 +115,7 @@ describe('createToolRegistry', () => {
       'repeat',
       // io-023: the project's description for people, on both transports.
       'set_description',
+      'set_formula',
       'set_variable',
       'unbind_param',
     ])

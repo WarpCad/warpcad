@@ -37,6 +37,15 @@ describe('system prompt — versioned and frozen', () => {
     expect(define?.description).toMatch(/set min and max/)
   })
 
+  it('says a dimension that depends on another part is a formula bound to it, never a number worked out by hand (FIND-core-078)', () => {
+    for (const text of [SYSTEM_PROMPT, MODELLING_GUIDE, guideFor({ live: true })]) {
+      expect(text).toMatch(/depends on another part, define a formula and bind to it/)
+      expect(text).toMatch(/wrong as soon as that part changes/)
+    }
+    const names = createToolRegistry().definitions('mcp').map((definition) => definition.name)
+    for (const name of ['define_formula', 'evaluate_formula', 'bind_param']) expect(names).toContain(name)
+  })
+
   it('says the final message is saved and must name every problem met, with no record_response to call (ai-032)', () => {
     expect(SYSTEM_PROMPT).toMatch(/final message is saved in the project/)
     expect(SYSTEM_PROMPT).toMatch(/every problem you met/)

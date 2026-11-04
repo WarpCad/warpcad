@@ -13,7 +13,9 @@ status: open
 > `src/core/formula.spec.js`, with the guard tests. Part 2, the fold (`var.derive`, both tiers, the
 > "varies" note, rename/delete/impact, load warnings), is in with its unit tests and benchmark. Its
 > load-refusal gap is accepted for now, matching `var.define`, and the decision doc (Part 4) must record it.
-> Part 3 (AI tools) and Part 4 (panel, e2e, docs, media, acceptance scenario 33) are still open. This
+> Part 3, the AI tools (`define_formula`, `set_formula`, `evaluate_formula`, the `list_variables` additions,
+> the prompt rule and the regenerated tool reference), is in. Part 4 (panel, e2e, docs, media, acceptance
+> scenario 33, and the decision doc, which records the Part 3 decisions) is still open. This
 > file stays in `TODO/` until Part 4 lands. The `part-default-hidden` e2e flake is tracked in
 > `TODO/FIND-testing-016-part-default-hidden-canvas-same-flakes.md`, not here.
 

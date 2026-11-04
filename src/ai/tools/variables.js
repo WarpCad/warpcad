@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
  * The project-variable tools (`TODO/ai-014`): `list_variables`, `define_variable`,
- * `set_variable`, `bind_param`, `unbind_param`, `rename_variable` and `delete_variable`.
+ * `set_variable`, `bind_param`, `unbind_param`, `rename_variable` and `delete_variable`; and the
+ * formula tools (`TODO/FIND-core-078`): `define_formula`, `set_formula` and `evaluate_formula`.
  *
  * Each is a **thin wrapper** over `src/core/variables.js` and `dependents.variableImpactOf`,
  * the same functions the Variables panel and the bind control use (`ui-059`'s
@@ -12,32 +13,37 @@
  *
  * ## Not a kernel op
  *
- * `var.define` is not in the kernel registry (`docs/decisions/project-variables.md`), so
- * `create` and `apply_records` cannot write one and `list_ops` never offers it. These tools
+ * `var.define` and `var.derive` are not in the kernel registry (`docs/decisions/project-variables.md`),
+ * so `create` and `apply_records` cannot write one and `list_ops` never offers either. These tools
  * are the only write path.
  *
  * ## Writes
  *
  * Every write runs inside `document.batch` with `ctx.origin` (`ai` or `mcp`, never `local`),
  * so none reaches the user's undo stack, and a refusal leaves the document exactly as it was.
- * `define_variable` appends one record and is charged one against the turn's record caps,
- * like any append. The others **revise** rows in place (a `reviseRecords`), append nothing,
+ * `define_variable` and `define_formula` each append one record and are charged one against the
+ * turn's record caps, like any append. The others **revise** rows in place (a `reviseRecords`), append nothing,
  * and are bounded by the step cap: a rename that rewrites sixty bindings is one call, not
  * sixty records, and charging it as sixty would refuse a legitimate edit on a large project.
  *
- * `set_variable` runs `variableImpactOf` first. When the new value would break a dependent
+ * `set_variable` runs `variableImpactOf` first, and `set_formula` runs `formulaImpactOf`. When the new value would break a dependent
  * (a Snap onto a part the new Pi model lacks), it writes **nothing** and returns the
  * breakages by name — the same decision the Variables panel makes before it opens the repair
  * dialog — so the model can tell the user, or fix the dependent first, rather than leave a
  * broken row behind.
  *
  * A write's optional `rationale` becomes design intent where the call appends a record
- * (`define_variable`). A revision keeps the row's existing intent: intent lives on the log
+ * (`define_variable`, `define_formula`). A revision keeps the row's existing intent: intent lives on the log
  * entry beside its origin, and `reviseRecords` changes the record, not the entry.
+ *
+ * `evaluate_formula` writes nothing: it is `evaluateFormulaIn`, so a model can check a sum before
+ * committing to it. A formula's result reaches a param only through the same resolution and op
+ * validation as a literal (`resolveRecord`); these tools add no path of their own.
  *
  * ## Untrusted text
  *
- * Variable names, labels and option labels come from the project file. They are returned as
+ * Variable names, labels, option labels, formulas and the body and part names inside them come
+ * from the project file. They are returned as
  * plain JSON values; both transports wrap every tool result in `document_data`
  * (`src/ai/documentData.js`) before a model reads it, so they arrive as data, never as
  * instructions.
@@ -45,8 +51,9 @@
  * @module ai/tools/variables
  */
 
-import { variableImpactOf } from '../../core/dependents.js'
+import { formulaImpactOf, variableImpactOf } from '../../core/dependents.js'
 import { ReplayRejection } from '../../core/document.js'
+import { FORMULA_FUNCTIONS, FORMULA_LIMITS } from '../../core/formula.js'
 import { composeIntent } from '../../core/intent.js'
 import {
   VARIABLE_KINDS,
@@ -58,11 +65,18 @@ import {
   bindabilityError,
   bindableParams,
   consumersOf,
+  defineFormula,
   defineVariable,
   deleteVariable,
+  displayFormulaOf,
+  evaluateFormulaIn,
+  formulaInputsOf,
   isBinding,
+  isFormula,
   readVariables,
   renameVariable,
+  setFormula,
+  setFormulaRevision,
   setVariable,
   setVariableRevision,
   unbindParam,
@@ -131,6 +145,32 @@ const DEFINE_SCHEMA = withRationale(
   ),
 )
 
+/** @type {JsonSchema} */
+const FORMULA = {
+  type: 'string',
+  description:
+    `A formula, at most ${FORMULA_LIMITS.maxLength} characters: numbers, variables by name, + - * / and ( ), and part sizes read as body.part.quantity or body.quantity. ` +
+    'A quantity is width, depth or height (the world X, Y and Z extent in mm), or size.x|y|z, min.x|y|z, max.x|y|z, center.x|y|z. ' +
+    'Name a body by its name, in [brackets] when the name has spaces or hyphens ([Cube 1], [pi-mb]), or by its id from describe_scene as #id. ' +
+    `Functions use call syntax, trig in degrees: ${FORMULA_FUNCTIONS.map((entry) => `${entry.name}()`).join(', ')}. ` +
+    'e.g. "group1.part1.width - (group1.part2.width / 2)", "Base.max.z - Lid.min.z", "ceilTo(wall, 0.4)".',
+}
+
+/** @type {JsonSchema} */
+const DEFINE_FORMULA_SCHEMA = withRationale(
+  objectSchema(
+    {
+      name: NAME,
+      formula: FORMULA,
+      label: { type: 'string', description: `Optional display name for the Variables panel, at most ${VARIABLE_LIMITS.maxLabelLength} characters.` },
+      unit: { type: 'string', enum: [...VARIABLE_UNITS], description: 'Optional label for the result: "mm" for a length, "deg" for an angle, "" for a plain count.' },
+      min: { type: 'number', description: 'Optional: the smallest value the result may have. A result outside min/max is an error, never clamped.' },
+      max: { type: 'number', description: 'Optional: the largest value the result may have.' },
+    },
+    ['name', 'formula'],
+  ),
+)
+
 // --- helpers ------------------------------------------------------------------
 
 /**
@@ -176,20 +216,55 @@ function tableOf(document) {
 }
 
 /**
- * A variable as the model reads it, with what reads it.
+ * A variable as the model reads it, with what reads it. A formula (`TODO/FIND-core-078`) also
+ * carries its text as a person reads it (`formula`), the form the file stores (`stored`), what it
+ * reads, and — from the last fold — its `error` or `varies`; one with no value has no `valueLabel`.
  *
  * @param {WarpDocument} document
- * @param {Variable} variable
+ * @param {Variable} variable As {@link variablesOf} gives it, so a measuring formula has its value.
  * @returns {Record<string, any>}
  */
 function variableSummary(document, variable) {
   const { id, ...definition } = variable
+  const formula = isFormula(variable)
+    ? {
+        formula: displayFormulaOf(document, variable),
+        stored: variable.formula,
+        reads: formulaInputsOf(document, /** @type {string} */ (variable.formula)),
+        varies: variable.varies ?? [],
+      }
+    : {}
   return {
     ...definition,
-    valueLabel: variableValueLabel(variable),
+    ...formula,
+    ...(variable.value === undefined ? {} : { valueLabel: variableValueLabel(variable) }),
     recordId: id,
     usedBy: consumersOf(document.entries, variable.name),
   }
+}
+
+/**
+ * One variable as {@link variablesOf} gives it — a measuring formula with its end-of-log value.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @returns {Variable | undefined}
+ */
+function variableNamed(document, name) {
+  return variablesOf(document).find((variable) => variable.name === name)
+}
+
+/**
+ * How far a change reaches: the bound params that follow it (directly, or through a formula) and
+ * the parts they sit on. The formulas in between are not params, so they are not counted.
+ *
+ * @param {WarpDocument} document
+ * @param {readonly import('../../core/variables.js').VariableConsumer[]} consumers
+ * @returns {{ params: number, parts: number }}
+ */
+function reachOf(document, consumers) {
+  const params = consumers.filter((consumer) => consumer.kind !== 'formula')
+  return { params: params.length, parts: new Set(params.map((consumer) => document.rootOf(consumer.recordId) ?? consumer.recordId)).size }
 }
 
 /**
@@ -267,6 +342,7 @@ function createListVariablesTool() {
     name: 'list_variables',
     description:
       'List the project variables: each one’s name, kind, value (and that value in words), unit or options, and every step that reads it (usedBy). ' +
+      'A calculated variable also lists its formula, the stored form, what it reads, any error, and varies: steps that read it before a later step changed what it measures. ' +
       'Pass id (a body or step id) to also list the param slots that step can bind, with what each is bound to now — or why it cannot be bound.',
     inputSchema: objectSchema({ id: { type: 'string', description: 'Optional: a body id from describe_scene or a step id from get_timeline.' } }),
     transports: ['ai', 'mcp'],
@@ -317,6 +393,9 @@ function createSetVariableTool() {
     run: (ctx, input) => {
       const { document } = ctx
       const { name, value } = input
+      if (isFormula(tableOf(document).get(name))) {
+        return { error: `"${name}" is a formula, not a value, so it has no value to set. Change its formula with set_formula.` }
+      }
       let revision
       try {
         revision = setVariableRevision(document, name, value)
@@ -327,9 +406,10 @@ function createSetVariableTool() {
       const variable = /** @type {Variable} */ (tableOf(document).get(name))
       if (revision === null) return { name, unchanged: true, value, valueLabel: variableValueLabel(variable) }
       const { breakages, consumers } = variableImpactOf(document, name, value)
-      const parts = new Set(consumers.map((consumer) => document.rootOf(consumer.recordId) ?? consumer.recordId)).size
-      const summary = summaryOf(variable, value, consumers.length, parts)
-      const shape = { name, from: variable.value, to: value, changedParams: consumers.length, parts, summary }
+      const reach = reachOf(document, consumers)
+      const parts = reach.parts
+      const summary = summaryOf(variable, value, reach.params, parts)
+      const shape = { name, from: variable.value, to: value, changedParams: reach.params, parts, summary }
       if (breakages.length > 0) {
         const n = breakages.length
         return {
@@ -344,6 +424,117 @@ function createSetVariableTool() {
       const done = attempt(document, () => setVariable(document, name, value, tx))
       if ('refused' in done) return done.refused
       return { ...shape, breakages: [], scene: sceneSummary(document) }
+    },
+  }
+}
+
+/** @returns {Tool} */
+function createDefineFormulaTool() {
+  return {
+    name: 'define_formula',
+    description:
+      'Define a calculated variable: a number worked out from other variables and from the measured size and position of bodies and their parts, ' +
+      'e.g. { "name": "overhang", "formula": "group1.part1.width - (group1.part2.width / 2)", "unit": "mm" }. Bind params to it with bind_param, as to any variable, ' +
+      'and they follow when the parts it reads change. A param reads the parts as they stand just above its own step. ' +
+      'Returns its value, the stored form (bodies by #id) and what it reads. Check a formula first with evaluate_formula. Refused, by name, when it cannot be worked out.',
+    inputSchema: DEFINE_FORMULA_SCHEMA,
+    transports: ['ai', 'mcp'],
+    run: (ctx, input) => {
+      const { rationale, ...definition } = input
+      const hit = ctx.turn.canAppend(1)
+      if (hit) return hit
+      const tx = transactionOf(ctx, rationale)
+      const done = attempt(ctx.document, () => defineFormula(ctx.document, definition, tx))
+      if ('refused' in done) return done.refused
+      ctx.turn.commitRecords(1)
+      const variable = /** @type {Variable} */ (variableNamed(ctx.document, definition.name))
+      return { variable: variableSummary(ctx.document, variable), recordId: variable.id }
+    },
+  }
+}
+
+/** @returns {Tool} */
+function createSetFormulaTool() {
+  return {
+    name: 'set_formula',
+    description:
+      'Change a calculated variable’s formula; every param bound to it follows in one change. Checked first: if the new value would break a step that depends on a bound body, ' +
+      'nothing is changed and the result lists the breakages by name. Returns the formula and value before and after, how many params on how many parts changed, and the scene.',
+    inputSchema: withRationale(objectSchema({ name: NAME, formula: FORMULA }, ['name', 'formula'])),
+    transports: ['ai', 'mcp'],
+    run: (ctx, input) => {
+      const { document } = ctx
+      const { name, formula } = input
+      const variable = variableNamed(document, name)
+      if (variable !== undefined && !isFormula(variable)) {
+        return { error: `"${name}" is a value, not a formula. Change its value with set_variable.` }
+      }
+      let revision
+      try {
+        revision = setFormulaRevision(document, name, formula)
+      } catch (error) {
+        if (error instanceof VariableError) return { error: error.message }
+        throw error
+      }
+      const current = /** @type {Variable} */ (variable)
+      const from = displayFormulaOf(document, current)
+      if (revision === null) return { name, unchanged: true, formula: from, value: current.value }
+      const { breakages, consumers, preview } = formulaImpactOf(document, name, formula)
+      const next = variableNamed(preview, name)
+      const reach = reachOf(document, consumers)
+      const shape = {
+        name,
+        from,
+        to: displayFormulaOf(preview, { formula: revision.record?.params?.formula }),
+        valueFrom: current.value,
+        valueTo: next?.value,
+        changedParams: reach.params,
+        parts: reach.parts,
+        summary: summaryOf(current, next?.value, reach.params, reach.parts),
+      }
+      if (breakages.length > 0) {
+        const n = breakages.length
+        return {
+          error:
+            `Changing ${name}'s formula would break ${n} step${n === 1 ? '' : 's'} that depend on a bound body, so nothing was changed. ` +
+            'Tell the user, or change those steps first.',
+          ...shape,
+          breakages: breakages.map(breakageSummary),
+        }
+      }
+      const tx = transactionOf(ctx, input.rationale)
+      const done = attempt(document, () => setFormula(document, name, formula, tx))
+      if ('refused' in done) return done.refused
+      return { ...shape, breakages: [], scene: sceneSummary(document) }
+    },
+  }
+}
+
+/** @returns {Tool} */
+function createEvaluateFormulaTool() {
+  return {
+    name: 'evaluate_formula',
+    description:
+      'Work a formula out without writing anything, so you can check a sum before you define or bind it: returns its value, the stored form and what it reads, or the error by name. ' +
+      'at (optional) is a step id from get_timeline, or a body id from describe_scene for the step that made it: the parts are read as they stand just above that step, ' +
+      'which is what a param on that step would get. Without at, the parts as they are now.',
+    inputSchema: objectSchema(
+      {
+        formula: FORMULA,
+        at: { type: 'string', description: 'Optional: read the parts as they stand just above this step.' },
+      },
+      ['formula'],
+    ),
+    transports: ['ai', 'mcp'],
+    run: (ctx, input) => {
+      try {
+        const options = input.at === undefined ? {} : { at: input.at }
+        const { value, stored, reads } = evaluateFormulaIn(ctx.document, input.formula, options)
+        return { value, formula: displayFormulaOf(ctx.document, { formula: stored }), stored, reads, ...options }
+      } catch (error) {
+        if (error instanceof VariableError) return { error: error.message }
+        throw error
+      }
     },
   }
 }
@@ -431,7 +622,8 @@ function createDeleteVariableTool() {
 }
 
 /**
- * The seven project-variable tools.
+ * The ten project-variable tools: the seven of `TODO/ai-014` and the three formula tools of
+ * `TODO/FIND-core-078`.
  *
  * @returns {Tool[]}
  */
@@ -440,6 +632,9 @@ export function createVariableTools() {
     createListVariablesTool(),
     createDefineVariableTool(),
     createSetVariableTool(),
+    createDefineFormulaTool(),
+    createSetFormulaTool(),
+    createEvaluateFormulaTool(),
     createBindParamTool(),
     createUnbindParamTool(),
     createRenameVariableTool(),
