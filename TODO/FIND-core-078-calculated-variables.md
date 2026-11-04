@@ -9,6 +9,12 @@ depends: []
 status: open
 ---
 
+> **Progress (2026-11-04):** Part 1, the language, is in: `src/core/formula.js` and
+> `src/core/formula.spec.js`, with the guard tests. Parts 2 (fold and `var.derive`), 3 (AI tools)
+> and 4 (panel, e2e, docs, media, acceptance scenario 33) are still open. This file stays in
+> `TODO/` until Part 4 lands. The e2e run that accompanied Part 1 had one unrelated failure,
+> `part-default-hidden` (a canvas snapshot that passes alone), which is recorded in the commit trailer.
+
 ## Goal
 
 **In user terms:** an AI run could not express a calculated value such as
