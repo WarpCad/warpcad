@@ -3753,3 +3753,46 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** race and 3-of-6 figure → TODO/done/ai-034 Problem table; the chat-opens-at-once routes → diff of src/stores/assistant.js open(); 10 clean runs → e2e runs this session
 **To Add:** none
+
+## 2026-11-03T19:37:42Z — Agent prompting guide for WarpCad
+
+**Post:** WarpCad's new Help page is written for the agent that will drive the app, not just the person using it. It lists each in-browser tool with its exact name and input schema, explains the coordinate and unit conventions, and walks through one complete example: a box with a lid and a cutout.
+
+The tool reference and the example's results are generated from the same registry the app runs, so a renamed parameter fails the build instead of quietly going stale. A small llms.txt index points crawlers and search-only models at the same pages.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Guide](https://app.warpcad.com/help/agent-prompting.html)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** generated tool list and freshness check → scripts/agent-docs.spec.js and `npm run docs:agent -- --check` (this session); example run → scripts/agent-example.spec.js; commit c4186eb; the llms.txt and live-URL checks are not yet run (TODO/VERIFY.md rows 1-2).
+**To Add:** none until the guide is live.
+
+## 2026-11-04T12:50:45Z — Decision records for editable AI requests
+
+**Post:** WarpCad lets you edit or remove a saved AI request, and that change has to survive a merge with an older copy of the project file. This commit writes the rules into the decision records.
+
+A request's text, its stamp and its edited flag merge as one unit, and the latest stamp wins. A removal is a stamped tombstone that is never dropped. Undo and Redo write newer stamps rather than restoring old values, so a merge before Save cannot reverse them.
+
+Edited words go through the same cleaning and cap as recorded requests, and they stay data, never instructions. No agent tool can edit or remove a request or a reply; only the local user can.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** merge rules → diff of docs/decisions/document-sync.md; trust rules → diff of docs/decisions/ai-partner.md; no agent edit or remove tool → grep of src/ai and mcp, this session.
+**To Add:** none
+
+## 2026-11-04T12:50:45Z — Calculated variables specced as TODO/core-078
+
+**Post:** The next spec on the WarpCad list is calculated variables. Today a variable can only hold a literal, so an AI run has to do the sum itself and write down the answer, and that number is wrong as soon as either part changes. The planned feature lets a variable read group1.part1.width - (group1.part2.width / 2) and stay current. Nothing is built yet.
+
+The scope comes from a tally of twenty hand-written JSCAD project files. Snap and align lead by a long way (486 and 305 calls) and stay as relations, not formulas. Size reads are the core need, and almost no line uses real maths. So the language is bounds faces on one axis, four operators and a few helpers.
+
+A formula can arrive in a stranger's file, so the design has no eval, no new Function and no new dependency: a hand-written parser and interpreter that produce a number or a named error. A throwaway prototype of the grammar refused 31 hostile strings by name and took 200,000 fuzzed strings with no exception other than its own formula error.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Parsers
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** every figure (20 files, 486 and 305 calls, 31 hostile strings, 200,000 fuzzed strings) and the design → TODO/FIND-core-078-calculated-variables.md; the prototype run is that file's report, not rerun this session; not built → the same file, status: open.
+**To Add:** none

@@ -2599,3 +2599,30 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** early click opened the key sheet and left it → TODO/done/ai-034 Problem; 3 of 6 default-worker runs failed before → same file's table; 10 consecutive runs with no assistant-panel failure → e2e runs this session (chromium-laptop, E2E_DEV=1)
 **To Add:** none
+
+## 2026-11-03T19:37:42Z — Agent prompting guide for WarpCad
+
+**Post:** WarpCad now has a public guide for prompting a browser agent to design a part. It lists every WebMCP tool with its schema, the coordinate conventions, and a worked box-and-lid example. The tool list and example results are generated from the code, so they can't drift. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Guide](https://app.warpcad.com/help/agent-prompting.html)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tool list matches the registry → scripts/agent-docs.spec.js and `npm run docs:agent -- --check` (this session); example runs → scripts/agent-example.spec.js (31 targeted unit tests passed, this session); commit c4186eb.
+**To Add:** none; the guide URL is live only after deploy (TODO/VERIFY.md row 1).
+
+## 2026-11-04T12:50:45Z — Decision records for editable AI requests
+
+**Post:** WarpCad's decision records now cover editable AI requests. The newest stamped edit wins, a removal stays as a stamped tombstone, and Undo writes a newer stamp, so merging an older copy can't bring old wording back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** newest stamp wins, stamped tombstone, Undo writes newer stamps, older copy cannot restore → diff of docs/decisions/document-sync.md.
+**To Add:** none
+
+## 2026-11-04T12:50:45Z — Calculated variables specced as TODO/core-078
+
+**Post:** Specced, not built yet: WarpCad formula variables, like a.b.width - (c.d.width / 2). A tally of 20 JSCAD project files set the scope: bounds faces, four operators, a few helpers. Hand-written parser, no eval, no new dependency. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 20 project files, the vocabulary, no eval, no new dependency → TODO/FIND-core-078-calculated-variables.md; not built → the same file, status: open.
+**To Add:** none
