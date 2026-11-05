@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/WarpCad/warpcad/compare/v1.7.0...v1.8.0) (2026-11-05)
+
+### Features
+
+* **inspector:** rename a part of a group or imported model (TODO/ui-094) ([2719b56](https://github.com/WarpCad/warpcad/commit/2719b560c93c69ebbd37acabbac95511e830d109))
+* **ui:** one grouped AI menu in the 390 px header (TODO/ui-078) ([ccc4184](https://github.com/WarpCad/warpcad/commit/ccc418428382833206d7cc3b330c67f1088783d1))
+
+### Bug Fixes
+
+* **ui:** keep Show all in the Objects header with a body selected (TODO/ui-090) ([d103bf1](https://github.com/WarpCad/warpcad/commit/d103bf1a688d667909b3f8350d2446cd116eb209))
+* **ui:** reword repeat body move refusal to say what to do (TODO/ui-074) ([5deedbd](https://github.com/WarpCad/warpcad/commit/5deedbd3642a2caf74302c9fe844a6dbf5f590fd))
+
 ## [1.7.0](https://github.com/WarpCad/warpcad/compare/v1.6.0...v1.7.0) (2026-11-04)
 
 ## [1.6.0](https://github.com/WarpCad/warpcad/compare/v1.5.0...v1.6.0) (2026-11-04)
