@@ -180,11 +180,11 @@ describe('linked: an edit to Bolt 1’s steps reaches every member', () => {
 describe('members are derived (decision 6)', () => {
   it('a move of the repeat body is refused with the reason, and the Inspector cannot edit its params', () => {
     const document = piBoltRepeated()
-    expect(repeatMoveRefusal(document, 'rep-1')).toBe('Move Bolt 1 or Raspberry Pi 1; the repeats follow them')
+    expect(repeatMoveRefusal(document, 'rep-1')).toBe('Edit an earlier step in History to move the repeats; a new move of Bolt 1 or Raspberry Pi 1 moves only that part.')
     expect(repeatMoveRefusal(document, 'bolt-1')).toBeNull()
     const length = document.entries.length
     expect(() => document.append(translateRecord(document, 'rep-1', [5, 0, 0]), LOCAL)).toThrow(
-      'Move Bolt 1 or Raspberry Pi 1; the repeats follow them'
+      'Edit an earlier step in History to move the repeats; a new move of Bolt 1 or Raspberry Pi 1 moves only that part.'
     )
     expect(document.entries).toHaveLength(length)
     expect(paramEditability(document.lineageOf('rep-1'))).toEqual({ editable: false, blockedBy: REPEAT_OP })

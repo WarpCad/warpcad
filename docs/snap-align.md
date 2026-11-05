@@ -312,8 +312,8 @@ The repeats are one body in the History, **Bolt / screw 1 ×3**, one row reading
 - **A new move of Bolt 1 moves Bolt 1 only, and so does a new move of the Pi.** Dragging either
   one with the gizmo *after* the Repeat adds a step that comes later in History than the Repeat,
   so the repeats don't see it. The repeat body has no gizmo of its own; the Inspector says
-  *Move Bolt / screw 1 or Raspberry Pi 1; the repeats follow them*, which holds for steps made
-  **before** the Repeat. To move the whole assembly, **Edit** an earlier step in
+  *Edit an earlier step in History to move the repeats; a new move of Bolt / screw 1 or
+  Raspberry Pi 1 moves only that part.* To move the whole assembly, **Edit** an earlier step in
   [History](timeline.md). In this example the Pi is aligned to the screen and the bolts to the Pi,
   so editing the screen's **Move** row carries the Pi, Bolt 1 and all three repeats with it.
 - Select the repeat and the Inspector shows what it repeats and where. **Go to Bolt / screw 1**

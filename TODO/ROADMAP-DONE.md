@@ -813,6 +813,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-074` | Repeat body Inspector note said the repeats follow every move; reworded to say a new move moves only that part and to edit an earlier History step instead. Decided 2026-10-17 | Finding | `core-061` | 15 |
 | ✅ `core-078` | Calculated variables: a `var.derive` formula over variables and part bounds, read at the consumer's row; AI tools and the Variables panel; a hand-written parser and interpreter, no eval, no new dependency. Filed 2026-11-03 | Feature | — | creates 33; 8, 10, 12, 15, 21, 22, 24, 25, 29 or 30; `data-007`, `ui-052`, `ui-044`, `core-031`, `core-061` repros |
 | ✅ `ai-034` | Clicking Assistant before the stored key has loaded no longer opens the key sheet: the click is remembered and answered once the key is known | Finding | — | 17, 18, 24 |
 | ✅ `docs-029` | Public agent prompting guide: tool reference generated from `src/ai/tools/`, coordinate and unit conventions, variables and booleans, verification, a worked box-and-lid example, `llms.txt` | Feature | — | none |
@@ -1219,5 +1220,6 @@ convention going forward.
 | `render-007` | 2026-11-03 20:20 | ~26m from Step 1 (19:50 UTC), which includes Step 3 preflight and the Opus investigation (~16 min of agent time). Measured by the step-1 timestamp, so a few minutes of preflight are inside it |
 | `io-024` | 2026-11-04 15:54 | 1h36m from Step 1 (14:18 UTC) to the completion row, measured from the step-1 timestamp; includes the Opus implementation agent (about 71 min of agent time) and the full stage (about 24 min). Not a live stopwatch |
 | `core-078` | 2026-11-04 22:28 | 3h20m from Step 3 (19:08 UTC) to the completion row; four parts over four commits (34a59c5, 7363051, 51fb54f, and Part 4) |
+| `ui-074` | 2026-11-05 12:57 | ~4m from Step 1 (12:53 UTC), wall clock. Note text only: `moveRefusalText` in `src/core/repeat.js`, its four spec sites, and the `docs/snap-align.md` paragraph (the TODO's `docs/repeat.md` does not exist). Unit 8497 green, typecheck green, repeat-placement and selection-inspector e2e green on all projects (27 skipped by design). Scenario 15 not driven by hand (text-only change). |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

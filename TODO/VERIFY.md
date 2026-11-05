@@ -38,6 +38,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-074 — Repeat body note wording (2026-11-05 12:57 UTC)
+
+The note is a single sentence, so the only one-off check is how it wraps in the Inspector at phone width. The text is covered by unit specs and the repeat e2e specs, but nobody has looked at it on a 390 px screen.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Select a repeat body at 390 px and read the note; confirm it wraps without clipping or horizontal scroll | Open | |
+
 ### render-007 — Hidden-part toggle-off remnant (2026-11-03 20:30 UTC)
 
 The remnant was a Firefox-only paint of the gizmo's Z-arm shadow in the snapshot helper, not an app ghost. Spec fixed. Three sibling specs still use the same `visibility:hidden` snapshot helper and were not changed: they may hit the same paint if a filtered overlay sits in their measured area.

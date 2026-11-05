@@ -637,7 +637,7 @@ export function repeatMoveRefusal(document, bodyId) {
  * @returns {string}
  */
 export function moveRefusalText(sourceName, seedName) {
-  return `Move ${sourceName} or ${seedName}; the repeats follow them`
+  return `Edit an earlier step in History to move the repeats; a new move of ${sourceName} or ${seedName} moves only that part.`
 }
 
 // ---------------------------------------------------------------------------

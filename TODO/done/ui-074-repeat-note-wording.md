@@ -5,8 +5,13 @@ kind: finding
 priority: low
 model: sonnet
 depends: [core-061]
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-05):** the wording changed, but not to the example in *Proposed fix*. A refused repeat body
+> cannot be "moved here", so the note now reads *Edit an earlier step in History to move the repeats; a new move of
+> Bolt 1 or Raspberry Pi 1 moves only that part.* The paragraph that quotes it is `docs/snap-align.md` ("Linked, not
+> copied"), because `docs/repeat.md`, named under Documentation, does not exist. Behaviour unchanged.
 
 ## Problem
 
