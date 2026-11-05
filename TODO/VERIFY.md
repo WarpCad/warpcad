@@ -38,6 +38,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-092 — Prompts view, highlight, part links and editing (2026-11-05 17:31 UTC)
+
+Retired with two checks not run, on the owner's choice. Parts 1–5 and the docs are committed; the file's own Testing section still asks for both checks below. Acceptance scenarios 10, 22, 27 and 30 were re-driven in earlier runs (`TODO/ACCEPTANCE.md`), so these are the only things left for this task.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Performance: hover-to-painted on a **copy** of `~/Documents/fan-duct.ndjson` (never the original), per `.claude/prompts/perf-benchmark.md`, target one 16 ms frame. Must include the twins-heavy case. | Open | |
+| 2 | Hand check on the same copy, laptop width: confirm the two rows, **Combine with next**, one request reading exactly as `~/Documents/fan-duct.prompt.txt`, one **Add reply…**, parts still listed, **Undo** restores two. Then paste `~/Documents/fan-duct.response.txt` as the reply. | Open | |
+| 3 | The same hand check on a real phone, if one is available (390 px, touch only). | Open | |
+
+
 ### ui-090 — Show all in the Objects header (2026-11-05 17:02 UTC)
 
 Automated coverage (unit 8498 green, object-visibility e2e 36/36 on all nine projects, full e2e 0 failures) does not replace a by-hand pass on the split-then-hide path. Found by the `ui-089` hand pass, which this closes.

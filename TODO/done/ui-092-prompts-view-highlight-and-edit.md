@@ -6,8 +6,10 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-02 at the owner's request)
 depends: []
-status: open
+status: done
 ---
+
+> **Closed 2026-11-05 with two checks left open, by the owner's choice.** What shipped: Parts 1–5 (`48330d6`, `4a3ad43`, `47ece2b`, `1ca8f29`, `b1d60ee`) and the docs (`f9739a5`, `913d3cc`). Not run: the performance measurement on a copy of `~/Documents/fan-duct.ndjson`, and the hand check on that copy, laptop then a real phone. Both are logged in `TODO/VERIFY.md` as open. The file was retired without them on the owner's decision, not because they passed.
 
 ## Goal
 
