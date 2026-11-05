@@ -85,6 +85,7 @@ const RELATIONSHIP_VERBS = Object.freeze({
   'group.assemble': 'Group',
   'group.merge': 'Merge',
   'group.setPartHidden': 'Hide part',
+  'group.renamePart': 'Rename part',
   'pattern.repeat': 'Repeat',
 })
 

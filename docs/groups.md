@@ -114,9 +114,11 @@ yet to move one member independently of the others. Showing a gizmo that quietly
 moved the whole assembly — while the panel beside it named a single part — would be
 worse than showing none.
 
-So while drilled in you can read a part's name, size, position and parameters, but
-not change them. Click the breadcrumb's group segment to step back up, and the
-gizmo and editable fields come back for the group as a whole.
+So while drilled in you can read a part's size, position and parameters, but not
+change them. Click the breadcrumb's group segment to step back up, and the gizmo and
+editable fields come back for the group as a whole. The one thing you can change from
+inside is the part's **name**: tap it at the top of the Inspector, as described in
+[Naming a part of a group](selection-and-inspector.md#naming-a-part-of-a-group).
 
 One kind of group is an exception to the parameter half: parts that came from a
 **built-in multi-part shape** (rather than from shapes you grouped yourself) show

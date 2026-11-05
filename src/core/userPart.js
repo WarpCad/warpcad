@@ -180,6 +180,8 @@ const RECORD_FIELDS = new Set(['id', 'op', 'params', 'target', 'operands'])
 /** The op a user colour override is, and the extra fields only it may carry (`TODO/core-054`). */
 const RECOLOR_OP = 'style.recolor'
 const RECOLOR_FIELDS = new Set(['colorOverride', 'colorAlpha', 'subPart'])
+/** A part rename (`TODO/ui-094`): carried with the recolours so a saved copy keeps a renamed part's colour. */
+const RENAME_PART_OP = 'group.renamePart'
 const PARAM_FIELDS = new Set(['name', 'unit', 'default', 'min', 'max', 'binds'])
 const UNITS = new Set(['mm', 'deg', ''])
 const FORBIDDEN_SEGMENTS = new Set(['__proto__', 'prototype', 'constructor'])
@@ -1133,7 +1135,8 @@ export function resetUserParts() {
  */
 
 /**
- * The `style.recolor` records a part carries on the chain that produces its result,
+ * The `style.recolor` records a part carries on the chain that produces its result, and the
+ * `group.renamePart` records between them (`TODO/ui-094`, so a colour follows a renamed part),
  * root-first, with a nested part's own contributed ahead of the record that places it
  * (`TODO/core-054`). A part's colour overrides are exactly these: the kernel fold
  * ignores them (`style.recolor` is geometry-neutral), so a body reads them back off the
@@ -1169,7 +1172,8 @@ export function bakedRecolorsOf(definition, partOf = effectiveUserPart, depth = 
     if (isUserPartOp(record.op)) {
       const nested = partOf(record.op)
       if (nested !== undefined) found.push(...bakedRecolorsOf(nested, partOf, depth + 1))
-    } else if (record.op === RECOLOR_OP) {
+    } else if (record.op === RECOLOR_OP || record.op === RENAME_PART_OP) {
+      // `TODO/ui-094`: a rename moves a recolour above it to the part's new name.
       found.push(record)
     }
   }

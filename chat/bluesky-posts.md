@@ -2662,3 +2662,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** warpcad.com serves the home page (title and Open WarpCad button) → curl this session; app.warpcad.com returns 200 → curl this session; help links from the home page → TODO/done/docs-027 spec, not re-checked on the live page.
 **To Add:** none
+
+## 2026-11-05T20:45Z — Name the parts of a group or an imported 3MF
+
+**Post:** A 3MF with no names used to arrive in WarpCad as Part 1, Part 2… and stay that way. Now you tap a part, tap its name in the Inspector and type. It keeps its colour, its place in the list and the selection, and one Undo puts it back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unnamed 3MF parts arrive as Part 1, Part 2 → TODO/done/ui-094 and docs/user-library.md; nothing could rename them before → TODO/done/ui-094 ("Nothing in the app can change them afterwards"); keeps colour, list position, selection, one Undo → src/core/documentRenamePart.spec.js, src/stores/documentRenamePart.spec.js, e2e/rename-part-of-group.e2e.js (18/18 across 9 projects), all run this session.
+**To Add:** docs/screenshots/inspector-rename-part.png

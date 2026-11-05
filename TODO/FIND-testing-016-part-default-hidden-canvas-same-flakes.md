@@ -46,4 +46,9 @@ claim after Undo, Redo or a hidden-part toggle, and a loose limit would stop it 
 - Before: 10 isolated runs of each test on Chromium, failure count recorded.
 - After: the same 10 runs, zero failures, and the full `e2e` stage green on all three engines.
 
+**More evidence, 2026-11-05 (`ui-094`).** "the last shown part" failed once in the full matrix, on
+`firefox-tablet` only. Isolated, `--repeat-each=25` on `firefox-tablet`: committed HEAD (`6f9c805`, a clean
+worktree) failed **8 of 25**, the `ui-094` tree **4 of 25** — the same flake, not made worse. Other
+projects passed 26 of 27 isolated runs (the one failure was again `firefox-tablet`).
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -474,6 +474,20 @@ test.describe('docs media: selection, inspector, gizmo', () => {
     await shot(page, 'inspector-default-hidden.png')
   })
 
+  // TODO/ui-094: naming a part of a group, the field committed and the Parts list reading the new name.
+  test('inspector-rename-part still', async ({ page }) => {
+    await openGroup(page)
+    await page.getByTestId('inspector-part-Cube 2').click()
+    await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Cube 2')
+    await page.getByTestId('inspector-name-edit').click()
+    await page.getByTestId('inspector-name-input').fill('Lid')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Lid')
+    await page.getByTestId('inspector-breadcrumb-group').click()
+    await expect(page.getByTestId('inspector-part-Lid')).toBeVisible()
+    await shot(page, 'inspector-rename-part.png')
+  })
+
   test('part-hidden-by-default', { tag: '@movie' }, async ({ page }) => {
     await openGroup(page)
     await startMovie(page, 'part-hidden-by-default')

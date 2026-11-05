@@ -376,7 +376,7 @@
  * | `moveStep` | the moved row's `pos` |
  * | `removeRecords` (Undo AI turn) | tombstones; the marker if it moves |
  * | `restoreEntries` (Undo merge, `TODO/ui-062`) | whatever its diff is: tombstones for rows that go, a fresh `born` for rows that come back, `rec`/flags for rows put back, `pos` for rows re-ordered, the marker |
- * | `deleteBodies`, `removePart`, `setPartHidden`, `setColorOverride`, `clearColorOverride`, `renameBody` | a new row (through `appendAll`) |
+ * | `deleteBodies`, `removePart`, `setPartHidden`, `renamePart`, `setColorOverride`, `clearColorOverride`, `renameBody` | a new row (through `appendAll`) |
  * | `rollBackTo`, `rollForward` | the `rollbackAfter` register |
  * | `setResolution` | the `resolution` register |
  * | `setStandingInstructions` | the `standingInstructions` register |
@@ -476,7 +476,7 @@ import {
 } from './userPart.js'
 import { foldColorOverrides } from './colorOverride.js'
 import { bodyViewOf, encodeViewHidden, normalizeViewHidden, viewHiddenMapOf, withViewHidden } from './visibility.js'
-import { hiddenNamesOf, isGroup } from './kernel/group.js'
+import { freePartName, hiddenNamesOf, isGroup, renamedPartProblem } from './kernel/group.js'
 import {
   VARIABLE_LIMITS,
   VARIABLE_OP,
@@ -1002,6 +1002,12 @@ export class ReplayRejection extends Error {
  * @property {(id: string, partName: string, hidden: boolean, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} setPartHidden
  *   `TODO/ui-093`: mark one part of a group hidden by default (`hidden: true`) or shown. One
  *   undo step; refuses a deleted body, a Repeat, an unknown part and a no-op.
+ * @property {(id: string, partName: unknown, to: unknown) => string | null} renamePartRefusal
+ *   `TODO/ui-094`: why {@link WarpDocument.renamePart} would refuse, or `null`.
+ * @property {(id: string, partName: string, to: string, transaction: TransactionOptions) => { record: OpRecord, scene: Scene }} renamePart
+ *   `TODO/ui-094`: give one part of a Group, merged group or Library part a new name. One undo
+ *   step; refuses by name a deleted body, a Repeat, a recipe's own part, an unknown part, a part a
+ *   Repeat uses, and a new name that is taken or that `renamedPartProblem` refuses.
  * @property {(id: string, delta: number) => MoveLegality} canMove
  * @property {(id: string, delta: number, transaction: TransactionOptions) => { scene: Scene }} moveStep
  * @property {(index: number, records: readonly OpRecord[], transaction: TransactionOptions) => { records: OpRecord[], scene: Scene }} insertAt
@@ -1285,6 +1291,22 @@ const REMOVE_PART_OP = 'group.removePart'
 
 /** The op `setPartHidden` appends (`TODO/ui-093`); a real kernel op (`kernel/registry.js`). */
 const SET_PART_HIDDEN_OP = 'group.setPartHidden'
+
+/** The op `renamePart` appends (`TODO/ui-094`); a real kernel op (`kernel/registry.js`). */
+export const RENAME_PART_OP = 'group.renamePart'
+
+/**
+ * Whether a body whose lineage starts with `rootOp` has parts a person may rename
+ * (`TODO/ui-094`): a Group, a merged group, and a Library part (an imported model is one). Not a
+ * recipe's own parts — a bolt's `head` is part of what the recipe *is* (`TODO/core-038`), and its
+ * part list, repair suggestions and aliases all assume those names.
+ *
+ * @param {string | undefined} rootOp
+ * @returns {boolean}
+ */
+export function canRenamePartsOf(rootOp) {
+  return rootOp === 'group.assemble' || rootOp === 'group.merge' || (rootOp !== undefined && isUserPartOp(rootOp))
+}
 
 /**
  * The colour override currently in force for a body, read back off its lineage
@@ -3586,16 +3608,25 @@ export function createDocument(options = {}) {
    */
   function laterChangeOf(nextEntries, activeCount, use) {
     for (const reading of use.reads) {
+      // `TODO/ui-094`: a rename changes no size. Follow the part to its new name and keep going, so
+      // the report names the step that really changed it rather than blaming the rename. A rename
+      // the fold left as a no-op (its value is its target's) renamed nothing.
+      let part = reading.part
       for (let index = use.index + 1; index < activeCount && index < nextEntries.length; index += 1) {
         const entry = nextEntries[index]
         const id = entry.record.id
         if (entry.suppressed === true || id === undefined || rootById.get(id) !== reading.root || recordById.get(id) !== entry.record) continue
         const geometry = scene.byId.get(id)
         if (geometry === undefined) continue
+        if (entry.record.op === RENAME_PART_OP) {
+          const renamed = entry.record.params
+          if (part !== null && renamed?.part === part && geometry !== scene.byId.get(String(entry.record.target))) part = String(renamed.to)
+          continue
+        }
         /** @type {number | null} */
         let now = null
         try {
-          now = quantityOf(geometry, reading.part, reading.quantity)
+          now = quantityOf(geometry, part, reading.quantity)
         } catch {
           // Emptied by a later step: that step changed it.
         }
@@ -4397,6 +4428,11 @@ export function createDocument(options = {}) {
       const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
       const verb = record.params?.hidden === false ? 'Show' : 'Hide'
       return subjectName === undefined ? `${verb} ${part} by default` : `${verb} ${part} by default on ${subjectName}`
+    }
+    if (record.op === RENAME_PART_OP) {
+      const part = typeof record.params?.part === 'string' ? record.params.part : 'part'
+      const to = typeof record.params?.to === 'string' ? record.params.to : 'a new name'
+      return subjectName === undefined ? `Rename ${part} to ${to}` : `Rename ${part} to ${to} on ${subjectName}`
     }
     // `TODO/core-061`: the targets are the interesting half.
     if (record.op === REPEAT_OP) return repeatLabel(record)
@@ -6399,6 +6435,82 @@ export function createDocument(options = {}) {
           target: currentId,
           supersedes: currentId,
           params: { part: partName, hidden },
+        },
+        transaction
+      )
+    },
+
+    /**
+     * `TODO/ui-094`: give one part of a group-valued body a new name. A `group.renamePart` record
+     * over the body's current terminal, unnamed, like {@link WarpDocument.setPartHidden}: the body
+     * id does not change, so the selection, the eye and every lineage-keyed map stay put. The
+     * kernel's fold leaves an absent part or a taken name alone (a later change must not break a
+     * row over a name), so the refusals live here, at write time, each by name.
+     *
+     * A part a Repeat uses is refused: a Repeat stores its seed and targets as names, and its
+     * sheet reads current names against them.
+     *
+     * This is the check, without the write: why the rename would be refused, in words a person
+     * can act on, or `null`. The Inspector's field and the AI tool read it before writing.
+     *
+     * @param {string} id Any record in the body's lineage.
+     * @param {unknown} partName
+     * @param {unknown} to
+     * @returns {string | null}
+     */
+    renamePartRefusal(id, partName, to) {
+      if (typeof partName !== 'string' || partName.length === 0) return `a part name is required, got ${JSON.stringify(partName)}`
+      const root = rootById.get(id)
+      if (root === undefined) return `no such body "${id}" in this document`
+      const bodyName = currentNameOfRoot(root) ?? root
+      if (isDeletedRoot(root)) return `${bodyName} has been deleted`
+      const rootOp = recordById.get(root)?.op
+      if (rootOp === REPEAT_OP) return "a repeat's parts are named after its targets"
+      const value = scene.byId.get(/** @type {string} */ (document.currentIdOf(id)))
+      if (!isGroup(value)) return `${bodyName} has no parts to rename`
+      if (!canRenamePartsOf(rootOp)) return `${bodyName} is a ready-made part, and its parts' names are part of what it is`
+      if (!Object.hasOwn(value.parts, partName)) {
+        return `no part named "${partName}" in ${bodyName} (parts: ${Object.keys(value.parts).join(', ')})`
+      }
+      const problem = renamedPartProblem(to)
+      if (problem !== null || typeof to !== 'string') return problem ?? 'A part needs a name.'
+      if (Object.hasOwn(value.parts, to)) {
+        return to === partName
+          ? `"${partName}" is already called ${to}`
+          : `This group already has a part called ${to} — "${freePartName(Object.keys(value.parts), to)}" is free`
+      }
+      for (const entry of entries) {
+        const record = entry.record
+        if (record.op !== REPEAT_OP || record.id === undefined || isDeletedRoot(record.id)) continue
+        const params = /** @type {any} */ (record.params)
+        if (params?.seed?.id === undefined || rootById.get(params.seed.id) !== root) continue
+        if (params.seed.pieces === partName || (Array.isArray(params.targets) && params.targets.includes(partName))) {
+          return `${currentNameOfRoot(record.id) ?? record.name ?? record.id} uses ${partName}, so it keeps its name`
+        }
+      }
+      return null
+    },
+
+    /**
+     * `TODO/ui-094`: the record {@link WarpDocument.renamePartRefusal} allows, appended.
+     *
+     * @param {string} id Any record in the body's lineage.
+     * @param {string} partName
+     * @param {string} to
+     * @param {TransactionOptions} transaction
+     */
+    renamePart(id, partName, to, transaction) {
+      const refusal = document.renamePartRefusal(id, partName, to)
+      if (refusal !== null) throw new Error(`document.renamePart: ${refusal}`)
+      const root = /** @type {string} */ (rootById.get(id))
+      const currentId = /** @type {string} */ (document.currentIdOf(id))
+      return document.append(
+        {
+          id: document.nextId(`${root}-renamepart`),
+          op: RENAME_PART_OP,
+          target: currentId,
+          supersedes: currentId,
+          params: { part: partName, to },
         },
         transaction
       )

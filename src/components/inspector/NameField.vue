@@ -14,11 +14,19 @@
  *   appends nothing, so it is never an empty Undo step. The selection is left alone — the
  *   record rebuilds the body but the selection holds its lineage-root id.
  *
+ * **Part mode** (`TODO/ui-094`, `partName` set): the same field names one part of a Group or a
+ * Library part, through `group.renamePart`. Every earned behaviour above holds (F2, Escape, blur,
+ * tap away); what differs is what a name may be. A part has no generated name to go back to, so
+ * **blank** keeps the old one and writes nothing. A **duplicate** is refused, not hinted —
+ * `parts` is keyed by name, so two parts cannot share one — and any refusal (`renamePartRefusal`'s
+ * words) leaves the field open with what was typed, so it can be fixed in place.
+ *
  * Untrusted text (a name can come from any opened file): `{{ }}` interpolation only.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { isDuplicateName, MAX_NAME_LENGTH } from '../../core/naming.js'
+import { MAX_PART_NAME_LENGTH } from '../../core/kernel/group.js'
 import { useRenameSelected } from '../../composables/useSelectedBody.js'
 import { isTextEntry } from '../../composables/textEntry.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -26,6 +34,8 @@ import { useDocumentStore } from '../../stores/document.js'
 const props = defineProps({
   /** The selected body's id (its lineage root). */
   bodyId: { type: String, required: true },
+  /** Part mode (`TODO/ui-094`): the drilled-in part this field names. */
+  partName: { type: String, default: '' },
 })
 
 const documentStore = useDocumentStore()
@@ -37,13 +47,16 @@ const notice = ref('')
 const inputEl = ref(/** @type {HTMLInputElement | null} */ (null))
 const rootEl = ref(/** @type {HTMLElement | null} */ (null))
 
+const partMode = computed(() => props.partName !== '')
+
 const currentName = computed(() => {
+  if (partMode.value) return props.partName
   void documentStore.version
   return documentStore.bodies.find((body) => body.id === props.bodyId)?.name ?? props.bodyId
 })
 
 const duplicate = computed(
-  () => editing.value && isDuplicateName(draft.value, documentStore.bodies, props.bodyId),
+  () => !partMode.value && editing.value && isDuplicateName(draft.value, documentStore.bodies, props.bodyId),
 )
 
 async function start() {
@@ -58,12 +71,42 @@ async function start() {
 
 function commit() {
   if (!editing.value) return
+  if (partMode.value) {
+    commitPart()
+    return
+  }
   editing.value = false
   const wasBlank = draft.value.trim().length === 0
   const outcome = renamer.rename(props.bodyId, draft.value)
   if (outcome.refused) notice.value = `Not renamed: ${outcome.refused}`
   else if (wasBlank) notice.value = `Name cleared — back to ${renamer.genericNameOf(props.bodyId)}`
   else notice.value = ''
+}
+
+/**
+ * Part mode's commit (`TODO/ui-094`): blank and unchanged write nothing; a refusal keeps the
+ * field open with the draft and says why.
+ */
+function commitPart() {
+  const typed = draft.value.trim()
+  if (typed.length === 0) {
+    editing.value = false
+    notice.value = 'A part needs a name'
+    return
+  }
+  if (typed === props.partName) {
+    editing.value = false
+    notice.value = ''
+    return
+  }
+  const refusal = documentStore.raw.renamePartRefusal(props.bodyId, props.partName, typed)
+  if (refusal !== null) {
+    notice.value = refusal
+    return
+  }
+  documentStore.renamePart(props.bodyId, props.partName, typed)
+  editing.value = false
+  notice.value = ''
 }
 
 /**
@@ -116,9 +159,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerdown', onWindowPointerdown, true)
 })
 
-// A different body starts fresh.
+// A different body, or a different part, starts fresh.
 watch(
-  () => props.bodyId,
+  () => [props.bodyId, props.partName],
   () => {
     editing.value = false
     notice.value = ''
@@ -156,8 +199,8 @@ watch(
       autocomplete="off"
       autocapitalize="off"
       spellcheck="false"
-      :maxlength="MAX_NAME_LENGTH"
-      aria-label="Part name"
+      :maxlength="partMode ? MAX_PART_NAME_LENGTH : MAX_NAME_LENGTH"
+      :aria-label="partMode ? 'Name of this part' : 'Part name'"
       data-testid="inspector-name-input"
       @keydown="onInputKeydown"
       @blur="commit"
@@ -165,7 +208,7 @@ watch(
     <p v-if="duplicate" class="name__note name__note--hint" data-testid="inspector-name-hint">
       Another part is already called this
     </p>
-    <p v-else-if="notice" class="name__note" data-testid="inspector-name-help">{{ notice }}</p>
+    <p v-else-if="notice" class="name__note" data-testid="inspector-name-help" role="status">{{ notice }}</p>
   </div>
 </template>
 

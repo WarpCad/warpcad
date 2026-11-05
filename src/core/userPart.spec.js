@@ -556,6 +556,26 @@ describe('capturePart — user colour overrides (TODO/core-054)', () => {
     expect(fresh.bodies()[0].colorOverrides).toEqual(original.colorOverrides?.filter((entry) => entry.subPart !== undefined))
   })
 
+  it('a renamed part keeps its new name and its colour in a saved copy (TODO/ui-094)', () => {
+    const doc = sceneDocument()
+    doc.setColorOverride('group-1', { color: 0x2255cc, subPart: 'Cylinder 1' }, LOCAL)
+    doc.renamePart('group-1', 'Cylinder 1', 'Standoff', LOCAL)
+    const original = bodyOf(doc, 'group-1')
+    expect(original.colorOverrides).toEqual([{ color: 0x2255cc, subPart: 'Standoff' }])
+    const definition = capturePart(doc, 'group-1', { name: 'Renamed' })
+    expect(validateUserPart(JSON.parse(JSON.stringify(definition))).ok).toBe(true)
+    setLibraryParts([definition])
+
+    const fresh = createDocument()
+    fresh.appendAll(recordsForDrop(definition.op, { x: 0, y: 0 }, fresh), LOCAL)
+    const [placed] = fresh.bodies()
+    expect(Object.keys(/** @type {any} */ (placed.geometry).parts)).toEqual(['Cube 1', 'Standoff'])
+    expect(placed.colorOverrides).toEqual(original.colorOverrides)
+    // A placed Library part's parts can be renamed again.
+    fresh.renamePart(placed.id, 'Standoff', 'Post', LOCAL)
+    expect(fresh.bodies()[0].colorOverrides).toEqual([{ color: 0x2255cc, subPart: 'Post' }])
+  })
+
   it('a reset before saving leaves a part with no override at all', () => {
     const doc = sceneDocument()
     doc.setColorOverride('group-1', { color: 0xcc3322 }, LOCAL)

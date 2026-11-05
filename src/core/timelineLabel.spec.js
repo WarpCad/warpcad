@@ -278,3 +278,16 @@ describe('hidden-by-default rows (TODO/ui-093)', () => {
     expect(describeRow({ op: 'group.setPartHidden', params: { hidden: true } }, new Map())).toBe('Hide part by default')
   })
 })
+
+describe('describeRow — renaming a part (TODO/ui-094)', () => {
+  const group = { id: 'group-1', op: 'group.assemble', name: 'Group 1', params: { names: ['Part 22', 'Part 23'] } }
+
+  it('reads "Rename <part> to <name> on <body>"', () => {
+    const rename = { id: 'r-1', op: 'group.renamePart', target: 'group-1', supersedes: 'group-1', params: { part: 'Part 22', to: 'ESP-12' } }
+    expect(describeRow(rename, buildNameIndex([group, rename]))).toBe('Rename Part 22 to ESP-12 on Group 1')
+  })
+
+  it('still says something with no names or subject', () => {
+    expect(describeRow({ op: 'group.renamePart', params: {} }, new Map())).toBe('Rename part to a new name')
+  })
+})

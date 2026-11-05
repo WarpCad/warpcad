@@ -54,6 +54,7 @@ import {
   partNameProblem,
   pick,
   removePart,
+  renamePart,
   setPartHidden,
   snap,
 } from './group.js'
@@ -416,7 +417,7 @@ function rawNative(operandCount, build) {
  * A native entry that receives its operand **un-combined but whole** — a group in,
  * a group out — and refuses a sub-part address (TODO/core-024).
  *
- * The `transform.*` ops (plus `style.recolor`/`group.removePart`/`group.setPartHidden`, for the reasons
+ * The `transform.*` ops (plus `style.recolor`/`group.removePart`/`group.setPartHidden`/`group.renamePart`, for the reasons
  * their own entries give; `transform.mirror` builds a new body rather than editing
  * one, but must keep its copy whole for the same reason). A transform edits one
  * body *in place*: honouring a `pieces` address would have to throw away the parts
@@ -1799,6 +1800,16 @@ export const registry = Object.freeze({
   // break a row over a display choice). `wholeGroupNative` for `removePart`'s reason.
   'group.setPartHidden': wholeGroupNative(1, ({ params, inputs }) =>
     setPartHidden(soleOperand(inputs).value, params.part, params.hidden)
+  ),
+
+  // ## Renaming a part of a group (TODO/ui-094)
+  //
+  // `src/core/document.js`'s `renamePart` appends this over the body's current terminal, unnamed,
+  // as `group.setPartHidden` above is. The part keeps its solid, colour, meta and place; only the
+  // key changes. An absent part or a taken name leaves the value unchanged (a later change must
+  // not break a row over a name). `wholeGroupNative` for `removePart`'s reason.
+  'group.renamePart': wholeGroupNative(1, ({ params, inputs }) =>
+    renamePart(soleOperand(inputs).value, params.part, params.to)
   ),
 
   // ## The three booleans, and why they may name a composite's parts

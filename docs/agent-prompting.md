@@ -45,7 +45,7 @@ Apply several create and operate steps as one atomic change: every step lands, o
 | `rationale` | string | no | One line, in plain words, saying why this change is being made (e.g. "Base plate the clamp bolts to"). It is saved with the change as its design intent, shown in History, and read back by a future model. |
 | `prompt` | string | no | The user's request, in their own words as you received them — not a paraphrase or a summary. Saved in the project (at most 20000 characters) and linked to every body you build for it. |
 
-The full input schema is too large to print here (36,599 characters, because it holds every op's own parameters). It is the tool's `inputSchema` in the tool list your agent reads, and `list_ops` returns each op's parameters on their own.
+The full input schema is too large to print here (37,229 characters, because it holds every op's own parameters). It is the tool's `inputSchema` in the tool list your agent reads, and `list_ops` returns each op's parameters on their own.
 
 Example call:
 
@@ -677,12 +677,12 @@ Run one operation on existing bodies, named by id: booleans, group, merge, snap/
 
 | Parameter | Type | Required | What it is |
 |---|---|---|---|
-| `op` | "boolean.intersect" \| "boolean.subtract" \| "boolean.union" \| "group.align" \| "group.assemble" \| "group.merge" \| "group.setPartHidden" \| "group.snap" \| "modify.bisect" \| "modify.chamferRim" \| "modify.enlarge" \| "modify.filletRim" \| "modify.fit" \| "modify.splitWithJoint" \| "transform.mirror" \| "transform.rotate" \| "transform.translate" | yes | boolean.intersect: Keep only the volume every operand shares. boolean.subtract: Cut every later operand out of the first. Operands may name parts, e.g. a bolt’s "tap". Cutting with only a Raspberry Pi’s mounting holes (pieces "hole1" … "hole4", "fan1hole", "fan2hole") leaves the Pi in place, so the same Pi can drill the next hole; every other operand is used up. boolean.union: Merge two or more … (shortened here; the tool list has it whole) |
+| `op` | "boolean.intersect" \| "boolean.subtract" \| "boolean.union" \| "group.align" \| "group.assemble" \| "group.merge" \| "group.renamePart" \| "group.setPartHidden" \| "group.snap" \| "modify.bisect" \| "modify.chamferRim" \| "modify.enlarge" \| "modify.filletRim" \| "modify.fit" \| "modify.splitWithJoint" \| "transform.mirror" \| "transform.rotate" \| "transform.translate" | yes | boolean.intersect: Keep only the volume every operand shares. boolean.subtract: Cut every later operand out of the first. Operands may name parts, e.g. a bolt’s "tap". Cutting with only a Raspberry Pi’s mounting holes (pieces "hole1" … "hole4", "fan1hole", "fan2hole") leaves the Pi in place, so the same Pi can drill the next hole; every other operand is used up. boolean.union: Merge two or more … (shortened here; the tool list has it whole) |
 | `operands` | array of object | yes | The bodies to operate on, in order: the first is the base (the one cut from, moved, or edited). |
 | `params` | one of several shapes | no | Params for the chosen op. Lengths in millimetres, angles in degrees. |
 | `rationale` | string | no | One line, in plain words, saying why this change is being made (e.g. "Base plate the clamp bolts to"). It is saved with the change as its design intent, shown in History, and read back by a future model. |
 
-The full input schema is too large to print here (16,616 characters, because it holds every op's own parameters). It is the tool's `inputSchema` in the tool list your agent reads, and `list_ops` returns each op's parameters on their own.
+The full input schema is too large to print here (17,246 characters, because it holds every op's own parameters). It is the tool's `inputSchema` in the tool list your agent reads, and `list_ops` returns each op's parameters on their own.
 
 Example call:
 

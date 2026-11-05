@@ -251,6 +251,26 @@ describe('Inspector — the object list (TODO/ui-049)', () => {
       expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(false)
     })
 
+    it('is present for a drilled-into part of a Group, and renaming it keeps the selection on the part (TODO/ui-094)', async () => {
+      const cube = (id, name, x) => ({ id, op: 'primitive.cuboid', name, params: { size: [10, 10, 10], center: [x, 0, 5] } })
+      doc.appendAll([
+        cube('a', 'Cube 1', 0),
+        cube('b', 'Cube 2', 30),
+        { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'a', operands: ['b'], consumes: ['a', 'b'], params: { names: ['Cube 1', 'Cube 2'] } },
+      ])
+      selection.selectPart('g', 'Cube 2')
+      const wrapper = mountInspector()
+      expect(wrapper.find('[data-testid="inspector-name-edit"]').exists()).toBe(true)
+      await wrapper.get('[data-testid="inspector-name-edit"]').trigger('click')
+      const input = wrapper.get('[data-testid="inspector-name-input"]')
+      await input.setValue('Lid')
+      await input.trigger('keydown', { key: 'Enter' })
+      await nextTick()
+      expect(selection.subPart).toEqual({ bodyId: 'g', partName: 'Lid' })
+      expect(wrapper.get('[data-testid="inspector-breadcrumb-part"]').text()).toBe('Lid')
+      expect(wrapper.get('[data-testid="inspector-name"]').text()).toBe('Lid')
+    })
+
     it('renaming keeps the selection, and the object list, tab and header read the new name', async () => {
       seed()
       selection.select('bolt')

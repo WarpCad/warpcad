@@ -38,6 +38,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-094 — Rename a part of a group (2026-11-05 20:05)
+
+Scripted drives passed on the owner's Feather file in Chromium and WebKit at 390 and 1440 px (scenario 31,
+step 10). What a script cannot judge: whether naming every part one at a time is tolerable, and how the
+real iOS keyboard treats the field. The count decides whether batch naming gets filed.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On an iPhone, name all 29 parts of `esp8266 feather.3mf` (tap the row, tap the name, type, Done). Count the gestures per part and the minutes in total; say whether a batch-naming table is worth filing | Open | |
+| 2 | On an iPhone and an iPad, with the name field open, the on-screen keyboard leaves the 3D view and the field visible (no page zoom, no sheet pushed off screen), and Done commits | Open | |
+
+
 ### ui-092 — Prompts view, highlight, part links and editing (2026-11-05 17:31 UTC)
 
 Retired with two checks not run, on the owner's choice. Parts 1–5 and the docs are committed; the file's own Testing section still asks for both checks below. Acceptance scenarios 10, 22, 27 and 30 were re-driven in earlier runs (`TODO/ACCEPTANCE.md`), so these are the only things left for this task.

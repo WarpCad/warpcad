@@ -689,3 +689,26 @@ describe('group.setPartHidden — the AI can mark a part hidden by default (TODO
     expect(JSON.stringify(bad)).toMatch(/Cube 1/)
   })
 })
+
+describe('group.renamePart — the AI can name a group’s parts (TODO/ui-094)', () => {
+  const tools = createToolRegistry()
+
+  it('writes the UI’s record, and refuses an unknown part naming the real ones, and a taken name', () => {
+    const { document, ids } = cubes(2)
+    const ctx = makeContext({ document })
+    const grouped = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.assemble', operands: ids.map((id) => ({ id })) }))
+    const bodyId = grouped.applied[0].bodyId
+    const result = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.renamePart', operands: [{ id: bodyId }], params: { part: 'Cube 2', to: 'Lid' } }))
+    expect(result.error).toBeUndefined()
+    expect(document.entries.at(-1)?.record).toMatchObject({
+      op: 'group.renamePart',
+      target: bodyId,
+      supersedes: bodyId,
+      params: { part: 'Cube 2', to: 'Lid' },
+    })
+    const bad = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.renamePart', operands: [{ id: bodyId }], params: { part: 'Nope', to: 'X' } }))
+    expect(JSON.stringify(bad)).toMatch(/Cube 1, Lid/)
+    const taken = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.renamePart', operands: [{ id: bodyId }], params: { part: 'Cube 1', to: 'Lid' } }))
+    expect(JSON.stringify(taken)).toMatch(/already has a part called Lid/)
+  })
+})

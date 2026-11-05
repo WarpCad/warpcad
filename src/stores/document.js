@@ -18,7 +18,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
-import { createDocument } from '../core/document.js'
+import { RENAME_PART_OP, createDocument } from '../core/document.js'
 import { applyMergeUndo } from '../core/mergeUndo.js'
 import { appendRepeat as appendRepeatRecord, detachRepeat as detachRepeatRecords } from '../core/repeat.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
@@ -27,6 +27,8 @@ import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { packGeometry } from '../core/kernel/transport.js'
 import { promptIndex as buildPromptIndex } from '../core/prompt.js'
+import { useAlignReferenceStore } from './alignReference.js'
+import { useColorPreviewStore } from './colorPreview.js'
 import { useSelectionStore } from './selection.js'
 
 /** @typedef {import('../core/document.js').Body} Body */
@@ -800,6 +802,95 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Give one part of a group a new name (`TODO/ui-094`) — core's `renamePart`, one undo step.
+   * The body id is unchanged; everything outside the document that holds the part **by name**
+   * follows it through {@link partRenamed}, so the selection stays drilled into the renamed
+   * part. The step parks `subPartAfter`, so Redo lands on the new name too (Undo already lands
+   * on the old one: `subPartBefore` names it, and it exists again).
+   *
+   * @param {string} bodyId
+   * @param {string} partName
+   * @param {string} to
+   * @returns {OpRecord}
+   */
+  function renamePart(bodyId, partName, to) {
+    const eyeHidden = eyeHiddenPartsOf(bodyId).includes(partName)
+    const drilled = useSelectionStore().subPart
+    const meta = {
+      ...selectionMeta(),
+      ...(drilled?.bodyId === bodyId && drilled.partName === partName ? { subPartAfter: { bodyId, partName: to } } : {}),
+    }
+    const { record } = raw.renamePart(bodyId, partName, to, { origin: 'local', meta })
+    partRenamed({ bodyId, from: partName, to, eyeHidden })
+    refresh()
+    return record
+  }
+
+  /**
+   * The parts of a body the eye hides (`TODO/ui-089`), as `bodies()` reports them now — only
+   * parts the body has, which is why a rename reads this *before* the name changes.
+   *
+   * @param {string} bodyId
+   * @returns {readonly string[]}
+   */
+  function eyeHiddenPartsOf(bodyId) {
+    return raw.bodies().find((body) => body.id === bodyId)?.viewHiddenParts ?? []
+  }
+
+  /**
+   * @typedef {object} PartRename
+   * @property {string} bodyId
+   * @property {string} from
+   * @property {string} to
+   * @property {boolean} eyeHidden Whether the eye hid `from` before the change.
+   */
+
+  /**
+   * Move everything that holds a part by name, outside the document and its undo stack, from
+   * `from` to `to` (`TODO/ui-094`): the selection's address (so a commit does not step the
+   * selection up to the whole body), the Align reference, an open colour preview, and the eye —
+   * which is keyed by part name on the state line, so without this a hidden part would silently
+   * reappear. Called on the commit and, with the names swapped, on Undo and Redo.
+   *
+   * @param {PartRename} rename
+   */
+  function partRenamed({ bodyId, from, to, eyeHidden }) {
+    useSelectionStore().renameAddress(bodyId, from, to)
+    const align = useAlignReferenceStore()
+    if (align.reference.has(bodyId) && align.get(bodyId) === from) align.set(bodyId, to)
+    const preview = useColorPreviewStore()
+    if (preview.bodyId === bodyId && preview.subPart === from) preview.clear()
+    if (eyeHidden) {
+      raw.setViewHidden(bodyId, { subPart: from, hidden: false }, { origin: 'local' })
+      raw.setViewHidden(bodyId, { subPart: to, hidden: true }, { origin: 'local' })
+    }
+  }
+
+  /**
+   * The part renames an undo-stack step makes, as {@link partRenamed} takes them: forward for
+   * Redo, swapped and last-first for Undo. Read **before** the step is undone or redone, while
+   * the eye still knows the name it is about to lose.
+   *
+   * @param {{ records?: readonly OpRecord[] } | null | undefined} step
+   * @param {'undo' | 'redo'} direction
+   * @returns {PartRename[]}
+   */
+  function partRenamesOf(step, direction) {
+    /** @type {PartRename[]} */
+    const renames = []
+    for (const record of step?.records ?? []) {
+      if (record.op !== RENAME_PART_OP) continue
+      const bodyId = raw.rootOf(String(record.target))
+      const part = record.params?.part
+      const to = record.params?.to
+      if (bodyId === undefined || typeof part !== 'string' || typeof to !== 'string') continue
+      const [from, next] = direction === 'undo' ? [to, part] : [part, to]
+      renames.push({ bodyId, from, to: next, eyeHidden: eyeHiddenPartsOf(bodyId).includes(from) })
+    }
+    return direction === 'undo' ? renames.reverse() : renames
+  }
+
+  /**
    * Replace the whole document with a parsed project (`TODO/io-001`) — the one
    * entry point for autosave restore and Open.
    *
@@ -945,6 +1036,7 @@ export const useDocumentStore = defineStore('document', () => {
   function undo() {
     const step = raw.pendingUndo()
     if (!step) return { ok: false }
+    const renames = partRenamesOf(step, 'undo')
     /** @type {ReturnType<typeof raw.undo>} */
     let undone
     try {
@@ -952,6 +1044,7 @@ export const useDocumentStore = defineStore('document', () => {
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
+    if (undone?.note === undefined) for (const rename of renames) partRenamed(rename)
     refresh()
     // Dropped (a merge removed or revised its rows since): nothing changed on screen, so the
     // selection stays, and the note says why the step left the list.
@@ -973,6 +1066,7 @@ export const useDocumentStore = defineStore('document', () => {
   function redo() {
     const step = raw.pendingRedo()
     if (!step) return { ok: false }
+    const renames = partRenamesOf(step, 'redo')
     /** @type {ReturnType<typeof raw.redo>} */
     let redone
     try {
@@ -980,6 +1074,7 @@ export const useDocumentStore = defineStore('document', () => {
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
+    if (redone?.note === undefined) for (const rename of renames) partRenamed(rename)
     refresh()
     // `TODO/ui-092`, part 4: a prompt edit a merged change has since overtaken is dropped, as Undo does.
     if (redone?.note !== undefined) return { ok: true, label: step.label, note: redone.note }
@@ -997,7 +1092,8 @@ export const useDocumentStore = defineStore('document', () => {
       const root = record.id === undefined ? undefined : raw.rootOf(record.id)
       if (root !== undefined) roots.add(root)
     }
-    restoreSelection([...roots])
+    // `TODO/ui-094`: a part rename was made drilled into the part, and lands there again.
+    restoreSelection([...roots], step.meta?.subPartAfter)
     return { ok: true, label: step.label }
   }
 
@@ -1044,6 +1140,7 @@ export const useDocumentStore = defineStore('document', () => {
     deleteBodies,
     removePart,
     setPartHidden,
+    renamePart,
     appendRepeat,
     detachRepeat,
     mergeFrom,

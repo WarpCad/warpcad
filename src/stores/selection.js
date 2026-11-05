@@ -224,6 +224,21 @@ export const useSelectionStore = defineStore('selection', () => {
   }
 
   /**
+   * A part was renamed (`TODO/ui-094`): an address at `from` on `bodyId` — live or parked —
+   * now names `to`, so the selection stays on the same part rather than stepping up to the
+   * whole body when the old name disappears.
+   *
+   * @param {string} bodyId
+   * @param {string} from
+   * @param {string} to
+   * @returns {void}
+   */
+  function renameAddress(bodyId, from, to) {
+    if (addressMap.value[bodyId] !== from) return
+    addressMap.value = { ...addressMap.value, [bodyId]: to }
+  }
+
+  /**
    * Add an id to the selection, or drop it if it is already there.
    *
    * The minimum multi-select `ui-011` needs to reach the "2+ selected" Inspector
@@ -321,6 +336,7 @@ export const useSelectionStore = defineStore('selection', () => {
     partOf,
     stepUp,
     restoreAddresses,
+    renameAddress,
     clear,
     deselect,
     has,

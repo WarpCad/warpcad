@@ -178,6 +178,32 @@ function partHiddenSpec(label, prefix, description, params, recordParams) {
 }
 
 /**
+ * `group.renamePart` (`TODO/ui-094`): an in-place edit like {@link inPlaceSpec}, refused at write
+ * time by the same check the Inspector's field reads (`document.renamePartRefusal`): the fold
+ * leaves an unknown part or a taken name alone, so a model that misspelt one would otherwise get a
+ * silent no-op. An unknown part's message lists the body's real part names (data, not
+ * instructions).
+ *
+ * @param {string} label
+ * @param {string} prefix
+ * @param {string} description
+ * @param {JsonSchema} params
+ * @param {(params: Record<string, any>) => Record<string, any>} recordParams
+ * @returns {OperationSpec}
+ */
+function renamePartSpec(label, prefix, description, params, recordParams) {
+  const spec = inPlaceSpec(label, prefix, description, params, recordParams)
+  return {
+    ...spec,
+    build: (document, operands, input, op) => {
+      const refusal = document.renamePartRefusal(operands[0].terminal, input.part, input.to)
+      if (refusal !== null) throw new Error(`${op}: ${refusal}`)
+      return spec.build(document, operands, input, op)
+    },
+  }
+}
+
+/**
  * Snap or Align: the moving body (first operand) is superseded, the reference stays.
  *
  * @param {string} label
@@ -391,6 +417,19 @@ export const OPERATIONS = Object.freeze({
       ['part', 'hidden']
     ),
     (params) => ({ part: params.part, hidden: params.hidden })
+  ),
+  'group.renamePart': renamePartSpec(
+    'Rename a part',
+    'renamepart',
+    'Give one named part of a Group or a placed Library part (an imported model’s Part 1, Part 2, …) a new name. One undoable step; the part keeps its place, colour and visibility. Names are unique within the body, at most 80 characters, with no comma and not only digits. A ready-made part’s own names (a bolt’s head) cannot be changed, nor a part a Repeat uses.',
+    objectSchema(
+      {
+        part: { type: 'string', description: 'The part’s current name, as describe_scene lists it.' },
+        to: { type: 'string', description: 'Its new name.' },
+      },
+      ['part', 'to']
+    ),
+    (params) => ({ part: params.part, to: params.to })
   ),
   'modify.bisect': inPlaceSpec(
     'Bisect',

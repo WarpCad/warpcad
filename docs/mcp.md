@@ -157,6 +157,14 @@ body) and `hidden` (true or false). It is the **Hidden by default** box in the I
 leaves the part out of size, export and whole-body cuts without deleting it. A part name the body
 does not have, or a part already in that state, is refused, and so is hiding the last shown part.
 
+**Naming a part.** `operate` with `group.renamePart` takes `part` (a part name of one body) and `to`
+(its new name). It is the name field at the top of the Inspector while drilled into a part (see
+[Naming a part of a group](selection-and-inspector.md#naming-a-part-of-a-group)): one undoable History
+step, and the part keeps its place, colour and visibility. It works on a Group's parts and a placed
+Library part's (an imported model's `Part 1`, `Part 2`, …), not a ready-made part's own (a bolt's
+`head`). An unknown part is refused with the body's real part names; a taken name is refused with a
+free one suggested; so are a comma, a name of only digits, and a part a Repeat uses.
+
 The full modelling guide, with a worked example and the reasoning behind the printing defaults, is
 a resource called `warpcad://guide`. Claude is told to read it before its first change. In a
 client that doesn't read it on its own, attach it by hand: in Claude Code, type

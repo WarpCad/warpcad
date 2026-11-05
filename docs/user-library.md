@@ -148,6 +148,10 @@ its check box to add it to what is already selected.
 - **Names only if the file has them.** A part takes its object's name from the file. FreeCAD
   writes no names, so its parts are `Part 1`, `Part 2`, … in the file's order. Click a part
   and read its size to tell them apart. A name used twice is numbered: `10K 1`, `10K 2`.
+  Once you know which is which, give it a name of your own: tap `Part 22`, tap its name at the
+  top of the Inspector, type `ESP-12` and press **Enter**
+  ([Naming a part of a group](selection-and-inspector.md#naming-a-part-of-a-group)). **Save to
+  Library** afterwards so new copies keep the names.
 - **A hole in a part is not a part.** A board's mounting holes are holes in the `Board` mesh,
   not parts of their own, so you can align against `Board` or the ESP-12 module, but not
   against one mounting hole by itself (unlike the Raspberry Pi, whose holes are named parts).

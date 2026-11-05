@@ -731,18 +731,20 @@ export function add(group, object, partName, options = {}) {
 
 /**
  * A copy of a group's `parts` that keeps a lazily combined part lazy (`add`'s `lazy` option): a
- * spread would read — and so union — every one of them.
+ * spread would read — and so union — every one of them. `rename` gives a part a new key in the
+ * same position (`TODO/ui-094`'s `renamePart`).
  *
  * @param {Readonly<Record<string, Geom3>>} source
+ * @param {(name: string) => string} [rename]
  * @returns {Record<string, Geom3>}
  */
-function copyParts(source) {
+function copyParts(source, rename = (name) => name) {
   /** @type {Record<string, Geom3>} */
   const out = {}
   for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(source))) {
     Object.defineProperty(
       out,
-      name,
+      rename(name),
       descriptor.get !== undefined
         ? { get: descriptor.get, enumerable: true, configurable: true }
         : { value: descriptor.value, writable: true, enumerable: true, configurable: true }
@@ -1059,6 +1061,105 @@ export function setPartHidden(value, partName, hidden) {
         holes: value.holes,
         colors: value.colors,
         ...metaField(value.meta),
+      })
+    )
+  )
+}
+
+/**
+ * What is wrong with a name a person types for a part (`TODO/ui-094`), in words they can act on,
+ * or `null`. Stricter than {@link partNameProblem} (what a merge's prefix may produce) because a
+ * typed name is reported, never silently fixed the way `cleanPartName` fixes a file's: no comma
+ * (`resolvePieces` splits on commas, so the part could not be addressed), no control characters,
+ * no space at either end, and not **only digits** — JavaScript moves an integer-like key to the
+ * front of an object, so a part named `10` would jump to the top of every list read from
+ * `Object.keys(parts)`, `setPartHidden`'s rebuild included.
+ *
+ * @param {unknown} name
+ * @returns {string | null}
+ */
+export function renamedPartProblem(name) {
+  if (typeof name !== 'string' || name.trim().length === 0) return 'A part needs a name.'
+  if (name.trim() !== name) return 'A part name cannot start or end with a space.'
+  const general = partNameProblem(name)
+  if (general !== null) return general
+  if (name.includes(',')) return 'A part name cannot contain a comma.'
+  if (CONTROL_CHARACTER.test(name)) return 'A part name cannot contain control characters.'
+  if (/^\d+$/.test(name)) return 'A part name cannot be only digits — add a letter, e.g. "Part 10".'
+  return null
+}
+
+/**
+ * The first `wanted 1`, `wanted 2`, … not in `taken` — the suggestion a refused duplicate makes,
+ * in `assemblyPartNames`' numbering, bounded to {@link MAX_PART_NAME_LENGTH}.
+ *
+ * @param {Iterable<string>} taken
+ * @param {string} wanted
+ * @returns {string}
+ */
+export function freePartName(taken, wanted) {
+  const used = new Set(taken)
+  for (let number = 1; ; number += 1) {
+    const suffix = ` ${number}`
+    const candidate = `${wanted.slice(0, MAX_PART_NAME_LENGTH - suffix.length).trimEnd()}${suffix}`
+    if (!used.has(candidate)) return candidate
+  }
+}
+
+/**
+ * A new group with one part renamed (`TODO/ui-094`), the kernel half of `group.renamePart`.
+ *
+ * Everything keyed by the part's name follows it, and nothing else changes:
+ *
+ * - **Order**: `parts` is rebuilt key by key with the new name in the old one's place, and
+ *   `names` is mapped in place, so the row does not move to the bottom of any list.
+ * - **No CSG**: the solids are shared, and a lazily combined part (`add`'s `lazy`) is carried as
+ *   its getter rather than read — a spread would union a 29-part model's every member.
+ * - **Data**: its colour and meta move to the new key, and every other part's `joins`
+ *   (a key's, a seam's, a hardware item's) are renamed through `renameMetaParts`.
+ *
+ * An **absent** part, a **taken** new name and an unchanged name return `value` unchanged, as
+ * `setPartHidden` does: a later change that removes the part, or brings in a part with the new
+ * name, must not break a row over a name. The document refuses those at write time instead.
+ * Refuses, by name: a bare solid, a part name that is not a non-empty string, and a new name
+ * {@link renamedPartProblem} refuses.
+ *
+ * @template {Geom3 | Group} T
+ * @param {T} value
+ * @param {unknown} partName
+ * @param {unknown} to
+ * @returns {T}
+ */
+export function renamePart(value, partName, to) {
+  const op = 'group.renamePart'
+  if (!isGroup(value)) {
+    throw new Error(`${op}: this body is a single solid and has no parts to rename`)
+  }
+  if (typeof partName !== 'string' || partName.length === 0) {
+    throw new Error(`${op}: a part name is required, got ${JSON.stringify(partName)}`)
+  }
+  const problem = renamedPartProblem(to)
+  if (problem !== null) throw new Error(`${op}: ${problem}`)
+  const next = /** @type {string} */ (to)
+  if (!Object.hasOwn(value.parts, partName) || Object.hasOwn(value.parts, next) || partName === next) return value
+  /** @param {string} name */
+  const rename = (name) => (name === partName ? next : name)
+
+  /** @type {Record<string, PartColor>} */
+  const colors = {}
+  for (const [name, color] of Object.entries(value.colors ?? {})) colors[rename(name)] = color
+  /** @type {Record<string, PartMeta>} */
+  const meta = {}
+  for (const [name, entry] of Object.entries(value.meta ?? {})) meta[rename(name)] = renameMetaParts(entry, rename)
+  return /** @type {T} */ (
+    /** @type {unknown} */ (
+      Object.freeze({
+        name: value.name,
+        names: Object.freeze(value.names.map(rename)),
+        parts: Object.freeze(copyParts(value.parts, rename)),
+        holes: value.holes,
+        colors: Object.freeze(colors),
+        ...metaField(meta),
       })
     )
   )

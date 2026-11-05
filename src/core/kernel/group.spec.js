@@ -24,6 +24,9 @@ import {
   mirrorRotationDeg,
   partMetaOf,
   pick,
+  freePartName,
+  renamePart,
+  renamedPartProblem,
   setPartHidden,
   sizeOf,
   snap,
@@ -1381,6 +1384,112 @@ describe('setPartHidden — mark a part hidden by default, or shown (TODO/ui-093
   it('treats a __proto__ part name as absent', () => {
     const group = pair()
     expect(setPartHidden(group, '__proto__', true)).toBe(group)
+  })
+})
+
+describe('renamePart — give a part of a group a new name (TODO/ui-094)', () => {
+  /** Three parts: `A` red, `B` with a key's meta joining `A` and `C`, `C` hidden. */
+  function trio() {
+    let group = add(createGroup('G'), big(), 'A', { color: 0xff0000 })
+    group = add(group, transforms.translate([30, 0, 0], small()), 'B', {
+      meta: { role: 'key', joins: ['A', 'C'], axis: 'x' },
+    })
+    group = add(group, transforms.translate([60, 0, 0], small()), 'C', {
+      hidden: true,
+      meta: { role: 'piece', hardware: [{ item: 'dowel', diameterMm: 4, count: 2, label: 'pin', joins: ['A', 'C'], axis: 'x' }] },
+    })
+    return group
+  }
+
+  it('keeps the part in its place in parts and in names', () => {
+    const renamed = renamePart(trio(), 'B', 'Lid')
+    expect(Object.keys(renamed.parts)).toEqual(['A', 'Lid', 'C'])
+    expect(renamed.names).toEqual(['A', 'Lid'])
+    expect(Object.isFrozen(renamed)).toBe(true)
+  })
+
+  it('a hidden part stays hidden, under its new name', () => {
+    const renamed = renamePart(trio(), 'C', 'Clearance')
+    expect(renamed.names).toEqual(['A', 'B'])
+    expect(Object.keys(renamed.parts)).toEqual(['A', 'B', 'Clearance'])
+  })
+
+  it('shares the same solids: no copy, no CSG', () => {
+    const group = trio()
+    const renamed = renamePart(group, 'A', 'Base')
+    expect(renamed.parts.Base).toBe(group.parts.A)
+    expect(renamed.parts.B).toBe(group.parts.B)
+    expect(renamed.holes).toBe(group.holes)
+  })
+
+  it('colours and meta follow the part, and every other part’s joins follow it too', () => {
+    const renamed = renamePart(trio(), 'A', 'Base')
+    expect(renamed.colors).toEqual({ Base: { color: 0xff0000, alpha: 1 } })
+    expect(partMetaOf(renamed, 'B')?.joins).toEqual(['Base', 'C'])
+    expect(partMetaOf(renamed, 'C')?.hardware?.[0].joins).toEqual(['Base', 'C'])
+    const moved = renamePart(trio(), 'B', 'Key')
+    expect(partMetaOf(moved, 'Key')?.role).toBe('key')
+    expect(partMetaOf(moved, 'B')).toBeUndefined()
+  })
+
+  it('does not read a lazily combined part', () => {
+    let reads = 0
+    const inner = add(add(createGroup('in'), big(), 'x'), small(), 'y')
+    const group = add(add(createGroup('G'), big(), 'A'), inner, 'Lazy', {
+      lazy: () => {
+        reads += 1
+        return combine(inner)
+      },
+    })
+    const renamed = renamePart(group, 'Lazy', 'Board')
+    expect(reads).toBe(0)
+    expect(Object.keys(renamed.parts)).toEqual(['A', 'Board'])
+    void renamed.parts.Board
+    expect(reads).toBe(1)
+  })
+
+  it('returns the value unchanged for an absent part, a taken name and an unchanged name', () => {
+    const group = trio()
+    expect(renamePart(group, 'Nope', 'Lid')).toBe(group)
+    expect(renamePart(group, 'A', 'B')).toBe(group)
+    expect(renamePart(group, 'A', 'C')).toBe(group)
+    expect(renamePart(group, 'A', 'A')).toBe(group)
+    expect(renamePart(group, '__proto__', 'Lid')).toBe(group)
+  })
+
+  it('refuses a bare solid and a name it cannot hold, by name', () => {
+    expect(() => renamePart(big(), 'A', 'Lid')).toThrow(/single solid/)
+    expect(() => renamePart(trio(), '', 'Lid')).toThrow(/part name is required/)
+    for (const [to, why] of [
+      ['__proto__', /cannot be a part name/],
+      ['constructor', /cannot be a part name/],
+      ['a,b', /comma/],
+      ['tab\there', /control characters/],
+      ['', /needs a name/],
+      ['   ', /needs a name/],
+      [' Lid', /space/],
+      ['x'.repeat(81), /longer than 80/],
+      ['10', /only digits/],
+      [7, /needs a name/],
+    ]) {
+      expect(() => renamePart(trio(), 'A', /** @type {any} */ (to))).toThrow(why)
+    }
+    expect(renamePart(trio(), 'A', 'x'.repeat(80)).names[0]).toBe('x'.repeat(80))
+  })
+
+  it('an all-digit name is refused, so a row never jumps to the front; digits with a letter keep their place', () => {
+    expect(renamedPartProblem('22')).toMatch(/only digits/)
+    expect(renamedPartProblem('007')).toMatch(/only digits/)
+    const renamed = renamePart(trio(), 'B', '10K')
+    expect(Object.keys(renamed.parts)).toEqual(['A', '10K', 'C'])
+    // ui-093's hide-then-show rebuilds names from Object.keys(parts): still in place.
+    expect(setPartHidden(setPartHidden(renamed, '10K', true), '10K', false).names).toEqual(['A', '10K'])
+  })
+
+  it('freePartName suggests the first numbered name nobody has', () => {
+    expect(freePartName(['10K', '10K 1', 'R'], '10K')).toBe('10K 2')
+    expect(freePartName(['Lid'], 'Lid')).toBe('Lid 1')
+    expect(freePartName(['x'.repeat(80)], 'x'.repeat(80))).toBe(`${'x'.repeat(78)} 1`)
   })
 })
 

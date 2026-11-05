@@ -150,3 +150,92 @@ describe('NameField (TODO/ui-056)', () => {
     expect(wrapper.find('[data-testid="inspector-name-input"]').exists()).toBe(true)
   })
 })
+
+/**
+ * `TODO/ui-094` — part mode: the same field names one part of a Group. Blank keeps the old name,
+ * a duplicate is refused in place, Escape reverts, and a commit is one `group.renamePart`.
+ */
+describe('NameField, naming a part of a group (TODO/ui-094)', () => {
+  let pinia
+  let doc
+
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    doc = useDocumentStore()
+    const cube = (id, name, x) => ({ id, op: 'primitive.cuboid', name, params: { size: [10, 10, 10], center: [x, 0, 5] } })
+    doc.appendAll([
+      cube('a', 'Cube 1', 0),
+      cube('b', 'Cube 2', 30),
+      { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'a', operands: ['b'], consumes: ['a', 'b'], params: { names: ['Cube 1', 'Cube 2'] } },
+    ])
+  })
+
+  const mountPart = (partName = 'Cube 2') => mount(NameField, { props: { bodyId: 'g', partName }, global: { plugins: [pinia] } })
+  const partsOf = () => doc.bodies.find((body) => body.id === 'g')?.partNames
+  const renames = () => doc.raw.records.filter((r) => JSON.parse(JSON.stringify(r)).op === 'group.renamePart')
+
+  async function startEdit(wrapper) {
+    await wrapper.get('[data-testid="inspector-name-edit"]').trigger('click')
+    return wrapper.get('[data-testid="inspector-name-input"]')
+  }
+
+  it('shows the part’s name with the pencil, and Enter renames it in place', async () => {
+    const wrapper = mountPart()
+    expect(wrapper.get('[data-testid="inspector-name"]').text()).toBe('Cube 2')
+    const input = await startEdit(wrapper)
+    expect(input.element.value).toBe('Cube 2')
+    expect(input.attributes('maxlength')).toBe('80')
+    await input.setValue('  Lid ')
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(partsOf()).toEqual(['Cube 1', 'Lid'])
+    expect(renames()).toHaveLength(1)
+  })
+
+  it('blur commits', async () => {
+    const wrapper = mountPart()
+    const input = await startEdit(wrapper)
+    await input.setValue('Lid')
+    await input.trigger('blur')
+    expect(partsOf()).toEqual(['Cube 1', 'Lid'])
+  })
+
+  it('Escape reverts, writes nothing and is swallowed', async () => {
+    const wrapper = mountPart()
+    const input = await startEdit(wrapper)
+    await input.setValue('Lid')
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    input.element.dispatchEvent(event)
+    await nextTick()
+    expect(event.defaultPrevented).toBe(true)
+    expect(partsOf()).toEqual(['Cube 1', 'Cube 2'])
+    expect(wrapper.find('[data-testid="inspector-name-input"]').exists()).toBe(false)
+  })
+
+  it('blank keeps the old name, writes nothing, and says a part needs a name', async () => {
+    const wrapper = mountPart()
+    const input = await startEdit(wrapper)
+    await input.setValue('   ')
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(partsOf()).toEqual(['Cube 1', 'Cube 2'])
+    expect(renames()).toHaveLength(0)
+    expect(wrapper.get('[data-testid="inspector-name-help"]').text()).toBe('A part needs a name')
+  })
+
+  it('a duplicate is refused in the helper line, with the field left open on what was typed', async () => {
+    const wrapper = mountPart()
+    const input = await startEdit(wrapper)
+    await input.setValue('Cube 1')
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(renames()).toHaveLength(0)
+    expect(wrapper.get('[data-testid="inspector-name-help"]').text()).toBe('This group already has a part called Cube 1 — "Cube 1 1" is free')
+    expect(wrapper.get('[data-testid="inspector-name-input"]').element.value).toBe('Cube 1')
+  })
+
+  it('an unchanged name writes nothing', async () => {
+    const wrapper = mountPart()
+    const input = await startEdit(wrapper)
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(renames()).toHaveLength(0)
+  })
+})

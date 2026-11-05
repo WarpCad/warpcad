@@ -325,9 +325,46 @@ now read *Pi camera bolt* and *Screen bolt*.
   with the project, so it is there after a reload.
 
 The field appears only when **exactly one** part or group is selected. With nothing or
-several selected there is no name to edit, and while you are drilled into one of a
-recipe's own parts (a Pi's `ethernet`, a bolt's `head`) the name is plain text — those
-names belong to the recipe. Step back out to the group (the breadcrumb) to rename it.
+several selected there is no name to edit. Drilled into one part of a **group** or of an
+**imported model**, the same field names that part — see the next section. Drilled into one of
+a **ready-made part's** own parts (a Pi's `ethernet`, a bolt's `head`) the name is plain text:
+those names belong to the recipe. Step back out (the breadcrumb) to rename the whole part.
+
+## Naming a part of a group
+
+![Group 1 selected after naming its second part: the Inspector's Parts list reads Cube 1, Lid](./screenshots/inspector-rename-part.png)
+
+The parts inside a group keep the names they had when you grouped them, and an imported model's
+parts often arrive with no names at all — `Part 1`, `Part 2`, and so on. The part's name is what
+the object list, the breadcrumb, **Align**, a formula and the history show, so name the ones you
+work with.
+
+**Worked example.** Drag two **Cubes** into the view. Select both and press **Group**. Under
+**Parts**, tap `Cube 2`. Tap its name at the top of the **Inspector**, type `Lid` and press
+**Enter**. The Parts list now reads `Cube 1`, `Lid`.
+
+**An imported model.** A 3MF often has no names, so its parts arrive as `Part 1`, `Part 2`. Tap a
+row under **Parts**, look at which part lights up in the view, and name it the same way. **Save to
+Library** afterwards if you want new copies to keep the names.
+
+- **Start and finish** work as for a whole part: tap the name or the pencil, or press **F2**;
+  **Enter** or tapping away keeps it; **Escape** puts the old name back.
+- **The part stays where it was**: same place in the list, same colour, same eye, and it stays
+  selected. Undo and Redo keep it selected too.
+- **Names are unique within a group.** A name another part of the same group already has is
+  refused, and the line under the field suggests a free one — *This group already has a part
+  called Lid — "Lid 1" is free* — with the field left open so you can change it.
+- **Blank** keeps the old name (a part has no generated name to go back to) and says *A part
+  needs a name*.
+- **Up to 80 characters**, no comma (a comma separates part names when a step names several),
+  and not only digits — `Part 10` is fine, `10` is not.
+- **One step per rename** in the history, *Rename Cube 2 to Lid on Group 1*; **Undo** takes it
+  back.
+- A **ready-made part's** own names (a bolt's `head`, a Pi's `ethernet`) cannot be changed, and
+  neither can a part a **Repeat** uses (the message names the Repeat).
+- **Steps written before the rename keep reading the old name**, so the history stays true. A
+  formula whose text names the old part (`Group 1.[Cube 2].width`) shows an error at the end of
+  the history until you change it to the new name.
 
 ## Colouring a shape
 

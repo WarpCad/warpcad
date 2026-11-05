@@ -313,6 +313,13 @@ export function describeRow(record, names) {
     return subject === undefined ? `${action} ${part} by default` : `${action} ${part} by default on ${subject}`
   }
 
+  // Renaming a part of a group (`TODO/ui-094`).
+  if (record.op === 'group.renamePart') {
+    const part = typeof params.part === 'string' && params.part.length > 0 ? params.part : 'part'
+    const to = typeof params.to === 'string' && params.to.length > 0 ? params.to : 'a new name'
+    return subject === undefined ? `Rename ${part} to ${to}` : `Rename ${part} to ${to} on ${subject}`
+  }
+
   if (RIM_OPS.has(record.op)) {
     const face = FACE_LABELS[params.orientation] ?? FACE_LABELS['z+']
     const size = `${face} ${formatMm(params.radius)} mm`

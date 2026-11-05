@@ -147,6 +147,7 @@ import PromptsView from './PromptsView.vue'
 import { usePromptsUiStore } from '../../stores/promptsUi.js'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { canRenamePartsOf } from '../../core/document.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { parseNumeric } from '../../composables/numericEntry.js'
@@ -254,6 +255,12 @@ const panelState = computed(() => (sketchEditor.active ? 'sketch' : described.va
  * guarantee rather than a rule someone has to remember.
  */
 const body = computed(() => described.value.body)
+/** `TODO/ui-094`: whether the drilled-in part's name is editable — a Group's or a Library part's. */
+const partRenamable = computed(() => {
+  const id = body.value?.id
+  if (!body.value?.subPart || id === undefined) return false
+  return canRenamePartsOf(documentStore.bodies.find((candidate) => candidate.id === id)?.op)
+})
 
 /**
  * True while the selection is drilled into one named part of a group
@@ -885,9 +892,11 @@ watch([() => body.value?.id, colorPart], () => {
             {{ body.name }}
           </span>
         </nav>
-        <!-- Editable in place for exactly one body or group (TODO/ui-056); a recipe's own
-             sub-part keeps its name as read-only text — step out to rename the group. -->
+        <!-- Editable in place for exactly one body or group (TODO/ui-056), and for a part of a
+             Group or a Library part (TODO/ui-094); a recipe's own sub-part keeps its name as
+             read-only text — a bolt's `head` is part of what the recipe is. -->
         <NameField v-if="!body.subPart" :body-id="body.id" />
+        <NameField v-else-if="partRenamable" :body-id="body.id" :part-name="body.subPart.partName" />
         <p v-else class="inspector__name" data-testid="inspector-name">{{ body.name }}</p>
         <p class="inspector__op" data-testid="inspector-op" :data-op="body.op">
           {{ body.opLabel }}

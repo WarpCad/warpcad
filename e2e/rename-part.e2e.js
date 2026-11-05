@@ -312,14 +312,17 @@ test('a group renames like a body, and the name survives drilling into a sub-par
   await renameSelected(page, 'Mounting block')
   expect(await names(page)).toEqual(['Mounting block'])
 
-  // Drill into a sub-part (via the Parts list), where there is no name field…
+  // Drill into a sub-part (via the Parts list): the field now names that part (TODO/ui-094), not
+  // the group, so the group's name is not what it offers to edit…
   const [group] = await sceneBodies(page)
   const header = page.getByTestId('inspector-objects-header')
   if ((await header.getAttribute('aria-expanded')) === 'false') await header.click()
   await page.getByTestId(`objects-expand-${group.id}`).click()
   await page.locator(`[data-testid^="objects-parts-${group.id}"] button[data-testid]`).first().click()
-  await expect(page.getByTestId('inspector-breadcrumb-part')).toBeVisible()
-  await expect(page.getByTestId('inspector-name-edit')).toHaveCount(0)
+  const part = page.getByTestId('inspector-breadcrumb-part')
+  await expect(part).toBeVisible()
+  await expect(page.getByTestId('inspector-name')).toHaveText(await part.innerText())
+  await expect(page.getByTestId('inspector-name-edit')).toBeVisible()
 
   // …and stepping back out shows the group's own name, field present again.
   await page.getByTestId('inspector-breadcrumb-group').click()

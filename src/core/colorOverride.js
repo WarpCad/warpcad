@@ -37,6 +37,9 @@
  */
 
 /** @typedef {import('./document.js').ColorOverride} ColorOverride */
+
+/** `group.renamePart` (`TODO/ui-094`), named here rather than imported so this module stays a leaf. */
+const RENAME_PART_OP = 'group.renamePart'
 /** @typedef {import('./kernel/group.js').PartColor} PartColor */
 
 /**
@@ -57,14 +60,29 @@
  * a body's lineage with it and `userPart.js` reads a saved part's records with it
  * (`TODO/core-054`), so a placed copy cannot disagree with the body it came from.
  *
- * @param {Iterable<{ op: string, colorOverride?: number | null, colorAlpha?: number, subPart?: string }>} records
+ * A `group.renamePart` record (`TODO/ui-094`) moves its part's entry to the new name, in place:
+ * a recolour above the rename named the part by its old name, one below it uses the new one, and
+ * both must paint the same part. A rename whose new name already has an entry is one the fold
+ * left as a no-op (the name was taken), so it moves nothing.
+ *
+ * @param {Iterable<{ op: string, colorOverride?: number | null, colorAlpha?: number, subPart?: string, params?: any }>} records
  *   Root-first.
  * @returns {ColorOverride[] | undefined} `undefined` when none is in force.
  */
 export function foldColorOverrides(records) {
   /** @type {Map<string | undefined, ColorOverride>} */
-  const bySubPart = new Map()
+  let bySubPart = new Map()
   for (const record of records) {
+    if (record.op === RENAME_PART_OP) {
+      const from = record.params?.part
+      const to = record.params?.to
+      if (typeof from !== 'string' || typeof to !== 'string' || !bySubPart.has(from) || bySubPart.has(to)) continue
+      /** @type {Map<string | undefined, ColorOverride>} */
+      const renamed = new Map()
+      for (const [key, entry] of bySubPart) renamed.set(key === from ? to : key, key === from ? { ...entry, subPart: to } : entry)
+      bySubPart = renamed
+      continue
+    }
     if (record.op !== 'style.recolor' || record.colorOverride === undefined) continue
     if (record.colorOverride === null) {
       bySubPart.delete(record.subPart)

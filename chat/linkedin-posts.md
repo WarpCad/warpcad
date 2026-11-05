@@ -3848,3 +3848,16 @@ Checked today: the domain is verified for the WarpCad organisation, HTTPS is enf
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** domain verified and HTTPS enforced → gh api Pages output this session; redirects and app 200 → dig and curl this session; help links from the home page → TODO/done/docs-027 spec, not re-checked on the live page.
 **To Add:** none
+
+## 2026-11-05T20:45Z — Name the parts of a group or an imported 3MF
+
+**Post:** FreeCAD's 3MF export carries no part names, so a 29-part circuit board came into WarpCad as Part 1 to Part 29, and nothing in the app could change them. Part 22 tells you nothing.
+
+Now a part of a group or an imported model can be renamed where the Inspector shows its name. It is one undoable step in the History. The part keeps its colour, its eye state and its place in the list, and the selection stays on it through Undo and Redo. A name another part of the group already has is refused, with a free one suggested. The new name carries into a Library copy too.
+
+On the 29-part board, a rename costs about 5 ms of main-thread work and causes no union of the parts. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** FreeCAD export has no names → TODO/done/ui-094 (io-024's file); 29 parts → scripted import of the owner's file this session; one History step, colour/eye/list place/selection kept → documentRenamePart.spec.js (core and store) and rename-part-of-group.e2e.js, this session; duplicate refused with a suggestion → same specs; Library copy keeps the name → userPart.spec.js test this session; ~5 ms and no long task → drivephone.mjs perf samples 3.9-6 ms, longtask list empty (Chromium), this session; no union → copyParts carries getters (diff) and group.spec.js lazy-part test.
+**To Add:** docs/screenshots/inspector-rename-part.png
