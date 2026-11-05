@@ -6,7 +6,7 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan
 depends: []
-status: open
+status: done
 ---
 
 ## Problem

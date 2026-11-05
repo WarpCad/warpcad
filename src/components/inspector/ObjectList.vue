@@ -41,8 +41,8 @@
  * hides or shows that thing in the 3D view — a view setting saved with the project, never an
  * undo step. A body row's eye has a third state, *some parts hidden*, whose tap shows every
  * part. A user-hidden row is dimmed and its eye slashed, with no text chip: the `hidden` chip
- * stays the recipe's helper part. The count line adds `· N hidden · Show all` while anything
- * is hidden. A hidden row still selects, so a cutter can be hidden and still ticked as an
+ * stays the recipe's helper part. The `N hidden · Show all` summary lives in the Inspector's Objects header
+ * (`TODO/ui-090`), so it stays on screen while the section is collapsed. A hidden row still selects, so a cutter can be hidden and still ticked as an
  * operand (rule 5).
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -321,15 +321,6 @@ watch(
       {{ objects.rows.length }} object{{ objects.rows.length === 1 ? '' : 's' }}<template
         v-if="selection.count > 0"
         > · {{ selection.count }} selected</template
-      ><template v-if="objects.hiddenCount > 0">
-        · {{ objects.hiddenCount }} hidden ·
-        <button
-          type="button"
-          class="list__show-all"
-          data-testid="objects-show-all"
-          :disabled="disabled"
-          @click="objects.showAll()"
-        >Show all</button></template
       >
     </p>
 
@@ -595,30 +586,6 @@ watch(
   font-size: 11px;
   line-height: 1.4;
   color: var(--text-3);
-}
-
-/* Show all (TODO/ui-089): a text button on the count line, a full tap target tall so a thumb
-   finds it in the phone sheet. */
-.list__show-all {
-  min-height: var(--tap);
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.list__show-all:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.list__show-all:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .list__note--reason {

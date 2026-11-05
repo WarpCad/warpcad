@@ -12,6 +12,8 @@ import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
+import { useObjectListStore } from '../../stores/objectList.js'
+import Inspector from './Inspector.vue'
 import ObjectList from './ObjectList.vue'
 import ViewHiddenNote from './ViewHiddenNote.vue'
 
@@ -75,15 +77,30 @@ describe('ObjectList — Hide and show (TODO/ui-089)', () => {
     expect(wrapper.get('[data-testid="objects-item-cyl-1"]').attributes('data-view-hidden')).toBe('false')
   })
 
-  it('the count line gains "· N hidden · Show all" only while something is hidden; Show all clears it', async () => {
+  it('the count line stays plain; "N hidden · Show all" lives in the Objects header and survives a collapsed section (TODO/ui-090)', async () => {
     const wrapper = mountList()
     expect(wrapper.get('[data-testid="objects-count"]').text()).toBe('2 objects')
-    expect(wrapper.find('[data-testid="objects-show-all"]').exists()).toBe(false)
     await eyeOf(wrapper, 'objects-eye-cyl-1').trigger('click')
-    expect(wrapper.get('[data-testid="objects-count"]').text()).toBe('2 objects · 1 hidden · Show all')
-    await wrapper.get('[data-testid="objects-show-all"]').trigger('click')
     expect(wrapper.get('[data-testid="objects-count"]').text()).toBe('2 objects')
-    expect(eyeOf(wrapper, 'objects-eye-cyl-1').attributes('data-eye')).toBe('shown')
+    expect(wrapper.find('[data-testid="objects-show-all"]').exists()).toBe(false)
+  })
+
+  it('the Objects header shows "N hidden · Show all" with a body selected and the section collapsed; absent when nothing is hidden', async () => {
+    const selection = useSelectionStore()
+    selection.select('cyl-1')
+    const wrapper = mount(Inspector, { global: { plugins: [pinia] } })
+    await nextTick()
+    expect(wrapper.get('[data-testid="inspector-objects"]').attributes('data-open')).toBe('false')
+    expect(wrapper.find('[data-testid="objects-hidden-summary"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="objects-show-all"]').exists()).toBe(false)
+    useObjectListStore().togglePartVisibility('cube-1', 'Cube 1 A')
+    await nextTick()
+    expect(wrapper.get('[data-testid="inspector-objects"]').attributes('data-open')).toBe('false')
+    expect(wrapper.get('[data-testid="objects-hidden-summary"]').text()).toBe('1 hidden · Show all')
+    await wrapper.get('[data-testid="objects-show-all"]').trigger('click')
+    await nextTick()
+    expect(wrapper.find('[data-testid="objects-hidden-summary"]').exists()).toBe(false)
+    expect(useSelectionStore().ids).toEqual(['cyl-1'])
   })
 
   it('a part row\'s eye hides that part alone, and the body\'s eye reads "some parts hidden" and shows them all', async () => {
@@ -98,7 +115,7 @@ describe('ObjectList — Hide and show (TODO/ui-089)', () => {
     expect(wrapper.find('[data-testid="objects-part-hidden-cube-1-Cube 1 A"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="objects-part-item-cube-1-Cube 1 B"]').attributes('data-view-hidden')).toBe('false')
     expect(eyeOf(wrapper, 'objects-eye-cube-1').attributes('data-eye')).toBe('mixed')
-    expect(wrapper.get('[data-testid="objects-count"]').text()).toBe('2 objects · 1 hidden · Show all')
+    expect(wrapper.get('[data-testid="objects-count"]').text()).toBe('2 objects')
     await eyeOf(wrapper, 'objects-eye-cube-1').trigger('click')
     expect(eyeOf(wrapper, 'objects-eye-cube-1').attributes('data-eye')).toBe('shown')
     expect(eyeOf(wrapper, 'objects-part-eye-cube-1-Cube 1 A').attributes('aria-label')).toBe('Hide Cube 1 A')

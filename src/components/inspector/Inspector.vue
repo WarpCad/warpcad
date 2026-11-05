@@ -759,6 +759,18 @@ watch([() => body.value?.id, colorPart], () => {
             >▸</span
           >
         </button>
+        <!-- TODO/ui-090: outside the header button (a button cannot hold a button) and outside the
+             collapsible list, so Show all stays reachable with a body selected. -->
+        <p v-if="objectList.hiddenCount > 0" class="inspector__objects-hidden" data-testid="objects-hidden-summary">
+          {{ objectList.hiddenCount }} hidden ·
+          <button
+            type="button"
+            class="inspector__objects-show-all"
+            data-testid="objects-show-all"
+            :disabled="objectList.disabledReason !== ''"
+            @click="objectList.showAll()"
+          >Show all</button>
+        </p>
         <div v-if="objectsOpen" id="inspector-objects-list">
           <ObjectList @select-intent="onListIntent" />
         </div>
@@ -1193,6 +1205,35 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__objects-count {
   font-weight: 500;
   letter-spacing: 0;
+}
+
+.inspector__objects-hidden {
+  margin: 0;
+  padding: 0 0 2px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.inspector__objects-show-all {
+  min-height: var(--tap);
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.inspector__objects-show-all:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.inspector__objects-show-all:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .inspector__objects-chevron {

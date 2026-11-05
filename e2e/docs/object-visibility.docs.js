@@ -28,7 +28,10 @@ test.describe('docs media: hide and show', () => {
     await expect(page.getByTestId('objects-part-eye-cube-1-Cube 1 A')).toHaveAttribute('data-eye', 'hidden')
     await expect(page.getByTestId('objects-part-item-cube-1-Cube 1 A')).toHaveAttribute('data-view-hidden', 'true')
     await expect(page.getByTestId('scene-body-cube-1')).toHaveAttribute('data-view-hidden-parts', 'Cube 1 A')
-    await expect(page.getByTestId('objects-count')).toHaveText('1 object · 1 hidden · Show all')
+    // TODO/ui-090: the count line stays plain; the hidden summary and Show all sit in the Objects header.
+    await expect(page.getByTestId('objects-count')).toHaveText('1 object')
+    await expect(page.getByTestId('objects-hidden-summary')).toContainText('1 hidden')
+    await expect(page.getByTestId('objects-show-all')).toBeVisible()
     await shot(page, 'objects-hide-split-piece.png')
   })
 })

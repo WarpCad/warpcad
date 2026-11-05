@@ -861,6 +861,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `ui-088` | Align popover: the `in` and `half` position icons redrawn (16-wide target, 4-wide block, dashed centre line) so they read apart at the current button size. Reported 2026-10-26 | Finding | — | 1, 3; `ui-086`, `ui-060` repros |
 | ✅ `ui-091` | An "About this project" field in Project settings, shown as a popup to anyone who opens a share or gist link and as the gist README's quote. Filed 2026-10-29 at the owner's request. [`FIND-ui-091`](FIND-ui-091-project-about-popup-for-shared-links.md) | Feature | — | 22, 29, 30 |
 | ✅ `io-023` | Gist README carries the project's brief: the prompt and the agent's reply, the variables with their ranges, the project description. Filed 2026-10-29 at the owner's request. [`io-023`](done/io-023-gist-readme-carries-the-project-brief.md) | Feature | `ai-031`, `io-022` | 30 |
+| ✅ `ui-090` | Objects section: the "N hidden · Show all" summary moves into the section header, so Show all stays reachable with a body selected. Found by the hand-driven `ui-089` pass, 2026-10-26 | Finding | `ui-089` | 6, 10 |
 | `ui-075` | Live MCP access entry in the phone header. Decided 2026-10-17 | Feature | — | 24, 25 |
 | `docs-025` | Document the phone header's Live MCP access entry, with a still. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | none |
 | `build-003` | Research how to package WarpCAD as an iOS and Android app that can host the MCP tool surface. Moved here from unscheduled 2026-10-16 | Feature | — | none |
@@ -1222,5 +1223,6 @@ convention going forward.
 | `io-024` | 2026-11-04 15:54 | 1h36m from Step 1 (14:18 UTC) to the completion row, measured from the step-1 timestamp; includes the Opus implementation agent (about 71 min of agent time) and the full stage (about 24 min). Not a live stopwatch |
 | `core-078` | 2026-11-04 22:28 | 3h20m from Step 3 (19:08 UTC) to the completion row; four parts over four commits (34a59c5, 7363051, 51fb54f, and Part 4) |
 | `ui-074` | 2026-11-05 12:57 | ~4m from Step 1 (12:53 UTC), wall clock. Note text only: `moveRefusalText` in `src/core/repeat.js`, its four spec sites, and the `docs/snap-align.md` paragraph (the TODO's `docs/repeat.md` does not exist). Unit 8497 green, typecheck green, repeat-placement and selection-inspector e2e green on all projects (27 skipped by design). Scenario 15 not driven by hand (text-only change). |
+| `ui-090` | 2026-11-05 17:02 | ~1h03m from Step 1 (15:59 UTC), wall clock. Unit 8498 green, typecheck green, object-visibility e2e 36/36 on all nine projects, full e2e 5144 passed, 0 failed, 1865 project-gated skips. Mobile File-menu baseline refreshed: ui-078 moved Share out of the phone header. Docs still picture not regenerated (docs:media's movie step fails and rewrites every GIF; restored). Scenarios 6 and 10 not driven by hand. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

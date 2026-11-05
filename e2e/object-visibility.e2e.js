@@ -356,7 +356,7 @@ test('hide one piece of a split from its eye: gone from the canvas, unclickable,
   await expect(row('Cube 1 A')).toHaveAttribute('data-view-hidden', 'true')
   await expect(row('Cube 1 B')).toHaveAttribute('data-view-hidden', 'false')
   await expect(page.getByTestId(`objects-eye-${id}`)).toHaveAttribute('data-eye', 'mixed')
-  await expect(page.getByTestId('objects-count')).toContainText('1 hidden')
+  await expect(page.getByTestId('objects-hidden-summary')).toContainText('1 hidden')
   await expect(page.getByTestId('objects-show-all')).toBeVisible()
   await expect(page.getByTestId(`scene-body-${id}`)).toHaveAttribute('data-view-hidden-parts', 'Cube 1 A')
 
@@ -407,7 +407,7 @@ test('hide one piece of a split from its eye: gone from the canvas, unclickable,
   await expect(viewport).toHaveAttribute('data-body-count', '1')
   await expect(page.getByTestId(`scene-body-${id}`)).toHaveAttribute('data-view-hidden-parts', 'Cube 1 A')
   await showObjectList(page)
-  await expect(page.getByTestId('objects-count')).toContainText('1 hidden')
+  await expect(page.getByTestId('objects-hidden-summary')).toContainText('1 hidden')
   await page.getByTestId(`objects-expand-${id}`).click()
   await expect(eye('Cube 1 A')).toHaveAttribute('data-eye', 'hidden')
   await snapshotCanvas(page, 'reloaded')
@@ -415,7 +415,7 @@ test('hide one piece of a split from its eye: gone from the canvas, unclickable,
   // Step 5: Show all — both pieces are back.
   await page.getByTestId('objects-show-all').click()
   await expect(page.getByTestId('objects-show-all')).toHaveCount(0)
-  await expect(page.getByTestId('objects-count')).not.toContainText('hidden')
+  await expect(page.getByTestId('objects-hidden-summary')).toHaveCount(0)
   await expect(page.getByTestId(`scene-body-${id}`)).not.toHaveAttribute('data-view-hidden-parts', /.+/)
   await expect(eye('Cube 1 A')).toHaveAttribute('data-eye', 'shown')
   await expect
@@ -445,7 +445,7 @@ test('hiding a selected body empties the selection; ticking a hidden body select
   await expect(page.getByTestId(`scene-body-${id}`)).toHaveAttribute('data-view-hidden', 'true')
   await expect(viewport).toHaveAttribute('data-selected-count', '0')
   await expect(page.getByTestId('objects-count')).not.toContainText('selected')
-  await expect(page.getByTestId('objects-count')).toContainText('1 hidden')
+  await expect(page.getByTestId('objects-hidden-summary')).toContainText('1 hidden')
 
   // Step 7: tick it from the list — selected, with the note, and nothing drawn for it.
   await showObjectList(page)
@@ -460,6 +460,34 @@ test('hiding a selected body empties the selection; ticking a hidden body select
   await expect(page.getByTestId('inspector-view-hidden')).toHaveCount(0)
   await expect(page.getByTestId(`scene-body-${id}`)).not.toHaveAttribute('data-view-hidden', 'true')
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
+})
+
+test('Show all stays in the Objects header with the split body still selected (TODO/ui-090)', async ({ page }) => {
+  const viewport = page.getByTestId('viewport')
+  const id = await placeEnlargeAndSplit(page)
+  await showInspector(page)
+  // The body is selected, so the Objects section is folded; the summary must still be there once a piece is hidden.
+  await expect(page.getByTestId('inspector-objects')).toHaveAttribute('data-open', 'false')
+  await expect(page.getByTestId('objects-hidden-summary')).toHaveCount(0)
+  const pieceEye = page.getByTestId('inspector-part-eye-Cube 1 A')
+  await expect(pieceEye).toBeVisible()
+  await pieceEye.click()
+  await expect(page.getByTestId('inspector-objects')).toHaveAttribute('data-open', 'false')
+  await expect(page.getByTestId('objects-hidden-summary')).toContainText('1 hidden')
+  await expect(page.getByTestId('objects-show-all')).toBeVisible()
+  await expect(page.getByTestId(`scene-body-${id}`)).toHaveAttribute('data-view-hidden-parts', 'Cube 1 A')
+  // A full tap target, and the sheet does not scroll sideways (`ui-085`).
+  const box = await page.getByTestId('objects-show-all').boundingBox()
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(43.5)
+  const sheet = page.getByTestId('inspector-sheet')
+  expect(await sheet.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true)
+
+  await page.getByTestId('objects-show-all').click()
+  await expect(page.getByTestId('objects-hidden-summary')).toHaveCount(0)
+  await expect(page.getByTestId(`scene-body-${id}`)).not.toHaveAttribute('data-view-hidden-parts', /.+/)
+  await expect(pieceEye).toHaveAttribute('data-eye', 'shown')
+  // Still selected: Show all is not an operation on the selection.
+  await expect(viewport).toHaveAttribute('data-selected-id', id)
 })
 
 test('H hides the selection and Shift+H shows everything again', async ({ page }) => {

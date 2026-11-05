@@ -38,6 +38,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-090 — Show all in the Objects header (2026-11-05 17:02 UTC)
+
+Automated coverage (unit 8498 green, object-visibility e2e 36/36 on all nine projects, full e2e 0 failures) does not replace a by-hand pass on the split-then-hide path. Found by the `ui-089` hand pass, which this closes.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Acceptance 6 (Group vs. sub-part selection): with a body selected, the header summary must not change which part row is selected. | Open | |
+| 2 | Acceptance 10 (Save, reload, confirm nothing changed): the header reads the same after a reload. | Open | |
+| 3 | Re-run the `ui-089` Hide / Show / Show all steps on a phone (390×844), and the `ui-085` sideways-scroll check on the Inspector sheet. | Open | |
+| 4 | Docs still `docs/screenshots/objects-hide-split-piece.png` is not regenerated. `npm run docs:media`'s movie step fails and rewrites every GIF in `docs/media/`, so it was not run. Needs a scoped still-only regeneration. | Open | |
+
 ### ui-078 — phone header grouped AI menu (2026-11-05 15:20 UTC)
 
 The header now has one ✦ trigger at phone width instead of Live MCP and Assistant. Share moved out of the row on every phone. The width budget and measured edges are covered by `e2e/header-width-budget.e2e.js`. Scenarios 24 and 25 need a real key and an MCP client, so a person has to check the feel.

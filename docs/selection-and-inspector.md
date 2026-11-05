@@ -959,8 +959,9 @@ deleted: hiding only changes what the 3D view draws.
   piece as it was, so a piece you hid stays hidden.
 - **Some pieces hidden.** When a shape is shown but one of its pieces is hidden, the shape's
   eye is half filled. Tapping it then shows every piece.
-- **Show all.** While anything is hidden, the count line above the list reads, for example,
-  `3 objects · 1 hidden · Show all`. Tap **Show all** to bring everything back at once.
+- **Show all.** While anything is hidden, the **Objects** header reads, for example,
+  `1 hidden · Show all`, whether the section is open or folded, so it is still there with a
+  shape selected. Tap **Show all** to bring everything back at once, without deselecting.
 - **Keyboard.** Press **H** to hide the selected shape (or the piece you have selected
   inside it), or to show it again if it is already hidden. **Shift+H** is Show all. The
   keys do nothing while you are typing in a field or editing a sketch.
@@ -996,7 +997,11 @@ deleted: hiding only changes what the 3D view draws.
 4. Tap ▸ beside `Cube 1`. Tap the eye on **Cube 1 A**. Piece A disappears and you are looking
    at the cut face of **Cube 1 B**, with its sockets.
 5. Tap the eye on Cube 1 A again, then the eye on **Cube 1 B**. Now you see Cube 1 A's pins.
-6. Tap **Show all** on the Objects count line to bring everything back.
+6. Tap **Show all** in the Objects header to bring everything back.
+
+Or, straight after a split with the shape still selected: hide one piece from the **Parts**
+list. The Objects header reads `1 hidden · Show all` even though the section is folded. Tap
+**Show all** and the piece returns, with the shape still selected.
 
 ## Deleting objects and parts
 
