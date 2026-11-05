@@ -87,11 +87,12 @@ an MCP client is connected, and its message box is off: make requests in the age
 the panel shows what lands. [Live mode](mcp.md#live-mode-an-mcp-agent-edits-the-project-you-have-open)
 covers browser behavior and what happens if you're mid-drag when a change arrives.
 
-![The phone header with the Live MCP access button, its ring showing access is on](screenshots/ai-live-mcp-header.png)
+![The phone header with the AI button, its ring showing Live MCP access is on](screenshots/ai-live-mcp-header.png)
 
-The **⇄** button appears only at phone width, and only when you run WarpCad with `npm run dev`: it
-is absent on a hosted copy, where live access isn't available. A hollow ring in its corner means
-access is on; a solid dot means an agent is connected.
+At phone width, when you run WarpCad with `npm run dev`, the header's one **✦** AI button opens a
+small menu: **Assistant** (the chat) and **Live MCP access** (the sheet above). A hosted copy has no
+live access, so there the button is just the Assistant. A hollow ring in the corner of the **✦**
+button means access is on; a solid dot means an agent is connected.
 
 ## Where the key lives
 

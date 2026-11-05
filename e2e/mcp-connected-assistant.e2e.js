@@ -2,6 +2,7 @@
 import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { clickAssistant, revealAssistantButton } from './support/assistantEntry.js'
 
 /**
  * `TODO/ui-071` — while an MCP agent is connected, the Assistant shows only its header (the
@@ -47,7 +48,7 @@ async function openAssistant(page) {
   await expect(page.getByTestId('viewport')).toBeVisible()
   // No key and no real lease: the enabled bridge state is what routes the header button to the chat.
   await setBridge(page, 'enabled')
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   // Tall: at half height on a phone the empty transcript has no room left to show (it is 0 px high),
   // which is how the chat looks before this task too. The control is hidden on the laptop column.
   const tall = page.getByTestId('ai-sheet-full')

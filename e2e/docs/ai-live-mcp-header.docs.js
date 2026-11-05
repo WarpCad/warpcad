@@ -15,17 +15,19 @@ test.describe('docs media: live MCP header button', () => {
 
   test('ai-live-mcp-header still', async ({ page }) => {
     await openApp(page)
+    await page.getByTestId('ai-menu-button').click()
     await page.getByTestId('live-mcp-button').click()
     await page.getByTestId('ai-connect-lease').selectOption('15m')
     await page.getByTestId('ai-connect-enable').click()
     await expect(page.getByTestId('ai-connect-status')).toContainText('enabled until')
     await page.getByTestId('ai-connect-done').click()
-    await expect(page.getByTestId('live-mcp-button')).toHaveAttribute('data-state', 'enabled')
+    await expect(page.getByTestId('ai-menu-button')).toHaveAttribute('data-state', 'enabled')
     await shot(page, 'ai-live-mcp-header.png', { locator: page.getByTestId('app-header') })
   })
 
   test('ai-connect-starter still', async ({ page }) => {
     await openApp(page)
+    await page.getByTestId('ai-menu-button').click()
     await page.getByTestId('live-mcp-button').click()
     const row = page.getByTestId('ai-connect-starter-row')
     await expect(row).toBeVisible()

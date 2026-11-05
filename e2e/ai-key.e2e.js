@@ -2,6 +2,7 @@
 import { test, expect } from '@playwright/test'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { clickAssistant, revealAssistantButton } from './support/assistantEntry.js'
 
 /**
  * `TODO/ai-004` — the Assistant's key sheet, against the real app at `/` with the Anthropic
@@ -89,7 +90,7 @@ test.beforeEach(async ({ page }) => {
 
 /** @param {import('@playwright/test').Page} page */
 async function pasteAndSave(page, key = KEY) {
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
   await page.getByTestId('ai-key-input').fill(key)
   await page.getByTestId('ai-key-save').click()
@@ -97,7 +98,7 @@ async function pasteAndSave(page, key = KEY) {
 }
 
 test('the Assistant button is always in the header, and with no key it opens the key sheet', async ({ page }, info) => {
-  const button = page.getByTestId('assistant-button')
+  const button = await revealAssistantButton(page)
   await expect(button).toBeVisible()
   // No dot at all without a key: an empty slot would read as a status.
   await expect(page.getByTestId('assistant-dot')).toHaveCount(0)
@@ -118,7 +119,7 @@ test('the Assistant button is always in the header, and with no key it opens the
 test('the header does not overflow sideways with the Assistant button in it', async ({ page }) => {
   const header = await page.getByTestId('app-header').evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
   expect(header.scroll).toBeLessThanOrEqual(header.client)
-  const box = await page.getByTestId('assistant-button').boundingBox()
+  const box = await (await revealAssistantButton(page)).boundingBox()
   expect(box.height).toBeGreaterThanOrEqual(44)
   expect(box.width).toBeGreaterThanOrEqual(44)
   const viewportWidth = page.viewportSize().width
@@ -157,7 +158,7 @@ test('paste, Save and test, reload: still connected; the request carried the key
   await expect(page.getByTestId('viewport')).toBeVisible()
   // Restored with every sheet closed: the dot is a ring (saved, not yet tested this session).
   await expect(page.getByTestId('assistant-dot')).toHaveAttribute('data-dot-state', 'saved')
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('assistant-panel')).toBeVisible()
   await expect(page.getByTestId('ai-key-sheet')).toHaveCount(0)
   await expect(page.getByTestId('assistant-model-name')).toHaveText('Claude Opus 5.5')
@@ -177,14 +178,14 @@ test('TODO/ai-034: clicking Assistant the instant the page opens never shows the
   await pasteAndSave(page)
   await page.reload({ waitUntil: 'commit' })
   // No wait for the viewport or the dot: the click may land before the stored key has loaded.
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('assistant-panel')).toBeVisible()
   await expect(page.getByTestId('ai-key-sheet')).toHaveCount(0)
 })
 
 test('TODO/ai-034: clicking Assistant the instant the page opens, with no key, ends on the key sheet', async ({ page }) => {
   await page.reload({ waitUntil: 'commit' })
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
   await expect(page.getByTestId('assistant-panel')).toHaveCount(0)
 })
@@ -196,7 +197,7 @@ test('changing the model is one setting: it persists, re-tests, and the next req
   await expect.poll(() => api.requests.length).toBe(2)
   expect(JSON.parse(api.requests[1].body).model).toBe('claude-sonnet-5-5')
   await page.reload()
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('assistant-model-name')).toHaveText('Claude Sonnet 5.5')
 })
 
@@ -210,17 +211,17 @@ test('Forget key deletes the stored key: the sheet empties, a reload finds nothi
   expect(await credentialRecord(page)).toBeNull()
   await page.reload()
   await expect(page.getByTestId('viewport')).toBeVisible()
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
   await expect(page.getByTestId('assistant-panel')).toHaveCount(0)
 })
 
 test('Escape closes the sheet, and Cancel on the empty form leaves nothing stored', async ({ page }) => {
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('ai-key-sheet')).toHaveCount(0)
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await page.getByTestId('ai-key-cancel').click()
   await expect(page.getByTestId('ai-key-sheet')).toHaveCount(0)
   expect(await credentialRecord(page)).toBeNull()
@@ -250,7 +251,7 @@ test.describe('each failure is distinct and plain, and none quotes the key', () 
 
   test('an offline tab', async ({ page }) => {
     const api = await stubApi(page)
-    await page.getByTestId('assistant-button').click()
+    await clickAssistant(page)
     await page.getByTestId('ai-key-input').fill(KEY)
     // Routed requests are answered before the network, so offline needs the route to fail too.
     api.answer = { abort: true }
@@ -348,7 +349,7 @@ test('IndexedDB unavailable degrades to session-only, with a visible note, and s
 
 test('the sheet fits the viewport: no sideways scroll, 44px targets, the field above the fold', async ({ page }, info) => {
   await stubApi(page)
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   const sheet = page.getByTestId('ai-key-sheet')
   await expect(sheet).toBeVisible()
   const fit = await sheet.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth, doc: document.documentElement.scrollWidth, inner: window.innerWidth }))

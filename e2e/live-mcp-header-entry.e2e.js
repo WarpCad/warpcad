@@ -26,9 +26,11 @@ test('phone: the header entry opens the access sheet and fits the header', async
   test.skip(!testInfo.project.name.endsWith('phone'), 'The entry is the phone-width way in.')
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toBeVisible()
+  // `TODO/ui-078`: the entry is a row of the grouped AI menu now, so the header control is the trigger.
+  const trigger = page.getByTestId('ai-menu-button')
   const entry = page.getByTestId('live-mcp-button')
-  await expect(entry).toBeVisible()
-  const box = await entry.boundingBox()
+  await expect(trigger).toBeVisible()
+  const box = await trigger.boundingBox()
   expect(box.width).toBeGreaterThanOrEqual(43.5)
   expect(box.height).toBeGreaterThanOrEqual(43.5)
   expect(await noHorizontalScroll(page)).toBe(true)
@@ -36,11 +38,14 @@ test('phone: the header entry opens the access sheet and fits the header', async
   const bar = await page.getByTestId('app-header').evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
   expect(bar.scroll).toBeLessThanOrEqual(bar.client)
   // It does not push the neighbours off the row.
-  for (const id of ['assistant-button', 'file-menu-button']) {
+  for (const id of ['ai-menu-button', 'file-menu-button']) {
     const b = await page.getByTestId(id).boundingBox()
     expect(b.x + b.width).toBeLessThanOrEqual(page.viewportSize().width)
   }
 
+  await trigger.click()
+  const rowBox = await entry.boundingBox()
+  expect(rowBox.height).toBeGreaterThanOrEqual(43.5)
   await entry.click()
   await expect(page.getByTestId('ai-connect-sheet')).toBeVisible()
   await page.getByTestId('ai-connect-lease').selectOption('15m')
@@ -48,6 +53,8 @@ test('phone: the header entry opens the access sheet and fits the header', async
   await expect(page.getByTestId('ai-connect-status')).toContainText('enabled until')
   await page.getByTestId('ai-connect-done').click()
   // Feedback: the entry shows the state, and the chip is reachable from the Assistant as before.
+  await expect(trigger).toHaveAttribute('data-state', 'enabled')
+  await trigger.click()
   await expect(entry).toHaveAttribute('data-state', 'enabled')
   await entry.click()
   await expect(page.getByTestId('ai-connect-disable')).toBeVisible()

@@ -38,6 +38,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-078 — phone header grouped AI menu (2026-11-05 15:20 UTC)
+
+The header now has one ✦ trigger at phone width instead of Live MCP and Assistant. Share moved out of the row on every phone. The width budget and measured edges are covered by `e2e/header-width-budget.e2e.js`. Scenarios 24 and 25 need a real key and an MCP client, so a person has to check the feel.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At 390x844 on a real phone, tap ✦ then Live MCP access; the access sheet opens and the menu closes. Judge the tap target and the popover placement. | Open | |
+| 2 | At 390x844, confirm File ▾ → Share… is easy to find now that Share is off the row on phones. | Open | |
+
 ### ui-074 — Repeat body note wording (2026-11-05 12:57 UTC)
 
 The note is a single sentence, so the only one-off check is how it wraps in the Inspector at phone width. The text is covered by unit specs and the repeat e2e specs, but nobody has looked at it on a 390 px screen.

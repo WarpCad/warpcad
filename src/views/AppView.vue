@@ -17,8 +17,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import Inspector from '../components/inspector/Inspector.vue'
 import DependentRepairDialog from '../components/inspector/DependentRepairDialog.vue'
-import AssistantButton from '../components/ai/AssistantButton.vue'
-import LiveMcpButton from '../components/ai/LiveMcpButton.vue'
+import AiHeaderEntry from '../components/ai/AiHeaderEntry.vue'
 import ChatPanel from '../components/ai/ChatPanel.vue'
 import AiWorkingChip from '../components/display/AiWorkingChip.vue'
 import KeySheet from '../components/ai/KeySheet.vue'
@@ -357,9 +356,9 @@ function onInspectorClaim() {
       <AiWorkingChip />
       <!-- App-level, not document-level (`TODO/ai-004`): always present, never gated on a
            selection or a key; with no key it opens the key sheet. -->
-      <!-- Phone only (TODO/ui-075): the way to Live MCP access the laptop-only panel row can't give. -->
-      <LiveMcpButton />
-      <AssistantButton />
+      <!-- Phone on a dev host (TODO/ui-075, ui-078): one grouped AI menu (Assistant, Live MCP access);
+           everywhere else the plain Assistant button. -->
+      <AiHeaderEntry />
     </header>
     <!-- Between the header and the main area, deliberately outside the viewport
          (§14): the viewport's own four corners are already spoken for, and
@@ -751,12 +750,27 @@ function onInspectorClaim() {
   }
 }
 
-/* `TODO/io-016`: the dev host's phone header also carries the Live MCP entry (`ui-075`, dev-only), and
-   with Share as well the row is 45px too wide (measured 435px at 390). There, and only there, Share
-   steps out of the row and **File ▾ → Share…** is its route — the precedent `HelpEntryButton` set.
-   A hosted copy has no Live MCP entry, so its phone header keeps Share (measured: exactly 390px). */
+/* `TODO/ui-078`: the phone header's width budget, at 390px (every item measured, `e2e/header-width-budget`).
+   Gaps between 44px tap targets are 8px (the row's, the document bar's and History's own).
+
+     item                                   width
+     -------------------------------------  -----
+     bar side padding (6 + 6)                 12
+     title group (WarpCad + version)         ~65
+     History: Undo + Redo + 8 gap             96
+     History timeline toggle                  44
+     File ▾                                   48
+     save-status chip                         20
+     AI menu trigger (Assistant + Live MCP)   44   (dev host; a hosted copy shows Assistant, 44)
+     7 gaps x 8                               56
+     ------------------------------------------------
+     total                                  ~385   of 390
+
+   Share (44 + 8) does not fit with 8px gaps on any phone, so it steps out of the row at phone width
+   and **File ▾ → Share…** is its route (the precedent `HelpEntryButton` set; `ui-078` widened it
+   from the dev host to every phone). Each future header control must buy its width here first. */
 @media (max-width: 480px) {
-  .app__bar:has([data-testid='live-mcp-button']) :deep(.share-root) {
+  .app__bar :deep(.share-root) {
     display: none;
   }
 }
@@ -764,13 +778,15 @@ function onInspectorClaim() {
 @media (max-width: 480px) {
   .app__bar {
     padding: 4px 6px;
-    /* `TODO/ui-075`: the Live MCP access entry is a ninth 44px item in the ~390px row; tighter gaps
-       (not smaller targets) are what pay for it. */
-    gap: 4px;
+    gap: 8px;
   }
 
   .app__document-bar {
-    gap: 4px;
+    gap: 8px;
+  }
+
+  .app__bar :deep(.history) {
+    gap: 8px;
   }
 
   .app__title {

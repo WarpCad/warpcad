@@ -2,6 +2,7 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { clickAssistant, revealAssistantButton } from './support/assistantEntry.js'
 
 /**
  * `TODO/ai-010` — the **plumbing** of `TODO/ACCEPTANCE.md` scenarios 17 (airfoil and wing) and
@@ -54,7 +55,7 @@ async function useScript(page, script) {
 
 /** @param {import('@playwright/test').Page} page */
 async function openAssistant(page) {
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('assistant-panel')).toBeVisible()
 }
 
@@ -97,7 +98,7 @@ test.describe('scenario 17 plumbing — airfoil and wing', () => {
       /** @type {any} */ (window).__WARPCAD_SCRIPTED__ = value
     }, transcript('airfoil-wing'))
     await page.goto('/')
-    await page.getByTestId('assistant-button').click()
+    await clickAssistant(page)
     await expect(page.getByTestId('assistant-panel')).toBeVisible()
     await expect(page.getByTestId('ai-key-input')).toHaveCount(0)
   })
@@ -414,7 +415,7 @@ test.describe('TODO/ai-017 — keep editing while the Assistant works', () => {
 test('a production build ignores a transcript: no badge, and the Assistant asks for a key', async ({ page }) => {
   test.skip(process.env.E2E_PREVIEW !== '1', 'needs the production build: E2E_PREVIEW=1 npx playwright test e2e/ai-scripted.e2e.js')
   await useScript(page, transcript('airfoil-wing'))
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-input')).toBeVisible()
   await expect(page.getByTestId('ai-scripted-badge')).toHaveCount(0)
 })

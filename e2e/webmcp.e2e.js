@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { agentCall, installFakeWebMcp, registeredNames, webMcpMeta } from './support/fakeWebMcp.js'
+import { clickAssistant, revealAssistantButton } from './support/assistantEntry.js'
 
 /**
  * WebMCP, driven end to end against `/` (`TODO/ai-021`, `docs/decisions/ai-partner.md`
@@ -96,7 +97,7 @@ test('a browser agent lists the tools, places a cube and a sphere and unions the
   expect(await page.evaluate(() => /** @type {any} */ (window).__webmcp.annotations('describe_scene'))).toMatchObject({ readOnlyHint: true, untrustedContentHint: true })
 
   // No key: with WebMCP present the Assistant opens on its panel, which says a browser agent can drive it.
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('assistant-panel')).toBeVisible()
   const chip = page.getByTestId('ai-webmcp-switch')
   const count = names.length
@@ -171,7 +172,7 @@ test('a browser agent lists the tools, places a cube and a sphere and unions the
 
   await page.reload()
   await expect(page.getByTestId('viewport')).toBeVisible()
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-webmcp-switch')).toHaveText('Browser agents · off')
   expect(await registeredNames(page)).toEqual([])
 
@@ -195,7 +196,7 @@ test('without WebMCP nothing is registered, nothing throws, and there is no Brow
   expect(await webMcpMeta(page)).toBe('api=none; enabled=off; visible=yes; registered=0; failed=[]')
 
   // The dev host, no key, no WebMCP: the key sheet, as before (Decision 13's third row without the API).
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
   await expect(page.getByTestId('ai-webmcp-switch')).toHaveCount(0)
   await snapshot(page, testInfo, 'absent')
@@ -232,7 +233,7 @@ test('a tab hidden when the page loads: on, nothing registered, and the chip and
   await expect.poll(() => webMcpMeta(page)).toBe(diagnostic)
   expect(await registeredNames(page)).toEqual([])
 
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   const chip = page.getByTestId('ai-webmcp-switch')
   await expect(chip).toHaveText('Browser agents · on, but the tab is hidden')
   await expect(chip).toHaveAttribute('aria-checked', 'true')
@@ -262,7 +263,7 @@ test('a built copy: Live MCP access points at Browser agents and the file route,
   await expect.poll(() => registeredNames(page)).toContain('create')
 
   // Hosted, WebMCP on, no key: the hosted no-key line, and the composer repeats it.
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   const header = page.getByTestId('assistant-connection-text')
   await expect(header).toHaveText('A browser agent can drive this project. The box below needs an API key; to use your agent, ask it in its own panel.')
   await expect(page.getByTestId('ai-composer-reason')).toHaveText(await header.innerText())

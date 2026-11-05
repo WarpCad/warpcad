@@ -5,6 +5,7 @@ import { join } from 'node:path'
 
 import { connectMcpClient } from '../mcp/claudeCodeStandIn.js'
 import { STARTER_CLAUDE_CODE, STARTER_OTHER_AGENT } from '../src/ai/mcpPrompts.js'
+import { clickAssistant, revealAssistantButton } from './support/assistantEntry.js'
 
 const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'ai-mcp-agent-pairing')
 const REQUEST = 'add a 40 mm cube and a 20 mm sphere on top'
@@ -26,7 +27,7 @@ test('any MCP client can use explicitly enabled live access, and off refuses wri
     expect(refused.text).toMatch(/live MCP access is off/i)
     expect(refused.text).not.toMatch(/[A-Z2-9]{4}-[A-Z2-9]{4}/)
 
-    await page.getByTestId('assistant-button').click()
+    await clickAssistant(page)
     await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
     await page.getByTestId('ai-key-connect').click()
     const sheet = page.getByTestId('ai-connect-sheet')
@@ -94,7 +95,7 @@ test('the live-access control is reachable at phone, tablet, and laptop widths',
   test.skip(process.env.E2E_PREVIEW === '1', 'the live MCP bridge exists only on the dev host: E2E_DEV=1 npx playwright test e2e/ai-mcp-agent-pairing.e2e.js')
   test.skip(!testInfo.project.name.startsWith('chromium-'), 'Chromium only: this local HTTP access control does not use WebGL, canvas, persistence, or cross-engine APIs.')
   await page.goto('/')
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
   await page.getByTestId('ai-key-connect').click()
   await expect(page.getByTestId('ai-connect-sheet')).toBeVisible()
@@ -111,7 +112,7 @@ test('the Start the agent row fits at every width and copies the fixed texts (TO
   test.skip(!testInfo.project.name.startsWith('chromium-'), 'Chromium only here: clipboard grants are Chromium-only; the copy handler is proved on every engine in ai-starter-copy.e2e.js.')
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.goto('/')
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await page.getByTestId('ai-key-connect').click()
   await expect(page.getByTestId('ai-connect-sheet')).toBeVisible()
 

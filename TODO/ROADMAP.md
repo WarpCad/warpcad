@@ -57,7 +57,6 @@ this repository still need a green full run before they are pushed.
 | 11 | `M20` | ▶ M20 home page: [`build-022`](M20-build-022-home-page-live-on-warpcad-com.md) | `warpcad.com` is a parking page; the docs can only be found from inside the app. `docs-026` and `testing-012` are ready | sonnet |
 | 13 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
 | 14 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
-| 15 | `FIND` | ▶ [`ui-078`](FIND-ui-078-phone-header-width-budget.md) Give the 390 px header a real width budget | No width left after `ui-075` | sonnet |
 | 16a | `FIND` | [`ui-092`](FIND-ui-092-prompts-view-highlight-and-edit.md) A Prompts view: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole | Filed 2026-11-02 at the owner's request; rank not yet reviewed. `testing-014` is closed, so nothing blocks it | opus |
 | 16e | `FIND` | ▶ [`core-079`](FIND-core-079-whole-model-subtract-off-main-thread.md) Whole-model Subtract blocks the main thread for 624 ms; move the composite union off it | Filed 2026-11-04 from io-024. Ranked low 2026-11-04 at the owner's request | opus |
 | 16f | `FIND` | [`testing-016`](FIND-testing-016-part-default-hidden-canvas-same-flakes.md) Canvas "same" checks in `part-default-hidden.e2e.js` flake, alone and in the full suite | Filed 2026-11-04 while landing core-078 Part 2; reproduces on HEAD | sonnet |
@@ -279,7 +278,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-006` | Hand-drive scenarios 24, 25 and the `ui-071` repro against the phone header entry. Split from `ui-075` 2026-10-18 | Feature | `ui-075` | 24, 25 |
-| `ui-078` | The 390 px header has no width budget left after `ui-075`; decide the layout before `ui-077`. Filed 2026-10-18 | Finding | `ui-075` | 24, 25 |
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `ui-092` | A Prompts view from the Inspector: highlight what a request made, link a part to its request, edit requests and replies, keep a long request whole. Filed 2026-11-02 | Feature | — | 10, 22, 27, 30 |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
@@ -396,7 +394,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 9 | `testing-006`, `ui-078`, `testing-008`, `ui-092`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`. |
+| [Findings](#findings-open-rows) | 8 | `testing-006`, `testing-008`, `ui-092`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

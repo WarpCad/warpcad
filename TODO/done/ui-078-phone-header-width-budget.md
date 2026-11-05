@@ -5,8 +5,13 @@ kind: finding
 priority: medium
 model: sonnet
 depends: [ui-075]
-status: open
+status: done
 ---
+
+> **Shipped as:** one grouped AI menu at phone width (`src/components/ai/AiHeaderEntry.vue`), with 8 px
+> gaps and the width budget table above `.app__bar`'s phone block in `src/views/AppView.vue`. Share now
+> steps out of the row on every phone, not only the dev host. Acceptance scenarios 24 and 25 were not
+> hand-driven (they need a real AI key and a live MCP client).
 
 ## Problem
 

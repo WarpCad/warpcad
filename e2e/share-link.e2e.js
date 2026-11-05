@@ -168,8 +168,10 @@ async function expectHeaderFits(page) {
   const bar = await page.getByTestId('app-header').evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
   expect(bar.scroll, 'the header row is wider than the header').toBeLessThanOrEqual(bar.client)
   const width = /** @type {{ width: number }} */ (page.viewportSize()).width
-  for (const id of ['assistant-button', 'file-menu-button']) {
-    const box = await page.getByTestId(id).boundingBox()
+  // The Assistant button, or on a phone with the live bridge the grouped AI menu trigger (`ui-078`).
+  for (const locator of [page.getByTestId('assistant-button').or(page.getByTestId('ai-menu-button')), page.getByTestId('file-menu-button')]) {
+    const id = 'header control'
+    const box = await locator.boundingBox()
     expect(box && box.x + box.width, `${id} is pushed off the row`).toBeLessThanOrEqual(width)
   }
 }

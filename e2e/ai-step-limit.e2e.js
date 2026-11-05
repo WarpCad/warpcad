@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { agentCall, installFakeWebMcp } from './support/fakeWebMcp.js'
+import { clickAssistant, revealAssistantButton } from './support/assistantEntry.js'
 
 /**
  * `TODO/ai-033` — the project's **AI step limit**, against the real app at `/`, with a stand-in
@@ -44,7 +45,7 @@ const cubes = (count, row) =>
 
 /** @param {import('@playwright/test').Page} page */
 async function openAssistant(page) {
-  await page.getByTestId('assistant-button').click()
+  await clickAssistant(page)
   await expect(page.getByTestId('assistant-panel')).toBeVisible()
   const tall = page.getByTestId('ai-sheet-full')
   if (await tall.isVisible()) await tall.click()

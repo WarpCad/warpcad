@@ -276,8 +276,8 @@ reach the loopback endpoint may read and change the open project.
 
 2. Open WarpCad at `http://localhost:5183` in a browser on this computer.
 
-3. In WarpCad open **Assistant → Live MCP access** (on a phone, tap the **⇄** button in the
-  header), choose **15 minutes**, and select **Enable access**. The sheet explains that any local MCP client can use the enabled tab, and shows the
+3. In WarpCad open **Assistant → Live MCP access** (on a phone, tap the **✦** AI button in the
+  header, then **Live MCP access**), choose **15 minutes**, and select **Enable access**. The sheet explains that any local MCP client can use the enabled tab, and shows the
   endpoint address (`http://127.0.0.1:5183/mcp`) your client should be registered with. Choose a longer
   lease only when you need it; you can turn access off from the same sheet at any time.
 
