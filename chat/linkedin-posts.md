@@ -3861,3 +3861,16 @@ On the 29-part board, a rename costs about 5 ms of main-thread work and causes n
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** FreeCAD export has no names → TODO/done/ui-094 (io-024's file); 29 parts → scripted import of the owner's file this session; one History step, colour/eye/list place/selection kept → documentRenamePart.spec.js (core and store) and rename-part-of-group.e2e.js, this session; duplicate refused with a suggestion → same specs; Library copy keeps the name → userPart.spec.js test this session; ~5 ms and no long task → drivephone.mjs perf samples 3.9-6 ms, longtask list empty (Chromium), this session; no union → copyParts carries getters (diff) and group.spec.js lazy-part test.
 **To Add:** docs/screenshots/inspector-rename-part.png
+
+## 2026-11-05T20:47Z — warpcad.com home page is live
+
+**Post:** WarpCad's home page is now live at warpcad.com. The app stays at app.warpcad.com, which was not changed, and the home page links to the 33 help pages published with the app.
+
+Getting there took DNS work: the domain is verified for the GitHub organisation, HTTPS is enforced, and the apex and www records point at GitHub Pages. The owner checked the site on an iPad, an iPhone and a desktop browser, and the first acceptance scenario, placing a box and a sphere, works on the device.
+
+One check is still open: the next scheduled Pages run after go-live. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://warpcad.com/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** domain verified and HTTPS enforced → TODO/VERIFY.md row 4 (Pages API cname warpcad.com) and row 5 (https_enforced true); apex and www to GitHub → VERIFY row 6 (dig output); app.warpcad.com unchanged → VERIFY row 7 (HTTP/2 200); 33 help pages linked → VERIFY row 10 check text; owner device checks and scenario 1 → VERIFY row 9 owner reports (owner's words); next scheduled run still open → VERIFY row 10 status Open.
+**To Add:** none

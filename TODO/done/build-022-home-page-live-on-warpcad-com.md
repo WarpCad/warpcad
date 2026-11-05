@@ -6,8 +6,15 @@ priority: medium
 model: sonnet
 milestone: M20
 depends: [docs-027]
-status: open
+status: done
 ---
+
+> **Retired 2026-11-05.** The home page is live: `warpcad.com` is verified for the org, HTTPS is enforced,
+> the apex and `www` records point at GitHub, and `app.warpcad.com` is unchanged. The owner's device checks
+> passed on iPad, iPhone and desktop, and acceptance scenario 1 works on the device (`TODO/VERIFY.md` row 9).
+> Closed by the owner's choice with row 10 still open: it needs the next scheduled Pages run after go-live and is
+> tracked in `TODO/VERIFY.md`. Row 7's open question (which app build is live) was resolved: `8f2897d` is on
+> `origin/main`, and the live version matches the v1.7.0 release.
 
 > **Decision update (2026-10-31, `docs-026`).** The App Store support URL is GitHub Issues, not `warpcad.com`, so
 > `build-020` does not wait on this task. `warpcad.com` remains the canonical host (`docs/decisions/home-page.md`).
@@ -78,8 +85,10 @@ through it:
 9. **Live check, by hand**, at phone (390×844), tablet and laptop, in Safari on the owner's
    iPhone or iPad plus one desktop browser: run `docs-027`'s example, then tap **Open WarpCad**
    and do acceptance scenario 1 (place a box and a sphere; both stay visible).
-10. The next scheduled run (the day after) succeeds, and the deployed
-    `help-index.snapshot.json` matches the app's live `help/index.json`.
+10. The next scheduled Pages run after go-live succeeds, and every page in the app's live
+    `help/index.json` is linked from the home page at `https://warpcad.com/`. (The earlier
+    wording named `help-index.snapshot.json`, which the pipeline does not produce; the home page
+    reads the app's live index at build time instead.)
 
 Then make the deferred `docs/README.md` and `README.md` edits, and the `hosting.md` section.
 

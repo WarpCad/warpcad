@@ -805,6 +805,7 @@ first five rows below.
 | ✅ `docs-028` | Published help is a versioned contract: `help/index.json` gains `schema`/`version`/`commit`/`aliases`; `docs/help-slugs.json` lockfile fails a build that drops a slug; decision record `documentation.md` | Docs | `testing-012` | — |
 | ✅ `docs-026` | Decision record `docs/decisions/home-page.md`: VitePress 1.6.x chosen, GA4 in its own property, `warpcad.com` canonical, App Store support URL = GitHub Issues | Docs | — | the record |
 | ✅ `testing-012` | `e2e/help-deep-link.e2e.js`: cold `/#/help/<slug>` and topic ids open Help, Esc clears the hash, `#/gist/` keeps priority, unknown slug gets a readable line; 3 × 3 | Testing | — | 1 (from a cold help link) |
+| ✅ `build-022` | Home page live on `warpcad.com`: domain verified, HTTPS enforced, apex and `www` moved to GitHub, `app` untouched. Row 10 (next scheduled run) tracked in VERIFY | Build | `docs-027` | owner device checks (VERIFY row 9) |
 
 ## Findings
 
@@ -1227,6 +1228,7 @@ convention going forward.
 | `ui-074` | 2026-11-05 12:57 | ~4m from Step 1 (12:53 UTC), wall clock. Note text only: `moveRefusalText` in `src/core/repeat.js`, its four spec sites, and the `docs/snap-align.md` paragraph (the TODO's `docs/repeat.md` does not exist). Unit 8497 green, typecheck green, repeat-placement and selection-inspector e2e green on all projects (27 skipped by design). Scenario 15 not driven by hand (text-only change). |
 | `ui-090` | 2026-11-05 17:02 | ~1h03m from Step 1 (15:59 UTC), wall clock. Unit 8498 green, typecheck green, object-visibility e2e 36/36 on all nine projects, full e2e 5144 passed, 0 failed, 1865 project-gated skips. Mobile File-menu baseline refreshed: ui-078 moved Share out of the phone header. Docs still picture not regenerated (docs:media's movie step fails and rewrites every GIF; restored). Scenarios 6 and 10 not driven by hand. |
 | `ui-092` | 2026-11-05 17:31 | 57 s from Step 1 (17:30 UTC), wall clock. No code changed in this run: Parts 1–5 and the docs were already committed. Retired on the owner's choice with the performance measurement and the Fan Duct hand check still open. |
+| `build-022` | 2026-11-05 18:27 | not measured: the owner's device checks ran across this session |
 | `ui-094` | 2026-11-05 20:31 | 1h42m (Step 3 skipped: stamp already green at 18:49). Opus wrote it in-session (`model: opus`). Unit 8,536 passed. Full e2e twice: first 11 failures, all old expectations this task changes on purpose (`rename-part.e2e.js`'s "no field on a sub-part", the `import-3mf-parts` docs still now showing the pencil), both updated; then 1 failure, `testing-016`'s known `firefox-tablet` canvas flake (8/25 at HEAD, 4/25 here). Scripted drive PASS on scenarios 31 (Chromium and WebKit, 1440 and 390), 6, 32, 1, and 33 partially; 15 not driven. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

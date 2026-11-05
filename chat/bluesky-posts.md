@@ -2671,3 +2671,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unnamed 3MF parts arrive as Part 1, Part 2 → TODO/done/ui-094 and docs/user-library.md; nothing could rename them before → TODO/done/ui-094 ("Nothing in the app can change them afterwards"); keeps colour, list position, selection, one Undo → src/core/documentRenamePart.spec.js, src/stores/documentRenamePart.spec.js, e2e/rename-part-of-group.e2e.js (18/18 across 9 projects), all run this session.
 **To Add:** docs/screenshots/inspector-rename-part.png
+
+## 2026-11-05T20:47Z — warpcad.com home page is live
+
+**Post:** warpcad.com is live. The home page links to the app at app.warpcad.com and to the help pages. HTTPS is on. #CAD #WebGL #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://warpcad.com/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** warpcad.com live → TODO/VERIFY.md rows 4-7, 2026-11-05 checks; HTTPS enforced → VERIFY row 5 (Pages API https_enforced: true); home page links to the app and the help pages → VERIFY row 9 (Open WarpCad link to app.warpcad.com) and row 10 (33 help pages linked, 2026-11-05 check).
+**To Add:** none

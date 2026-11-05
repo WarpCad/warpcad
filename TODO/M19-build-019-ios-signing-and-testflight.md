@@ -13,6 +13,8 @@ status: open
 > Program membership, (2) confirmed the bundle identifier from `build-017` (proposed
 > `com.warpcad.app`), and (3) created the app record in App Store Connect under that identifier.
 > If any of those is missing, stop and list what is missing. Do not create accounts or records.
+>
+> **Decided 2026-11-05:** the owner says the Apple Developer membership (1) and the bundle identifier (2) are ready. Step (3), the App Store Connect app record, was not confirmed; check it before this task starts.
 
 ## Goal
 
