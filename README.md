@@ -21,7 +21,7 @@ New here? [Getting started in five minutes](docs/getting-started.md) walks throu
 
 ## Launch WarpCad
 
-> **▶ [Open WarpCad at app.warpcad.com](https://app.warpcad.com)**
+> **▶ [Open WarpCad at app.warpcad.com](https://app.warpcad.com)** · [Home page at warpcad.com](https://warpcad.com)
 >
 > It runs in your browser, so there is nothing to install. On a phone, tablet or computer you can
 > add it to your home screen or dock as an app, and it keeps working offline after the first visit.

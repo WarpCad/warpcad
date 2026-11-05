@@ -3835,3 +3835,16 @@ This session, the full unit suite passed 8131 tests and the stored check came ba
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 20-minute re-run before commit → the user's report in this session; hand run counts → `stamp check` exit 0 this session on the stored results; 8131 unit tests passed in full → bare `npm run test:unit` output this session; a targeted passing run keeps a full pass → `recordRun` and its spec in scripts/todo-progress.spec.js, 35 of 35 passing this session.
 **To Add:** none
+
+## 2026-11-05T17:53Z — warpcad.com home page is live
+
+**Post:** WarpCad now has a home page at warpcad.com. It sits on its own GitHub Pages site, so the app keeps its own address at app.warpcad.com.
+
+The page links into the app's help pages. Until now the help could only be found from inside the app.
+
+Checked today: the domain is verified for the WarpCad organisation, HTTPS is enforced, and both www and the old project-page address redirect correctly. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://warpcad.com/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** domain verified and HTTPS enforced → gh api Pages output this session; redirects and app 200 → dig and curl this session; help links from the home page → TODO/done/docs-027 spec, not re-checked on the live page.
+**To Add:** none

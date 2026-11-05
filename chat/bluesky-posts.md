@@ -2653,3 +2653,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** re-ran the 20-minute suite before commit → the user's report in this session; hand runs count now → `stamp check` exit 0 this session, reading `.todo-progress/_runs.json` (unit passed in full, 8131 tests; e2e passed in full, stored 2026-11-04T15:54Z); typecheck exit 0 this session.
 **To Add:** none
+
+## 2026-11-05T17:53Z — warpcad.com home page is live
+
+**Post:** warpcad.com now has a home page for WarpCad, with links into the app's help pages. The app stays at app.warpcad.com. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://warpcad.com/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** warpcad.com serves the home page (title and Open WarpCad button) → curl this session; app.warpcad.com returns 200 → curl this session; help links from the home page → TODO/done/docs-027 spec, not re-checked on the live page.
+**To Add:** none

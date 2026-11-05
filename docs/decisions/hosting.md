@@ -55,6 +55,27 @@ Domains and the repository's Settings -> Pages (Source "GitHub Actions", custom 
 (2026-10-17). Before that, the first deploy would have been built with base `/warpcad/`; the
 `/` base is what the custom domain needs. The live checks are in `TODO/VERIFY.md`.
 
+### Home page (`TODO/build-022`, 2026-11-05)
+
+The home page is a second Pages site, in `~/src/@WarpCad/warpcad.github.io` (repository
+`WarpCad/warpcad.github.io`, public). Its `public/CNAME` holds `warpcad.com`, and it is separate
+from the app's own site above, so `app.warpcad.com` is unaffected by anything on the home page.
+
+Live as of 2026-11-05, checked with `dig` and `curl`:
+
+- `warpcad.com` A records are the four GitHub addresses (`185.199.108.153`–`.111.153`); the AAAA
+  records are `2606:50c0:8000::153`–`8003::153`. The Squarespace A records and the `www` record
+  to `ext-sq.squarespace.com` are gone.
+- `www.warpcad.com` is a CNAME to `warpcad.github.io.` and redirects (301) to `https://warpcad.com/`.
+- `http://warpcad.com` redirects (301) to `https://warpcad.com/`. The domain is verified for the
+  WarpCad organisation and **Enforce HTTPS** is on.
+- `app` still points at `warpcad.github.io.`, and `https://app.warpcad.com/` returns 200.
+- The MX records (Mailgun) are still in place. They were not changed, and no decision about them
+  has been recorded in this repository.
+
+The live check on a phone, tablet and laptop, and the next scheduled Pages run, are still open in
+`TODO/VERIFY.md` under "build-022".
+
 ### Rejection table
 
 | Option | Why not |

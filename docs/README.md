@@ -32,7 +32,7 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 ## Using WarpCad
 
 WarpCad is hosted at **https://app.warpcad.com**. Open it in any modern browser, and there is
-nothing to install. The pages below cover what each part of the app does.
+nothing to install. The home page, **https://warpcad.com**, links every page here into the app. The pages below cover what each part of the app does.
 
 ![The WarpCad window with no model yet: the Library on the left, the 3D view with its grid, navigation pad and orientation triad, and the Operations toolbar.](./screenshots/app-overview.png)
 
