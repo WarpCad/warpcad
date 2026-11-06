@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.12.0](https://github.com/WarpCad/warpcad/compare/v1.11.0...v1.12.0) (2026-11-06)
+
+### Features
+
+* **ai:** serve the live MCP bridge from npm run preview ([f17a9a6](https://github.com/WarpCad/warpcad/commit/f17a9a6850ab6d5504adff6d29835a41948888b1))
+
+### Bug Fixes
+
+* **render:** paint a shown hidden part with its own colour (TODO/ui-098) ([e0309ea](https://github.com/WarpCad/warpcad/commit/e0309eaeaedca0782de35225bcea7369c0370ac7))
+* **ui:** a second part tick drops the body instead of measuring it whole (TODO/ui-097) ([9c2e12b](https://github.com/WarpCad/warpcad/commit/9c2e12b5a5a79481ca5a0ce3dba6d7f15f40dc3f))
+
 ## [1.11.0](https://github.com/WarpCad/warpcad/compare/v1.10.0...v1.11.0) (2026-11-06)
 
 ## [1.10.0](https://github.com/WarpCad/warpcad/compare/v1.9.0...v1.10.0) (2026-11-06)
