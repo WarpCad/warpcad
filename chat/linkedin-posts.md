@@ -3902,3 +3902,16 @@ The change touched the shared e2e build, which had made the header treat the bri
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** preview endpoint on 127.0.0.1:4173 and SSE transport → vite.config.js and src/ai/bridge/protocol.js diffs (staged); default build carries no bridge, access off by default → docs/mcp.md diff; e2e build moved to its own port → playwright.config.js diff (fixer, this session); full unit and e2e green → stored run 2026-11-06T15:53Z
 **To Add:** none
+
+## 2026-11-06T16:19Z — Two bugs from real use are filed as open findings
+
+**Post:** WarpCad's Align tool had a trap. In the Objects list, ticking a part's check a second time didn't remove that part from the target. It stepped the target back up to the whole body and kept it selected. Align then measured the whole object, hidden board included, and a cutter landed 0.256 mm past the connector it was meant to touch. The popover said nothing about the change.
+
+I reproduced that on the reported file, at commit 934656a in desktop Chromium, and filed it as a finding with three parts: deselect on a second tick, name "whole object" in the popover, and let the popover pick a part of the target. A second report, a click that selected the wrong of two overlapping cutters, is filed beside it. Its cause is not yet confirmed.
+
+Both are open. No fix has landed, and the first step is to reproduce the reported session exactly. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** second tick steps to whole body, cutter 0.256 mm past connector → TODO/FIND-ui-097 Problem and reproduction table (built app at 934656a, Chromium 1440x900); the three-part fix → TODO/FIND-ui-097 Proposed fix; overlapping-cutter selection, cause unconfirmed → TODO/FIND-ui-098 Problem ("Neither is confirmed"); no fix landed → both files Status: open, and FIND-ui-098 "Do not fix yet".
+**To Add:** none

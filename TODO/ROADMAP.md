@@ -33,7 +33,7 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
+*Last reviewed 2026-11-06 (`ui-097` Align measured the whole Feather after its part was ticked, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
 
 **Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
 (widened 2026-10-26; iOS first) that
@@ -54,6 +54,7 @@ this repository still need a green full run before they are pushed.
 | 8 | `M19` | [`ai-026`](M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app | MCP service for agents | opus |
 | 9 | `M19` | [`testing-011`](M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28, the iOS app end to end, on the iPhone; free-form pass | The only check a fake Tauri boundary cannot stand in for | sonnet |
 | 10 | `M19` | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store listing, privacy, licence audits; stops at the owner's **Submit** | Ends at the Part 6 legal gate | sonnet |
+| 11 | `FIND` | ▶ [`ui-097`](FIND-ui-097-align-target-part-dropped-to-whole-body.md) Align measured the whole Feather after its Battery-Connector was ticked: a second tick silently drops the part; add Measure to | Owner's report, same symptom as `ui-063`: a cutter landed 0.256 mm off the connector | sonnet |
 | 13 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
 | 14 | `FIND` | ▶ [`testing-006`](FIND-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry | Closes `ui-075`'s Testing section | sonnet |
 | 16e | `FIND` | ▶ [`core-079`](FIND-core-079-whole-model-subtract-off-main-thread.md) Whole-model Subtract blocks the main thread for 624 ms; move the composite union off it | Filed 2026-11-04 from io-024. Ranked low 2026-11-04 at the owner's request | opus |
@@ -275,6 +276,7 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
+| `ui-097` | Align measured the whole Feather after its part was ticked in the Objects list (a second tick steps up to whole, still selected); popover doesn't say "whole"; add Measure to. Filed 2026-11-06 | Finding | — | 3, 6, 31 |
 
 ---
 
@@ -387,7 +389,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 7 | `testing-006`, `testing-008`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`. |
+| [Findings](#findings-open-rows) | 8 | `ui-097`, `testing-006`, `testing-008`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

@@ -2698,3 +2698,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** preview endpoint on 127.0.0.1:4173 → vite.config.js diff (staged); VITE_LIVE_BRIDGE=1 build only, default build carries no bridge → docs/mcp.md diff (staged); full e2e and unit green on the tree → stored run 2026-11-06T15:53Z (scripts/todo-progress stamp check)
 **To Add:** none
+
+## 2026-11-06T16:19Z — Two bugs from real use are filed as open findings
+
+**Post:** Two bugs from real use are now open findings in WarpCad: a second tick on a part's check quietly aligns to the whole body, and an overlapping cutter may be the one selected instead of the one under the pointer. No fixes yet. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two findings filed → TODO/FIND-ui-097-align-target-part-dropped-to-whole-body.md and TODO/FIND-ui-098-colour-set-on-selected-cutter-shows-on-the-other-one.md (new in this commit); second tick aligns to whole body → FIND-ui-097 reproduction table, built app at 934656a, Chromium 1440x900; overlapping cutter may be selected → FIND-ui-098, explicitly unconfirmed hypothesis; no fixes → both files' Status: open and "Do not fix yet".
+**To Add:** none
