@@ -464,7 +464,10 @@ bolt's `tap` (the clearance envelope its thread actually needs) and a washer's
 
 A group gets the same section. [Merging groups](groups.md#grouping-groups-merging-their-parts)
 keeps every piece of each one in this list, so you can still reach and cut with a hidden
-clearance block.
+clearance block. With **Show hidden parts** on, a hidden piece you give a colour is drawn
+in that colour (still translucent), so the box you picked and the box you recoloured are the
+same one. Select a group, tick **Show hidden parts**, click the translucent box, and set its
+colour in the Inspector: only that box changes.
 
 A plain Cube, Sphere or any other one-piece shape has no Parts section at all. It is not
 there and greyed out. It simply is not there.

@@ -32,7 +32,7 @@ import {
   MeshStandardMaterial,
 } from 'three'
 
-import { paintColorOf, recipeColorOf } from '../core/colorOverride.js'
+import { ownOverrideOf, paintColorOf, recipeColorOf } from '../core/colorOverride.js'
 import { boundsOf, hasNamedParts, toGeom3 } from '../core/kernel/group.js'
 import { isBodyDrawn, isPartDrawn } from '../core/visibility.js'
 
@@ -572,17 +572,21 @@ export function paintBodyObject(object, { role, overrides, preview, shared, cach
   }
 
   /**
-   * A shown hidden part (`TODO/ui-047`) always draws in its own recipe colour at a
-   * fixed translucent alpha, never the shared palette and never a preview — the
-   * colour picker only ever targets a *visible* part or the whole body, so there is
-   * nothing for a hidden part's own preview branch to check.
+   * A shown hidden part (`TODO/ui-047`) draws at a fixed translucent alpha, never the
+   * shared palette. Its colour is the part's **own** user override, else its recipe colour
+   * (`TODO/ui-098`: a colour set on a selected cutter was recorded and the box stayed its
+   * recipe blue). A whole-body colour still does not repaint it: a clearance is not part of
+   * the body's look. A live picker preview for this very part shows too, since the Inspector
+   * offers a hidden part a colour once it is selected.
    *
    * @param {string | undefined} partName
    * @returns {MeshStandardMaterial}
    */
   const hiddenPartMaterial = (partName) => {
-    const paint = recipeColorOf(recipeColors, partName)
-    const color = paint?.color ?? palette.color.getHex()
+    const previewed = preview && preview.subPart !== undefined && preview.subPart !== '' && preview.subPart === partName
+    const own = partName === undefined ? undefined : ownOverrideOf(overrides, partName)
+    const paint = own ?? recipeColorOf(recipeColors, partName)
+    const color = previewed ? preview.color : (paint?.color ?? palette.color.getHex())
     return cache.materialFor(color, HIDDEN_PART_ALPHA, 'none', isHovered(partName))
   }
 

@@ -373,19 +373,28 @@ describe('Hidden parts (TODO/ui-047)', () => {
     expect(hidden.material.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
   })
 
-  it('a user colour override on the hidden part itself is not consulted — the toggle is a view, not a colour pick', () => {
-    // Nobody can currently colour-pick a hidden part (the Inspector's Color
-    // control only ever addresses a visible part or the whole body), but the
-    // material function is defensive anyway: an override naming the hidden part
-    // must not leak through and repaint what is meant to read as "this is the
-    // clearance, not a real colour choice".
+  it('a shown hidden part wears its own user colour over its recipe colour, and a live pick for it (TODO/ui-098)', () => {
+    const materials = shared()
+    const colors = cache()
+    const group = shellWithHiddenTap()
+    const object = createBodyObject(group, materials.body, 'bolt-1', ['tap'])
+    const options = { role: /** @type {const} */ ('none'), shared: materials, cache: colors, recipeColors: group.colors }
+    paintBodyObject(object, { ...options, overrides: [{ color: 0x00ff00, subPart: 'tap' }], preview: null })
+    const hidden = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'tap'))
+    expect(hidden.material.color.getHex()).toBe(0x00ff00)
+    expect(hidden.material.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
+    paintBodyObject(object, { ...options, overrides: undefined, preview: { color: 0x0000ff, subPart: 'tap' } })
+    expect(hidden.material.color.getHex()).toBe(0x0000ff)
+  })
+
+  it("a whole-body colour, or another part's, does not repaint a shown hidden part", () => {
     const materials = shared()
     const colors = cache()
     const group = shellWithHiddenTap()
     const object = createBodyObject(group, materials.body, 'bolt-1', ['tap'])
     paintBodyObject(object, {
       role: 'none',
-      overrides: [{ color: 0x00ff00, subPart: 'tap' }],
+      overrides: [{ color: 0x00ff00 }, { color: 0x0000ff, subPart: 'shell' }],
       preview: null,
       shared: materials,
       cache: colors,
@@ -393,7 +402,6 @@ describe('Hidden parts (TODO/ui-047)', () => {
     })
     const hidden = /** @type {any} */ (object.children.find((child) => child.userData.partName === 'tap'))
     expect(hidden.material.color.getHex()).toBe(0xff0000)
-    expect(hidden.material.opacity).toBeCloseTo(HIDDEN_PART_ALPHA, 9)
   })
 })
 

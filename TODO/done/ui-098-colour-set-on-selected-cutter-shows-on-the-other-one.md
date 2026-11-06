@@ -6,8 +6,21 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-06 from a screenshot report
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-06).** Picking was correct, so no pick or selection change was made. The
+> defect was in the renderer: a hidden part shown with Show hidden parts was painted from its recipe
+> colour only, so a colour set on it was recorded but never drawn. `src/render/mesh.js` now paints a
+> shown hidden part with its own sub-part override, else its recipe colour, and a live picker preview
+> for that part shows too. A whole-body colour still does not repaint a hidden part. The regression
+> spec is `e2e/colour-selected-cutter.e2e.js` (fixture `e2e/fixtures/cutter-colour-selected.ndjson`,
+> the full owner project), which failed before the fix and passes on all nine engine-viewport
+> projects. `mesh.spec.js` gained two cases. `docs/selection-and-inspector.md` gained a paragraph on
+> colouring a hidden part. Acceptance scenario 6 was driven by hand at laptop Chromium and passes.
+>
+> The owner's expectation is that both translucent cutters can end up red once coloured. The spec
+> checks the Battery-Connector case: colouring it turns its box green while USB stays red.
 
 ## Problem
 
@@ -18,11 +31,12 @@ still renders blue.
 **What the screenshot shows.** The Inspector header reads **USB clearance cutter**, its colour is
 `#ff0000`, its Position is X −29.14, and its note says *"This colours only USB clearance cutter."*
 The viewport shows a red translucent box on the left (the USB cutter) and a blue translucent box at
-the front right (the Battery-Connector cutter). So the red did land, on a different object from the
-one the user meant. The user's description and the Inspector disagree about which object is
-selected, and that is the first thing to settle. **Reported 2026-11-06:** the user selected the
-cutter by clicking the blue box in the viewport, not from the Objects list. That points at
-explanation 1 (picking), so the RED step starts there.
+the front right (the Battery-Connector cutter). **Correction (2026-11-06, from the owner):** the red
+on the USB cutter is not the defect. Both translucent cutters are meant to be red once the user
+colours them. The defect is that colouring the Battery-Connector cutter did not turn its box red.
+The Inspector's header named the object the user had selected, so the red-on-USB result is not the
+selection being wrong; it is a rendering problem. **Reported 2026-11-06:** the user selected the
+cutter by clicking the blue box in the viewport, not from the Objects list.
 
 Two explanations fit the screenshot. Neither is confirmed:
 
