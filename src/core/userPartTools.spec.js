@@ -16,6 +16,7 @@ import {
   partNameProblem,
   renamePart,
   saveToLibraryGate,
+  projectUsage,
   usageOf,
 } from './userPartTools.js'
 
@@ -265,5 +266,77 @@ describe('a placed part’s exposed parameters reach the Inspector’s schema', 
     expect(effectiveUserPart(definition.op)).toBeDefined()
     expect(lookupEntry(definition.op)?.kind).toBe('composite')
     expect(hasEditableParams(definition.op)).toBe(true)
+  })
+})
+
+describe('projectUsage — direct and nested use of a part (TODO/ui-096)', () => {
+  /**
+   * @param {string} op
+   * @param {string} name
+   * @param {...string} children
+   */
+  const part = (op, name, ...children) => ({
+    op,
+    name,
+    version: 1,
+    result: 'r1',
+    records: children.length > 0 ? children.map((child, i) => ({ id: `r${i + 1}`, op: child, params: {} })) : [{ id: 'r1', op: 'primitive.cuboid', params: { size: [1, 1, 1] } }],
+    params: [],
+  })
+  /** @param {...any} definitions */
+  const lookupOf = (...definitions) => {
+    const byOp = new Map(definitions.map((definition) => [definition.op, definition]))
+    return (/** @type {string} */ op) => byOp.get(op)
+  }
+  /** @param {...string} ops */
+  const placed = (...ops) => ops.map((op, i) => ({ id: `p-${i}`, op, name: `P ${i}`, params: {} }))
+
+  it('counts records that place the part itself', () => {
+    const lookup = lookupOf(part('user.a', 'A'))
+    expect(projectUsage(placed('user.a', 'user.a', 'primitive.cuboid'), 'user.a', lookup)).toEqual({ direct: 2, nestedIn: [] })
+  })
+
+  it('names the placed part that nests it, one level down', () => {
+    const lookup = lookupOf(part('user.a', 'A'), part('user.b', 'Box', 'user.a'))
+    expect(projectUsage(placed('user.b'), 'user.a', lookup)).toEqual({ direct: 0, nestedIn: ['Box'] })
+  })
+
+  it('walks two levels: A nests B nests C, A placed, C names A', () => {
+    const lookup = lookupOf(part('user.c', 'C'), part('user.b', 'B', 'user.c'), part('user.a', 'A', 'user.b'))
+    expect(projectUsage(placed('user.a'), 'user.c', lookup)).toEqual({ direct: 0, nestedIn: ['A'] })
+    expect(projectUsage(placed('user.a'), 'user.b', lookup)).toEqual({ direct: 0, nestedIn: ['A'] })
+  })
+
+  it('an unused part is 0 and []', () => {
+    const lookup = lookupOf(part('user.a', 'A'), part('user.b', 'B'))
+    expect(projectUsage(placed('user.b'), 'user.a', lookup)).toEqual({ direct: 0, nestedIn: [] })
+    expect(projectUsage([], 'user.a', lookup)).toEqual({ direct: 0, nestedIn: [] })
+  })
+
+  it('a part nested by two placed parts names both once, in name order, however often each is placed', () => {
+    const lookup = lookupOf(part('user.a', 'A'), part('user.z', 'Zed', 'user.a'), part('user.b', 'Bee', 'user.a'))
+    expect(projectUsage(placed('user.z', 'user.b', 'user.z'), 'user.a', lookup)).toEqual({ direct: 0, nestedIn: ['Bee', 'Zed'] })
+  })
+
+  it('a part both placed directly and nested counts both kinds', () => {
+    const lookup = lookupOf(part('user.a', 'A'), part('user.b', 'Box', 'user.a'))
+    expect(projectUsage(placed('user.a', 'user.b'), 'user.a', lookup)).toEqual({ direct: 1, nestedIn: ['Box'] })
+  })
+
+  it('a deleted placement does not count, nor does one consumed into a deleted body; undo (no tombstone) restores it', () => {
+    const lookup = lookupOf(part('user.a', 'A'), part('user.b', 'Box', 'user.a'))
+    const records = [
+      { id: 'p-1', op: 'user.a', params: {} },
+      { id: 'p-2', op: 'user.b', params: {} },
+      { id: 'grp', op: 'group.assemble', consumes: ['p-2'], params: {} },
+    ]
+    expect(projectUsage(records, 'user.a', lookup)).toEqual({ direct: 1, nestedIn: ['Box'] })
+    const withDelete = [...records, { id: 'p-1-delete', op: 'body.delete', target: 'p-1', supersedes: 'p-1' }, { id: 'grp-delete', op: 'body.delete', target: 'grp', supersedes: 'grp' }]
+    expect(projectUsage(withDelete, 'user.a', lookup)).toEqual({ direct: 0, nestedIn: [] })
+  })
+
+  it('a missing definition ends the walk without throwing', () => {
+    const lookup = lookupOf(part('user.b', 'Box', 'user.gone'))
+    expect(projectUsage(placed('user.b'), 'user.a', lookup)).toEqual({ direct: 0, nestedIn: [] })
   })
 })

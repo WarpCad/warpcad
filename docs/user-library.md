@@ -220,11 +220,12 @@ On a phone the menu is a bottom sheet with large buttons.
 
 ### Deleting a part you have used
 
-A small dot on a row means the part is used in the open project. Deleting a part that has
-placed copies **never deletes them**: each project keeps its own copy of the part's
-definition. The dialog says how many copies there are and offers **Keep a copy in the
-project** (the default) or **Cancel**. The row stays in My parts for the rest of the session,
-from the project's copy, until you start a new project.
+A small dot on a row means the part is used in the open project, either placed itself or
+inside a placed part. Deleting a part that has placed copies **never deletes them**: each
+project keeps its own copy of the part's definition. The dialog says how many copies there are
+and offers **Keep a copy in the project** (the default) or **Cancel**. The row then stays in
+My parts, marked *Only in this project*, for as long as the project uses the part. See
+[A part that's only in this project](#a-part-thats-only-in-this-project).
 
 A part that another saved part uses inside it can't be deleted on its own, because the other
 part would no longer load. The dialog names the parts that use it, for example *Spacer is used
@@ -238,6 +239,34 @@ For example:
 2. Tap **⋯** on the Spacer row, then **Delete…**. The dialog reads *Spacer is used inside
    Spacer pair in My parts. Delete Spacer pair first.* Tap **Cancel**.
 3. Delete **Spacer pair** from its **⋯** menu. Spacer can now be deleted.
+
+### A part that's only in this project
+
+After you delete a part you have used, the project still holds its own copy, so the part's row
+stays in My parts. The row reads **Only in this project**, and a small **Project** label marks
+its tile on a narrow rail. Such a row isn't saved anywhere else, so it can't be renamed. It can
+still be dragged in, and **Duplicate** puts a copy back into My parts for good.
+
+Tap **⋯** on the row and the menu says why it is listed, for example *Not in My parts. It's
+listed because it's placed once in this project.* If the part is used inside another placed
+part, the menu names that part: *…because Feather enclosure, placed in this project, uses it.*
+**Delete…** is available, but it has nothing to remove. It explains what keeps the row there and
+offers only **Cancel**.
+
+The row leaves the list on its own once nothing in the project uses the part. If you undo that
+last delete, the row comes back.
+
+For example:
+
+1. Save a cube as **Spacer**, drag Spacer into the view, then delete Spacer from My parts
+   (**⋯**, **Delete…**, **Keep a copy in the project**).
+2. The Spacer row stays and reads *Only in this project*. Tap **⋯**: the menu says it's listed
+   because it's placed once in this project. Tap **Delete…**: the dialog says to delete the
+   placed copy from the view, or choose Duplicate to keep it. Tap **Cancel**.
+3. Select the placed Spacer in the view and delete it. The Spacer row leaves My parts. Undo, and
+   it comes back.
+
+![The menu of a My parts row for Spacer, open over the list: its note reads Not in My parts, it's listed because it's placed once in this project; Rename is greyed out and Duplicate, Export part file and Delete are available](./screenshots/user-library-project-only.png)
 
 ## A part that can't be loaded
 

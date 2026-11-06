@@ -514,3 +514,90 @@ describe('importedToast (TODO/io-024)', () => {
     expect(importedToast('plate.3mf', one, '2 × 3 × 4 mm')).toBe('Imported plate.3mf — 12 triangles, 2 × 3 × 4 mm')
   })
 })
+
+describe('A part only in the open project is listed while the project uses it (TODO/ui-096)', () => {
+  async function standoffPlaced(count) {
+    const ctx = setup()
+    combine(ctx.documentStore, ctx.selection)
+    ctx.library.openSave()
+    ctx.library.saveName = 'Standoff'
+    await ctx.library.save()
+    for (let i = 1; i <= count; i += 1) {
+      ctx.documentStore.append({ id: `u-${i}`, op: 'user.standoff', name: `Standoff ${i}`, params: {} }, { origin: 'local' })
+    }
+    return ctx
+  }
+  async function projectOnly(count) {
+    const ctx = await standoffPlaced(count)
+    ctx.library.beginDelete('user.standoff')
+    await ctx.library.confirmDelete()
+    return ctx
+  }
+
+  it('a placed project-only part has a row with inLibrary false and its usage', async () => {
+    const { library } = await projectOnly(2)
+    expect(library.userRows).toEqual([expect.objectContaining({ op: 'user.standoff', inLibrary: false, usage: 2, nestedIn: [] })])
+  })
+
+  it('a library part with zero usage still has a row', async () => {
+    const { library } = await standoffPlaced(0)
+    expect(library.userRows.map((row) => [row.label, row.inLibrary, row.usage])).toEqual([['Standoff', true, 0]])
+  })
+
+  it('a project-only part nothing uses has no row', async () => {
+    const { library } = await projectOnly(0)
+    expect(library.userRows).toEqual([])
+  })
+
+  it('removing the last placed record drops the row; undo brings it back and the definition was never dropped', async () => {
+    const { library, documentStore } = await projectOnly(1)
+    expect(library.userRows).toHaveLength(1)
+    documentStore.deleteBodies(['u-1'])
+    expect(library.userRows).toEqual([])
+    expect(effectiveUserPart('user.standoff')).toBeDefined()
+    expect(documentStore.raw.userParts().some((part) => part.op === 'user.standoff')).toBe(true)
+    documentStore.undo()
+    expect(library.userRows.map((row) => [row.op, row.inLibrary])).toEqual([['user.standoff', false]])
+  })
+
+  it('a part nested in a placed project-only part has a row, and a nonzero usage signal naming the parent', async () => {
+    const stored = storedBackend([])
+    const ctx = setup(stored.backend)
+    await stored.backend.save({ op: 'user.feather', name: 'Feather', version: 1, result: 'r1', records: [{ id: 'r1', op: 'primitive.cuboid', params: { size: [10, 4, 2] } }], params: [] })
+    await stored.backend.save({ op: 'user.feather-box', name: 'Feather enclosure', version: 1, result: 'r1', records: [{ id: 'r1', op: 'user.feather', params: {} }], params: [] })
+    await ctx.library.start()
+    ctx.documentStore.append({ id: 'u-1', op: 'user.feather-box', name: 'Box 1', params: {} }, { origin: 'local' })
+    // Delete the parent from the library first (copy kept), then the nested part.
+    ctx.library.beginDelete('user.feather-box')
+    await ctx.library.confirmDelete()
+    ctx.library.beginDelete('user.feather')
+    expect(ctx.library.deletePrompt.confirmLabel).not.toBe(null)
+    await ctx.library.confirmDelete()
+    const row = ctx.library.userRows.find((r) => r.op === 'user.feather')
+    expect(row).toMatchObject({ inLibrary: false, usage: 0, nestedIn: ['Feather enclosure'] })
+    ctx.library.beginDelete('user.feather')
+    expect(ctx.library.deletePrompt).toMatchObject({ confirmLabel: null, projectOnly: true, nestedIn: ['Feather enclosure'] })
+    expect(ctx.library.deletePrompt.message).toBe(
+      "Feather isn't in My parts any more. It's listed here because Feather enclosure, placed in this project, uses it. Delete Feather enclosure from the view and it leaves this list. To keep Feather, choose Duplicate."
+    )
+    expect(await ctx.library.confirmDelete()).toBe(false)
+    ctx.documentStore.deleteBodies(['u-1'])
+    expect(ctx.library.userRows).toEqual([])
+  })
+
+  it('the Delete prompt for a directly placed project-only part says how many, and offers only Cancel', async () => {
+    const { library } = await projectOnly(2)
+    library.beginDelete('user.standoff')
+    expect(library.deletePrompt).toMatchObject({ name: 'Standoff', confirmLabel: null, projectOnly: true, usage: 2 })
+    expect(library.deletePrompt.message).toBe(
+      "Standoff isn't in My parts any more. It's listed here because it's placed 2 times in this project. Delete those from the view and it leaves this list. To keep Standoff, choose Duplicate."
+    )
+    expect(await library.confirmDelete()).toBe(false)
+    expect(library.userRows).toHaveLength(1)
+  })
+
+  it('projectOnlyNote gives the menu note for a row', async () => {
+    const { library } = await projectOnly(1)
+    expect(library.userRows[0].projectOnlyNote).toBe("Not in My parts. It's listed because it's placed once in this project.")
+  })
+})

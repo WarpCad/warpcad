@@ -17,7 +17,7 @@
 
 import { labelForParam } from './inspector.js'
 import { REPEAT_OP } from './repeat.js'
-import { REPEAT_SAVE_REASON, USER_PART_LIMITS, USER_PART_PREFIX, slugify } from './userPart.js'
+import { REPEAT_SAVE_REASON, USER_PART_LIMITS, USER_PART_PREFIX, nestedOpsOf, slugify } from './userPart.js'
 
 /** @typedef {import('./userPart.js').UserPartDefinition} UserPartDefinition */
 /** @typedef {import('./userPart.js').ExposedParam} ExposedParam */
@@ -268,4 +268,115 @@ export function usageOf(records, op) {
   let count = 0
   for (const record of records) if (record.op === op) count += 1
   return count
+}
+
+/**
+ * The records that start a body (they supersede nothing) and whose body has not been deleted.
+ * Deleting a body appends a `body.delete` tombstone and keeps the original rows, so a raw count
+ * of records keeps counting a copy the user already deleted. A body consumed into another one
+ * (a union, a group) is retired with it when that one is deleted. Undo removes the tombstone,
+ * so the body is live again.
+ *
+ * @param {readonly OpRecord[]} records
+ * @returns {OpRecord[]}
+ */
+function livePlacements(records) {
+  /** @type {Map<string, OpRecord>} */
+  const byId = new Map()
+  for (const record of records) if (typeof record.id === 'string') byId.set(record.id, record)
+  /** @type {Set<string>} */
+  const dead = new Set()
+  /** @type {string[]} */
+  const stack = records.filter((record) => record.op === 'body.delete' && typeof record.id === 'string').map((record) => /** @type {string} */ (record.id))
+  while (stack.length > 0) {
+    const id = /** @type {string} */ (stack.pop())
+    if (dead.has(id)) continue
+    dead.add(id)
+    const record = byId.get(id)
+    if (record === undefined) continue
+    if (typeof record.supersedes === 'string') stack.push(record.supersedes)
+    for (const consumed of record.consumes ?? []) stack.push(consumed)
+  }
+  return records.filter((record) => record.supersedes === undefined && record.op !== 'body.delete' && !dead.has(/** @type {string} */ (record.id)))
+}
+
+/**
+ * How the open project uses a user part (`TODO/ui-096`): `direct` is the number of live bodies
+ * (not deleted) that place it; `nestedIn` is the names of the *placed* parts that nest it, at any depth, each once,
+ * in name order. Unlike {@link usageOf} (direct use only, what the Delete dialog's "placed
+ * instances" counts), this is what decides whether a part that is only in the project is still
+ * listed in My parts.
+ *
+ * Iterative and memoised per call, so a hostile or cyclic graph terminates.
+ *
+ * @param {readonly OpRecord[]} records
+ * @param {string} op
+ * @param {(op: string) => UserPartDefinition | undefined} lookup The project's copy first, else the library's.
+ * @returns {{ direct: number, nestedIn: string[] }}
+ */
+export function projectUsage(records, op, lookup) {
+  let direct = 0
+  /** @type {Set<string>} */
+  const placed = new Set()
+  for (const record of livePlacements(records)) {
+    if (record.op === op) direct += 1
+    else if (record.op.startsWith(USER_PART_PREFIX)) placed.add(record.op)
+  }
+  /** @type {string[]} */
+  const nestedIn = []
+  for (const start of placed) {
+    /** @type {Set<string>} */
+    const seen = new Set([start])
+    const stack = [start]
+    let found = false
+    while (stack.length > 0 && !found) {
+      const definition = lookup(/** @type {string} */ (stack.pop()))
+      if (definition === undefined) continue
+      for (const child of nestedOpsOf(definition)) {
+        if (child === op) {
+          found = true
+          break
+        }
+        if (!seen.has(child)) {
+          seen.add(child)
+          stack.push(child)
+        }
+      }
+    }
+    if (found) nestedIn.push(lookup(start)?.name ?? start.replace(USER_PART_PREFIX, ''))
+  }
+  return { direct, nestedIn: [...new Set(nestedIn)].sort((a, b) => a.localeCompare(b)) }
+}
+
+/**
+ * Why a part that is not in My parts is still listed (`TODO/ui-096`), as the tail of a sentence
+ * ("it's placed 2 times in this project", "Feather enclosure, placed in this project, uses it").
+ * One wording for the row's menu note and the Delete dialog.
+ *
+ * @param {number} direct
+ * @param {readonly string[]} nestedIn
+ * @returns {string}
+ */
+export function projectOnlyBecause(direct, nestedIn) {
+  /** @type {string[]} */
+  const reasons = []
+  if (direct > 0) reasons.push(direct === 1 ? "it's placed once in this project" : `it's placed ${direct} times in this project`)
+  if (nestedIn.length > 0) reasons.push(`${nestedIn.join(', ')}, placed in this project, ${nestedIn.length === 1 ? 'uses' : 'use'} it`)
+  return reasons.join(', and ')
+}
+
+/**
+ * What to delete from the view for a project-only part to leave My parts: "those" (its own
+ * placed copies), the placed parts that nest it, or both.
+ *
+ * @param {number} direct
+ * @param {readonly string[]} nestedIn
+ * @returns {string}
+ */
+export function projectOnlyRemedy(direct, nestedIn) {
+  /** @type {string[]} */
+  const what = []
+  if (direct > 0) what.push('those')
+  if (nestedIn.length > 0) what.push(nestedIn.join(', '))
+  return what.join(' and ')
 }

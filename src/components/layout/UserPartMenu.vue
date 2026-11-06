@@ -13,8 +13,9 @@
  *   "Keep a copy in the project" (the part leaves My parts, the project keeps its copy) or
  *   Cancel — the store's `deletePrompt` carries the wording.
  * - A part that exists only in the open project (it arrived in a file or a gist) has no library
- *   copy to rename or delete; those two items are disabled with the reason, and **Duplicate**
- *   is how it is kept in My parts.
+ *   copy to rename, so **Rename** is disabled. The menu says, in a visible note, why the part is
+ *   listed; **Delete…** is enabled and opens a dialog that names what keeps it there (only
+ *   Cancel), and **Duplicate** is how it is kept in My parts (`TODO/ui-096`).
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
@@ -114,6 +115,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         :style="{ '--umenu-top': `${place.top}px`, '--umenu-left': `${place.left}px` }"
       >
         <p class="umenu__title">{{ row.label }}</p>
+        <!-- TODO/ui-096: the reason a project-only part is listed, as text (a title never shows on touch). -->
+        <p v-if="row.projectOnlyNote" class="umenu__note" data-testid="user-part-project-only-note">{{ row.projectOnlyNote }}</p>
         <button
           v-if="!isBroken"
           ref="firstItem"
@@ -139,8 +142,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
           role="menuitem"
           class="umenu__item umenu__item--danger"
           data-testid="user-part-delete"
-          :disabled="!row.inLibrary"
-          :title="row.inLibrary ? undefined : projectOnlyReason"
           @click="library.beginDelete(row.op)"
         >
           Delete…
@@ -277,6 +278,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
   margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.umenu__note {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
   overflow-wrap: anywhere;
 }
 

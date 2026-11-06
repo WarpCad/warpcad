@@ -38,6 +38,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-096 — A project-only My parts row can be deleted and says why (2026-11-06 13:07 UTC)
+
+Scenarios 10, 18 and 31 are the standing checks this task names, and none were driven by hand: 18 needs an Anthropic API key, and 31 and 10 need a manual pass. The owner's esp8266 feather row is the one-off check, and it depends on the browser profile in the report.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the owner's profile, open ⋯ on esp8266 feather: the note says why it's listed, and Delete… opens the explanation with Cancel only. Record which case it was (a placed, b nested, c stale). | Open | |
+| 2 | Drive scenario 31 (owner's 3MF) by hand at phone width: the project-only line and ⋯ note wrap without horizontal scroll. | Open | |
+
+
 ### ui-095 — A My parts entry that fails to load can be deleted (2026-11-06 01:00)
 
 Scripted drives reproduced the owner's broken state by saving a Feather enclosure, then removing the Feather's stored entry directly, and passed (scenario 31, laptop Chromium and phone WebKit). The owner's own browser profile, the one in the original screenshot, has data from an older build that no script can reproduce.

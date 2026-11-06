@@ -384,8 +384,121 @@ test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy
   // The placed geometry is untouched, and the row stays (from the project's copy), no longer a library one.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
   await expect(page.getByTestId('library-row-user.standoff')).toBeVisible()
+  // TODO/ui-096: the row says so, and Delete… is no longer a dead button.
+  await showRowSettings(page, 'user.standoff')
+  await expect(page.getByTestId('library-only-project-user.standoff')).toHaveText('Only in this project')
   await openMenu('user.standoff')
-  await expect(page.getByTestId('user-part-delete')).toBeDisabled()
+  await expect(page.getByTestId('user-part-delete')).toBeEnabled()
+})
+
+/**
+ * `TODO/ui-096`: build the Standoff group, save it as a part, place it once, then delete it from
+ * My parts keeping a copy in the project. Leaves the placed Standoff selected, the Library closed.
+ */
+async function standoffOnlyInProject(page, input, info) {
+  await buildGroup(page, input, info)
+  await input.press(page.getByTestId('op-library-save'))
+  await page.getByTestId('save-library-name').fill('Standoff')
+  await input.press(page.getByTestId('save-library-submit'))
+  await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
+  await openLibrary(page, input.press)
+  const toggle = page.getByTestId('library-section-toggle-user')
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
+  const p = await viewportPoint(page, ...DROPS(info).c)
+  await input.dragRow(page.getByTestId('library-row-user.standoff'), p.x, p.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  await openLibrary(page, input.press)
+  await showRowSettings(page, 'user.standoff')
+  await input.press(page.getByTestId('user-part-menu-user.standoff'))
+  await input.press(page.getByTestId('user-part-delete'))
+  await input.press(page.getByTestId('user-part-delete-confirm'))
+  await expect(page.getByTestId('library-toast')).toHaveText('Deleted Standoff from My parts')
+  await closeLibrary(page, input.press)
+}
+
+test('a part only in this project says so, explains itself in text, and leaves My parts with its last placed copy; Undo brings it back (TODO/ui-096)', async ({ page }, info) => {
+  const input = await pointer(page, info)
+  await standoffOnlyInProject(page, input, info)
+
+  await openLibrary(page, input.press)
+  await showRowSettings(page, 'user.standoff')
+  await expect(page.getByTestId('library-only-project-user.standoff')).toHaveText('Only in this project')
+  await expect(page.getByTestId('library-in-project-user.standoff')).toBeVisible()
+  await input.press(page.getByTestId('user-part-menu-user.standoff'))
+  // The reason is text on screen, not a title; nothing scrolls sideways, at any width.
+  await expect(page.getByTestId('user-part-project-only-note')).toHaveText("Not in My parts. It's listed because it's placed once in this project.")
+  await expect(page.getByTestId('user-part-project-only-note')).toBeInViewport()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await expect(page.getByTestId('user-part-rename')).toBeDisabled()
+  await expect(page.getByTestId('user-part-delete')).toBeEnabled()
+
+  // Delete… names what keeps it there and offers only Cancel.
+  await input.press(page.getByTestId('user-part-delete'))
+  await expect(page.getByTestId('user-part-delete-message')).toHaveText(
+    "Standoff isn't in My parts any more. It's listed here because it's placed once in this project. Delete those from the view and it leaves this list. To keep Standoff, choose Duplicate.",
+  )
+  await expect(page.getByTestId('user-part-delete-confirm')).toHaveCount(0)
+  await input.press(page.getByTestId('user-part-delete-cancel'))
+  await expect(page.getByTestId('user-part-delete-dialog')).toHaveCount(0)
+  await expect(page.getByTestId('library-row-user.standoff')).toBeVisible()
+  await closeLibrary(page, input.press)
+
+  // Delete the placed copy in the view: the row leaves My parts at once.
+  await expect(page.getByTestId('inspector-name')).toHaveText('Standoff 1')
+  await input.press(page.getByTestId('inspector-delete'))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  await openLibrary(page, input.press)
+  await expect(page.getByTestId('library-row-user.standoff')).toHaveCount(0)
+  await expect(page.getByTestId('library-user-count')).toHaveText('0')
+  await closeLibrary(page, input.press)
+
+  // Undo: the copy and the row come back.
+  await input.press(page.getByTestId('undo-button'))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  await openLibrary(page, input.press)
+  await expect(page.getByTestId('library-row-user.standoff')).toBeVisible()
+  await showRowSettings(page, 'user.standoff')
+  await expect(page.getByTestId('library-only-project-user.standoff')).toBeVisible()
+})
+
+test('a part nested inside a placed part is listed with the reason naming that part (TODO/ui-096)', async ({ page }, info) => {
+  const input = await pointer(page, info)
+  await seedParts(page, [
+    storedPart('user.feather', 'Feather', 'primitive.cuboid', { size: [10, 4, 2] }),
+    storedPart('user.feather-box', 'Feather enclosure', 'user.feather'),
+  ])
+  await openLibrary(page, input.press)
+  const toggle = page.getByTestId('library-section-toggle-user')
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
+  // Place the enclosure (which nests the Feather).
+  const p = await viewportPoint(page, ...DROPS(info).c)
+  await input.dragRow(page.getByTestId('library-row-user.feather-box'), p.x, p.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  // Delete the enclosure from My parts keeping its copy, then the Feather (nothing saved nests it now).
+  await openLibrary(page, input.press)
+  await showRowSettings(page, 'user.feather-box')
+  await input.press(page.getByTestId('user-part-menu-user.feather-box'))
+  await input.press(page.getByTestId('user-part-delete'))
+  await input.press(page.getByTestId('user-part-delete-confirm'))
+  await expect(page.getByTestId('library-toast')).toHaveText('Deleted Feather enclosure from My parts')
+  await showRowSettings(page, 'user.feather')
+  await input.press(page.getByTestId('user-part-menu-user.feather'))
+  await input.press(page.getByTestId('user-part-delete'))
+  await input.press(page.getByTestId('user-part-delete-confirm'))
+  await expect(page.getByTestId('library-toast')).toHaveText('Deleted Feather from My parts')
+
+  // Feather is no placed instance's own part, yet its row stays and says why.
+  await showRowSettings(page, 'user.feather')
+  await expect(page.getByTestId('library-only-project-user.feather')).toHaveText('Only in this project')
+  await expect(page.getByTestId('library-in-project-user.feather')).toBeVisible()
+  await input.press(page.getByTestId('user-part-menu-user.feather'))
+  await expect(page.getByTestId('user-part-project-only-note')).toHaveText(
+    "Not in My parts. It's listed because Feather enclosure, placed in this project, uses it.",
+  )
+  await input.press(page.getByTestId('user-part-delete'))
+  await expect(page.getByTestId('user-part-delete-message')).toContainText('Delete Feather enclosure from the view and it leaves this list.')
+  await expect(page.getByTestId('user-part-delete-confirm')).toHaveCount(0)
+  await input.press(page.getByTestId('user-part-delete-cancel'))
 })
 
 test('Save to library refuses a repeat, says why in a visible line, and still saves the source (TODO/ui-076)', async ({ page }) => {

@@ -41,6 +41,9 @@ import {
   renamePart,
   holdsRepeat,
   saveToLibraryGate,
+  projectOnlyBecause,
+  projectOnlyRemedy,
+  projectUsage,
   usageOf,
 } from '../core/userPartTools.js'
 import { evaluateOp } from '../core/kernel/index.js'
@@ -114,7 +117,7 @@ const TOAST_MS = 4500
  */
 /**
  * @typedef {LibraryRow & {
- *   inLibrary: boolean, storedBroken: boolean, usage: number, thumbnail: string | null, mesh: MeshRowInfo | null
+ *   inLibrary: boolean, storedBroken: boolean, usage: number, nestedIn: string[], projectOnlyNote: string, thumbnail: string | null, mesh: MeshRowInfo | null
  * }} UserPartRow
  */
 
@@ -265,17 +268,27 @@ export const useLibraryStore = defineStore('library', () => {
     const stamps = savedAt.value
     const stored = new Set(brokenParts.value.map((part) => part.op))
     return userLibrarySection()
-      .rows.map((row) =>
-        Object.freeze({
+      .rows.map((row) => {
+        // Based on what is stored, not on what validated: an entry that failed to load is still stored.
+        const inLibrary = (row.userPart?.libraryVersion !== null && row.userPart?.libraryVersion !== undefined) || stored.has(row.op)
+        const { direct, nestedIn } = projectUsage(records, row.op, effectiveUserPart)
+        return Object.freeze({
           ...row,
-          // Based on what is stored, not on what validated: an entry that failed to load is still stored.
-          inLibrary: (row.userPart?.libraryVersion !== null && row.userPart?.libraryVersion !== undefined) || stored.has(row.op),
+          inLibrary,
           storedBroken: stored.has(row.op),
-          usage: usageOf(records, row.op),
+          usage: direct,
+          nestedIn,
+          // `ui-096`: why a part that is only in the project is listed; '' for a saved one.
+          projectOnlyNote: inLibrary
+            ? ''
+            : `Not in My parts. It's listed because ${projectOnlyBecause(direct, nestedIn)}.`,
           thumbnail: thumbnails.value[row.op] ?? null,
           mesh: meshRowInfo(row.op),
         })
-      )
+      })
+      // `ui-096`: a part that is only in the open project is listed only while the project uses
+      // it. The definition stays in the document (undo needs it); this filters the list.
+      .filter((row) => row.inLibrary || row.usage > 0 || row.nestedIn.length > 0)
       // Newest first ("the new row appears at the top of My parts"); a part that is only in
       // the open project has no save time and follows, by name — `userLibrarySection`'s order.
       .sort((a, b) => (stamps[b.op] ?? 0) - (stamps[a.op] ?? 0))
@@ -592,6 +605,23 @@ export const useLibraryStore = defineStore('library', () => {
     const name = part?.name ?? nameForDelete(deleteOp.value)
     const usage = usageOf(documentStore.raw.records, deleteOp.value)
     const dependents = dependentNames(deleteOp.value)
+    // `ui-096`: a part that is only in the open project has no library copy to delete. Say what
+    // keeps it listed instead of leaving a dead button; Cancel is the only action.
+    const projectRow = userRows.value.find((row) => row.op === deleteOp.value)
+    if (projectRow && !projectRow.inLibrary) {
+      const nestedIn = projectRow.nestedIn
+      return {
+        name,
+        usage,
+        dependents,
+        nestedIn,
+        projectOnly: true,
+        confirmLabel: null,
+        message:
+          `${name} isn't in My parts any more. It's listed here because ${projectOnlyBecause(projectRow.usage, nestedIn)}. ` +
+          `Delete ${projectOnlyRemedy(projectRow.usage, nestedIn)} from the view and it leaves this list. To keep ${name}, choose Duplicate.`,
+      }
+    }
     if (dependents.length > 0) {
       const list = dependents.join(', ')
       return {
@@ -662,6 +692,8 @@ export const useLibraryStore = defineStore('library', () => {
     if (op === null) return false
     // Refused while another saved part nests this one: nothing is removed.
     if (dependentNames(op).length > 0) return false
+    // `ui-096`: a project-only part has no stored entry to remove; the dialog offers only Cancel.
+    if (deletePrompt.value?.projectOnly === true) return false
     try {
       const name = effectiveUserPart(op)?.name ?? nameForDelete(op)
       await backendOf().remove(op)

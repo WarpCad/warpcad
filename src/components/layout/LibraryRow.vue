@@ -59,6 +59,17 @@ const props = defineProps({
 
 const emit = defineEmits(['tap'])
 
+/** Whether the open project uses this My parts row: placed itself, or nested inside a placed part (`TODO/ui-096`). */
+const inProject = computed(() => (props.row.usage ?? 0) > 0 || (/** @type {any} */ (props.row).nestedIn?.length ?? 0) > 0)
+const inProjectLabel = computed(() => {
+  const placed = props.row.usage ?? 0
+  const nested = /** @type {any} */ (props.row).nestedIn ?? []
+  const parts = []
+  if (placed > 0) parts.push(`${placed} placed`)
+  if (nested.length > 0) parts.push(`inside ${nested.join(', ')}`)
+  return `In this project (${parts.join(', ')})`
+})
+
 /** The same row, typed for the My parts pieces (only read when `user` is set). */
 const userRow = computed(() => /** @type {import('../../stores/library.js').UserPartRow} */ (props.row))
 /** The same row, typed as a broken entry (only read when `broken` is set). */
@@ -271,7 +282,9 @@ onBeforeUnmount(() => {
         :data-shape="user ? undefined : row.op"
         aria-hidden="true"
       />
-      <span v-if="user && (row.usage ?? 0) > 0" class="library__in-project library__in-project--tile" aria-hidden="true" />
+      <span v-if="user && inProject" class="library__in-project library__in-project--tile" aria-hidden="true" />
+      <!-- TODO/ui-096: a part that is only in this project says so on its tile too (text, not a tooltip). -->
+      <span v-if="user && row.inLibrary === false" class="library__only-badge" :data-testid="`library-only-badge-${row.op}`">Project</span>
     </button>
     <span
       v-if="calloutShown"
@@ -392,12 +405,12 @@ onBeforeUnmount(() => {
       <span v-else class="library__swatch library__swatch--part" aria-hidden="true" />
       <span class="library__row-label">{{ row.label }}</span>
       <span
-        v-if="(row.usage ?? 0) > 0"
+        v-if="inProject"
         class="library__in-project"
         :data-testid="`library-in-project-${row.op}`"
-        :title="`In this project (${row.usage} placed)`"
+        :title="inProjectLabel"
         role="img"
-        :aria-label="`In this project, ${row.usage} placed`"
+        :aria-label="inProjectLabel"
       />
     </button>
     <button
@@ -412,6 +425,8 @@ onBeforeUnmount(() => {
       <span aria-hidden="true">↺</span>
     </button>
     <UserPartMenu :row="userRow" />
+    <!-- TODO/ui-096: a part that is not in My parts, listed because the open project uses it. -->
+    <p v-if="row.inLibrary === false" class="library__only-project" :data-testid="`library-only-project-${row.op}`">Only in this project</p>
     <p v-if="summary" class="library__remembered library__remembered--user" :data-testid="`library-remembered-${row.op}`">
       {{ summary }}
     </p>
@@ -560,6 +575,31 @@ onBeforeUnmount(() => {
 
 .library__remembered--user {
   grid-column: 1 / -1;
+}
+
+/* A My parts row that is only in the open project (TODO/ui-096): a visible line, wraps, no hover needed. */
+.library__only-project {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-left: 28px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--warn);
+  overflow-wrap: anywhere;
+}
+
+.library__only-badge {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  font-size: 8px;
+  line-height: 11px;
+  color: var(--text-2);
+  pointer-events: none;
 }
 
 .library__row {
