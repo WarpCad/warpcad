@@ -6,6 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { piBoltRepeated } from '../core/__fixtures__/piScenes.js'
+import { createUserLibrary } from '../storage/userLibrary.js'
 import { resetUserParts, setLibraryParts, effectiveUserPart } from '../core/userPart.js'
 import { cubeTriangles, binaryStl, asciiBytes } from '../io/__fixtures__/stl.js'
 import { setMeshWorkerFactory } from '../io/meshClient.js'
@@ -350,6 +351,115 @@ describe('Delete — it never deletes placed geometry', () => {
     library.beginDelete('user.standoff')
     await library.confirmDelete()
     expect(library.userRows).toEqual([])
+  })
+})
+
+/** A real `createUserLibrary` over a tiny in-memory IndexedDB, so list() really validates (TODO/ui-095). */
+function storedBackend(initial) {
+  const data = new Map(initial)
+  const open = async () => ({
+    close() {},
+    transaction: () => ({
+      store: {
+        get: async (key) => data.get(key),
+        getAll: async () => [...data.values()],
+        getAllKeys: async () => [...data.keys()],
+        put: async (value, key) => void data.set(key, structuredClone(value)),
+        delete: async (key) => void data.delete(key),
+      },
+      done: Promise.resolve(),
+    }),
+  })
+  return { data, backend: createUserLibrary({ open }) }
+}
+
+const entry = (op, name, child) => [
+  op,
+  { definition: { op, name, version: 1, result: 'r1', records: [{ id: 'r1', op: child, params: child === 'primitive.cuboid' ? { size: [10, 4, 2] } : {} }], params: [] }, savedAt: 1 },
+]
+
+describe('A stored part that fails to load (TODO/ui-095)', () => {
+  async function started(initial) {
+    const stored = storedBackend(initial)
+    const ctx = setup(stored.backend)
+    await ctx.library.start()
+    return { ...ctx, data: stored.data }
+  }
+
+  it('has a broken row after start(), and the banner names the part, not only the missing child', async () => {
+    const { library } = await started([entry('user.feather-box', 'Feather enclosure', 'user.esp8266-feather')])
+    expect(library.brokenRows).toEqual([
+      expect.objectContaining({ op: 'user.feather-box', label: 'Feather enclosure', broken: true, inLibrary: true }),
+    ])
+    expect(library.brokenRows[0].reason).toMatch(/esp8266-feather, which is no longer in My parts/)
+    expect(library.loadProblem).toMatch(/^Feather enclosure: it uses esp8266-feather/)
+    expect(library.loadProblem).toMatch(/Delete it from its ⋯ menu below/)
+  })
+
+  it('confirmDelete on a broken op removes it, and its line leaves the banner', async () => {
+    const { library, data } = await started([
+      entry('user.feather-box', 'Feather enclosure', 'user.esp8266-feather'),
+      entry('user.other', 'Other', 'user.also-missing'),
+    ])
+    library.beginDelete('user.feather-box')
+    expect(library.deletePrompt.name).toBe('Feather enclosure')
+    expect(await library.confirmDelete()).toBe(true)
+    expect(data.has('user.feather-box')).toBe(false)
+    expect(library.brokenRows.map((row) => row.op)).toEqual(['user.other'])
+    expect(library.loadProblem).not.toMatch(/Feather enclosure/)
+    expect(library.loadProblem).toMatch(/Other/)
+    expect(library.toast.text).toBe('Deleted Feather enclosure from My parts')
+    library.beginDelete('user.other')
+    await library.confirmDelete()
+    expect(library.loadProblem).toBe('')
+    expect(library.brokenRows).toEqual([])
+  })
+
+  it('a project-layer row whose stored entry is broken is inLibrary, Delete removes the stored entry, Rename stays off', async () => {
+    const stored = storedBackend([])
+    const ctx = setup(stored.backend)
+    combine(ctx.documentStore, ctx.selection)
+    ctx.library.openSave()
+    ctx.library.saveName = 'Standoff'
+    await ctx.library.save()
+    ctx.documentStore.append({ id: 'u-1', op: 'user.standoff', name: 'Standoff 1', params: {} }, { origin: 'local' })
+    // The stored entry is later damaged (an older build, a deleted child); the project keeps its copy.
+    const [op, record] = entry('user.standoff', 'Standoff', 'user.vanished')
+    stored.data.set(op, record)
+    await ctx.library.start()
+    const row = ctx.library.userRows.find((r) => r.op === 'user.standoff')
+    expect(row).toMatchObject({ inLibrary: true, storedBroken: true })
+    expect(ctx.library.brokenRows).toEqual([])
+    ctx.library.beginDelete('user.standoff')
+    expect(await ctx.library.confirmDelete()).toBe(true)
+    expect(stored.data.has('user.standoff')).toBe(false)
+    // ui-055: the project keeps its copy, now only in the project.
+    expect(ctx.library.userRows.map((r) => [r.label, r.inLibrary])).toEqual([['Standoff', false]])
+    expect(ctx.library.loadProblem).toBe('')
+  })
+
+  it('Part 4: deleting a saved part another saved part nests is refused, naming the dependent; nothing is removed', async () => {
+    const stored = storedBackend([])
+    const ctx = setup(stored.backend)
+    await stored.backend.save({ op: 'user.feather', name: 'Feather', version: 1, result: 'r1', records: [{ id: 'r1', op: 'primitive.cuboid', params: { size: [10, 4, 2] } }], params: [] })
+    await stored.backend.save({ op: 'user.feather-box', name: 'Feather enclosure', version: 1, result: 'r1', records: [{ id: 'r1', op: 'user.feather', params: {} }], params: [] })
+    await ctx.library.start()
+    ctx.library.beginDelete('user.feather')
+    expect(ctx.library.deletePrompt.confirmLabel).toBe(null)
+    expect(ctx.library.deletePrompt.dependents).toEqual(['Feather enclosure'])
+    expect(ctx.library.deletePrompt.message).toBe('Feather is used inside Feather enclosure in My parts. Delete Feather enclosure first.')
+    expect(await ctx.library.confirmDelete()).toBe(false)
+    expect(stored.data.has('user.feather')).toBe(true)
+    expect(ctx.library.brokenRows).toEqual([])
+  })
+
+  it('the sequence that caused it: with no guard on the storage, deleting the nested part breaks the parent', async () => {
+    const stored = storedBackend([])
+    await stored.backend.save({ op: 'user.feather', name: 'Feather', version: 1, result: 'r1', records: [{ id: 'r1', op: 'primitive.cuboid', params: { size: [10, 4, 2] } }], params: [] })
+    await stored.backend.save({ op: 'user.feather-box', name: 'Feather enclosure', version: 1, result: 'r1', records: [{ id: 'r1', op: 'user.feather', params: {} }], params: [] })
+    expect((await stored.backend.list()).broken).toEqual([])
+    await stored.backend.remove('user.feather')
+    expect((await stored.backend.list()).broken.map((b) => b.op)).toEqual(['user.feather-box'])
   })
 })
 

@@ -38,6 +38,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-095 — A My parts entry that fails to load can be deleted (2026-11-06 01:00)
+
+Scripted drives reproduced the owner's broken state by saving a Feather enclosure, then removing the Feather's stored entry directly, and passed (scenario 31, laptop Chromium and phone WebKit). The owner's own browser profile, the one in the original screenshot, has data from an older build that no script can reproduce.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the browser profile that showed *Your saved parts could not all be read: it nests "user.esp8266-feather"…*: the message now names the broken part, My parts lists it with a ⚠ and the reason, and **⋯ → Delete… → Delete** removes it and the message, which stay gone after a reload | Open | |
+| 2 | On iPhone and iPad hardware: the broken row's reason wraps and the ⋯ sheet's Delete is easy to hit. On iPad, the rail tile's pop-out shows the reason (the rail has no banner) | Open | |
+
 ### ui-094 — Rename a part of a group (2026-11-05 20:05)
 
 Scripted drives passed on the owner's Feather file in Chromium and WebKit at 390 and 1440 px (scenario 31,

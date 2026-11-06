@@ -31,7 +31,7 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { userLibrarySection } from '../core/library.js'
 import { definePartFromSelection } from '../core/library.js'
-import { USER_PART_PREFIX as USER_PREFIX, effectiveUserPart, effectiveUserParts, requiredUserParts, slugify } from '../core/userPart.js'
+import { USER_PART_PREFIX as USER_PREFIX, effectiveUserPart, effectiveUserParts, nestedOpsOf, requiredUserParts, slugify } from '../core/userPart.js'
 import {
   copyNameFor,
   duplicatePart,
@@ -105,8 +105,16 @@ const TOAST_MS = 4500
  * @property {string} sizeText `"42 × 18 × 6 mm"`, or `''`.
  */
 /**
+ * @typedef {object} BrokenRow A stored My parts entry that cannot be loaded (`TODO/ui-095`).
+ * @property {string} op The storage key, what Delete removes.
+ * @property {string} label The part's name (short, plain text).
+ * @property {string} reason Why, e.g. "it uses esp8266-feather, which is no longer in My parts".
+ * @property {true} broken
+ * @property {boolean} inLibrary Always true here: it is stored, so Delete is enabled.
+ */
+/**
  * @typedef {LibraryRow & {
- *   inLibrary: boolean, usage: number, thumbnail: string | null, mesh: MeshRowInfo | null
+ *   inLibrary: boolean, storedBroken: boolean, usage: number, thumbnail: string | null, mesh: MeshRowInfo | null
  * }} UserPartRow
  */
 
@@ -162,8 +170,22 @@ export const useLibraryStore = defineStore('library', () => {
   const savedAt = shallowRef(/** @type {Record<string, number>} */ ({}))
   /** The op most recently saved, imported or duplicated, so the panel can bring its row into view. */
   const revealOp = ref(/** @type {string | null} */ (null))
-  /** Why the local library could not be read at start, or `''`. */
-  const loadProblem = ref('')
+  /** The stored entries that did not load (`TODO/ui-095`): op (the storage key), name, reason. */
+  const brokenParts = shallowRef(/** @type {import('../storage/userLibrary.js').BrokenPart[]} */ ([]))
+  /** The parts that did load, for "which saved part nests this one". Plain data, never reactive deep. */
+  const savedParts = shallowRef(/** @type {UserPartDefinition[]} */ ([]))
+  /** Storage problems that name no part (unreadable storage): shown in the banner, nothing to delete. */
+  const unnamedProblems = shallowRef(/** @type {string[]} */ ([]))
+  /**
+   * Why the local library could not be read, or `''`: one `<part>: <reason>` per entry that did
+   * not load, the part's name rather than only the missing child's op.
+   */
+  const loadProblem = computed(() => {
+    const lines = [...brokenParts.value.map((part) => `${part.name}: ${part.reason}`), ...unnamedProblems.value]
+    if (lines.length === 0) return ''
+    if (unnamedProblems.value.length > 0) return lines.join('; ')
+    return `${lines.join('; ')}. Delete ${lines.length === 1 ? 'it' : 'each'} from its ⋯ menu below.`
+  })
   const loaded = ref(false)
   /** Whether the My parts section is open in the panel. */
   const expanded = ref(false)
@@ -211,18 +233,24 @@ export const useLibraryStore = defineStore('library', () => {
    */
   async function start() {
     const result = await loadUserLibrary(backendOf())
-    thumbnails.value = result.thumbnails
-    savedAt.value = result.savedAt
-    loadProblem.value = result.problems.map((problem) => problem.reason).join('; ')
+    adopt(result)
     loaded.value = true
     revision.value += 1
+  }
+
+  /** @param {Awaited<ReturnType<typeof loadUserLibrary>>} result */
+  function adopt(result) {
+    thumbnails.value = result.thumbnails
+    savedAt.value = result.savedAt
+    savedParts.value = result.parts
+    brokenParts.value = result.broken ?? []
+    unnamedProblems.value = result.problems.filter((problem) => problem.op === null).map((problem) => problem.reason)
   }
 
   /** Re-read after a change of our own. */
   async function reload() {
     const result = await loadUserLibrary(backendOf())
-    thumbnails.value = result.thumbnails
-    savedAt.value = result.savedAt
+    adopt(result)
     revision.value += 1
     return result
   }
@@ -235,11 +263,14 @@ export const useLibraryStore = defineStore('library', () => {
     void documentStore.version
     const records = documentStore.raw.records
     const stamps = savedAt.value
+    const stored = new Set(brokenParts.value.map((part) => part.op))
     return userLibrarySection()
       .rows.map((row) =>
         Object.freeze({
           ...row,
-          inLibrary: row.userPart?.libraryVersion !== null && row.userPart?.libraryVersion !== undefined,
+          // Based on what is stored, not on what validated: an entry that failed to load is still stored.
+          inLibrary: (row.userPart?.libraryVersion !== null && row.userPart?.libraryVersion !== undefined) || stored.has(row.op),
+          storedBroken: stored.has(row.op),
           usage: usageOf(records, row.op),
           thumbnail: thumbnails.value[row.op] ?? null,
           mesh: meshRowInfo(row.op),
@@ -248,6 +279,24 @@ export const useLibraryStore = defineStore('library', () => {
       // Newest first ("the new row appears at the top of My parts"); a part that is only in
       // the open project has no save time and follows, by name — `userLibrarySection`'s order.
       .sort((a, b) => (stamps[b.op] ?? 0) - (stamps[a.op] ?? 0))
+  })
+
+  /**
+   * The My parts rows for stored entries that failed to load, after the ordinary rows. An entry
+   * the open project also carries already has an ordinary row (with Delete enabled), so it is not
+   * listed twice.
+   *
+   * Typed loosely because `LibraryRow`'s prop accepts it beside the ordinary rows; every one is a {@link BrokenRow}.
+   *
+   * @type {import('vue').ComputedRef<any[]>}
+   */
+  const brokenRows = computed(() => {
+    void revision.value
+    void documentStore.version
+    const shown = new Set(userLibrarySection().rows.map((row) => row.op))
+    return brokenParts.value
+      .filter((part) => !shown.has(part.op))
+      .map((part) => Object.freeze({ op: part.op, label: part.name, reason: part.reason, broken: /** @type {const} */ (true), inLibrary: true }))
   })
 
   /**
@@ -540,12 +589,24 @@ export const useLibraryStore = defineStore('library', () => {
     void revision.value
     void documentStore.version
     const part = effectiveUserPart(deleteOp.value)
-    const name = part?.name ?? deleteOp.value
+    const name = part?.name ?? nameForDelete(deleteOp.value)
     const usage = usageOf(documentStore.raw.records, deleteOp.value)
+    const dependents = dependentNames(deleteOp.value)
+    if (dependents.length > 0) {
+      const list = dependents.join(', ')
+      return {
+        name,
+        usage,
+        dependents,
+        confirmLabel: null,
+        message: `${name} is used inside ${list} in My parts. Delete ${list} first.`,
+      }
+    }
     if (usage === 0) {
       return {
         name,
         usage,
+        dependents,
         confirmLabel: 'Delete',
         message: `Delete ${name} from My parts? Projects you have already placed it in keep their own copy.`,
       }
@@ -554,6 +615,7 @@ export const useLibraryStore = defineStore('library', () => {
     return {
       name,
       usage,
+      dependents,
       confirmLabel: 'Keep a copy in the project',
       message:
         `${name} has ${plural} in this project. It is removed from My parts, but ${usage === 1 ? 'that instance stays' : 'those instances stay'} ` +
@@ -561,15 +623,51 @@ export const useLibraryStore = defineStore('library', () => {
     }
   })
 
+  /**
+   * @param {string} op
+   * @returns {string}
+   */
+  function nameForDelete(op) {
+    return brokenParts.value.find((part) => part.op === op)?.name ?? op.replace(/^user\./, '')
+  }
+
+  /**
+   * The names of the saved parts that nest `op`, directly or through another saved part
+   * (`TODO/ui-095`). Deleting `op` would leave each of them unable to load.
+   *
+   * @param {string} op
+   * @returns {string[]}
+   */
+  function dependentNames(op) {
+    const parts = savedParts.value
+    const using = new Set([op])
+    let grew = true
+    while (grew) {
+      grew = false
+      for (const part of parts) {
+        if (using.has(part.op)) continue
+        if (nestedOpsOf(part).some((child) => using.has(child))) {
+          using.add(part.op)
+          grew = true
+        }
+      }
+    }
+    using.delete(op)
+    return parts.filter((part) => using.has(part.op)).map((part) => part.name)
+  }
+
   /** @returns {Promise<boolean>} */
   async function confirmDelete() {
     const op = deleteOp.value
     if (op === null) return false
+    // Refused while another saved part nests this one: nothing is removed.
+    if (dependentNames(op).length > 0) return false
     try {
+      const name = effectiveUserPart(op)?.name ?? nameForDelete(op)
       await backendOf().remove(op)
       await reload()
       deleteOp.value = null
-      showToast(`Deleted ${effectiveUserPart(op)?.name ?? op.replace(/^user\./, '')} from My parts`)
+      showToast(`Deleted ${name} from My parts`)
       return true
     } catch (error) {
       showToast(`Could not delete: ${error instanceof Error ? error.message : String(error)}`)
@@ -740,6 +838,7 @@ export const useLibraryStore = defineStore('library', () => {
     useBackend,
     start,
     userRows,
+    brokenRows,
     saveGate,
     saveOpen,
     saveName,

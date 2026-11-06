@@ -2680,3 +2680,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** warpcad.com live → TODO/VERIFY.md rows 4-7, 2026-11-05 checks; HTTPS enforced → VERIFY row 5 (Pages API https_enforced: true); home page links to the app and the help pages → VERIFY row 9 (Open WarpCad link to app.warpcad.com) and row 10 (33 help pages linked, 2026-11-05 check).
 **To Add:** none
+
+## 2026-11-06T01:10Z — A saved part that can't be loaded can now be deleted
+
+**Post:** A saved WarpCad part that can't be loaded used to vanish from My parts, leaving only a warning and no way to delete it. Now it shows as a ⚠ row with the reason and a Delete. You also can't delete a part that another saved part uses. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** broken part had no row and no Delete → TODO/done/ui-095 Problem 1-2; ⚠ row with reason and Delete → src/components/layout/LibraryRow.vue diff, e2e/user-library.e2e.js (passed in this session's full e2e run); deleting a nested part refused → src/stores/library.js confirmDelete diff, library.spec.js, driven this session (scenario 18 library half).
+**To Add:** docs/screenshots/user-library-broken-part.png

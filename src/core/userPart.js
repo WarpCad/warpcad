@@ -601,7 +601,7 @@ export function validateUserPart(raw) {
  * @param {UserPartDefinition} definition
  * @returns {string[]}
  */
-function nestedOpsOf(definition) {
+export function nestedOpsOf(definition) {
   return [...new Set(definition.records.map((record) => record.op).filter(isUserPartOp))]
 }
 

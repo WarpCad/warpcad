@@ -3874,3 +3874,18 @@ One check is still open: the next scheduled Pages run after go-live. Built with 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** domain verified and HTTPS enforced → TODO/VERIFY.md row 4 (Pages API cname warpcad.com) and row 5 (https_enforced true); apex and www to GitHub → VERIFY row 6 (dig output); app.warpcad.com unchanged → VERIFY row 7 (HTTP/2 200); 33 help pages linked → VERIFY row 10 check text; owner device checks and scenario 1 → VERIFY row 9 owner reports (owner's words); next scheduled run still open → VERIFY row 10 status Open.
 **To Add:** none
+
+## 2026-11-06T01:10Z — A saved part that can't be loaded can now be deleted
+
+**Post:** Bug fix in WarpCad's My parts library. If you saved a part that nests another saved part, then deleted that inner part, the outer one could no longer load. The library dropped it from the list and showed a warning naming only the missing inner part. With no row, there was no Delete, so the warning came back on every load.
+
+Now a part that can't be loaded gets its own row, with a warning sign and the reason ("it uses esp8266-feather, which is no longer in My parts"). It can't be dragged into the view, and its menu has Delete. The warning names the broken part. The cause is fixed too: deleting a part that another saved part uses is refused, and the dialog names the part to delete first.
+
+I checked it against the original case, an Adafruit Feather ESP8266 board imported from a 3MF file and grouped into an enclosure, in desktop Chromium and in phone-sized WebKit.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cause (deleting a nested part left the parent broken) → TODO/done/ui-095 "How it probably got this way", reproduced in a unit test this session; banner named only the child → TODO/done/ui-095 Problem 3; row/reason/no drag/Delete only → LibraryRow.vue, UserPartMenu.vue diff, laptop drive this session ("broken drag placed nothing: true", "broken menu items: Delete…"); refusal text → laptop drive this session; Feather 3MF in desktop Chromium and phone WebKit → this session's scenario 31 drive (laptop Chromium) and phone WebKit seeded drive.
+**To Add:** docs/screenshots/user-library-broken-part.png

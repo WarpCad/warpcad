@@ -38,13 +38,19 @@ import UserPartMenu from './UserPartMenu.vue'
 const props = defineProps({
   /** The catalogue row, or a My parts row (`library.userRows`, which adds `userPart` and more). */
   row: {
-    type: /** @type {import('vue').PropType<import('../../core/library.js').LibraryRow & Partial<import('../../stores/library.js').UserPartRow>>} */ (
+    type: /** @type {import('vue').PropType<import('../../core/library.js').LibraryRow & Partial<import('../../stores/library.js').UserPartRow> & Partial<import('../../stores/library.js').BrokenRow>>} */ (
       Object
     ),
     required: true,
   },
   /** A My parts row: the ⋯ menu, thumbnail, in-project dot and mesh line. */
   user: { type: Boolean, default: false },
+  /**
+   * A stored My parts entry that cannot be loaded (`TODO/ui-095`, `library.brokenRows`): a warning
+   * thumbnail, its name and why. **Not a drag source** (no pointer handler, a plain `div`), so
+   * nothing can be placed from it; its ⋯ menu offers Delete only.
+   */
+  broken: { type: Boolean, default: false },
   /** `row` (the labelled column), `popout` (inside the row pop-out) or `tile` (the icon rail). */
   variant: { type: /** @type {import('vue').PropType<'row' | 'popout' | 'tile'>} */ (String), default: 'row' },
   /** A tile only: whether its row pop-out is open (`aria-expanded`). */
@@ -55,6 +61,8 @@ const emit = defineEmits(['tap'])
 
 /** The same row, typed for the My parts pieces (only read when `user` is set). */
 const userRow = computed(() => /** @type {import('../../stores/library.js').UserPartRow} */ (props.row))
+/** The same row, typed as a broken entry (only read when `broken` is set). */
+const brokenRow = computed(() => /** @type {import('../../stores/library.js').BrokenRow} */ (props.row))
 
 const placement = usePlacementStore()
 /**
@@ -213,8 +221,25 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <!-- A broken entry's rail tile (TODO/ui-095): a tap opens its pop-out (reason, ⋯ Delete…); there is no pointerdown, so nothing can be placed from it. -->
+  <li v-if="broken && variant === 'tile'" class="library__tile-item">
+    <button
+      type="button"
+      class="library__tile library__tile--broken"
+      :data-testid="`library-broken-${row.op}`"
+      :data-label="row.label"
+      :title="`${row.label} — can't be loaded: ${brokenRow.reason}`"
+      :aria-label="`${row.label}, can't be loaded`"
+      :aria-expanded="expanded"
+      aria-haspopup="dialog"
+      @click="emit('tap')"
+    >
+      <span class="library__swatch--broken" aria-hidden="true">⚠</span>
+    </button>
+  </li>
+
   <!-- The icon rail's tile (TODO/ui-084). -->
-  <li v-if="variant === 'tile'" class="library__tile-item">
+  <li v-else-if="variant === 'tile'" class="library__tile-item">
     <button
       ref="tileEl"
       type="button"
@@ -257,6 +282,16 @@ onBeforeUnmount(() => {
     >
       {{ row.label }}
     </span>
+  </li>
+
+  <!-- A My parts entry that cannot be loaded (TODO/ui-095): not draggable, only deletable. -->
+  <li v-else-if="broken" class="library__item library__item--user library__item--broken" :data-testid="`library-broken-${row.op}`">
+    <div class="library__row library__row--broken" :title="`Can't be loaded: ${brokenRow.reason}`">
+      <span class="library__swatch library__swatch--broken" aria-hidden="true">⚠</span>
+      <span class="library__row-label">{{ row.label }}</span>
+    </div>
+    <UserPartMenu :row="userRow" />
+    <p class="library__broken-reason" :data-testid="`library-broken-reason-${row.op}`">Can't be loaded: {{ brokenRow.reason }}</p>
   </li>
 
   <!-- A catalogue row, labelled (the column and the row pop-out). -->
@@ -883,6 +918,43 @@ onBeforeUnmount(() => {
 .library__swatch--part {
   border-radius: 3px;
   border-style: dashed;
+}
+
+/* A stored part that cannot be loaded (TODO/ui-095): not a drag source, so no grab cursor and
+   no touch-action trap; the reason wraps under the row instead of truncating. */
+.library__row--broken {
+  cursor: default;
+  touch-action: auto;
+  border-style: dashed;
+}
+
+.library__swatch--broken {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  background: var(--surface-1);
+  color: var(--warn);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.library__tile--broken {
+  border-style: dashed;
+  cursor: pointer;
+  touch-action: auto;
+}
+
+.library__broken-reason {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--warn);
+  overflow-wrap: anywhere;
 }
 
 .library__in-project {

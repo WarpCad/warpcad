@@ -429,3 +429,110 @@ test('Save to library refuses a repeat, says why in a visible line, and still sa
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
   await expect(page.getByTestId('library-save')).toBeEnabled()
 })
+
+/**
+ * Write entries straight into the `warpcad-parts` IndexedDB (the library's own database, store
+ * `parts`, keyed by op), then reload so the app reads them at start. Done with `page.evaluate`
+ * plus a reload rather than `addInitScript`: an init script re-seeds on every reload, which would
+ * undo the Delete the spec is checking.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {[string, unknown][]} entries
+ */
+async function seedParts(page, entries) {
+  await page.evaluate(
+    (rows) =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open('warpcad-parts', 1)
+        open.onupgradeneeded = () => {
+          if (!open.result.objectStoreNames.contains('parts')) open.result.createObjectStore('parts')
+        }
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const db = open.result
+          const tx = db.transaction('parts', 'readwrite')
+          for (const [key, value] of rows) tx.objectStore('parts').put(value, key)
+          tx.oncomplete = () => {
+            db.close()
+            resolve(undefined)
+          }
+          tx.onerror = () => reject(tx.error)
+        }
+      }),
+    entries,
+  )
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toBeVisible()
+}
+
+/** @param {string} op @param {string} name @param {string} child @param {object} [params] */
+const storedPart = (op, name, child, params = {}) => [
+  op,
+  { definition: { op, name, version: 1, result: 'r1', records: [{ id: 'r1', op: child, params }], params: [] }, savedAt: Date.now() },
+]
+
+/** Open My parts and, in the icon rail, the broken tile's pop-out; return where its text lives. */
+async function showBroken(page, input, op) {
+  await openLibrary(page, input.press)
+  const toggle = page.getByTestId('library-section-toggle-user')
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
+  const broken = page.getByTestId(`library-broken-${op}`)
+  await expect(broken).toBeVisible()
+  if ((await broken.getAttribute('aria-haspopup')) === 'dialog') {
+    await broken.click()
+    await expect(page.getByTestId('library-row-popout')).toHaveAttribute('data-op', op)
+  }
+}
+
+test('a My parts entry that fails to load shows as a row you can delete, and stays gone after a reload (TODO/ui-095)', async ({ page }, info) => {
+  const input = await pointer(page, info)
+  await seedParts(page, [storedPart('user.feather-box', 'Feather enclosure', 'user.missing-thing')])
+  await showBroken(page, input, 'user.feather-box')
+
+  // The row names the part and says why, and it wraps: nothing scrolls sideways at any width.
+  const reason = page.getByTestId('library-broken-reason-user.feather-box')
+  await expect(reason).toContainText("Can't be loaded: it uses missing-thing, which is no longer in My parts")
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  // It is not a drag source: no placement row exists for it.
+  await expect(page.getByTestId('library-row-user.feather-box')).toHaveCount(0)
+  // The banner (the labelled column and the phone sheet) names the part, not only the child.
+  const banner = page.getByTestId('library-load-problem')
+  if ((await banner.count()) > 0) await expect(banner).toContainText(/Feather enclosure: it uses missing-thing/)
+
+  const shot = (await page.getByTestId('library-row-popout').count()) > 0 ? page.getByTestId('library-row-popout') : page.getByTestId('library-user-body')
+  await expect(shot).toHaveScreenshot('user-library-broken-row.png', { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.05 })
+
+  await input.press(page.getByTestId('user-part-menu-user.feather-box'))
+  await expect(page.getByTestId('user-part-rename')).toHaveCount(0)
+  await input.press(page.getByTestId('user-part-delete'))
+  await input.press(page.getByTestId('user-part-delete-confirm'))
+  await expect(page.getByTestId('library-toast')).toHaveText('Deleted Feather enclosure from My parts')
+  await expect(page.getByTestId('library-broken-user.feather-box')).toHaveCount(0)
+  await expect(page.getByTestId('library-load-problem')).toHaveCount(0)
+
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await expect(page.getByTestId('library-broken-user.feather-box')).toHaveCount(0)
+  await expect(page.getByTestId('library-user-count')).toHaveText('0')
+})
+
+test('a part another saved part nests cannot be deleted: the dialog names the user and only offers Cancel (TODO/ui-095)', async ({ page }, info) => {
+  const input = await pointer(page, info)
+  await seedParts(page, [
+    storedPart('user.feather', 'Feather', 'primitive.cuboid', { size: [10, 4, 2] }),
+    storedPart('user.feather-box', 'Feather enclosure', 'user.feather'),
+  ])
+  await openLibrary(page, input.press)
+  const toggle = page.getByTestId('library-section-toggle-user')
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
+  await showRowSettings(page, 'user.feather')
+  await input.press(page.getByTestId('user-part-menu-user.feather'))
+  await input.press(page.getByTestId('user-part-delete'))
+  await expect(page.getByTestId('user-part-delete-message')).toHaveText(
+    'Feather is used inside Feather enclosure in My parts. Delete Feather enclosure first.',
+  )
+  await expect(page.getByTestId('user-part-delete-confirm')).toHaveCount(0)
+  await input.press(page.getByTestId('user-part-delete-cancel'))
+  await expect(page.getByTestId('user-part-delete-dialog')).toHaveCount(0)
+  await expect(page.getByTestId('library-user-count')).toHaveText('2')
+})

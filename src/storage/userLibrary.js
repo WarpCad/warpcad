@@ -33,10 +33,55 @@ export const PARTS_STORE = 'parts'
 
 /** @typedef {import('../core/userPart.js').UserPartDefinition} UserPartDefinition */
 /** @typedef {import('../core/userPart.js').UserPartProblem} UserPartProblem */
+/**
+ * @typedef {object} BrokenPart A stored entry that did not survive validation, as much as a row needs.
+ * @property {string} op The IndexedDB key, which is what `remove` deletes (the part's op for every entry this build wrote).
+ * @property {string} name The stored name when it is a short plain string, else the op without `user.`.
+ * @property {string} reason Why, in the user's words: "it uses esp8266-feather, which is no longer in My parts".
+ */
+
+/** The longest name a broken row shows; what is read from IndexedDB is untrusted data. */
+const BROKEN_NAME_MAX = 60
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function shorten(text) {
+  return text.length > BROKEN_NAME_MAX ? `${text.slice(0, BROKEN_NAME_MAX - 1)}…` : text
+}
+
+/**
+ * @param {unknown} raw The stored `definition`, or anything.
+ * @param {string} key
+ * @returns {string}
+ */
+function brokenNameOf(raw, key) {
+  const stored = raw !== null && typeof raw === 'object' ? /** @type {any} */ (raw).name : undefined
+  // eslint-disable-next-line no-control-regex
+  const plain = typeof stored === 'string' ? stored.replace(/[\u0000-\u001f\u007f]/g, ' ').trim() : ''
+  return shorten(plain !== '' ? plain : key.replace(/^user\./, ''))
+}
+
+/**
+ * Put a set-level reason ("it nests \"user.x\", which is not carried with it") into the user's
+ * words, naming the child by its part's name when it is known and by its op without `user.` otherwise.
+ *
+ * @param {string} reason
+ * @param {(op: string) => string} nameOf
+ * @returns {string}
+ */
+function friendlyReason(reason, nameOf) {
+  const missing = /^it nests "([^"]*)", which is not carried with it$/.exec(reason)
+  if (missing) return `it uses ${nameOf(missing[1])}, which is no longer in My parts`
+  const unusable = /^it nests "([^"]*)", which can't be loaded$/.exec(reason)
+  if (unusable) return `it uses ${nameOf(unusable[1])}, which can't be loaded`
+  return reason
+}
 
 /**
  * @typedef {object} UserLibrary
- * @property {() => Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[], thumbnails: Record<string, string>, savedAt: Record<string, number> }>} list
+ * @property {() => Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[], broken: BrokenPart[], thumbnails: Record<string, string>, savedAt: Record<string, number> }>} list
  *   Every stored part that still validates (as one set, so nesting is checked), and a
  *   named problem for each one that does not. `thumbnails` is op → PNG data URL for the
  *   parts that have a valid one, and `savedAt` op → when it was last saved, ms since the
@@ -101,27 +146,41 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
       const thumbnails = {}
       /** @type {Record<string, number>} */
       const savedAt = {}
+      /** @type {BrokenPart[]} */
+      const broken = []
+      /** definition op → IndexedDB key, and → name, for every entry that validated on its own. */
+      const keyOf = new Map()
+      const nameByOp = new Map()
       for (const { key, value } of await readAll()) {
         const definition =
           value !== null && typeof value === 'object' && !Array.isArray(value) ? /** @type {any} */ (value).definition : undefined
         if (definition === undefined) {
           problems.push({ op: key, reason: 'the stored entry is not a part record' })
+          broken.push({ op: key, name: brokenNameOf(undefined, key), reason: 'the stored entry is not a part record' })
           continue
         }
         const verdict = validateUserPart(definition)
         if (verdict.ok) {
           valid.push(verdict.definition)
+          keyOf.set(verdict.definition.op, key)
+          nameByOp.set(verdict.definition.op, brokenNameOf(verdict.definition, key))
           const stamp = /** @type {any} */ (value).savedAt
           if (typeof stamp === 'number' && Number.isFinite(stamp)) savedAt[verdict.definition.op] = stamp
           const thumbnail = /** @type {any} */ (value).thumbnail
           if (isThumbnailUrl(thumbnail)) thumbnails[verdict.definition.op] = thumbnail
         } else {
           problems.push({ op: verdict.op ?? key, reason: verdict.reason })
+          broken.push({ op: key, name: brokenNameOf(definition, key), reason: verdict.reason })
         }
       }
       // Then as one set, so a part nesting a missing or broken one is reported too.
       const checked = validateUserPartSet(valid)
-      return { parts: checked.definitions, problems: [...problems, ...checked.problems], thumbnails, savedAt }
+      const nameOf = (/** @type {string} */ op) => nameByOp.get(op) ?? shorten(op.replace(/^user\./, ''))
+      for (const problem of checked.problems) {
+        const key = problem.op === null ? undefined : keyOf.get(problem.op)
+        if (key !== undefined) broken.push({ op: key, name: nameByOp.get(problem.op ?? '') ?? key, reason: friendlyReason(problem.reason, nameOf) })
+      }
+      return { parts: checked.definitions, problems: [...problems, ...checked.problems], broken, thumbnails, savedAt }
     },
 
     async save(raw, extras = {}) {
@@ -172,7 +231,7 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
  * with the reason in `problems` for the caller to show.
  *
  * @param {UserLibrary} library
- * @returns {Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[], thumbnails: Record<string, string>, savedAt: Record<string, number> }>}
+ * @returns {Promise<{ parts: UserPartDefinition[], problems: UserPartProblem[], broken: BrokenPart[], thumbnails: Record<string, string>, savedAt: Record<string, number> }>}
  */
 export async function loadUserLibrary(library) {
   try {
@@ -181,6 +240,6 @@ export async function loadUserLibrary(library) {
     return result
   } catch (error) {
     setLibraryParts([])
-    return { parts: [], thumbnails: {}, savedAt: {}, problems: [{ op: null, reason: error instanceof Error ? error.message : String(error) }] }
+    return { parts: [], broken: [], thumbnails: {}, savedAt: {}, problems: [{ op: null, reason: error instanceof Error ? error.message : String(error) }] }
   }
 }

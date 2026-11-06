@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
           >
             <span class="library__chevron" aria-hidden="true">{{ library.expanded ? '▾' : '▸' }}</span>
             My parts
-            <span class="library__count" data-testid="library-user-count">{{ library.userRows.length }}</span>
+            <span class="library__count" data-testid="library-user-count">{{ library.userRows.length + library.brokenRows.length }}</span>
           </button>
         </h2>
         <button
@@ -371,11 +371,12 @@ onBeforeUnmount(() => {
         <p v-if="library.loadProblem" class="library__import-error" role="status" data-testid="library-load-problem">
           Your saved parts could not all be read: {{ library.loadProblem }}
         </p>
-        <p v-if="library.userRows.length === 0" class="library__hint" data-testid="library-user-empty">
+        <p v-if="library.userRows.length === 0 && library.brokenRows.length === 0" class="library__hint" data-testid="library-user-empty">
           Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL or 3MF — and it appears here.
         </p>
         <ul class="library__rows" data-testid="library-rows-user">
           <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />
+          <LibraryRow v-for="row in library.brokenRows" :key="`broken-${row.op}`" :row="row" user broken />
         </ul>
       </div>
     </div>

@@ -19,13 +19,15 @@ import LibraryRow from './LibraryRow.vue'
 defineProps({
   /** The row whose settings this shows. */
   row: {
-    type: /** @type {import('vue').PropType<import('../../core/library.js').LibraryRow & Partial<import('../../stores/library.js').UserPartRow>>} */ (
+    type: /** @type {import('vue').PropType<import('../../core/library.js').LibraryRow & Partial<import('../../stores/library.js').UserPartRow> & Partial<import('../../stores/library.js').BrokenRow>>} */ (
       Object
     ),
     required: true,
   },
   /** A My parts row. */
   user: { type: Boolean, default: false },
+  /** A stored entry that cannot be loaded (`TODO/ui-095`): the labelled broken row, deletable only. */
+  broken: { type: Boolean, default: false },
   /** Offset from the rail's top, in CSS px, so the pop-out sits level with its tile. */
   topPx: { type: Number, default: 0 },
 })
@@ -45,7 +47,7 @@ const placement = usePlacementStore()
   >
     <p class="library-popout__title" data-testid="library-row-popout-title">{{ row.label }}</p>
     <ul class="library-popout__rows">
-      <LibraryRow :row="row" :user="user" variant="popout" />
+      <LibraryRow :row="row" :user="user" :broken="broken" variant="popout" />
     </ul>
   </div>
 </template>

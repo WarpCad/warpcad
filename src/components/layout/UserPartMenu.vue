@@ -32,12 +32,17 @@ const trigger = ref(/** @type {HTMLButtonElement | null} */ (null))
 const renameInput = ref(/** @type {HTMLInputElement | null} */ (null))
 const deleteConfirm = ref(/** @type {HTMLButtonElement | null} */ (null))
 const firstItem = ref(/** @type {HTMLButtonElement | null} */ (null))
+const deleteItem = ref(/** @type {HTMLButtonElement | null} */ (null))
 const menuEl = ref(/** @type {HTMLElement | null} */ (null))
 const place = ref({ top: 0, left: 0 })
 
 const menuOpen = computed(() => library.menuOp === props.row.op)
 const renaming = computed(() => library.renameOp === props.row.op)
 const deleting = computed(() => library.deleteOp === props.row.op)
+/** A broken row (`TODO/ui-095`) offers Delete and nothing else; an ordinary row may still be broken in storage. */
+const isBroken = computed(() => /** @type {any} */ (props.row).broken === true)
+const storedBroken = computed(() => /** @type {any} */ (props.row).storedBroken === true)
+const brokenReason = "This part can't be loaded, so it can't be renamed — delete it"
 const projectOnlyReason = 'Only in this project — Duplicate it to keep a copy in My parts'
 
 watch(menuOpen, async (open) => {
@@ -49,7 +54,7 @@ watch(menuOpen, async (open) => {
   // until it fits (the phone's bottom sheet ignores these numbers).
   const height = menuEl.value?.offsetHeight ?? 0
   if (rect && height > 0) place.value = { ...place.value, top: Math.max(8, Math.min(place.value.top, window.innerHeight - height - 8)) }
-  firstItem.value?.focus()
+  ;(firstItem.value ?? deleteItem.value)?.focus()
 })
 
 watch(renaming, async (open) => {
@@ -110,24 +115,26 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
       >
         <p class="umenu__title">{{ row.label }}</p>
         <button
+          v-if="!isBroken"
           ref="firstItem"
           type="button"
           role="menuitem"
           class="umenu__item"
           data-testid="user-part-rename"
-          :disabled="!row.inLibrary"
-          :title="row.inLibrary ? undefined : projectOnlyReason"
+          :disabled="!row.inLibrary || storedBroken"
+          :title="storedBroken ? brokenReason : row.inLibrary ? undefined : projectOnlyReason"
           @click="library.beginRename(row.op)"
         >
           Rename
         </button>
-        <button type="button" role="menuitem" class="umenu__item" data-testid="user-part-duplicate" @click="library.duplicate(row.op)">
+        <button v-if="!isBroken" type="button" role="menuitem" class="umenu__item" data-testid="user-part-duplicate" @click="library.duplicate(row.op)">
           Duplicate
         </button>
-        <button type="button" role="menuitem" class="umenu__item" data-testid="user-part-export" @click="library.exportPart(row.op)">
+        <button v-if="!isBroken" type="button" role="menuitem" class="umenu__item" data-testid="user-part-export" @click="library.exportPart(row.op)">
           Export part file
         </button>
         <button
+          ref="deleteItem"
           type="button"
           role="menuitem"
           class="umenu__item umenu__item--danger"
@@ -191,6 +198,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         <div class="udialog__actions">
           <button type="button" class="udialog__button" data-testid="user-part-delete-cancel" @click="library.cancelDelete()">Cancel</button>
           <button
+            v-if="library.deletePrompt.confirmLabel"
             ref="deleteConfirm"
             type="button"
             class="udialog__button udialog__button--primary"

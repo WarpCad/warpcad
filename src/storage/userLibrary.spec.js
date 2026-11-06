@@ -118,6 +118,50 @@ describe('createUserLibrary', () => {
     expect(problems.map((p) => p.op).sort()).toEqual(['user.evil', 'user.garbage'])
   })
 
+  it('lists every entry that did not survive as broken, with a name and a reason a row can show (TODO/ui-095)', async () => {
+    const nests = (op, name, child) => part({ op, name, records: [{ id: 'r1', op: child, params: {} }] })
+    const fake = fakeOpen([
+      ['user.bracket', { definition: part(), savedAt: 1 }],
+      ['user.garbage', 'not a part record'],
+      ['user.evil', { definition: part({ op: 'user.evil', name: 'Evil', records: [{ id: 'r1', op: 'library.define' }] }), savedAt: 1 }],
+      ['user.feather-box', { definition: nests('user.feather-box', 'Feather enclosure', 'user.esp8266-feather'), savedAt: 1 }],
+      ['user.lid', { definition: nests('user.lid', 'Lid', 'user.feather-box'), savedAt: 1 }],
+    ])
+    const { parts, broken } = await createUserLibrary({ open: fake.open }).list()
+    expect(parts.map((p) => p.op)).toEqual(['user.bracket'])
+    const by = Object.fromEntries(broken.map((b) => [b.op, b]))
+    expect(Object.keys(by).sort()).toEqual(['user.evil', 'user.feather-box', 'user.garbage', 'user.lid'])
+    expect(by['user.garbage']).toMatchObject({ name: 'garbage', reason: 'the stored entry is not a part record' })
+    expect(by['user.evil'].name).toBe('Evil')
+    expect(by['user.feather-box']).toMatchObject({
+      name: 'Feather enclosure',
+      reason: 'it uses esp8266-feather, which is no longer in My parts',
+    })
+    expect(by['user.lid']).toMatchObject({ name: 'Lid', reason: "it uses Feather enclosure, which can't be loaded" })
+  })
+
+  it('treats a stored name as untrusted: truncated, and the op stands in for anything that is not plain text', async () => {
+    const fake = fakeOpen([
+      ['user.long', { definition: part({ op: 'user.long', name: 'x'.repeat(500), records: [{ id: 'r1', op: 'library.define' }] }), savedAt: 1 }],
+      ['user.odd', { definition: part({ op: 'user.odd', name: { not: 'a string' }, records: [{ id: 'r1', op: 'library.define' }] }), savedAt: 1 }],
+    ])
+    const { broken } = await createUserLibrary({ open: fake.open }).list()
+    expect(broken.find((b) => b.op === 'user.long').name.length).toBeLessThanOrEqual(60)
+    expect(broken.find((b) => b.op === 'user.odd').name).toBe('odd')
+  })
+
+  it('remove(key) of each broken entry clears it from the next list()', async () => {
+    const fake = fakeOpen([
+      ['user.garbage', 'not a part record'],
+      ['user.feather-box', { definition: part({ op: 'user.feather-box', name: 'Box', records: [{ id: 'r1', op: 'user.gone', params: {} }] }), savedAt: 1 }],
+      ['user.lid', { definition: part({ op: 'user.lid', name: 'Lid', records: [{ id: 'r1', op: 'user.feather-box', params: {} }] }), savedAt: 1 }],
+    ])
+    const library = createUserLibrary({ open: fake.open })
+    for (const { op } of (await library.list()).broken) await library.remove(op)
+    expect((await library.list()).broken).toEqual([])
+    expect(fake.data.size).toBe(0)
+  })
+
   it('removes a part', async () => {
     const fake = fakeOpen([['user.bracket', { definition: part(), savedAt: 1 }]])
     const library = createUserLibrary({ open: fake.open })

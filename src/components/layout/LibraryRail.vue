@@ -83,10 +83,12 @@ const open = computed(() => {
   if (op === null) return null
   for (const section of sections) {
     const row = section.rows.find((candidate) => candidate.op === op)
-    if (row) return { row, user: false }
+    if (row) return { row, user: false, broken: false }
   }
   const userRow = library.userRows.find((candidate) => candidate.op === op)
-  return userRow ? { row: userRow, user: true } : null
+  if (userRow) return { row: userRow, user: true, broken: false }
+  const brokenRow = library.brokenRows.find((candidate) => candidate.op === op)
+  return brokenRow ? { row: brokenRow, user: true, broken: true } : null
 })
 
 /**
@@ -330,7 +332,7 @@ onBeforeUnmount(() => {
             @click="library.expanded = !library.expanded"
           >
             <span class="library-rail__part-glyph" aria-hidden="true" />
-            <span class="library-rail__badge" data-testid="library-user-count">{{ library.userRows.length }}</span>
+            <span class="library-rail__badge" data-testid="library-user-count">{{ library.userRows.length + library.brokenRows.length }}</span>
           </button>
         </div>
         <ul v-show="library.expanded" id="library-rail-user" class="library-rail__tiles" data-testid="library-rows-user">
@@ -339,6 +341,16 @@ onBeforeUnmount(() => {
             :key="row.op"
             :row="row"
             user
+            variant="tile"
+            :expanded="openOp === row.op"
+            @tap="onTap(row.op)"
+          />
+          <LibraryRow
+            v-for="row in library.brokenRows"
+            :key="`broken-${row.op}`"
+            :row="row"
+            user
+            broken
             variant="tile"
             :expanded="openOp === row.op"
             @tap="onTap(row.op)"
@@ -383,7 +395,7 @@ onBeforeUnmount(() => {
       </p>
     </div>
 
-    <LibraryRowPopout v-if="open" :row="open.row" :user="open.user" :top-px="popoutTopPx" />
+    <LibraryRowPopout v-if="open" :row="open.row" :user="open.user" :broken="open.broken" :top-px="popoutTopPx" />
     <LibrarySectionPopout
       v-if="form === 'launchers' && openSection !== undefined"
       :section="openSection"

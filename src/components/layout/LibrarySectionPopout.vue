@@ -56,11 +56,15 @@ const title = computed(() => props.section?.title ?? 'My parts')
     <LibrarySection v-if="section" :section="section" />
     <template v-else>
       <h2 class="library-section-popout__heading" data-testid="library-heading-user">My parts</h2>
-      <p v-if="library.userRows.length === 0" class="library-section-popout__hint" data-testid="library-user-empty">
+      <p v-if="library.loadProblem" class="library-section-popout__hint" role="status" data-testid="library-load-problem">
+        Your saved parts could not all be read: {{ library.loadProblem }}
+      </p>
+      <p v-if="library.userRows.length === 0 && library.brokenRows.length === 0" class="library-section-popout__hint" data-testid="library-user-empty">
         Nothing saved yet. Select a group, then choose Save to library… — or choose Import model… under ⋯ for an STL or 3MF — and it appears here.
       </p>
       <ul class="library-section-popout__rows" data-testid="library-rows-user">
         <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />
+        <LibraryRow v-for="row in library.brokenRows" :key="`broken-${row.op}`" :row="row" user broken />
       </ul>
     </template>
   </div>

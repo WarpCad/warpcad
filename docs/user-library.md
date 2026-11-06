@@ -226,6 +226,38 @@ definition. The dialog says how many copies there are and offers **Keep a copy i
 project** (the default) or **Cancel**. The row stays in My parts for the rest of the session,
 from the project's copy, until you start a new project.
 
+A part that another saved part uses inside it can't be deleted on its own, because the other
+part would no longer load. The dialog names the parts that use it, for example *Spacer is used
+inside Spacer pair in My parts. Delete Spacer pair first.*, and offers only **Cancel**. Delete
+the part that uses it first, then this one.
+
+For example:
+
+1. Save a cube as **Spacer** (select it, **Save to library…**). Drag Spacer in, select the
+   placed copy together with a second cube, and save the two as **Spacer pair**.
+2. Tap **⋯** on the Spacer row, then **Delete…**. The dialog reads *Spacer is used inside
+   Spacer pair in My parts. Delete Spacer pair first.* Tap **Cancel**.
+3. Delete **Spacer pair** from its **⋯** menu. Spacer can now be deleted.
+
+## A part that can't be loaded
+
+Now and then a saved part can't be read back, for example one saved by an older version of
+WarpCad that uses a part you no longer have. My parts still lists it, after your other parts,
+with a warning sign in place of its picture and the reason in place of its size, such as
+*Can't be loaded: it uses esp8266-feather, which is no longer in My parts*. The message above
+the list names it too.
+
+A part that can't be loaded can't be dragged into the view. Its **⋯** menu offers **Delete…**:
+
+1. Tap **⋯** on the row with the warning sign.
+2. Tap **Delete…**, then **Delete**.
+
+The row and its line in the message go away, and stay gone when you reload. If you still have
+the missing part as a part file, **Import part file…** brings it back instead, and the part
+that uses it loads again the next time you open WarpCad.
+
+![My parts with one ordinary row and, below it, a row with a warning sign reading Feather enclosure, Can't be loaded: it uses esp8266-feather, which is no longer in My parts; the message above the list names Feather enclosure and says to delete it from its menu](./screenshots/user-library-broken-part.png)
+
 ## Where parts are stored
 
 My parts lives in your browser's storage on this device. It is not synced and not part of any
