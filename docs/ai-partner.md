@@ -65,8 +65,9 @@ edits a project file. [Driving WarpCad from Claude Code](mcp.md) has the full wa
 
 ### An MCP agent on the project you have open (live mode)
 
-If you run WarpCad yourself with `npm run dev`, any local MCP agent can change the project open
-in your browser tab instead of a file, and you watch each change land. This is **dev-host only**:
+If you run WarpCad yourself with `npm run dev`, or with `npm run preview` from a build made with
+`VITE_LIVE_BRIDGE=1`, any local MCP agent can change the project open in your browser tab instead of
+a file, and you watch each change land. The hosted app and the default build have no live endpoint.
 WarpCad and the MCP client must run on the same computer. On the hosted app the **Live MCP access**
 sheet says it isn't available there and points you to [Browser agents](webmcp.md) and to
 [working on a project file](mcp.md#three-ways-in). Access is off by default; the Assistant's

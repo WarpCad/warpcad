@@ -146,6 +146,8 @@ const FAST = existsSync(new URL('./.test-fast', import.meta.url))
 const WANTS_DOCS = process.env.WARPCAD_DOCS_PROJECTS === '1' || process.argv.some((arg) => arg.includes('docs-'))
 if (WANTS_DOCS) process.env.WARPCAD_DOCS_PROJECTS = '1'
 
+const LIVE_OUT = 'dist-live-bridge'
+const LIVE_ORIGIN = 'http://127.0.0.1:5185'
 const ORIGIN = PREVIEW ? 'http://localhost:5184' : 'http://localhost:5183'
 
 export default defineConfig({
@@ -184,7 +186,7 @@ export default defineConfig({
     // it from launching a server and blocking an unattended run on failure.
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
-  webServer: {
+  webServer: [{
     command: PREVIEW ? 'VITE_E2E_HOOKS=1 npm run build && npx vite preview --port 5184 --strictPort' : 'VITE_E2E_HOOKS=1 npm run dev',
     url: ORIGIN,
     // A preview server serves whatever `dist/` it was started on, so reusing one risks a stale
@@ -192,6 +194,19 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI && (!PREVIEW || process.env.E2E_REUSE === '1'),
     timeout: PREVIEW ? 180_000 : 60_000,
   },
+  // The preview live bridge (`e2e/ai-live-bridge-preview.e2e.js`) needs a build made with
+  // `VITE_LIVE_BRIDGE=1`, which makes the header treat the bridge as available (the phone's grouped
+  // AI menu). It therefore gets its own build folder and port; every other spec keeps the plain
+  // build above, where the bridge is `unavailable`, exactly like the hosted app.
+  ...(PREVIEW
+    ? [{
+        command: `VITE_E2E_HOOKS=1 VITE_LIVE_BRIDGE=1 npx vite build --outDir ${LIVE_OUT} && npx vite preview --outDir ${LIVE_OUT} --host 127.0.0.1 --port 5185 --strictPort`,
+        url: LIVE_ORIGIN,
+        reuseExistingServer: !process.env.CI && process.env.E2E_REUSE === '1',
+        timeout: 180_000,
+      }]
+    : []),
+  ],
   use: {
     baseURL: ORIGIN,
   },

@@ -3889,3 +3889,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** cause (deleting a nested part left the parent broken) → TODO/done/ui-095 "How it probably got this way", reproduced in a unit test this session; banner named only the child → TODO/done/ui-095 Problem 3; row/reason/no drag/Delete only → LibraryRow.vue, UserPartMenu.vue diff, laptop drive this session ("broken drag placed nothing: true", "broken menu items: Delete…"); refusal text → laptop drive this session; Feather 3MF in desktop Chromium and phone WebKit → this session's scenario 31 drive (laptop Chromium) and phone WebKit seeded drive.
 **To Add:** docs/screenshots/user-library-broken-part.png
+
+## 2026-11-06T15:53Z — The live MCP bridge now runs from the preview server
+
+**Post:** Until now, a WarpCad project open in the browser could be changed by a local MCP agent only under the dev server. A built copy had no way in, on purpose: a default build carries no bridge, so the hosted app is unchanged.
+
+The preview server now serves the same endpoint, but only from a build made with VITE_LIVE_BRIDGE=1. Vite's dev socket does not exist in a preview server, so the open tab listens on server-sent events and posts back to the same origin. The endpoint is on 127.0.0.1:4173, and it stays off until you enable access in the Assistant.
+
+The change touched the shared e2e build, which had made the header treat the bridge as available for every spec. That broke the phone layout, so the live-bridge spec now gets its own build on its own port. Full unit and e2e runs are green on the tree. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** preview endpoint on 127.0.0.1:4173 and SSE transport → vite.config.js and src/ai/bridge/protocol.js diffs (staged); default build carries no bridge, access off by default → docs/mcp.md diff; e2e build moved to its own port → playwright.config.js diff (fixer, this session); full unit and e2e green → stored run 2026-11-06T15:53Z
+**To Add:** none

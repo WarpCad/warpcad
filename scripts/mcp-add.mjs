@@ -21,6 +21,10 @@
  * mode never touches one — and it replaces a closed-file registration under the same name, as a
  * closed-file registration replaces it: one server, one mode, no silent fallback between them.
  *
+ * `npm run mcp:add -- --preview` registers the same live bridge on the preview server (port 4173),
+ * for a build made with `VITE_LIVE_BRIDGE=1` (Decision 11, amended 2026-11-06). Either live mode
+ * replaces the other under the same name.
+ *
  * @module scripts/mcp-add
  */
 
@@ -34,9 +38,11 @@ import { createDocument } from '../src/core/document.js'
 import { serializeProject } from '../src/core/project.js'
 import { ProjectFileError, loadProjectText } from '../mcp/projectFile.js'
 
-const USAGE = 'usage: npm run mcp:add -- <project-file.ndjson>   or   npm run mcp:add -- --dev'
+const USAGE = 'usage: npm run mcp:add -- <project-file.ndjson>   or   npm run mcp:add -- --dev   or   npm run mcp:add -- --preview'
 /** The Vite dev server's live-bridge endpoint (`vite.config.js`: port 5183, strict). */
 const DEV_URL = 'http://127.0.0.1:5183/mcp'
+/** The preview server's live endpoint (`vite.config.js`: port 4173, strict; `mcp/livePreview.js`). */
+const PREVIEW_URL = 'http://127.0.0.1:4173/mcp'
 const NAME = MCP_SERVER_NAME
 const SERVER = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'mcp', 'server.js')
 
@@ -69,23 +75,30 @@ function removeExisting() {
   for (const scope of ['user', 'local']) claude(['mcp', 'remove', NAME, '--scope', scope])
 }
 
-/** `--dev`: register the live bridge's HTTP endpoint. */
-function registerDev() {
+/**
+ * `--dev` and `--preview`: register the live bridge's HTTP endpoint.
+ *
+ * @param {string} url
+ * @param {'dev' | 'preview'} mode
+ */
+function registerLive(url, mode) {
   if (!existsSync(resolve(dirname(SERVER), 'node_modules', '@modelcontextprotocol'))) {
-    fail('the MCP server\'s dependencies are not installed. Run `npm run mcp:install` first (the dev server loads them too).')
+    fail('the MCP server\'s dependencies are not installed. Run `npm run mcp:install` first (the dev server and the preview host load them too).')
   }
   removeExisting()
-  const added = claude(['mcp', 'add', '--scope', 'user', '--transport', 'http', NAME, DEV_URL])
+  const added = claude(['mcp', 'add', '--scope', 'user', '--transport', 'http', NAME, url])
   if (added.status !== 0) {
     fail(`\`claude mcp add\` failed${added.stderr ? `: ${added.stderr.trim()}` : ` (exit ${added.status})`}`)
   }
   process.stdout.write(
     [
       `Registered the "${NAME}" MCP server with Claude Code (user scope) in live mode:`,
-      `  endpoint ${DEV_URL}`,
+      `  endpoint ${url}`,
       '',
-      'Live mode is dev-host only: run `npm run dev` in this folder and open WarpCad on the same',
-      'computer as your MCP client. In WarpCad open Assistant → Live MCP access and enable a lease.',
+      ...(mode === 'dev'
+        ? ['Live mode on the dev host: run `npm run dev` in this folder and open WarpCad on the same', 'computer as your MCP client.']
+        : ['Live mode on the preview host: run `VITE_LIVE_BRIDGE=1 npm run build` then `npm run preview` in this', 'folder, and open WarpCad on the same computer as your MCP client.']),
+      'In WarpCad open Assistant → Live MCP access and enable a lease.',
       'Access is off by default; any local MCP client that reaches the loopback endpoint may call',
       'while the lease is enabled. Turn it off when you are done.',
       '',
@@ -102,7 +115,15 @@ function main() {
       process.stderr.write(`mcp:add: --dev takes no project file: live mode edits the project open in WarpCad, never a file.\n${USAGE}\n`)
       process.exit(2)
     }
-    registerDev()
+    registerLive(DEV_URL, 'dev')
+    return
+  }
+  if (args.includes('--preview')) {
+    if (args.length !== 1) {
+      process.stderr.write(`mcp:add: --preview takes no project file: live mode edits the project open in WarpCad, never a file.\n${USAGE}\n`)
+      process.exit(2)
+    }
+    registerLive(PREVIEW_URL, 'preview')
     return
   }
   if (args.length !== 1 || args[0].startsWith('-')) {

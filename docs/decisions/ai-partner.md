@@ -838,6 +838,17 @@ Decision 8 (the credential never leaves the credential store).
 
 ## Decision 11 — Live bridge: **a document-less relay, one writer (the open tab), explicitly enabled** (`ai-012`, accepted 2026-10-12; dev-host access amended 2026-10-16)
 
+> **Amended 2026-11-06 at the user's direction: the preview host.** `npm run preview` serves the same
+> bridge when the build was made with `VITE_LIVE_BRIDGE=1` (`mcp/livePreview.js`, marker `dist/.live-bridge`).
+> The dev host and the amendment below share one core (`mcp/bridge.js`): same lease, origin and host gate,
+> same queue, same one-writer rule. What differs is the tab transport, because Vite's HMR socket does not exist
+> in a preview server: the tab listens on Server-Sent Events at `/__warpcad_bridge/events?tab=` and posts to
+> `/__warpcad_bridge/message?tab=` (same origin, so the existing `connect-src 'self'` covers it; no WebSocket
+> dependency, no CSP change). The tab reopens by reloading, never by reconnecting, as on the dev host. A default
+> build still carries no bridge: the tab side is behind `VITE_LIVE_BRIDGE`, and the preview host mounts nothing
+> without the marker. The hosted app and GitHub Pages are unchanged. Covered by `mcp/livePreview.spec.js`,
+> `src/ai/bridge/previewTransport.spec.js` and `e2e/ai-live-bridge-preview.e2e.js` (Chromium only so far).
+
 **The question.** Decision 6 reserved `ai-012`: let Claude Code (on the user's own
 subscription, Decision 10 option B) edit the project the user has **open**, without a
 merge. `document-sync.md`'s revival condition ("a second concurrent writer") is answered

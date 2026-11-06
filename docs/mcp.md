@@ -24,7 +24,7 @@ limits, and mark what they add in History. With your own API key, you can also t
 | Way in | What it needs | Where it works | Changes appear |
 |---|---|---|---|
 | **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 24+, a saved `.ndjson` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
-| **[Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)** | An MCP client and WarpCad running under `npm run dev`; access explicitly enabled in WarpCad | Any browser on the same computer as the local MCP client | In the open tab as they land, marked **via mcp** |
+| **[Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)** | An MCP client and WarpCad running under `npm run dev` or as a preview build (`VITE_LIVE_BRIDGE=1`); access explicitly enabled in WarpCad | Any browser on the same computer as the local MCP client | In the open tab as they land, marked **via mcp** |
 | **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
 
 **Which one to pick:**
@@ -259,8 +259,7 @@ In live mode, an MCP client changes the project **open in a WarpCad tab**, and e
 in the viewport as it lands. No project file or API key is needed by WarpCad; the model runs in
 your chosen MCP client, and WarpCad supplies the tools.
 
-**Live mode works only when WarpCad runs with `npm run dev` on the same computer as the MCP
-client.** The hosted app at `app.warpcad.com` cannot use it: its **Live MCP access** sheet says so,
+**Live mode works only when WarpCad runs on the same computer as the MCP client, with `npm run dev`, or with `npm run preview` from a build made with `VITE_LIVE_BRIDGE=1`.** The hosted app at `app.warpcad.com` cannot use it: its **Live MCP access** sheet says so,
 and points you to [Browser agents](webmcp.md) and to working on a project file instead. Phone, tablet, and desktop browsers can all enable access
 to the local endpoint. Access is off by default; while enabled, any local MCP client that can
 reach the loopback endpoint may read and change the open project.
@@ -322,11 +321,28 @@ model…**, and save a key.
 
 ![The Assistant panel while an MCP agent is connected: only the "MCP agent · connected" chip and Undo AI turn are shown, with a cube in the viewport.](./screenshots/mcp-connected.png)
 
+### Live mode on the preview server
+
+A production build carries no live endpoint, so the preview server needs a build made on purpose
+with `VITE_LIVE_BRIDGE=1`:
+
+```sh
+npm run mcp:add -- --preview
+VITE_LIVE_BRIDGE=1 npm run build
+npm run preview
+```
+
+The preview server then serves the endpoint at `http://127.0.0.1:4173/mcp` (fixed port) and the
+project open at `http://localhost:4173`. `npm run preview` needs no flag of its own: it serves the
+bridge exactly when the build was made with `VITE_LIVE_BRIDGE=1`, which leaves a marker file in
+`dist/`. A default build empties `dist/` and carries no bridge, so it is safe to deploy. Access,
+leases, the origin check and **Undo AI turn** work the same as under `npm run dev`.
+
 ### Turn the live endpoint off
 
-The live endpoint is on by default under `npm run dev`. To run the dev server without it, for
-example to test Chrome's WebMCP tools with nothing else listening, set `WARPCAD_LIVE_BRIDGE=0` in
-the environment of the command:
+The live endpoint is on by default wherever it is built in. To run without it, for example to test
+Chrome's WebMCP tools with nothing else listening, set `WARPCAD_LIVE_BRIDGE=0` in the environment of
+the command:
 
 ```sh
 WARPCAD_LIVE_BRIDGE=0 npm run dev
@@ -334,10 +350,8 @@ WARPCAD_LIVE_BRIDGE=0 npm run preview
 ```
 
 `0`, `false`, `off` and `no` turn it off; anything else, or leaving it unset, keeps it on. With it
-off, `http://127.0.0.1:5183/mcp` is not served and the tab opens no bridge connection. The browser
-agents (WebMCP) switch in the Assistant header is unaffected and keeps working. `npm run preview`
-serves the production build, which never carried the live endpoint, so the setting makes no
-difference there; it is accepted so the same command line works for both.
+off, `http://127.0.0.1:5183/mcp` (or `:4173/mcp` on preview) is not served and the tab opens no bridge
+connection. The browser agents (WebMCP) switch in the Assistant header is unaffected and keeps working.
 
 ### Using another agent (Copilot, or any MCP client)
 
@@ -485,7 +499,8 @@ Every message names the file and says that nothing was written to it.
   project you keep in a repository, **Load from** it in the app, **Save** it as a file, run the
   server on that file, then open the file and **Save to** the repository.
 - **Live editing of the hosted app from an MCP client.** [Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)
-  works under `npm run dev` only. A helper that lets Claude Code reach a built or hosted copy is
+  works under `npm run dev`, and under `npm run preview` from a build made with `VITE_LIVE_BRIDGE=1`.
+  A hosted copy (the default build) has no live endpoint; a helper that lets Claude Code reach it is
   planned separately. An agent that runs in the browser can already drive a hosted copy over
   [WebMCP](webmcp.md).
 

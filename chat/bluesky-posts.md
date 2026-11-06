@@ -2689,3 +2689,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** broken part had no row and no Delete → TODO/done/ui-095 Problem 1-2; ⚠ row with reason and Delete → src/components/layout/LibraryRow.vue diff, e2e/user-library.e2e.js (passed in this session's full e2e run); deleting a nested part refused → src/stores/library.js confirmDelete diff, library.spec.js, driven this session (scenario 18 library half).
 **To Add:** docs/screenshots/user-library-broken-part.png
+
+## 2026-11-06T15:53Z — The live MCP bridge now runs from the preview server
+
+**Post:** WarpCad's live MCP bridge now runs from npm run preview, not only the dev server. Build with VITE_LIVE_BRIDGE=1 and a local MCP agent can edit the project open in your tab. Default builds carry no bridge. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** preview endpoint on 127.0.0.1:4173 → vite.config.js diff (staged); VITE_LIVE_BRIDGE=1 build only, default build carries no bridge → docs/mcp.md diff (staged); full e2e and unit green on the tree → stored run 2026-11-06T15:53Z (scripts/todo-progress stamp check)
+**To Add:** none

@@ -5,9 +5,10 @@
  * the live document and the chat store. No geometry and no HTML here.
  *
  * - {@link startLiveBridge} — once, from `AppView` on mount. Under `npm run dev`
- *   (`import.meta.hot` exists) it listens for the host's messages on `warpcad:bridge`; in a built
- *   or hosted copy `import.meta.hot` is `undefined`, the state is `unavailable`, and a build drops
- *   the rest of this path as dead code.
+ *   (`import.meta.hot` exists) it listens for the host's messages on `warpcad:bridge`. In a
+ *   `VITE_LIVE_BRIDGE=1` build served by `npm run preview` it uses the preview transport
+ *   (`src/ai/bridge/previewTransport.js`) instead. In any other copy the state is `unavailable`,
+ *   and the build drops the rest of this path as dead code.
  * - `setAccess(lease)` — the live-MCP sheet's explicit local-access control.
  * - Calls from an MCP agent run through the tab's **shared** endpoint (`useTabEndpoint.js`, which
  *   WebMCP uses too — `TODO/ai-021`) against the **raw** live document, then the document store is
@@ -21,10 +22,41 @@
  */
 
 import { BRIDGE_EVENT, parseHostMessage } from '../ai/bridge/protocol.js'
+import { createPreviewTransport, newPreviewTabId } from '../ai/bridge/previewTransport.js'
 import { useAiChatStore } from '../stores/aiChat.js'
 import { runOnTab, undoTabTurn } from './useTabEndpoint.js'
 
 let started = false
+
+/**
+ * The link the bridge listens and posts on: the dev host's HMR context or the preview transport.
+ *
+ * @typedef {{ on: (event: string, handler: (data: any) => void) => void, send: (event: string, data?: any) => void }} LiveLink
+ */
+
+/** @type {LiveLink | null | undefined} `undefined` until first asked. */
+let live
+
+/**
+ * The tab's link to the live host, once per page: Vite's HMR socket under `npm run dev`
+ * (`import.meta.hot`), or the preview server's stream in a build made with `VITE_LIVE_BRIDGE=1`
+ * (`previewTransport.js`). Anything else — the default build, the hosted app — has no link, and the
+ * build drops the preview branch as dead code.
+ *
+ * @returns {LiveLink | null}
+ */
+function liveHot() {
+  if (live !== undefined) return live
+  if (import.meta.hot) live = /** @type {LiveLink} */ (/** @type {unknown} */ (import.meta.hot))
+  else if (import.meta.env.VITE_LIVE_BRIDGE === '1' && typeof EventSource !== 'undefined') {
+    live = createPreviewTransport({
+      tabId: newPreviewTabId(/** @type {any} */ (globalThis.crypto)),
+      EventSourceImpl: /** @type {any} */ (EventSource),
+      fetchImpl: (url, init) => fetch(url, init),
+    })
+  } else live = null
+  return live
+}
 
 /**
  * Which engine is drawing this page, for the sheet's one engine-specific line.
@@ -55,7 +87,7 @@ export function startLiveBridge() {
   if (started) return
   started = true
   const chat = useAiChatStore()
-  const hot = import.meta.hot
+  const hot = liveHot()
   if (!hot) {
     chat.bridge = 'unavailable'
     return
@@ -101,7 +133,7 @@ export function useLiveBridge() {
   * @param {'15m' | '1h' | 'tab' | 'unlimited' | 'off'} lease
    */
   function setAccess(lease) {
-    const hot = import.meta.hot
+    const hot = liveHot()
     if (!hot) return false
     if (lease !== 'off') chat.bridge = 'enabled'
     else chat.bridge = 'idle'

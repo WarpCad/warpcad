@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 import { liveBridgePlugins } from './mcp/liveBridge.js'
+import { livePreviewBridgePlugins } from './mcp/livePreview.js'
 import { HELP_PRECACHE_GLOBS, HELP_PRECACHE_IGNORES, helpRuntimeCaching, warpcadHelp } from './scripts/vite-plugin-help.mjs'
 import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
@@ -131,6 +132,10 @@ export default defineConfig(({ command }) => ({
   // would make Playwright's `reuseExistingServer` silently attach to the
   // wrong app instead of failing loudly. Fail loudly instead.
   server: { port: 5183, strictPort: true },
+  // The same policy for `npm run preview`: the live MCP endpoint (`VITE_LIVE_BRIDGE=1`, `mcp/livePreview.js`)
+  // is registered on a fixed port so `npm run mcp:add -- --preview` can name it.
+  // Bound to IPv4 loopback so the documented endpoint (http://127.0.0.1:4173/mcp) answers; `localhost` still resolves here.
+  preview: { host: '127.0.0.1', port: 4173, strictPort: true },
   build: {
     sourcemap: SENTRY.sourcemap,
     rolldownOptions: {
@@ -148,6 +153,8 @@ export default defineConfig(({ command }) => ({
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
     // `WARPCAD_LIVE_BRIDGE=0 npm run dev` leaves it out (default on); see docs/mcp.md.
     ...liveBridgePlugins(),
+    // `VITE_LIVE_BRIDGE=1` build only (preview host); a plain build registers nothing.
+    ...livePreviewBridgePlugins(),
     vue(),
     // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
     warpcadHelp({ version: APP_VERSION, commit: APP_COMMIT }),
