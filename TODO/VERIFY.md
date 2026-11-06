@@ -38,6 +38,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-097 — Align target part (2026-11-06 19:03 UTC)
+
+The owner's original session (a WebMCP agent in Chrome creating and renaming cutters) was never reproduced, so the root cause of their record is unconfirmed. The fixture e2e and a hand check pass on a fresh load, and only the owner can confirm the fix on their own file.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Owner loads `~/Documents/alilgn-issue.ndjson` in desktop Chrome on the Mac, undoes the two snaps, selects the cutter, ticks Battery-Connector once, opens Align: the top line should end `› Battery-Connector`, and after Y outside + the cutter should sit 14.09 not 14.34. | Open | |
+
+
 ### ui-096 — A project-only My parts row can be deleted and says why (2026-11-06 13:07 UTC)
 
 Scenarios 10, 18 and 31 are the standing checks this task names, and none were driven by hand: 18 needs an Anthropic API key, and 31 and 10 need a manual pass. The owner's esp8266 feather row is the one-off check, and it depends on the browser profile in the report.

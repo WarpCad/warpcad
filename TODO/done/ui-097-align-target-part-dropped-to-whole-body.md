@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-06 from the owner's report
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-06):** Parts 1-3 as specified. Part 1 reverses ui-042's step-up rule (a second tick on an addressed part now removes the body). Part 2 adds `(whole object, N parts)` to the popover top line. Part 3 adds Measure to for a composite target, remembered in its own map. The Inspector Parts-section check follows Part 1 too. Two things are still open: the root cause on the owner's own session was not reproduced (the owner Mac repro is still owed), and the Shift-click out-of-scope item still needs the owner's answer. Help screenshots `help-from-align` and `help-from-popup` were refreshed for the new text.
 
 ## Problem
 

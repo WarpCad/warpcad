@@ -65,11 +65,42 @@ export const useAlignReferenceStore = defineStore('alignReference', () => {
   }
 
   /**
+   * The remembered **Measure to** part for a body when it is the *target* of an Align
+   * (`TODO/ui-097`) — kept in its own map so picking a part to measure *from* on a body never
+   * changes what it is measured *to* when it is the second operand.
+   *
+   * @type {Map<string, string | null>}
+   */
+  const targetReference = reactive(new Map())
+
+  /**
+   * @param {string} bodyId
+   * @returns {string | null} A part name, or `null` for "Whole object".
+   */
+  function getTarget(bodyId) {
+    return targetReference.get(bodyId) ?? null
+  }
+
+  /**
+   * @param {string} bodyId
+   * @param {string | null} partName `null` for "Whole object".
+   */
+  function setTarget(bodyId, partName) {
+    targetReference.set(bodyId, partName ?? null)
+  }
+
+  /** @param {string} bodyId */
+  function clearTarget(bodyId) {
+    targetReference.delete(bodyId)
+  }
+
+  /**
    * Forget every body's remembered reference — a new project reuses ids like `pi-1`, and a
    * stale entry must not apply to an unrelated body that happens to get the same id.
    */
   function reset() {
     reference.clear()
+    targetReference.clear()
   }
 
   /**
@@ -81,5 +112,5 @@ export const useAlignReferenceStore = defineStore('alignReference', () => {
    */
   const originOnly = ref(false)
 
-  return { reference, get, set, clear, reset, originOnly }
+  return { reference, get, set, clear, targetReference, getTarget, setTarget, clearTarget, reset, originOnly }
 })

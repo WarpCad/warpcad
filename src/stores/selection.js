@@ -158,8 +158,10 @@ export const useSelectionStore = defineStore('selection', () => {
    * - **Additive** — the body joins the selection **at the end** (so whatever was picked
    *   first stays the boolean's base — `ui-014`/`ui-040`) with the depth on it; a body that
    *   is already selected keeps its position and only the depth changes. Additive on the
-   *   part that is *already* addressed steps back up to the whole body and leaves the body
-   *   selected, mirroring how a check toggles.
+   *   part that is *already* addressed takes the body out of the selection and drops its
+   *   address, mirroring how a check toggles (`TODO/ui-097`: it used to step up to the whole
+   *   body and stay selected, so an Align silently measured the whole object). To use a body
+   *   whole, tick its own row.
    *
    * Depth never touches {@link ids}, so `count` — the number every count gate reads — is
    * unchanged by it (`ui-040`'s invariant). Each body keeps its **own** address
@@ -180,7 +182,7 @@ export const useSelectionStore = defineStore('selection', () => {
       return
     }
     if (partOf(bodyId) === partName) {
-      setAddress(bodyId, null)
+      deselect(bodyId)
       return
     }
     if (!ids.value.includes(bodyId)) ids.value = [...ids.value, bodyId]

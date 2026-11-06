@@ -35,6 +35,13 @@ import PopoverGrip from './PopoverGrip.vue'
  * applies to both targets: a `partName` for World origin, a `{ id, pieces }` operand for
  * Second selected.
  *
+ * ## What is measured on the target (`ui-097`)
+ *
+ * The second body is measured whole unless it is addressed at a part (the top line's `›`) or
+ * **Measure to** names one (remembered per body in its own `alignReference` map). The top line
+ * says "(whole object, N parts)" for a composite measured whole, so a hidden part inflating the
+ * extent is never silent.
+ *
  * A tap never changes the selection, and the popover stays open, so X, Y and Z can be
  * chained. Undo is the escape hatch.
  *
@@ -133,6 +140,69 @@ watch(
   { immediate: true },
 )
 
+/** The second body's visible parts, in group order — `[]` for a bare solid. */
+const targetParts = computed(() => {
+  const rootId = second.value?.rootId
+  return documentStore.bodies.find((body) => body.id === rootId)?.partNames ?? []
+})
+
+/** Measure to is offered under Second selected for a composite target that is not already addressed. */
+const showMeasureTo = computed(
+  () => target.value === 'second' && Boolean(second.value) && !second.value?.isSubPart && targetParts.value.length > 0,
+)
+
+/** The Measure to select's value: a remembered live part, or `''` for Whole object. */
+const measureTo = computed(() => {
+  const rootId = second.value?.rootId
+  if (!rootId) return ''
+  const stored = alignReference.getTarget(rootId)
+  return stored && targetParts.value.includes(stored) ? stored : ''
+})
+
+// Same forgetting rule as Measure from, on its own map (`ui-097`).
+watch(
+  () => [second.value?.rootId, targetParts.value],
+  () => {
+    const rootId = second.value?.rootId
+    if (!rootId) return
+    const stored = alignReference.getTarget(rootId)
+    if (stored && !targetParts.value.includes(stored)) alignReference.clearTarget(rootId)
+  },
+  { immediate: true },
+)
+
+/** The operand the second body contributes: its address, else the Measure to part, else the bare id. */
+const targetOperandRef = computed(() => {
+  const operand = second.value
+  if (!operand) return null
+  if (operand.isSubPart) return operand.ref
+  return measureTo.value ? { id: operand.terminalId, pieces: measureTo.value } : operand.terminalId
+})
+
+/** The top line's target name: World origin, the second body, or `body › part`. */
+const targetLabel = computed(() => {
+  if (target.value === 'origin') return 'World origin'
+  const operand = second.value
+  if (!operand) return ''
+  if (!operand.isSubPart && measureTo.value) return `${operand.name} › ${measureTo.value}`
+  return operand.label
+})
+
+/** "(whole object, N parts)" while a composite target is measured whole; `''` otherwise. */
+const wholeObjectNote = computed(() => {
+  if (target.value !== 'second' || !second.value || second.value.isSubPart || measureTo.value) return ''
+  const count = targetParts.value.length
+  return count > 0 ? `(whole object, ${count} ${count === 1 ? 'part' : 'parts'})` : ''
+})
+
+/** @param {Event} event */
+function onMeasureToChange(event) {
+  const rootId = second.value?.rootId
+  if (!rootId) return
+  const value = /** @type {HTMLSelectElement} */ (event.target).value
+  alignReference.setTarget(rootId, value === '' ? null : value)
+}
+
 /** The part that is measured on the moving body, or `null` for the whole body. */
 const measuredPart = computed(() => moving.value?.partName ?? (measureFrom.value || null))
 
@@ -186,7 +256,7 @@ function alignToSecond(op, params) {
     op,
     // `target` before `operands` is the fold's input order: the moving body is `inputs[0]`.
     target: part === null ? movingOperand.terminalId : { id: movingOperand.terminalId, pieces: part },
-    operands: [targetOperand.ref],
+    operands: [targetOperandRef.value ?? targetOperand.ref],
     // A bare record id even when `target` is addressed: it names the record this one
     // continues, not an operand (`OperationsToolbar.vue`'s module doc, §2).
     supersedes: movingOperand.terminalId,
@@ -261,7 +331,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 <template>
   <div class="align-popover" data-testid="align-popover" :data-target="target">
     <PopoverGrip />
-    <p class="align-popover__operands" data-testid="align-operands" :data-subpart="operands.some((operand) => operand.isSubPart) ? 'true' : 'false'">Aligning <strong data-testid="align-operand-moving">{{ moving?.label }}</strong> to <strong data-testid="align-operand-target">{{ target === 'origin' ? 'World origin' : second?.label }}</strong></p>
+    <p class="align-popover__operands" data-testid="align-operands" :data-subpart="operands.some((operand) => operand.isSubPart) ? 'true' : 'false'">Aligning <strong data-testid="align-operand-moving">{{ moving?.label }}</strong> to <strong data-testid="align-operand-target">{{ targetLabel }}</strong><template v-if="wholeObjectNote">{{ ' ' }}<span data-testid="align-operand-whole">{{ wholeObjectNote }}</span></template></p>
 
     <label v-if="second" class="align-popover__field">
       Target
@@ -276,6 +346,14 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
       <select data-testid="align-reference" :value="measureFrom" @change="onMeasureFromChange">
         <option value="">Whole object</option>
         <option v-for="name in visibleParts" :key="name" :value="name">{{ name }}</option>
+      </select>
+    </label>
+
+    <label v-if="showMeasureTo" class="align-popover__field">
+      Measure to
+      <select data-testid="align-reference-target" :value="measureTo" @change="onMeasureToChange">
+        <option value="">Whole object</option>
+        <option v-for="name in targetParts" :key="name" :value="name">{{ name }}</option>
       </select>
     </label>
 

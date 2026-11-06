@@ -337,7 +337,8 @@ export const useObjectListStore = defineStore('objectList', () => {
    *   selection is replaced, exactly as a plain tap on a body row replaces it.
    * - **Additive** (the child row's check, or Shift/Ctrl/Cmd on the row) — add this body
    *   *at the end*, addressed at this part; or, if that part is already the addressed one,
-   *   step back up to the whole body.
+   *   take the body out of the selection (`TODO/ui-097`; tick the body's own row to use it
+   *   whole).
    *
    * That is the answer to the operand-order trap. A boolean's **first** selected body is
    * its base (`ui-014`/`ui-040`) and Subtract removes every later one from it, so for

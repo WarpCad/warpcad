@@ -479,7 +479,7 @@ there and greyed out. It simply is not there.
 - **Tap the small box on the left of a piece** to add the shape to the selection
   addressed at that piece, which is how a piece becomes the *second* operand of a
   boolean. See [The Inspector's object list](#the-inspectors-object-list) for the order
-  rules.
+  rules. Tapping the same box again takes the shape out of the selection.
 - **Point at a piece** with a mouse (or reach it with the keyboard's Tab key) and that
   piece lights up in the 3D view in a violet tint, and only that piece. Pointing at a
   hidden piece shows it as a translucent overlay for as long as you point at it, even
@@ -967,6 +967,14 @@ whole shape.
 A piece you have addressed stays named on its parent row (`› ethernet`) even while the
 pieces list is collapsed, so you can always see what a Subtract is about to cut with
 before you press it.
+
+**Ticking a piece's box a second time takes the shape out of the selection**, badge and
+highlight included, and the count drops by one. A piece's box means "this shape, at this
+piece", so unticking it removes the shape rather than leaving it selected whole (which used
+to make Align and Subtract measure the whole shape without saying so). To use the shape whole,
+tick the shape's own row. Ticking a *different* piece of the same shape moves the address to
+that piece and keeps the shape selected. Example: tick **Raspberry Pi 1**'s `ethernet` box
+(count reads "2 selected"), tick it again (the Pi leaves and the count reads "1 selected").
 
 **Order matters, and the list shows you before you commit.** If you tap *ethernet*
 before *Shell 1*, the Pi becomes the base and the shell becomes the thing subtracted

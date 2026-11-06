@@ -452,14 +452,14 @@ describe('object list store — part rows (TODO/ui-042)', () => {
     expect(objects.rows[1].drilledPart).toBeNull()
   })
 
-  it('an additive tap on the addressed part un-addresses it; the body stays selected, in place', () => {
+  it('an additive tap on the addressed part removes the body and its address (ui-097)', () => {
     seedEnclosedPi()
     const objects = useObjectListStore()
     const selection = useSelectionStore()
     objects.choose('shell')
     objects.choosePart('pi', 'ethernet', true)
     objects.choosePart('pi', 'ethernet', true)
-    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.ids).toEqual(['shell'])
     expect(selection.subPart).toBeNull()
   })
 

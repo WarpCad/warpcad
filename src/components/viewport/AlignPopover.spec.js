@@ -395,6 +395,88 @@ describe('AlignPopover (TODO/ui-060, ui-086)', () => {
     })
   })
 
+  describe('Measure to — one named part of the target (TODO/ui-097)', () => {
+    const MEASURE_TO = '[data-testid="align-reference-target"]'
+
+    it('is shown for a composite, unaddressed second body, listing Whole object then its visible parts', () => {
+      placeAandB()
+      placePi()
+      selection.selectMany(['a', 'pi-1'])
+      const wrapper = mount(AlignPopover)
+      const values = wrapper.get(MEASURE_TO).findAll('option').map((option) => option.attributes('value'))
+      expect(values[0]).toBe('')
+      expect(values).toContain('mb')
+      expect(values).not.toContain('clearance-ethernet')
+    })
+
+    it('is hidden for a bare second body, for World origin, and when the second is already addressed', async () => {
+      placeAandB()
+      placePi()
+      selection.selectMany(['pi-1', 'a'])
+      expect(mount(AlignPopover).find(MEASURE_TO).exists()).toBe(false)
+      selection.selectMany(['a', 'pi-1'])
+      const wrapper = mount(AlignPopover)
+      expect(wrapper.find(MEASURE_TO).exists()).toBe(true)
+      await wrapper.get('[data-testid="align-target"]').setValue('origin')
+      expect(wrapper.find(MEASURE_TO).exists()).toBe(false)
+      selection.selectPart('pi-1', 'mb', true)
+      expect(mount(AlignPopover).find(MEASURE_TO).exists()).toBe(false)
+    })
+
+    it('writes a bare id for Whole object and { id, pieces } for a part, and never touches the selection', async () => {
+      placeAandB()
+      placePi()
+      selection.selectMany(['a', 'pi-1'])
+      const wrapper = mount(AlignPopover)
+      await wrapper.get('[data-testid="align-z-center"]').trigger('click')
+      expect(lastRecord().operands).toEqual(['pi-1-move'])
+      await wrapper.get(MEASURE_TO).setValue('mb')
+      await wrapper.get('[data-testid="align-z-center"]').trigger('click')
+      expect(lastRecord().operands).toEqual([{ id: 'pi-1-move', pieces: 'mb' }])
+      expect(selection.ids).toEqual(['a', 'pi-1'])
+      expect(selection.partOf('pi-1')).toBeNull()
+    })
+
+    it('puts the part on the top line, and says (whole object, N parts) when none is picked', async () => {
+      placeAandB()
+      placePi()
+      selection.selectMany(['a', 'pi-1'])
+      const wrapper = mount(AlignPopover)
+      const parts = documentStore.bodies.find((body) => body.id === 'pi-1')?.partNames?.length
+      expect(wrapper.get('[data-testid="align-operands"]').text()).toBe(
+        `Aligning Cube A to Raspberry Pi B+ (whole object, ${parts} parts)`,
+      )
+      expect(wrapper.get('[data-testid="align-operand-target"]').text()).toBe('Raspberry Pi B+')
+      await wrapper.get(MEASURE_TO).setValue('mb')
+      expect(wrapper.get('[data-testid="align-operands"]').text()).toBe('Aligning Cube A to Raspberry Pi B+ › mb')
+    })
+
+    it('says nothing extra for a bare target, and › for an addressed one', () => {
+      placeAandB()
+      selection.selectMany(['a', 'b'])
+      expect(mount(AlignPopover).get('[data-testid="align-operands"]').text()).toBe('Aligning Cube A to Cube B')
+    })
+
+    it('is remembered per body in its own map, separate from Measure from, and a lost part is forgotten', async () => {
+      placeAandB()
+      placePi()
+      const store = useAlignReferenceStore()
+      selection.selectMany(['pi-1', 'a'])
+      await mount(AlignPopover).get('[data-testid="align-reference"]').setValue('ethernet')
+      expect(store.getTarget('pi-1')).toBeNull()
+      selection.selectMany(['a', 'pi-1'])
+      const wrapper = mount(AlignPopover)
+      await wrapper.get(MEASURE_TO).setValue('mb')
+      expect(store.getTarget('pi-1')).toBe('mb')
+      expect(store.get('pi-1')).toBe('ethernet')
+      expect(store.get('a')).toBeNull()
+      store.setTarget('pi-1', 'No Such Part')
+      const again = mount(AlignPopover)
+      expect(store.getTarget('pi-1')).toBeNull()
+      expect(/** @type {HTMLSelectElement} */ (again.get(MEASURE_TO).element).value).toBe('')
+    })
+  })
+
   it('carries a ? that opens the one Align help topic', () => {
     placeAandB()
     selection.select('a')

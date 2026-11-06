@@ -196,9 +196,38 @@ one facing you.
 **You can address a part on both sides.** The moving item and the reference item each
 keep their own part, so *this hole on the board* against *that post on the screen* is one
 Align. Either side can also be whole: a whole screen positioned against one hole
-on a board is just as ordinary. Whichever side carries a `›` in the popover's top line is
+on a board is just as ordinary. You pick the moving side's part with **Measure from** (or by
+drilling into it), and the reference side's with **Measure to** (or by ticking its part in the
+Objects list). Whichever side carries a `›` in the popover's top line is
 measured by that part; a side with no `›` is measured whole. The app never quietly drops a
 part you addressed: if it can't use one, the popover says so in red and nothing moves.
+
+### Measuring to one part of the target
+
+When the second item has named parts and you have not addressed one, **Measure to** appears
+under **Measure from**. It lists **Whole object** and the target's visible parts. Choosing a
+part measures the target by that part alone, and it never changes your selection.
+
+Until you choose, the top line says what is happening: **Aligning Cube 1 to Raspberry Pi 1
+(whole object, N parts)**. "Whole object" means the target's overall box, so any part that
+sticks out past the one you care about moves the result. Choosing a part changes the line to
+`Raspberry Pi 1 › ethernet` at once.
+
+![The Align popover with Measure to set to ethernet, the top line reading Aligning Cube 1 to Raspberry Pi 1 › ethernet](./screenshots/snap-align-measure-to.png)
+
+1. Place a **Raspberry Pi 5** and drag a **Cube** in beside it.
+2. Click the Cube, then Shift-click the Pi. (On a phone, tick the Cube's box and then the
+   Pi's box in the Objects list.)
+3. Press **⇔ Align**. The top line reads **Aligning Cube 1 to Raspberry Pi 1 (whole object, N parts)**.
+4. Set **Measure to** to **ethernet**. The top line reads **Aligning Cube 1 to Raspberry Pi 1 › ethernet**.
+5. On the **Y** row, tap **outside +**. The Cube's − Y face now sits on the Ethernet jack's
+   + Y face, not on the board's.
+
+**Measure to** is hidden when the Pi is already addressed at a part (the `›` is already there),
+and when **Target** is **World origin**. Another way to get the same result: press **Escape**,
+open the Objects list, open the Pi's parts and tick **ethernet**'s box once. Ticking it a
+second time takes the Pi back out of the selection (the count reads "1 selected"); to use the
+Pi whole, tick the Pi's own row.
 
 ### Mounting a Raspberry Pi on a screen's posts
 
@@ -413,13 +442,17 @@ design.
 Top to bottom:
 
 - **What's being aligned**: the top line, naming the moving item first and the target
-  second, each with its `›` part name if you drilled into it. Read this before tapping: a
+  second, each with its `›` part name if you drilled into it or picked a part with **Measure to**; a
+  second shape with parts that is measured whole says `(whole object, N parts)`. Read this before tapping: a
   part-addressed move and a whole-item move look identical once they have happened, and
   this line is the only place the difference is visible beforehand.
 - **Target**: `Second selected (<name>)` or `World origin`. Only shown when two shapes are
   selected; with one, the target is always the origin.
 - **Measure from**: which part of the moving shape is measured, or **Whole object**. Hidden
   for a plain solid, and hidden when you have already drilled into a part.
+- **Measure to**: the same choice for the second shape. Only shown under **Second selected**,
+  for a second shape with named parts that you have not already addressed at one. See
+  [Measuring to one part of the target](#measuring-to-one-part-of-the-target).
 - **Center on origin, sit on grid**: enabled only when **Target** is **World origin**. One
   tap, one step. It is the same as tapping **X center**, **Y center** and **Z outside +**.
 - **The position grid**: one row per axis, X, Y and Z, each with seven buttons that read

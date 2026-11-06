@@ -176,14 +176,23 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     expect(selection.partOf('pi')).toBe('hdmi')
   })
 
-  it('additive on the part that is already addressed: steps back up to the whole body, body stays selected', () => {
+  it('additive on the part that is already addressed: removes the body and its address (ui-097)', () => {
     const selection = useSelectionStore()
     selection.select('shell')
     selection.selectPart('pi', 'ethernet', true)
     selection.selectPart('pi', 'ethernet', true)
-    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.ids).toEqual(['shell'])
     expect(selection.partOf('pi')).toBeNull()
     expect(selection.subPart).toBeNull()
+  })
+
+  it('additive on a sibling of the addressed part re-addresses, keeping the body (ui-097)', () => {
+    const selection = useSelectionStore()
+    selection.select('shell')
+    selection.selectPart('pi', 'ethernet', true)
+    selection.selectPart('pi', 'hdmi', true)
+    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.partOf('pi')).toBe('hdmi')
   })
 
   it('never changes count — depth is not a second operand (ui-040 invariant)', () => {
@@ -194,8 +203,9 @@ describe('selection store — selectPart (TODO/ui-042)', () => {
     expect(selection.count).toBe(2)
     selection.selectPart('pi', 'hdmi', true)
     expect(selection.count).toBe(2)
+    // Ticking the addressed part again is the only step that changes the count (ui-097).
     selection.selectPart('pi', 'hdmi', true)
-    expect(selection.count).toBe(2)
+    expect(selection.count).toBe(1)
   })
 
   it('a part on a second body ADDS an address — the first body keeps its own (ui-063, was one slot)', () => {

@@ -215,10 +215,10 @@ describe('ObjectList — part rows (TODO/ui-042)', () => {
     // Collapse: the drilled part is still named on the parent row, so the address is never hidden.
     await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
     expect(wrapper.get('[data-testid="objects-drilled-pi"]').text()).toContain('ethernet')
-    // Toggling the part's check off again un-addresses it, and the body stays.
+    // Toggling the part's check off again removes the body and its badge (ui-097).
     await wrapper.get('[data-testid="objects-expand-pi"]').trigger('click')
     await wrapper.get(partCheck('ethernet')).trigger('click')
-    expect(selection.ids).toEqual(['shell', 'pi'])
+    expect(selection.ids).toEqual(['shell'])
     expect(selection.partOf('pi')).toBeNull()
     expect(wrapper.find('[data-testid="objects-drilled-pi"]').exists()).toBe(false)
   })
@@ -466,7 +466,7 @@ describe('ObjectList — parts mode, the Inspector\'s Parts section (TODO/ui-049
     expect(wrapper.find('[data-testid="objects-count"]').exists()).toBe(false)
   })
 
-  it('a tap drills to that part, a check toggles its address — the same gestures as the list', async () => {
+  it('a tap drills to that part, a check toggles its address, a second tick removes the body — the same gestures as the list', async () => {
     const wrapper = mountParts()
     const selection = useSelectionStore()
     await wrapper.get('[data-testid="inspector-part-tap"]').trigger('click')
@@ -474,7 +474,7 @@ describe('ObjectList — parts mode, the Inspector\'s Parts section (TODO/ui-049
     expect(selection.subPart).toEqual({ bodyId: 'bolt', partName: 'tap' })
     await wrapper.get('[data-testid="inspector-part-check-tap"]').trigger('click')
     expect(selection.subPart).toBeNull()
-    expect(selection.ids).toEqual(['bolt'])
+    expect(selection.ids).toEqual([]) // ui-097: the second tick removes the body
   })
 
   it('hovering a part row names that part of this body', async () => {
