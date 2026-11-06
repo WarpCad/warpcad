@@ -396,3 +396,58 @@ test('a Bolt’s tap can be shown by default, and hidden again', async ({ page }
   const again = extent(await boundsOf(page, bolt.name))
   again.forEach((value, axis) => expect(value).toBeCloseTo(asPlaced[axis], 2))
 })
+
+/**
+ * Pixels of the WebGL canvas that read as green: the shown-hidden overlay of a green part (`ui-099`). Green, not red, so no default colour can be mistaken for it.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<number>}
+ */
+async function greenPixels(page) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  return page.evaluate(() => {
+    const canvas = /** @type {HTMLCanvasElement} */ (document.querySelector('[data-testid="viewport-canvas"]'))
+    const off = document.createElement('canvas')
+    off.width = canvas.width
+    off.height = canvas.height
+    const ctx = /** @type {CanvasRenderingContext2D} */ (off.getContext('2d'))
+    ctx.drawImage(canvas, 0, 0)
+    const { data } = ctx.getImageData(0, 0, off.width, off.height)
+    let count = 0
+    for (let i = 0; i < data.length; i += 8) {
+      if (data[i] < 120 && data[i + 1] > 150 && data[i + 2] < 120) count += 1
+    }
+    return count
+  })
+}
+
+test('a colour set on a shown Group part survives Hidden by default and is drawn as a shown hidden part (TODO/ui-099)', async ({ page }, info) => {
+  test.setTimeout(180_000)
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+  const { press, dragRow } = await pointer(page, info)
+  await buildCubeGroup(page, info, press, dragRow)
+  // The green the canvas shows before any colour is set: the noise floor the overlay has to clear.
+  const baseline = await greenPixels(page)
+
+  // Drill into Cube 2 while it is still shown, and colour it green.
+  await press(page.getByTestId('inspector-part-Cube 2'))
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Cube 2')
+  await page.getByTestId('inspector-color-input').fill('#00ff00')
+  await expect(page.getByTestId('inspector-color-input')).toHaveValue('#00ff00')
+
+  // Tick Hidden by default. The colour stays with the part in the document.
+  await press(page.getByTestId('inspector-default-hidden'))
+  await expect(page.getByTestId('inspector-default-hidden')).toBeChecked()
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Cube 2')
+  await expect(page.locator('[data-body-id]').first()).toHaveAttribute('data-body-part-colors', /Cube 2=#00ff00/)
+
+  // Show hidden parts draws Cube 2 as a translucent overlay, and it must still be green. The toggle
+  // lives on the group's page, so step back up to it first.
+  await press(page.getByTestId('inspector-breadcrumb-group'))
+  await press(page.getByTestId('inspector-hidden-parts-toggle-row'))
+  await expect(page.getByTestId('inspector-hidden-parts-toggle')).toBeChecked()
+  await expect
+    .poll(async () => (await greenPixels(page)) - baseline, { message: 'the hidden Cube 2 is drawn green, not its recipe colour' })
+    .toBeGreaterThan(20)
+})

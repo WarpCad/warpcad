@@ -2717,3 +2717,12 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 620 → 351 lines → `git show HEAD:CLAUDE.md | wc -l` and `wc -l CLAUDE.md`, this session; history replaced by pointer and stack versions removed → CLAUDE.md diff (staged); rule headings kept for cited references → grep of .claude/ and TODO/ for CLAUDE.md section names, this session.
 **To Add:** none
 
+
+## 2026-11-06T20:13:44Z — A part's colour now survives Hidden by default
+
+**Post:** A cutter you colour, then mark Hidden by default, keeps its colour when you show hidden parts. It had quietly reverted to its recipe blue. Now a regression test checks the pixels on all nine engine and viewport combinations.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** test passes 9/9 with the fix and fails 0/9 with the old rule → e2e run this session (part-default-hidden, --grep ui-099); fix is commit e0309ea → git log.
+**To Add:** none

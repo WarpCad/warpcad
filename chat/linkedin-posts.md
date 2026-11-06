@@ -3929,3 +3929,16 @@ The headings stayed put, because the commands and prompts cite them by name, so 
 **Evidence:** 620 → 351 lines → `git show HEAD:CLAUDE.md | wc -l` and `wc -l CLAUDE.md`, this session; history replaced by pointer and stack versions removed → CLAUDE.md diff (staged); headings kept because commands cite them → grep of .claude/ and TODO/ for CLAUDE.md section names, this session.
 **To Add:** none
 
+
+## 2026-11-06T20:13:44Z — A part's colour now survives Hidden by default
+
+**Post:** WarpCad had a quiet rendering bug. Colour a part, tick "Hidden by default", then turn on "Show hidden parts", and the part came back in its original blue. The colour was stored, just not drawn.
+
+The fix had landed a commit earlier, but nothing tested that exact sequence. This pass adds a regression test that colours a shown part, hides it by default, shows hidden parts, and counts the green pixels on the canvas. With the fix it passes on all nine engine and viewport combinations. With the old rule it fails on all nine.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 9/9 pass with fix, 0/9 with old rule → e2e run this session; fix commit e0309ea → git log.
+**To Add:** none

@@ -526,6 +526,8 @@ behave like a bolt's `tap`, a piece that is part of the shape but not part of th
 object. Use the eye to look past something for a moment, and this box when the piece is not
 part of the thing you are making.
 
+A colour set on the piece before you tick the box stays with it. Drill into `Cube 2`, set its colour to green, tick **Hidden by default**, then turn on **Show hidden parts**: the translucent box is still green.
+
 ![A group's Cube 2 selected with Hidden by default ticked, under the Color row](./screenshots/inspector-default-hidden.png)
 
 It is in the Inspector, directly below the Color row, whenever you are drilled into one named
