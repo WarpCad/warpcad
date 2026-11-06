@@ -3915,3 +3915,17 @@ Both are open. No fix has landed, and the first step is to reproduce the reporte
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** second tick steps to whole body, cutter 0.256 mm past connector → TODO/FIND-ui-097 Problem and reproduction table (built app at 934656a, Chromium 1440x900); the three-part fix → TODO/FIND-ui-097 Proposed fix; overlapping-cutter selection, cause unconfirmed → TODO/FIND-ui-098 Problem ("Neither is confirmed"); no fix landed → both files Status: open, and FIND-ui-098 "Do not fix yet".
 **To Add:** none
+
+## 2026-11-06T16:25Z — Shortening the rules file without losing the rules
+
+**Post:** WarpCad keeps a rules file, CLAUDE.md, that its AI-driven workflows read on every run. It had grown to 620 lines. Much of that was history: the story of two shelved attempts, library choices that had since been replaced, and a stack table pinned to versions that were already out of date.
+
+This pass cut it to 351 lines. The attempt history now sits behind a single pointer to the retrospectives. The stack table links to the decision records instead of repeating versions. Every rule survived, reworded shorter.
+
+The headings stayed put, because the commands and prompts cite them by name, so renaming one would have broken references silently. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 620 → 351 lines → `git show HEAD:CLAUDE.md | wc -l` and `wc -l CLAUDE.md`, this session; history replaced by pointer and stack versions removed → CLAUDE.md diff (staged); headings kept because commands cite them → grep of .claude/ and TODO/ for CLAUDE.md section names, this session.
+**To Add:** none
+

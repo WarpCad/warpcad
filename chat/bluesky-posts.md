@@ -2707,3 +2707,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two findings filed → TODO/FIND-ui-097-align-target-part-dropped-to-whole-body.md and TODO/FIND-ui-098-colour-set-on-selected-cutter-shows-on-the-other-one.md (new in this commit); second tick aligns to whole body → FIND-ui-097 reproduction table, built app at 934656a, Chromium 1440x900; overlapping cutter may be selected → FIND-ui-098, explicitly unconfirmed hypothesis; no fixes → both files' Status: open and "Do not fix yet".
 **To Add:** none
+
+## 2026-11-06T16:25Z — WarpCad's rules file gets shorter, not looser
+
+**Post:** WarpCad's CLAUDE.md, the rules file its AI workflows read, drops from 620 to 351 lines. The history of two shelved attempts moves behind a pointer, and the stack table links to decision records instead of pinned versions. Every rule is kept, reworded shorter. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 620 → 351 lines → `git show HEAD:CLAUDE.md | wc -l` and `wc -l CLAUDE.md`, this session; history replaced by pointer and stack versions removed → CLAUDE.md diff (staged); rule headings kept for cited references → grep of .claude/ and TODO/ for CLAUDE.md section names, this session.
+**To Add:** none
+
