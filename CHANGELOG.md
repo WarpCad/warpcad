@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.10.0](https://github.com/WarpCad/warpcad/compare/v1.9.0...v1.10.0) (2026-11-06)
+
+### Bug Fixes
+
+* **ui:** list a project-only My parts row only while the project uses it (TODO/ui-096) ([934656a](https://github.com/WarpCad/warpcad/commit/934656a47988a70614a51e98dcf49bbc42ddecba))
+
 ## [1.9.0](https://github.com/WarpCad/warpcad/compare/v1.8.0...v1.9.0) (2026-11-06)
 
 ### Bug Fixes
