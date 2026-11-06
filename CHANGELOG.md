@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.0](https://github.com/WarpCad/warpcad/compare/v1.8.0...v1.9.0) (2026-11-06)
+
+### Bug Fixes
+
+* **ui:** let a My parts entry that fails to load be deleted (TODO/ui-095) ([8457bb7](https://github.com/WarpCad/warpcad/commit/8457bb702510ab488282df75103216ae89a851ce))
+
 ## [1.8.0](https://github.com/WarpCad/warpcad/compare/v1.7.0...v1.8.0) (2026-11-05)
 
 ### Features
