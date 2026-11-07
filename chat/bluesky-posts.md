@@ -2726,3 +2726,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** test passes 9/9 with the fix and fails 0/9 with the old rule → e2e run this session (part-default-hidden, --grep ui-099); fix is commit e0309ea → git log.
 **To Add:** none
+
+
+## 2026-11-07T21:23:07Z — WarpCad gets groundwork for a native shell
+
+**Post:** WarpCad is getting a native shell. This commit lays the groundwork: a build mode for it, a check for whether the page runs inside it, and no service worker or analytics in that bundle. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #Tauri #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** native mode, shell probe, service-worker skip, analytics skip → vite.config.js, src/native/shell.js, src/pwa.js diff (staged); unit suite 8615 passed, 0 failed → stamp results, this session; e2e 5281 passed, 0 failed → stamp results, this session.
+**To Add:** none

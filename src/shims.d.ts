@@ -55,6 +55,8 @@ declare const __APP_VERSION__: string
 declare const __APP_COMMIT__: string
 // `TODO/build-007`: the GA4 measurement ID baked in by a production build; `''` otherwise.
 declare const __GA_MEASUREMENT_ID__: string
+// `TODO/build-017`: the native shell the build targets (`tauri`, and so on); `''` on the web build.
+declare const __SHELL__: string
 
 // vite-plugin-pwa's virtual registration module (its own `client.d.ts` pulls in typings for every
 // framework, none of which is installed here), narrowed to what `src/pwa.js` uses.

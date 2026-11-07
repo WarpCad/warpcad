@@ -17,6 +17,7 @@
     "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
     "dev": "vite",
     "build": "vite build",
+    "build:native": "vite build --mode native",
     "preview": "vite preview",
     "release": "release-it",
     "typecheck": "vue-tsc --noEmit && tsc -p mcp/tsconfig.json",

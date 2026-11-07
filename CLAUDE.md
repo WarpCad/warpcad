@@ -177,6 +177,9 @@ Settled structure, not a kickoff question:
 - `src/render/` — 3D scene, camera, picking, gizmos, the mesh bridge.
 - `src/storage/` — persistence and sync backends (IndexedDB, File System Access, and the
   hosted git-based backend once built).
+- `src/native/` — what the app knows about the native shell it runs in (`isNativeShell`,
+  `invoke` over the Tauri bridge). Framework-free. The shell itself is the sibling repository
+  `warpcad-native` (`docs/decisions/native-mobile-shell.md`).
 - `src/ai/` — design-intent capture, the tool registry (`src/ai/tools/`), and the BYOK chat
   client.
 - `src/components/<category>/` — Vue components, by category (see Component Categories).

@@ -14,6 +14,7 @@
 import { registerSW } from 'virtual:pwa-register'
 
 import { createUpdateScheduler } from './core/appUpdate.js'
+import { isNativeShell, probeShell } from './native/shell.js'
 import { useAppUpdateStore } from './stores/appUpdate.js'
 
 const OFFLINE_READY_KEY = 'warpcad.offlineReadyShown'
@@ -44,6 +45,9 @@ function rememberShown(build) {
  * @param {import('pinia').Pinia} pinia the app's Pinia (the store is used outside a component)
  */
 export function startPwa(pinia) {
+  // A native shell serves its assets from disk, and WKWebView service workers outside App-Bound
+  // Domains are unreliable, so the shell never registers one (`docs/decisions/native-mobile-shell.md`, Q2).
+  if (isNativeShell(probeShell())) return
   const store = useAppUpdateStore(pinia)
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
 

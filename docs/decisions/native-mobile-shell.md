@@ -580,6 +580,29 @@ named in **Revisit when**, so the question reopens on evidence rather than prefe
 
 ---
 
+## Question 8: Health check of the Tauri 2 pins, 2026-11-07
+
+Run at pull-in time for `build-017`, as the library-decisions rule requires. Checked on 2026-11-07.
+
+| Item | Result |
+|---|---|
+| `tauri` crate, latest stable 2.x | **2.12.5** (crates.io index). Above the first patched version of the advisory below. |
+| `@tauri-apps/cli`, latest | **2.12.4** (npm; `cargo tauri --version` on this machine) |
+| `tauri-plugin-fs`, latest stable 2.x | **2.7.1** (3.0.0-alpha is newer but pre-release; not used) |
+| `tauri-plugin-dialog`, latest stable 2.x | **2.8.4** (3.0.0-alpha is newer but pre-release; not used) |
+| Stars | `tauri-apps/tauri` 112,592 (pushed 2026-11-06). `tauri-apps/plugins-workspace` 1,841 (holds the plugins; the `tauri-plugin-fs` repo alone has 30) |
+| Open iOS issues | #13578 (bundle carries standalone libraries), #15066 (Xcode 26 link error on `-lswiftCompatibility56`), #15663 (App Store Connect API-key auth drops app-extension entitlements), #15740 (signing identity not resolved on clean CI, Xcode 26). **All four still open.** |
+| Advisories since 2026-10-21 | **None found** on the GitHub advisory database for the `tauri` crate. |
+| Advisories, earlier and relevant | GHSA-7gmj-67g7-phm9, published 2026-05-06: remote pages can invoke local-only IPC commands. Affected `>= 2.0.0, <= 2.11.0`, patched in **2.11.1**, so 2.12.5 includes the fix. Its database severity is "medium" with a CVSS score of 8.8; the stop rule applies to unpatched high or critical advisories, so the pin is not blocked. |
+
+**Decision for the scaffold:** pin the 2.x line (`tauri` 2.12.x, `tauri-plugin-fs` 2.7.x, `tauri-plugin-dialog` 2.8.x) and not the 3.0 alphas.
+
+**Decided 2026-11-07:** approve Unicode-3.0, Zlib and CDLA-Permissive-2.0 for the native repository's Rust dependencies. All three come in through Tauri itself (ICU via `url`, `foldhash` via `dom_query`). They are added to `warpcad-native/deny.toml`. **Decided 2026-11-07:** also approve `Apache-2.0 WITH LLVM-exception` (`target-lexicon`, through Tauri's build tooling), and allow the project's own AGPL-3.0-or-later for the native crate. `cargo deny check licenses` passes on this record's date.
+
+**Origin scheme (task step 7):** not decided here. The owner records it when the scaffold lands.
+
+---
+
 ## Rejection table
 
 | Option | Why not |
@@ -630,6 +653,7 @@ named in **Revisit when**, so the question reopens on evidence rather than prefe
      App-Store exception for other contributors' code without their consent. This record does not
      resolve it; it is a licensing decision for the owner, and possibly legal advice. Google Play and
      sideloading do not raise the same question (**unverified** for Play's current terms).
+     **Decided 2026-11-07:** grant an App Store exception. The owner is the sole contributor, so no other contributor's consent is needed. The exception's wording is still to be drafted before submission, and the record does not yet cover whether the owner's own copyright alone is enough for every file. Google Play is not decided here.
    - **Apple Developer Program enrolment and signing in CI.**
 
 ## Suggested follow-up roadmap rows (suggestions only, not added)

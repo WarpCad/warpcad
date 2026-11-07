@@ -67,12 +67,18 @@ outside the app.
      Loading Help from the web also needs a version-skew line in the Help sheet ("This help is
      for WarpCad <index version>; this app is <app version>") when the two differ: file it as a
      follow-up row if the owner picks that shape.
+     **Deferred 2026-11-07:** which shape to ship. Parked, no decision yet. Recommendation on record: fetch from the web (`native-mobile-shell.md` Recommendation 7 calls it a size-versus-offline call).
+     **Decided 2026-11-07:** fetch the Help GIFs from app.warpcad.com rather than bundling the 89 MB, so the download stays small. **Superseded 2026-11-07 by the prose-licence decision below:** the app loads all Help from the web and ships none of it, so the Help text does not ship in the app either.
    - **The prose licence** (`app-store-licensing.md`, "The prose licence"): (a) relicense the
      owner's own docs for the app copy, or (b) the app ships no Help and loads it from the web.
    - **iPad**: support iPad in this first release, or iPhone only. iPad adds screenshots and a
      review on that form factor.
+     **Decided 2026-11-07:** iPhone and iPad (one universal build), with macOS also in scope. The answer was given as "iPhone iPad and macOS"; read as that.
    - **Sentry in the native build**: on (privacy label "Crash data, not linked to identity") or off.
+     **Decided 2026-11-07:** on, with the privacy label "Crash data, not linked to identity". The privacy section and App Store label work in item 1 now follow from this.
    - **Price and availability** and the **age rating** answers.
+     **Decided 2026-11-07:** the price amount and countries are set later, before submission. Nothing else depends on them yet.
+     **Decided 2026-11-07:** price is paid, at one price. The amount and the countries it is sold in are still open, and need a paid-apps agreement in App Store Connect. **Decided 2026-11-07:** age rating 4+, answered honestly on the questionnaire's web-access and AI-service questions.
 2. **Native licence audit** (`app-store-licensing.md` Part 2, "Native dependencies (not yet
    audited)", written for Capacitor; rewrite it for Tauri): `cargo deny list` output by licence for
    the iOS target, committed as a table. Reject GPL/LGPL/AGPL crates outright, as that record says.

@@ -101,7 +101,9 @@ icons, and the Help GIFs and screenshots under `docs/media/` and `docs/screensho
 licence and a source before the iOS bundle includes them. Anything the owner did not create and
 cannot show a permissive licence for stays out of the bundle.
 
-### The prose licence (owner's choice, open)
+### The prose licence (owner's choice, decided 2026-11-07: option (b))
+
+**Decided 2026-11-07:** option (b), the app loads all Help from the web and ships none of it. No relicensing of the owner's docs is needed for the app copy. The public repository's CC BY-SA marks stay unchanged. This supersedes the earlier note in `TODO/M19-build-020-app-store-submission-readiness.md` that Help text ships in the app.
 
 `docs/` and the Help content are CC BY-SA 4.0. That licence forbids applying effective technological
 measures that restrict recipients, and Apple's encryption of the app binary is one. The owner
@@ -196,8 +198,11 @@ Before App Store submission, the owner has these reviewed by a lawyer or equival
 - the AI-assisted authorship question,
 - the docs-licence choice.
 
-**Reviewer:** none yet. **Date:** not yet. **Skipped deliberately:** no. This task does not block on
-it; the store submission does.
+**Reviewer:** none. **Date:** not yet. **Skipped deliberately:** yes, by the owner's decision on 2026-11-07:
+the owner will not contact a lawyer or other reviewer. The owner is the sole author and sets the licence
+for the app copy (prose licence (b), decided the same day). **Not reviewed by anyone else:** the
+AI-assisted authorship question, the CLA's governing-law placeholder, and the VLC-style mechanism. Part 6
+therefore stays NOT DONE in substance. This task does not block on it; the store submission does.
 
 ## Verification still outstanding
 

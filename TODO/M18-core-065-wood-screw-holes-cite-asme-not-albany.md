@@ -18,6 +18,8 @@ so the risk is low, but the supplier's chart is the one place in the repository 
 third party's published chart is the data source. The pre-publish licence review (2026-10-17)
 flagged it, and the user chose on 2026-10-17 to cite ASME instead.
 
+**Decided 2026-11-07:** confirmed, the user chose to switch the citation to ASME B18.6.1. Step 1 (does the standard print the pilot and clearance columns?) still comes first, and the task stops to ask if it doesn't.
+
 **An unverified premise, to settle first.** ASME B18.6.1, *Wood Screws (Inch Series)*, is a
 dimensional standard for the screws themselves. This file's author does not know whether it
 prints pilot-hole or clearance-hole sizes, and the standard is behind a paywall, so nothing

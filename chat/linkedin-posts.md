@@ -3942,3 +3942,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 9/9 pass with fix, 0/9 with old rule → e2e run this session; fix commit e0309ea → git log.
 **To Add:** none
+
+
+## 2026-11-07T21:23:07Z — WarpCad gets groundwork for a native shell
+
+**Post:** WarpCad is a browser CAD app, and it is getting a native shell for iOS and macOS, built with Tauri 2. This commit is the groundwork inside the web app, not the shell itself.
+
+The web build now has a native mode. The page can tell whether it runs inside a shell. A native build skips the service worker, because WKWebView handles those unreliably outside its app-bound domains, and it never loads analytics.
+
+The same commit records the owner's App Store decisions: iPhone and iPad in one universal build, Sentry on with a privacy label, and a paid app whose price is still to be set. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** native mode, shell probe, service-worker skip, analytics skip → vite.config.js, src/native/shell.js, src/pwa.js diff (staged); iPhone/iPad, Sentry on, paid app with price open → TODO/M19-build-020 diff (staged); unit 8615 passed, e2e 5281 passed, 0 failed → stamp results, this session; Tauri pin check → native-mobile-shell.md Question 8, dated 2026-11-07, not re-checked this session.
+**To Add:** none

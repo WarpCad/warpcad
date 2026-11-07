@@ -33,7 +33,7 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-11-07 (`core-080` rounded Cube closed, with `ui-100`–`ui-103` filed from its acceptance drive). Before that 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
+*Last reviewed 2026-11-07 (rows 22w–22za added from the VERIFY.md third pass: cold reads, real-GPU looks, measured taps, model behaviour over MCP, and the owner-decision batch. Before that, rows 22t–22v added from the VERIFY.md Safari pass: desktop Safari, the iOS Simulator and native dialogs, each waiting on one owner setup step. Before that, 13 rows 22g–22s added from the VERIFY.md AI-drivable pass: rows an AI drive can settle, handed to TODO files. Before that, six ready findings added as rows 22a–22f, per the owner's decision that day; `core-065`, the gear tasks and the threads tasks are deferred, so they are not in the table. `core-080` rounded Cube closed, with `ui-100`–`ui-103` filed from its acceptance drive). Before that 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
 
 **Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
 (widened 2026-10-26; iOS first) that
@@ -62,10 +62,39 @@ this repository still need a green full run before they are pushed.
 | 19 | `FIND` | ▶ [`testing-008`](FIND-testing-008-print-prep-split-sheet-still-flakes-under-load.md) Print-prep split-sheet flake under load | Low | sonnet |
 | 21 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
 | 22 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
+| 22a | `FIND` | [`ui-100`](FIND-ui-100-inspector-refusal-message-hidden-under-delete.md) A refused Inspector edit's message is hidden under the sticky Delete bar | Medium; filed from the core-080 drive | sonnet |
+| 22b | `FIND` | [`ui-101`](FIND-ui-101-webkit-phone-enum-select-below-tap-size.md) The Inspector's enum select is below tap size in WebKit at phone width | Medium; filed from the core-080 drive | sonnet |
+| 22c | `FIND` | [`testing-013`](FIND-testing-013-getting-started-tour-times-out-under-full-load.md) The getting-started docs tour times out under the full e2e matrix | Medium; passes alone | sonnet |
+| 22d | `FIND` | [`ui-102`](FIND-ui-102-history-edit-form-rounded-cube-fields.md) The History edit form shows a rounded Cube's fields inconsistently | Low; filed from the core-080 drive | sonnet |
+| 22e | `FIND` | [`ui-103`](FIND-ui-103-history-apply-button-text-matches-background-on-hover.md) The History Apply button's text matches its background on hover | Low; filed from the core-080 drive | sonnet |
+| 22f | `FIND` | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and translucency checks on all three engines | Low; waits on `testing-005` (done) | sonnet |
+| 22g | `FIND` | ▶ [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22h | `FIND` | ▶ [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22i | `FIND` | ▶ [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22j | `FIND` | ▶ [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks emulation can settle (8 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22k | `FIND` | ▶ [`testing-021`](FIND-testing-021-verify-rows-overtaken-by-later-work.md) Re-check VERIFY.md rows later work appears to have answered; close or reword (7 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22l | `FIND` | ▶ [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22m | `FIND` | ▶ [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22n | `FIND` | ▶ [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22o | `FIND` | ▶ [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22p | `FIND` | ▶ [`docs-031`](FIND-docs-031-verify-external-facts-docs-cite.md) Check the outside facts (trademarks, ISO 4032, prices, WebMCP trial, MCP cap) VERIFY.md rows cite (5 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22q | `FIND` | ▶ [`docs-032`](FIND-docs-032-link-agent-prompting-guide-from-home-page.md) Link the agent prompting guide from the warpcad.com home page (`docs-029` #3) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22r | `FIND` | ▶ [`docs-033`](FIND-docs-033-regenerate-objects-hide-split-piece-still.md) Regenerate the `objects-hide-split-piece` still without rewriting every GIF (2 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22s | `FIND` | ▶ [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed Pages build (`perf-002` #1) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
+| 22t | `FIND` | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the desktop-Safari checks in real Safari through safaridriver (6 rows; session start still times out) | From the 2026-11-07 VERIFY.md Safari pass; owner setup step first (see the file) | sonnet |
+| 22u | `FIND` | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the iOS Safari behaviour checks (keyboard, zoom, pickers, safe areas, fonts) in the iOS Simulator (34 rows; Remote Automation off in the simulator) | From the 2026-11-07 VERIFY.md Safari pass; owner setup step first (see the file) | sonnet |
+| 22v | `FIND` | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the checks blocked on native OS dialogs and private windows, with computer use (6 rows; needs the desktop app) | From the 2026-11-07 VERIFY.md Safari pass; owner setup step first (see the file) | sonnet |
+| 22w | `FIND` | ▶ [`testing-029`](FIND-testing-029-verify-cold-read-panel.md) Cold-read panel: fresh agents answer the VERIFY.md “does a stranger understand this” rows | From the 2026-11-07 VERIFY.md third pass | sonnet |
+| 22x | `FIND` | ▶ [`testing-030`](FIND-testing-030-verify-look-and-legibility-on-real-gpu.md) Look-and-legibility rows on the Mac’s real GPU and screen, with contrast, ΔE and flicker measurements | From the 2026-11-07 VERIFY.md third pass | sonnet |
+| 22y | `FIND` | ▶ [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows | From the 2026-11-07 VERIFY.md third pass | sonnet |
+| 22z | `FIND` | ▶ [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP instead of an API key | From the 2026-11-07 VERIFY.md third pass | sonnet |
+| 22za | `FIND` | ▶ [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md, draft a recommendation each, ask in batches | From the 2026-11-07 VERIFY.md third pass; ends in questions for the owner | sonnet |
 | 23 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
 | 25 | `M11` | Gears (M11, runs last): `ui-057` → `ui-058` → `core-048` → `core-049` → `core-062` → `testing-002` → `docs-021` | Order from M11's suggested order | sonnet / opus |
 
-`core-065` stays parked (decided 2026-10-17: keep the Albany table for now) and is not ranked.
+`core-065` stays parked (decided 2026-10-17: keep the Albany table for now) and is not ranked. **Decided 2026-11-07:** switch the table's citation to ASME B18.6.1, as the task file already records for 2026-10-17. This supersedes the "keep Albany" note. Its Step 1 check still applies first: if the standard does not print pilot or clearance sizes, the task stops and asks.
+
+**Deferred 2026-11-07:** all gear work (the M11 milestone: core-048, core-049, core-062, ui-057, ui-058, testing-002, docs-021) and all screw and thread work (core-074, ui-080 for threads; core-065 for the wood-screw table). Parked, no decision yet on when they resume. Nothing else is changed; the Next up order is untouched.
 
 **Runner order** (`/run-todos` follows table order): [M19](#m19--native-ios-app-tauri) first, then
 [M20](#m20--home-page-at-warpcadcom), then [M18](#m18--launch-open-rows), then the open milestone tables in this file's order, then
@@ -89,11 +118,10 @@ this repository still need a green full run before they are pushed.
 
 **Still waiting on you**
 
-- **For M19 to start `build-019`:** an active Apple Developer Program membership, and confirmation of the bundle
-  identifier (`build-017` proposes `com.warpcad.app`; it cannot change once App Store Connect has the record).
-- **For M19 to finish `build-020`:** the Help-content / prose-licence choice, iPad or iPhone-only, Sentry in the
-  app, price and age rating, and the Part 6 legal review in `docs/decisions/app-store-licensing.md`. The
+- **For M19 to start `build-019`:** cleared 2026-10-31 (Apple Developer membership active; bundle identifier `com.warpcad.app` confirmed).
+- **For M19 to finish `build-020`:** the price amount and countries, and the Part 6 review in `docs/decisions/app-store-licensing.md`. **Decided 2026-11-07:** the owner will not contact a lawyer, so Part 6 has no outside reviewer and stays not done in substance; the store submission is still gated on it as written. Help-content and prose licence are decided (see below). iPad scope and Sentry were decided 2026-11-07 (see `build-020`). The
   submission itself is yours.
+  - **Decided 2026-11-07 (in `build-020`):** paid app at one price, age rating 4+. Help GIFs fetched from the web, not bundled. **Decided 2026-11-07:** the app loads all Help from the web and ships none of it (prose licence option (b)). Still open: the price amount and countries, and the Part 6 legal review.
 
 **Deferred 2026-10-27:** start `build-017` (the Tauri scaffold) next? — parked, no decision yet.
 
@@ -106,6 +134,8 @@ this repository still need a green full run before they are pushed.
 **Decided 2026-10-31:** the Apple Developer Program membership is now active. The owner step for `build-019` is cleared; `build-019` still waits on `build-017`.
 
 **Deferred 2026-11-02:** where the native app repository (`warpcad-native`) lives. `build-017` assumes `~/src/@WarpCad/warpcad-native`, which is not on this machine — parked, no decision yet.
+
+**Decided 2026-11-07:** create the native repository at `~/src/@WarpCad/warpcad-native`, as `build-017` specifies. The task creates it and stops before any GitHub remote.
 
 - **Owner steps on `build-016`** (dual licence): Part 4 (repository settings) and Part 6 (review) are still open in
   `TODO/VERIFY.md`. The row is marked done, so these are tracked only there.
@@ -129,7 +159,7 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | M19 — Native iOS app | [`ai-026`](M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app (loopback, opt-in Wi-Fi with a token) | feature | high | opus | ⏳ after `build-017`, `build-018` |
 | M19 — Native iOS app | [`testing-011`](M19-testing-011-acceptance-scenario-28-ios-app.md) Acceptance scenario 28 on the iPhone, plus the free-form pass | feature | high | sonnet | ⏳ after `build-019`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026` |
 | M19 — Native iOS app | [`build-020`](M19-build-020-app-store-submission-readiness.md) App Store readiness; stops at the owner's Submit | feature | high | sonnet | ⏳ after `build-019`, `testing-011` |
-| M18 — Launch | [`core-065`](M18-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ⏸ **parked** (decided 2026-10-17: keep the Albany table for now) |
+| M18 — Launch | [`core-065`](M18-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ▶ **ready** (unparked 2026-11-07: switch to ASME B18.6.1, see the note under "Decided 2026-11-07" above the open-work tables) |
 | M5 — Hardware Library | [`core-074`](M05-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator | feature | medium | opus | ▶ **ready** (dependency on `core-073` dropped 2026-10-24) |
 | M5 — Hardware Library | [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields | feature | medium | sonnet | ⏳ after `core-074`, `ui-052` |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
@@ -275,10 +305,34 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
+| `testing-013` | The getting-started docs tour times out at 30 s in the full e2e matrix, and passes alone | Finding | — | none |
+| `testing-015` | Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | Finding | `testing-005` | none |
+| `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-100` | A refused Inspector edit's error message is drawn under the sticky Delete bar, so it is hidden until the user scrolls. Filed 2026-11-07 from the core-080 acceptance drive | Finding | — | 33, 12 |
 | `ui-101` | The Inspector's enum select is 23 px tall in WebKit at phone width, below tap size (shared enum styling). Filed 2026-11-07 from the core-080 drive | Finding | — | 2 |
 | `ui-102` | The History edit form shows a rounded Cube's Round axis only when the record carries it, and labels it differently from the Inspector. Filed 2026-11-07 from the core-080 drive | Finding | — | 12 |
 | `ui-103` | The History panel's Apply button's text is the same colour as its background on hover. Filed 2026-11-07 from the core-080 drive | Finding | — | none |
+| `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none (part of 6) |
+| `testing-018` | Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 31, 10 |
+| `testing-019` | Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 6, 10, 11, 16 |
+| `testing-020` | Drive the VERIFY.md touch, timing and offline checks emulation can settle (8 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 7 (if `ui-062` #4 reproduces) |
+| `testing-021` | Re-check VERIFY.md rows later work appears to have answered; close or reword (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `testing-022` | Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 23, 25 |
+| `testing-023` | Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 11, 26 |
+| `testing-024` | Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `testing-025` | Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 24, 25 (scripted only) |
+| `docs-031` | Check the outside facts (trademarks, ISO 4032, prices, WebMCP trial, MCP cap) VERIFY.md rows cite (5 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `docs-032` | Link the agent prompting guide from the warpcad.com home page (`docs-029` #3). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `docs-033` | Regenerate the `objects-hide-split-piece` still without rewriting every GIF (2 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `testing-026` | Drive the desktop-Safari checks in real Safari through safaridriver (6 rows; session start still times out). Filed 2026-11-07 from the VERIFY.md Safari pass | Finding | — | 22 |
+| `testing-027` | Drive the iOS Safari behaviour checks (keyboard, zoom, pickers, safe areas, fonts) in the iOS Simulator (34 rows; Remote Automation off in the simulator). Filed 2026-11-07 from the VERIFY.md Safari pass | Finding | — | 10, 13, 15 |
+| `testing-028` | Drive the checks blocked on native OS dialogs and private windows, with computer use (6 rows; needs the desktop app). Filed 2026-11-07 from the VERIFY.md Safari pass | Finding | — | 10, 23 |
+| `testing-029` | Cold-read panel: fresh agents answer the VERIFY.md “does a stranger understand this” rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
+| `testing-030` | Look-and-legibility rows on the Mac’s real GPU and screen, with contrast, ΔE and flicker measurements. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 5, 13 |
+| `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
+| `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
+| `testing-033` | Gather the ~80 owner decisions parked in VERIFY.md, draft a recommendation each, ask in batches. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
 
 ---
 
@@ -388,10 +442,10 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 |---|---|---|
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 10 | Runs first. `build-017` ready; the rest wait on it. Tauri 2 in `warpcad-native`; ends at the owner's App Store submit. |
 | [M20 — Home page](#m20--home-page-at-warpcadcom) | 6 | New repo `warpcad.github.io`; ends at the owner's DNS steps for `warpcad.com`. |
-| [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
+| [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (ready, unparked 2026-11-07); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 11 | `testing-006`, `testing-008`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`, `ui-100`, `ui-101`, `ui-102`, `ui-103`. |
+| [Findings](#findings-open-rows) | 34 | `testing-006`, `testing-008`, `core-079`, `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, `ui-100`, `ui-101`, `ui-102`, `ui-103`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

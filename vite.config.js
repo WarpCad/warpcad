@@ -110,23 +110,37 @@ const GA_ID = measurementId(process.env)
  * @returns {import('vite').Plugin}
  */
 function analyticsSources() {
+  /** @type {string} */
+  let id = GA_ID
   return {
     name: 'warpcad-analytics-sources',
     apply: 'build',
-    transformIndexHtml: (html) => addAnalyticsSources(html, GA_ID),
+    // The native build never loads analytics (`TODO/build-017`: the privacy label is decided in
+    // `build-020`, and the safe default is none), whatever the environment says.
+    configResolved(config) {
+      id = config.mode === 'native' ? '' : GA_ID
+    },
+    transformIndexHtml: (html) => addAnalyticsSources(html, id),
   }
 }
 
 /** Hidden source maps exist only when `SENTRY_AUTH_TOKEN` is set; the workflow uploads and deletes them. */
 const SENTRY = sentryBuildOptions(process.env)
 
-export default defineConfig(({ command }) => ({
+/**
+ * `vite build --mode native` (`npm run build:native`, `TODO/build-017`): the bundle the Tauri shell
+ * loads from disk. Relative base so `file`-style and custom-protocol URLs resolve, its own output
+ * folder so it never overwrites the Pages build, and `__SHELL__` stamped with the target the shell
+ * passes in `WARPCAD_SHELL` (default `tauri`).
+ */
+export default defineConfig(({ command, mode }) => ({
   define: {
-    __GA_MEASUREMENT_ID__: JSON.stringify(command === 'build' ? GA_ID : ''),
+    __GA_MEASUREMENT_ID__: JSON.stringify(command === 'build' && mode !== 'native' ? GA_ID : ''),
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_COMMIT__: JSON.stringify(APP_COMMIT),
+    __SHELL__: JSON.stringify(command === 'build' && mode === 'native' ? process.env.WARPCAD_SHELL || 'tauri' : ''),
   },
-  base: basePath(process.env.BASE_PATH),
+  base: mode === 'native' ? './' : basePath(process.env.BASE_PATH),
   // Dedicated, strict port: with auto-increment-on-conflict (Vite's default),
   // a stray dev server from another project squatting on the default port
   // would make Playwright's `reuseExistingServer` silently attach to the
@@ -137,6 +151,7 @@ export default defineConfig(({ command }) => ({
   // Bound to IPv4 loopback so the documented endpoint (http://127.0.0.1:4173/mcp) answers; `localhost` still resolves here.
   preview: { host: '127.0.0.1', port: 4173, strictPort: true },
   build: {
+    outDir: mode === 'native' ? 'dist-native' : 'dist',
     sourcemap: SENTRY.sourcemap,
     rolldownOptions: {
       // `TODO/perf-003`: keep everything reachable at boot in one chunk beside the runtime; without

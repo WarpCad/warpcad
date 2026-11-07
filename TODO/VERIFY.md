@@ -25,6 +25,8 @@ under the old checkbox format.
   that id in Notes.
 - `N/A` — no longer checkable as written (e.g. the reachability gate changed). Say why
   in Notes.
+- `Moved` — an AI drive can settle it without a device, a key or the owner, so it was handed
+  to a TODO. The id is in Notes, and that TODO sets the row to `OK`, `Issue` or `N/A` when it runs.
 
 **Notes** is free text: what you actually saw, on what device, and anything a future
 reader would need — this is the column the old checkbox-only format had no room for.
@@ -36,6 +38,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 **Decided 2026-11-01:** run `testing-005` next, right after `testing-014` and before `build-017`. The queue held 438 open rows at that date, not the roughly 347 quoted here.
 
+**Decided 2026-11-07:** recount. The queue holds 445 rows whose Status is `Open` (counted with `| Open |`). `testing-005` is closed in `TODO/done/`, so this count is for triage that has not yet been done. Use 445, not 347 or 438.
+
+**Decided 2026-11-07:** triage the rest of the open rows now, not in a later run. Each row is to be moved into `TODO/ACCEPTANCE.md` as a re-drive line, closed with cited evidence, or filed as a finding. Rows that need a real phone, tablet or device stay open and are listed for the owner. Not yet implemented: this decision only records the choice. The count at the time of the decision was 446 (`| Open |`), so re-count before starting.
+
+**Done 2026-11-07 (AI-drivable pass):** 82 rows that an AI drive can settle were marked `Moved` and handed to 13 TODO files: `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033` and `perf-005` (see the Findings table in `TODO/ROADMAP.md`). 7 more rows keep `Open` with a note naming the half that moved. The rest need a real phone, tablet, GPU, key, account or an owner decision, and stay `Open`. Count after the pass: 363 rows with Status `Open` (a plain `| Open |` grep reads 366, because three notes above quote that string).
+
+**Done 2026-11-07 (Safari pass):** with Allow remote automation on in Safari, and the iOS Simulator and computer use available, 31 more rows were marked `Moved` (to `testing-026` desktop Safari, `testing-027` iOS Simulator, `testing-028` native dialogs) and 15 more got a moved-half note. All three TODOs list setup steps that were still unmet on 2026-11-07.
+
+**Done 2026-11-07 (third pass):** 166 more rows marked `Moved` and 34 more given a moved-half note: cold reads by fresh agents (`testing-029`), real-GPU and screen measurements on the Mac (`testing-030`), tap, timing, reach and step-count measurements (`testing-031`), model behaviour over MCP (`testing-032`), and owner decisions gathered with a drafted recommendation each (`testing-033`). What stays `Open` needs a real phone or tablet in the hand, a printer, an account or token, the in-app Assistant with a real key, or a messaging app.
+
 ## Queue
 
 ### ui-097 — Align target part (2026-11-06 19:03 UTC)
@@ -44,7 +56,7 @@ The owner's original session (a WebMCP agent in Chrome creating and renaming cut
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Owner loads `~/Documents/alilgn-issue.ndjson` in desktop Chrome on the Mac, undoes the two snaps, selects the cutter, ticks Battery-Connector once, opens Align: the top line should end `› Battery-Connector`, and after Y outside + the cutter should sit 14.09 not 14.34. | Open | |
+| 1 | Owner loads `~/Documents/alilgn-issue.ndjson` in desktop Chrome on the Mac, undoes the two snaps, selects the cutter, ticks Battery-Connector once, opens Align: the top line should end `› Battery-Connector`, and after Y outside + the cutter should sit 14.09 not 14.34. | Moved | Moved 2026-11-07 to `FIND-testing-018`: an AI drive can settle it. |
 
 
 ### ui-096 — A project-only My parts row can be deleted and says why (2026-11-06 13:07 UTC)
@@ -54,7 +66,7 @@ Scenarios 10, 18 and 31 are the standing checks this task names, and none were d
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On the owner's profile, open ⋯ on esp8266 feather: the note says why it's listed, and Delete… opens the explanation with Cancel only. Record which case it was (a placed, b nested, c stale). | Open | |
-| 2 | Drive scenario 31 (owner's 3MF) by hand at phone width: the project-only line and ⋯ note wrap without horizontal scroll. | Open | |
+| 2 | Drive scenario 31 (owner's 3MF) by hand at phone width: the project-only line and ⋯ note wrap without horizontal scroll. | Moved | Moved 2026-11-07 to `FIND-testing-018`: an AI drive can settle it. |
 
 
 ### ui-095 — A My parts entry that fails to load can be deleted (2026-11-06 01:00)
@@ -64,7 +76,7 @@ Scripted drives reproduced the owner's broken state by saving a Feather enclosur
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On the browser profile that showed *Your saved parts could not all be read: it nests "user.esp8266-feather"…*: the message now names the broken part, My parts lists it with a ⚠ and the reason, and **⋯ → Delete… → Delete** removes it and the message, which stay gone after a reload | Open | |
-| 2 | On iPhone and iPad hardware: the broken row's reason wraps and the ⋯ sheet's Delete is easy to hit. On iPad, the rail tile's pop-out shows the reason (the rail has no banner) | Open | |
+| 2 | On iPhone and iPad hardware: the broken row's reason wraps and the ⋯ sheet's Delete is easy to hit. On iPad, the rail tile's pop-out shows the reason (the rail has no banner) | Open | 2026-11-07: The wrap and iPad pop-out half, in the iOS Simulator moved to `FIND-testing-027`; whether Delete is easy to hit stays here. |
 
 ### ui-094 — Rename a part of a group (2026-11-05 20:05)
 
@@ -74,8 +86,8 @@ real iOS keyboard treats the field. The count decides whether batch naming gets 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On an iPhone, name all 29 parts of `esp8266 feather.3mf` (tap the row, tap the name, type, Done). Count the gestures per part and the minutes in total; say whether a batch-naming table is worth filing | Open | |
-| 2 | On an iPhone and an iPad, with the name field open, the on-screen keyboard leaves the 3D view and the field visible (no page zoom, no sheet pushed off screen), and Done commits | Open | |
+| 1 | On an iPhone, name all 29 parts of `esp8266 feather.3mf` (tap the row, tap the name, type, Done). Count the gestures per part and the minutes in total; say whether a batch-naming table is worth filing | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 2 | On an iPhone and an iPad, with the name field open, the on-screen keyboard leaves the 3D view and the field visible (no page zoom, no sheet pushed off screen), and Done commits | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 
 ### ui-092 — Prompts view, highlight, part links and editing (2026-11-05 17:31 UTC)
@@ -84,8 +96,8 @@ Retired with two checks not run, on the owner's choice. Parts 1–5 and the docs
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Performance: hover-to-painted on a **copy** of `~/Documents/fan-duct.ndjson` (never the original), per `.claude/prompts/perf-benchmark.md`, target one 16 ms frame. Must include the twins-heavy case. | Open | |
-| 2 | Hand check on the same copy, laptop width: confirm the two rows, **Combine with next**, one request reading exactly as `~/Documents/fan-duct.prompt.txt`, one **Add reply…**, parts still listed, **Undo** restores two. Then paste `~/Documents/fan-duct.response.txt` as the reply. | Open | |
+| 1 | Performance: hover-to-painted on a **copy** of `~/Documents/fan-duct.ndjson` (never the original), per `.claude/prompts/perf-benchmark.md`, target one 16 ms frame. Must include the twins-heavy case. | Moved | Moved 2026-11-07 to `FIND-testing-018`: an AI drive can settle it. |
+| 2 | Hand check on the same copy, laptop width: confirm the two rows, **Combine with next**, one request reading exactly as `~/Documents/fan-duct.prompt.txt`, one **Add reply…**, parts still listed, **Undo** restores two. Then paste `~/Documents/fan-duct.response.txt` as the reply. | Moved | Moved 2026-11-07 to `FIND-testing-018`: an AI drive can settle it. |
 | 3 | The same hand check on a real phone, if one is available (390 px, touch only). | Open | |
 
 
@@ -95,10 +107,10 @@ Automated coverage (unit 8498 green, object-visibility e2e 36/36 on all nine pro
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Acceptance 6 (Group vs. sub-part selection): with a body selected, the header summary must not change which part row is selected. | Open | |
-| 2 | Acceptance 10 (Save, reload, confirm nothing changed): the header reads the same after a reload. | Open | |
-| 3 | Re-run the `ui-089` Hide / Show / Show all steps on a phone (390×844), and the `ui-085` sideways-scroll check on the Inspector sheet. | Open | |
-| 4 | Docs still `docs/screenshots/objects-hide-split-piece.png` is not regenerated. `npm run docs:media`'s movie step fails and rewrites every GIF in `docs/media/`, so it was not run. Needs a scoped still-only regeneration. | Open | |
+| 1 | Acceptance 6 (Group vs. sub-part selection): with a body selected, the header summary must not change which part row is selected. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
+| 2 | Acceptance 10 (Save, reload, confirm nothing changed): the header reads the same after a reload. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
+| 3 | Re-run the `ui-089` Hide / Show / Show all steps on a phone (390×844), and the `ui-085` sideways-scroll check on the Inspector sheet. | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
+| 4 | Docs still `docs/screenshots/objects-hide-split-piece.png` is not regenerated. `npm run docs:media`'s movie step fails and rewrites every GIF in `docs/media/`, so it was not run. Needs a scoped still-only regeneration. | Moved | Moved 2026-11-07 to `FIND-docs-033`: an AI drive can settle it. |
 
 ### ui-078 — phone header grouped AI menu (2026-11-05 15:20 UTC)
 
@@ -107,7 +119,7 @@ The header now has one ✦ trigger at phone width instead of Live MCP and Assist
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | At 390x844 on a real phone, tap ✦ then Live MCP access; the access sheet opens and the menu closes. Judge the tap target and the popover placement. | Open | |
-| 2 | At 390x844, confirm File ▾ → Share… is easy to find now that Share is off the row on phones. | Open | |
+| 2 | At 390x844, confirm File ▾ → Share… is easy to find now that Share is off the row on phones. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ui-074 — Repeat body note wording (2026-11-05 12:57 UTC)
 
@@ -115,7 +127,7 @@ The note is a single sentence, so the only one-off check is how it wraps in the 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Select a repeat body at 390 px and read the note; confirm it wraps without clipping or horizontal scroll | Open | |
+| 1 | Select a repeat body at 390 px and read the note; confirm it wraps without clipping or horizontal scroll | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 
 ### render-007 — Hidden-part toggle-off remnant (2026-11-03 20:30 UTC)
 
@@ -123,8 +135,8 @@ The remnant was a Firefox-only paint of the gizmo's Z-arm shadow in the snapshot
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Subtract with a bolt over a cube at phone width, then look for a shadow ghost near the bolt base after Show hidden parts off | Open | |
-| 2 | Firefox, a real window (not the spec): Show hidden parts on, then off, at tablet, and look for a faint grey bar left at the bolt base | Open | |
+| 1 | Subtract with a bolt over a cube at phone width, then look for a shadow ghost near the bolt base after Show hidden parts off | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
+| 2 | Firefox, a real window (not the spec): Show hidden parts on, then off, at tablet, and look for a faint grey bar left at the bolt base | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 
 
 ### docs-029 — Agent prompting guide (2026-11-03)
@@ -133,9 +145,9 @@ Not covered by an acceptance scenario, and not runnable unattended: it needs a m
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | After deploy, give a model with web search only `https://app.warpcad.com/help/agent-prompting.html` (and separately `https://app.warpcad.com/llms.txt`) and ask it to write the box-and-lid prompt. Record whether it found the page and used the exact tool names (`define_variable`, `apply_records`, `bind_param`, `set_variable`, `describe_scene`, `measure`, `check_printability`). | Open | Could not be run here: no web-search model, and the page is not deployed. |
-| 2 | After deploy, `curl -I` `https://app.warpcad.com/llms.txt`, `/llms-full.txt` and `/help/agent-prompting.html` return 200 with a readable content type. | Open | The build copies the first two from `public/` and writes the third; checked against a local build only. |
-| 3 | Add the guide to the docs list on the home page (`warpcad.github.io`, one line), noted in this task's closing commit. | Open | Different repository; not touched here. |
+| 1 | After deploy, give a model with web search only `https://app.warpcad.com/help/agent-prompting.html` (and separately `https://app.warpcad.com/llms.txt`) and ask it to write the box-and-lid prompt. Record whether it found the page and used the exact tool names (`define_variable`, `apply_records`, `bind_param`, `set_variable`, `describe_scene`, `measure`, `check_printability`). | Moved | Moved 2026-11-07 to `FIND-testing-032`: a model with web access can settle it. Could not be run here: no web-search model, and the page is not deployed. |
+| 2 | After deploy, `curl -I` `https://app.warpcad.com/llms.txt`, `/llms-full.txt` and `/help/agent-prompting.html` return 200 with a readable content type. | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. The build copies the first two from `public/` and writes the third; checked against a local build only. |
+| 3 | Add the guide to the docs list on the home page (`warpcad.github.io`, one line), noted in this task's closing commit. | Moved | Moved 2026-11-07 to `FIND-docs-032`: an AI drive can settle it. Different repository; not touched here. |
 
 ### ui-093 — Mark a part hidden or shown by default (2026-11-03 14:20 UTC)
 
@@ -144,7 +156,7 @@ Not covered by a standing acceptance scenario: scenario 24 needs a real API key,
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Acceptance scenario 24 ("Edit while the Assistant works") with a real model key: a hidden part marked during an AI turn stays hidden when the turn lands. | Open | Needs a real Anthropic key. |
-| 2 | `ui-085` on a real iPhone: the Inspector's **Hidden by default** row wraps, the sheet does not scroll sideways, and tapping the label toggles it. | Open | The e2e checks `scrollWidth` only in emulated WebKit. |
+| 2 | `ui-085` on a real iPhone: the Inspector's **Hidden by default** row wraps, the sheet does not scroll sideways, and tapping the label toggles it. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. The e2e checks `scrollWidth` only in emulated WebKit. |
 
 ### ai-033 — Per-project AI step limit (2026-11-02 21:48 UTC)
 
@@ -153,8 +165,8 @@ Not covered by a standing acceptance scenario: scenarios 24 and 25 need a real A
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Scenario 24 with a real key at phone width: the **Limit: 1,000** button and the sheet stay usable with the keyboard open. | Open | |
-| 2 | Scenario 25 with a real MCP client: raise the limit mid-burst; the next call lands in the same group. | Open | |
-| 3 | Open a project file stating 3000 in a browser that never approved it: the bar reads 1,000 and **Use 3,000** appears. | Open | |
+| 2 | Scenario 25 with a real MCP client: raise the limit mid-burst; the next call lands in the same group. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 3 | Open a project file stating 3000 in a browser that never approved it: the bar reads 1,000 and **Use 3,000** appears. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
 
 ### core-076 — Group popover on real hardware (2026-11-02 20:10 UTC)
@@ -163,7 +175,7 @@ Every scenario was driven in emulation, including trusted touch at phone width. 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone, select two groups, press **Group** and tap **Prefix**. With the keyboard open, can you still reach the panel's **Group** button, and does the page stay unzoomed? | Open | |
+| 1 | On a real iPhone, select two groups, press **Group** and tap **Prefix**. With the keyboard open, can you still reach the panel's **Group** button, and does the page stay unzoomed? | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 | 2 | With five or more rows (two Pis and three Cubes) on the same phone, does the list scroll inside the panel without the page moving behind it? | Open | |
 
 ### perf-003 — Acceptance checks not driven (2026-11-02 18:23 UTC)
@@ -172,9 +184,9 @@ The perf-003 change shipped with its bench and the closed-finding checks done. T
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | `ai-006`: open the chat panel on a dev build, run a scripted turn that lands a body, press **Undo AI turn**, and confirm the body is taken back and the header Undo still reads correctly. | Open | Needs `npm run dev` (scripted provider is DEV-only). |
+| 1 | `ai-006`: open the chat panel on a dev build, run a scripted turn that lands a body, press **Undo AI turn**, and confirm the body is taken back and the header Undo still reads correctly. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. Needs `npm run dev` (scripted provider is DEV-only). |
 | 2 | Acceptance scenario 24, "Edit while the Assistant works": laptop then phone, with a real model key, following the scenario's steps 1–7. | Open | Needs a real Anthropic key. The scripted transcript covers the plumbing only. |
-| 3 | Acceptance scenario 25, "An MCP agent edits the project you have open": `npm run dev`, a loopback MCP client, lease enabled, steps 1–7, plus phone reachability of the access control. | Open | Needs `npm run dev` and an MCP client registered with the loopback endpoint. |
+| 3 | Acceptance scenario 25, "An MCP agent edits the project you have open": `npm run dev`, a loopback MCP client, lease enabled, steps 1–7, plus phone reachability of the access control. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. Needs `npm run dev` and an MCP client registered with the loopback endpoint. |
 
 ### build-022 — Owner checks to bring warpcad.com live (2026-10-31 21:20 UTC)
 
@@ -191,7 +203,7 @@ Rows 1–8 checked 2026-11-05 against the live site: the repository exists, the 
 | 7 | `curl -sI http://warpcad.com` is a 301 to `https://warpcad.com/`; `https://www.warpcad.com` redirects to `https://warpcad.com/`; `https://app.warpcad.com/` is 200 and the app is unchanged. | OK | 2026-11-05: `http://warpcad.com` → 301, `Location: https://warpcad.com/`. `https://www.warpcad.com` → 301 to `https://warpcad.com/`. `https://app.warpcad.com/` → HTTP/2 200. The Help version line was not checked here. 2026-11-05 follow-up: the app's live `help/index.json` says version 1.7.0, commit `8f2897d`, which is not in this repository. The last app Pages deploy visible here is `e71813d` (2026-10-18). Resolved 2026-11-05: `8f2897d` is on `origin/main`, the commit before the v1.7.0 release commit `1ac4b3a`. The live index reports version 1.7.0, which matches the latest release. Owner report: the app is up to date (owner's words). |
 | 8 | `https://warpcad.github.io/warpcad/` (the app's old project-site address) redirects to `https://app.warpcad.com/`, and is not served under `warpcad.com/warpcad/`. Record what happens (`docs-026` question 2 predicted it). | OK | 2026-11-05: `https://warpcad.github.io/warpcad/` → 301 to `https://app.warpcad.com/`. `https://warpcad.com/warpcad/` → 301 to `https://app.warpcad.com/`. Neither is served under `warpcad.com/warpcad/`. |
 | 9 | Live check by hand at phone 390×844, tablet and laptop, in Safari on an iPhone or iPad plus one desktop browser: follow the `docs/help.md` example, tap **Open WarpCad**, then acceptance scenario 1 (place a box and a sphere; both stay visible). | OK | 2026-11-05, emulated, not a device: a Playwright driver against the live `https://warpcad.com/`. Home title "WarpCad"; the "Open WarpCad" link goes to `https://app.warpcad.com/`. Scenario 1: laptop 1440×900 Chromium `OBJECTS (2)` with Sphere 1 selected; tablet 820×1180 Chromium `OBJECTS (2)`; phone iPhone 13 emulation in WebKit, Cube 1 and Sphere 1 both present (the phone drop needed the Library sheet opened and the row scrolled into view). Caveat: both drops landed at the same spot, so the sphere overlaps the cube; both remain visible. Still needed: a real iPhone or iPad in Safari, with a person's hands. 2026-11-05, owner report: on an iPad the site "looks good" (the owner's words; the Safari version, the scenario 1 steps and the phone and laptop were not reported). Still needed: the iPhone, one desktop browser, and scenario 1 done by hand on the device. 2026-11-05, owner report: on an iPhone the site also "looks good" (owner's words; the Safari version and the steps run were not reported). Still needed: one desktop browser, and scenario 1 done by hand on the device. 2026-11-05, owner report: the desktop browser also "looks good" (owner's words; browser and version not reported). Owner report: scenario 1 works on the device (the owner's words, "that works"; the device and the steps run were not itemised). |
-| 10 | The next scheduled Pages run after go-live succeeds, and every page in the app's live `help/index.json` is linked from the home page at `https://warpcad.com/`. | Open | 2026-11-05 check: the scheduled Pages run succeeded (2026-11-05 13:14 UTC). The go-live date is not recorded, so it is not confirmed as "the day after". `help-index.snapshot.json` does not exist in this pipeline and is not served at `warpcad.com`. Instead, the home page's help links match all 33 pages in the app's live `help/index.json`. The row's wording needs updating. |
+| 10 | The next scheduled Pages run after go-live succeeds, and every page in the app's live `help/index.json` is linked from the home page at `https://warpcad.com/`. | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. 2026-11-05 check: the scheduled Pages run succeeded (2026-11-05 13:14 UTC). The go-live date is not recorded, so it is not confirmed as "the day after". `help-index.snapshot.json` does not exist in this pipeline and is not served at `warpcad.com`. Instead, the home page's help links match all 33 pages in the app's live `help/index.json`. The row's wording needs updating. |
 
 **Decided 2026-11-01:** the owner moves `warpcad.com` now, running rows 2–5 in order (row 1 is already done). `app.warpcad.com` stays untouched. Results go in the table above, with date and output.
 
@@ -221,7 +233,7 @@ Closed with only scenarios 1 and 4 (and 7's button presses) re-driven at 820 and
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 3 | Drag a window edge slowly 1440 to 390 px and back in Chrome, Firefox and Safari, and on a real iPad (portrait, landscape, Split View): no jumps, text squash or cover of the gizmo/nav chrome | Open | |
+| 3 | Drag a window edge slowly 1440 to 390 px and back in Chrome, Firefox and Safari, and on a real iPad (portrait, landscape, Split View): no jumps, text squash or cover of the gizmo/nav chrome | Open | 2026-11-07: The desktop-engine half (a 1440 to 390 px sweep in Chromium, Firefox and WebKit) moved to `FIND-testing-017`; the real-iPad half stays here. 2026-11-07: The real-Safari window resize moved to `FIND-testing-026`; the real-iPad half stays here. |
 
 ### ai-029 — MCP prompts as slash commands and Copy starter buttons (2026-10-29 09:50)
 
@@ -230,9 +242,9 @@ Prompts and buttons are tested through an SDK client and a stubbed clipboard; no
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | In Claude Code, `/` lists `mcp__warpcad__start`, `build` and `check-print`; `start` on a fresh file says it is empty, asks what to build and writes nothing | Open | |
-| 2 | `/mcp__warpcad__build` with the plate example lands the plate with the request as every History row's intent; `check-print` leaves the file's bytes unchanged | Open | |
-| 3 | Does Claude Code deliver the embedded guide whole (not cut at 2,048 characters)? If not, add the "read warpcad://guide" fallback to the recipes | Open | |
-| 4 | Does headless `claude -p "/mcp__warpcad__build …"` expand MCP prompts at all? Also paste the other-agent paragraph into a client without prompt support | Open | |
+| 2 | `/mcp__warpcad__build` with the plate example lands the plate with the request as every History row's intent; `check-print` leaves the file's bytes unchanged | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 3 | Does Claude Code deliver the embedded guide whole (not cut at 2,048 characters)? If not, add the "read warpcad://guide" fallback to the recipes | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 4 | Does headless `claude -p "/mcp__warpcad__build …"` expand MCP prompts at all? Also paste the other-agent paragraph into a client without prompt support | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
 
 ### ai-028 — The MCP guide resource (2026-10-29 00:20)
 
@@ -240,7 +252,7 @@ The guide is served and tested with an SDK client; whether a real agent reads it
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With the owner's consent, repeat `ai-027`'s three-case drive twice each in Claude Code against this build; record whether the agent read `warpcad://guide` unasked, and append to that task's result file | Open | |
+| 1 | With the owner's consent, repeat `ai-027`'s three-case drive twice each in Claude Code against this build; record whether the agent read `warpcad://guide` unasked, and append to that task's result file | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
 | 2 | In Claude Code, `@warpcad:warpcad://guide` attaches the guide (the `docs/mcp.md` example) | Open | |
 
 ### io-022 — Prompts in the gist README (2026-10-28 21:49 UTC)
@@ -257,7 +269,7 @@ Hand-driven by an agent on Chromium at 1440 and 390 px; the scripted e2e specs c
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | At 1440 px, the "Saved to gist: <name>" toast covers part of the Operations toolbar (Chamfer, Enlarge) for a few seconds after Save as gist. Is that acceptable, or should it sit elsewhere? | Open | |
+| 1 | At 1440 px, the "Saved to gist: <name>" toast covers part of the Operations toolbar (Chamfer, Enlarge) for a few seconds after Save as gist. Is that acceptable, or should it sit elsewhere? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 2 | On a real iPhone, Save as gist's dialog as a bottom sheet with the on-screen keyboard up in the Name field: is the Save button always reachable? | Open | |
 | 3 | On a real phone, the header's chip reads "Saving…" for about a second after Save as gist, then "Saved to gist". Noticeable or fine? | Open | |
 
@@ -276,8 +288,8 @@ The owner declined the real Claude Code before/after drive, so nothing yet shows
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In a real Claude Code on a fresh project file, ask *a 40 mm cube with a 10 mm hole straight through it*: it places the cube on the grid, subtracts, measures, and does not ask about units. Ask the ambiguous airfoil request: zero writes. | Open | |
-| 2 | The cap is still 2,048 in the current Claude Code (`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` was reported but not re-checked online). | Open | |
+| 1 | In a real Claude Code on a fresh project file, ask *a 40 mm cube with a 10 mm hole straight through it*: it places the cube on the grid, subtracts, measures, and does not ask about units. Ask the ambiguous airfoil request: zero writes. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 2 | The cap is still 2,048 in the current Claude Code (`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` was reported but not re-checked online). | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
 
 ### ai-031 — Agents store the prompt in the project (2026-10-28 17:38)
 
@@ -285,9 +297,9 @@ Driven with the WebMCP stand-in only (acceptance 27 row). A real agent was not r
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real browser agent (Chrome with WebMCP) or Claude Code, ask *a 140 × 250 mm fan duct, 1.6 mm walls*; confirm the agent actually calls `record_prompt` first with your exact words, and the Inspector's Prompt row shows them. | Open | |
-| 2 | On an iPhone or iPad, select a body with a long prompt: the row wraps, the page does not scroll sideways, and tapping it opens and closes it. | Open | |
-| 3 | Decide whether the timeline (History) row should also show the prompt, as the finding's Feedback line says; if so, file it. | Open | |
+| 1 | With a real browser agent (Chrome with WebMCP) or Claude Code, ask *a 140 × 250 mm fan duct, 1.6 mm walls*; confirm the agent actually calls `record_prompt` first with your exact words, and the Inspector's Prompt row shows them. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 2 | On an iPhone or iPad, select a body with a long prompt: the row wraps, the page does not scroll sideways, and tapping it opens and closes it. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 3 | Decide whether the timeline (History) row should also show the prompt, as the finding's Feedback line says; if so, file it. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### io-017 — Store and share a project as a gist (2026-10-28 14:30)
 
@@ -299,8 +311,8 @@ Acceptance 30, 29 and 22 cover the flows; these rows are what they could not see
 |---|---|---|---|
 | 1 | With a fine-grained token that has **no** Gists permission, `PATCH /gists/00000000000000000000000000000000` returns 403 (not 404). `validateGistToken` relies on it; if it returns 404 a permissionless token would pass validation | Open | |
 | 2 | One real publish, read and delete with a throwaway token from a real iPhone: does **Publish** put the link on the clipboard (Safari refuses a copy that follows network calls; the sheet starts the write inside the tap), is the token field above the on-screen keyboard in the bottom sheet, how the link and the gist's README look in Messages and on github.com, and do GitHub's real token-page labels match "no repository access" and "Gists: Read and write" in the docs | Open | |
-| 3 | At 390 px there is no persistent **Published** indicator (Share is under File ▾, the chip is hidden there). Decide whether a phone needs one, for example a dot on **File ▾** | Open | |
-| 4 | The "Published. Link copied" toast covers the sheet's **Share** title for about 4 s at tablet and laptop width; judge whether it bothers | Open | |
+| 3 | At 390 px there is no persistent **Published** indicator (Share is under File ▾, the chip is hidden there). Decide whether a phone needs one, for example a dot on **File ▾** | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | The "Published. Link copied" toast covers the sheet's **Share** title for about 4 s at tablet and laptop width; judge whether it bothers | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### io-016 — Share a project by link (2026-10-27 19:15)
 
@@ -313,7 +325,7 @@ Both stages landed and were hand-driven in headless Chromium and WebKit, but not
 | 3 | Does an unpadded base64url payload survive being tapped in Messages and Mail without a trailing character being eaten (`-`, `_` at the end)? | Open | |
 | 4 | Stage 2 (2026-10-27): the link preview card Messages draws for a WarpCad share link — does it use the generic `og:title` / `og:description` / `og:image` from `index.html` (the WarpCad social preview), and does the card hide or mangle the link? | Open | |
 | 5 | Stage 2: how a share link looks and behaves in Gmail on Android (linkified whole? the Shared view opens in Chrome from the Gmail in-app browser?) | Open | |
-| 6 | Phone and tablet: the Shared view's nav pad and view box are the editor's compact 28-38 px controls, not 44 px (`--tap-compact`, unchanged by this task). Is that acceptable for someone using it for the first time with a thumb, or should the Shared view get full-size chrome? File it as its own TODO if not | Open | |
+| 6 | Phone and tablet: the Shared view's nav pad and view box are the editor's compact 28-38 px controls, not 44 px (`--tap-compact`, unchanged by this task). Is that acceptable for someone using it for the first time with a thumb, or should the Shared view get full-size chrome? File it as its own TODO if not | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-075 stage 4 — seam profiles: sliding dovetail, puzzle tabs, half lap, finger joint (2026-10-27 17:05)
 
@@ -334,7 +346,7 @@ a test print.
 |---|---|---|---|
 | 1 | Print `plank-tenon-x2.stl` flat on the owner's printer at 0.2 mm clearance: does the chamfered side print clean without supports, and does the tenon go into both mortises with a push fit (not slop, not a hammer)? | Open | |
 | 2 | Glue a real 6 × 3 mm magnet into a pocket: does it sit flush with the cut face, and do the pieces attract with the `assembly.txt` mark-out / mark-in rule? | Open | |
-| 3 | At 390 px the Place connectors kind row is seven icon-only buttons (Post, Wedge, Screw boss, Dowel, Butterfly, Tenon, Magnet). Is each one recognisable from its glyph on a real phone, or does it need a label? | Open | |
+| 3 | At 390 px the Place connectors kind row is seven icon-only buttons (Post, Wedge, Screw boss, Dowel, Butterfly, Tenon, Magnet). Is each one recognisable from its glyph on a real phone, or does it need a label? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### core-075 stage 2 — Butterfly keys (2026-10-27 13:43)
 
@@ -343,7 +355,7 @@ Stage 2 of 4 is built; the 1:4 wing slope gives about 0.8 mm of pull-apart play 
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Print the plank's `plank-butterfly-key-x2.stl` and press a key into its pocket on the owner's printer: does it go in by hand, and does it hold? | Open | |
-| 2 | The bowtie marker glyph for a hand-placed Butterfly does not rotate to match the edge it snapped to; judge whether that reads clearly on a phone | Open | |
+| 2 | The bowtie marker glyph for a hand-placed Butterfly does not rotate to match the edge it snapped to; judge whether that reads clearly on a phone | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ui-089 — Hide and show from the Objects list (2026-10-26 21:16)
 
@@ -351,9 +363,9 @@ The e2e covers that the eye hides, the hidden piece is not clickable, the hide s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The body row's eye in the mixed state (one part hidden) reads as "some hidden", not as shown or hidden, at laptop width | Open | |
-| 2 | The eye-slash on a hidden part row is readable next to the dimmed name, on the phone Inspector sheet at 390 px | Open | |
-| 3 | The `objects-hide-split-piece` docs still is correct: its magenta bar across the header is the docs helper's mask over the save status, as intended, not a stray element | Open | |
+| 1 | The body row's eye in the mixed state (one part hidden) reads as "some hidden", not as shown or hidden, at laptop width | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 2 | The eye-slash on a hidden part row is readable next to the dimmed name, on the phone Inspector sheet at 390 px | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 3 | The `objects-hide-split-piece` docs still is correct: its magenta bar across the header is the docs helper's mask over the save status, as intended, not a stray element | Moved | Moved 2026-11-07 to `FIND-docs-033`: an AI drive can settle it. |
 
 ### ui-085 — Library sheet no longer scrolls sideways (2026-10-26 12:50)
 
@@ -361,8 +373,8 @@ Fixed and spec'd on Playwright WebKit; real desktop Safari with a trackpad was n
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Desktop Safari on the deployed build: a sideways two-finger swipe over the Library does nothing, with "Show scroll bars" on Automatic and on Always | Open | |
-| 2 | The Help **?** now sits at the content edge (8px further left than before): confirm it still looks aligned with the hint | Open | |
+| 1 | Desktop Safari on the deployed build: a sideways two-finger swipe over the Library does nothing, with "Show scroll bars" on Automatic and on Always | Moved | Moved 2026-11-07 to `FIND-testing-026`: an AI drive can settle it. |
+| 2 | The Help **?** now sits at the content edge (8px further left than before): confirm it still looks aligned with the hint | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 
 ### ui-086 — Align popover: seven positions per axis (2026-10-26 07:16)
 
@@ -370,9 +382,9 @@ Reachability, the numbers and the 390 px fit are covered by specs and scenarios 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone and iPad (Safari), the seven-icon strips read clearly at 44 px: can you tell **half −** from **inside −** by the icon alone, and does a tap land on the button you aimed at (no gaps between them)? | Open | |
-| 2 | In desktop Safari and Firefox, the header words (*out · in · half · ctr · half · in · out*) sit centred over their columns and the `− … +` rule spans the grid (the header uses CSS `subgrid`). | Open | |
-| 3 | The amber and teal icon colours are distinguishable on the light scheme (`prefers-color-scheme: light`) against the popover glass. | Open | |
+| 1 | On a real iPhone and iPad (Safari), the seven-icon strips read clearly at 44 px: can you tell **half −** from **inside −** by the icon alone, and does a tap land on the button you aimed at (no gaps between them)? | Open | 2026-11-07: The cold-read half (a fresh agent with no project context, on screenshots or emulation) moved to `FIND-testing-029`; the real-device half stays here. |
+| 2 | In desktop Safari and Firefox, the header words (*out · in · half · ctr · half · in · out*) sit centred over their columns and the `− … +` rule spans the grid (the header uses CSS `subgrid`). | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
+| 3 | The amber and teal icon colours are distinguishable on the light scheme (`prefers-color-scheme: light`) against the popover glass. | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 
 ### ui-083 — Marquee start point under the Operations toolbar (2026-10-24 15:30)
 
@@ -388,7 +400,7 @@ Scenarios 4 and 16 and the `ui-043`/`ui-015` repros passed with a real mouse. Wh
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPad in Split View (or any window about 720 px wide), tap Combine ▾ with two bodies selected: the pop-out opens under the launcher without covering the orientation triad, Union is easy to hit, and a tap outside closes it | Open | |
+| 1 | On a real iPad in Split View (or any window about 720 px wide), tap Combine ▾ with two bodies selected: the pop-out opens under the launcher without covering the orientation triad, Union is easy to hit, and a tap outside closes it | Moved | Moved 2026-11-07 to `FIND-testing-026`: an AI drive can settle it. |
 
 ### ui-081 — Library section launchers and section pop-out (2026-10-22 14:54 UTC)
 
@@ -396,7 +408,7 @@ Launchers and the section pop-out sit at 760 px only. Two things the scripted an
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Dragging a row from the section pop-out's text can highlight that text (seen in the Raspberry Pi pop-out, all three engines, during a mouse drag). Decide whether a row drag should suppress text selection. | Open | |
+| 1 | Dragging a row from the section pop-out's text can highlight that text (seen in the Raspberry Pi pop-out, all three engines, during a mouse drag). Decide whether a row drag should suppress text selection. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-084 — Library icon rail and compact viewport chrome (2026-10-21 19:19)
 
@@ -404,12 +416,12 @@ Scenarios 1, 3, 7, 18 (Library half) and 26 were hand-driven, so this lists only
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPad, drag a window or rotate between 1024 and 790 px wide and watch the Library column turn into the rail at its own step, then the pad and triad shrink, with no text squash and nothing over the triad | Open | |
-| 2 | Long-press a rail tile on touch: the name callout appears and a drag from the same tile still places (the long-press is unit-tested with fake timers only) | Open | |
-| 3 | Save a part to My parts and watch its new tile scroll into view and pulse once (no test covers the pulse) | Open | |
-| 4 | At about 641-700 px the compact pad overlaps the scale readout (also true at 760 before this task). Decide whether to file it as its own finding, or leave it to `ui-081` | Open | |
-| 5 | The new Cube, Sketch, board, phone and gear swatches also show in the labelled laptop column: look at them next to the existing ones | Open | |
-| 6 | Dropping a model file onto the rail does nothing (the labelled column accepts it); the rail's ⋯ menu is the way in. Confirm that is acceptable | Open | |
+| 1 | On a real iPad, drag a window or rotate between 1024 and 790 px wide and watch the Library column turn into the rail at its own step, then the pad and triad shrink, with no text squash and nothing over the triad | Open | Partly observed 2026-11-07 (headless Chromium, emulated width, not an iPad): the Library column is gone at 1024 px and the rail is present at 900 px, so the step falls between them. The shrink and text squash are not measured. Real iPad still needed. |
+| 2 | Long-press a rail tile on touch: the name callout appears and a drag from the same tile still places (the long-press is unit-tested with fake timers only) | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
+| 3 | Save a part to My parts and watch its new tile scroll into view and pulse once (no test covers the pulse) | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
+| 4 | At about 641-700 px the compact pad overlaps the scale readout (also true at 760 before this task). Decide whether to file it as its own finding, or leave it to `ui-081` | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. Observed 2026-11-07 (headless Chromium, emulated widths): the navigation pad overlaps the grid scale readout at 641 px, and the overlap is visible in the screenshot, covering the left of "Grid 10 mm · major 50 mm". At 660 px and 700 px the boxes do not overlap. Owner decides whether to file it or leave it to ui-081. |
+| 5 | The new Cube, Sketch, board, phone and gear swatches also show in the labelled laptop column: look at them next to the existing ones | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 6 | Dropping a model file onto the rail does nothing (the labelled column accepts it); the rail's ⋯ menu is the way in. Confirm that is acceptable | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### io-012 — Warn on focus when the file may have changed (2026-10-21 15:21)
 
@@ -427,9 +439,9 @@ The in-repo `cla` and `dco` checks and the GitHub settings they depend on can on
 |---|---|---|---|
 | 1 | Second-account test PR, unsigned: `cla` and `dco` show failure, and the merge button is blocked | Open | |
 | 2 | Comment the CLA sentence from that account: `cla` turns green; `dco` passes once commits are signed off (`git commit -s`) | Open | |
-| 3 | Owner's and Dependabot's PRs are exempt from both checks | Open | |
+| 3 | Owner's and Dependabot's PRs are exempt from both checks | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
 | 4 | Apply Part 4 GitHub settings (ruleset with `cla`/`dco`, code-owner review, contributor approval, squash-merge policy); checklist in `docs/decisions/app-store-licensing.md` | Open | Owner's action; not applied by the task |
-| 5 | Re-run `build-014`'s scratch-remote steps against the edited `.githooks/pre-push` | Open | The backstop's own walk passed (owner ok, unknown author refused) |
+| 5 | Re-run `build-014`'s scratch-remote steps against the edited `.githooks/pre-push` | Moved | Moved 2026-11-07 to `FIND-testing-025`: an AI drive can settle it. The backstop's own walk passed (owner ok, unknown author refused) |
 | 6 | Part 6 lawyer review of `CLA.md`, governing-law clause (placeholder), AI authorship, docs-licence choice; record reviewer and date in the decision record | Open | Required before App Store submission |
 
 ### build-015 — e2e against the production build by default (2026-10-21 02:50)
@@ -438,7 +450,7 @@ The default run now skips the specs that need the dev host's live bridge or scri
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Run the dev-only specs once with `E2E_DEV=1`: `ai-scripted`, `webmcp`, `live-mcp-header-entry`, `ai-mcp-agent-pairing`, `mcp-connected-assistant`, and `docs/ai-chat`, `docs/ai-live-bridge`, `docs/ai-live-mcp-header` | Open | `docs/ai-live-bridge` "mcp-connected still" already fails on dev with and without this change |
+| 1 | Run the dev-only specs once with `E2E_DEV=1`: `ai-scripted`, `webmcp`, `live-mcp-header-entry`, `ai-mcp-agent-pairing`, `mcp-connected-assistant`, and `docs/ai-chat`, `docs/ai-live-bridge`, `docs/ai-live-mcp-header` | Moved | Moved 2026-11-07 to `FIND-testing-025`: an AI drive can settle it. `docs/ai-live-bridge` "mcp-connected still" already fails on dev with and without this change |
 
 ### build-014 — Pre-push test gate (2026-10-20 22:05)
 
@@ -446,9 +458,9 @@ Needs a real git remote, so only the unit-level logic is covered by tests.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Scratch bare remote (`git init --bare`): push with the hook active through no result (refused), partial e2e (refused), full+green (allowed), full with failures and no trailer (refused), with trailer (allowed) | Open | |
-| 2 | LFS objects for a changed `docs/media/*.gif` arrive at that scratch remote (buffered stdin reached `git lfs pre-push`) | Open | |
-| 3 | After the first real push to `origin`, the Actions tab shows no new run | Open | |
+| 1 | Scratch bare remote (`git init --bare`): push with the hook active through no result (refused), partial e2e (refused), full+green (allowed), full with failures and no trailer (refused), with trailer (allowed) | Moved | Moved 2026-11-07 to `FIND-testing-025`: an AI drive can settle it. |
+| 2 | LFS objects for a changed `docs/media/*.gif` arrive at that scratch remote (buffered stdin reached `git lfs pre-push`) | Moved | Moved 2026-11-07 to `FIND-testing-025`: an AI drive can settle it. |
+| 3 | After the first real push to `origin`, the Actions tab shows no new run | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
 
 ### ui-075 — Live MCP access entry in the phone header (2026-10-19 20:35)
 
@@ -456,8 +468,8 @@ Scenarios 24/25 and the `ui-071` repro passed at 390 and 1440 px Chromium; these
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone (Safari), the header's Live MCP button ring/dot is legible and a tap does not hit **Redo**/**File** beside it (gaps are 4 px) | Open | |
-| 2 | Rotate to landscape: Undo, Redo, History, File, Help, the new button and Assistant all stay on the row | Open | |
+| 1 | On a real iPhone (Safari), the header's Live MCP button ring/dot is legible and a tap does not hit **Redo**/**File** beside it (gaps are 4 px) | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 2 | Rotate to landscape: Undo, Redo, History, File, Help, the new button and Assistant all stay on the row | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### ui-077 — Version label in the header (2026-10-18 21:38)
 
@@ -476,8 +488,8 @@ locally, but a real run tags, pushes and deploys, and has to be started by the m
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Merge something to `main`: CI runs, no Pages run starts | Open | |
-| 2 | Actions → Release → Run (`major`): one `v1.0.0` tag, one GitHub release with notes, and the `pages` job (a `workflow_call`) deploys it. Confirm the called workflow chained under `GITHUB_TOKEN` and the bot could push to `main` | Open | |
+| 1 | Merge something to `main`: CI runs, no Pages run starts | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
+| 2 | Actions → Release → Run (`major`): one `v1.0.0` tag, one GitHub release with notes, and the `pages` job (a `workflow_call`) deploys it. Confirm the called workflow chained under `GITHUB_TOKEN` and the bot could push to `main` | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
 | 3 | Sentry shows the release named by the tagged commit's SHA and its source maps unminify a test error | Open | |
 
 ### ui-072 — Phone Library sheet: how much canvas is left to drop into (2026-10-17 20:50)
@@ -486,7 +498,7 @@ The finding turned out to be the spec dropping under the sheet. The app is corre
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone, open the Library and drop two parts in a row: is the visible canvas strip tall enough to aim at without the toolbar or nav chrome getting in the way, and is it clear which row to scroll for (a row below the sheet's clip, such as Sphere, is hidden until the sheet is scrolled)? | Open | |
+| 1 | On a real phone, open the Library and drop two parts in a row: is the visible canvas strip tall enough to aim at without the toolbar or nav chrome getting in the way, and is it clear which row to scroll for (a row below the sheet's clip, such as Sphere, is hidden until the sheet is scrolled)? | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
 
 ### build-010 — Owner checks to bring app.warpcad.com live (2026-10-17 20:20)
 
@@ -508,8 +520,8 @@ The workflows run only on GitHub, so nothing here could be proved on the laptop.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | First run after the push to `main`: open the **Pages** run's "Restore docs media from the LFS cache" step. Expect a cache **miss** (`Cache not found for input keys: lfs-media-...`), `git lfs pull` downloading about 72.7 MB, and "Cache saved" at the end. Record the downloaded byte count in the table in `docs/decisions/hosting.md` "Git LFS bandwidth". | Open | |
-| 2 | Second run (any later push to `main`, or a manual Pages `workflow_dispatch`): the same step must show **"Cache restored from key: lfs-media-..."** and `git lfs pull` fetching nothing (0 B). Record that byte count in the same table. | Open | |
+| 1 | First run after the push to `main`: open the **Pages** run's "Restore docs media from the LFS cache" step. Expect a cache **miss** (`Cache not found for input keys: lfs-media-...`), `git lfs pull` downloading about 72.7 MB, and "Cache saved" at the end. Record the downloaded byte count in the table in `docs/decisions/hosting.md` "Git LFS bandwidth". | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
+| 2 | Second run (any later push to `main`, or a manual Pages `workflow_dispatch`): the same step must show **"Cache restored from key: lfs-media-..."** and `git lfs pull` fetching nothing (0 B). Record that byte count in the same table. | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
 | 3 | In the CI run of the same pushes, the `test` and both `smoke` jobs must be green with no LFS step at all. If `Unit, typecheck and guards` fails on `docs-media.spec.js` with "stale movie: hardware-drag-bolt.gif / rpi-mounting-holes.gif", that is the separate pre-existing `CI=1` drift (re-record with `npm run docs:media`), not the LFS change. | N/A | Closed 2026-11-01 (testing-005): CI no longer runs on push (`.github/workflows/ci.yml` is `workflow_dispatch`/`workflow_call` only; CLAUDE.md Conventions, `build-013`/`build-014`). |
 | 4 | Owner: on the GitHub account billing page, confirm the Free plan's 10 GiB LFS storage and 10 GiB monthly bandwidth, then edit the figures in `hosting.md` if they differ. | Open | |
 
@@ -519,7 +531,7 @@ The owner names in `LICENSING.md` "Trademarks and names" came from the TODO text
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Check each owner's current legal name and mark on its own trademark page (Raspberry Pi Ltd, Apple Inc., Samsung Electronics, Google LLC, Adafruit Industries, Pimoroni Ltd, Anthropic PBC, GitHub Inc., Functional Software Inc. d/b/a Sentry) and fix any sentence that differs | Open | |
+| 1 | Check each owner's current legal name and mark on its own trademark page (Raspberry Pi Ltd, Apple Inc., Samsung Electronics, Google LLC, Adafruit Industries, Pimoroni Ltd, Anthropic PBC, GitHub Inc., Functional Software Inc. d/b/a Sentry) and fix any sentence that differs | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
 
 ### build-011 — Third-party notices (2026-10-17 14:25)
 
@@ -527,8 +539,8 @@ The file and the link are covered by the new `help.e2e.js` case and the producti
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Read `dist/THIRD-PARTY-NOTICES.txt` once: every entry has a licence text (the build warns for any package that ships none) and the Albany County Fasteners paragraph reads right. | Open | |
-| 2 | On a real iPhone, the two footer links wrap cleanly and each is easy to tap. | Open | |
+| 1 | Read `dist/THIRD-PARTY-NOTICES.txt` once: every entry has a licence text (the build warns for any package that ships none) and the Albany County Fasteners paragraph reads right. | Moved | Moved 2026-11-07 to `FIND-testing-025`: an AI drive can settle it. |
+| 2 | On a real iPhone, the two footer links wrap cleanly and each is easy to tap. | Open | 2026-11-07: The wrap half, in the iOS Simulator moved to `FIND-testing-027`; whether each link is easy to tap stays here. |
 
 ### perf-002 — Bundle load time on the real deploy (2026-10-17 15:55)
 
@@ -536,7 +548,7 @@ Every number in `bench/results/2026-10-17-perf-002.md` came from headless engine
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Run `node bench/bundle-load.mjs` against the real GitHub Pages deploy (HTTP/2, real TLS) to see whether the fragmented builds' request cost shrinks and whether the ~330 ms defer-boot gain holds (needs the bench pointed at a URL; it serves local `dist/` only today). | Open | |
+| 1 | Run `node bench/bundle-load.mjs` against the real GitHub Pages deploy (HTTP/2, real TLS) to see whether the fragmented builds' request cost shrinks and whether the ~330 ms defer-boot gain holds (needs the bench pointed at a URL; it serves local `dist/` only today). | Moved | Moved 2026-11-07 to `FIND-perf-005`: an AI drive can settle it. |
 | 2 | On a real phone over a real mobile connection, load the hosted app cold and judge by eye whether the first usable frame feels any different once `perf-003` ships. | Open | |
 
 ### build-007 — Google Analytics 4 page views (2026-10-17 12:35)
@@ -549,8 +561,8 @@ No GA property or Measurement ID existed in the implementing session and Google 
 | 2 | GitHub → Settings → Secrets and variables → Actions → Variables: add `GA_MEASUREMENT_ID` = the ID, then run the Pages workflow (`workflow_dispatch`). | OK | 2026-10-17: `gh variable list` shows `GA_MEASUREMENT_ID` set (23:42Z), and the Pages run after it is green. |
 | 3 | In the data stream turn **Enhanced measurement OFF** (all toggles, especially "Page changes based on browser history events"); set event data retention to 2 months; turn off Google signals under Data collection. | Open | |
 | 4 | Open the deployed app: GA → Reports → Realtime shows one active user and the page path with no `#` part; DebugView (Analytics Debugger extension) shows one `page_view`. | Open | |
-| 5 | On the deployed app, DevTools console: no `Content Security Policy` errors naming a Google host. If one appears, widen by that single host in `scripts/analytics-build.mjs` and record it in `docs/decisions/analytics.md`. | Open | |
-| 6 | Open a shared-link address (`…/#/help/getting-started`) and confirm the Network `collect` request's `dl` has no `#` part. | Open | |
+| 5 | On the deployed app, DevTools console: no `Content Security Policy` errors naming a Google host. If one appears, widen by that single host in `scripts/analytics-build.mjs` and record it in `docs/decisions/analytics.md`. | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
+| 6 | Open a shared-link address (`…/#/help/getting-started`) and confirm the Network `collect` request's `dl` has no `#` part. | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. |
 
 ### build-009 — Source maps uploaded with curl instead of @sentry/vite-plugin (2026-10-17 2026-10-17 20:19)
 
@@ -582,8 +594,8 @@ Judgment calls a scripted spec cannot make. The AI pictures were recorded with t
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Watch `ai-wing-airfoil.gif` and `ai-drawing-to-group.gif` cold: does a stranger understand what the Assistant did, and is the *Scripted* badge in `ai-chat-panel.png` explained well enough by the caption in `docs/ai-partner.md`? | Open | |
-| 2 | `timeline-relink.gif` is 8 fps at 600 px to fit the size budget: is the amber `broken` chip and the Re-link press still readable? | Open | |
+| 1 | Watch `ai-wing-airfoil.gif` and `ai-drawing-to-group.gif` cold: does a stranger understand what the Assistant did, and is the *Scripted* badge in `ai-chat-panel.png` explained well enough by the caption in `docs/ai-partner.md`? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 2 | `timeline-relink.gif` is 8 fps at 600 px to fit the size budget: is the amber `broken` chip and the Re-link press still readable? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### build-005 — A reload picks up a new deploy, and an update banner (2026-10-17 11:20 UTC)
 
@@ -601,7 +613,7 @@ Scenarios 25 and 24 (connected half) were driven; scenario 6 is partial because 
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real iPhone, with a real MCP agent connected, does the compact Assistant (header + Undo AI turn, about 159 px) feel right, and is the Inspector reachable enough by closing the Assistant first? Decide whether the phone should keep the Inspector tab docked above the compact sheet instead. | Open | |
-| 2 | At laptop width the connected column still fills its grid cell with empty space under Undo AI turn. Is that acceptable, or should the column narrow while connected? | Open | |
+| 2 | At laptop width the connected column still fills its grid cell with empty space under Undo AI turn. Is that acceptable, or should the column narrow while connected? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-069 — Repeat button and panel (2026-10-17 07:55 UTC)
 
@@ -609,12 +621,12 @@ Acceptance 3, 6, 10, 12, 15, 22 and the `ui-063`, `ui-035`, `ui-060`, `ui-042`/`
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | A step the Assistant, Claude Code or a merge added to the first part disables **Apply** with *"… has a step you didn't make … Cancel and make the part by hand"*, because `core-061` copies the source's whole lineage. The spec said such a step is just listed under *Not part of the repeat*. Keep the stricter rule, or let Apply copy it? | Open | |
-| 2 | The Inspector's note on a repeat body reads *"Move Bolt / screw 1 or Raspberry Pi 1; the repeats follow them"*, but a **new** move of either (gizmo or typed) after the Repeat moves only that part (driven: Pi +10 mm, bolts unchanged); only editing an earlier History step (the screen's Move row) carries everything. Is the wording misleading? It is `core-061`'s sentence, so changing it is a core edit. | Open | |
-| 3 | On a laptop the panel floats over the lower middle of the 3D view, so a first-drop point there lands on the panel. Does that cost anything in real use (you have to drop the bolt in the upper half)? On a real iPad, does the lifted tablet position (above the nav chrome) still leave room to see the Pi? | Open | |
-| 4 | **⟳ Repeat** is enabled on a Group's sub-part (it has other parts), seeding on a member that has no name family. Harmless, but should it need a numbered family like `hole1`? | Open | |
+| 1 | A step the Assistant, Claude Code or a merge added to the first part disables **Apply** with *"… has a step you didn't make … Cancel and make the part by hand"*, because `core-061` copies the source's whole lineage. The spec said such a step is just listed under *Not part of the repeat*. Keep the stricter rule, or let Apply copy it? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | The Inspector's note on a repeat body reads *"Move Bolt / screw 1 or Raspberry Pi 1; the repeats follow them"*, but a **new** move of either (gizmo or typed) after the Repeat moves only that part (driven: Pi +10 mm, bolts unchanged); only editing an earlier History step (the screen's Move row) carries everything. Is the wording misleading? It is `core-061`'s sentence, so changing it is a core edit. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 3 | On a laptop the panel floats over the lower middle of the 3D view, so a first-drop point there lands on the panel. Does that cost anything in real use (you have to drop the bolt in the upper half)? On a real iPad, does the lifted tablet position (above the nav chrome) still leave room to see the Pi? | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 4 | **⟳ Repeat** is enabled on a Group's sub-part (it has other parts), seeding on a member that has no name family. Harmless, but should it need a numbered family like `hole1`? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 5 | Phone: the shrunk bar lifts the Inspector sheet by 54 px while it is up. Real-thumb check that the bar, the Delete row and the Library tab all stay tappable. | Open | |
-| 6 | Docs example: the Z step is *Relation: Inside*, *Offset -5*, **Z ⊏ − face**. Does a first-time reader find the Rotation X = `180` step (head-up) without help? | Open | |
+| 6 | Docs example: the Z step is *Relation: Inside*, *Offset -5*, **Z ⊏ − face**. Does a first-time reader find the Rotation X = `180` step (head-up) without help? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### core-061 — A linked Repeat record (2026-10-17 06:00 UTC)
 
@@ -623,8 +635,8 @@ Acceptance 10, 12, 15, 22, 23 and the data-007, ui-052, core-024, ui-063, ui-038
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | *Save to library…* on a repeat body (*Bolt 1 ×3*) saves the repeat without its source, so dropping that part from My parts will not rebuild it. Decide whether it should refuse, or save the source with it. | OK | **Decided 2026-11-01:** keep the refusal that `ui-076` shipped; a repeat is not saved without its source. Nothing further to check here. |
-| 2 | Edit Bolt 1's Length with the repeat on screen: do the three repeats change at the same moment as Bolt 1, or is there a visible lag that reads as "not linked"? | Open | |
-| 3 | Move the Pi after the bolts exist: only the Pi moves and the bolts stay (a later step is not consumed by earlier rows). Does that read as a bug to someone who did not read the docs? `ui-069` must explain it. | Open | |
+| 2 | Edit Bolt 1's Length with the repeat on screen: do the three repeats change at the same moment as Bolt 1, or is there a visible lag that reads as "not linked"? | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
+| 3 | Move the Pi after the bolts exist: only the Pi moves and the bolts stay (a later step is not consumed by earlier rows). Does that read as a bug to someone who did not read the docs? `ui-069` must explain it. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 | 4 | Type a value into Position X on *Bolt 1 ×3*: nothing moves, but the refusal is an uncaught error, not a message. | OK | Fixed by `ui-069`: the fields are read-only on a repeat body with a note; `e2e/repeat-placement.e2e.js` asserts no page error. |
 
 ### ui-068 — The Library remembers each part's last-used params (2026-10-17 02:30 UTC)
@@ -633,9 +645,9 @@ Acceptance 1, 2, 3 and 15 plus the repros were driven (emulated viewports only).
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The spec disagrees with itself on the Bolt / screw summary line: Done says `× 8 mm` (dropdowns already show Type and Size), e2e step 1 says `M2.5 socket × 8 mm`. `× 8 mm` shipped. Does it read right on a phone, or would the full `M2.5 socket × 8 mm` be clearer? | Open | |
+| 1 | The spec disagrees with itself on the Bolt / screw summary line: Done says `× 8 mm` (dropdowns already show Type and Size), e2e step 1 says `M2.5 socket × 8 mm`. `× 8 mm` shipped. Does it read right on a phone, or would the full `M2.5 socket × 8 mm` be clearer? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 | 2 | On a real phone, is the ↺ Reset button easy to hit and clearly not a drag handle (44 x 44 at the row's right edge)? | Open | |
-| 3 | Does the always-on memory surprise anyone (the spec's follow-up: a Settings "remember" toggle only if it does)? | Open | |
+| 3 | Does the always-on memory surprise anyone (the spec's follow-up: a Settings "remember" toggle only if it does)? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-060 — One Bolt / screw row with a Type dropdown (2026-10-17 UTC)
 
@@ -643,10 +655,10 @@ Visual and feel checks the scenarios do not cover, plus one deliberate gap.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The Library row's **Type** dropdown clips its longest label ("Wood screw, flat head" reads "Wood screw, fla" in the 197 px Library column). Decide whether to widen the column, shorten the labels or let it wrap | Open | |
-| 2 | `docs/screenshots/hardware-screw-family.png` still shows the last-dropped screw's gizmo and highlight, and the six screws are small. Judge whether it reads as "six types side by side" | Open | |
-| 3 | The History row **Edit** form still shows a legacy `hardware.bolt`'s old **Spec** form (`m10 hex`), not Type + Size; submitting writes the new shape. Decide whether that is acceptable or worth a task | Open | |
-| 4 | The BOM line for a bolt whose Size or Fit is bound to a variable drops the size (`Bolt / screw hex × 20 mm`), because the bound value is not a string. Same as before core-060; decide whether the BOM should show the resolved value | Open | |
+| 1 | The Library row's **Type** dropdown clips its longest label ("Wood screw, flat head" reads "Wood screw, fla" in the 197 px Library column). Decide whether to widen the column, shorten the labels or let it wrap | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | `docs/screenshots/hardware-screw-family.png` still shows the last-dropped screw's gizmo and highlight, and the six screws are small. Judge whether it reads as "six types side by side" | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 3 | The History row **Edit** form still shows a legacy `hardware.bolt`'s old **Spec** form (`m10 hex`), not Type + Size; submitting writes the new shape. Decide whether that is acceptable or worth a task | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | The BOM line for a bolt whose Size or Fit is bound to a variable drops the size (`Bolt / screw hex × 20 mm`), because the bound value is not a string. Same as before core-060; decide whether the BOM should show the resolved value | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-023 — Agent-neutral timed live MCP access (2026-10-16 19:11)
 
@@ -656,8 +668,8 @@ show: the real agent, and the idle-session sweep with a real client that crashes
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Register the live endpoint with GitHub Copilot's MCP support (the reported failure was never reproduced), enable 15 minutes, and ask it to add a cube. Does it connect with no code step? | Open | |
-| 2 | Kill a real MCP client with `kill -9` while access is enabled, then connect a second one immediately and again after five minutes. Is the first refused as ambiguous, then accepted? | Open | |
-| 3 | At 390x844 with an API key saved, find the way to **Live MCP access**. The panel entry is laptop-only now (it pushed **Send** out of the half sheet), so a keyed phone user has only the chip once access is on. Is that acceptable, or does it need a header entry? | Open | |
+| 2 | Kill a real MCP client with `kill -9` while access is enabled, then connect a second one immediately and again after five minutes. Is the first refused as ambiguous, then accepted? | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 3 | At 390x844 with an API key saved, find the way to **Live MCP access**. The panel entry is laptop-only now (it pushed **Send** out of the half sheet), so a keyed phone user has only the chip once access is on. Is that acceptable, or does it need a header entry? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-042 — Helical and herringbone gears (2026-10-16 07:08)
 
@@ -665,7 +677,7 @@ Gears have no Library row yet, so the helical path is unit-covered only. While r
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Sketch a 30 x 16 mm rectangle, Extrude Linear 30 mm with Twist 90, Done: does the Inspector volume read about 14 400 mm³, and does the solid look right (not inside-out) from several angles? | Open | |
+| 1 | Sketch a 30 x 16 mm rectangle, Extrude Linear 30 mm with Twist 90, Done: does the Inspector volume read about 14 400 mm³, and does the solid look right (not inside-out) from several angles? | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
 ### core-058 — One Raspberry Pi Screen row with a Screen model dropdown (2026-10-16 03:52)
 
@@ -683,7 +695,7 @@ live model, reading the corrected sentence, now picks the right side for a reque
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real Assistant key, ask it to snap a body with `outside+` onto another and say which side it lands on. It should answer the − side, and the result should match. | Open | |
+| 1 | With a real Assistant key, ask it to snap a body with `outside+` onto another and say which side it lands on. It should answer the − side, and the result should match. | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
 
 ### ui-067 — Place connectors on the split cut face by hand (2026-10-15 23:46)
 
@@ -691,10 +703,10 @@ Drag, tap, kind switch, refusal and cancelled-touch behaviour are covered by `e2
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPad, the Split sheet covers the orientation cube (right-hand panel at 820 px), so the face can only be turned square-on before opening Split or by dragging the view; judge whether a "face the cut" button in the sheet is wanted. | Open | |
-| 2 | The offset handle (44 px) sits at the centre of the cut face; on a small face it covers much of it until you zoom in. Judge whether the handle should hide, or shrink, while Place connectors is on. | Open | |
-| 3 | Marker positions use the plane's affine map at its centre, so under strong perspective (a close camera, an oblique view) a marker can sit a few pixels off the drawn plane's corner geometry. Judge at an oblique view on a phone whether that reads wrong. | Open | |
-| 4 | Markers are SVG only: no keyboard path to move or remove one yet. Judge whether that is acceptable for v1. | Open | |
+| 1 | On a real iPad, the Split sheet covers the orientation cube (right-hand panel at 820 px), so the face can only be turned square-on before opening Split or by dragging the view; judge whether a "face the cut" button in the sheet is wanted. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | The offset handle (44 px) sits at the centre of the cut face; on a small face it covers much of it until you zoom in. Judge whether the handle should hide, or shrink, while Place connectors is on. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | Marker positions use the plane's affine map at its centre, so under strong perspective (a close camera, an oblique view) a marker can sit a few pixels off the drawn plane's corner geometry. Judge at an oblique view on a phone whether that reads wrong. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
+| 4 | Markers are SVG only: no keyboard path to move or remove one yet. Judge whether that is acceptable for v1. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### io-011 — A stale hosted save merges instead of asking (2026-10-15 19:50)
 
@@ -710,10 +722,10 @@ Driven by script and by hand with a made-up L-bracket (scenarios 1, 3, 6, 8, 20,
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Import a real STL from Thingiverse (or a phone scan, if you have one) with a few hundred thousand triangles: does the row's size read right for the object, and does **Units** fix it when it does not? | Open | |
-| 2 | Export a placed, cut imported part as STL and open it in your slicer (PrusaSlicer or Cura): is it closed, with no "repaired" or "non-manifold" warning? The test counts open edges at 1e-3 mm, not what a slicer thinks. | Open | |
-| 3 | On a real iPhone, **Import model file…** opens Files and iCloud (no camera-only picker), and an STL in iCloud Drive reads without a timeout. | Open | |
-| 4 | Is the 96 px thumbnail of a dense scan (12,000-face budget, sampled) recognisable, or does it speckle? | Open | |
+| 1 | Import a real STL from Thingiverse (or a phone scan, if you have one) with a few hundred thousand triangles: does the row's size read right for the object, and does **Units** fix it when it does not? | Moved | Moved 2026-11-07 to `FIND-testing-023`: an AI drive can settle it. |
+| 2 | Export a placed, cut imported part as STL and open it in your slicer (PrusaSlicer or Cura): is it closed, with no "repaired" or "non-manifold" warning? The test counts open edges at 1e-3 mm, not what a slicer thinks. | Moved | Moved 2026-11-07 to `FIND-testing-023`: an AI drive can settle it. |
+| 3 | On a real iPhone, **Import model file…** opens Files and iCloud (no camera-only picker), and an STL in iCloud Drive reads without a timeout. | Open | 2026-11-07: The picker-type half, in the iOS Simulator moved to `FIND-testing-027`; the iCloud Drive read stays here. |
+| 4 | Is the 96 px thumbnail of a dense scan (12,000-face budget, sampled) recognisable, or does it speckle? | Moved | Moved 2026-11-07 to `FIND-testing-023`: an AI drive can settle it. |
 
 ### core-057 — Phone library item: model, case, enlarge and separate plateau (2026-10-15 14:55 UTC)
 
@@ -731,10 +743,10 @@ Driven by script: the real `mcp/server.js` through the SDK client against a fake
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In desktop Chrome, open a project file, move a body without saving, ask real Claude Code (`npm run mcp:add -- <file>`) to add a sphere, click back into WarpCad: the sphere appears, the move stays, the strip reads `Merged 1 step from Claude Code`, no dialog; Save, then ask Claude Code to describe the scene | Open | |
-| 2 | In Safari (desktop and iPhone), open the same file, have Claude Code add a step, then **File ▾ → Merge file…** and pick it: the step comes in with `Merged 1 step from <file name>` and **Undo merge**; nothing appears by itself | Open | |
-| 3 | While holding a real drag (Library part or gizmo), have Claude Code change the file and switch windows back: the chip says `Changes waiting to merge`, the viewport does not jump, and the merge lands the moment you let go. Does that read as calm, or does the wait feel like the app ignoring you? | Open | |
-| 4 | The flagged row in a move-versus-fillet conflict is chosen by replica ids when both clocks tie, so it can be either one on different runs. Is a banner naming whichever step lost clear enough, or should the app prefer the local step? | Open | |
+| 1 | In desktop Chrome, open a project file, move a body without saving, ask real Claude Code (`npm run mcp:add -- <file>`) to add a sphere, click back into WarpCad: the sphere appears, the move stays, the strip reads `Merged 1 step from Claude Code`, no dialog; Save, then ask Claude Code to describe the scene | Moved | Moved 2026-11-07 to `FIND-testing-028`: an AI drive can settle it. |
+| 2 | In Safari (desktop and iPhone), open the same file, have Claude Code add a step, then **File ▾ → Merge file…** and pick it: the step comes in with `Merged 1 step from <file name>` and **Undo merge**; nothing appears by itself | Open | 2026-11-07: The desktop-Safari half moved to `FIND-testing-026`; the iPhone half stays here. |
+| 3 | While holding a real drag (Library part or gizmo), have Claude Code change the file and switch windows back: the chip says `Changes waiting to merge`, the viewport does not jump, and the merge lands the moment you let go. Does that read as calm, or does the wait feel like the app ignoring you? | Open | 2026-11-07: The mechanics half (chip, no jump, merge on release) moved to `FIND-testing-028`; whether the wait feels calm stays here. |
+| 4 | The flagged row in a move-versus-fillet conflict is chosen by replica ids when both clocks tie, so it can be either one on different runs. Is a banner naming whichever step lost clear enough, or should the app prefer the local step? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-060 — The tall Align popover on a real phone (2026-10-15)
 
@@ -751,7 +763,7 @@ The mouse now steps by speed like a finger. The unit and e2e specs pin the bands
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real mouse, drag a ring at an ordinary pace and then creep: does the readout feel steady in the `1°` band, or does the jump between `1°` and `0.1°` at the slow edge read as twitchy? | Open | |
+| 1 | With a real mouse, drag a ring at an ordinary pace and then creep: does the readout feel steady in the `1°` band, or does the jump between `1°` and `0.1°` at the slow edge read as twitchy? | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 | 2 | On a real iPad or iPhone, repeat the fling, creep, rest drag on a ring: coarse then `fine 0.1°`, camera does not orbit, readout clear of the finger. (A synthetic CDP touch drive was inconclusive; the e2e touch-type pointer test passes.) | Open | |
 
 ### ui-061 — Docs inside the app, help buttons (2026-10-15 UTC)
@@ -762,7 +774,7 @@ Offline Help is asserted in Chromium and Firefox and, for WebKit, only as precac
 |---|---|---|---|
 | 1 | Installed PWA on an iPhone: open once online, go to airplane mode, relaunch, File menu → Help and documentation opens with text and stills | Open | |
 | 2 | Same offline: a GIF you never opened online shows its alt text rather than a broken box; one you opened online still plays | Open | |
-| 3 | First install on a phone connection: the extra ~15 MB precache is acceptable (or flip `HELP_PRECACHE_GLOBS` in `scripts/vite-plugin-help.mjs`) | Open | |
+| 3 | First install on a phone connection: the extra ~15 MB precache is acceptable (or flip `HELP_PRECACHE_GLOBS` in `scripts/vite-plugin-help.mjs`) | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### io-008 — Save falls back to a download when the write is refused (2026-10-15 05:30)
 
@@ -771,7 +783,7 @@ no stub can prove is the real refusal in the editor's integrated browser, so tha
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In the editor's integrated browser (the original report), File ▾ → Save, pick a folder and a name: a `warpcad-project-…ndjson` download starts from that click, the status line names it and the empty file left at the chosen path, and the menu then reads Download copy. If the download does not start there (user activation lapsed after the picker), file it: the TODO's step (3) is the fallback design | Open | |
+| 1 | In the editor's integrated browser (the original report), File ▾ → Save, pick a folder and a name: a `warpcad-project-…ndjson` download starts from that click, the status line names it and the empty file left at the chosen path, and the menu then reads Download copy. If the download does not start there (user activation lapsed after the picker), file it: the TODO's step (3) is the fallback design | Moved | Moved 2026-11-07 to `FIND-testing-028`: an AI drive can settle it. |
 
 ### ui-056 — Name a part in the Inspector (2026-10-15 03:59)
 
@@ -779,8 +791,8 @@ The field is covered by unit specs and `e2e/rename-part.e2e.js` (trusted touch o
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone, select a part, tap its name: the keyboard rises without pushing the sheet or viewport off-screen, the field stays visible above it, and tapping the keyboard's Done key or the empty viewport commits the name | Open | |
-| 2 | On a real iPad, the pencil and the name are easy to hit, and the field does not zoom the page on focus | Open | |
+| 1 | On a real iPhone, select a part, tap its name: the keyboard rises without pushing the sheet or viewport off-screen, the field stays visible above it, and tapping the keyboard's Done key or the empty viewport commits the name | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 2 | On a real iPad, the pencil and the name are easy to hit, and the field does not zoom the page on focus | Open | 2026-11-07: The no-zoom-on-focus half, in the iOS Simulator moved to `FIND-testing-027`; whether the pencil and name are easy to hit stays here. |
 
 ### ui-065 — Translate ruler (2026-10-15 01:47)
 
@@ -788,9 +800,9 @@ Speed bands for the arm (`src/render/translateSnap.js`: 40/300/1000 px/s -> 0.1/
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a mouse, drag an arm at a normal pace: does the speed step feel predictable, or does the value jump in coarse steps you did not ask for? Consider whether the rings should match (ui-065 Open question a). | Open | |
+| 1 | With a mouse, drag an arm at a normal pace: does the speed step feel predictable, or does the value jump in coarse steps you did not ask for? Consider whether the rings should match (ui-065 Open question a). | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 | 2 | On an iPad and a phone, drag an arm fast then slow: coarse then `0.1 mm`; is the readout never under the fingertip (it can sit over the start mark on a diagonal arm)? | OK | iPad: looks OK (reported by the user 2026-10-15, no detail given). Phone not checked. |
-| 3 | Ruler legibility in light and dark themes: tick density, the `+5` labels, readout contrast. | Open | |
+| 3 | Ruler legibility in light and dark themes: tick density, the `+5` labels, readout contrast. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### ui-064 — Rotate dial (2026-10-15 01:04)
 
@@ -800,7 +812,7 @@ unit-tested with an injected clock and exercised by synthetic pointer events onl
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On an iPad and a phone, drag a rotate ring fast, then slow down: does the step feel right (coarse when flinging, `0.1°` when nearly stopped) and is the readout never under the fingertip? | OK | iPad: works OK (reported by the user 2026-10-15, no detail given). Phone not checked. |
-| 2 | Dial legibility in light and dark themes: tick density on a small ring, the `0/90/180/270` labels, and the readout pill contrast (`--surface-glass`). | Open | |
+| 2 | Dial legibility in light and dark themes: tick density on a small ring, the `0/90/180/270` labels, and the readout pill contrast (`--surface-glass`). | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### ai-021 — WebMCP transport (2026-10-14 23:33)
 
@@ -811,8 +823,8 @@ Everything automated ran against a **fake** `document.modelContext`; the real AP
 | 1 | Chrome 146+ with `chrome://flags/#enable-webmcp-testing` Enabled: open the Model Context Tool Inspector extension on WarpCad and confirm 19 tools list and `capture_view` is absent. | Issue | 2026-10-17, Chrome with flag, live (old) build: `getTools()` listed 20 tools, so registration works; the inspector extension was not used. Count is now 20 and `capture_view` absence not re-checked. |
 | 2 | Ask the agent *add a 40 mm cube and put a 20 mm sphere on top of it*: both appear, History shows one row with a `webmcp` chip, **Undo AI turn** removes both. | OK | 2026-10-17: with `navigator.modelContext` aliased, Claude in Chrome added a 10-cube row and Undo AI turn removed it (scenario 27). Without the alias it never found the tools; the app now sets the alias (`ai-024`). The 40 mm cube + sphere request itself was not run. |
 | 3 | Two WarpCad tabs open: confirm the agent reaches the tab you are looking at (Decision 13's visible-tab hypothesis; neither the spec nor Chrome's pages say what happens). | Open | |
-| 4 | Whether a deployed (https) app needs an origin-trial token before the API exists for ordinary visitors, and the trial's end date. `docs/webmcp.md` deliberately leaves this out until confirmed from Chrome's own page. | Open | |
-| 5 | Tool results against Chrome's 1.5K-character advice on a large project: `measure` and `check_printability` over many bodies come back whole with an `oversize` note, unmeasured. | Open | |
+| 4 | Whether a deployed (https) app needs an origin-trial token before the API exists for ordinary visitors, and the trial's end date. `docs/webmcp.md` deliberately leaves this out until confirmed from Chrome's own page. | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 5 | Tool results against Chrome's 1.5K-character advice on a large project: `measure` and `check_printability` over many bodies come back whole with an `oversize` note, unmeasured. | Open | 2026-11-07: The registry half (the tools called directly on a 50-body project) moved to `FIND-testing-019`; the real-Chrome WebMCP half stays here. |
 
 ### ai-012 — Live bridge, dev host (2026-10-14)
 
@@ -820,11 +832,11 @@ Driven with an MCP client stand-in, not a real Claude Code, so the parts that ne
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real Claude Code (`npm run mcp:add -- --dev`, `npm run dev`), ask for a cube and a sphere: the pairing sentence reads clearly and the change lands | Open | |
+| 1 | With a real Claude Code (`npm run mcp:add -- --dev`, `npm run dev`), ask for a cube and a sphere: the pairing sentence reads clearly and the change lands | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
 | 2 | Chromium's local-network prompt on first connect: the sheet's wording prepares you for it (choose Allow) | Open | |
-| 3 | Safari at `http://localhost:5183` connects; the Connect sheet's WebKit note is the right amount of warning | Open | |
-| 4 | **Undo AI turn** looks greyed for ~1.5 s after a call while the `Claude Code working` chip lingers; feels right or just laggy? | Open | |
-| 5 | A Claude call during a held Library drag is refused as "project changed… while this call waited", not the spec's "the user is editing; try again"; the drop is kept. Acceptable wording? | Open | |
+| 3 | Safari at `http://localhost:5183` connects; the Connect sheet's WebKit note is the right amount of warning | Open | 2026-11-07: The connection half (Safari at localhost connects) moved to `FIND-testing-026`; whether the WebKit note is the right amount of warning stays here. |
+| 4 | **Undo AI turn** looks greyed for ~1.5 s after a call while the `Claude Code working` chip lingers; feels right or just laggy? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 5 | A Claude call during a held Library drag is refused as "project changed… while this call waited", not the spec's "the user is editing; try again"; the drop is kept. Acceptable wording? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ai-017 — Keep editing while the Assistant works (2026-10-14 14:39)
 
@@ -833,8 +845,8 @@ Driven with a scripted transcript only; the judgment calls below need a real tur
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | With a real key, a turn of several tool calls: does editing during it *feel* uninterrupted, and is `Working…` plus the header chip enough to tell the turn is still running? | Open | |
-| 2 | At 390 px, the chat header wraps in Scripted mode; check the header chip dot and the **Watch** toggle are still comfortably tappable and not clipped. | Open | |
-| 3 | Edit the very body the Assistant was asked to change, then read the conflict banner and the flagged row: is the wording understandable? | Open | |
+| 2 | At 390 px, the chat header wraps in Scripted mode; check the header chip dot and the **Watch** toggle are still comfortably tappable and not clipped. | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
+| 3 | Edit the very body the Assistant was asked to change, then read the conflict banner and the flagged row: is the wording understandable? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ui-063 — Snap/Align names a part on both operands (2026-10-13 22:32)
 
@@ -844,7 +856,7 @@ judgment on a phone. Nothing here is covered by an acceptance scenario.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a phone (390x844), is the Align then Snap flow with `hole1` then `mb` still quick, given the Objects section collapses on a row tap? | Open | |
+| 1 | On a phone (390x844), is the Align then Snap flow with `hole1` then `mb` still quick, given the Objects section collapses on a row tap? | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 
 ### ui-062 — File ▾ → Merge file…, merge strip, Undo merge (2026-10-12 23:05)
 
@@ -853,10 +865,10 @@ drive could not settle.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone, the merge strip pushing the workspace down 49-70 px when it appears and again when it goes: is the layout jump acceptable, or should it overlay? | Open | |
-| 2 | At laptop height 900 the History selected-row action bar (Edit / Suppress / Move up…) is cramped at the bottom of the panel; on a phone sheet "Roll back to here" sits under the peek bars. Judge whether a conflicted row's fix is easy to find. | Open | |
-| 3 | The strip never times out and stays until dismissed. Does a clean-merge toast that lingers feel wrong? | Open | |
-| 4 | Pan mode, touch drag that starts on a selected body's gizmo ring rotates the body instead of panning (seen on phone; not merge-related). File as its own TODO if it reproduces on a real device. | Open | |
+| 1 | On a real phone, the merge strip pushing the workspace down 49-70 px when it appears and again when it goes: is the layout jump acceptable, or should it overlay? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | At laptop height 900 the History selected-row action bar (Edit / Suppress / Move up…) is cramped at the bottom of the panel; on a phone sheet "Roll back to here" sits under the peek bars. Judge whether a conflicted row's fix is easy to find. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | The strip never times out and stays until dismissed. Does a clean-merge toast that lingers feel wrong? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | Pan mode, touch drag that starts on a selected body's gizmo ring rotates the body instead of panning (seen on phone; not merge-related). File as its own TODO if it reproduces on a real device. | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
 
 ### data-011 — Project file version 2 (2026-10-12 19:50)
 
@@ -864,8 +876,8 @@ Core and format only; scenarios 8 and 10 were re-driven and passed. These are wh
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open a version-2 file saved on desktop Chromium on an iPhone or iPad (Safari) via Files → Open…: it opens, and **Download copy** from there writes the same bytes back. Engine-sensitive only through file reading, which the e2e covers in Chromium and WebKit, never on real iOS. | Open | |
-| 2 | Judge the size: a project you actually work on, saved as version 2 — is the `merge` section (34-43% of a small test file) still a reasonable share of *your* file? That decides whether `data-012`'s tighter encoding is worth doing before `ui-062`. | Open | |
+| 1 | Open a version-2 file saved on desktop Chromium on an iPhone or iPad (Safari) via Files → Open…: it opens, and **Download copy** from there writes the same bytes back. Engine-sensitive only through file reading, which the e2e covers in Chromium and WebKit, never on real iOS. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 2 | Judge the size: a project you actually work on, saved as version 2 — is the `merge` section (34-43% of a small test file) still a reasonable share of *your* file? That decides whether `data-012`'s tighter encoding is worth doing before `ui-062`. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. 2026-11-07: The measurement (the merge section share of each owner file) moved to `FIND-testing-018`; the data-012 decision stays here. |
 
 ### data-010 — The document carries merge state (2026-10-12)
 
@@ -873,8 +885,8 @@ Core only; nothing calls `mergeFrom` from the app yet, so the three acceptance s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open a project saved *before* this build, edit it, Undo, Redo, reload: it behaves exactly as it did (legacy metadata is derived, never written yet). | Open | |
-| 2 | Edit a 200-record scene and feel the mutation latency (stamping adds ~0.05 ms; should be imperceptible). | Open | |
+| 1 | Open a project saved *before* this build, edit it, Undo, Redo, reload: it behaves exactly as it did (legacy metadata is derived, never written yet). | Moved | Moved 2026-11-07 to `FIND-testing-018`: an AI drive can settle it. |
+| 2 | Edit a 200-record scene and feel the mutation latency (stamping adds ~0.05 ms; should be imperceptible). | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
 
 ### data-008 — Replica-scoped record ids (2026-10-12 17:20)
 
@@ -883,8 +895,8 @@ longer ids read to a person, and a real project file from before this change.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open a real project file saved by an earlier build (not a fixture), add a body, Save, and read the file: old lines `op-7`-style and unchanged, only the new rows carry `prefix-<replica>-<n>` | Open | |
-| 2 | In the Assistant, ask for a cube and a sphere then a subtract: do `describe_scene` ids in the chat/tool readout still read acceptably (`cuboid-k3f5xa-1`), or is the replica segment noisy enough to want trimming in the UI? | Open | |
+| 1 | Open a real project file saved by an earlier build (not a fixture), add a body, Save, and read the file: old lines `op-7`-style and unchanged, only the new rows carry `prefix-<replica>-<n>` | Moved | Moved 2026-11-07 to `FIND-testing-018`: an AI drive can settle it. |
+| 2 | In the Assistant, ask for a cube and a sphere then a subtract: do `describe_scene` ids in the chat/tool readout still read acceptably (`cuboid-k3f5xa-1`), or is the replica segment noisy enough to want trimming in the UI? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ai-016 — `npm run mcp:add` registers the server (2026-10-12 14:31)
 
@@ -892,7 +904,7 @@ The script is driven in specs against a fake `claude`, and the argv it produces 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | From the clone folder run `npm run mcp:add -- bracket.ndjson`; in Claude Code (any folder) `/mcp` lists `warpcad` as connected, and a stale placeholder entry from before is gone | Open | |
+| 1 | From the clone folder run `npm run mcp:add -- bracket.ndjson`; in Claude Code (any folder) `/mcp` lists `warpcad` as connected, and a stale placeholder entry from before is gone | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
 
 ### ai-013 — Subscription route and cost readout (2026-10-11 18:35)
 
@@ -903,7 +915,7 @@ with a console open can judge.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | After a real turn with a real key, the chip's "≈ $x" is within a few cents of the turn's cost in the Anthropic console (Usage page) | Open | |
-| 2 | At 390 px (iPhone), the route sheet's command wraps and **Copy** puts the command on the clipboard in Safari (the e2e is Chromium-only) | Open | |
+| 2 | At 390 px (iPhone), the route sheet's command wraps and **Copy** puts the command on the clipboard in Safari (the e2e is Chromium-only) | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### ai-014 — AI tools for project variables (2026-10-11 15:09)
 
@@ -911,7 +923,7 @@ Driven with the scripted provider on a laptop only. What a scripted run cannot s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real key, a project holding a bound `piModel`: type *make this case for a Pi 5*. Does it call `set_variable` (not `list_ops`/`operate` hunting for the Pi), and does the row read *Set piModel to 5* with the impact line? | Open | |
+| 1 | With a real key, a project holding a bound `piModel`: type *make this case for a Pi 5*. Does it call `set_variable` (not `list_ops`/`operate` hunting for the Pi), and does the row read *Set piModel to 5* with the impact line? | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
 | 2 | At phone width (390x844) the *Set piModel to 5* row and a revisions-only **Undo AI turn** are reachable in the half-height chat sheet and the Variables tab shows Pi 5 behind it. | Open | |
 
 ### ui-059 — Variables panel and bind control: feel and device checks (2026-10-11 03:11)
@@ -923,11 +935,11 @@ sandbox, so the e2e spec has not run there at all.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real iPhone, tap a bind link button and judge the popover bottom sheet: does it cover the field you are binding, and is **Close** reachable one-handed? | Open | |
-| 2 | On a real iPad/iPhone, change a choice variable in the Variables row (native wheel picker) and confirm the repair dialog opens above the sheet, not behind it. | Open | |
-| 3 | Vector fields (Size X / Y / Z) at 390 px: is the row of three link buttons under the inputs clear about which axis each binds, once one component is a chip? | Open | |
-| 4 | **Edit variable** on a chip scrolls its row into view but does not highlight it. Is that discoverable enough on a phone, where the tab also switches? | Open | |
-| 5 | With an empty scene at phone width there is no sheet tab, so **+** is unreachable until something is placed. Acceptable, or should the tab stay? | Open | |
-| 6 | Type a value in a variable's number box and, without pressing Enter, tap **Delete** from its menu: the typed value commits on blur first. Is committing surprising? | Open | |
+| 2 | On a real iPad/iPhone, change a choice variable in the Variables row (native wheel picker) and confirm the repair dialog opens above the sheet, not behind it. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 3 | Vector fields (Size X / Y / Z) at 390 px: is the row of three link buttons under the inputs clear about which axis each binds, once one component is a chip? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 4 | **Edit variable** on a chip scrolls its row into view but does not highlight it. Is that discoverable enough on a phone, where the tab also switches? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 5 | With an empty scene at phone width there is no sheet tab, so **+** is unreachable until something is placed. Acceptable, or should the tab stay? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 6 | Type a value in a variable's number box and, without pressing Enter, tap **Delete** from its menu: the typed value commits on blur first. Is committing surprising? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-050 — What a person should see when a variable goes out of range (feel call for `ui-059`) (2026-10-11 02:06)
 
@@ -940,7 +952,7 @@ the panel should make with the real UI in front of it.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In the `ui-059` panel, type a value past a variable's max: is the refusal clear *before* commit, and if a file arrives with such a value, is "3 parts disappeared" explained by name on screen? | Open | |
+| 1 | In the `ui-059` panel, type a value past a variable's max: is the refusal clear *before* commit, and if a file arrives with such a value, is "3 parts disappeared" explained by name on screen? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### core-053 — Export a project that holds a real left-broken row (2026-10-11 00:12)
 
@@ -949,7 +961,7 @@ re-fold of an ordinary project; no hand-driven run opened a project with a row t
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open a project whose History has a row left broken (Open a file that names a missing user part, choose **Leave broken**), then **File ▾ → Export…** at **Print** and again at **Fine**. The export should finish and write the healthy bodies, with no `evaluation-failed` message. | Open | |
+| 1 | Open a project whose History has a row left broken (Open a file that names a missing user part, choose **Leave broken**), then **File ▾ → Export…** at **Print** and again at **Fine**. The export should finish and write the healthy bodies, with no `evaluation-failed` message. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
 ### ai-011 — The prompt eval harness has never run against a real model (2026-10-10 23:12)
 
@@ -959,9 +971,9 @@ The scorer and runner are proved with the scripted provider (a good transcript s
 |---|---|---|---|
 | 1 | Run `ANTHROPIC_API_KEY=… npm run eval:ai` once (about $1-3 at the default model; `--max-cost` caps it), look at `bench/results/ai/*.md`, and commit it as the **baseline** every later change is compared against | Open | |
 | 2 | Calibrate the case thresholds against that first run: the hole volume range (60500-63800), bracket fill (at most 0.85), wing length (100-1500 mm). Are any too tight or too loose to mean anything? | Open | |
-| 3 | Check the price table (`bench/ai/score.js`, dated 2026-09-25) against the current model prices before quoting a cost | Open | |
-| 4 | Product call: the browser-driven runner for scenario 18 (an image needs a canvas, `capture_view` a GPU) is not built. Worth building, or is the live scenario enough? | Open | |
-| 5 | Product call: `askedOrAssumed` is a crude text check (a question mark, or the word "assume"). Is it good enough for the ambiguous and under-specified cases, or does it need a stricter test? | Open | |
+| 3 | Check the price table (`bench/ai/score.js`, dated 2026-09-25) against the current model prices before quoting a cost | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 4 | Product call: the browser-driven runner for scenario 18 (an image needs a canvas, `capture_view` a GPU) is not built. Worth building, or is the live scenario enough? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 5 | Product call: `askedOrAssumed` is a crude text check (a question mark, or the word "assume"). Is it good enough for the ambiguous and under-specified cases, or does it need a stricter test? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-010 — Scenarios 17 and 18 have never been run with a real model (2026-10-10 22:14)
 
@@ -969,10 +981,10 @@ The scripted provider proves the **plumbing** of both scenarios (Chromium and We
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Run scenario 17 live** with a real key at laptop and at phone (touch), exactly as `TODO/ACCEPTANCE.md` says, and save the transcript and cost under `bench/results/ai/`. A FAIL recorded as FAIL is a good result | Open | |
-| 2 | **Run scenario 18 live** with a real key (`e2e/fixtures/drawing-board-85x56.png`): does it read the callouts, set scale first, ask about or flag the connector heights, and give an honest overlay residual? (also `ai-008` VERIFY row 1) | Open | |
-| 3 | Real finding to watch in the live 17 run: the airfoil's default **knife-edge trailing edge is a 0 mm wall**, which `check_printability` flags as unprintable at a 0.4 mm nozzle. Does the real model notice the warning and fix it (blunt trailing edge), or report the wing as printable? Product call: should the airfoil default to a blunt trailing edge? | Open | |
-| 4 | Product call: transcripts are hand-written, not recorded. Is it worth adding a recorder (save a live run as a transcript) once a live run exists? | Open | |
+| 1 | **Run scenario 17 live** with a real key at laptop and at phone (touch), exactly as `TODO/ACCEPTANCE.md` says, and save the transcript and cost under `bench/results/ai/`. A FAIL recorded as FAIL is a good result | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 2 | **Run scenario 18 live** with a real key (`e2e/fixtures/drawing-board-85x56.png`): does it read the callouts, set scale first, ask about or flag the connector heights, and give an honest overlay residual? (also `ai-008` VERIFY row 1) | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 3 | Real finding to watch in the live 17 run: the airfoil's default **knife-edge trailing edge is a 0 mm wall**, which `check_printability` flags as unprintable at a 0.4 mm nozzle. Does the real model notice the warning and fix it (blunt trailing edge), or report the wing as printable? Product call: should the airfoil default to a blunt trailing edge? | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 4 | Product call: transcripts are hand-written, not recorded. Is it worth adding a recorder (save a live run as a transcript) once a live run exists? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-009 — MCP server and the disk-change prompt: what only a real client and real devices can show (2026-10-10 21:18)
 
@@ -980,12 +992,12 @@ The server is covered by Node integration specs, a two-engine e2e at three viewp
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In **Claude Code**, run `claude mcp add warpcad -- node mcp/server.js <file>` and say *add a 3 mm base plate under the bracket*: does it pick the right tools, fill `request`, and report the appended rows? | Open | |
-| 2 | Product call: **hosted references** (`github:owner/repo/path`, read-only, writes with `WARPCAD_GITHUB_TOKEN`) are deferred. Build them as a follow-up? | Open | |
+| 1 | In **Claude Code**, run `claude mcp add warpcad -- node mcp/server.js <file>` and say *add a 3 mm base plate under the bracket*: does it pick the right tools, fill `request`, and report the appended rows? | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
+| 2 | Product call: **hosted references** (`github:owner/repo/path`, read-only, writes with `WARPCAD_GITHUB_TOKEN`) are deferred. Build them as a follow-up? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 3 | Product call: Safari, Firefox and phones get **no** change prompt (no file handle). Is "re-Open the file" acceptable, or should the app say *this file may have changed* on focus? | N/A | Closed 2026-11-01 (testing-005): answered by `TODO/done/io-012-warn-on-focus-when-file-may-have-changed.md` (focus warning without a file handle) and `TODO/done/io-010-disk-file-auto-merge.md` (File ▾ → Merge file…). |
-| 4 | Product call: limits are per tool call over MCP, not per user turn. Acceptable, or add a session-level cap? | Open | |
-| 5 | Product call: the optional `request` field on write tools is how intent travels over MCP. Right design? | Open | |
-| 6 | Wording: an origin this build does not write reads *via another program*. Right words? | Open | |
+| 4 | Product call: limits are per tool call over MCP, not per user turn. Acceptable, or add a session-level cap? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 5 | Product call: the optional `request` field on write tools is how intent travels over MCP. Right design? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 6 | Wording: an origin this build does not write reads *via another program*. Right words? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 | 7 | Release note: Save in native mode now re-reads the file first, so an outside edit is never silently overwritten | N/A | Closed 2026-11-01 (testing-005): superseded by `TODO/done/io-010-disk-file-auto-merge.md`; in-place Save now merges the changed file first (CLAUDE.md, AI Partner). |
 
 ### ai-008 — Drawing to library group: what only a real model and a real phone can show (2026-10-10 19:46)
@@ -994,12 +1006,12 @@ Scale, build, overlay and Save-confirm are covered by unit specs, a scripted-pro
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Run scenario 18 with a **real key**: does the model read the callouts into a table, set scale before building, and **ask about or flag** the connector heights instead of stating them? Read the residual it reports against the overlay yourself | Open | |
+| 1 | Run scenario 18 with a **real key**: does the model read the callouts into a table, set scale before building, and **ask about or flag** the connector heights instead of stating them? Read the residual it reports against the overlay yourself | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
 | 2 | Real iPhone: **Attach** opens the camera / photo picker, the phone half sheet shows the Confirm card without scrolling, the overlay thumbnail is legible | Open | |
-| 3 | Product call: the overlay draws the model at 0.55 opacity with the grid hidden. Is that the right look for judging a match? | Open | |
-| 4 | Product call: a **cancelled turn keeps the scale it set** for the rest of the session (the project itself is untouched). Acceptable, or should a cancel forget it? | Open | |
-| 5 | Product call: if you send a new message while a Save proposal is pinned, the proposal stays until Confirm or Not now. Should a new message dismiss it? | Open | |
-| 6 | Wording: *Image sent to Anthropic with your request, using your key. It is not sent anywhere else.* Right words? | Open | |
+| 3 | Product call: the overlay draws the model at 0.55 opacity with the grid hidden. Is that the right look for judging a match? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | Product call: a **cancelled turn keeps the scale it set** for the rest of the session (the project itself is untouched). Acceptable, or should a cancel forget it? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 5 | Product call: if you send a new message while a Save proposal is pinned, the proposal stays until Confirm or Not now. Should a new message dismiss it? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 6 | Wording: *Image sent to Anthropic with your request, using your key. It is not sent anywhere else.* Right words? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### core-054 — Saving a group as a user part drops its user colour overrides (2026-10-10 19:05)
 
@@ -1007,7 +1019,7 @@ The whole-body colour was hand-driven end to end on Chromium and WebKit (it is i
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Place a Cube and Cylinder, group them, drill into *Cylinder 1* and set a colour on that part alone, **Save to library…**, File > New and drag the part in. The Cylinder should draw in that colour and the Cube in the default one. | Open | |
+| 1 | Place a Cube and Cylinder, group them, drill into *Cylinder 1* and set a colour on that part alone, **Save to library…**, File > New and drag the part in. The Cylinder should draw in that colour and the Cube in the default one. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
 ### testing-003 — print-prep drag and hidden-parts overlay under full-suite load (2026-10-10 17:10)
 
@@ -1015,7 +1027,7 @@ The cause was never reproduced, so the fix is two spec synchronization changes v
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Over the next several full e2e runs, watch `print-prep.e2e.js` ("the hand recipe", `toBeCloseTo(120, 0)`) and `inspector-hidden-parts.e2e.js` ("toggling Show hidden parts…"). A third red on either means the race is elsewhere (e.g. the camera settling in `Viewport.vue`, not the spec) and `testing-003` should be reopened with the failing project named. | Open | |
+| 1 | Over the next several full e2e runs, watch `print-prep.e2e.js` ("the hand recipe", `toBeCloseTo(120, 0)`) and `inspector-hidden-parts.e2e.js` ("toggling Show hidden parts…"). A third red on either means the race is elsewhere (e.g. the camera settling in `Viewport.vue`, not the spec) and `testing-003` should be reopened with the failing project named. | Moved | Moved 2026-11-07 to `FIND-testing-025`: an AI drive can settle it. |
 
 ### ui-055 — Save to library and My parts (2026-10-10 07:30)
 
@@ -1024,8 +1036,8 @@ Reachability, the example flow, three viewports and three engines are covered by
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real iPhone, drag a My parts row (including a long press on the thumbnail) into the view; the page must not scroll or select the image, and the Inspector tab must not sit over the last Library row. | Open | |
-| 2 | Judge whether the 96 px thumbnail (flat-shaded, fixed three-quarter view) reads well enough at row size for a thin part such as a plate or a ring. | Open | |
-| 3 | On iPad, open the ⋯ menu on the bottom-most My parts row: popover position and tap size. | Open | |
+| 2 | Judge whether the 96 px thumbnail (flat-shaded, fixed three-quarter view) reads well enough at row size for a thin part such as a plate or a ring. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 3 | On iPad, open the ⋯ menu on the bottom-most My parts row: popover position and tap size. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 
 ### core-037 — User-defined library parts (2026-10-10 04:19)
 
@@ -1033,7 +1045,7 @@ No control exists yet (`ui-055`), so the new capability was driven through the p
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone or iPad (Safari): open a `.ndjson` saved with a user part (its state line carries `parts`; the part can be made on a laptop from the console) from Files. The part instance renders, survives a reload (autosave restore) and the console shows no error. | Open | |
+| 1 | On a real iPhone or iPad (Safari): open a `.ndjson` saved with a user part (its state line carries `parts`; the part can be made on a laptop from the console) from Files. The part instance renders, survives a reload (autosave restore) and the console shows no error. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### io-007 — Print prep: split, joint and Print pieces (2026-10-10 03:16)
 
@@ -1042,9 +1054,9 @@ Geometry, the fit verdicts, the zip and the closed-manifold checks are covered b
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Print the tongue-and-groove wing halves (and a pins-and-sockets pair on a thicker bar) with the default 0.2 mm clearance and see whether they press together. There is no printer-tolerance setting, so 0.2 mm is a guess for a typical FDM printer. | Open | |
-| 2 | Both halves of a tongue-and-groove split are flagged "may need supports" in the Export popover (the tongue's underside is a downward face). Slice one and judge whether that flag is noise or real. | Open | |
+| 2 | Both halves of a tongue-and-groove split are flagged "may need supports" in the Export popover (the tongue's underside is a downward face). Slice one and judge whether that flag is noise or real. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 | 3 | On a real phone, drag the cut-plane handle with a finger while the Split sheet is open. A trusted-touch drive in emulation passed after two fixes (sheet no longer buries the handle, a cancelled touch no longer throws the plane away), but only hardware shows whether a thumb can reach the handle and the sheet's fields comfortably. | Open | |
-| 4 | The cut plane is the body's cross-section at the cut, so on a long thin bar it is a small slot behind the gizmo (docs `split-sheet.png`). Decide whether it needs a larger or brighter plane. | Open | |
+| 4 | The cut plane is the body's cross-section at the cut, so on a long thin bar it is a small slot behind the gizmo (docs `split-sheet.png`). Decide whether it needs a larger or brighter plane. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### sketch-008 — Curve helpers and a lofted wing (2026-10-09 21:10)
 
@@ -1053,7 +1065,7 @@ The drive covered function and layout; two things are judgment calls it cannot m
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Print the docs' wing panel (2412, 120 mm to 70 mm, Offset X 30, Twist -2, 200 mm span) and judge whether the sweep and washout look right; also whether twisting about the leading edge (the slice origin) is the pivot a wing designer expects, or the quarter-chord would feel better | Open | |
-| 2 | On a real laptop (900 px tall) the Slices card is now taller, so **Add image…** and **Set scale** sit below its fold and need a scroll inside the card. Decide whether Offset X/Y and Twist should sit on one compact row | Open | |
+| 2 | On a real laptop (900 px tall) the Slices card is now taller, so **Add image…** and **Set scale** sit below its fold and need a scroll inside the card. Decide whether Offset X/Y and Twist should sit on one compact row | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-007 — AI vision and measurement tools (2026-10-09 19:36)
 
@@ -1061,8 +1073,8 @@ The capture and checks are covered by unit specs and `e2e/ai-capture.e2e.js` (no
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Grid lines nearly vanish in a `capture_view` PNG after the 2x downscale. Does a captured view still read well enough for a person to tell what the model saw? | Open | |
-| 2 | Per-part recipe colours inside a group (a Bolt's head and thread) are not drawn in captures, only the body colour. Judge whether the thumbnail is misleading on a composite. | Open | |
+| 1 | Grid lines nearly vanish in a `capture_view` PNG after the 2x downscale. Does a captured view still read well enough for a person to tell what the model saw? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 2 | Per-part recipe colours inside a group (a Bolt's head and thread) are not drawn in captures, only the body colour. Judge whether the thumbnail is misleading on a composite. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 | 3 | `check_clearance` over-reads slightly where two edges cross at the closest point (documented). Compare against a real Pi-and-case gap you can measure by hand. | Open | |
 
 ### ai-006 — Assistant chat panel (2026-10-09 16:40)
@@ -1071,7 +1083,7 @@ The on-screen-keyboard lift uses `window.visualViewport`, which desktop browsers
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone and iPad (Safari), tap the chat box with the sheet at **Half**: the composer and **Send** stay visible above the keyboard, and the sheet is not pushed off the top of the screen | Open | |
+| 1 | On a real iPhone and iPad (Safari), tap the chat box with the sheet at **Half**: the composer and **Send** stay visible above the keyboard, and the sheet is not pushed off the top of the screen | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 | 2 | On a phone, **Attach image** offers the camera as well as the photo library, and a photo taken there arrives as a thumbnail | Open | |
 
 ### ai-004 — The Assistant key sheet and CSP on real phone and tablet hardware (2026-10-09 08:57)
@@ -1080,10 +1092,10 @@ Scenarios 1 and 10 were driven by hand and the three-viewport, two-engine e2e ma
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone, press-and-hold in **API key** and choose **Paste** from the system menu; the Save and test button enables and the sheet does not scroll sideways | Open | |
+| 1 | On a real iPhone, press-and-hold in **API key** and choose **Paste** from the system menu; the Save and test button enables and the sheet does not scroll sideways | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 | 2 | On a real iPhone and iPad (Safari), save a key, close the tab, reopen the next day: still **Connected**, or it falls back to the key sheet rather than a broken panel (Safari can evict IndexedDB) | Open | |
 | 3 | With a **real** key (not a stub), **Save and test** reads *Connected*; a deliberately wrong key reads the "rejected" message and the CSP does not block `api.anthropic.com` in Firefox | Open | |
-| 4 | Product call: the Assistant button sits in the header at every width and the saved-key dot is a hollow ring until a test this visit. Is "saved, not yet checked" clear enough, or should the app test once on open? | Open | |
+| 4 | Product call: the Assistant button sits in the header at every width and the saved-key dot is a hollow ring until a test this visit. Is "saved, not yet checked" clear enough, or should the app test once on open? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-003 — Project settings and design intent on real phone and tablet hardware (2026-10-06 17:11)
 
@@ -1091,9 +1103,9 @@ Headless WebKit at 390x844 and 820x1180 drove the dialog, the History note icon 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | iPhone (Safari): **File ▾ → Project settings…**. The field takes focus on open; does the keyboard come up, and do the field, the character count and **Save** stay visible above it while typing several lines? | Open | |
+| 1 | iPhone (Safari): **File ▾ → Project settings…**. The field takes focus on open; does the keyboard come up, and do the field, the character count and **Save** stay visible above it while typing several lines? | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 | 2 | iPhone or iPad (Safari): open a file with standing instructions, press **Use this project's instructions**, then come back after more than 7 days without using the site. Safari may clear `localStorage`, so the "came with this project" note can reappear. Confirm that's the only effect (the instructions themselves are kept). | Open | |
-| 3 | Any device: in History, is the small note icon at the end of a row recognisable as "why this step exists" without its tooltip (touch has no hover)? A feel judgement. | Open | |
+| 3 | Any device: in History, is the small note icon at the end of a row recognisable as "why this step exists" without its tooltip (touch has no hover)? A feel judgement. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ai-002 — AI tool registry schemas against the live Messages API (2026-10-06 16:14)
 
@@ -1110,8 +1122,8 @@ Metric nut rows have no V1 source (ISO 4032 from memory of the standard, not a f
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Spot-check the ISO 4032 nut rows in `nut-specs.js` (m1.6-m20: across flats, corners, height) against a published table | Open | |
-| 2 | Is the flat 45-entry Spec list usable on a phone, or does it want `<optgroup>`s? | Open | |
+| 1 | Spot-check the ISO 4032 nut rows in `nut-specs.js` (m1.6-m20: across flats, corners, height) against a published table | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 2 | Is the flat 45-entry Spec list usable on a phone, or does it want `<optgroup>`s? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### sketch-004 — Auto-trace a photographed part to scale (2026-10-06 01:56)
 
@@ -1121,8 +1133,8 @@ Scenario 20 (now with Auto-trace), 1, 8, 9 and 11 were driven by hand on laptop 
 |---|---|---|---|
 | 1 | **Real phone photo, start to finish (scenario 20 with a real object):** photograph a ~100 mm part beside a ruler from straight above, load it, Set scale, Auto-trace, clean up, Linear to its thickness, Done, then measure the body's width in the Inspector against the object (expect within 1 mm). Then **Share via gist and load it in a second browser**: the photo and its scale come back. The fixture is a flat-shaded JPEG; a real photo has shadows, glare and uneven light. | Open | |
 | 2 | **Trace quality on a real photo:** does a tap inside the part follow its edge, or does the shadow join the part (outline too big on one side) or a glare patch split it? Try **Adjust → Threshold** off Auto and nudge it: does the outline re-trace in place to something better, and is the *Auto (n)* readout useful as a starting point? Is the default **Tolerance 0.5 mm** a good balance between point count and fidelity for a printed replacement? | Open | |
-| 3 | **Phone, after Finish:** the Sketch toolbar's two rows come back over the top of the canvas (to y 223 at 390 × 844), and the traced Solid's top points can sit under them, next to **Cancel**. In the drive a finger aimed at a top point pressed Cancel and **discarded the whole traced draft in one tap**. Related to sketch-003 row 4 (the laptop's growing toolbar). Decide whether Finish should frame the traced outline clear of the toolbar, or whether Cancel should ask before discarding traced outlines. | Open | |
-| 4 | **Phone, Inspector sheet open while Auto-trace or Set scale is armed:** the Slices sheet steps aside (77 % reachable canvas), but an Inspector sheet that was already expanded stays up and cuts the reachable canvas to **56 %**, under the 69 % floor. The drive got there by a stray gesture, so judge on a real phone whether people actually land in this state and, if so, whether arming an image tool should fold the Inspector sheet as well. | Open | |
+| 3 | **Phone, after Finish:** the Sketch toolbar's two rows come back over the top of the canvas (to y 223 at 390 × 844), and the traced Solid's top points can sit under them, next to **Cancel**. In the drive a finger aimed at a top point pressed Cancel and **discarded the whole traced draft in one tap**. Related to sketch-003 row 4 (the laptop's growing toolbar). Decide whether Finish should frame the traced outline clear of the toolbar, or whether Cancel should ask before discarding traced outlines. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | **Phone, Inspector sheet open while Auto-trace or Set scale is armed:** the Slices sheet steps aside (77 % reachable canvas), but an Inspector sheet that was already expanded stays up and cuts the reachable canvas to **56 %**, under the 69 % floor. The drive got there by a stray gesture, so judge on a real phone whether people actually land in this state and, if so, whether arming an image tool should fold the Inspector sheet as well. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### sketch-003 — Sketch reference image: load a photo, set its scale, sanitize it (2026-10-04 16:40)
 
@@ -1130,11 +1142,11 @@ Scenario 20 (new), 8 (with the hostile fixture), 9, 10 and 1 were driven by hand
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Real iPhone, Safari:** Slices → **Add image…** offers both camera and library. A photo from each (iOS default format) arrives as a JPEG and appears under the grid. If iOS hands over HEIC, the message must read *Choose a JPEG or PNG — iPhone HEIC photos can be exported as JPEG*. Also try a 48 MP shot (iPhone 14 Pro and later): it is refused as over 40 MP. Is that acceptable, or should import downscale anything up to 8192 px instead? | Open | |
-| 2 | **UNCONFIRMED default:** on a phone and tablet, the Slices sheet **disappears completely** while Set scale is armed (the spec said "collapses to its header"; the header alone measured 67 % reachable canvas against the 69 % floor, 77 % without it), and the length field sits in the top banner at every size (the spec said "next to the line on desktop"). On a real phone, is it clear where the panel went, and is the banner's length entry comfortable with the keyboard up? | Open | |
-| 3 | **UNCONFIRMED default:** the photo is its own row in History (*Reference image 1400 × 1000 px*), cannot be edited there, and suppressing it hides the photo (its slice says *switched off in History*). Is a separate row acceptable, or should photo rows be hidden from History? | Open | |
-| 4 | Pre-existing, found by the drive: at laptop size, once a Line chain is live the Sketch toolbar grows a Finish / Undo-point row that covers the top ~50 px of the canvas, so a photo's top edge (or anything drawn there) cannot be clicked until you zoom or pan. Decide whether the toolbar should grow sideways, or the editor should open with the origin lower in the view. | Open | |
-| 5 | Feel, light and dark mode: is the photo readable under the grid at the default 50 % opacity, and is the *Not to scale* / *1 px = 0.2 mm* badge under its bottom-left corner noticeable without hiding the photo? | Open | |
+| 1 | **Real iPhone, Safari:** Slices → **Add image…** offers both camera and library. A photo from each (iOS default format) arrives as a JPEG and appears under the grid. If iOS hands over HEIC, the message must read *Choose a JPEG or PNG — iPhone HEIC photos can be exported as JPEG*. Also try a 48 MP shot (iPhone 14 Pro and later): it is refused as over 40 MP. Is that acceptable, or should import downscale anything up to 8192 px instead? | Open | 2026-11-07: The photo-library, HEIC and 48 MP half, in the iOS Simulator moved to `FIND-testing-027`; the camera half and the downscale decision stay here. |
+| 2 | **UNCONFIRMED default:** on a phone and tablet, the Slices sheet **disappears completely** while Set scale is armed (the spec said "collapses to its header"; the header alone measured 67 % reachable canvas against the 69 % floor, 77 % without it), and the length field sits in the top banner at every size (the spec said "next to the line on desktop"). On a real phone, is it clear where the panel went, and is the banner's length entry comfortable with the keyboard up? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | **UNCONFIRMED default:** the photo is its own row in History (*Reference image 1400 × 1000 px*), cannot be edited there, and suppressing it hides the photo (its slice says *switched off in History*). Is a separate row acceptable, or should photo rows be hidden from History? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | Pre-existing, found by the drive: at laptop size, once a Line chain is live the Sketch toolbar grows a Finish / Undo-point row that covers the top ~50 px of the canvas, so a photo's top edge (or anything drawn there) cannot be clicked until you zoom or pan. Decide whether the toolbar should grow sideways, or the editor should open with the origin lower in the view. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 5 | Feel, light and dark mode: is the photo readable under the grid at the default 50 % opacity, and is the *Not to scale* / *1 px = 0.2 mm* badge under its bottom-left corner noticeable without hiding the photo? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### docs-019 — Getting-started page and README tour GIF (2026-10-04 15:25)
 
@@ -1142,7 +1154,7 @@ The tour spec asserts every step's end state, the guard confirms the README and 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Watch `docs/media/tour.gif` at the size GitHub shows it in `README.md`: is each step (drop, select, Subtract, nudge, export) on screen long enough to follow, and is the hole readable at 640 px wide? | Open | |
+| 1 | Watch `docs/media/tour.gif` at the size GitHub shows it in `README.md`: is each step (drop, select, Subtract, nudge, export) on screen long enough to follow, and is the hole readable at 640 px wide? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### sketch-007 — Snap new outlines to existing ones (2026-10-03 21:54)
 
@@ -1150,9 +1162,9 @@ Scenarios 9 and 1 and the closed repros passed by hand on all three engines and 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Is 12 px the right pull?** At the editor's opening zoom that is ~5 mm. Draw the docs' tube on a real phone without Shift (an r20 circle, then an r15 one from the same centre): the second circle's rim jumps onto the first (*Quadrant* / *On edge*) until you release ~1 mm further in, or tap **Snap** off. Decide: keep 12 px; go smaller (8-10 px); or stop a Circle's rim snapping to a circle it shares a centre with | Open | |
+| 1 | **Is 12 px the right pull?** At the editor's opening zoom that is ~5 mm. Draw the docs' tube on a real phone without Shift (an r20 circle, then an r15 one from the same centre): the second circle's rim jumps onto the first (*Quadrant* / *On edge*) until you release ~1 mm further in, or tap **Snap** off. Decide: keep 12 px; go smaller (8-10 px); or stop a Circle's rim snapping to a circle it shares a centre with | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 2 | On a real phone, draw a circle with its centre on a rectangle's corner. The marker (lifted 56 px above the finger, with a leader line) shows only while the finger is within ~12 px of the corner. Once the drag carries it further, only the dashed preview, centred on the corner, says the centre snapped. Is that enough confirmation, or should the centre keep a marker for the whole drag? | Open | |
-| 3 | On a laptop, hold Shift mid-drag and release it: the point jumps between free and snapped with no pointer movement. Does that read as intended or as jitter? | Open | |
+| 3 | On a laptop, hold Shift mid-drag and release it: the point jumps between free and snapped with no pointer movement. Does that read as intended or as jitter? | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 
 ### sketch-006 — Continuous Line tool (2026-10-03 20:50)
 
@@ -1160,9 +1172,9 @@ The scenarios and the closed repros passed by hand (laptop mouse, phone and tabl
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone, draw a triangle with four slow taps (the fourth on the first point). A tap within about half a second of a closing tap is swallowed (so a double-tap close does not start a new line): confirm a normal-speed next tap is never eaten, and that a tap on the first point closes it without needing to be pixel-exact (14 px tolerance) | Open | |
+| 1 | On a real phone, draw a triangle with four slow taps (the fourth on the first point). A tap within about half a second of a closing tap is swallowed (so a double-tap close does not start a new line): confirm a normal-speed next tap is never eaten, and that a tap on the first point closes it without needing to be pixel-exact (14 px tolerance) | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 | 2 | Double-tap the last point to finish the line, on a real touch screen: does it feel natural, or do you reach for **Finish**? (A double-tap adds the point on the first tap, then finishes on the second.) | Open | |
-| 3 | Esc-twice to cancel a line (a second Esc within 0.9 s of the one that finished it) has no on-screen cue. Decide whether it needs a toast ("Line discarded") or whether **Undo point** is enough | Open | |
+| 3 | Esc-twice to cancel a line (a second Esc within 0.9 s of the one that finished it) has no on-screen cue. Decide whether it needs a toast ("Line discarded") or whether **Undo point** is enough | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### docs-015 — Docs media for the History panel, rollback, step editing, undo and redo (2026-10-03 16:35)
 
@@ -1170,9 +1182,9 @@ Scenario 12 and 1, and the `data-003` and `ui-044` repros, were driven by hand a
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The header's Undo / Redo / History cluster is right-aligned, so it shifts about 27 px left when the save chip changes from `Saving…` to `Saved · hh:mm` (about 1 s after every edit). Clicking Undo during that second can land on the neighbouring button or the gap, and nothing happens. Judge whether a fixed-width save chip is wanted. | Open | |
-| 2 | Scenario 12 step 12 cannot be driven as written: Fillet Top (+Z) 4 on a cube that already has a 5 mm top chamfer is refused in the Fillet popover with an engineering message (`modify.filletRim: the solid is not prismatic over the rim band ... see the core-003 addendum in docs/decisions/geometry-kernel.md`). Decide whether that refusal text should be user-facing wording, and rewrite step 12 against a dependency that can exist (editing the cube smaller than the chamfer does produce the named `broken` refusal). | Open | |
-| 3 | The History dock is a fixed ~220 px at laptop width, so a five-step model needs scrolling and an open Edit form is cramped. Judge whether it should be taller or resizable. | Open | |
+| 1 | The header's Undo / Redo / History cluster is right-aligned, so it shifts about 27 px left when the save chip changes from `Saving…` to `Saved · hh:mm` (about 1 s after every edit). Clicking Undo during that second can land on the neighbouring button or the gap, and nothing happens. Judge whether a fixed-width save chip is wanted. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | Scenario 12 step 12 cannot be driven as written: Fillet Top (+Z) 4 on a cube that already has a 5 mm top chamfer is refused in the Fillet popover with an engineering message (`modify.filletRim: the solid is not prismatic over the rim band ... see the core-003 addendum in docs/decisions/geometry-kernel.md`). Decide whether that refusal text should be user-facing wording, and rewrite step 12 against a dependency that can exist (editing the cube smaller than the chamfer does produce the named `broken` refusal). | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | The History dock is a fixed ~220 px at laptop width, so a five-step model needs scrolling and an open Edit form is cramped. Judge whether it should be taller or resizable. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### docs-014 — Docs media for Hardware, kit and Pi library parts, BOM and Resolution (2026-10-03 15:50)
 
@@ -1180,11 +1192,11 @@ The stills and movies are asserted, and scenarios 1, 2, 3 and 5 were driven by h
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The Library has no Screw row (`hardware.screw` has no `ui` block), so a user cannot place a screw at all; `docs/hardware-library.md` says so. Decide whether to file the row (`registry.js` already names the defaults `m4`, 12, `PanHead`). | Open | |
+| 1 | The Library has no Screw row (`hardware.screw` has no `ui` block), so a user cannot place a screw at all; `docs/hardware-library.md` says so. Decide whether to file the row (`registry.js` already names the defaults `m4`, 12, `PanHead`). | Moved | Moved 2026-11-07 to `FIND-testing-021`: an AI drive can settle it. |
 | 2 | Subtract with a Pi's `hole1` consumed the Pi along with the plate, so each extra hole needed another Pi. Decided 2026-10-17: the tool part survives (`core-064`, see the entry at the end of this file). | Decided | |
-| 3 | Read `rpi-keepout.png` cold: the keep-out is a small 15 x 10 x 1 mm block by the display's power connector. Does the page make that clear, or does it read as a stray red box? | Open | |
-| 4 | Look at `resolution-low-vs-high.png`: is the Draft facet edge visible at the size it appears on the page? | Open | |
-| 5 | Read the new page's M12 example as someone who wants "an M3 screw": does it say clearly that the smallest metric bolt or screw is M4? | Open | |
+| 3 | Read `rpi-keepout.png` cold: the keep-out is a small 15 x 10 x 1 mm block by the display's power connector. Does the page make that clear, or does it read as a stray red box? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 4 | Look at `resolution-low-vs-high.png`: is the Draft facet edge visible at the size it appears on the page? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 5 | Read the new page's M12 example as someone who wants "an M3 screw": does it say clearly that the smallest metric bolt or screw is M4? | Moved | Moved 2026-11-07 to `FIND-testing-021`: an AI drive can settle it. |
 
 ### docs-013 — Docs media for Fillet, Chamfer, Enlarge, Fit and Bisect (2026-10-03 15:22)
 
@@ -1192,9 +1204,9 @@ The movies and stills are asserted, and scenario 1 plus the `core-021`/`core-022
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Enlarge and Fit do not carry snapped parts with them: with a lug snapped to a plate's top, Enlarge Z +16 (and Fit Z 24) moved the plate's top to 16 and left the lug at Z 8, buried in the plate; typing the same size in the Inspector's Size field moves the lug up with it (`data-007`). `docs/resize-bisect.md` now says so and points to the Inspector. Decide whether Enlarge/Fit should follow too (a finding to file) or the page note is enough. | Open | |
-| 2 | Read `resize-fit.gif` and the Fit example cold: Keep aspect ratio applies the smallest ratio to all three axes, so X 60 to 30 takes Y and Z from 40 to 20. Does the second step read as "keeps its proportions", or does it look like Fit ignored the box? | Open | |
-| 3 | `fillet-vs-chamfer.png` is orbited to about 71 degrees elevation so both rims show. Is the rounded rim on the left readable as a fillet at the size it appears on the page? | Open | |
+| 1 | Enlarge and Fit do not carry snapped parts with them: with a lug snapped to a plate's top, Enlarge Z +16 (and Fit Z 24) moved the plate's top to 16 and left the lug at Z 8, buried in the plate; typing the same size in the Inspector's Size field moves the lug up with it (`data-007`). `docs/resize-bisect.md` now says so and points to the Inspector. Decide whether Enlarge/Fit should follow too (a finding to file) or the page note is enough. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | Read `resize-fit.gif` and the Fit example cold: Keep aspect ratio applies the smallest ratio to all three axes, so X 60 to 30 takes Y and Z from 40 to 20. Does the second step read as "keeps its proportions", or does it look like Fit ignored the box? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 3 | `fillet-vs-chamfer.png` is orbited to about 71 degrees elevation so both rims show. Is the rounded rim on the left readable as a fillet at the size it appears on the page? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### docs-012 — Docs media for Group, Snap, Align and Mirror (2026-10-03 14:52)
 
@@ -1202,9 +1214,9 @@ The movies and stills are asserted and scenarios 3, 6 and 16 were driven by hand
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Group drops a body's own colour: two cubes recoloured red and blue lose both colours when grouped (`data-body-color` and `data-body-part-colors` empty on the group, rendered default blue), while a composite's recipe colours survive. `docs/groups.md` therefore compares Group and Union by what you can open, not by colour. Decide whether a user recolour should carry into the group (a bug to file) or is intended. | Open | |
-| 2 | Read `snap-operation.gif` and the new "Outside +/−" wording in `docs/snap-align.md` cold: the popover's sign names the moving shape's touching side, so `Outside −` puts the lug on the plate's +X side, which reads backwards at first. Is the explanation clear, or should the popover labels change? | Open | |
-| 3 | `snap-subpart-operand.gif` uses Align on X and Y against the Pi's `hole1` (a Snap orientation cannot centre a 5.7 mm screw on a 3.25 mm hole). Does a viewer still read it as "the sub-part is the operand"? | Open | |
+| 1 | Group drops a body's own colour: two cubes recoloured red and blue lose both colours when grouped (`data-body-color` and `data-body-part-colors` empty on the group, rendered default blue), while a composite's recipe colours survive. `docs/groups.md` therefore compares Group and Union by what you can open, not by colour. Decide whether a user recolour should carry into the group (a bug to file) or is intended. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. 2026-11-07: Re-checking whether grouping still drops the colour moved to `FIND-testing-021`; the decision stays here. |
+| 2 | Read `snap-operation.gif` and the new "Outside +/−" wording in `docs/snap-align.md` cold: the popover's sign names the moving shape's touching side, so `Outside −` puts the lug on the plate's +X side, which reads backwards at first. Is the explanation clear, or should the popover labels change? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 3 | `snap-subpart-operand.gif` uses Align on X and Y against the Pi's `hole1` (a Snap orientation cannot centre a 5.7 mm screw on a 3.25 mm hole). Does a viewer still read it as "the sub-part is the operand"? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### docs-011 — Docs media for the booleans page (2026-10-03 14:12)
 
@@ -1212,7 +1224,7 @@ The movies and stills are asserted, and scenarios 4 and 5 were driven by hand, s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Watch `docs/media/boolean-subtract-order.gif` and `boolean-subpart-operand.gif` once as a stranger: is it clear which solid is the base, and that the two orders give different results? | Open | |
+| 1 | Watch `docs/media/boolean-subtract-order.gif` and `boolean-subpart-operand.gif` once as a stranger: is it clear which solid is the base, and that the two orders give different results? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### sketch-002 — Sketch vertex editing: move, add, delete points, Simplify, Convert to outline (2026-10-03 02:35)
 
@@ -1221,8 +1233,8 @@ Every functional path (Convert, point drag, midpoint-dot insert, tap-to-pick, De
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real iPhone and iPad (Safari): drag a corner dot and an edge's hollow midpoint dot with a finger. Does the 44 px target feel right, and can you still see the point you are moving under your fingertip? (WebKit trusted touch *drags* can't be automated here; only Chromium touch was driven.) | Open | |
-| 2 | Dense outline under Select: convert a ~20 mm circle at normal zoom (32 dots ~10 px apart). A press anywhere near the line grabs the nearest dot, so a near-miss *inside* the ring pulled a neighbouring point inward and briefly made the outline cross itself (WebKit drive; the status said so and Simplify fixed it). Judge whether that is acceptable or whether the targets should shrink on dense outlines. | Open | |
-| 3 | Phone 390 px: with a point picked the status line wraps to two lines (*… 3 points · point 1 selected*), the toolbar is 178 px tall, and reachable canvas still measured exactly 69 % (the ui-020 #3 floor, no slack). Decide whether to shorten the text (e.g. *· pt 1*) before the next toolbar addition. | Open | |
+| 2 | Dense outline under Select: convert a ~20 mm circle at normal zoom (32 dots ~10 px apart). A press anywhere near the line grabs the nearest dot, so a near-miss *inside* the ring pulled a neighbouring point inward and briefly made the outline cross itself (WebKit drive; the status said so and Simplify fixed it). Judge whether that is acceptable or whether the targets should shrink on dense outlines. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | Phone 390 px: with a point picked the status line wraps to two lines (*… 3 points · point 1 selected*), the toolbar is 178 px tall, and reachable canvas still measured exactly 69 % (the ui-020 #3 floor, no slack). Decide whether to shorten the text (e.g. *· pt 1*) before the next toolbar addition. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### sketch-005 — Sketch editor: select, edit, delete an outline (2026-10-03 01:38)
 
@@ -1239,7 +1251,7 @@ The pilot GIF passed its budget and frame checks; whether it reads well to a per
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open `docs/media/primitive-drag-cube.gif`: is the yellow cursor dot easy to follow, and is the drag pace and 1.5 s end hold comfortable? | Open | |
+| 1 | Open `docs/media/primitive-drag-cube.gif`: is the yellow cursor dot easy to follow, and is the drag pace and 1.5 s end hold comfortable? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### sketch-001 — Sketch primitive: draw outlines, extrude to a solid (2026-10-02 19:20)
 
@@ -1251,16 +1263,16 @@ phone touch-only via CDP) and the re-drives of 1, 4, 7, 8, 10, 11, 12 already co
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **UNCONFIRMED default:** a Sketch row sits in Primitives **after Tube**, and its drop opens the editor (nothing in the document until Done; Cancel leaves no body). | Open | |
-| 2 | **UNCONFIRMED default:** double-click / double-tap a sketch body as an Edit sketch shortcut — **not built**; only the Inspector's Edit sketch exists. Wanted? | Open | |
-| 3 | **UNCONFIRMED default:** Loft v1 needs exactly one Solid outline and no Holes per slice (cut holes afterwards with Subtract). | Open | |
-| 4 | **UNCONFIRMED default (implementer's):** while editing on a narrow viewport the nav chrome folds to ✥ even with no sheet open (extends ui-046; it is what keeps the resting editor's reachable canvas ≥ 69 %, 67 % → 76 % at 390 px). | Open | |
-| 5 | **UNCONFIRMED interpretation:** with the Slices/Extrude sheet open the phone's whole-canvas reachability is 47-57 % (tablet 64-74 %), below the task's literal ≥ 69 %; the drawing area round the origin stays 100 % reachable and that is what is asserted. Acceptable, or should the sheet get smaller / collapsible? | Open | |
-| 6 | **UNCONFIRMED defaults (implementer's):** Polygon starts at 6 sides; a new slice is placed 50 mm above the highest; a new sketch starts as Linear 10 mm; Revolve 360° / 32 segments; Helical pitch 10 mm × 2 turns; Outline wall 2 mm × 10 mm. | Open | |
-| 7 | **UNCONFIRMED (implementer's):** Undo/Redo and Delete are off while the editor is open (the draft isn't in the document yet), and old `sketch.line` records are dropped on load with a chip warning rather than migrated (the spec's own "no migration"). | Open | |
+| 1 | **UNCONFIRMED default:** a Sketch row sits in Primitives **after Tube**, and its drop opens the editor (nothing in the document until Done; Cancel leaves no body). | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. Observed 2026-11-07 (headless Chromium, 1440×900, drag from the Library): the Sketch row sits after Tube, and the drop opens the editor with Done and Cancel. Cancel leaves no sketch. Owner still to answer yes or no. |
+| 2 | **UNCONFIRMED default:** double-click / double-tap a sketch body as an Edit sketch shortcut — **not built**; only the Inspector's Edit sketch exists. Wanted? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. Not tested 2026-11-07. Only the Inspector's Edit sketch control is on the page. Owner to answer whether the shortcut is wanted. |
+| 3 | **UNCONFIRMED default:** Loft v1 needs exactly one Solid outline and no Holes per slice (cut holes afterwards with Subtract). | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 4 | **UNCONFIRMED default (implementer's):** while editing on a narrow viewport the nav chrome folds to ✥ even with no sheet open (extends ui-046; it is what keeps the resting editor's reachable canvas ≥ 69 %, 67 % → 76 % at 390 px). | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 5 | **UNCONFIRMED interpretation:** with the Slices/Extrude sheet open the phone's whole-canvas reachability is 47-57 % (tablet 64-74 %), below the task's literal ≥ 69 %; the drawing area round the origin stays 100 % reachable and that is what is asserted. Acceptable, or should the sheet get smaller / collapsible? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 6 | **UNCONFIRMED defaults (implementer's):** Polygon starts at 6 sides; a new slice is placed 50 mm above the highest; a new sketch starts as Linear 10 mm; Revolve 360° / 32 segments; Helical pitch 10 mm × 2 turns; Outline wall 2 mm × 10 mm. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 7 | **UNCONFIRMED (implementer's):** Undo/Redo and Delete are off while the editor is open (the draft isn't in the document yet), and old `sketch.line` records are dropped on load with a chip warning rather than migrated (the spec's own "no migration"). | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. Observed 2026-11-07 (headless Chromium, 1440×900): Undo and Redo are disabled while the editor is open, and still disabled after Cancel. Migration on load not tested. Owner still to answer yes or no. |
 | 8 | On a real iPhone and iPad: drag Sketch out of the Library, draw two circles with a finger, tap the inner one, Hole, Extrude ▾ → Linear 30, Done. No accidental orbit, no sheet popping over the drawing, Done/Cancel always reachable. | Open | |
 | 9 | On a real phone: two-finger pan/pinch inside the editor while one finger draws — does a two-finger gesture ever leave a stray outline behind? | Open | |
-| 10 | Feel: the translucent extrusion preview behind the strokes — readable in both light and dark mode? Is the dashed Hole / amber open outline distinction obvious at a glance? | Open | |
+| 10 | Feel: the translucent extrusion preview behind the strokes — readable in both light and dark mode? Is the dashed Hole / amber open outline distinction obvious at a glance? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 | 11 | Firefox (any real machine with a working Firefox): `npx playwright test e2e/sketch-primitive.e2e.js` with the firefox projects enabled — not runnable in this sandbox (TROUBLESHOOTING 2026-09-17). | N/A | Closed 2026-11-01 (testing-005): `e2e/sketch-primitive.e2e.js` exists and the firefox projects run in the full e2e gate (`.githooks/pre-push`, build-014); see core-018 row 1. |
 
 ### ui-054 — File ▸ New (2026-10-01 22:57)
@@ -1269,7 +1281,7 @@ The native Save-picker and hosted auto-push halves were proven only against a fa
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In desktop Chrome with a real saved file: File ▸ New, build something, File ▸ Save — the real OS picker appears and the old file is untouched | Open | |
+| 1 | In desktop Chrome with a real saved file: File ▸ New, build something, File ▸ Save — the real OS picker appears and the old file is untouched | Moved | Moved 2026-11-07 to `FIND-testing-028`: an AI drive can settle it. |
 | 2 | On a phone, the New confirm dialog reads comfortably and Replace is easy to hit | Open | |
 
 ### ui-039 — Mirror (2026-10-01 21:12)
@@ -1278,8 +1290,8 @@ Scenario 16 covers the reflect, original-untouched and selection behaviour. What
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The ⇋ glyph on the Mirror button reads as "mirror" next to ⤢ ⇱ ✂, and the toolbar still fits at 390px without wrapping badly | Open | |
-| 2 | Blank plane position on a symmetric shape adds an invisible copy sitting on the original — is the popover hint enough, or should it warn on commit? | Open | |
+| 1 | The ⇋ glyph on the Mirror button reads as "mirror" next to ⤢ ⇱ ✂, and the toolbar still fits at 390px without wrapping badly | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. 2026-11-07: The toolbar-fit half moved to `FIND-testing-021`; whether the glyph reads as mirror stays here. |
+| 2 | Blank plane position on a symmetric shape adds an invisible copy sitting on the original — is the popover hint enough, or should it warn on commit? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-038 — Bill-of-Materials panel (2026-10-01 20:48)
 
@@ -1287,8 +1299,8 @@ The tally itself is covered by unit and e2e specs; these are the judgment calls 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | At 390px with several part types placed, does the BOM section push the Inspector's selected-body detail too far down the sheet? (It sits above the breadcrumb and is open by default.) | Open | |
-| 2 | Is `Bolt M10 hex × 20 mm` the right wording for a shopping-list line, or should the fit or a Pi's model read differently? | Open | |
+| 1 | At 390px with several part types placed, does the BOM section push the Inspector's selected-body detail too far down the sheet? (It sits above the breadcrumb and is open by default.) | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
+| 2 | Is `Bolt M10 hex × 20 mm` the right wording for a shopping-list line, or should the fit or a Pi's model read differently? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### render-002 — Text/label as a placed body (2026-10-01 17:49)
 
@@ -1296,8 +1308,8 @@ Placed/retyped labels were driven on laptop Chromium and covered by the e2e matr
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Is the default label (`Label`, size 10, stroke 1.5, height 2) legible and pleasant to click-select at default zoom — thin strokes are easy to miss with a click; does picking a label feel fiddly? | Open | |
-| 2 | Typing a label's wording on a real phone/iPad (software keyboard + the Inspector bottom sheet) — does the Text field commit on keyboard Done, not just Enter? | Open | |
+| 1 | Is the default label (`Label`, size 10, stroke 1.5, height 2) legible and pleasant to click-select at default zoom — thin strokes are easy to miss with a click; does picking a label feel fiddly? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 2 | Typing a label's wording on a real phone/iPad (software keyboard + the Inspector bottom sheet) — does the Text field commit on keyboard Done, not just Enter? | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### data-007 — Primitive resize: snapped dependents follow (2026-10-01 15:05)
 
@@ -1305,7 +1317,7 @@ The scripted e2e covers the snap-follows and fillet-refusal cases at all three v
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone, shrink a filleted cube's Size X below twice the fillet radius: is the "Fillet on Cube 1 (step 2) would no longer build at this size" line under the boxes readable without scrolling, and does the box repaint with the real value? | Open | |
+| 1 | On a real phone, shrink a filleted cube's Size X below twice the fillet radius: is the "Fillet on Cube 1 (step 2) would no longer build at this size" line under the boxes readable without scrolling, and does the box repaint with the real value? | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 
 ### core-034 — Drill the mounting holes through raspberrypi.* boards (2026-09-30 18:03)
 
@@ -1313,7 +1325,7 @@ Volume, hole-centre and hole-rim checks are automated; what no test judges is ho
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Zoom onto a dropped Pi 5 from above: do the four mounting holes and two fan holes read clearly through the translucent green board, without z-fighting at the rims? | Open | Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
+| 1 | Zoom onto a dropped Pi 5 from above: do the four mounting holes and two fan holes read clearly through the translucent green board, without z-fighting at the rims? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
 | 2 | Same on a real iPad/iPhone (WebKit GPU): the coplanar camera-module v1/v2 holes (cutter exactly as tall as the board) render without speckle at the hole walls. | Open | Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
 
 ### core-032 — Open announces itself before it folds (2026-09-30 15:55)
@@ -1322,7 +1334,7 @@ The spinner on the File button is a compositor-driven CSS transform, so it shoul
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone/iPad, open a large project (200-record fillet fixture): the File button's spinner keeps turning and the chip reads `Opening <name>…` before the pause | Open | |
+| 1 | On a real iPhone/iPad, open a large project (200-record fillet fixture): the File button's spinner keeps turning and the chip reads `Opening <name>…` before the pause | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
 
 ### core-028 — transform.mirror (2026-09-30 15:25)
 
@@ -1330,7 +1342,7 @@ Kernel-only; no control yet. One judgment call deferred to `ui-039` because it c
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Once `ui-039` lands: mirroring a symmetric body with the default (own-centre) point looks like "nothing happened" — confirm the popover's committed point makes the copy visibly appear | Open | |
+| 1 | Once `ui-039` lands: mirroring a symmetric body with the default (own-centre) point looks like "nothing happened" — confirm the popover's committed point makes the copy visibly appear | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
 ### core-027 — hardware.screw family (2026-09-30 14:35)
 
@@ -1338,7 +1350,7 @@ Kernel-only; nothing in the app reaches it yet. One judgement call the V1 diff c
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | V1's `FlatHead` puts the *wide* end of the cone on z=0 and the thread above the narrow end, so a "flat head" sits upside-down relative to a real countersunk screw (matches V1 and `hardware.bolt`'s head-at-z=0 convention). When the Library row lands, check that a placed FlatHead reads correctly and whether orientation `down` (not ported) is wanted. | Open | |
+| 1 | V1's `FlatHead` puts the *wide* end of the cone on z=0 and the thread above the narrow end, so a "flat head" sits upside-down relative to a real countersunk screw (matches V1 and `hardware.bolt`'s head-at-z=0 convention). When the Library row lands, check that a placed FlatHead reads correctly and whether orientation `down` (not ported) is wanted. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
 ### ui-052 — Edit a composite part's parameters and repair what the change breaks (2026-09-29 21:40)
 
@@ -1346,9 +1358,9 @@ Scenario 15 and scenarios 2, 3, 5, 6, 10, 12 and 13 were hand-driven at laptop C
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone and iPad, tap a selected Raspberry Pi's **Model** (and a Bolt's **Spec**): it should open as the system wheel picker, and choosing Pi 5 should commit on its own, with no Apply. | Open | |
-| 2 | On a real iPhone, open the repair dialog (Pi 4 with a cube snapped to its AV jack → Pi 5): it should be a full-height sheet whose **Apply**/**Cancel** sit clear of the home indicator, with the Fix dropdowns full width and easy to hit. | Open | |
-| 3 | At laptop width, after **Leave broken**, the Pi's warning banner sits at the top of the Inspector's detail view, and it is scrolled out of sight if you were down at Parameters when you changed the Model. Does a person notice the problem anyway (the cube stays visible; History badges the row), or should the banner also appear near Parameters? | Open | |
+| 1 | On a real iPhone and iPad, tap a selected Raspberry Pi's **Model** (and a Bolt's **Spec**): it should open as the system wheel picker, and choosing Pi 5 should commit on its own, with no Apply. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 2 | On a real iPhone, open the repair dialog (Pi 4 with a cube snapped to its AV jack → Pi 5): it should be a full-height sheet whose **Apply**/**Cancel** sit clear of the home indicator, with the Fix dropdowns full width and easy to hit. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 3 | At laptop width, after **Leave broken**, the Pi's warning banner sits at the top of the Inspector's detail view, and it is scrolled out of sight if you were down at Parameters when you changed the Model. Does a person notice the problem anyway (the cube stays visible; History badges the row), or should the banner also appear near Parameters? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-035 — Design resolution and export resolution (2026-09-28 06:05)
 
@@ -1356,9 +1368,9 @@ Scenarios 1, 5, 10, 11 and 12 were driven live at laptop Chromium and phone WebK
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Print a Ø22 bore (or a bearing seat) exported at **Normal** and again with **Export → Resolution: Print**, and measure both across the flats with calipers. Print should be measurably closer to nominal (docs/resolution.md's table: 0.084 vs 0.019 mm undersize). Open both STLs in a real slicer first; it should report no repairs | Open | |
-| 2 | On a real iPhone and iPad, open **File ▾ → Resolution…**, step Draft → Normal → Fine → Print on a scene with a large cylinder and a sphere. The re-facet should be visibly different at each step, and Draft should not look broken. The native **Resolution** select in the Export popover should open the iOS picker at a comfortable tap size | Open | |
-| 3 | On a real phone, with a busy scene (a few Pi boards and bolts), change the design resolution to **Print**. It re-folds on the main thread (76 ms median on 24 bodies on an M4 Pro; a phone is several times slower). Judge whether the pause feels acceptable or needs the pending indicator the TODO asked for (`core-032` owns moving cold folds off the main thread) | Open | |
+| 1 | Print a Ø22 bore (or a bearing seat) exported at **Normal** and again with **Export → Resolution: Print**, and measure both across the flats with calipers. Print should be measurably closer to nominal (docs/resolution.md's table: 0.084 vs 0.019 mm undersize). Open both STLs in a real slicer first; it should report no repairs | Open | 2026-11-07: The slicer half (both STLs open in Cura with no repairs) moved to `FIND-testing-023`; printing and caliper measurement stay here. |
+| 2 | On a real iPhone and iPad, open **File ▾ → Resolution…**, step Draft → Normal → Fine → Print on a scene with a large cylinder and a sphere. The re-facet should be visibly different at each step, and Draft should not look broken. The native **Resolution** select in the Export popover should open the iOS picker at a comfortable tap size | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 3 | On a real phone, with a busy scene (a few Pi boards and bolts), change the design resolution to **Print**. It re-folds on the main thread (76 ms median on 24 bodies on an M4 Pro; a phone is several times slower). Judge whether the pause feels acceptable or needs the pending indicator the TODO asked for (`core-032` owns moving cold folds off the main thread) | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
 
 ### ui-051 — Delete the selected body, or remove one part of a group (2026-09-28 03:09 UTC)
 
@@ -1371,8 +1383,8 @@ does.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real iPhone: select a body, the Inspector sheet opens with **Delete** pinned just above the Library tab. Is it easy to hit on purpose and hard to hit by accident when reaching for the Library tab below it? | Open | |
-| 2 | On a real iPhone or iPad: does the pinned footer covering the bottom ~67 px of the sheet ever hide something you needed (for example the Pi's **Show hidden parts** toggle before you scroll)? | Open | |
-| 3 | On an iPad with a hardware keyboard: select a body with the Inspector sheet collapsed and press Delete, then Backspace. Each removes the selection, and Backspace inside a Position field only edits the digit. | Open | |
+| 2 | On a real iPhone or iPad: does the pinned footer covering the bottom ~67 px of the sheet ever hide something you needed (for example the Pi's **Show hidden parts** toggle before you scroll)? | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
+| 3 | On an iPad with a hardware keyboard: select a body with the Inspector sheet collapsed and press Delete, then Backspace. Each removes the selection, and Backspace inside a Position field only edits the digit. | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
 
 ### ui-049 — Objects list folded into the Inspector, hover-to-highlight (2026-09-27 22:34 UTC)
 
@@ -1388,8 +1400,8 @@ here.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real monitor, in both dark and light themes, hover a row for an unselected light-blue body, a selected (amber) body and a red-recoloured body. Does the violet hover tint read clearly as "this one" without looking like a selection or a rendering glitch? (Headless: light blue went lavender, amber went pale peach, red went magenta-red.) | Open | |
-| 2 | On a real iPhone and iPad (Safari), tap rows and checks in the Inspector's list, including one that changes the selection count so the sheet reflows. No row and no body should ever light up violet from a tap. Then on an iPad with a trackpad, or a touch laptop: after tapping, move the pointer onto a row. It should highlight on the first real movement. | Open | |
+| 1 | On a real monitor, in both dark and light themes, hover a row for an unselected light-blue body, a selected (amber) body and a red-recoloured body. Does the violet hover tint read clearly as "this one" without looking like a selection or a rendering glitch? (Headless: light blue went lavender, amber went pale peach, red went magenta-red.) | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 2 | On a real iPhone and iPad (Safari), tap rows and checks in the Inspector's list, including one that changes the selection count so the sheet reflows. No row and no body should ever light up violet from a tap. Then on an iPad with a trackpad, or a touch laptop: after tapping, move the pointer onto a row. It should highlight on the first real movement. | Open | 2026-11-07: The tap half, in the iOS Simulator moved to `FIND-testing-027`; the trackpad and touch-laptop half stays here. |
 | 3 | At phone width, select an enclosed body from the list, then fold the Inspector sheet with its tab to reach the gizmo (the sheet stays up after a list selection, as after any selection). Is that one extra tap workable, or does selecting from the list want the sheet to fold on its own? | Open | |
 | 4 | Feel of the Objects section: ticking checks keeps the list open, a plain row tap folds it to the body's detail, and the breadcrumb's **Objects** crumb or the bar reopens it. Does that read naturally on a phone, or does the list folding after a plain tap surprise you? | Open | |
 
@@ -1406,10 +1418,10 @@ cannot stand in for.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone, open the Reference `<select>` for a dropped Raspberry Pi. iOS renders this as its own native picker wheel, not an inline dropdown — confirm it's reachable one-handed and that picking `mb` reads back correctly in the row once dismissed. | Open | |
+| 1 | On a real iPhone, open the Reference `<select>` for a dropped Raspberry Pi. iOS renders this as its own native picker wheel, not an inline dropdown — confirm it's reachable one-handed and that picking `mb` reads back correctly in the row once dismissed. | Open | 2026-11-07: The picker and read-back half, in the iOS Simulator moved to `FIND-testing-027`; one-handed reach stays here. |
 | 2 | On a real iPhone or Android phone, tap through all nine grid buttons (`⊢ min`/`◇ ctr`/`⊣ max` × X/Y/Z) in quick succession on a Cube. Each label is small (0.72rem) inside a 44px target — confirm the text itself is legible without squinting, not just that the tap target measures 44px in a bounding box. | Open | |
-| 3 | On a real tablet (iPad), with the Inspector as a persistent side column rather than a sheet, confirm the Align to origin row doesn't visually crowd Position/Rotation/Size above it — the column is narrower than laptop width but the row was only checked at exactly 390px and 1440px in the automated matrix, not at the 820px tablet column width by eye. | Open | |
-| 4 | Firefox (desktop): the row, its select, and all ten buttons render and commit correctly. Environment-blocked here (`TROUBLESHOOTING.md` 2026-09-17), so this is untested on this engine at all so far. | Open | |
+| 3 | On a real tablet (iPad), with the Inspector as a persistent side column rather than a sheet, confirm the Align to origin row doesn't visually crowd Position/Rotation/Size above it — the column is narrower than laptop width but the row was only checked at exactly 390px and 1440px in the automated matrix, not at the 820px tablet column width by eye. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
+| 4 | Firefox (desktop): the row, its select, and all ten buttons render and commit correctly. Environment-blocked here (`TROUBLESHOOTING.md` 2026-09-17), so this is untested on this engine at all so far. | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 
 ### ui-048 — smaller cone-tipped move arrows (2026-09-27 17:16 UTC)
 
@@ -1417,10 +1429,10 @@ The sizes and positions are asserted by e2e on 6 of 9 matrix cells, and scenario
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a Raspberry Pi at laptop width (gizmo near its cap), do the ring chevrons (~22-29 px) read as secondary to the new 13-16 px arrow cones, or do they now compete with them? The TODO said to leave the chevrons unchanged; if they compete, file a finding to size them off `gizmoHeadPx` instead of `ringPx`. | Open | |
-| 2 | On a real iPad, select a Pi near the middle of the view. At tablet width the viewport column is ~390 px, so a capped gizmo (arm 198 px) can put the X/Y cones under the Inspector column. Is that a real usability problem? The old, larger arms were worse, but the cap may want to scale with viewport width. | Open | |
+| 1 | On a Raspberry Pi at laptop width (gizmo near its cap), do the ring chevrons (~22-29 px) read as secondary to the new 13-16 px arrow cones, or do they now compete with them? The TODO said to leave the chevrons unchanged; if they compete, file a finding to size them off `gizmoHeadPx` instead of `ringPx`. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 2 | On a real iPad, select a Pi near the middle of the view. At tablet width the viewport column is ~390 px, so a capped gizmo (arm 198 px) can put the X/Y cones under the Inspector column. Is that a real usability problem? The old, larger arms were worse, but the cap may want to scale with viewport width. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 | 3 | On a real iPhone, grab the small red cone with a fingertip and drag. It should feel as grabbable as before: the 34 px invisible catchment is unchanged, only the drawn head shrank. | Open | |
-| 4 | Firefox (desktop): the arrows show a lit flank and a darker flank, the vertical Z shaft is visibly blue (not missing), and X/Y/Z stay red/green/blue in both themes. Environment-blocked here (`TROUBLESHOOTING.md` 2026-09-17). | Open | |
+| 4 | Firefox (desktop): the arrows show a lit flank and a darker flank, the vertical Z shaft is visibly blue (not missing), and X/Y/Z stay red/green/blue in both themes. Environment-blocked here (`TROUBLESHOOTING.md` 2026-09-17). | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 
 ### core-033 — a pre-existing dimension mismatch found while porting colour, and real-device colour legibility (2026-09-26 16:53 UTC)
 
@@ -1446,8 +1458,8 @@ scenario, and out of this task's own scope to fix silently:
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Fix (or explicitly decide to keep) `touchDisplay7inch`'s `NO_GO_POWER_MM.sizeMm` z-dimension mismatch (1 mm vs V1's 7 mm) — ideally alongside whichever option `render-005` picks, since the two are related | Open | |
-| 2 | On a real phone and tablet (not headless), drop a `raspberrypi.bplus` (any model) and a `raspberrypi.cameraModule`, and confirm the newly-visible per-part colours (lightgray jacks, orange ethernet, gray GPIO, gold camera lensribbon, etc.) read as sensible board components rather than as visual noise, at both the translucent-board and opaque-part boundaries | Open | |
+| 1 | Fix (or explicitly decide to keep) `touchDisplay7inch`'s `NO_GO_POWER_MM.sizeMm` z-dimension mismatch (1 mm vs V1's 7 mm) — ideally alongside whichever option `render-005` picks, since the two are related | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | On a real phone and tablet (not headless), drop a `raspberrypi.bplus` (any model) and a `raspberrypi.cameraModule`, and confirm the newly-visible per-part colours (lightgray jacks, orange ethernet, gray GPIO, gold camera lensribbon, etc.) read as sensible board components rather than as visual noise, at both the translucent-board and opaque-part boundaries | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
 
 ### ui-047 — Objects-row indicator for a shown hidden part, deliberately not built (2026-09-26 13:18 UTC)
 
@@ -1465,7 +1477,7 @@ than in theory?
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Show a Bolt's `tap`, then deselect it (click empty space) and select a different body. Does the still-visible translucent clearance on the deselected bolt read as confusing without any cue in the Inspector's object list that it's still "on"? *(Reworded by `ui-049`: the Objects panel is now the Inspector's object list, and the toggle lives in the bolt's **Parts** section; still no row cue for a shown-hidden body.)* | Open | |
+| 1 | Show a Bolt's `tap`, then deselect it (click empty space) and select a different body. Does the still-visible translucent clearance on the deselected bolt read as confusing without any cue in the Inspector's object list that it's still "on"? *(Reworded by `ui-049`: the Objects panel is now the Inspector's object list, and the toggle lives in the bolt's **Parts** section; still no row cue for a shown-hidden body.)* | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### render-003 — Recipe-baked part colours actually render (2026-09-26 11:50 UTC)
 
@@ -1480,8 +1492,8 @@ left is the one thing this sandbox's headless/software rasteriser cannot settle 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real GPU (not this sandbox's headless renderer): drop a Raspberry Pi board and orbit close around where its translucent `mb`/`board` part overlaps an opaque part on top of it (a USB stack, the GPIO header). Does the translucent surface read cleanly through, with no flicker or wrong-order blending as the camera moves — the kind of artefact `depthWrite: false` exists to prevent but that a real driver's blend-sorting can still get subtly wrong in a way a still screenshot won't show? | Open | Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
-| 2 | Same device: drop two Raspberry Pi boards close enough that their translucent parts overlap each other (not just an opaque part). This project has never needed two *overlapping* translucent surfaces before this task — confirm it still reads sensibly rather than double-darkening or z-fighting between the two translucent layers. | Open | Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
+| 1 | On a real GPU (not this sandbox's headless renderer): drop a Raspberry Pi board and orbit close around where its translucent `mb`/`board` part overlaps an opaque part on top of it (a USB stack, the GPIO header). Does the translucent surface read cleanly through, with no flicker or wrong-order blending as the camera moves — the kind of artefact `depthWrite: false` exists to prevent but that a real driver's blend-sorting can still get subtly wrong in a way a still screenshot won't show? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
+| 2 | Same device: drop two Raspberry Pi boards close enough that their translucent parts overlap each other (not just an opaque part). This project has never needed two *overlapping* translucent surfaces before this task — confirm it still reads sensibly rather than double-darkening or z-fighting between the two translucent layers. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
 
 ### ui-037 — Inspector color control (2026-09-25 21:15)
 
@@ -1489,8 +1501,8 @@ Scenario 13 was driven in full at laptop Chromium and phone WebKit with real tap
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone and iPad (Safari): tap the Color swatch for a selected body. Does the native picker open, does the body change colour **live** while you move around the picker (the `input` preview), and does closing it keep the colour and add exactly one Undo step? Then open it, move to a different colour and **dismiss without choosing**. Does the body go back to its committed colour, or stay showing the abandoned one? The preview clears on `change`, on a selection change, or when another body/part is picked. It deliberately does not clear on `blur`, because some engines blur when the picker opens. | Open | |
-| 2 | Dark mode (OS set to dark): select a recoloured body. Is its own colour still recognisable under the selection tint (`OVERRIDE_HIGHLIGHT_INTENSITY` 0.2, lowered from 0.35 during the drive because red read orange), and is it still obvious that it is selected? The drives ran in the light scheme. | Open | |
+| 1 | On a real iPhone and iPad (Safari): tap the Color swatch for a selected body. Does the native picker open, does the body change colour **live** while you move around the picker (the `input` preview), and does closing it keep the colour and add exactly one Undo step? Then open it, move to a different colour and **dismiss without choosing**. Does the body go back to its committed colour, or stay showing the abandoned one? The preview clears on `change`, on a selection change, or when another body/part is picked. It deliberately does not clear on `blur`, because some engines blur when the picker opens. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 2 | Dark mode (OS set to dark): select a recoloured body. Is its own colour still recognisable under the selection tint (`OVERRIDE_HIGHLIGHT_INTENSITY` 0.2, lowered from 0.35 during the drive because red read orange), and is it still obvious that it is selected? The drives ran in the light scheme. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 | 3 | Drop a **Bolt**, look inside it, and colour `head` or `thread`: nothing visibly changes, because the visible `tap` clearance solid (±9.25 mm, 0-27 mm) encloses both. Measured, not a colour bug, and the same interpenetration `ui-016`'s VERIFY row flagged. Decide whether that is acceptable, or whether `tap` should render hidden/translucent (a recipe or `render-003` question). | OK | Closed by `render-004` (2026-09-26): the user chose "hide `tap` by default" — `hardware.bolt.js`'s `tap` record now carries `hidden: true`, the same divergence `hardware.washer.js`'s `clearance` already had. A freshly-dropped Bolt now reads as gray head + silver thread, driven and confirmed on screen at laptop Chromium and phone WebKit (Step 6). `tap` stays addressable for scenario 5's subtract; it just no longer renders or counts toward the bolt's default bounds. See `TODO/done/render-004-bolt-tap-clearance-visibility.md`. |
 
 ### data-005 — Per-body / per-part colour override, document model only (2026-09-25 13:57)
@@ -1514,7 +1526,7 @@ Emulated WebKit and Chromium at 390×844 confirmed the fold, the expand and ever
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone (Safari): select a body so the Inspector opens, then without instructions find a way to orbit with the on-screen buttons. Does the ✥ toggle read as the way in? | Open | |
+| 1 | On a real iPhone (Safari): select a body so the Inspector opens, then without instructions find a way to orbit with the on-screen buttons. Does the ✥ toggle read as the way in? | Open | 2026-11-07: The cold-read half (a fresh agent with no project context, on screenshots or emulation) moved to `FIND-testing-029`; the real-device half stays here. |
 | 2 | Same phone: with the Inspector open, tap a body sitting just above the ✥ toggle. Does it select without nudging the camera? | Open | |
 
 ### core-031 — row actions on the fold cache, and what only real hardware can settle (2026-09-24 17:58 UTC)
@@ -1530,9 +1542,9 @@ it could not settle headless:
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone and iPad: place two bodies, tap empty grid to deselect, then tap each body. Does each tap select that body? Headless WebKit with trusted touch says **no** after an empty-space tap; Chromium says yes. This decides whether `TODO/ui-045` is a real-device bug or an emulation artifact. | Open | **Narrowed by `ui-045`'s own diagnosis (2026-09-24):** extensive controlled reproduction (instrumented `onPointerUp`/`pickAt`, capture-phase `event.target` logging) never found a case where a trusted tap that genuinely reached the canvas raycast differently than a synthetic one — every failure traced to a stray tap landing on `NavigationChrome`/the gizmo/the Inspector sheet instead of the canvas (`TODO/ui-046`), which the original coordinates happen to sit under once a sheet is open. With coordinates verified clear of every overlay band, the full sequence — including body→body with no intervening empty tap — passed on every repetition, on webkit-phone **and** chromium-phone. So: **on the real device, try it first with the two bodies placed somewhere clearly not under the nav-chrome cluster or a body's own gizmo**, before concluding this is a real WebKit bug — a same-symptom failure there would most likely be the `ui-046` layout hazard, not this file's pointer-handling one. Still worth trying the *original* cramped placement too, since a real device's touch/gesture stack is the one thing this session's tooling could not stand in for. |
-| 2 | Desktop Chrome, real GPU: in History, select a mid-log row (the preview strip appears), then press **Back to latest** or **Roll forward**. Does the 3D view flash blank for a frame as the strip goes away and the viewport grows? Headless Chromium captures a blank canvas in the first frame and a correct one by 500 ms. That is pre-existing, and dismissing the strip alone does it too. Say whether a person can see it. | Open | |
-| 3 | On a phone, on a document of 20+ bodies (Open `bench/`'s 24-body scene or build one): tap a History row, then Edit or Suppress it. Does the row action now feel instant, with no stall between the tap and the viewport updating? | Open | |
+| 1 | On a real iPhone and iPad: place two bodies, tap empty grid to deselect, then tap each body. Does each tap select that body? Headless WebKit with trusted touch says **no** after an empty-space tap; Chromium says yes. This decides whether `TODO/ui-045` is a real-device bug or an emulation artifact. | Open | **Narrowed by `ui-045`'s own diagnosis (2026-09-24):** extensive controlled reproduction (instrumented `onPointerUp`/`pickAt`, capture-phase `event.target` logging) never found a case where a trusted tap that genuinely reached the canvas raycast differently than a synthetic one — every failure traced to a stray tap landing on `NavigationChrome`/the gizmo/the Inspector sheet instead of the canvas (`TODO/ui-046`), which the original coordinates happen to sit under once a sheet is open. With coordinates verified clear of every overlay band, the full sequence — including body→body with no intervening empty tap — passed on every repetition, on webkit-phone **and** chromium-phone. So: **on the real device, try it first with the two bodies placed somewhere clearly not under the nav-chrome cluster or a body's own gizmo**, before concluding this is a real WebKit bug — a same-symptom failure there would most likely be the `ui-046` layout hazard, not this file's pointer-handling one. Still worth trying the *original* cramped placement too, since a real device's touch/gesture stack is the one thing this session's tooling could not stand in for. 2026-11-07: An iOS-touch-stack run in the iOS Simulator moved to `FIND-testing-027`; the real-device run stays here. |
+| 2 | Desktop Chrome, real GPU: in History, select a mid-log row (the preview strip appears), then press **Back to latest** or **Roll forward**. Does the 3D view flash blank for a frame as the strip goes away and the viewport grows? Headless Chromium captures a blank canvas in the first frame and a correct one by 500 ms. That is pre-existing, and dismissing the strip alone does it too. Say whether a person can see it. | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
+| 3 | On a phone, on a document of 20+ bodies (Open `bench/`'s 24-body scene or build one): tap a History row, then Edit or Suppress it. Does the row action now feel instant, with no stall between the tap and the viewport updating? | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
 
 ### core-030 — Undo/Redo by restore, felt on real hardware (2026-09-24 15:59 UTC)
 
@@ -1546,8 +1558,8 @@ touch screen, or whether the 50-step restore window's memory shows on an older d
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone and iPad: drop about 12 Raspberry Pis and 12 Bolts, then tap **Undo** ten times as fast as you can, then **Redo** ten times. Every tap lands with no visible stall, and the scene ends exactly where it started. Before `core-030` each tap froze the screen for about half a second on this scene. | Open | |
-| 2 | Same device, the same heavy scene: make about 60 small edits (move, param edit, place), then Undo all the way back. The first 50 Undos should feel instant. The ones past 50 re-fold and may pause briefly, which is expected. Nothing should reload the tab or run out of memory. | Open | |
+| 1 | On a real iPhone and iPad: drop about 12 Raspberry Pis and 12 Bolts, then tap **Undo** ten times as fast as you can, then **Redo** ten times. Every tap lands with no visible stall, and the scene ends exactly where it started. Before `core-030` each tap froze the screen for about half a second on this scene. | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 2 | Same device, the same heavy scene: make about 60 small edits (move, param edit, place), then Undo all the way back. The first 50 Undos should feel instant. The ones past 50 re-fold and may pause briefly, which is expected. Nothing should reload the tab or run out of memory. | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
 
 ### core-029 — the evaluation worker on a real phone and tablet, and the ~80 ms drop floor (2026-09-24 02:50 UTC)
 
@@ -1561,9 +1573,9 @@ the headless software rasteriser, which says nothing about a real GPU.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone (Safari), drop a Raspberry Pi and then a Bolt. Tap empty space and open the Inspector's **Objects (2)** tab (the Objects list, since `ui-049`): both rows show a size, and the scene responds while they land (no visible hitch on the second drop). If a remote Web Inspector is attached, confirm an `evaluation.worker-*.js` worker exists and the console is clean. | Open | |
-| 2 | On a real iPad, with ~10 Raspberry Pi boards placed (drag them in), drag one more Cube in and then press Undo. The drag-place should feel instant; Undo will still pause briefly (that is `core-030`, expected). Note roughly how long Undo hangs. | Open | |
-| 3 | Install the PWA, go offline, reload, and drop a Bolt: its measurement must still land (the worker chunk is in the service-worker precache — 9 entries, up from 8 — but offline was not driven here). | Open | |
+| 1 | On a real iPhone (Safari), drop a Raspberry Pi and then a Bolt. Tap empty space and open the Inspector's **Objects (2)** tab (the Objects list, since `ui-049`): both rows show a size, and the scene responds while they land (no visible hitch on the second drop). If a remote Web Inspector is attached, confirm an `evaluation.worker-*.js` worker exists and the console is clean. | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 2 | On a real iPad, with ~10 Raspberry Pi boards placed (drag them in), drag one more Cube in and then press Undo. The drag-place should feel instant; Undo will still pause briefly (that is `core-030`, expected). Note roughly how long Undo hangs. | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 3 | Install the PWA, go offline, reload, and drop a Bolt: its measurement must still land (the worker chunk is in the service-worker precache — 9 entries, up from 8 — but offline was not driven here). | Moved | Moved 2026-11-07 to `FIND-testing-020`: an AI drive can settle it. |
 
 ### ui-043 — phone toolbar/chrome margin is thin: 6px, not 0, but real-Safari font metrics were never checked (2026-09-22 14:36 UTC)
 
@@ -1578,7 +1590,7 @@ check the standing spec cannot perform for itself.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone (Safari, 390pt-class device), select one body so the Inspector sheet auto-opens, and confirm the Operations toolbar and the navigation chrome (Orbit/Pan/Select row) do not visually touch or overlap. Repeat with two bodies selected. | Open | |
+| 1 | On a real iPhone (Safari, 390pt-class device), select one body so the Inspector sheet auto-opens, and confirm the Operations toolbar and the navigation chrome (Orbit/Pan/Select row) do not visually touch or overlap. Repeat with two bodies selected. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### ui-042 — Objects list part rows: chevron feel, and a wrong-order empty result (2026-09-22 13:51 UTC)
 
@@ -1591,7 +1603,7 @@ hand-drive surfaced but did not introduce or fix.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real phone, with nothing selected, open the Inspector's **Objects (n)** tab, expand a composite with many parts (a Raspberry Pi), scroll the part list, and tap a hidden part's row and its check: does the indent read clearly as "inside this body" at a glance, does the chevron's rotate-on-open animation feel responsive, and does scrolling the parts ever fight scrolling the Inspector sheet or the page? *(Reworded by `ui-049`: the list moved from the Objects panel into the Inspector sheet.)* | Open | |
-| 2 | Addressing a part on the body that ends up as Subtract's *target* (the wrong-order case: e.g. drilling a small part first, then adding a much larger enclosing body second) can make the kernel return a **zero-volume result with no error** — a small solid entirely swallowed by what it's being subtracted with leaves nothing. This is existing kernel/boolean behaviour, not something this task changed, and it committed cleanly in the drive rather than crashing. Does a silently-empty result (one body left in the scene, at zero size) read as confusing or alarming to a real user, and is a "this result is empty" affordance worth a future finding? | Open | |
+| 2 | Addressing a part on the body that ends up as Subtract's *target* (the wrong-order case: e.g. drilling a small part first, then adding a much larger enclosing body second) can make the kernel return a **zero-volume result with no error** — a small solid entirely swallowed by what it's being subtracted with leaves nothing. This is existing kernel/boolean behaviour, not something this task changed, and it committed cleanly in the drive rather than crashing. Does a silently-empty result (one body left in the scene, at zero size) read as confusing or alarming to a real user, and is a "this result is empty" affordance worth a future finding? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 Everything measurable here is measured and standing (`e2e/objects-panel.e2e.js` at three viewports,
 `ACCEPTANCE.md` scenario 5). What is left is judgement a Playwright touch emulation cannot make:
@@ -1601,7 +1613,7 @@ legible on a real screen in sunlight rather than a 1440px monitor.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real iPhone, with nothing selected, tap the Inspector's **Objects (n)** tab, tick one row's check, then a second row's check, then **Subtract**: are the 44px rows and checks comfortable, does the sheet scroll without fighting the page, and does a row tap ever land on the check by mistake (or the reverse)? *(Reworded by `ui-049`: the Objects panel and its header button are gone; the list is the Inspector's.)* | Open | |
-| 2 | With a body enclosed in another (open a project that has one), select the enclosed body from the list: is the **teal/amber x-ray tint** legible at phone size in both the dark and light themes, and does it read as "hidden body, selected" rather than as a rendering glitch? At 390px the selected body's gizmo can sit partly under the nav chrome (the phone framing is not adjusted for the sheet) — is that workable, or does it want the camera to re-frame? | Open | |
+| 2 | With a body enclosed in another (open a project that has one), select the enclosed body from the list: is the **teal/amber x-ray tint** legible at phone size in both the dark and light themes, and does it read as "hidden body, selected" rather than as a rendering glitch? At 390px the selected body's gizmo can sit partly under the nav chrome (the phone framing is not adjusted for the sheet) — is that workable, or does it want the camera to re-frame? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### perf-001 — export moved into a worker, and the slow-export pending state (2026-09-21 19:32 UTC)
 
@@ -1610,7 +1622,7 @@ Everything measurable here is already measured and standing: the freeze (worst a
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | **On a real iPhone and a real iPad, does a big export still feel alive?** CPU throttling at 4-6x is a stand-in for a phone, not a measurement of one — a real device also differs in memory pressure, thermal throttling and how Safari schedules a module worker. Build a heavy scene (a dozen library boards and bolts), press **Export**, and judge two things by hand: does the viewport really keep responding to a drag *while* `Writing warpcad-scene.stl…` is showing, and does the file still arrive? Then the borderline case the numbers cannot settle: on a fast laptop at 1x a 24-body export lands right at the 100 ms threshold, so the line is absent or a ~10 ms flash. On a phone the same export is several times slower, so it should show properly — **but if it flickers on and off, or appears for so short a time that it reads as a glitch rather than as progress, the threshold is wrong for real hardware** and is worth raising. File it if so. | Open | |
-| 2 | **Does the worker actually survive a real mobile Safari backgrounding?** Start a big export on an iPhone and immediately switch apps or lock the screen, then come back. iOS suspends timers and can terminate workers aggressively; the code falls back to the main thread only when a worker cannot be *constructed*, not when a live one is killed mid-job — in that case `runExport` rejects and the popover shows `Export failed: …` rather than quietly retrying. Is that what happens, and is the message survivable (popover still open, Export still pressable)? If iOS kills workers routinely on backgrounding, a retry-on-the-main-thread path becomes worth having and should be filed. | Open | |
+| 2 | **Does the worker actually survive a real mobile Safari backgrounding?** Start a big export on an iPhone and immediately switch apps or lock the screen, then come back. iOS suspends timers and can terminate workers aggressively; the code falls back to the main thread only when a worker cannot be *constructed*, not when a live one is killed mid-job — in that case `runExport` rejects and the popover shows `Export failed: …` rather than quietly retrying. Is that what happens, and is the message survivable (popover still open, Export still pressable)? If iOS kills workers routinely on backgrounding, a retry-on-the-main-thread path becomes worth having and should be filed. | Open | 2026-11-07: A backgrounding run in the iOS Simulator moved to `FIND-testing-027`; real-device worker termination stays here. |
 
 ### ui-034 — File ▾ → Export… (2026-09-21 14:50 UTC)
 
@@ -1620,8 +1632,8 @@ scenario 11 (driven by hand), and the unit specs. What is left is what only a ha
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Real iPhone Safari: does the download actually land and can you find it?** Export a body as STL from the phone. The chip is a dot on a phone, so the browser's own download sheet (and the Files app's Downloads) is the only confirmation the user sees. Does `union-1.stl` appear, is the `Preparing…` button state on glTF perceptible or a flash, and does pressing Export feel like it did something before the sheet appears? Also: do the popover's 44 px scope/format segments feel like a comfortable thumb target, and does the dimmed **Export…** row's printed reason read as an explanation rather than clutter? | Open | |
-| 2 | **Open one exported STL and one OBJ in a real slicer or mesh checker** (PrusaSlicer / Cura / Bambu Studio / MeshLab) — both a plain Union and a placed bolt. **Precondition and expectation both changed on 2026-09-21 when `io-004` landed: those files are now measured closed** — 0 of 309 undirected edges open on the union (was 9 of 300) and 0 of 342 on the bolt (was 40 of 302), each edge used by exactly two faces in opposite directions, volume within 7e-6 of the kernel's, no zero-area triangles. So this row is no longer "how bad is the defect" but **"does a real tool agree with our own parser"**: the slicer should load it, report nothing to repair, and offer no auto-fix — if it still offers to repair, that is a new finding and the measurement above is wrong about something. Check the `.glb` in a glTF viewer in the same sitting, and on **the same terms, not weaker ones — this changed on 2026-09-21 when `io-005` landed**: the `.glb` is now measured closed too (0 of 276 undirected edges open on that same union, was 44 of 262; 0 of 318 on the bolt, was 46 of 290; 0 zero-area triangles; volume within 4e-8 of the kernel's; outward winding), so a DCC tool importing it should **not** complain about holes — if Blender's *Select → All by Trait → Non Manifold* finds anything, that is a new finding. This remains `ACCEPTANCE.md` scenario 11 step 5, which **no drive has ever been able to perform** — no slicer, mesh viewer or glTF viewer exists in this environment, and nobody has opened any exported file in one, before or after `io-005`. | Open | |
+| 1 | **Real iPhone Safari: does the download actually land and can you find it?** Export a body as STL from the phone. The chip is a dot on a phone, so the browser's own download sheet (and the Files app's Downloads) is the only confirmation the user sees. Does `union-1.stl` appear, is the `Preparing…` button state on glTF perceptible or a flash, and does pressing Export feel like it did something before the sheet appears? Also: do the popover's 44 px scope/format segments feel like a comfortable thumb target, and does the dimmed **Export…** row's printed reason read as an explanation rather than clutter? | Open | 2026-11-07: The download-lands half, in the iOS Simulator moved to `FIND-testing-027`; the thumb-target and clutter judgments stay here. |
+| 2 | **Open one exported STL and one OBJ in a real slicer or mesh checker** (PrusaSlicer / Cura / Bambu Studio / MeshLab) — both a plain Union and a placed bolt. **Precondition and expectation both changed on 2026-09-21 when `io-004` landed: those files are now measured closed** — 0 of 309 undirected edges open on the union (was 9 of 300) and 0 of 342 on the bolt (was 40 of 302), each edge used by exactly two faces in opposite directions, volume within 7e-6 of the kernel's, no zero-area triangles. So this row is no longer "how bad is the defect" but **"does a real tool agree with our own parser"**: the slicer should load it, report nothing to repair, and offer no auto-fix — if it still offers to repair, that is a new finding and the measurement above is wrong about something. Check the `.glb` in a glTF viewer in the same sitting, and on **the same terms, not weaker ones — this changed on 2026-09-21 when `io-005` landed**: the `.glb` is now measured closed too (0 of 276 undirected edges open on that same union, was 44 of 262; 0 of 318 on the bolt, was 46 of 290; 0 zero-area triangles; volume within 4e-8 of the kernel's; outward winding), so a DCC tool importing it should **not** complain about holes — if Blender's *Select → All by Trait → Non Manifold* finds anything, that is a new finding. This remains `ACCEPTANCE.md` scenario 11 step 5, which **no drive has ever been able to perform** — no slicer, mesh viewer or glTF viewer exists in this environment, and nobody has opened any exported file in one, before or after `io-005`. | Moved | Moved 2026-11-07 to `FIND-testing-023`: an AI drive can settle it. |
 
 ### ui-033 — File ▾ menu: Save / Open… / hosted storage (2026-09-21 13:46 UTC)
 
@@ -1634,9 +1646,9 @@ that only a real device or a real OS dialog can answer:
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **The native File System Access picker on real desktop Chrome or Edge** — an OS dialog nothing headless can click, proven here only against an injected fake. **Save** should open the picker the first time and then write over the same file with **no** second prompt (`Saved to warpcad-project.ndjson · HH:MM`); **Save As…** should always prompt; cancelling either picker should be silent; **Open…** then **Save** should write back to the file you opened. Edit the file in a text editor between two Saves to see the write really lands on disk. | Open | |
-| 2 | **Real iPhone Safari, the Connect dialog with the keyboard up.** Tap **File ▾ → Connect repository…**, tap the Token field. The inputs are 16px so the page should **not** zoom, and the dialog is top-anchored so the keyboard should not hide the fields or the Connect button. Also: does iOS offer to autofill a saved password or autocorrect/capitalise into the token field despite `autocomplete="off"` / `autocapitalize="none"` (Safari does not always honour the former)? Use a made-up token; do not paste a real one to test this. | Open | |
-| 3 | **The File-button status dot at real phone size.** It is a 14px badge on the button's corner (solid green disc in sync, hollow ring pending, spinning ring pushing, amber `!` paused, red `✕` failed), shape-coded so it does not rely on hue. Judgment call: can you tell those five apart at arm's length, in sunlight and in dark mode, and does the spinning ring read as "working" rather than "stuck"? (Reduced-motion users get a dashed ring instead of a spin — check that setting reads too.) | Open | |
+| 1 | **The native File System Access picker on real desktop Chrome or Edge** — an OS dialog nothing headless can click, proven here only against an injected fake. **Save** should open the picker the first time and then write over the same file with **no** second prompt (`Saved to warpcad-project.ndjson · HH:MM`); **Save As…** should always prompt; cancelling either picker should be silent; **Open…** then **Save** should write back to the file you opened. Edit the file in a text editor between two Saves to see the write really lands on disk. | Moved | Moved 2026-11-07 to `FIND-testing-028`: an AI drive can settle it. |
+| 2 | **Real iPhone Safari, the Connect dialog with the keyboard up.** Tap **File ▾ → Connect repository…**, tap the Token field. The inputs are 16px so the page should **not** zoom, and the dialog is top-anchored so the keyboard should not hide the fields or the Connect button. Also: does iOS offer to autofill a saved password or autocorrect/capitalise into the token field despite `autocomplete="off"` / `autocapitalize="none"` (Safari does not always honour the former)? Use a made-up token; do not paste a real one to test this. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 3 | **The File-button status dot at real phone size.** It is a 14px badge on the button's corner (solid green disc in sync, hollow ring pending, spinning ring pushing, amber `!` paused, red `✕` failed), shape-coded so it does not rely on hue. Judgment call: can you tell those five apart at arm's length, in sunlight and in dark mode, and does the spinning ring read as "working" rather than "stuck"? (Reduced-motion users get a dashed ring instead of a spin — check that setting reads too.) | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
 
 ### ui-040 — Sub-part-addressed boolean operands (2026-09-20 23:59 UTC)
 
@@ -1677,7 +1689,7 @@ document's space (mm / Z-up in, metres / Y-up out) and which only a real viewer 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Now that `ui-034` has landed (File ▾ → Export…, choose **glTF (.glb)**): export a body you know the size of (a 40 mm cube standing on the grid) as glTF and open the `.glb` in a real viewer (Blender, `gltf-viewer.donmccurdy.com`, macOS Quick Look). It should stand **upright** (not lying on its side) and read **40 mm / 0.04 m** across, not 40 m or 0.04 mm. **Updated 2026-09-21 (`io-005`) — what the file now is, and what is still unknown:** the `.glb`'s mesh is now **closed** by this repo's own independent POSITION-accessor parser (0 of 276 open edges on the scenario-11 union, 0 of 318 on a placed bolt, 0 of 1023 on a `raspberrypi.bplus`, 0 zero-area triangles, outward winding, volume within 4e-8 of the kernel's) and the mm→m / Z-up→Y-up root matrix is unchanged and re-measured. **No real glTF viewer has still ever opened one of these files** — not before `io-005` and not after — so this row stays `Open` and is now the check on *two* things at once: the size-and-orientation judgement it was always for, and whether a real importer agrees the surface is closed. | Open | |
+| 1 | Now that `ui-034` has landed (File ▾ → Export…, choose **glTF (.glb)**): export a body you know the size of (a 40 mm cube standing on the grid) as glTF and open the `.glb` in a real viewer (Blender, `gltf-viewer.donmccurdy.com`, macOS Quick Look). It should stand **upright** (not lying on its side) and read **40 mm / 0.04 m** across, not 40 m or 0.04 mm. **Updated 2026-09-21 (`io-005`) — what the file now is, and what is still unknown:** the `.glb`'s mesh is now **closed** by this repo's own independent POSITION-accessor parser (0 of 276 open edges on the scenario-11 union, 0 of 318 on a placed bolt, 0 of 1023 on a `raspberrypi.bplus`, 0 zero-area triangles, outward winding, volume within 4e-8 of the kernel's) and the mm→m / Z-up→Y-up root matrix is unchanged and re-measured. **No real glTF viewer has still ever opened one of these files** — not before `io-005` and not after — so this row stays `Open` and is now the check on *two* things at once: the size-and-orientation judgement it was always for, and whether a real importer agrees the surface is closed. | Moved | Moved 2026-11-07 to `FIND-testing-023`: an AI drive can settle it. |
 
 ### io-002 — Hosted git-backend persistence (2026-09-19 14:09 UTC)
 
@@ -1707,9 +1719,9 @@ left is what a headless WebKit and a simulated `indexedDB` cannot stand in for:
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Real iPhone Safari, the tab-kill path.** Place a shape, then within about a second swipe to the home screen (or lock the phone) and later reopen the tab/app. Is the last shape still there? The save-on-hide path (`visibilitychange`/`pagehide` → a synchronous `localStorage` copy, then IndexedDB) was found necessary in real Chromium and passes in headless WebKit, but iOS suspends and kills tabs on its own schedule that no headless run reproduces. | Open | |
-| 2 | The chip is a **10px dot** at phone width, coloured *and* shaped (grey idle, amber ring saving, green disc saved, red square failed). Is it legible at arm's length, in sunlight and in dark mode, and does the ring/disc/square difference actually read without relying on hue? (Judgment call; not asserted anywhere.) | Open | |
-| 3 | **A real private window** in Safari and Firefox (not the simulated throw the e2e uses). Does WebKit/Gecko actually block IndexedDB there, and if so does the chip go red with the app usable? `docs/save-load.md` claims only that private windows *in some browsers* block or wipe storage — tighten or loosen that sentence to what you see. | Open | |
+| 1 | **Real iPhone Safari, the tab-kill path.** Place a shape, then within about a second swipe to the home screen (or lock the phone) and later reopen the tab/app. Is the last shape still there? The save-on-hide path (`visibilitychange`/`pagehide` → a synchronous `localStorage` copy, then IndexedDB) was found necessary in real Chromium and passes in headless WebKit, but iOS suspends and kills tabs on its own schedule that no headless run reproduces. | Open | 2026-11-07: A Safari-terminate run in the iOS Simulator moved to `FIND-testing-027`; iOS killing tabs on its own schedule on hardware stays here. |
+| 2 | The chip is a **10px dot** at phone width, coloured *and* shaped (grey idle, amber ring saving, green disc saved, red square failed). Is it legible at arm's length, in sunlight and in dark mode, and does the ring/disc/square difference actually read without relying on hue? (Judgment call; not asserted anywhere.) | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 3 | **A real private window** in Safari and Firefox (not the simulated throw the e2e uses). Does WebKit/Gecko actually block IndexedDB there, and if so does the chip go red with the app usable? `docs/save-load.md` claims only that private windows *in some browsers* block or wipe storage — tighten or loosen that sentence to what you see. | Moved | Moved 2026-11-07 to `FIND-testing-028`: an AI drive can settle it. |
 
 ### data-004 — Edit a past timeline entry's params in place and replay after it (2026-09-19 04:59)
 
@@ -1739,8 +1751,8 @@ another task's spec.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | **On a real iPhone and a real iPad**: the header is now ~53px tall at phone width (was ~30px) because Undo/Redo are 44px tap targets, and the mouse-oriented hint text is hidden below 641px. Does the taller bar feel right, and are the two buttons comfortably thumb-reachable one-handed? The 390px budget was checked arithmetically and in a screenshot, never on glass. | Open | |
-| 2 | The undo **refusal** path (`history-refusal`, `role="alert"`) cannot be triggered from the app today — nothing produces a non-local record until the MCP surface or `io-002` exists — so it is proven only by `history.spec.js`. When `io-002` lands, confirm the message actually appears and reads sensibly, and fold it into `ui-033`'s shared `save-status` chip rather than leaving a second status surface. | Open | |
-| 3 | `e2e/snap-align-operation.e2e.js`'s two fixture-sanity guards were lowered `> 5` → `> 4` because this task's taller phone header shifts the phone camera's projection (that fixture's X separation went 5.61 mm → 4.69 mm). The guards still sit ~90x above the 0.05 mm tolerance they protect, and the shared drop fractions were deliberately left alone. Worth a second opinion on whether the fixture should instead be re-positioned when someone next touches that file. | Open | |
+| 2 | The undo **refusal** path (`history-refusal`, `role="alert"`) cannot be triggered from the app today — nothing produces a non-local record until the MCP surface or `io-002` exists — so it is proven only by `history.spec.js`. When `io-002` lands, confirm the message actually appears and reads sensibly, and fold it into `ui-033`'s shared `save-status` chip rather than leaving a second status surface. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
+| 3 | `e2e/snap-align-operation.e2e.js`'s two fixture-sanity guards were lowered `> 5` → `> 4` because this task's taller phone header shifts the phone camera's projection (that fixture's X separation went 5.61 mm → 4.69 mm). The guards still sit ~90x above the 0.05 mm tolerance they protect, and the shared drop fractions were deliberately left alone. Worth a second opinion on whether the fixture should instead be re-positioned when someone next touches that file. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### data-002 — M6 interaction-model Q&A (2026-09-19 03:10)
 
@@ -1759,7 +1771,7 @@ it at 390px as part of its own acceptance run, so it is not a separate row here.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On real iPhone **and** iPad Safari, put `<input type="file" accept=".ndjson,.json,.txt,text/plain">` on a scratch page, and try to pick a file named `project.ndjson` saved in the Files app. Then try again with a bare `accept=".ndjson"` and with no `accept` at all. Record which of the three let the file be selected. If only the no-`accept` case works, `io-001` should drop `accept` entirely and validate the file's content instead of its extension. | Open | |
+| 1 | On real iPhone **and** iPad Safari, put `<input type="file" accept=".ndjson,.json,.txt,text/plain">` on a scratch page, and try to pick a file named `project.ndjson` saved in the Files app. Then try again with a bare `accept=".ndjson"` and with no `accept` at all. Record which of the three let the file be selected. If only the no-`accept` case works, `io-001` should drop `accept` entirely and validate the file's content instead of its extension. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### data-001 — Persistence/export Library decision (2026-09-18 20:20)
 
@@ -1782,8 +1794,8 @@ WebKit is not iOS Safari and does not share its download behaviour.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In a JS console (or a scratch page) on real iPhone Safari, real iPad Safari, and desktop Chrome, evaluate `typeof window.showSaveFilePicker`. Expect `"undefined"` on both iOS devices and `"function"` on desktop Chrome. Anything else means the capability gate in `docs/decisions/persistence-export.md` sub-decision 2 is wrong and `io-001`'s branch needs rethinking before it is written. | Open | |
-| 2 | On real iPhone **and** iPad Safari, trigger a plain `<a download="test.ndjson">` pointing at a `Blob` object URL and see what actually happens: does a file land somewhere the user can retrieve it (Files app / Downloads), or does it just open the text in a new tab? If it opens rather than downloads, the "fallback is the primary path" plan is broken on iOS specifically, and `io-001` needs a different Save mechanism there (Web Share API `files:`, or copy-to-clipboard) — file it as its own TODO and put the id in Notes. | Open | |
+| 1 | In a JS console (or a scratch page) on real iPhone Safari, real iPad Safari, and desktop Chrome, evaluate `typeof window.showSaveFilePicker`. Expect `"undefined"` on both iOS devices and `"function"` on desktop Chrome. Anything else means the capability gate in `docs/decisions/persistence-export.md` sub-decision 2 is wrong and `io-001`'s branch needs rethinking before it is written. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
+| 2 | On real iPhone **and** iPad Safari, trigger a plain `<a download="test.ndjson">` pointing at a `Blob` object URL and see what actually happens: does a file land somewhere the user can retrieve it (Files app / Downloads), or does it just open the text in a new tab? If it opens rather than downloads, the "fallback is the primary path" plan is broken on iOS specifically, and `io-001` needs a different Save mechanism there (Web Share API `files:`, or copy-to-clipboard) — file it as its own TODO and put the id in Notes. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### ui-036 — Angled Bisect controls (2026-09-18 19:14)
 
@@ -1791,8 +1803,8 @@ Measured live at 390x844 (WebKit): the six-field popover is 260 x 466 px, no int
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPhone, open Bisect with a body selected and read the popover over the auto-opened Inspector sheet: is the faint Inspector text ("INSPECTOR", part name) showing through behind the fields distracting enough to want a more opaque popover background at phone width? | Open | |
-| 2 | On a real iPhone, tap into the Angle field and check the numeric keyboard offers a minus sign (Angle accepts negative degrees); `type="number"` keyboards without one are an iOS quirk the desktop drive cannot show | Open | |
+| 1 | On a real iPhone, open Bisect with a body selected and read the popover over the auto-opened Inspector sheet: is the faint Inspector text ("INSPECTOR", part name) showing through behind the fields distracting enough to want a more opaque popover background at phone width? | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 2 | On a real iPhone, tap into the Angle field and check the numeric keyboard offers a minus sign (Angle accepts negative degrees); `type="number"` keyboards without one are an iOS quirk the desktop drive cannot show | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### ui-035 — an occluded sub-part still cannot be picked, and one feel question about the new operand line (2026-09-18 01:55)
 
@@ -1817,7 +1829,7 @@ here so that scoping does not have to rediscover it.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Confirm the occlusion gap and decide where it belongs. Place a Raspberry Pi 5, try by hand to drill into `hole1`-`hole4` — including by orbiting underneath the board, which the automated sweep did not try, since the hole's underside is coplanar with the PCB's and may or may not win the depth tie. If it is genuinely unreachable from every angle, fold it into `ui-032`'s scope (an occluded *part*, alongside its enclosed *body*) rather than filing a fourth picking task. `docs/snap-align.md` already tells users to orbit until the part faces them, which is the honest workaround only if it actually works. | Open | **`ui-032` has now weighed the "fold it into `ui-032`" half and declined it (2026-09-20).** That gap is about the *raycast*; the History panel is a list, which is a picking route needing no raycast at all, and `ui-032` touches picking only to disable it during a preview. Folding it in would also cut across §13's confirmed rule that a row selection and a body selection are two different selections that never trigger each other. The occlusion question itself is still open and still worth the hand-check above — it belongs with `ui-040`/`ui-016`'s sub-part addressing work, not with the timeline. |
+| 1 | Confirm the occlusion gap and decide where it belongs. Place a Raspberry Pi 5, try by hand to drill into `hole1`-`hole4` — including by orbiting underneath the board, which the automated sweep did not try, since the hole's underside is coplanar with the PCB's and may or may not win the depth tie. If it is genuinely unreachable from every angle, fold it into `ui-032`'s scope (an occluded *part*, alongside its enclosed *body*) rather than filing a fourth picking task. `docs/snap-align.md` already tells users to orbit until the part faces them, which is the honest workaround only if it actually works. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. **`ui-032` has now weighed the "fold it into `ui-032`" half and declined it (2026-09-20).** That gap is about the *raycast*; the History panel is a list, which is a picking route needing no raycast at all, and `ui-032` touches picking only to disable it during a preview. Folding it in would also cut across §13's confirmed rule that a row selection and a body selection are two different selections that never trigger each other. The occlusion question itself is still open and still worth the hand-check above — it belongs with `ui-040`/`ui-016`'s sub-part addressing work, not with the timeline. |
 | 2 | Feel check on the new operand line ("Aligning **Raspberry Pi 1 › ethernet** to **Cube 1**"), on real phone and tablet hardware rather than an emulated viewport. It measured fully inside the popover at 390px with no page scroll, but two things are judgment: whether it reads as *confirmation to check* or as decoration one skims past on the way to the commit button, and whether a genuinely long composite part name (the catalogue ships names like `powerswitch-button` and `clearance-statusled`) wrapping to three lines pushes the Cancel/commit pair uncomfortably far down a 390px-tall popover. | Open | |
 
 ### core-024 — a placed composite is now meshed part-by-part; look at the two interpenetrating recipes on real hardware (2026-09-18 00:52)
@@ -1843,9 +1855,9 @@ trading its pick depth for a clean surface — not to re-union everything.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Place an **Anchor** (Kit Parts) on a real phone/tablet, zoom in hard, and orbit slowly around the join between its `post` and its `hole` — looking for a flickering or shimmering seam where the two share a face, which is what a z-fight looks like in motion and what a still screenshot cannot show | Open | |
-| 2 | Same, for a **Bolt**, at the base of the head where `head` and `tap` share the `z = 0` plane — the one coincident surface in that recipe, normally face-down on the grid and so usually hidden | Open | |
-| 3 | Confirm a placed composite still reads as one solid object rather than visibly separate pieces, at ordinary working zoom on a real device — the question the pixel diff answers only for one GPU | Open | |
+| 1 | Place an **Anchor** (Kit Parts) on a real phone/tablet, zoom in hard, and orbit slowly around the join between its `post` and its `hole` — looking for a flickering or shimmering seam where the two share a face, which is what a z-fight looks like in motion and what a still screenshot cannot show | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 2 | Same, for a **Bolt**, at the base of the head where `head` and `tap` share the `z = 0` plane — the one coincident surface in that recipe, normally face-down on the grid and so usually hidden | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 3 | Confirm a placed composite still reads as one solid object rather than visibly separate pieces, at ordinary working zoom on a real device — the question the pixel diff answers only for one GPU | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### ui-031 — the Inspector's collapsed tab overlaps the bottom of the open Library sheet at phone width (2026-09-18 00:05)
 
@@ -1889,7 +1901,7 @@ own entry, and `TODO/core-024`).
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | At the default zoom on a real screen, are a placed Nut and Washer big enough to see and to click, or should the Hardware rows' default specs be larger (or the camera frame what was just dropped)? | Open | |
+| 1 | At the default zoom on a real screen, are a placed Nut and Washer big enough to see and to click, or should the Hardware rows' default specs be larger (or the camera frame what was just dropped)? | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 | 2 | On a real phone and a real tablet: the Library sheet now holds eleven rows and Hardware is below the fold, so reaching Bolt is a genuine scroll inside a 46vh sheet. Does that scroll feel right with a thumb, or does the sheet want to be taller / the sections collapsible? | Open | |
 
 ### core-021 — a Y-axis bisect now names its halves the other way round (2026-09-17 13:56)
@@ -1924,8 +1936,8 @@ still be a shape nobody wants to print.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | **Firefox will not launch in this environment at all** — `browserType.launch: Could not find profile folder`, failing all 276 firefox-project e2e tests. Confirmed pre-existing and unrelated to this task by reproducing it on a clean stashed tree at HEAD. Chromium and WebKit are unaffected (587 passed, 0 failed). Needs a human to decide whether the Playwright Firefox install is corrupt here only (`npx playwright install firefox`) or whether CI sees it too — until then, one of the three engines `CLAUDE.md` names as a real target is unverified for every task, not just this one. | N/A | Closed 2026-11-01 (testing-005): Firefox projects launch and run in every full e2e run now (`playwright.config.js` firefox projects; `TODO/done/testing-001-firefox-tablet-file-menu-flake-under-load.md` traced a firefox-tablet run on 2026-10-15; `.githooks/pre-push` requires a full e2e run). |
-| 2 | **Does the `Spacer`'s diagonal cross-brace look right, and is it printable?** Its geometry reproduces V1 to 0.000000 mm³ and its angle is asserted against closed-form trigonometry, so it is provably the shape V1 makes — but nobody has looked at a picture of one. Worth a glance specifically at where the two mirrored bars cross near the centre and at the 3.0mm-rounded ends (V1 asks for 3.1 and is silently clamped): a brace that is correct and still has a sliver or a near-tangent overlap there is a print problem, not a geometry problem. | Open | |
-| 3 | **Is the `hatStandoff`'s peg-through-pad the intended solid?** V1 unions a 2.8mm peg straddling z=0 with a 6.2mm pad, so the peg protrudes 1.5mm *both* above and below the pad rather than standing on it. That is faithfully ported and fixture-confirmed, but it means the part as built has a spigot on its underside; whether a real HAT standoff should be printed that way, or whether V1's shape assumes the underside gets cut by whatever it mounts into, is a call for someone who has handled one. | Open | |
+| 2 | **Does the `Spacer`'s diagonal cross-brace look right, and is it printable?** Its geometry reproduces V1 to 0.000000 mm³ and its angle is asserted against closed-form trigonometry, so it is provably the shape V1 makes — but nobody has looked at a picture of one. Worth a glance specifically at where the two mirrored bars cross near the centre and at the 3.0mm-rounded ends (V1 asks for 3.1 and is silently clamped): a brace that is correct and still has a sliver or a near-tangent overlap there is a print problem, not a geometry problem. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
+| 3 | **Is the `hatStandoff`'s peg-through-pad the intended solid?** V1 unions a 2.8mm peg straddling z=0 with a 6.2mm pad, so the peg protrudes 1.5mm *both* above and below the pad rather than standing on it. That is faithfully ported and fixture-confirmed, but it means the part as built has a spigot on its underside; whether a real HAT standoff should be printed that way, or whether V1's shape assumes the underside gets cut by whatever it mounts into, is a call for someone who has handled one. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-017 — one pre-existing rim-op limit, and a hidden-volume judgment call (2026-09-14 19:34)
 
@@ -1946,9 +1958,9 @@ inside a commit about display recipes.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | `ui-027` says "committing a *second* Fillet/Chamfer against a *different* face of the same, already-rounded body must work identically — nothing about this control is one shot per body." It is not so for a **perpendicular** face: fillet a 40mm cube's Top (+Z) at r=3, then try Chamfer on Right (+X) at r=2, and the popover shows *"the solid is not prismatic over the rim band — cross-section area changes from 1590.044mm² at the cut plane to 1481.431mm² at the face."* The guard is correct (the rounded top really does make the x-section non-prismatic) and it fails loudly rather than returning wrong geometry, so nothing is unsafe — but the documented promise is wrong as written. Decide which side moves, and file the follow-up: narrow `docs/fillet-chamfer.md` and `ui-027`'s wording to "a different face, provided the band is still prismatic", or teach the guard to accept a band whose section change is itself the previous rim op. Note the *opposite* face (`z-` after `z+`) should still work — worth confirming while you are here. | Open | |
-| 2 | `miniPiTFT`'s `display-clearance` is the catalogue's first **outward-flared** volume (V1's `.chamfer(-5, 'z+')`) — a frustum 10mm wider at the top than the display it protects. It is hidden geometry, so nothing renders it and no acceptance scenario can see it. Once something consumes clearance volumes for real (an enclosure generator, or a Library row that can place one visibly), eyeball the flare against a real Adafruit Mini PiTFT: is a 5mm-per-side draft over the top 5mm actually the clearance a printed case wants, or was V1's number chosen for a different bezel? The port reproduces V1 exactly either way; this is asking whether V1 was right. | Open | |
-| 3 | `fillet.js`'s cross-section is read through `project`, whose `unionGeom2` round-trip inflates the outline by a shape-dependent ~6e-6 to 6e-5 mm. Harmless and invisible on an inward rim (it lands inside the remainder), and the reason `display-clearance` is compared to V1 at 4 decimal places rather than the 9 every other part uses. If a future task ever needs a rim op accurate to better than a micron — or starts stacking outward flares, where the error would compound — this is the place it comes from, and the fix is a section reader that does not round-trip through `unionGeom2`. Nothing to do today; recorded so the next person does not rediscover it from scratch. | Open | |
+| 1 | `ui-027` says "committing a *second* Fillet/Chamfer against a *different* face of the same, already-rounded body must work identically — nothing about this control is one shot per body." It is not so for a **perpendicular** face: fillet a 40mm cube's Top (+Z) at r=3, then try Chamfer on Right (+X) at r=2, and the popover shows *"the solid is not prismatic over the rim band — cross-section area changes from 1590.044mm² at the cut plane to 1481.431mm² at the face."* The guard is correct (the rounded top really does make the x-section non-prismatic) and it fails loudly rather than returning wrong geometry, so nothing is unsafe — but the documented promise is wrong as written. Decide which side moves, and file the follow-up: narrow `docs/fillet-chamfer.md` and `ui-027`'s wording to "a different face, provided the band is still prismatic", or teach the guard to accept a band whose section change is itself the previous rim op. Note the *opposite* face (`z-` after `z+`) should still work — worth confirming while you are here. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | `miniPiTFT`'s `display-clearance` is the catalogue's first **outward-flared** volume (V1's `.chamfer(-5, 'z+')`) — a frustum 10mm wider at the top than the display it protects. It is hidden geometry, so nothing renders it and no acceptance scenario can see it. Once something consumes clearance volumes for real (an enclosure generator, or a Library row that can place one visibly), eyeball the flare against a real Adafruit Mini PiTFT: is a 5mm-per-side draft over the top 5mm actually the clearance a printed case wants, or was V1's number chosen for a different bezel? The port reproduces V1 exactly either way; this is asking whether V1 was right. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | `fillet.js`'s cross-section is read through `project`, whose `unionGeom2` round-trip inflates the outline by a shape-dependent ~6e-6 to 6e-5 mm. Harmless and invisible on an inward rim (it lands inside the remainder), and the reason `display-clearance` is compared to V1 at 4 decimal places rather than the 9 every other part uses. If a future task ever needs a rim op accurate to better than a micron — or starts stacking outward flares, where the error would compound — this is the place it comes from, and the fix is a section reader that does not round-trip through `unionGeom2`. Nothing to do today; recorded so the next person does not rediscover it from scratch. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-016 — the touch-display attachment a user cannot yet perform by hand (2026-09-13 19:50)
 
@@ -1979,9 +1991,9 @@ since they are the only person who can say whether the frozen offset matters.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Snap/Align cannot address a sub-part from the UI, so the board attachment this task is designed around is reachable only through the command layer. Confirm the gap, then file it as its own `ui-*` task (sub-part operands for `group.snap`/`group.align`, feeding off `ui-016`'s pick-depth selection) rather than logging it here again. | Open | |
-| 2 | `raspberrypi.touchScreen2`'s hidden `noGoPower` marker is frozen at the offset a stock B+ at the stock attachment datum produces (zero divergence from V1 there, asserted). Judgment call for whoever designs a real enclosure: does a marker that no longer tracks the header on a non-stock board cause a real problem, or is the frozen constant fine? If it is a problem, that is revival condition #2 in `docs/decisions/composite-recipe-geometry.md` (reopen recipe nesting), not an ad-hoc fix. | Open | |
-| 3 | Both screens are large parts (193×111 mm and 143×91 mm) next to a 85×56 mm board. Eyeball on a real phone and tablet whether a freshly placed screen frames sensibly at the default camera distance, or whether it arrives clipped/oversized enough that a Library row for these would need its own framing behaviour. | Open | |
+| 1 | Snap/Align cannot address a sub-part from the UI, so the board attachment this task is designed around is reachable only through the command layer. Confirm the gap, then file it as its own `ui-*` task (sub-part operands for `group.snap`/`group.align`, feeding off `ui-016`'s pick-depth selection) rather than logging it here again. | Moved | Moved 2026-11-07 to `FIND-testing-021`: an AI drive can settle it. |
+| 2 | `raspberrypi.touchScreen2`'s hidden `noGoPower` marker is frozen at the offset a stock B+ at the stock attachment datum produces (zero divergence from V1 there, asserted). Judgment call for whoever designs a real enclosure: does a marker that no longer tracks the header on a non-stock board cause a real problem, or is the frozen constant fine? If it is a problem, that is revival condition #2 in `docs/decisions/composite-recipe-geometry.md` (reopen recipe nesting), not an ad-hoc fix. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | Both screens are large parts (193×111 mm and 143×91 mm) next to a 85×56 mm board. Eyeball on a real phone and tablet whether a freshly placed screen frames sensibly at the default camera distance, or whether it arrives clipped/oversized enough that a Library row for these would need its own framing behaviour. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### core-015 — three camera-module judgment calls a bounding box cannot answer (2026-09-13 19:15)
 
@@ -1999,9 +2011,9 @@ looks rather than standing checks.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Render each of the five models and eyeball them against the real cameras (or V1's own `test/images/create a camera v*.snap.png`): do the sensor, lens barrel, ribbon and mount read as the right parts in the right places to someone who knows the hardware? The fixture proves the port matches *V1*; it cannot prove V1 was right. | Open | |
-| 2 | Confirm `DEFAULT_MODEL = 'v3'` is the right default. This is a **port decision with no V1 answer to check against** — V1 ships five separate factories and no shared entry point, so nothing was carried over here. `v3` was chosen as the current-generation standard camera and to keep the op usable with no params, like every sibling composite. If a different default (or requiring `model` outright) is wanted, it is a one-line change in `raspberrypi.cameraModule.js`. | Open | |
-| 3 | Confirm which way `flipTripodMount` should default for the HQ camera. V1's `HQCameraModule(flipTripodMount = false)` gives the name but not the intent; measured here, `true` raises the tripod post in z relative to the mount block (`3.68..15.18` vs `-0.2..11.3`). Whether the `false` default matches how a real HQ camera's tripod boss actually sits needs the hardware in hand. | Open | |
+| 1 | Render each of the five models and eyeball them against the real cameras (or V1's own `test/images/create a camera v*.snap.png`): do the sensor, lens barrel, ribbon and mount read as the right parts in the right places to someone who knows the hardware? The fixture proves the port matches *V1*; it cannot prove V1 was right. | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 2 | Confirm `DEFAULT_MODEL = 'v3'` is the right default. This is a **port decision with no V1 answer to check against** — V1 ships five separate factories and no shared entry point, so nothing was carried over here. `v3` was chosen as the current-generation standard camera and to keep the op usable with no params, like every sibling composite. If a different default (or requiring `model` outright) is wanted, it is a one-line change in `raspberrypi.cameraModule.js`. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 3 | Confirm which way `flipTripodMount` should default for the HQ camera. V1's `HQCameraModule(flipTripodMount = false)` gives the name but not the intent; measured here, `true` raises the tripod post in z relative to the mount block (`3.68..15.18` vs `-0.2..11.3`). Whether the `false` default matches how a real HQ camera's tripod boss actually sits needs the hardware in hand. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### core-014 — two judgment calls only a Raspberry Pi owner can settle (2026-09-13 18:44)
 
@@ -2020,8 +2032,8 @@ section), and row 1 is a one-time look, not a standing check.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Render a `raspberrypi.bplus` at each model and eyeball it against a real board (or V1's own `test/images/create a bplus.snap.png`): do the connectors read as the right parts in the right places to someone who knows the hardware? The diff proves it matches *V1*; it cannot prove V1 was right, and V1's own dimensions were eyeballed with the `dimCheck` rulers this port drops. | Open | |
-| 2 | Decide whether the board should render **drilled**. V1 assigns `group.holes`, so its combined board has the four mounting holes cut through it; this port carries them as hidden `hole1`-`hole4` parts only, because no `OpRecord` field reaches `group.js`'s `addHole` (see the retired task's deviation 2). The board therefore renders solid. If drilled is wanted, it needs either a record-level hole flag or a `boolean.subtract` in the recipe — file whichever as its own TODO. Note V1's own subtraction also carves the micro-USB shell, which overlaps `hole1`, so "match V1 exactly" is probably not the right answer. | Open | |
+| 1 | Render a `raspberrypi.bplus` at each model and eyeball it against a real board (or V1's own `test/images/create a bplus.snap.png`): do the connectors read as the right parts in the right places to someone who knows the hardware? The diff proves it matches *V1*; it cannot prove V1 was right, and V1's own dimensions were eyeballed with the `dimCheck` rulers this port drops. | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 2 | Decide whether the board should render **drilled**. V1 assigns `group.holes`, so its combined board has the four mounting holes cut through it; this port carries them as hidden `hole1`-`hole4` parts only, because no `OpRecord` field reaches `group.js`'s `addHole` (see the retired task's deviation 2). The board therefore renders solid. If drilled is wanted, it needs either a record-level hole flag or a `boolean.subtract` in the recipe — file whichever as its own TODO. Note V1's own subtraction also carves the micro-USB shell, which overlaps `hole1`, so "match V1 exactly" is probably not the right answer. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-029 — a frozen field's affordance, and a second kernel-error surface (2026-09-12 22:05)
 
@@ -2034,8 +2046,8 @@ if either is changed, both surfaces should move together.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | A body carrying a Fillet/Chamfer has its **Parameters** fields frozen, with a note naming the op. The note is legible and correct at all three reference widths (checked). What is *not* settled: whether a frozen field **looks** frozen at a glance before anyone reads the note. The only visual difference is `:read-only`'s `color: var(--text-2)` against `--text-1` plus the absent `--editable` border, which in the laptop screenshot is subtle enough that the Diameter box reads much like an editable one. Decide on a real screen whether that needs a stronger treatment (dimmed ground, a lock glyph) — and if so, apply it to *every* read-only field in the panel (Size, sub-part Transform), not just this case | Open | |
-| 2 | The Inspector's kernel-error message reuses `ui-027`'s convention verbatim, which means it also inherits its wording problem: a rejected diameter shows `document.append: primitive.cylinder could not be applied — primitive.cylinder: height must be a positive number of millimetres, got 0`. The second half is genuinely useful; the `document.append:` prefix and the repeated op key are internals leaking into a user-facing panel. Judge on a real screen whether to strip the command-layer prefix at the display boundary — this is the same row as `ui-027`'s own error-wording check, and the fix belongs in one shared place now that there are two surfaces showing it | Open | |
+| 1 | A body carrying a Fillet/Chamfer has its **Parameters** fields frozen, with a note naming the op. The note is legible and correct at all three reference widths (checked). What is *not* settled: whether a frozen field **looks** frozen at a glance before anyone reads the note. The only visual difference is `:read-only`'s `color: var(--text-2)` against `--text-1` plus the absent `--editable` border, which in the laptop screenshot is subtle enough that the Diameter box reads much like an editable one. Decide on a real screen whether that needs a stronger treatment (dimmed ground, a lock glyph) — and if so, apply it to *every* read-only field in the panel (Size, sub-part Transform), not just this case | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 2 | The Inspector's kernel-error message reuses `ui-027`'s convention verbatim, which means it also inherits its wording problem: a rejected diameter shows `document.append: primitive.cylinder could not be applied — primitive.cylinder: height must be a positive number of millimetres, got 0`. The second half is genuinely useful; the `document.append:` prefix and the repeated op key are internals leaking into a user-facing panel. Judge on a real screen whether to strip the command-layer prefix at the display boundary — this is the same row as `ui-027`'s own error-wording check, and the fix belongs in one shared place now that there are two surfaces showing it | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ui-027 — icon-only phone toolbar, and the first user-facing kernel-error message (2026-09-12 15:58)
 
@@ -2064,8 +2076,8 @@ turn on human judgment an automated check can't render:
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone, glance at the Operations toolbar with a body selected (all 8 icon-only buttons visible) *before* reading any documentation. Can you guess what Fillet (◠) and Chamfer (◢) do from the glyph alone, or only from `title` on long-press? If it's illegible, a future task should swap in real SVG icons rather than Unicode glyphs. | Open | |
-| 2 | Trigger the radius-too-large error (Fillet a face with a radius at or past the solid's own extent) and read the resulting popover message as a first-time user would, not as the person who wrote it. Does "radius 45mm must be less than the solid's 40mm extent along the axis" make sense without already knowing what `fillet.js` means by "extent along the axis"? | Open | |
+| 1 | On a real phone, glance at the Operations toolbar with a body selected (all 8 icon-only buttons visible) *before* reading any documentation. Can you guess what Fillet (◠) and Chamfer (◢) do from the glyph alone, or only from `title` on long-press? If it's illegible, a future task should swap in real SVG icons rather than Unicode glyphs. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 2 | Trigger the radius-too-large error (Fillet a face with a radius at or past the solid's own extent) and read the resulting popover message as a first-time user would, not as the person who wrote it. Does "radius 45mm must be less than the solid's 40mm extent along the axis" make sense without already knowing what `fillet.js` means by "extent along the axis"? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### ui-020 — sketch mode on real touch hardware, and the lines' lifetime (2026-09-12 17:35)
 
@@ -2080,9 +2092,9 @@ to judge.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real phone and iPad, draw several lines in a row with a fingertip. Is the 14px pick tolerance (`SKETCH_PICK_TOLERANCE_PX`) enough to reliably *select* a thin line by tapping it, and are the 11px endpoint handles grabbable without zooming in first? A fingertip contact patch is far larger than either number, and both were tuned against a mouse. | Open | |
-| 2 | On the same hardware, judge whether the drawn stroke reads clearly against the grid in **both** colour schemes — the line is `--sketch-stroke` (a bright cyan) and the grid's major lines are close in weight. A stroke that disappears into the grid on a sunlit phone screen is the same class of defect as the second attempt's too-dark scene, and the only device that can answer it is a real one outdoors. | Open | |
-| 3 | Confirm the missing-delete story is acceptable for now: there is **no way to delete a sketch line**, so a mis-drawn line stays for the session (`docs/sketch-mode.md` says so out loud under "Coming later"). Undo/redo does not exist yet either, so this is not an oversight specific to sketching — but sketching is the first feature where a user can create clutter in one careless gesture. If it grates in practice, that is a signal to pull a delete/undo task forward rather than leave it to the sketch-tools milestone. | Open | |
+| 1 | On a real phone and iPad, draw several lines in a row with a fingertip. Is the 14px pick tolerance (`SKETCH_PICK_TOLERANCE_PX`) enough to reliably *select* a thin line by tapping it, and are the 11px endpoint handles grabbable without zooming in first? A fingertip contact patch is far larger than either number, and both were tuned against a mouse. | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
+| 2 | On the same hardware, judge whether the drawn stroke reads clearly against the grid in **both** colour schemes — the line is `--sketch-stroke` (a bright cyan) and the grid's major lines are close in weight. A stroke that disappears into the grid on a sunlit phone screen is the same class of defect as the second attempt's too-dark scene, and the only device that can answer it is a real one outdoors. | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 3 | Confirm the missing-delete story is acceptable for now: there is **no way to delete a sketch line**, so a mis-drawn line stays for the session (`docs/sketch-mode.md` says so out loud under "Coming later"). Undo/redo does not exist yet either, so this is not an oversight specific to sketching — but sketching is the first feature where a user can create clutter in one careless gesture. If it grates in practice, that is a signal to pull a delete/undo task forward rather than leave it to the sketch-tools milestone. | Moved | Moved 2026-11-07 to `FIND-testing-021`: an AI drive can settle it. |
 
 ### ui-026 — Snap/Align operation (2026-09-11 20:20)
 
@@ -2127,7 +2139,7 @@ reachability reason, so it does not cover this either.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | When `hardware.*` / `kit.*` get Library rows (M2), place a **Bolt** and an **Anchor**, orbit right around each one, and look for a seam or flickering surface where `tap` meets `head`/`thread` and where `hole` meets `post` — at all three reference viewports, and in WebKit as well as Chromium (depth-buffer precision differs between engines, so a z-fight can be engine-specific). If either reads badly, the fix is documented at `createBodyObject` in `src/render/mesh.js`: fall back to the combined mesh for that body — trading its pick depth for a clean surface — rather than re-unioning every group and losing pick depth for the ones that never needed it. | Open | Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
+| 1 | When `hardware.*` / `kit.*` get Library rows (M2), place a **Bolt** and an **Anchor**, orbit right around each one, and look for a seam or flickering surface where `tap` meets `head`/`thread` and where `hole` meets `post` — at all three reference viewports, and in WebKit as well as Chromium (depth-buffer precision differs between engines, so a z-fight can be engine-specific). If either reads badly, the fix is documented at `createBodyObject` in `src/render/mesh.js`: fall back to the combined mesh for that body — trading its pick depth for a clean surface — rather than re-unioning every group and losing pick depth for the ones that never needed it. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. Graduating: automated depth/translucency spec filed as `FIND-testing-015` (real-GPU look stays here). |
 
 ### core-020 — the snap radius is wider than the parts, so two solids cannot be drag-placed *partially* overlapping (2026-09-10 22:25)
 
@@ -2149,8 +2161,8 @@ against scenario 4 was actually reached.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Judge, by hand on real hardware, whether the snap should refuse a *centre-on-centre* alignment when both solids are already within each other's bounds — or whether an overlapping drop should snap to a face rather than a centre. This is a feel question about what a user means by dropping a part on top of another one, not a numeric one. | Open | |
-| 2 | Related and cheap to check at the same time: whether an empty boolean result should say so out loud (a toast, or a refusal) rather than silently leaving a `0 × 0 × 0` body in the scene list. Two coincident operands are the common way to reach it by accident. | Open | |
+| 1 | Judge, by hand on real hardware, whether the snap should refuse a *centre-on-centre* alignment when both solids are already within each other's bounds — or whether an overlapping drop should snap to a face rather than a centre. This is a feel question about what a user means by dropping a part on top of another one, not a numeric one. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | Related and cheap to check at the same time: whether an empty boolean result should say so out loud (a toast, or a refusal) rather than silently leaving a `0 × 0 × 0` body in the scene list. Two coincident operands are the common way to reach it by accident. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-014 — a *nearly* coplanar subtract reports the uncut size (2026-09-10 17:20)
 
@@ -2180,7 +2192,7 @@ lines two things up. Reached in `ui-014`'s own drive without trying to.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Decide whether this is worth its own finding (a tolerance-snap on operand coordinates, a post-boolean sliver cleanup, or measuring the result some way other than its raw bounding box) or is acceptable as-is. Judge it by dragging two cubes into rough overlap by hand and typing a round position for one of them, then reading the dimension lines against the shape actually on screen. | Open | |
+| 1 | Decide whether this is worth its own finding (a tolerance-snap on operand coordinates, a post-boolean sliver cleanup, or measuring the result some way other than its raw bounding box) or is acceptable as-is. Judge it by dragging two cubes into rough overlap by hand and typing a round position for one of them, then reading the dimension lines against the shape actually on screen. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-014 — the Inspector shows an empty PARAMETERS heading for a boolean result (2026-09-10 17:20)
 
@@ -2192,7 +2204,7 @@ failed to load.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Look at it and decide: hide the header when a body has no params, or say something in the empty space ("this shape was built from others"). Visible in the drive's `Subtract 1` screenshot. | Open | |
+| 1 | Look at it and decide: hide the header when a body has no params, or say something in the empty space ("this shape was built from others"). Visible in the drive's `Subtract 1` screenshot. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. 2026-11-07: Re-checking whether the empty heading still shows moved to `FIND-testing-021`; the hide-or-explain decision stays here. |
 
 ### ui-013 — does a 48 px snap radius *feel* right on real hardware? (2026-09-09 13:12)
 
@@ -2206,7 +2218,7 @@ on a phone about 60 px.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real phone and a real iPad, drop three or four solids near each other in a row and judge whether the snap helps or fights you — in particular whether you can still place something deliberately *just* beside another part without it jumping flush, and whether a fingertip's own imprecision makes 48 px feel too small rather than too large. | Open | |
-| 2 | Look at the magenta guides on a real screen against the dark grid, at an angle and in daylight. They were chosen (over `--accent`) on a desktop screenshot, where they read clearly; a phone at low brightness is the case that screenshot can't stand in for. | Open | |
+| 2 | Look at the magenta guides on a real screen against the dark grid, at an angle and in daylight. They were chosen (over `--accent`) on a desktop screenshot, where they read clearly; a phone at low brightness is the case that screenshot can't stand in for. | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
 
 ### ui-024 — marquee drag feel on real touch hardware (2026-09-07 18:41)
 
@@ -2221,7 +2233,7 @@ control and doesn't cover selection).
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | On a real phone/tablet, tap the nav chrome's **Select** button, then drag a finger from empty grid space: the box should track the finger smoothly with no visible lag, and the gesture must not also scroll the page or trigger the browser's own pull-to-refresh/back-swipe — `touch-action: none` is already set on the canvas for orbit/pan (`ui-018`'s own fix for exactly this class of bug on iPad), but the marquee is new code sharing that same element, not a guarantee it inherited by itself without a real device confirming it. | Open | |
-| 2 | Confirm the **Select** button itself is comfortably tappable at phone width next to the existing Orbit/Pan buttons — the chrome row grew by one button for this task, and only a bounding-box assertion (`>=36px`) checked size in e2e, not whether three adjacent small buttons are comfortable to hit accurately with a real thumb. | Open | |
+| 2 | Confirm the **Select** button itself is comfortably tappable at phone width next to the existing Orbit/Pan buttons — the chrome row grew by one button for this task, and only a bounding-box assertion (`>=36px`) checked size in e2e, not whether three adjacent small buttons are comfortable to hit accurately with a real thumb. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 
 ### ui-021 — gradient/shadow subtlety at the gizmo's floor size, and on real touch hardware (2026-09-07 17:09)
 
@@ -2235,8 +2247,8 @@ worth a second look.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | At the gizmo's floor size (58px arm / 40px ring, `ui-017`'s minimum — the size most selections actually render at on an average-sized part) the gradient's highlight band is only a few pixels wide. Screenshots taken during this task's own drive looked fine at 1440×900 desktop resolution, but that is not the same claim as legible on a real phone/tablet screen's pixel density and viewing distance — CLAUDE.md's Responsive Layout section asks for real on-device hand-testing, not just a Chromium viewport emulation, and this task's own drive was desktop-emulation only. | Open | |
-| 2 | The double-stroke ring "tube" cue (a dim gradient band plus a thin bright core, both drawn from the same points) is the subtlest of the three techniques used here — worth a specific glance on a real device to confirm it doesn't just look like a slightly-thicker single ring, which would mean that particular technique earned its added draw call for nothing. | Open | |
+| 1 | At the gizmo's floor size (58px arm / 40px ring, `ui-017`'s minimum — the size most selections actually render at on an average-sized part) the gradient's highlight band is only a few pixels wide. Screenshots taken during this task's own drive looked fine at 1440×900 desktop resolution, but that is not the same claim as legible on a real phone/tablet screen's pixel density and viewing distance — CLAUDE.md's Responsive Layout section asks for real on-device hand-testing, not just a Chromium viewport emulation, and this task's own drive was desktop-emulation only. | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
+| 2 | The double-stroke ring "tube" cue (a dim gradient band plus a thin bright core, both drawn from the same points) is the subtlest of the three techniques used here — worth a specific glance on a real device to confirm it doesn't just look like a slightly-thicker single ring, which would mean that particular technique earned its added draw call for nothing. | Open | 2026-11-07: The part this Mac's real GPU and Retina screen can show (headed Chrome and Safari, screenshots, measured contrast) moved to `FIND-testing-030`; the real phone or tablet part stays here. |
 
 ### ui-022 — ring arrowhead legibility at phone width and at the gizmo's floor size (2026-09-07 16:17)
 
@@ -2252,8 +2264,8 @@ was only eyeballed at laptop width against a body sized comfortably above the gi
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | At phone width (390×844), with the ring at or near `GIZMO_RING_FLOOR_PX` (40px) — confirm the two chevrons per ring are still individually distinguishable as arrows, not a single blob, at a real fingertip's viewing distance. | Open | |
-| 2 | On a heavily edge-on ring (camera looking nearly along that axis, e.g. after a standard-view snap) — confirm the chevron near the ring's collapsed end doesn't visually merge into the ring's own line. | Open | |
+| 1 | At phone width (390×844), with the ring at or near `GIZMO_RING_FLOOR_PX` (40px) — confirm the two chevrons per ring are still individually distinguishable as arrows, not a single blob, at a real fingertip's viewing distance. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 2 | On a heavily edge-on ring (camera looking nearly along that axis, e.g. after a standard-view snap) — confirm the chevron near the ring's collapsed end doesn't visually merge into the ring's own line. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### core-004 — how a rotation number wrapping past ±180° feels mid-drag (2026-09-06 19:18)
 
@@ -2272,8 +2284,8 @@ has components on all three axes.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Drag one rotate ring slowly through more than half a turn on a laptop and watch the Rotation fields. Does the sign flip read as the app losing track, or as an obviously-equivalent way of saying the same angle? If the former, the fix is a display concern (an unwrapped "turns" readout, or holding the pre-drag branch for the duration of a gesture), not a change to what is stored — file it as its own `ui-*` finding. | Open | |
-| 2 | Same drag on the phone (390×844), where the fields are in a bottom sheet and a thumb is over part of the viewport, so there is less peripheral context for what the number is doing. | Open | |
+| 1 | Drag one rotate ring slowly through more than half a turn on a laptop and watch the Rotation fields. Does the sign flip read as the app losing track, or as an obviously-equivalent way of saying the same angle? If the former, the fix is a display concern (an unwrapped "turns" readout, or holding the pre-drag branch for the duration of a gesture), not a change to what is stored — file it as its own `ui-*` finding. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
+| 2 | Same drag on the phone (390×844), where the fields are in a bottom sheet and a thumb is over part of the viewport, so there is less peripheral context for what the number is doing. | Open | 2026-11-07: The measured part (emulation, 4-6x CPU throttle, or simulated fingertip taps with jitter) moved to `FIND-testing-031`; the real-device feel stays here. |
 
 ### ui-023 — legibility of diagonal dimension lines on a tilted part (2026-09-06 19:02)
 
@@ -2283,8 +2295,8 @@ rotated-body half.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Tip a cylinder over about 60° and look at it on a **phone** (390×844). At laptop width the three lines are clearly readable, but they now run diagonally *through* the gizmo's rotate rings rather than sitting square around the silhouette, and the laptop screenshot is already a little busy where a `40 mm` label crosses a ring. Judge whether the labels stay readable at phone width, or whether the lines want a larger offset (`DIMENSION_OFFSET_PX` in `Viewport.vue`) once they are no longer axis-aligned. | Open | |
-| 2 | While there: two of the three labels can end up close together when a rotation lines two local axes up on nearly the same screen direction (the degenerate case covered numerically in `annotate.spec.js`). The maths is right and the lines are separated by the perspective divide, but whether that separation is *enough* to read at phone size is an eye judgment no assertion makes. | Open | |
+| 1 | Tip a cylinder over about 60° and look at it on a **phone** (390×844). At laptop width the three lines are clearly readable, but they now run diagonally *through* the gizmo's rotate rings rather than sitting square around the silhouette, and the laptop screenshot is already a little busy where a `40 mm` label crosses a ring. Judge whether the labels stay readable at phone width, or whether the lines want a larger offset (`DIMENSION_OFFSET_PX` in `Viewport.vue`) once they are no longer axis-aligned. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
+| 2 | While there: two of the three labels can end up close together when a rotation lines two local axes up on nearly the same screen direction (the degenerate case covered numerically in `annotate.spec.js`). The maths is right and the lines are separated by the perspective divide, but whether that separation is *enough* to read at phone size is an eye judgment no assertion makes. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### build-002 — Fix bright white flash before first paint (FOUC) on app load (2026-09-06 18:22)
 
@@ -2303,7 +2315,7 @@ delay doesn't reproduce a real mobile network's connection-setup latency.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Watch a real Slow-3G + 4x-CPU-throttled load in Chrome/Firefox/Safari DevTools by eye**, on a real machine, and confirm no white frame is visible between navigation and the dark UI appearing — per the TODO's own Testing section, this matters most for WebKit/Safari specifically, since this defect is very plausibly the same white-flash bug both previous attempts shipped on iPad/Safari. | Open | |
+| 1 | **Watch a real Slow-3G + 4x-CPU-throttled load in Chrome/Firefox/Safari DevTools by eye**, on a real machine, and confirm no white frame is visible between navigation and the dark UI appearing — per the TODO's own Testing section, this matters most for WebKit/Safari specifically, since this defect is very plausibly the same white-flash bug both previous attempts shipped on iPad/Safari. | Moved | Moved 2026-11-07 to `FIND-testing-026`: an AI drive can settle it. |
 
 ### ui-018 — Shift+left-drag or right-drag pans the viewport (2026-09-06 16:08)
 
@@ -2328,7 +2340,7 @@ by `TODO/ACCEPTANCE.md` scenarios 1 and 2, so none of it is restated here.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **The dimension lines do not turn during a rotate-ring drag.** They track a *translate* drag exactly, but during a rotation the preview keeps the body's axis-aligned bounding box and only settles onto the real turned bounds on release (`src/composables/useSelectedBody.js` says why: the true bounds of a partly-turned solid need the kernel to rotate it, which is precisely the per-frame work the preview exists to avoid). Functionally correct, and the numbers are right the instant you let go. The open question is whether it *reads* as broken mid-drag — three dimension lines visibly not following the solid they annotate — or whether nobody notices because they are watching the solid. Judge it by eye on a Cube at laptop width; if it reads badly, the cheap fix is hiding the lines while a rotate preview is active, not measuring the turned solid every frame. | Open | |
+| 1 | **The dimension lines do not turn during a rotate-ring drag.** They track a *translate* drag exactly, but during a rotation the preview keeps the body's axis-aligned bounding box and only settles onto the real turned bounds on release (`src/composables/useSelectedBody.js` says why: the true bounds of a partly-turned solid need the kernel to rotate it, which is precisely the per-frame work the preview exists to avoid). Functionally correct, and the numbers are right the instant you let go. The open question is whether it *reads* as broken mid-drag — three dimension lines visibly not following the solid they annotate — or whether nobody notices because they are watching the solid. Judge it by eye on a Cube at laptop width; if it reads badly, the cheap fix is hiding the lines while a rotate preview is active, not measuring the turned solid every frame. | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 | 2 | **Rotate-ring drag feel under a real finger.** A ring drag maps the pointer's sweep *around the gizmo hub* to degrees, so how much rotation a given finger movement produces depends on how far out from the hub you grabbed — near the hub a small movement spins it fast. That is the correct dial behaviour and it felt fine with a synthesised pointer, but a fingertip has contact area and lands less precisely than a mouse: the driven sweeps produced about −52° at laptop width and about −105° at phone width for the same 70px gesture, purely because the fatter phone hit target moves the effective grab point. Try it on a real iPhone and iPad and say whether the phone case is too fast to control; if it is, the fix is clamping the effective grab radius in `rotateDeltaDeg`'s caller, not shrinking the touch target back down. | Open | |
 
 ### ui-011 — Selection → inspector + dimension lines + gizmo (2026-09-06 01:22)
@@ -2340,7 +2352,7 @@ here. What is left is a genuine visual judgment call that no assertion can settl
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Dimension-label collisions at phone width.** The three labels are placed at each dimension line's midpoint, pushed outward from the solid's screen centre (`updateDimensionAnnotation` in `src/render/annotate.js`). That keeps them off the solid, which is the hard part — but nothing stops one from landing under the orientation-gizmo card in the top-right corner, and at 390px that card is large relative to the screen. It happened once in the drive: the X label drifted behind the card while the camera was near the home view on a body placed high in the viewport. Nothing was *wrong* — the number is also in the Inspector's Size row — but it looks untidy. Worth a few minutes of orbiting on a real phone to judge whether this is rare enough to leave, or whether the labels want a simple clamp inside a safe area. Do not reach for a general label-collision solver before deciding it is actually a problem. | Open | |
+| 1 | **Dimension-label collisions at phone width.** The three labels are placed at each dimension line's midpoint, pushed outward from the solid's screen centre (`updateDimensionAnnotation` in `src/render/annotate.js`). That keeps them off the solid, which is the hard part — but nothing stops one from landing under the orientation-gizmo card in the top-right corner, and at 390px that card is large relative to the screen. It happened once in the drive: the X label drifted behind the card while the camera was near the home view on a body placed high in the viewport. Nothing was *wrong* — the number is also in the Inspector's Size row — but it looks untidy. Worth a few minutes of orbiting on a real phone to judge whether this is rare enough to leave, or whether the labels want a simple clamp inside a safe area. Do not reach for a general label-collision solver before deciding it is actually a problem. | Moved | Moved 2026-11-07 to `FIND-testing-030`: this Mac’s real GPU and screen, with measurements, can settle it. |
 
 ### ui-010 — Drag-place a primitive (2026-09-06 00:58)
 
@@ -2362,7 +2374,7 @@ where a real finger has contact area and a real wrist has momentum.
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | **Orbit sensitivity on a real touchscreen.** Drag speed is a fixed 0.4° of orbit per pixel, slightly faster than three.js's own OrbitControls default at this viewport height. In the driven pass a single 260px diagonal swipe rotated ~104° and parked the camera flat against the top-down pole — correct clamping, but possibly too twitchy in the hand. Try a few casual swipes on an iPhone and an iPad and say whether it wants lowering (the constant is `ORBIT_DEG_PER_PX` in `src/components/viewport/Viewport.vue`). | Open | |
-| 2 | **Orientation-triad cap tap targets.** The six axis caps are 32px (30px at phone width) rather than the 44px used for the navigation chrome — six 44px targets will not fit a 116px dial without overlapping. The e2e matrix proves they are hittable at their centres; what it can't tell us is whether a thumb reliably picks the intended cap when two are visually adjacent. If it doesn't, the fix is a bigger dial at touch widths, not bigger caps in the same space. | Open | |
+| 2 | **Orientation-triad cap tap targets.** The six axis caps are 32px (30px at phone width) rather than the 44px used for the navigation chrome — six 44px targets will not fit a 116px dial without overlapping. The e2e matrix proves they are hittable at their centres; what it can't tell us is whether a thumb reliably picks the intended cap when two are visually adjacent. If it doesn't, the fix is a bigger dial at touch widths, not bigger caps in the same space. | Moved | Moved 2026-11-07 to `FIND-testing-031`: a measurement can settle it. |
 
 ### docs-018 — Phone and tablet media (2026-10-03 19:08)
 
@@ -2390,7 +2402,7 @@ three viewports (the 390 px fit is asserted there). What is left is the judgment
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Open | |
+| 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### core-063 — Wording of the Repeat sheet for a step you did not make (2026-10-17 21:54)
 
@@ -2398,9 +2410,9 @@ A step the Assistant, Claude Code or a merge added to the first part no longer s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Decision for the owner:** the spec's Problem says "let Apply copy it", its Proposed fix and Testing say the step is *left out of every copy*. The second shipped. Is "Bolt 1 keeps the Assistant's step, the copies do not" what you wanted, or should the copies carry it? | Open | |
-| 2 | Read the line under *Not part of the repeat* cold: *From the Assistant, so it is left out of the copies* (and *From Claude Code…*, *From a merge…*, *On another body, so it is not copied*). Does it say clearly that Bolt 1 keeps the step? | Open | |
-| 3 | Read the one remaining refusal: *The only step that points at hole1 is from the Assistant, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.* Clear, or too long on a phone? | Open | |
+| 1 | **Decision for the owner:** the spec's Problem says "let Apply copy it", its Proposed fix and Testing say the step is *left out of every copy*. The second shipped. Is "Bolt 1 keeps the Assistant's step, the copies do not" what you wanted, or should the copies carry it? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | Read the line under *Not part of the repeat* cold: *From the Assistant, so it is left out of the copies* (and *From Claude Code…*, *From a merge…*, *On another body, so it is not copied*). Does it say clearly that Bolt 1 keeps the step? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 3 | Read the one remaining refusal: *The only step that points at hole1 is from the Assistant, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.* Clear, or too long on a phone? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
 ### core-064 — A Pi that survives its own hole Subtract (2026-10-17)
 
@@ -2408,9 +2420,9 @@ One Pi now drills every hole: a Subtract that cuts with only the Pi's mounting h
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Decision for the owner:** should the HAT's, the Camera Module's and the touch screens' mounting holes also keep their part when used to Subtract? Today only the Pi does; those still use their part up, as does the Ethernet jack, a `clearance-*` keep-out, a Pi's hole mixed with another piece, and a bolt's `tap` (scenario 5). One line per op in `DRILL_PARTS` (`src/core/kernel/registry.js`) switches one on. | Open | |
-| 2 | **Feel:** drill two holes with one Pi, then move the Pi. The holes already drilled stay where they were (each Subtract reads the Pi as it was at that step); only a later Subtract uses the new place. A model edit on the Pi (say Pi 4 to Pi 5) does re-fold the holes. Does the first read as a bug to someone who has not read `docs/hardware-library.md`? | Open | |
-| 3 | **Decision for the owner:** Repeat now refuses a source whose steps include a Subtract (from the seed's first mention onward), with *"... a repeat would copy the whole of <body> once per target. Subtract the other parts one at a time instead ..."*. It is not reachable from the UI today, so no one sees it by hand; it is there so a kept Pi cannot make Repeat add one whole extra plate per hole. Keep it, or drop it and accept that case? | Open | |
+| 1 | **Decision for the owner:** should the HAT's, the Camera Module's and the touch screens' mounting holes also keep their part when used to Subtract? Today only the Pi does; those still use their part up, as does the Ethernet jack, a `clearance-*` keep-out, a Pi's hole mixed with another piece, and a bolt's `tap` (scenario 5). One line per op in `DRILL_PARTS` (`src/core/kernel/registry.js`) switches one on. | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
+| 2 | **Feel:** drill two holes with one Pi, then move the Pi. The holes already drilled stay where they were (each Subtract reads the Pi as it was at that step); only a later Subtract uses the new place. A model edit on the Pi (say Pi 4 to Pi 5) does re-fold the holes. Does the first read as a bug to someone who has not read `docs/hardware-library.md`? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
+| 3 | **Decision for the owner:** Repeat now refuses a source whose steps include a Subtract (from the seed's first mention onward), with *"... a repeat would copy the whole of <body> once per target. Subtract the other parts one at a time instead ..."*. It is not reachable from the UI today, so no one sees it by hand; it is there so a kept Pi cannot make Repeat add one whole extra plate per hole. Keep it, or drop it and accept that case? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-087 — Moving the operation panels (Stage 1)
 
