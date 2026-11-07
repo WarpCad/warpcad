@@ -158,6 +158,10 @@ one that is too small to take it is refused too:
 ## Notes and gotchas
 
 - **Units are millimetres**, as everywhere else in WarpCad.
+- **A rounded Cube takes a rim fillet or chamfer on an end face.** A Cube with a
+  [Corner radius](selection-and-inspector.md#what-it-shows) rounds the edges along its
+  Rounded axis. Fillet the face across that axis (Top for the default Z) to soften the
+  rim as well, for example a 38 × 25 × 20 mm block with 2 mm corners and a 1.5 mm Top fillet.
 - **A rejected radius doesn't close the popover.** If your typed radius is too
   large for the shape, fix the value and try again — nothing was committed, and
   the shape is unchanged.

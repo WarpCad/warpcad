@@ -32,7 +32,7 @@
 import { createDocument, foldableEntry } from './document.js'
 import { isGroup } from './kernel/group.js'
 import { nameOverrideOf } from './naming.js'
-import { paramOptions, partAliasesOf } from './kernel/registry.js'
+import { lookupEntry, paramOptions, partAliasesOf } from './kernel/registry.js'
 import { resolveParams, setFormulaRevision, setVariableRevision, transitiveConsumersOf, variablesOf } from './variables.js'
 import { REPEAT_OP } from './repeat.js'
 
@@ -139,6 +139,9 @@ function previewOf(document, changes) {
  */
 function variantLabelOf(root, previous, variables = undefined) {
   if (root === undefined) return null
+  // A native op's choice is a shape setting, not a catalogue variant (`TODO/core-080`: a
+  // Cube's Rounded axis), so the body is named by its own name.
+  if (lookupEntry(root.op)?.kind === 'native') return root.name ?? null
   const params = variables === undefined ? (root.params ?? {}) : resolveParams(root.params ?? {}, variables).params
   const enums = Object.entries(paramOptions(root.op, params)).filter(([, field]) => field.kind === 'enum')
   const before = previous && variables !== undefined ? resolveParams(previous, variables).params : previous

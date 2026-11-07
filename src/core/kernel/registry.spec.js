@@ -1707,7 +1707,9 @@ describe('paramOptions — editable composite params (TODO/ui-052)', () => {
     const { paramOptions, hasEditableParams } = await import('./registry.js')
     expect(paramOptions('raspberrypi.hat', {})).toEqual({})
     expect(paramOptions('kit.board', { width: 40 })).toEqual({})
-    expect(paramOptions('primitive.cuboid', { size: [1, 1, 1] })).toEqual({})
+    expect(paramOptions('primitive.cylinder', { diameter: 1, height: 1 })).toEqual({})
+    // TODO/core-080: the Cube's one exception — its two optional params, never its Size.
+    expect(Object.keys(paramOptions('primitive.cuboid', { size: [1, 1, 1] }))).toEqual(['roundRadius', 'roundAxis'])
     expect(hasEditableParams('raspberrypi.hat')).toBe(false)
     expect(hasEditableParams('raspberrypi.bplus')).toBe(true)
   })
@@ -2094,5 +2096,133 @@ describe('group.setPartHidden — hidden by default (TODO/ui-093)', () => {
       { id: 'g-hide-1', op: 'group.setPartHidden', target: 'g', supersedes: 'g', params: { part: 'Gone', hidden: true } },
     ])
     expect(/** @type {any} */ (byId.get('g-hide-1')).names).toEqual(['A', 'B'])
+  })
+})
+
+describe('primitive.cuboid — a corner radius along one axis (TODO/core-080)', () => {
+  const { geometries } = modeling
+  const AXES = /** @type {const} */ (['x', 'y', 'z'])
+  /** Which world axis index each `roundAxis` runs along, and the two it rounds across. */
+  const ALONG = { x: 0, y: 1, z: 2 }
+  const ACROSS = { x: [1, 2], y: [2, 0], z: [0, 1] }
+
+  /** @param {Record<string, any>} params @param {any} [policy] */
+  const cube = (params, policy) => {
+    const entry = getEntry('primitive.cuboid')
+    return /** @type {Geom3} */ (/** @type {any} */ (entry.build)({ params, inputs: [], policy }))
+  }
+  /** @param {Geom3} solid */
+  const polygonsOf = (solid) => geometries.geom3.toPolygons(solid).map((polygon) => polygon.vertices.map((v) => [...v]))
+
+  it('roundRadius 0, or no key at all, is today\'s sharp cube polygon for polygon', () => {
+    /** @type {[number, number, number]} */
+    const size = [40, 20, 10]
+    const today = polygonsOf(primitives.cuboid({ size, center: [1, 2, 3] }))
+    expect(polygonsOf(cube({ size, center: [1, 2, 3] }))).toEqual(today)
+    expect(polygonsOf(cube({ size, center: [1, 2, 3], roundRadius: 0 }))).toEqual(today)
+    // An axis with no radius changes nothing either.
+    expect(polygonsOf(cube({ size, center: [1, 2, 3], roundRadius: 0, roundAxis: 'x' }))).toEqual(today)
+  })
+
+  for (const axis of AXES) {
+    it(`roundAxis '${axis}': the bounding box is exactly size, on the given centre`, () => {
+      const size = [30, 20, 12]
+      /** @type {[number, number, number]} */
+      const center = [5, -7, 11]
+      const [min, max] = boundsOf(cube({ size, center, roundRadius: 3, roundAxis: axis }))
+      for (let i = 0; i < 3; i += 1) {
+        expect(min[i]).toBeCloseTo(center[i] - size[i] / 2, 6)
+        expect(max[i]).toBeCloseTo(center[i] + size[i] / 2, 6)
+      }
+    })
+
+    it(`roundAxis '${axis}': the four edges along ${axis} are rounded, the others stay sharp`, () => {
+      const size = [30, 20, 12]
+      const solid = cube({ size, roundRadius: 3, roundAxis: axis })
+      const vertices = geometries.geom3.toPolygons(solid).flatMap((polygon) => polygon.vertices)
+      const [a, b] = ACROSS[axis]
+      const along = ALONG[axis]
+      const atExtreme = (/** @type {number[]} */ v, /** @type {number} */ i) => Math.abs(Math.abs(v[i]) - size[i] / 2) < 1e-6
+      // No vertex sits on a corner of the cross-section: those corners are rounded off.
+      expect(vertices.some((v) => atExtreme(v, a) && atExtreme(v, b))).toBe(false)
+      // The edges across the axis are still sharp: an end face meets each side face.
+      expect(vertices.some((v) => atExtreme(v, along) && atExtreme(v, a))).toBe(true)
+      expect(vertices.some((v) => atExtreme(v, along) && atExtreme(v, b))).toBe(true)
+    })
+
+    it(`roundAxis '${axis}': volume is x·y·z − (4 − π)·r²·L, short by the chorded arcs only`, () => {
+      const size = [30, 20, 12]
+      const r = 3
+      const segments = 32
+      const L = size[ALONG[axis]]
+      const volume = measurements.measureVolume(cube({ size, roundRadius: r, roundAxis: axis, segments }))
+      const ideal = size[0] * size[1] * size[2] - (4 - Math.PI) * r * r * L
+      // The four quarter-arcs together are one 32-gon inscribed in a radius-r circle, whose
+      // area falls short of πr² by πr² − (n/2)·r²·sin(2π/n) (≈ 0.18 mm² at r 3), so the
+      // solid is short by that times L and never more: the chords cut inside the true arc.
+      const shortfall = (Math.PI - (segments / 2) * Math.sin((2 * Math.PI) / segments)) * r * r * L
+      expect(volume).toBeLessThanOrEqual(ideal + 1e-6)
+      expect(ideal - volume).toBeLessThanOrEqual(shortfall + 1e-6)
+      expect(volume).toBeCloseTo(ideal - shortfall, 4)
+    })
+
+    it(`roundAxis '${axis}': the result is watertight (io-006's check)`, async () => {
+      const { makeWatertight, openEdgesOf } = await import('./watertight.js')
+      const solid = cube({ size: [30, 20, 12], roundRadius: 3, roundAxis: axis })
+      expect(openEdgesOf(makeWatertight(solid)).openEdges).toBe(0)
+    })
+  }
+
+  it('a radius of exactly half the shorter cross side is refused, not clamped', () => {
+    expect(() => cube({ size: [20, 10, 30], roundRadius: 5 })).toThrow(
+      /primitive\.cuboid: roundRadius must be smaller than half the shortest side \(5 mm\), got 5/
+    )
+    expect(() => cube({ size: [20, 10, 30], roundRadius: 4.99 })).not.toThrow()
+  })
+
+  it('only the two sides across the axis bound the radius', () => {
+    // A 50 × 50 × 0.7 plate takes r 8 about Z: the 0.7 mm side runs along the rounded edges.
+    expect(() => cube({ size: [50, 50, 0.7], roundRadius: 8 })).not.toThrow()
+    // The same 10 mm side refuses r 5 when it is across the axis and allows it when along.
+    expect(() => cube({ size: [10, 40, 40], roundRadius: 5, roundAxis: 'z' })).toThrow(/roundRadius/)
+    expect(() => cube({ size: [10, 40, 40], roundRadius: 5, roundAxis: 'x' })).not.toThrow()
+    expect(() => cube({ size: [10, 40, 40], roundRadius: 5, roundAxis: 'y' })).toThrow(/\(5 mm\)/)
+  })
+
+  it('a negative radius and an unknown axis are refused by name', () => {
+    expect(() => cube({ size: [20, 20, 20], roundRadius: -1 })).toThrow(/primitive\.cuboid: roundRadius/)
+    expect(() => cube({ size: [20, 20, 20], roundRadius: 2, roundAxis: 'w' })).toThrow(
+      /primitive\.cuboid: roundAxis must be one of 'x', 'y', 'z', got "w"/
+    )
+  })
+
+  it('takes a rim fillet on a face across its rounded axis, and stays watertight (io-006)', async () => {
+    const { makeWatertight, openEdgesOf } = await import('./watertight.js')
+    const { byId } = evaluate([
+      { id: 'cube', op: 'primitive.cuboid', params: { size: [38, 25, 20], roundRadius: 2 } },
+      { id: 'it', op: 'modify.filletRim', params: { radius: 1.5, orientation: 'z+' }, target: 'cube' },
+    ])
+    const solid = /** @type {Geom3} */ (byId.get('it'))
+    const [min, max] = boundsOf(solid)
+    expect(max[2] - min[2]).toBeCloseTo(20, 6)
+    expect(openEdgesOf(makeWatertight(solid)).openEdges).toBe(0)
+    // Material came off the top rim.
+    expect(measurements.measureVolume(solid)).toBeLessThan(measurements.measureVolume(cube({ size: [38, 25, 20], roundRadius: 2 })))
+  })
+
+  it('the corner count follows the design resolution, as profile.roundedRectangle does', async () => {
+    const { policyFor, segmentsFor } = await import('./tessellation.js')
+    const size = [90, 90, 25]
+    const r = 15
+    for (const preset of ['legacy', 'draft', 'normal', 'print']) {
+      const policy = policyFor(preset)
+      const segments = segmentsFor(r, policy)
+      expect(segments % 4, preset).toBe(0)
+      expect(polygonsOf(cube({ size, roundRadius: r }, policy)), preset).toEqual(
+        polygonsOf(cube({ size, roundRadius: r, segments }))
+      )
+    }
+    // A finer resolution really is finer at r 15, so the policy is being read, not ignored.
+    expect(segmentsFor(r, policyFor('print'))).toBeGreaterThan(segmentsFor(r, policyFor('draft')))
   })
 })

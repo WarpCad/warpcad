@@ -1256,6 +1256,8 @@ function boltDependsOn(key, schema) {
  *
  * - A **described composite** (`paramOptions` has entries) offers its schema params —
  *   enum and number, with their limits — plus any boolean it currently holds as a literal.
+ * - A **described native op** (a Cube, `TODO/core-080`) offers its schema params and, as
+ *   below, every other literal it holds.
  * - Any **other** op offers each finite-number literal (whole, or each element of a number
  *   array) and each boolean literal. A slot already bound is offered with the kind its
  *   variable has, when `variables` is given.
@@ -1289,13 +1291,19 @@ export function bindableParams(op, params, tables = undefined, variables = undef
     return null
   }
 
+  // A native op's schema (`TODO/core-080`: a Cube's corner radius and axis) *adds* slots after
+  // its plain numbers — a Cube's Size X/Y/Z are still offered off the record below. A
+  // composite's schema replaces them.
+  const replacesLiterals = described && lookupEntry(op)?.kind !== 'native'
+  /** @type {BindableSlot[]} */
+  const schemaSlots = []
   if (described) {
     for (const [key, field] of Object.entries(schema)) {
       if (field.kind === 'enum') {
         const dependsOn = op === 'hardware.bolt' ? boltDependsOn(key, schema) : undefined
-        slots.push({ path: key, key, kind: 'enum', label: field.label, options: field.options, ...(dependsOn ? { dependsOn } : {}) })
+        schemaSlots.push({ path: key, key, kind: 'enum', label: field.label, options: field.options, ...(dependsOn ? { dependsOn } : {}) })
       } else {
-        slots.push({
+        schemaSlots.push({
           path: key,
           key,
           kind: 'number',
@@ -1308,9 +1316,10 @@ export function bindableParams(op, params, tables = undefined, variables = undef
       }
     }
   }
+  if (replacesLiterals) slots.push(...schemaSlots)
   for (const [key, value] of Object.entries(source)) {
     if (isReservedStepParam(key) || schema[key] !== undefined) continue
-    if (described) {
+    if (replacesLiterals) {
       if (literalKind(value) === 'boolean') slots.push({ path: key, key, kind: 'boolean' })
       continue
     }
@@ -1322,6 +1331,7 @@ export function bindableParams(op, params, tables = undefined, variables = undef
     const kind = literalKind(value)
     if (kind !== null) slots.push({ path: key, key, kind })
   }
+  if (!replacesLiterals) slots.push(...schemaSlots)
   return slots
 }
 

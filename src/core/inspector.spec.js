@@ -78,7 +78,8 @@ describe('describeBody', () => {
 
     expect(description.opLabel).toBe('Cube')
     expect(description.name).toBe('Cube 1')
-    expect(description.params.map((field) => field.key)).toEqual(['size'])
+    // `TODO/core-080` adds the corner radius and its axis after Size.
+    expect(description.params.map((field) => field.key)).toEqual(['size', 'roundRadius', 'roundAxis'])
 
     const [size] = description.params
     expect(size.kind).toBe('vector')
@@ -117,6 +118,8 @@ describe('describeBody', () => {
       for (const field of description.params) {
         expect(field.label).not.toBe('')
         if (field.kind === 'number') expect(Number.isFinite(field.value)).toBe(true)
+        // A Cube's Rounded axis (TODO/core-080) is a choice, not a number.
+        else if (field.kind === 'enum') expect(present(field.options).length).toBeGreaterThan(0)
         else for (const component of present(field.components)) expect(Number.isFinite(component.value)).toBe(true)
       }
     }
@@ -812,6 +815,43 @@ describe('describeSelection — drilled into a group s sub-part (TODO/ui-016)', 
   })
 })
 
+
+describe('describeBody — a Cube\'s corner radius and rounded axis (TODO/core-080)', () => {
+  it('a Cube placed without the new keys shows Corner radius 0 mm and Rounded axis Z', () => {
+    const { body } = placed('primitive.cuboid')
+    expect(body.params).not.toHaveProperty('roundRadius')
+    expect(body.params).not.toHaveProperty('roundAxis')
+    const fields = describeBody(body).params
+    expect(fields.map((field) => field.key)).toEqual(['size', 'roundRadius', 'roundAxis'])
+    expect(present(fields.find((field) => field.key === 'roundRadius'))).toMatchObject({
+      kind: 'number',
+      label: 'Corner radius',
+      unit: 'mm',
+      value: 0,
+    })
+    const axis = present(fields.find((field) => field.key === 'roundAxis'))
+    expect(axis).toMatchObject({ kind: 'enum', label: 'Rounded axis', value: 'z' })
+    expect(present(axis.options).map((option) => [option.value, option.label])).toEqual([
+      ['x', 'X'],
+      ['y', 'Y'],
+      ['z', 'Z'],
+    ])
+  })
+
+  it('a rounded Cube shows its own values, in the same order whichever was edited first', () => {
+    const document = createDocument()
+    document.append(
+      { id: 'c', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [25, 23.862, 1], center: [0, 0, 0.5], roundAxis: 'x', roundRadius: 0.4 } },
+      { origin: 'local' }
+    )
+    const fields = describeBody(document.bodies()[0]).params
+    expect(fields.map((field) => field.key)).toEqual(['size', 'roundRadius', 'roundAxis'])
+    expect(present(fields.find((field) => field.key === 'roundRadius')).value).toBe(0.4)
+    expect(present(fields.find((field) => field.key === 'roundAxis')).value).toBe('x')
+    // Size is untouched by the rounding: still the world X/Y/Z extent.
+    expect(present(fields[0].components).map((component) => component.value)).toEqual([25, 23.862, 1])
+  })
+})
 
 describe('describeBody — editable composite params (TODO/ui-052)', () => {
   const LOCAL = { origin: 'local' }

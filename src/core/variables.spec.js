@@ -699,6 +699,9 @@ describe('bindableParams — what the bind control may offer, read from the regi
       'center.0:number',
       'center.1:number',
       'center.2:number',
+      // TODO/core-080: the corner radius and its axis, after the record's own numbers.
+      'roundRadius:number',
+      'roundAxis:enum',
     ])
   })
 

@@ -1361,23 +1361,103 @@ function extrudeToApex(profile, params, policy) {
   return geometries.geom3.create([...geometries.geom3.toPolygons(body), ...ring, ...geometries.geom3.toPolygons(hubBody)])
 }
 
+/** The axes a Cube's rounded edges may run along (`TODO/core-080`). */
+const ROUND_AXES = Object.freeze(/** @type {const} */ (['x', 'y', 'z']))
+
+/** @typedef {typeof ROUND_AXES[number]} RoundAxis */
+/** @typedef {import('@jscad/modeling').maths.mat4.Mat4} Mat4 */
+
+/**
+ * For each `roundAxis`, the world axis indices of the profile's local X and Y (the two sides
+ * **across** the axis, in right-handed order) and of its local Z (the side **along** it), and
+ * the matrix that carries the profile's frame onto the world. Each matrix is a cyclic
+ * permutation of the axes, a proper rotation (determinant +1), so a face's winding — and so
+ * its outward normal — survives it, and every coordinate lands exactly, with no trig rounding
+ * to push the bounding box off `size`. Column-major, as `@jscad/modeling`'s `mat4` is.
+ *
+ * @type {Readonly<Record<RoundAxis, { across: readonly [number, number], along: number, frame: Mat4 }>>}
+ */
+const ROUND_AXIS_FRAMES = Object.freeze({
+  z: Object.freeze({ across: /** @type {const} */ ([0, 1]), along: 2, frame: /** @type {Mat4} */ ([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]) }),
+  // Local X → world Y, local Y → world Z, local Z → world X.
+  x: Object.freeze({ across: /** @type {const} */ ([1, 2]), along: 0, frame: /** @type {Mat4} */ ([0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1]) }),
+  // Local X → world Z, local Y → world X, local Z → world Y.
+  y: Object.freeze({ across: /** @type {const} */ ([2, 0]), along: 1, frame: /** @type {Mat4} */ ([0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]) }),
+})
+
+/**
+ * @param {unknown} value
+ * @param {string} op
+ * @returns {RoundAxis}
+ */
+function requireRoundAxis(value, op) {
+  if (typeof value === 'string' && /** @type {readonly string[]} */ (ROUND_AXES).includes(value)) {
+    return /** @type {RoundAxis} */ (value)
+  }
+  throw new Error(`${op}: roundAxis must be one of ${ROUND_AXES.map((axis) => `'${axis}'`).join(', ')}, got ${JSON.stringify(value)}`)
+}
+
+/**
+ * A box with the four edges that run along `roundAxis` rounded (`TODO/core-080`) — what
+ * jscad1's `CAG.roundedRectangle(...).extrude()` built, with the bounding box still exactly
+ * `size` on world axes and centred on `center`.
+ *
+ * Built as the rounded rectangle of the two sides across the axis, extruded along local Z
+ * by the side along it, re-centred (`extrudeLinear` builds up from `z = 0`), then turned onto
+ * the axis by {@link ROUND_AXIS_FRAMES}. Only the two cross sides bound the radius: a
+ * 50 × 50 × 0.7 plate takes r 8 about Z.
+ *
+ * @param {[number, number, number]} sizeMm
+ * @param {[number, number, number]} centerMm
+ * @param {number} roundRadiusMm Positive.
+ * @param {RoundAxis} roundAxis
+ * @param {number | null} segments An explicit full-circle count, or `null` for the policy's.
+ * @param {Readonly<import('./tessellation.js').TessellationPolicy> | undefined} policy
+ * @returns {Geom3}
+ */
+function roundedCuboid(sizeMm, centerMm, roundRadiusMm, roundAxis, segments, policy) {
+  const op = 'primitive.cuboid'
+  const { across, along, frame } = ROUND_AXIS_FRAMES[roundAxis]
+  const width = sizeMm[across[0]]
+  const length = sizeMm[across[1]]
+  const depth = sizeMm[along]
+  assertCornerRadiusFits(roundRadiusMm, Math.min(width, length), 'roundRadius', op)
+  const profile = primitives.roundedRectangle({
+    size: [width, length],
+    roundRadius: roundRadiusMm,
+    // A full circle's count at the corner radius, a quarter per corner — the same policy
+    // `profile.roundedRectangle` follows, so both are multiples of 4.
+    segments: segments ?? segmentsFor(roundRadiusMm, policy),
+  })
+  const prism = transforms.translate([0, 0, -depth / 2], extrusions.extrudeLinear({ height: depth }, profile))
+  return transforms.translate(centerMm, transforms.transform(frame, prism))
+}
+
 /**
  * The op catalogue.
  *
  * @type {Readonly<Record<string, RegistryEntry>>}
  */
 export const registry = Object.freeze({
+  // `roundRadius` / `roundAxis` (TODO/core-080): jscad1's `Parts.RoundedCube`, as a Cube
+  // option rather than its own op. Absent, or a radius of 0, is exactly the sharp cube.
   'primitive.cuboid': native(
     0,
-    ({ params }) =>
-      primitives.cuboid({
-        size: [
-          requirePositive(params.size?.[0], 'size[0]', 'primitive.cuboid'),
-          requirePositive(params.size?.[1], 'size[1]', 'primitive.cuboid'),
-          requirePositive(params.size?.[2], 'size[2]', 'primitive.cuboid'),
-        ],
-        center: params.center ?? [0, 0, 0],
-      }),
+    ({ params, policy }) => {
+      const op = 'primitive.cuboid'
+      /** @type {[number, number, number]} */
+      const size = [
+        requirePositive(params.size?.[0], 'size[0]', op),
+        requirePositive(params.size?.[1], 'size[1]', op),
+        requirePositive(params.size?.[2], 'size[2]', op),
+      ]
+      /** @type {[number, number, number]} */
+      const center = params.center ?? [0, 0, 0]
+      const roundAxis = requireRoundAxis(params.roundAxis ?? 'z', op)
+      const roundRadius = requireNonNegative(params.roundRadius ?? 0, 'roundRadius', op)
+      if (roundRadius === 0) return primitives.cuboid({ size, center })
+      return roundedCuboid(size, center, roundRadius, roundAxis, params.segments ?? null, policy)
+    },
     { label: 'Cube', defaults: { size: [40, 40, 40] } }
   ),
 
@@ -2548,6 +2628,8 @@ export function assertOperandCount(op, count, ops = registry) {
  * @property {string} label What the Inspector calls the field, e.g. `"Model"`.
  * @property {readonly OpUiOption[]} options Every value the recipe accepts **given the
  *   other params** — a bolt's `fit` list is read from the chosen `spec`'s own table row.
+ * @property {string | number} [default] What the op builds with when the record carries no
+ *   value — a Cube placed before `TODO/core-080` rounds about `'z'`.
  */
 
 /**
@@ -2676,10 +2758,11 @@ function reconcileBoltEdit(params, changedKeys, tables) {
 /**
  * @param {string} label
  * @param {readonly OpUiOption[]} options
+ * @param {string | number} [fallback] The op's own value for a record that carries none.
  * @returns {EnumParamSchema}
  */
-function enumParam(label, options) {
-  return Object.freeze({ kind: 'enum', label, options })
+function enumParam(label, options, fallback) {
+  return Object.freeze({ kind: 'enum', label, options, ...(fallback === undefined ? {} : { default: fallback }) })
 }
 
 /**
@@ -2734,8 +2817,20 @@ function choiceOptionsOf(op) {
  *   did — see {@link reconcileParamEdit}.
  */
 
+/** A Cube's `roundAxis` choices (`TODO/core-080`), labelled as the axis it names. */
+const ROUND_AXIS_OPTIONS = Object.freeze(ROUND_AXES.map((axis) => Object.freeze({ value: axis, label: axis.toUpperCase() })))
+
 /** @type {Readonly<Record<string, ParamSchemaEntry>>} */
 const PARAM_SCHEMAS = Object.freeze({
+  // TODO/core-080: a **native** op's entry *extends* its generic fields rather than replacing
+  // them — Size stays the plain X/Y/Z vector the Inspector, the resize handles and variable
+  // binding already read off the record. Only the two optional params are described here.
+  'primitive.cuboid': {
+    params: () => ({
+      roundRadius: mmNonNegativeParam('Corner radius'),
+      roundAxis: enumParam('Rounded axis', ROUND_AXIS_OPTIONS, 'z'),
+    }),
+  },
   // TODO/core-057: the model and the case are choices; the eight sizes are shown at what the
   // table (plus the case) resolves to, so an untouched field reads as the real number.
   'kit.phone': {

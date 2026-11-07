@@ -33,7 +33,7 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
+*Last reviewed 2026-11-07 (`core-080` rounded Cube closed, with `ui-100`–`ui-103` filed from its acceptance drive). Before that 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
 
 **Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
 (widened 2026-10-26; iOS first) that
@@ -275,6 +275,10 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-008` | Print-prep split-sheet docs still differs by 2% under full-suite load, passes alone. Filed 2026-10-18 | Finding | — | none |
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
+| `ui-100` | A refused Inspector edit's error message is drawn under the sticky Delete bar, so it is hidden until the user scrolls. Filed 2026-11-07 from the core-080 acceptance drive | Finding | — | 33, 12 |
+| `ui-101` | The Inspector's enum select is 23 px tall in WebKit at phone width, below tap size (shared enum styling). Filed 2026-11-07 from the core-080 drive | Finding | — | 2 |
+| `ui-102` | The History edit form shows a rounded Cube's Round axis only when the record carries it, and labels it differently from the Inspector. Filed 2026-11-07 from the core-080 drive | Finding | — | 12 |
+| `ui-103` | The History panel's Apply button's text is the same colour as its background on hover. Filed 2026-11-07 from the core-080 drive | Finding | — | none |
 
 ---
 
@@ -387,7 +391,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (parked); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 7 | `testing-006`, `testing-008`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`. |
+| [Findings](#findings-open-rows) | 11 | `testing-006`, `testing-008`, `core-079`, `testing-010`, `ui-079`, `testing-009`, `testing-016`, `ui-100`, `ui-101`, `ui-102`, `ui-103`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

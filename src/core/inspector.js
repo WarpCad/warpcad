@@ -237,7 +237,7 @@ const PARAM_LABEL_OVERRIDES = Object.freeze({
 
 /** Params measured in millimetres. Anything else carries no unit. */
 const MM_PARAMS = Object.freeze(
-  new Set(['size', 'sides', 'diameter', 'innerDiameter', 'topDiameter', 'height', 'length', 'strokeWidth'])
+  new Set(['size', 'sides', 'diameter', 'innerDiameter', 'topDiameter', 'height', 'length', 'strokeWidth', 'roundRadius'])
 )
 
 /**
@@ -399,11 +399,34 @@ function withSchema(fields, op, params) {
     const option = schema[key]
     if (option.kind === 'number' && option.default !== undefined) {
       next.push({ key, label: option.label, kind: 'number', unit: option.unit, value: option.default })
-    } else if (option.kind === 'enum' && params[key] !== undefined) {
-      next.push({ key, label: option.label, kind: 'enum', unit: '', value: params[key], options: option.options })
+    } else if (option.kind === 'enum' && (params[key] ?? option.default) !== undefined) {
+      next.push({ key, label: option.label, kind: 'enum', unit: '', value: params[key] ?? option.default, options: option.options })
     }
   }
   return next
+}
+
+/**
+ * A **native** op's fields with its schema laid on top (`TODO/core-080`: a Cube's Corner
+ * radius and Rounded axis). Unlike a composite's, the schema *extends* the generic fields
+ * rather than replacing them: Size stays the vector {@link fieldsFor} reads off the record.
+ * The described fields follow the generic ones in the schema's own order, so which one a
+ * user happened to edit first never reorders the panel.
+ *
+ * @param {ParamField[]} fields
+ * @param {string} op
+ * @param {Record<string, any>} params
+ * @returns {ParamField[]}
+ */
+function withNativeSchema(fields, op, params) {
+  const schema = paramOptions(op, params)
+  const keys = Object.keys(schema)
+  if (keys.length === 0) return fields
+  const described = withSchema(fields, op, params)
+  return [
+    ...fields.filter((field) => schema[field.key] === undefined),
+    ...keys.flatMap((key) => described.filter((field) => field.key === key)),
+  ]
 }
 
 /**
@@ -541,7 +564,9 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined,
     opLabel: repeat === undefined ? (entry?.ui?.label ?? body.op) : `Repeat of ${shownEntry?.ui?.label ?? shownOp}`,
     isRecipe: entry?.kind === 'composite',
     params: withBindings(
-      shownEntry?.kind === 'composite' ? withSchema(fieldsFor(shown, shownEntry), shownOp, shown) : fieldsFor(shown, shownEntry),
+      shownEntry?.kind === 'composite'
+        ? withSchema(fieldsFor(shown, shownEntry), shownOp, shown)
+        : withNativeSchema(fieldsFor(shown, shownEntry), shownOp, shown),
       bound,
     ),
     positionMm,

@@ -113,13 +113,36 @@ exactly where it is. See [Resizing a shape](#resizing-a-shape) below.
 
 | Shape | Parameters |
 |---|---|
-| Cube | Size (X, Y, Z) |
+| Cube | Size (X, Y, Z), Corner radius, Rounded axis |
 | Cylinder | Diameter, Height |
 | Cone | Diameter, Height |
 | Hexagon | Diameter, Height |
 | Triangle | Side lengths (A, B, C), Height |
 | Tube | Diameter, Inner diameter, Height |
 | Sphere | Diameter |
+
+**Rounding a cube's corners.** A Cube's **Corner radius** rounds the four edges that run
+along its **Rounded axis** (X, Y or Z), and leaves the other edges sharp: a circuit board,
+a lens or a mounting plate with rounded corners. A radius of `0`, the default, is a plain
+sharp cube. The radius has to be smaller than half of each of the two sides across the
+axis. A bigger one is refused with a message, not shrunk to fit. Size still reads the full
+X, Y and Z of the box. For example, to make a Raspberry Pi Camera board blank (all values
+in millimetres):
+
+1. Drag a **Cube** into the view and select it.
+2. Set **Size** X `25`, Y `23.862`, Z `1`.
+3. Type `2` into **Corner radius** and press **Enter**. The four upright edges round off,
+   and the top and bottom stay flat.
+4. Type `13` into **Corner radius** and press **Enter**. The Inspector shows the error
+   "must be smaller than half the shortest side (11.931 mm)", and the board keeps its
+   2 mm corners.
+5. Set **Rounded axis** to `X`. This is refused too: across X the board is only 1 mm
+   thick, which is too thin for a 2 mm radius. Leave it at `Z`.
+6. To see the axis move, set **Size** Z to `10`, then set **Rounded axis** to `X`. The
+   rounding moves to the four edges that run left to right. Set **Rounded axis** back to
+   `Z` before you put Z back to `1`.
+
+![A 25 × 23.862 × 1 mm board with 2 mm rounded corners, selected, its Corner radius and Rounded axis in the Inspector](./screenshots/inspector-rounded-cube.png)
 
 **Transform** — where the shape is and how it is turned:
 

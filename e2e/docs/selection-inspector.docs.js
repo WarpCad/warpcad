@@ -423,6 +423,16 @@ test.describe('docs media: selection, inspector, gizmo', () => {
     await shot(page, 'inspector-composite-param-edit.png', { locator: page.getByTestId('inspector') })
   })
 
+  // TODO/core-080: a Raspberry Pi Camera board blank, its Corner radius and Rounded axis showing.
+  test('inspector-rounded-cube still', async ({ page }) => {
+    await openScene(page, 'rounded-cube.ndjson', 1)
+    await openObjectList(page)
+    await page.getByTestId('objects-row-cube-1').click()
+    await expect(page.getByTestId('inspector-param-roundRadius')).toHaveValue('2')
+    await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('z')
+    await shot(page, 'inspector-rounded-cube.png')
+  })
+
   test('inspector-colour', { tag: '@movie' }, async ({ page }) => {
     await openScene(page, 'one-cube.ndjson', 1)
     await selectCube(page)

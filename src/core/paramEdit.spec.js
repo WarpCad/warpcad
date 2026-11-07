@@ -186,6 +186,30 @@ describe('paramEditRecord — a string param (TODO/render-002)', () => {
   })
 })
 
+describe('paramEditRecord — a Cube\'s corner radius and rounded axis (TODO/core-080)', () => {
+  function withCube() {
+    const document = doc()
+    document.append({ id: 'box-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [25, 23.862, 1] } }, { origin: 'local' })
+    return document
+  }
+
+  it('writes a radius and an axis onto a Cube placed without either', () => {
+    const document = withCube()
+    expect(paramEditRecord(document, 'box-1', { roundRadius: 2 })?.params).toEqual({ size: [25, 23.862, 1], roundRadius: 2 })
+    expect(paramEditRecord(document, 'box-1', { roundAxis: 'x' })?.params).toEqual({ size: [25, 23.862, 1], roundAxis: 'x' })
+  })
+
+  it('refuses an axis that is not one of the choices, naming them', () => {
+    expect(() => paramEditRecord(withCube(), 'box-1', { roundAxis: 'w' })).toThrow(/roundAxis "w" is not one of primitive\.cuboid's choices — expected one of "x", "y", "z"/)
+    expect(() => paramEditRecord(withCube(), 'box-1', { roundAxis: 2 })).toThrow(/roundAxis/)
+  })
+
+  it('still refuses a string for a Cube\'s other params', () => {
+    expect(() => paramEditRecord(withCube(), 'box-1', { roundRadius: 'big' })).toThrow(/finite number/)
+    expect(() => paramEditRecord(withCube(), 'box-1', { size: 'big' })).toThrow(/finite number/)
+  })
+})
+
 describe('paramEditRecord — a sketch body’s structured params (TODO/sketch-001)', () => {
   // Edit sketch → Done is one in-place revision of `slices` and `extrusion` together. They
   // are plain JSON objects, not numbers, so the finite-number check walks them instead.

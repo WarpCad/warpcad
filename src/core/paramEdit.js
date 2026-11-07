@@ -313,6 +313,23 @@ function requireFiniteParam(key, value) {
 }
 
 /**
+ * One of an enum param's own values, or a refusal naming them.
+ *
+ * @param {string} op
+ * @param {string} key
+ * @param {unknown} value
+ * @param {import('./kernel/registry.js').EnumParamSchema} field
+ * @returns {void}
+ */
+function requireChoice(op, key, value, field) {
+  if (field.options.some((option) => Object.is(option.value, value))) return
+  throw new Error(
+    `paramEdit: ${key} ${JSON.stringify(value)} is not one of ${op}'s choices — expected one of ` +
+      field.options.map((option) => JSON.stringify(option.value)).join(', ')
+  )
+}
+
+/**
  * Build the replacement for the record that gives a body its creation params —
  * `TODO/data-007`'s replace path for a primitive, the counterpart of
  * {@link compositeParamEditRecord}.
@@ -353,6 +370,9 @@ export function paramEditRecord(document, bodyId, changes) {
 
   /** @type {Record<string, any>} */
   const params = { ...current }
+  // A native op's described choices (`TODO/core-080`: a Cube's `roundAxis`) are checked
+  // against their options; every other value is still a number.
+  const schema = paramOptions(target.op, current)
   let changed = false
   for (const [key, value] of Object.entries(changes)) {
     if (RESERVED_PARAMS.has(key)) {
@@ -362,7 +382,9 @@ export function paramEditRecord(document, bodyId, changes) {
           'tessellation detail rather than a dimension'
       )
     }
-    requireFiniteParam(key, value)
+    const field = schema[key]
+    if (field?.kind === 'enum') requireChoice(target.op, key, value, field)
+    else requireFiniteParam(key, value)
     if (sameValue(current[key], value)) continue
     // A JSON round-trip, not `structuredClone`: params are plain JSON by contract, and the
     // sketch editor's draft may arrive as a Vue proxy, which `structuredClone` refuses.
