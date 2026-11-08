@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.13.0](https://github.com/WarpCad/warpcad/compare/v1.12.0...v1.13.0) (2026-11-08)
+
+### Features
+
+* **core:** give the Cube a corner radius and rounding axis (TODO/core-080) ([16b2d51](https://github.com/WarpCad/warpcad/commit/16b2d517e428fb9319f24a3d08c7bca92ec91d35))
+
+### Bug Fixes
+
+* **render:** test that a coloured part keeps its colour through Hidden by default (TODO/ui-099) ([9493bc7](https://github.com/WarpCad/warpcad/commit/9493bc79e79d4b0196b6037efe581145f4feebae))
+
 ## [1.12.0](https://github.com/WarpCad/warpcad/compare/v1.11.0...v1.12.0) (2026-11-06)
 
 ### Features
