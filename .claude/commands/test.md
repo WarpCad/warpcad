@@ -37,43 +37,56 @@ avoidable token cost in the TODO workflow. So:
     make the check stale, by design. Only code under `src/` does.
   - The caller passes `force` in its brief to skip the check and run the suite anyway. The
     `/run-todos` verification does this, so an agent's claim is checked by a fresh run.
-  - A *targeted* run (one spec file), a `one`-, `changed`- or `fast`-scope run, or one that skipped
-    an engine stores `partial`, which never makes the tree green. A clean partial run on code the
-    stored full run already covers leaves that full run in place (`recordRun`), so a targeted run
-    does not cost the next commit a full re-run. A partial run that fails is stored, and the tree
-    is then not green until a full run passes.
+  - A clean, unfiltered **pair run** (the default `npm run test:e2e:headless`) or `test:e2e:full` stores
+    `full` and makes the tree green. A *targeted* run (one spec file, a `--grep`), a `one`- or
+    `changed`-scope run stores `partial`, which never makes the tree green. A clean partial run on
+    code a stored full run already covers leaves that full run in place (`recordRun`), so a targeted
+    run does not cost the next commit a re-run. A partial run that fails is stored, and the tree
+    is then not green until an unfiltered run passes.
   - `node scripts/todo-progress.mjs stamp results` shows what is stored.
   - `.githooks/pre-push` reads the same file and refuses a push of `main` unless unit and e2e both
     ran in full on the pushed commit.
   - Never write `_runs.json` by hand, and never run a suite just to refresh the check: run it once
     and the reporters record it.
 
-### Scope — full matrix, or one e2e project
+### Scope — the rotating pair (default), or the full matrix
 
-The e2e stage is a 9-way matrix (3 engines x 3 viewports) plus `guards` and docs
-projects, and it is the expensive part of a run. The caller picks a scope in the brief:
+The e2e stage is a 9-way matrix (3 engines x 3 viewports) plus `guards` and docs projects. Running
+all nine on every run made each step slow, so **the default run executes every spec on just two
+projects, and the pair changes each run.** A clean pair run is a **green run**: the reporter stores
+it as `full`, so `stamp check` and the pre-push gate accept it.
+
+`npm run test:e2e:headless` is `node scripts/e2e-rotate.mjs`. It picks the next pair, runs
+`playwright test --project=<a> --project=<b> --project=guards`, and moves the rotation on only
+when the run is clean and unfiltered. State is in `.todo-progress/e2e-rotation.json`
+(gitignored, per developer).
+
+- **The cycle.** Nine pairs; each pairs projects that differ in **both** engine and viewport, and
+  every project appears in two of them, so the whole matrix is covered within five runs
+  (`chromium-phone + webkit-tablet`, `chromium-tablet + webkit-laptop`, `chromium-laptop +
+  firefox-phone`, ...). `npm run test:e2e:next` prints the pair the next run will use.
+- **A red pair repeats.** The rotation does not advance on a failure, so the fix is proven on the
+  projects that failed. The next clean run moves to a new pair.
+- **Filtered runs use the current pair but do not advance it.** `npm run test:e2e:headless --
+  e2e/foo.e2e.js` runs that spec on the current pair. It stores a `partial` run (a spec filter
+  never vouches for the tree) and leaves the rotation where it was.
+- **An explicit `--project=<name>` bypasses the rotation** and runs exactly what was typed. It
+  is always `partial`.
+- **`npm run test:e2e:full`** is the whole 9-way matrix with no rotation. Use it at a milestone's
+  last task, before a release, or when a failure only reproduces on an engine the pair skipped.
+- **Report the pair.** The compact report names the pair that ran (`green (pair:
+  chromium-phone + webkit-tablet)`) so a failure is reproducible with the same projects.
+- **Typecheck and unit always run in full.**
 
 | Scope | When | E2E command |
 |---|---|---|
-| `full` (default) | Nothing said, or the caller asks for the full suite | `npm run test:e2e:headless` |
-| `changed` | The work is confined to a specific area (a component category, one subsystem) | the matching specs, **all engines**, see below |
-| `fast` | The user asks for a "fast" test suite | `touch .test-fast`, then `npm run test:e2e:headless` (see below) |
-| `one` | The caller says "one suite", "single project", or passes `--project=<name>` | `npm run test:e2e:headless -- --project=<name> --project=guards` |
+| `pair` (default) | Nothing said, or any normal check | `npm run test:e2e:headless` |
+| `changed` | The work is confined to a specific area (a component category, one subsystem) | the matching specs on the current pair, see below |
+| `full` | The caller asks for the full matrix, a milestone's last task, a release | `npm run test:e2e:full` |
+| `one` | The caller passes `--project=<name>` | `npm run test:e2e:headless -- --project=<name> --project=guards` |
 
-- **`fast` — all tests, two projects.** When the user asks for a "fast" test suite, run
-  **every** e2e spec but only on **Chrome desktop (`chromium-laptop`) and Safari on iPad
-  (`webkit-tablet`, 820×1180 touch)**. The choice is carried by the gitignored marker file
-  `.test-fast` at the repo root, which `playwright.config.js` checks: while it exists, a bare
-  `npm run test:e2e:headless` runs just those two projects plus `guards` (smoke projects are
-  dropped as redundant; `docs-*` projects are still available when named by `npm run docs:*`).
-  Create it with `touch .test-fast` when the user asks for fast; **delete it** (`rm -f .test-fast`)
-  when they ask for the full suite again or when a task needs a `full` run. Typecheck and unit
-  still run in full. Like `one`, report it as `green (fast: chromium-laptop + webkit-tablet)`
-  and it stores a partial run, so it cannot make the tree green. Firefox is not run, so say so in the report. The file is
-  per-developer and never committed.
-- **`changed` — test what's changing, on every engine.** When a task's diff stays inside
-  one area, run only the specs that cover it, but run them across **all engine-viewport
-  projects** rather than one:
+- **`changed` — test what's changing.** When a task's diff stays inside one area, run only the
+  specs that cover it, on the current pair:
   1. List the changed files (`git diff --name-only HEAD`, plus untracked).
   2. Unit: `npm run test:unit -- related <changed src files>` (Vitest's `related`
      follows imports), plus any `.spec.js` the TODO's Testing section names.
@@ -81,14 +94,14 @@ projects, and it is the expensive part of a run. The caller picks a scope in the
      or `data-testid`s match the touched `src/components/<category>/` or subsystem (grep
      `e2e/` for the component/store/feature name). Playwright's `--only-changed` does not
      help here, because e2e specs drive `/` rather than importing source.
-  4. Run them as `npm run test:e2e:headless -- <spec files>` (all projects, minus the
-     Firefox exclusion below) and add `--project=guards` only if docs/media changed.
-  5. **Fall back to `full`** when the diff touches shared infrastructure (`src/core/`
-     kernel or document layer, the render loop, `playwright.config.js`, `package.json`,
-     shared stores, global styles), when no spec can be mapped to the change, or at a
-     milestone boundary. Never narrow because the full run is slow and the change "looks
-     small."
-  Report the list of specs run and why each was chosen. Like `one`, it never sets the stamp and stores a `partial` e2e result.
+  4. Run them as `npm run test:e2e:headless -- <spec files>` and add `--project=guards` only
+     if docs/media changed (a pair run already includes it).
+  5. **Fall back to a pair run of the whole suite** when the diff touches shared infrastructure
+     (`src/core/` kernel or document layer, the render loop, `playwright.config.js`,
+     `package.json`, shared stores, global styles), when no spec can be mapped to the change.
+     Escalate to `full` at a milestone boundary. Never narrow because the run is slow and the
+     change "looks small."
+  Report the list of specs run and why each was chosen. It stores a `partial` e2e result.
 - **Picking the project for `one`.** If the caller names one, use it. Otherwise pick
   **one at random** from the engine-viewport projects (`chromium-phone`, `chromium-tablet`,
   `chromium-laptop`, and the `firefox-*` / `webkit-*` equivalents; `webkit-*` and `firefox-*`
@@ -98,18 +111,18 @@ projects, and it is the expensive part of a run. The caller picks a scope in the
   is reproducible with the same flag.
 - **Typecheck and unit always run in full.** `one` only narrows the e2e stage.
 - **Environment rule — skip Firefox in the Claude app / cloud.** When running in the Claude
-  app or Claude Code on the web (`CLAUDE_CODE_REMOTE=true` in the environment, or the
-  user says so), Firefox's Playwright browser does not start reliably. Run every
-  e2e command with `--project=chromium-* --project=webkit-* --project=guards` style
-  selection — i.e. **exclude every `firefox-*` project** — in **both** scopes, and say in
-  the report that Firefox was skipped for that reason. Firefox still runs on a
-  local machine in `full` scope. A skipped engine is a coverage gap, not a pass: note it
-  so the user knows the cross-engine claim in `CLAUDE.md` Browser Support is unverified for it.
-- **A `one` or `changed` run, or one that skipped Firefox, is not a full green.** Report it as
-  `green (one: <project>)` / `green (firefox skipped)`. It stores a partial run, which never makes
-  the tree green for `stamp check`. Only a `full`, Firefox-included run passes that check.
+  app or Claude Code on the web (`CLAUDE_CODE_REMOTE=true`, or `E2E_SKIP_FIREFOX=1`),
+  Firefox's Playwright browser does not start reliably. The rotation then cycles over the six
+  chromium and webkit projects only, with no flag needed, and `full` runs must be given
+  `--project=chromium-* --project=webkit-* --project=guards` style selection. Say in the report
+  that Firefox was skipped. A skipped engine is a coverage gap: the cross-engine claim in
+  `CLAUDE.md` Browser Support is unverified for it until a local run covers a Firefox pair.
+- **What counts as green.** A clean pair run reports `green (pair: <a> + <b>)`. A `one` or
+  `changed` run reports `green (one: <project>)` / `green (changed: <specs>)` and is partial.
+  A Firefox-skipped pair still stores `full` (it is a real pair run); the coverage gap above is
+  the user's call, not the stamp's.
 - Which scope a workflow uses: `/fix-todo` Step 5 and `/run-todos` default to `changed`
-  when the area is confined, else `full`; either accepts `one` (see their own notes). A milestone's last task, or anything
+  when the area is confined, else `pair`; either accepts `one` (see their own notes). A milestone's last task, or anything
   touching the kernel/WebGL/persistence, should still get one `full` run locally.
 
 ### Escalation ladder when a stage is red
@@ -176,7 +189,7 @@ avoid re-running stages that already passed.
 | Unit | `npm run test:unit` | ~1s / 223 tests (2026-09-06, ui-010) | 60s |
 | Browser | `npm run test:browser -- --run` | *(stage not defined in package.json)* | 90s |
 | Component workshop | `npm run test:storybook -- --run` | *(stage not defined in package.json)* | 90s |
-| E2E | `npm run test:e2e:headless` (or a `--project=` subset, see Scope) | ~31s / 225 tests, 9-way matrix (2026-09-06, ui-010) | 180s |
+| E2E | `npm run test:e2e:headless` (the rotating pair; `test:e2e:full` for all nine, see Scope) | *(re-measure a pair run; the old 9-way number was ~31s / 225 tests, 2026-09-06, ui-010)* | 180s |
 
 **Record the warm baseline for each stage in this file the first time you measure it**
 (warm cache, `node_modules/.vite` populated, single machine), so future sessions can

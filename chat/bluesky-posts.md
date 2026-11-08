@@ -2736,3 +2736,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** native mode, shell probe, service-worker skip, analytics skip → vite.config.js, src/native/shell.js, src/pwa.js diff (staged); unit suite 8615 passed, 0 failed → stamp results, this session; e2e 5281 passed, 0 failed → stamp results, this session.
 **To Add:** none
+
+## 2026-11-08T03:46:54Z — A Cube inside a group takes a corner radius
+
+**Post:** WarpCad: a Cube inside a group can now take a corner radius and a rounded axis, the same as a standalone Cube. Its name, colour and hidden flag survive the edit. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** rounded radius and axis on a grouped Cube → unit inspector.spec.js and paramEdit.spec.js, full run this session (8621 passed, 0 failed); group-case e2e → full e2e run this session (5290 passed, 0 failed).
+**To Add:** none

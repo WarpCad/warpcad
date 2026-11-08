@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { impactOf } from './dependents.js'
 import { createDocument } from './document.js'
+import { boundsOf, hiddenNamesOf } from './kernel/group.js'
 import {
   paramEditRecord,
   paramEditability,
+  partParamEditRecord,
+  partParamEditability,
   canEditParams,
   currentParamsOf,
   withComponent,
@@ -49,6 +53,18 @@ const fakeRegistry = Object.freeze({
     build: (/** @type {any} */ { inputs }) => ({ tag: 'union', of: inputs.length }),
   }),
 })
+
+/**
+ * A value that must be there, as a real assertion rather than a silenced type.
+ *
+ * @template T
+ * @param {T | undefined | null} value
+ * @returns {T}
+ */
+function present(value) {
+  expect(value !== undefined && value !== null).toBe(true)
+  return /** @type {T} */ (value)
+}
 
 /** @param {object} [options] */
 function doc(options = {}) {
@@ -207,6 +223,92 @@ describe('paramEditRecord — a Cube\'s corner radius and rounded axis (TODO/cor
   it('still refuses a string for a Cube\'s other params', () => {
     expect(() => paramEditRecord(withCube(), 'box-1', { roundRadius: 'big' })).toThrow(/finite number/)
     expect(() => paramEditRecord(withCube(), 'box-1', { size: 'big' })).toThrow(/finite number/)
+  })
+})
+
+describe('partParamEditRecord — a Cube that is a part of a group (TODO/ui-104)', () => {
+  const LOCAL = { origin: 'local' }
+
+  /**
+   * Two cubes grouped by the toolbar's Group, the second coloured and hidden by default —
+   * the later rows that carry the part's name, which the edit must leave alone. The real
+   * registry: the re-fold and the radius limit are the kernel's.
+   */
+  function groupedCubes() {
+    const document = createDocument()
+    document.append({ id: 'c1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10], center: [0, 0, 5] } }, LOCAL)
+    document.append({ id: 'c2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [7.6, 10.8, 5], center: [30, 0, 2.5] } }, LOCAL)
+    document.append(
+      { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'c1', operands: ['c2'], consumes: ['c1', 'c2'], params: { names: ['Cube 1', 'Cube 2'] } },
+      LOCAL,
+    )
+    document.setColorOverride('g', { color: 0xff0000, subPart: 'Cube 2' }, LOCAL)
+    document.setPartHidden('g', 'Cube 2', true, LOCAL)
+    return document
+  }
+
+  /** @param {any} document */
+  function group(document) {
+    return /** @type {any} */ (document.bodies().find((/** @type {any} */ body) => body.id === 'g'))
+  }
+
+  it('offers the edit for a native primitive part, on the replace path', () => {
+    expect(partParamEditability(groupedCubes(), 'g', 'Cube 2')).toMatchObject({ editable: true, path: 'replace', recordId: 'c2' })
+  })
+
+  it('swaps the part\'s creation record; the group re-folds and the part keeps its name, colour and Hidden flag', () => {
+    const document = groupedCubes()
+    const before = group(document)
+    const sharpPolygons = before.geometry.parts['Cube 2'].polygons.length
+    const record = present(partParamEditRecord(document, 'g', 'Cube 2', { roundRadius: 2, roundAxis: 'x' }))
+    expect(record.id).toBe('c2')
+    expect(record.params).toEqual({ size: [7.6, 10.8, 5], center: [30, 0, 2.5], roundRadius: 2, roundAxis: 'x' })
+    expect(impactOf(document, [{ id: 'c2', record }], { editedRootId: 'c2' }).breakages).toEqual([])
+
+    document.reviseRecords([{ id: 'c2', record }], LOCAL)
+    const after = group(document)
+    expect(after.id).toBe('g')
+    expect(Object.keys(after.geometry.parts)).toEqual(['Cube 1', 'Cube 2'])
+    expect(after.geometry.parts['Cube 2'].polygons.length).toBeGreaterThan(sharpPolygons)
+    expect(hiddenNamesOf(after.geometry)).toEqual(['Cube 2'])
+    expect(after.colorOverrides).toEqual(before.colorOverrides)
+    // Rounding along X takes material off the edges, never the overall size.
+    const [min, max] = boundsOf(after.geometry.parts['Cube 2'])
+    expect(max[0] - min[0]).toBeCloseTo(7.6, 6)
+    expect(max[1] - min[1]).toBeCloseTo(10.8, 6)
+    expect(max[2] - min[2]).toBeCloseTo(5, 6)
+    // The other part did not move.
+    const [otherMin] = boundsOf(after.geometry.parts['Cube 1'])
+    expect(otherMin[0]).toBeCloseTo(-5, 6)
+  })
+
+  it('refuses a radius too big for the rounded plane by name, not clamped', () => {
+    const document = groupedCubes()
+    // Rounded about X, the plane is Y × Z = 10.8 × 5: the limit is half of 5.
+    const record = present(partParamEditRecord(document, 'g', 'Cube 2', { roundRadius: 3, roundAxis: 'x' }))
+    expect(record.params?.roundRadius).toBe(3)
+    expect(() => impactOf(document, [{ id: 'c2', record }], { editedRootId: 'c2' })).toThrow(
+      /roundRadius must be smaller than half the shortest side \(2\.5 mm\), got 3/,
+    )
+  })
+
+  it('keeps a composite part refused, naming the op, and builds nothing for it', () => {
+    const document = createDocument()
+    document.append({ id: 'c1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [10, 10, 10] } }, LOCAL)
+    document.append({ id: 'w', op: 'hardware.washer', name: 'Washer 1', params: { type: 'iso7089', spec: 'm3' } }, LOCAL)
+    document.append(
+      { id: 'g', op: 'group.assemble', name: 'Group 1', target: 'c1', operands: ['w'], consumes: ['c1', 'w'], params: { names: ['Cube 1', 'Washer 1'] } },
+      LOCAL,
+    )
+    expect(partParamEditability(document, 'g', 'Washer 1')).toEqual({ editable: false, blockedBy: 'hardware.washer' })
+    expect(() => partParamEditRecord(document, 'g', 'Washer 1', { spec: 'm4' })).toThrow(/Washer 1.*hardware\.washer/)
+  })
+
+  it('refuses a part with no record of its own, and a group that has no such part', () => {
+    const document = groupedCubes()
+    expect(partParamEditability(document, 'g', 'Nope')).toEqual({ editable: false, blockedBy: null })
+    expect(partParamEditability(document, 'missing', 'Cube 2')).toEqual({ editable: false, blockedBy: null })
+    expect(() => partParamEditRecord(document, 'g', 'Nope', { roundRadius: 1 })).toThrow(/Nope/)
   })
 })
 

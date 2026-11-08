@@ -730,6 +730,29 @@ describe('describeSelection — drilled into a group s sub-part (TODO/ui-016)', 
     expect(body.params.map((field) => field.key)).toContain('size')
   })
 
+  it('TODO/ui-104: a Cube part lists Corner radius and Rounded axis, with the default Z when the record omits it', () => {
+    const { document, groupId, names } = groupedPair()
+    const body = present(
+      describeSelection(document.bodies(), [groupId], {
+        subPart: { bodyId: groupId, partName: names[0] },
+        records: document.records,
+      }).body,
+    )
+    expect(body.op).toBe('primitive.cuboid')
+    expect(body.params.map((field) => field.key)).toEqual(['size', 'roundRadius', 'roundAxis'])
+    expect(present(body.params.find((field) => field.key === 'roundRadius'))).toMatchObject({
+      kind: 'number',
+      label: 'Corner radius',
+      unit: 'mm',
+      value: 0,
+    })
+    expect(present(body.params.find((field) => field.key === 'roundAxis'))).toMatchObject({
+      kind: 'enum',
+      label: 'Rounded axis',
+      value: 'z',
+    })
+  })
+
   it('measures the sub-part s own box, not the whole group s', () => {
     const { document, groupId, names } = groupedPair()
     const whole = present(describeSelection(document.bodies(), [groupId]).body)

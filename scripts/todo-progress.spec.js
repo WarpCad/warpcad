@@ -300,6 +300,28 @@ describe('isFullRun (playwright)', () => {
     expect(isFullRun({ argv: argv(...flags) }, suite())).toBe(false)
   })
 
+  describe('a rotation pair run', () => {
+    const env = { WARPCAD_E2E_PAIR: 'chromium-phone,webkit-tablet' }
+    const ran = suite(['guards', 'chromium-phone', 'webkit-tablet'])
+    const flags = ['--project=chromium-phone', '--project=webkit-tablet', '--project=guards']
+
+    it('is full when both chosen projects ran and only the rotation flags were passed', () => {
+      expect(isFullRun({ argv: argv(...flags) }, ran, env)).toBe(true)
+      expect(isFullRun({ argv: argv(...flags, '--workers', '4') }, ran, env)).toBe(true)
+    })
+
+    it('is partial when narrowed further, run on other projects, or missing one of the pair', () => {
+      expect(isFullRun({ argv: argv(...flags, 'e2e/a.e2e.js') }, ran, env)).toBe(false)
+      expect(isFullRun({ argv: argv(...flags, '--grep', 'x') }, ran, env)).toBe(false)
+      expect(isFullRun({ argv: argv('--project=webkit-phone') }, ran, env)).toBe(false)
+      expect(isFullRun({ argv: argv(...flags) }, suite(['guards', 'chromium-phone']), env)).toBe(false)
+    })
+
+    it('does nothing for a bare run without the pair variable', () => {
+      expect(isFullRun({ argv: argv(...flags) }, ran)).toBe(false)
+    })
+  })
+
   it('is partial when a matrix project ran no tests, or a shard is set', () => {
     expect(isFullRun({ argv: argv() }, suite(names.slice(1)))).toBe(false)
     expect(isFullRun({ argv: argv(), shard: { current: 1, total: 2 } }, suite())).toBe(false)

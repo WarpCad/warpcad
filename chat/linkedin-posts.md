@@ -3956,3 +3956,14 @@ The same commit records the owner's App Store decisions: iPhone and iPad in one 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** native mode, shell probe, service-worker skip, analytics skip → vite.config.js, src/native/shell.js, src/pwa.js diff (staged); iPhone/iPad, Sentry on, paid app with price open → TODO/M19-build-020 diff (staged); unit 8615 passed, e2e 5281 passed, 0 failed → stamp results, this session; Tauri pin check → native-mobile-shell.md Question 8, dated 2026-11-07, not re-checked this session.
 **To Add:** none
+
+## 2026-11-08T03:46:54Z — A Cube inside a group takes a corner radius
+
+**Post:** A Cube inside a group in WarpCad now takes the same Corner radius and Rounded axis as a standalone Cube. The edit swaps the part's own creation record, so the group rebuilds with the part's name, colour and Hidden setting unchanged. Composite parts stay read-only, and the Inspector says why.
+
+The unit and end-to-end suites passed on this tree before the commit. The acceptance walkthrough for this feature is still in progress. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** rounded radius and axis on a grouped Cube, composite refusal → unit inspector.spec.js and paramEdit.spec.js, full run this session (8621 passed, 0 failed); group-case e2e → full e2e run this session (5290 passed, 0 failed); acceptance walkthrough still in progress → TODO/FIND-ui-104.
+**To Add:** none

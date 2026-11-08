@@ -64,7 +64,16 @@ import { brokenDependentsOf, impactOf } from '../core/dependents.js'
 import { evaluate } from '../core/kernel/index.js'
 import { isGroup } from '../core/kernel/group.js'
 import { lookupEntry, normalizedParams, paramOptions, registry } from '../core/kernel/registry.js'
-import { canEditParams, compositeParamEditRecord, paramEditRecord, currentParamsOf, withComponent } from '../core/paramEdit.js'
+import {
+  canEditParams,
+  compositeParamEditRecord,
+  currentParamsOf,
+  paramEditRecord,
+  partParamEditRecord,
+  partParamEditability,
+  partRecordsOf,
+  withComponent,
+} from '../core/paramEdit.js'
 import { nameOverrideOf } from '../core/naming.js'
 import { repairChanges } from '../core/repair.js'
 import { variablesOf } from '../core/variables.js'
@@ -73,6 +82,7 @@ import { useLibraryDefaultsStore } from '../stores/libraryDefaults.js'
 import { useVariablesUiStore } from '../stores/variablesUi.js'
 
 /** @typedef {import('../core/paramEdit.js').ParamEditability} ParamEditability */
+/** @typedef {import('../core/paramEdit.js').PartParamEditability} PartParamEditability */
 /** @typedef {import('../core/dependents.js').Breakage} Breakage */
 /** @typedef {import('../core/repair.js').RepairEdit} RepairEdit */
 /** @typedef {import('../core/repair.js').Fix} Fix */
@@ -87,6 +97,9 @@ import { useVariablesUiStore } from '../stores/variablesUi.js'
 /**
  * @returns {{
  *   canEdit: (bodyId: string) => ParamEditability,
+ *   canEditPart: (bodyId: string, partName: string) => PartParamEditability,
+ *   setPartParam: (bodyId: string, partName: string, key: string, value: number | string) => void,
+ *   setPartParamComponent: (bodyId: string, partName: string, key: string, index: number, value: number) => void,
  *   setParam: (bodyId: string, key: string, value: unknown) => ParamResult,
  *   setCompositeParams: (bodyId: string, values: Record<string, unknown>) => ParamResult,
  *   setParamComponent: (bodyId: string, key: string, index: number, value: number) => void,
@@ -226,6 +239,38 @@ export function useParamCommands() {
     documentStore.revise(revision, { label: `Edit ${nameOf(bodyId)}`, append })
   }
 
+  /**
+   * One **part of a group**'s own params (`TODO/ui-104`): the part's record is swapped in
+   * place and the group re-folds, so the part keeps its name, colour and Hidden by default,
+   * and the group's other parts stay put. The same refusals as a whole body's resize: the
+   * impact check runs first, a part that would no longer build (a Corner radius too big for
+   * it) throws the kernel's named limit, and a later row that would break is named.
+   *
+   * @param {string} bodyId The group's lineage root id.
+   * @param {string} partName
+   * @param {Record<string, number | string | readonly number[]>} changes
+   * @returns {void}
+   */
+  function applyPartChanges(bodyId, partName, changes) {
+    const raw = live()
+    const verdict = partParamEditability(raw, bodyId, partName)
+    // Fail safe, as for a whole body: a part with no params of its own is left alone.
+    if (!verdict.editable || verdict.rootId === undefined) return
+    const record = partParamEditRecord(raw, bodyId, partName, changes)
+    if (record === null) return
+
+    const revision = [{ id: /** @type {string} */ (record.id), record }]
+    const { breakages } = impactOf(raw, revision, { editedRootId: verdict.rootId })
+    if (breakages.length > 0) {
+      const first = breakages[0]
+      throw new Error(
+        `${first.relationship} on ${first.dependentName} (step ${first.step}) would no longer ` +
+          `build at this size: ${first.reason}`
+      )
+    }
+    documentStore.revise(revision, { label: `Edit ${partName} in ${nameOf(bodyId)}` })
+  }
+
   return {
     /**
      * Whether this body's Parameters fields may be offered as editable at all,
@@ -248,6 +293,22 @@ export function useParamCommands() {
       }
       applyChanges(bodyId, { [key]: /** @type {number | string} */ (value) })
       return { committed: true }
+    },
+
+    /** Whether one part of a group may have its own fields edited, and why not (`TODO/ui-104`). */
+    canEditPart(bodyId, partName) {
+      return partParamEditability(toRaw(documentStore.raw), bodyId, partName)
+    },
+
+    /** Commit one scalar or choice of a group's part: a Cube part's Corner radius or Rounded axis. */
+    setPartParam(bodyId, partName, key, value) {
+      applyPartChanges(bodyId, partName, { [key]: value })
+    },
+
+    /** Commit one typed component of a group's part's vector param: its Size X. */
+    setPartParamComponent(bodyId, partName, key, index, value) {
+      const current = partRecordsOf(bodyId, live().records).get(partName)?.params?.[key]
+      applyPartChanges(bodyId, partName, { [key]: withComponent(current, index, value) })
     },
 
     /** Several params of one composite at once — a History row's whole Edit form. */

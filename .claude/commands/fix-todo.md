@@ -202,13 +202,15 @@ the result in `.todo-progress/_runs.json` on their own, and everything downstrea
 related unit specs and matching `*.e2e.js`), on **all** engines. Fall back to `full` for
 shared infrastructure, unmappable changes, or a milestone's last task.
 
-**Scope.** `/fix-todo <id> --one-suite` (or "one suite" in the request) tells `/test` to
-run the e2e stage as a single randomly-chosen engine-viewport project plus `guards`,
-instead of the 9-way matrix; typecheck and unit still run in full. **In the Claude app /
-Claude Code on the web (`CLAUDE_CODE_REMOTE=true`), skip the Firefox projects** (Firefox runs only in VS Code or a local terminal) —
-they don't start reliably there. Pass the scope through in Haiku's brief and quote the
-project it ran in the Step 9 report. A `one`-scope or Firefox-skipped run stores a partial
-result, so `/commit` will re-run the suite; that is intended. See `/test` "Scope".
+**Scope.** The default e2e run is the **rotating pair**: every spec on two engine-viewport
+projects (plus `guards`), a different pair each run. A clean pair run is a green run and stores
+a full result. `/fix-todo <id> --one-suite` (or "one suite" in the request) tells `/test` to
+run a single randomly-chosen project instead, which stores a partial result. Use `npm run
+test:e2e:full` only when the user asks for all nine, at a milestone's last task, or when a
+failure reproduces only on an engine the pair skipped. Typecheck and unit still run in full.
+**In the Claude app / Claude Code on the web (`CLAUDE_CODE_REMOTE=true`)** the rotation skips the
+Firefox projects on its own (Firefox runs only in VS Code or a local terminal). Pass the scope
+through in Haiku's brief and quote the pair it ran in the Step 9 report. See `/test` "Scope".
 
 All stages must be green before moving on. Fix any regression before continuing,
 following `/test`'s escalation ladder (this task's tier x2 → Opus once → stop) —

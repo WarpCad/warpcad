@@ -92,7 +92,7 @@ attaches in Claude Code with `@warpcad:warpcad://guide`.
 - `mcp/server.spec.js`: the `resources` test's exact URI list gains `warpcad://guide`.
 - `mcp/liveHttp.spec.js`: a new resources test.
 - `docs/mcp.md`, `docs/decisions/ai-partner.md`.
-- `TODO/M19-ai-026-mcp-server-in-the-native-app.md`: the native host must relay `resources/list` and
+- `warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md`: the native host must relay `resources/list` and
   `resources/read` for the guide, with the text sent by the page like the instructions. Already
   noted there.
 

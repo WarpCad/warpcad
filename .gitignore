@@ -30,8 +30,5 @@ test-report-for-coding-agents/
 # Live test progress for the Claude Code progress/ETA mod (see scripts/test-progress/)
 .test-progress/
 
-# Fast-test marker (per-developer): narrows Playwright to chromium-laptop + webkit-tablet, see playwright.config.js
-.test-fast
-
 # Bundle-size report written by every `vite build` (rollup-plugin-visualizer)
 stats.html

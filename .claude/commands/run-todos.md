@@ -70,23 +70,16 @@ and prompt caching persist) — "start cold" here means *re-verify facts from fi
 auto-compacted more than once or twice, that's fine and expected; don't try to prevent
 it.
 
-### Step 0.1 — Fast-mode check (first tick of a run only)
+### Step 0.1 — Rotation check (first tick of a run only)
 
-If the repo-root marker file `.test-fast` exists (see `.claude/commands/test.md` — it narrows
-e2e to `chromium-laptop` + `webkit-tablet` and skips Firefox), say so and ask with
-`AskUserQuestion` before doing anything else:
+The e2e stage rotates through pairs of engine-viewport projects (see `.claude/commands/test.md`,
+"Scope"). Run `npm run test:e2e:next` once and quote the pair in the first Runner Log line. There
+is nothing to ask: a clean pair run is a green run. Tell each fix-todo agent in its brief to use
+the default `npm run test:e2e:headless` and to report the pair that ran. Use `test:e2e:full` for a
+milestone's last task, and for any `force` verification that needs all nine.
 
-- **Proceed in fast mode** (Recommended when iterating) — leave the file; every `/test` run in
-  this batch is `fast`, reports as `green (fast: …)`, and stores a partial result, so `stamp check` never passes on it.
-- **Clear it** — `rm -f .test-fast`, so the batch runs the normal `changed`/`full` scopes.
-- **Explain more** — say what fast mode skips, then ask again.
-- **Pause** — stop the tick until the user comes back.
-
-Ask once per run, not once per tick: a later tick of the same `/loop` reuses the answer from
-this conversation (re-check only that the file still matches it). If the question can't be asked
-(non-interactive session), proceed in fast mode and log that in the Runner Log. Either way,
-record the mode in the tick's Runner Log line, and in the brief to each fix-todo agent so
-it doesn't re-ask. No marker file means skip this step.
+If a stale `.test-fast` marker file exists from the retired fast mode, delete it; the config no
+longer reads it.
 
 ---
 

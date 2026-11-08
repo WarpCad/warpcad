@@ -121,6 +121,10 @@ Three target rendering engines. WebGL diverges across engines more than DOM or C
   engines matter and schedules that coverage inside the milestone. It is not deferred to a
   later catch-all. Both earlier attempts shipped Safari- and iPad-only bugs that were found by
   hand after the fact.
+- **A run covers two projects, and the pair rotates.** `npm run test:e2e:headless` runs every spec on
+  one pair of engine-viewport projects, different in both axes, and the next run uses the next pair
+  (`scripts/e2e-rotate.mjs`). A clean pair run is a green run; all nine are covered within five runs.
+  `npm run test:e2e:full` runs the whole 3×3 matrix, for a milestone's last task or a release.
 - **Not every spec needs the full 3×3 matrix.** A spec with no WebGL, WASM, canvas, touch or
   persistence involvement (plain form validation, say) can stay Chromium-only across
   viewports. Anything touching the viewport, kernel or persistence defaults to all three

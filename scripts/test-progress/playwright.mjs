@@ -18,7 +18,7 @@ export default class TestProgressReporter {
 
   onBegin(config, suite) {
     this.#progress.start(suite.allTests().length)
-    this.#full = isFullRun(config, suite)
+    this.#full = isFullRun(config, suite, process.env)
     this.#runs.start()
   }
 
@@ -53,17 +53,24 @@ const NEUTRAL_VALUE_FLAGS = new Set(['-j', '--workers', '--retries', '--timeout'
 
 /**
  * An e2e run is `full` when the nine engine/viewport projects each ran at least one test and no
- * filter was passed. Playwright 1.63 keeps the CLI filters (`--project`, `-g`, `--last-failed`,
+ * filter was passed. A **rotation run** is also full: `scripts/e2e-rotate.mjs` sets
+ * `WARPCAD_E2E_PAIR` to the two projects it chose and passes them (plus `guards`) as `--project`
+ * flags. The run is then full when both of those ran tests and nothing else narrowed it, so a clean
+ * pair counts as a green run. Which pair ran is recorded in the test-progress files by name. Playwright 1.63 keeps the CLI filters (`--project`, `-g`, `--last-failed`,
  * `--shard`, file paths) off the public config, so the only record of them is `config.argv`
  * (the command line Playwright itself parsed). Any argument it cannot place counts as a filter:
  * a false `partial` costs a re-run, a false `full` would let an untested push through.
  * @param {{ argv?: string[], shard?: unknown }} config
  * @param {{ suites: { title: string, allTests: () => unknown[] }[] }} suite
+ * @param {{ WARPCAD_E2E_PAIR?: string }} [env]
  * @returns {boolean}
  */
-export function isFullRun(config, suite) {
+export function isFullRun(config, suite, env = {}) {
   const ran = new Set(suite.suites.filter((s) => s.allTests().length > 0).map((s) => s.title))
-  const matrixRan = ['chromium', 'firefox', 'webkit'].every((e) => ['laptop', 'tablet', 'phone'].every((v) => ran.has(`${e}-${v}`)))
+  const pair = env.WARPCAD_E2E_PAIR ? env.WARPCAD_E2E_PAIR.split(',') : null
+  const matrixRan = pair
+    ? pair.length === 2 && pair.every((p) => ran.has(p))
+    : ['chromium', 'firefox', 'webkit'].every((e) => ['laptop', 'tablet', 'phone'].every((v) => ran.has(`${e}-${v}`)))
   if (!matrixRan || config.shard || !Array.isArray(config.argv)) return false
   const rest = config.argv.slice(config.argv.indexOf('test') + 1)
   for (let i = 0; i < rest.length; i++) {
@@ -71,7 +78,11 @@ export function isFullRun(config, suite) {
     if (!arg.startsWith('-')) return false // a file or title filter
     const flag = arg.split('=')[0]
     if (['--update-snapshots', '-u', '--quiet', '--ui', '--headed', '--debug', '--trace'].includes(flag)) continue
-    if (NEUTRAL_VALUE_FLAGS.has(arg)) i += 1
+    if (pair && flag === '--project') {
+      // The rotation's own flags are allowed; any other project is a hand-picked subset.
+      const value = arg.includes('=') ? arg.slice(arg.indexOf('=') + 1) : rest[++i]
+      if (!pair.includes(value) && value !== 'guards') return false
+    } else if (NEUTRAL_VALUE_FLAGS.has(arg)) i += 1
     else if (!NEUTRAL_VALUE_FLAGS.has(flag)) return false // --project, -g, --grep, --last-failed, --shard, --only-changed, --list ...
   }
   return true

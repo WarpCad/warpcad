@@ -30,7 +30,7 @@ import { recipeColorOf } from './colorOverride.js'
 import { brokenDependentsOf, brokenReferencesOf } from './dependents.js'
 import { boundsOf, hasNamedParts, hiddenNamesOf, isGroup, localBoundsOf } from './kernel/group.js'
 import { lookupEntry, normalizedParams, paramOptions, registry as defaultRegistry } from './kernel/registry.js'
-import { currentParamsRecordOf } from './paramEdit.js'
+import { currentParamsRecordOf, partRecordsOf } from './paramEdit.js'
 import { REPEAT_OP, moveRefusalText } from './repeat.js'
 import { bindabilityError, bindableParams, isBinding, isFormula, resolveParams, variablesOf } from './variables.js'
 
@@ -593,113 +593,6 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined,
 }
 
 /**
- * Walk a record id back to the **creation** record of its lineage.
- *
- * A grouping record's `consumes` names each operand by its *current* id, which
- * for a body that has been moved is a `transform.translate` record — whose op
- * and params describe the move, not the part. Following `supersedes` back to the
- * record that started the lineage is what recovers "this was a 40 mm cube",
- * which is the only thing worth showing in a sub-part's Parameters section.
- *
- * Defensive against a cycle it should never see: a malformed document must
- * degrade to a bounds-only description, not hang the panel.
- *
- * @param {string} id
- * @param {Map<string, OpRecord>} byId
- * @returns {OpRecord | undefined}
- */
-function creationRecordOf(id, byId) {
-  let record = byId.get(id)
-  const visited = new Set()
-  while (record?.supersedes !== undefined && !visited.has(record.supersedes)) {
-    visited.add(record.supersedes)
-    const previous = byId.get(record.supersedes)
-    if (!previous) break
-    record = previous
-  }
-  return record
-}
-
-/**
- * `partName → the record that built it`, for a group produced by
- * `group.assemble` — **case 1** of this task's two param-recovery cases.
- *
- * `group.assemble` writes `consumes: [id, …]` and `params.names: [name, …]` in
- * the same order (`OperationsToolbar.vue`'s `run()`), and `document.js` keeps
- * every consumed record in `entries` even though `bodies()` stops reporting it —
- * so zipping the two and walking each id back to its creation record recovers
- * each part's real op and params.
- *
- * **Case 2** — a group whose parts came from a composite recipe's own internal
- * expansion (`kit.board`, `kit.boardFrame`, `kit.anchor`, and any future one) —
- * has no `consumes` to zip, because nothing top-level was consumed to build it.
- * This returns an empty map there, and the caller falls back to describing the
- * part by name and measurement alone. That mirrors `group.assemble`'s own stated
- * scope limit on nested composite operands, one layer further out.
- *
- * **`group.merge`** (`TODO/core-076`) is both at once, per member: a member with a `name` zips
- * as above, and a merging member answers with that operand's own map under its prefix, so a part
- * that came through two merges still reports the record that made it. A built-in member has
- * nothing to answer with, and falls back to case 2 rather than claiming each part is a Pi.
- *
- * @param {Body} body
- * @param {readonly OpRecord[]} records The document's records, in order.
- * @returns {Map<string, OpRecord>}
- */
-function partRecordsFor(body, records) {
-  if (records.length === 0) return new Map()
-
-  /** @type {Map<string, OpRecord>} */
-  const byId = new Map()
-  for (const record of records) {
-    if (record.id !== undefined) byId.set(record.id, record)
-  }
-  return partRecordsOfRoot(byId.get(body.id), byId, new Set())
-}
-
-/**
- * {@link partRecordsFor} for one lineage root.
- *
- * @param {OpRecord | undefined} root
- * @param {Map<string, OpRecord>} byId
- * @param {Set<string>} visited Guards the walk: a malformed document degrades, it does not hang.
- * @returns {Map<string, OpRecord>}
- */
-function partRecordsOfRoot(root, byId, visited) {
-  /** @type {Map<string, OpRecord>} */
-  const byPart = new Map()
-  if (root?.id === undefined || visited.has(root.id)) return byPart
-  visited.add(root.id)
-
-  const consumed = root.consumes
-  if (!Array.isArray(consumed)) return byPart
-  if (root.op === 'group.merge') {
-    const members = root.params?.members
-    if (!Array.isArray(members)) return byPart
-    // `consumes` lists `[target, ...operands]` in order: `planGroupMerge` writes it that way.
-    for (let index = 0; index < members.length && index < consumed.length; index += 1) {
-      const member = members[index]
-      const record = creationRecordOf(consumed[index], byId)
-      if (typeof member?.name === 'string') {
-        if (record) byPart.set(member.name, record)
-      } else {
-        const prefix = typeof member?.prefix === 'string' ? member.prefix : ''
-        for (const [name, part] of partRecordsOfRoot(record, byId, visited)) byPart.set(prefix + name, part)
-      }
-    }
-    return byPart
-  }
-
-  const names = root.params?.names
-  if (!Array.isArray(names)) return byPart
-  for (let index = 0; index < names.length && index < consumed.length; index += 1) {
-    const record = creationRecordOf(consumed[index], byId)
-    if (record) byPart.set(String(names[index]), record)
-  }
-  return byPart
-}
-
-/**
  * Describe one named part inside a Group-valued body (`TODO/ui-016`).
  *
  * Measured off the part's own solid rather than the group's combined one, which
@@ -730,8 +623,20 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry, 
     )
   }
 
-  const record = partRecordsFor(body, records).get(partName)
+  const record = partRecordsOf(body.id, records).get(partName)
   const entry = record ? ops[record.op] : undefined
+  // `TODO/ui-104`: the same field list a whole body of this op gets — a Cube part shows
+  // Corner radius and Rounded axis, at their defaults when the record omits them — because
+  // a native part's fields are now editable (`paramEdit.js`'s `partParamEditRecord`). A
+  // bound value stays a chip, so an edit can never silently overwrite its binding.
+  const { params: shown, bound } = shownParamsOf(record?.params ?? {}, variables)
+  const params =
+    record === undefined
+      ? []
+      : withBindings(
+          entry?.kind === 'composite' ? fieldsFor(shown, entry) : withNativeSchema(fieldsFor(shown, entry), record.op, shown),
+          bound,
+        )
   const [min, max] = boundsOf(part)
   /** @type {Vec3Mm} */
   const positionMm = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]
@@ -748,11 +653,11 @@ export function describeSubPart(body, partName, records, ops = defaultRegistry, 
     // would claim on screen that this part *is* a `kit.board`.
     op: record?.op ?? '',
     opLabel: entry?.ui?.label ?? (record ? record.op : 'Part'),
-    // A sub-part is a primitive inside a recipe's expansion, never a recipe
-    // itself — and its params are frozen for `ui-016`'s own reason (no record of
-    // its own to target), not for `ui-030`'s.
+    // Never flagged a recipe: whether a part's fields may be edited is
+    // `partParamEditability`'s answer (`TODO/ui-104`), which refuses a composite part
+    // with its own reason rather than `ui-030`'s whole-body one.
     isRecipe: false,
-    params: record ? fieldsFor(shownParamsOf(record.params ?? {}, variables).params, entry) : [],
+    params,
     positionMm,
     rotationDeg,
     parts: [],

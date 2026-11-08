@@ -266,8 +266,9 @@ const partRenamable = computed(() => {
  * True while the selection is drilled into one named part of a group
  * (`TODO/ui-016`).
  *
- * Everything this panel shows is **read-only** in that state, Transform
- * included — not as a policy choice but because there is nothing to write to:
+ * Transform is **read-only** in that state — not as a policy choice but because
+ * there is nothing to write to (`TODO/ui-104` made a native part's own Parameters
+ * editable, through its record in the group's `consumes`; its pose still is not):
  * `document.bodies()` exposes group-level ids only, so a `transform.*` record
  * committed from here would move the whole group while the panel named one
  * part. The viewport hides the gizmo for the same reason, so the two halves of
@@ -1075,9 +1076,9 @@ watch([() => body.value?.id, colorPart], () => {
           {{ body.moveRefusal }}. Position and rotation are shown here for measurement only.
         </p>
         <p v-else-if="isSubPart" class="inspector__note" data-testid="inspector-transform-note">
-          You are looking inside {{ body.subPart?.groupName }}. A part is shown here for
-          measurement only — move or turn the whole group instead, by stepping back up to
-          it with the {{ body.subPart?.groupName }} link above.
+          You are looking inside {{ body.subPart?.groupName }}. A part's position and rotation
+          are shown here for measurement only — move or turn the whole group instead, by
+          stepping back up to it with the {{ body.subPart?.groupName }} link above.
         </p>
         <p v-else class="inspector__note" data-testid="inspector-transform-note">
           Position and rotation are editable — type a value and press Enter, or drag the

@@ -184,6 +184,168 @@ export function currentParamsRecordOf(lineage) {
 }
 
 /**
+ * A consumed operand's lineage, root first, walked back along `supersedes` from the id a
+ * grouping record's `consumes` names.
+ *
+ * That id is the operand's *terminal* at the time it was consumed, which for a body moved
+ * before grouping is a `transform.translate` — whose params describe the move, not the part.
+ * Cycle-guarded: a malformed document degrades to a short chain, it does not hang.
+ *
+ * @param {string} id
+ * @param {Map<string, OpRecord>} byId
+ * @returns {OpRecord[]} Empty when there is no such record.
+ */
+function chainTo(id, byId) {
+  /** @type {OpRecord[]} */
+  const chain = []
+  const visited = new Set()
+  let record = byId.get(id)
+  while (record !== undefined) {
+    chain.push(record)
+    if (record.supersedes === undefined || visited.has(record.supersedes)) break
+    visited.add(record.supersedes)
+    record = byId.get(record.supersedes)
+  }
+  return chain.reverse()
+}
+
+/**
+ * `partName → the record that gives that part its params`, for a group-valued body
+ * (`TODO/ui-016`, moved here from `inspector.js` by `TODO/ui-104` so the Inspector's fields
+ * and the edit that writes them resolve a part the same way).
+ *
+ * - **`group.assemble`** writes `consumes: [id, …]` and `params.names: [name, …]` in the same
+ *   order, and the document keeps every consumed record, so zipping the two recovers each
+ *   part's own record.
+ * - **`group.merge`** (`TODO/core-076`) is that per member: a member with a `name` zips as
+ *   above, and a merging member answers with that operand's own map under its prefix, so a
+ *   part that came through two merges still reports the record that made it. A built-in member
+ *   has nothing to answer with.
+ * - A group whose parts came from a **recipe's own expansion** (`kit.board`, a Pi) consumed
+ *   nothing, so this is empty there and the part is described by name and measurement alone.
+ *
+ * The record reported is the lineage's current params record ({@link currentParamsRecordOf}),
+ * the same one {@link paramEditRecord} replaces, so the panel and the edit agree.
+ *
+ * @param {string} bodyId The group's lineage root id.
+ * @param {readonly OpRecord[]} records The document's records, in order.
+ * @returns {Map<string, OpRecord>}
+ */
+export function partRecordsOf(bodyId, records) {
+  if (records.length === 0) return new Map()
+  /** @type {Map<string, OpRecord>} */
+  const byId = new Map()
+  for (const record of records) {
+    if (record.id !== undefined) byId.set(record.id, record)
+  }
+  return partRecordsOfRoot(byId.get(bodyId), byId, new Set())
+}
+
+/**
+ * {@link partRecordsOf} for one lineage root.
+ *
+ * @param {OpRecord | undefined} root
+ * @param {Map<string, OpRecord>} byId
+ * @param {Set<string>} visited
+ * @returns {Map<string, OpRecord>}
+ */
+function partRecordsOfRoot(root, byId, visited) {
+  /** @type {Map<string, OpRecord>} */
+  const byPart = new Map()
+  if (root?.id === undefined || visited.has(root.id)) return byPart
+  visited.add(root.id)
+
+  const consumed = root.consumes
+  if (!Array.isArray(consumed)) return byPart
+  if (root.op === 'group.merge') {
+    const members = root.params?.members
+    if (!Array.isArray(members)) return byPart
+    // `consumes` lists `[target, ...operands]` in order: `planGroupMerge` writes it that way.
+    for (let index = 0; index < members.length && index < consumed.length; index += 1) {
+      const member = members[index]
+      const chain = chainTo(consumed[index], byId)
+      if (typeof member?.name === 'string') {
+        const record = currentParamsRecordOf(chain)
+        if (record) byPart.set(member.name, record)
+      } else {
+        const prefix = typeof member?.prefix === 'string' ? member.prefix : ''
+        for (const [name, part] of partRecordsOfRoot(chain[0], byId, visited)) byPart.set(prefix + name, part)
+      }
+    }
+    return byPart
+  }
+
+  const names = root.params?.names
+  if (!Array.isArray(names)) return byPart
+  for (let index = 0; index < names.length && index < consumed.length; index += 1) {
+    const record = currentParamsRecordOf(chainTo(consumed[index], byId))
+    if (record) byPart.set(String(names[index]), record)
+  }
+  return byPart
+}
+
+/**
+ * @typedef {ParamEditability & { recordId?: string, rootId?: string }} PartParamEditability
+ *   `recordId` is the part's record a field edit replaces, `rootId` its lineage root — what
+ *   the impact check names as the edited body. Both present only when editable.
+ */
+
+/**
+ * May one **part of a group** have its own parameters edited (`TODO/ui-104`)?
+ *
+ * Yes when the part's record (found through the group's `consumes`, {@link partRecordsOf}) is
+ * a record {@link paramEditability} would let a whole body edit: a native primitive, on the
+ * replace path. Swapping that record in place re-folds the group, and the rows that carry the
+ * part's *name* — a colour, Hidden by default — still find it, because the name is the
+ * group's, not the record's. Refused, with the op to name, for:
+ *
+ * - a **composite** part (a washer grouped with a cube): its options are a catalogue choice
+ *   whose variant change can remove pieces, which the whole-body repair dialog handles and a
+ *   part's panel does not. Changed from its row in History;
+ * - a part built from other shapes (a Union), which has no params of its own;
+ * - a part with no record of its own (a recipe's expansion, or no such part): `blockedBy: null`.
+ *
+ * @param {WarpDocument} document
+ * @param {string} bodyId The group's lineage root id.
+ * @param {string} partName
+ * @returns {PartParamEditability}
+ */
+export function partParamEditability(document, bodyId, partName) {
+  const record = partRecordsOf(bodyId, document.records).get(partName)
+  if (record?.id === undefined) return { editable: false, blockedBy: null }
+  if (lookupEntry(record.op)?.kind === 'composite') return { editable: false, blockedBy: record.op }
+  const rootId = document.rootOf(record.id) ?? record.id
+  const verdict = paramEditability(document.lineageOf(rootId))
+  return verdict.editable ? { ...verdict, recordId: record.id, rootId } : verdict
+}
+
+/**
+ * Build the replacement record for one part of a group — {@link paramEditRecord} on the
+ * part's own lineage, behind {@link partParamEditability}'s refusals. The caller swaps it in
+ * with `document.reviseRecords` after the impact check, exactly as for a whole body; a radius
+ * too big for the part is then refused by the kernel's own named limit, never clamped here.
+ *
+ * @param {WarpDocument} document
+ * @param {string} bodyId The group's lineage root id.
+ * @param {string} partName
+ * @param {Record<string, number | string | readonly number[]>} changes
+ * @returns {OpRecord | null} `null` when nothing actually changes.
+ * @throws {Error} When the part has no editable record, or a change is malformed.
+ */
+export function partParamEditRecord(document, bodyId, partName, changes) {
+  const verdict = partParamEditability(document, bodyId, partName)
+  if (!verdict.editable || verdict.rootId === undefined) {
+    throw new Error(
+      verdict.blockedBy === null
+        ? `paramEdit: part "${partName}" of "${bodyId}" has no record of its own to edit`
+        : `paramEdit: part "${partName}" of "${bodyId}" cannot be rebuilt from its parameters — it is a ` +
+            `${verdict.blockedBy}, which is built from its operands or from a catalogue choice, not from numbers`
+    )
+  }
+  return paramEditRecord(document, verdict.rootId, changes)
+}
+
+/**
  * A body's current creation params — what the Inspector's Parameters section is
  * showing, and the base a param edit is spread from.
  *

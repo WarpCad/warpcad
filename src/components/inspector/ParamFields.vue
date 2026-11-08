@@ -16,12 +16,16 @@
  *   `stores/repairDialog.js`) decides. Cancel snaps the select back.
  * - While drilled into one part of a composite, the parent's params show read-only with
  *   a one-tap way back up to the whole body — a part has no model of its own to change.
+ * - While drilled into one part of a **group** whose record is a native primitive
+ *   (`TODO/ui-104`), the part's own fields are editable: a Cube part's Corner radius and
+ *   Rounded axis, the same controls a whole Cube has. The edit swaps the part's record in
+ *   place (`useParamCommands`' `setPartParam`); a composite or combined part says why not.
  */
 import { computed, ref, watch } from 'vue'
 
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
-import { hasEditableParams, paramOptions } from '../../core/kernel/registry.js'
+import { hasEditableParams, lookupEntry, paramOptions } from '../../core/kernel/registry.js'
 import { effectiveUserPart } from '../../core/userPart.js'
 import { formatMmValue } from '../../core/units.js'
 import { meshPartInfo } from '../../io/meshPart.js'
@@ -62,9 +66,26 @@ const isSubPart = computed(() => Boolean(props.body.subPart))
 /** @returns {import('../../core/paramEdit.js').ParamEditability} */
 const editability = computed(() => {
   void documentStore.version
-  if (isSubPart.value) return { editable: false, blockedBy: null }
+  const part = props.body.subPart
+  if (part) return paramCommands.canEditPart(props.body.id, part.partName)
   return paramCommands.canEdit(props.body.id)
 })
+
+/** The drilled-into part's name, or `undefined` on a whole body. */
+const partName = computed(() => props.body.subPart?.partName)
+
+/**
+ * Commit one scalar or choice — a part's own record when drilled into a group's part
+ * (`TODO/ui-104`), else the body's.
+ *
+ * @param {string} key
+ * @param {any} value
+ * @returns {import('../../composables/useParamCommands.js').ParamResult | void}
+ */
+function setOne(key, value) {
+  if (partName.value !== undefined) return paramCommands.setPartParam(props.body.id, partName.value, key, value)
+  return paramCommands.setParam(props.body.id, key, value)
+}
 
 const editable = computed(() => editability.value.editable)
 
@@ -81,6 +102,9 @@ const meshInfo = computed(() => {
   const part = effectiveUserPart(props.body.op)
   return part === undefined ? null : meshPartInfo(part)
 })
+
+/** A group's part whose record is a composite recipe (`TODO/ui-104`): its options live in History. */
+const partIsRecipe = computed(() => isSubPart.value && lookupEntry(editability.value.blockedBy ?? '')?.kind === 'composite')
 
 /** A recipe nobody has described yet — the note says why, not "an operation". */
 const isRecipePart = computed(() => Boolean(props.body.isRecipe) && !editable.value)
@@ -271,7 +295,7 @@ function commitParamField(event, key) {
     if (!editable.value) return
     // Unlike a number, an empty string is refused loudly rather than ignored, and the
     // field is put back by hand since nothing the binding can see changed.
-    if (runEdit(() => paramCommands.setParam(props.body.id, key, raw), null)) {
+    if (runEdit(() => setOne(key, raw), null)) {
       /** @type {HTMLInputElement} */ (event.target).value = fieldValue(`param-${key}`, raw)
     }
     return
@@ -279,7 +303,7 @@ function commitParamField(event, key) {
   const parsed = parseNumeric(raw)
   editingField.value = ''
   if (parsed === null || !editable.value) return
-  runEdit(() => paramCommands.setParam(props.body.id, key, parsed), null)
+  runEdit(() => setOne(key, parsed), null)
 }
 
 /**
@@ -291,7 +315,14 @@ function commitParamComponent(event, key, index) {
   const parsed = parseNumeric(/** @type {HTMLInputElement} */ (event.target).value)
   editingField.value = ''
   if (parsed === null || !editable.value) return
-  runEdit(() => paramCommands.setParamComponent(props.body.id, key, index, parsed), null)
+  const part = partName.value
+  runEdit(
+    () =>
+      part === undefined
+        ? paramCommands.setParamComponent(props.body.id, key, index, parsed)
+        : paramCommands.setPartParamComponent(props.body.id, part, key, index, parsed),
+    null,
+  )
 }
 
 // --- enum selects ---------------------------------------------------------------
@@ -324,7 +355,7 @@ function onEnumChange(event, field) {
   const select = /** @type {HTMLSelectElement} */ (event.target)
   const option = (field.options ?? []).find((candidate) => String(candidate.value) === select.value)
   if (!option || !editable.value) return
-  const refused = runEdit(() => paramCommands.setParam(props.body.id, field.key, option.value), {
+  const refused = runEdit(() => setOne(field.key, option.value), {
     bodyId: props.body.id,
     key: field.key,
     value: option.value,
@@ -531,6 +562,27 @@ function onEnumChange(event, field) {
     <p v-else-if="body.repeat && !isSubPart" class="params__note" data-testid="inspector-params-repeat-note">
       These are {{ body.repeat.sourceName }}'s. Change them on {{ body.repeat.sourceName }} (Go to
       {{ body.repeat.sourceName }} above) and every repeat follows.
+    </p>
+    <!-- A group's part (TODO/ui-104): editable when its own record is a primitive, else why not. -->
+    <p v-else-if="isSubPart && editable" class="params__note" data-testid="inspector-params-part-note">
+      These are {{ body.subPart?.partName }}'s own sizes. Change one to rebuild just this part
+      inside {{ body.subPart?.groupName }} — it keeps its name, colour and Hidden by default, and
+      the group's other parts stay where they are.
+    </p>
+    <p
+      v-else-if="isSubPart && editability.blockedBy"
+      class="params__note"
+      data-testid="inspector-params-part-note"
+      :data-blocked-by="editability.blockedBy"
+    >
+      <template v-if="partIsRecipe">
+        {{ body.subPart?.partName }} is a ready-made part, so its options are changed from its row in
+        History, not here.
+      </template>
+      <template v-else>
+        {{ body.subPart?.partName }} is a {{ blockingOpLabel || 'combination' }} of other shapes, so it
+        has no parameters of its own to change here.
+      </template>
     </p>
     <p v-else-if="!editable && !isSubPart" class="params__note" data-testid="inspector-params-note">
       <template v-if="isRecipePart">

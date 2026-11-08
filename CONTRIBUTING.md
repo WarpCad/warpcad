@@ -39,13 +39,14 @@ CI does not run on push or pull request, because hosted minutes cost money. A pr
 It does not run the tests; it checks they ran on the commit you are pushing.
 
 1. `npm run test:unit`
-2. `npm run test:e2e:headless` (the full nine-project matrix, about 25 minutes)
+2. `npm run test:e2e:headless` (every spec on a rotating pair of two projects; a clean run is green.
+   `npm run test:e2e:full` runs all nine, about 25 minutes)
 3. `node scripts/todo-progress.mjs stamp attest`. If it prints `Known-failures:` lines, paste them
    into a commit message in the range you are pushing. It prints nothing when everything passed.
 4. `git push`
 
 Both reporters store each finished run in `.todo-progress/_runs.json` (`node scripts/todo-progress.mjs
-stamp results` shows it). Only an unfiltered run counts: `--project`, `--grep`, `--last-failed`,
+stamp results` shows it). Only an unfiltered run counts (a rotation pair run is unfiltered; it passes its own two projects). An explicit `--project`, `--grep`, `--last-failed`,
 `--shard`, a file path, a unit name filter or watch mode all store a *partial* result, and so does
 editing the tree while a run is in progress. If a suite is missing, partial, or ran on different code,
 the push is refused and the message names the command to run:
@@ -59,7 +60,7 @@ The fingerprint covers the tracked and untracked (not ignored) files under `src/
 A commit that edits only `docs/`, `TODO/`, `chat/`, `CLAUDE.md` or other `*.md`, config or lockfiles keeps
 the stored results valid. A change under `src/`, including a unit spec beside its source, invalidates them.
 Editing an `e2e/` spec does not invalidate them either, so re-run `npm run test:e2e:headless` after
-changing one before pushing.
+changing one. Each run uses the next pair of projects, so over five runs every engine and viewport is covered (`npm run test:e2e:next` shows the next pair) before pushing.
 `git push --no-verify` skips the hook; the Git LFS upload of the docs GIFs is part of the same hook,
 so `--no-verify` skips that too.
 

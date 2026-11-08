@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test, expect } from '@playwright/test'
 
@@ -25,6 +25,10 @@ import { test, expect } from '@playwright/test'
  * - **Too big a radius is refused, not clamped.** Across X the box is 40 × 20, so 12 mm is
  *   refused naming 10 mm, and the body keeps its last good shape.
  * - **Both fields survive a save and a reload.**
+ * - **A Cube inside a group has them too** (`TODO/ui-104`). Stepped into from the group's
+ *   Parts list, the part's fields edit its own record: the group's outline rounds where the
+ *   part is, Size is untouched, the other part does not move, and Undo and a reload behave
+ *   as for a whole Cube. Loaded from `e2e/fixtures/rounded-cube-group.ndjson`.
  *
  * Measurements come off `data-body-bounds` / `data-body-volume` (`Viewport.vue`), the
  * evaluated geometry, not the record's own params.
@@ -92,12 +96,19 @@ async function dragRowIntoViewport(page, { op, fx, fy }) {
 }
 
 /**
- * The scene's bodies, measured.
+ * The scene's bodies, once each one's volume has been measured.
+ *
+ * A bare Cube is measured on the spot, but a group's volume is a kernel union, which
+ * `TODO/core-029` moved into the evaluation worker: `data-body-volume` is absent until the
+ * worker's answer lands, so this waits for it rather than reading `NaN`.
  *
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<{ id: string, bounds: number[], volumeMm3: number }[]>}
  */
-function sceneBodies(page) {
+async function sceneBodies(page) {
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('[data-testid="scene-bodies"] li')].every((node) => node.hasAttribute('data-body-volume')),
+  )
   return page.$$eval('[data-testid="scene-bodies"] li', (nodes) =>
     nodes.map((node) => ({
       id: node.getAttribute('data-body-id') ?? '',
@@ -341,4 +352,110 @@ test('Corner radius and Rounded axis come back after a save and a reload', async
   expect(await fieldNumber(page, 'inspector-param-roundRadius')).toBeCloseTo(4, 3)
   await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('y')
   expect(await sizeFields(page)).toEqual([40, 40, 40])
+})
+
+/**
+ * Open `e2e/fixtures/rounded-cube-group.ndjson` through File ▸ Open: Group 1 holds a
+ * 10 mm Cube 1 at the origin and a 40 × 40 × 20 Cube 2 at X 60.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function openGroupFixture(page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'showOpenFilePicker', { value: undefined, configurable: true })
+  })
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+  await page.getByTestId('file-menu-button').click()
+  const chooserEvent = page.waitForEvent('filechooser')
+  await page.getByTestId('file-open').click()
+  const chooser = await chooserEvent
+  await chooser.setFiles({
+    name: 'rounded-cube-group.ndjson',
+    mimeType: 'text/plain',
+    buffer: readFileSync(join(process.cwd(), 'e2e/fixtures/rounded-cube-group.ndjson')),
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1', { timeout: 60_000 })
+}
+
+/**
+ * Select Group 1, then step into Cube 2 from the Inspector's Parts list.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {import('@playwright/test').TestInfo} testInfo
+ */
+async function stepIntoCube2(page, testInfo) {
+  await selectFromList(page, 'group-1', testInfo)
+  // The Inspector's Parts list names its rows `inspector-part-<name>` (`ObjectList.vue`, parts mode).
+  const row = page.getByTestId('inspector-parts').getByTestId('inspector-part-Cube 2')
+  await row.scrollIntoViewIfNeeded()
+  await press(row, testInfo)
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-sub-part', 'Cube 2')
+  await expect(page.getByTestId('inspector-params')).toBeVisible()
+}
+
+/** The two cubes' volumes, sharp: 10³ + 40·40·20. */
+const SHARP_GROUP_MM3 = 1000 + 32000
+
+test('a Cube inside a group takes a Corner radius and Rounded axis; Size, the other part, Undo and a reload all hold (TODO/ui-104)', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000)
+  await openGroupFixture(page)
+  const [sharp] = await sceneBodies(page)
+  expect(sharp.volumeMm3).toBeCloseTo(SHARP_GROUP_MM3, 0)
+
+  await stepIntoCube2(page, testInfo)
+  // The part's own fields, editable, with the defaults shown; no gizmo on a part.
+  await expect(page.getByTestId('inspector-params')).toHaveAttribute('data-editable', 'true')
+  await expect(page.getByTestId('inspector-params-part-note')).toBeVisible()
+  expect(await fieldNumber(page, 'inspector-param-roundRadius')).toBe(0)
+  await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('z')
+  await expect(page.getByTestId('inspector-position-x')).toHaveAttribute('readonly', '')
+
+  const before = await canvasPixels(page)
+  await typeIntoField(page, 'inspector-param-roundRadius', 2)
+  await expect(page.getByTestId('inspector-param-error')).toHaveCount(0)
+  await page.getByTestId('inspector-param-roundAxis').selectOption('x')
+  await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('x')
+  await expect(page.getByTestId('inspector-param-error')).toHaveCount(0)
+  await expectCanvasChanged(page, before)
+
+  // The viewport and the Inspector agree: about X, the four 40 mm edges lose (4 − π)·r²·40,
+  // less the chorded arcs' shortfall; the group's box and the part's Size are unchanged.
+  // The canvas can change on the radius edit alone, so wait for the about-X rebuild to land:
+  // about Z (the 20 mm uprights) at most (4 − π)·4·20 ≈ 68.7 mm³ goes, short of 80.
+  await expect.poll(async () => SHARP_GROUP_MM3 - ((await sceneBodies(page))[0]?.volumeMm3 ?? NaN)).toBeGreaterThan(80)
+  const [rounded] = await sceneBodies(page)
+  // Cube 2's share is the group less Cube 1's 10³ (the two do not overlap). The chorded arc
+  // sits inside the true circle, so it removes *more* than (4 − π)·r²·L = 137.35 mm³, never
+  // less. The fixture declares no resolution, so it opens as `legacy` (`project.js`: a file
+  // with records and no setting is the old fixed 32 segments), not Normal's 16 at r 2:
+  // 137.35 + (π − 16·sin(π/16))·4·40 ≈ 137.35 + 3.22 = 140.57 mm³ removed.
+  expectRoundedVolume(rounded.volumeMm3 - 1000, [40, 40, 20], 2, 40, 32)
+  expect(rounded.bounds).toEqual(sharp.bounds)
+  expect(await sizeFields(page)).toEqual([40, 40, 20])
+  expect(await fieldNumber(page, 'inspector-size-x')).toBeCloseTo(40, 3)
+  expect(await fieldNumber(page, 'inspector-size-z')).toBeCloseTo(20, 3)
+  expect(await fieldNumber(page, 'inspector-param-roundRadius')).toBeCloseTo(2, 3)
+  await expect(page.getByTestId('inspector')).toHaveAttribute('data-sub-part', 'Cube 2')
+  await snapshot(page, testInfo, 'group-part')
+
+  // Two edits, two Undo steps: back to the sharp cube, then forward again.
+  await expect(page.getByTestId('undo-button')).toHaveAttribute('aria-label', /^Undo: Edit Cube 2/)
+  await press(page.getByTestId('undo-button'), testInfo)
+  await press(page.getByTestId('undo-button'), testInfo)
+  await expect.poll(async () => (await sceneBodies(page))[0]?.volumeMm3).toBeCloseTo(SHARP_GROUP_MM3, 0)
+  await press(page.getByTestId('redo-button'), testInfo)
+  await press(page.getByTestId('redo-button'), testInfo)
+  await expect.poll(async () => (await sceneBodies(page))[0]?.volumeMm3).toBeCloseTo(rounded.volumeMm3, 3)
+  await expect(page.getByTestId('save-status')).toHaveAttribute('data-tone', 'saved', { timeout: 8000 })
+
+  await page.reload()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1', { timeout: 60_000 })
+  await expect.poll(async () => (await sceneBodies(page))[0]?.volumeMm3).toBeCloseTo(rounded.volumeMm3, 3)
+  await stepIntoCube2(page, testInfo)
+  expect(await fieldNumber(page, 'inspector-param-roundRadius')).toBeCloseTo(2, 3)
+  await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('x')
 })

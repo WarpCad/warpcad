@@ -105,7 +105,7 @@ Continuing from the worked example above:
 
 ![Clicking a grouped cube selects the whole group; clicking it again narrows to Cube 1, clicking the other cube goes straight to Cube 2, and the Group 1 crumb in the Inspector steps back up to the whole group](./media/group-subpart-select.gif)
 
-### Looking inside a group is read-only
+### Looking inside a group: what you can change
 
 While you are looking at a part inside a group, **the transform gizmo disappears
 and the Inspector's Position and Rotation fields stop being editable.** That is
@@ -114,11 +114,24 @@ yet to move one member independently of the others. Showing a gizmo that quietly
 moved the whole assembly — while the panel beside it named a single part — would be
 worse than showing none.
 
-So while drilled in you can read a part's size, position and parameters, but not
-change them. Click the breadcrumb's group segment to step back up, and the gizmo and
-editable fields come back for the group as a whole. The one thing you can change from
-inside is the part's **name**: tap it at the top of the Inspector, as described in
-[Naming a part of a group](selection-and-inspector.md#naming-a-part-of-a-group).
+So while drilled in you can read a part's position, but not change it. Click the
+breadcrumb's group segment to step back up, and the gizmo and editable Position and
+Rotation come back for the group as a whole.
+
+What you **can** change from inside is the part's **name** (tap it at the top of the
+Inspector, as described in
+[Naming a part of a group](selection-and-inspector.md#naming-a-part-of-a-group)) and, for
+a plain shape you grouped yourself, its own **Parameters**. For example, to round the
+corners of a Cube in a group (values in millimetres):
+
+1. Click the group, then click the Cube in the Inspector's **Parts** list.
+2. Type `2` into **Corner radius** and press **Enter**, then choose `X` under
+   **Rounded axis**.
+3. The Cube's corners round. It keeps its name, colour and Hidden by default, and the
+   group's other parts do not move.
+
+The full walk-through is under **Inside a group** in
+[Selecting a shape](selection-and-inspector.md#the-inspector).
 
 One kind of group is an exception to the parameter half: parts that came from a
 **built-in multi-part shape** (rather than from shapes you grouped yourself) show

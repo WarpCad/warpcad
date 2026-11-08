@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { existsSync } from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
 
 /**
@@ -129,15 +128,6 @@ const docsProjects = VIEWPORTS.flatMap((size) => THEMES.map((theme) => ({
 const PREVIEW = process.env.E2E_PREVIEW === '1'
 
 /**
- * Fast mode: an untracked, gitignored marker file at the repo root (`.test-fast`) narrows the
- * default run to **all** tests on just `chromium-laptop` (Chrome desktop) and `webkit-tablet`
- * (Safari on iPad) plus the `guards`. The smoke projects are dropped as redundant (they are a
- * subset of those two). Create it with `touch .test-fast`, delete it to get the full 9-way
- * matrix back. Explicit `--project=<name>` flags still work for the projects that exist.
- */
-const FAST = existsSync(new URL('./.test-fast', import.meta.url))
-
-/**
  * Whether this run names a `docs-*` project. Only the launching process sees the `--project`
  * flags; each worker re-loads this config with different argv and would otherwise drop the
  * project it was handed ("Project docs-laptop not found in the worker process"), failing every
@@ -210,14 +200,7 @@ export default defineConfig({
   use: {
     baseURL: ORIGIN,
   },
-  projects: FAST
-    ? [
-        { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
-        ...browserProjects.filter((project) => SMOKE_BROWSERS.includes(project.name)),
-        // `npm run docs:*` names its docs-* projects explicitly; keep them selectable.
-        ...(WANTS_DOCS ? docsProjects : []),
-      ]
-    : [
+  projects: [
         // Repo guards that assert on files rather than on a page — one run is
         // enough, so they stay out of the 9-way browser matrix.
         { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },

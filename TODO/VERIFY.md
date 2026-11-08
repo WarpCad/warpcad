@@ -25,6 +25,7 @@ under the old checkbox format.
   that id in Notes.
 - `N/A` — no longer checkable as written (e.g. the reachability gate changed). Say why
   in Notes.
+- `Deferred` — checkable only with a real Anthropic API key, which bills purchased tokens, so the owner parked it for cost (2026-11-07). Notes say why. Re-open it when the owner chooses to spend tokens.
 - `Moved` — an AI drive can settle it without a device, a key or the owner, so it was handed
   to a TODO. The id is in Notes, and that TODO sets the row to `OK`, `Issue` or `N/A` when it runs.
 
@@ -49,6 +50,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 **Done 2026-11-07 (third pass):** 166 more rows marked `Moved` and 34 more given a moved-half note: cold reads by fresh agents (`testing-029`), real-GPU and screen measurements on the Mac (`testing-030`), tap, timing, reach and step-count measurements (`testing-031`), model behaviour over MCP (`testing-032`), and owner decisions gathered with a drafted recommendation each (`testing-033`). What stays `Open` needs a real phone or tablet in the hand, a printer, an account or token, the in-app Assistant with a real key, or a messaging app.
 
 ## Queue
+
+### build-023 — Native app icons, launch background and accent (2026-11-07 UTC)
+
+Built by generator `npm run icons` in `warpcad-native`. Nothing was run on a simulator or device, and no iOS or macOS build was made, so Xcode's asset-catalog settings are unproven. Android is split out as `build-024`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | iPhone and iPad home screen: the WarpCad mark is full-bleed with no ring or pre-rounded corners | Open | |
+| 2 | Launch screen is `#10131a` with no white frame, on iPhone and iPad | Open | |
+| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Open | |
+| 4 | Windows taskbar and Start menu show the tile | Open | |
 
 ### ui-097 — Align target part (2026-11-06 19:03 UTC)
 
@@ -155,7 +167,7 @@ Not covered by a standing acceptance scenario: scenario 24 needs a real API key,
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Acceptance scenario 24 ("Edit while the Assistant works") with a real model key: a hidden part marked during an AI turn stays hidden when the turn lands. | Open | Needs a real Anthropic key. |
+| 1 | Acceptance scenario 24 ("Edit while the Assistant works") with a real model key: a hidden part marked during an AI turn stays hidden when the turn lands. | Deferred | Needs a real Anthropic key. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 2 | `ui-085` on a real iPhone: the Inspector's **Hidden by default** row wraps, the sheet does not scroll sideways, and tapping the label toggles it. | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. The e2e checks `scrollWidth` only in emulated WebKit. |
 
 ### ai-033 — Per-project AI step limit (2026-11-02 21:48 UTC)
@@ -164,7 +176,7 @@ Not covered by a standing acceptance scenario: scenarios 24 and 25 need a real A
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Scenario 24 with a real key at phone width: the **Limit: 1,000** button and the sheet stay usable with the keyboard open. | Open | |
+| 1 | Scenario 24 with a real key at phone width: the **Limit: 1,000** button and the sheet stay usable with the keyboard open. | Deferred | 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 2 | Scenario 25 with a real MCP client: raise the limit mid-burst; the next call lands in the same group. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
 | 3 | Open a project file stating 3000 in a browser that never approved it: the bar reads 1,000 and **Use 3,000** appears. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. |
 
@@ -185,7 +197,7 @@ The perf-003 change shipped with its bench and the closed-finding checks done. T
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | `ai-006`: open the chat panel on a dev build, run a scripted turn that lands a body, press **Undo AI turn**, and confirm the body is taken back and the header Undo still reads correctly. | Moved | Moved 2026-11-07 to `FIND-testing-019`: an AI drive can settle it. Needs `npm run dev` (scripted provider is DEV-only). |
-| 2 | Acceptance scenario 24, "Edit while the Assistant works": laptop then phone, with a real model key, following the scenario's steps 1–7. | Open | Needs a real Anthropic key. The scripted transcript covers the plumbing only. |
+| 2 | Acceptance scenario 24, "Edit while the Assistant works": laptop then phone, with a real model key, following the scenario's steps 1–7. | Deferred | Needs a real Anthropic key. The scripted transcript covers the plumbing only. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 3 | Acceptance scenario 25, "An MCP agent edits the project you have open": `npm run dev`, a loopback MCP client, lease enabled, steps 1–7, plus phone reachability of the access control. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. Needs `npm run dev` and an MCP client registered with the loopback endpoint. |
 
 ### build-022 — Owner checks to bring warpcad.com live (2026-10-31 21:20 UTC)
@@ -695,7 +707,7 @@ live model, reading the corrected sentence, now picks the right side for a reque
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real Assistant key, ask it to snap a body with `outside+` onto another and say which side it lands on. It should answer the − side, and the result should match. | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 1 | With a real Assistant key, ask it to snap a body with `outside+` onto another and say which side it lands on. It should answer the − side, and the result should match. | Deferred | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 
 ### ui-067 — Place connectors on the split cut face by hand (2026-10-15 23:46)
 
@@ -844,7 +856,7 @@ Driven with a scripted transcript only; the judgment calls below need a real tur
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real key, a turn of several tool calls: does editing during it *feel* uninterrupted, and is `Working…` plus the header chip enough to tell the turn is still running? | Open | |
+| 1 | With a real key, a turn of several tool calls: does editing during it *feel* uninterrupted, and is `Working…` plus the header chip enough to tell the turn is still running? | Deferred | 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 2 | At 390 px, the chat header wraps in Scripted mode; check the header chip dot and the **Watch** toggle are still comfortably tappable and not clipped. | Moved | Moved 2026-11-07 to `FIND-testing-017`: an AI drive can settle it. |
 | 3 | Edit the very body the Assistant was asked to change, then read the conflict banner and the flagged row: is the wording understandable? | Moved | Moved 2026-11-07 to `FIND-testing-029`: a cold-read panel of fresh agents can settle it. |
 
@@ -914,7 +926,7 @@ with a console open can judge.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | After a real turn with a real key, the chip's "≈ $x" is within a few cents of the turn's cost in the Anthropic console (Usage page) | Open | |
+| 1 | After a real turn with a real key, the chip's "≈ $x" is within a few cents of the turn's cost in the Anthropic console (Usage page) | Deferred | 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 2 | At 390 px (iPhone), the route sheet's command wraps and **Copy** puts the command on the clipboard in Safari (the e2e is Chromium-only) | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 
 ### ai-014 — AI tools for project variables (2026-10-11 15:09)
@@ -923,7 +935,7 @@ Driven with the scripted provider on a laptop only. What a scripted run cannot s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real key, a project holding a bound `piModel`: type *make this case for a Pi 5*. Does it call `set_variable` (not `list_ops`/`operate` hunting for the Pi), and does the row read *Set piModel to 5* with the impact line? | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 1 | With a real key, a project holding a bound `piModel`: type *make this case for a Pi 5*. Does it call `set_variable` (not `list_ops`/`operate` hunting for the Pi), and does the row read *Set piModel to 5* with the impact line? | Deferred | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 2 | At phone width (390x844) the *Set piModel to 5* row and a revisions-only **Undo AI turn** are reachable in the half-height chat sheet and the Variables tab shows Pi 5 behind it. | Open | |
 
 ### ui-059 — Variables panel and bind control: feel and device checks (2026-10-11 03:11)
@@ -981,9 +993,9 @@ The scripted provider proves the **plumbing** of both scenarios (Chromium and We
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Run scenario 17 live** with a real key at laptop and at phone (touch), exactly as `TODO/ACCEPTANCE.md` says, and save the transcript and cost under `bench/results/ai/`. A FAIL recorded as FAIL is a good result | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
-| 2 | **Run scenario 18 live** with a real key (`e2e/fixtures/drawing-board-85x56.png`): does it read the callouts, set scale first, ask about or flag the connector heights, and give an honest overlay residual? (also `ai-008` VERIFY row 1) | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
-| 3 | Real finding to watch in the live 17 run: the airfoil's default **knife-edge trailing edge is a 0 mm wall**, which `check_printability` flags as unprintable at a 0.4 mm nozzle. Does the real model notice the warning and fix it (blunt trailing edge), or report the wing as printable? Product call: should the airfoil default to a blunt trailing edge? | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 1 | **Run scenario 17 live** with a real key at laptop and at phone (touch), exactly as `TODO/ACCEPTANCE.md` says, and save the transcript and cost under `bench/results/ai/`. A FAIL recorded as FAIL is a good result | Deferred | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
+| 2 | **Run scenario 18 live** with a real key (`e2e/fixtures/drawing-board-85x56.png`): does it read the callouts, set scale first, ask about or flag the connector heights, and give an honest overlay residual? (also `ai-008` VERIFY row 1) | Deferred | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
+| 3 | Real finding to watch in the live 17 run: the airfoil's default **knife-edge trailing edge is a 0 mm wall**, which `check_printability` flags as unprintable at a 0.4 mm nozzle. Does the real model notice the warning and fix it (blunt trailing edge), or report the wing as printable? Product call: should the airfoil default to a blunt trailing edge? | Deferred | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 4 | Product call: transcripts are hand-written, not recorded. Is it worth adding a recorder (save a live run as a transcript) once a live run exists? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-009 — MCP server and the disk-change prompt: what only a real client and real devices can show (2026-10-10 21:18)
@@ -1006,7 +1018,7 @@ Scale, build, overlay and Save-confirm are covered by unit specs, a scripted-pro
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Run scenario 18 with a **real key**: does the model read the callouts into a table, set scale before building, and **ask about or flag** the connector heights instead of stating them? Read the residual it reports against the overlay yourself | Open | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. |
+| 1 | Run scenario 18 with a **real key**: does the model read the callouts into a table, set scale before building, and **ask about or flag** the connector heights instead of stating them? Read the residual it reports against the overlay yourself | Deferred | 2026-11-07: The model-behaviour half (Claude Code over MCP on the owner's subscription, same tool registry) moved to `FIND-testing-032`; the in-app Assistant with a real key stays here. 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 2 | Real iPhone: **Attach** opens the camera / photo picker, the phone half sheet shows the Confirm card without scrolling, the overlay thumbnail is legible | Open | |
 | 3 | Product call: the overlay draws the model at 0.55 opacity with the grid hidden. Is that the right look for judging a match? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 4 | Product call: a **cancelled turn keeps the scale it set** for the rest of the session (the project itself is untouched). Acceptable, or should a cancel forget it? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
@@ -1094,7 +1106,7 @@ Scenarios 1 and 10 were driven by hand and the three-viewport, two-engine e2e ma
 |---|---|---|---|
 | 1 | On a real iPhone, press-and-hold in **API key** and choose **Paste** from the system menu; the Save and test button enables and the sheet does not scroll sideways | Moved | Moved 2026-11-07 to `FIND-testing-027`: an AI drive can settle it. |
 | 2 | On a real iPhone and iPad (Safari), save a key, close the tab, reopen the next day: still **Connected**, or it falls back to the key sheet rather than a broken panel (Safari can evict IndexedDB) | Open | |
-| 3 | With a **real** key (not a stub), **Save and test** reads *Connected*; a deliberately wrong key reads the "rejected" message and the CSP does not block `api.anthropic.com` in Firefox | Open | |
+| 3 | With a **real** key (not a stub), **Save and test** reads *Connected*; a deliberately wrong key reads the "rejected" message and the CSP does not block `api.anthropic.com` in Firefox | Deferred | 2026-11-07: Deferred due to cost. Needs a real Anthropic API key, which bills against purchased tokens, not the Pro subscription. |
 | 4 | Product call: the Assistant button sits in the header at every width and the saved-key dot is a hollow ring until a test this visit. Is "saved, not yet checked" clear enough, or should the app test once on open? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ai-003 — Project settings and design intent on real phone and tablet hardware (2026-10-06 17:11)

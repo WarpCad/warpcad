@@ -137,7 +137,7 @@ export function vouches(r, fp) {
 
 /**
  * Store the latest run of one suite, replacing that suite's previous entry, with one exception:
- * a clean partial run (a `one`, `changed` or `fast` scope) on the same code as a stored run that
+ * a clean partial run (a `one` or `changed` scope) on the same code as a stored run that
  * vouches for it leaves that stored run alone. Otherwise a targeted run on a tree that already
  * passed in full would make the next commit re-run the whole suite. A partial run that failed
  * is always stored, so the failure is visible.

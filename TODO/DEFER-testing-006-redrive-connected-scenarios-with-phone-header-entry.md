@@ -4,9 +4,17 @@ category: testing
 kind: feature
 priority: medium
 model: sonnet
+milestone: deferred — parked 2026-11-07 due to cost (needs a real Anthropic API key)
 depends: [ui-075]
-status: open
+status: deferred
 ---
+
+> **Deferred 2026-11-07, due to cost.** Acceptance scenario 24 needs a real Anthropic API key, and
+> an API key bills against purchased tokens, not the owner's Pro subscription. The owner will not
+> spend that soon. Do not run this with a live key. A scripted or mocked provider proves only the
+> plumbing, and scenario 24 says that is not enough. The key-free parts (scenario 25, the `ui-071`
+> repro, the phone header checks) can be picked up later without a key. The 2026-11-08 PARTIAL run
+> in `TODO/ACCEPTANCE.md` (steps 1–5 and 7) is the last record.
 
 ## Goal
 

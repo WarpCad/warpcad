@@ -144,6 +144,24 @@ in millimetres):
 
 ![A 25 × 23.862 × 1 mm board with 2 mm rounded corners, selected, its Corner radius and Rounded axis in the Inspector](./screenshots/inspector-rounded-cube.png)
 
+**Inside a group.** A Cube that is already a part of a group has the same **Corner
+radius** and **Rounded axis** fields. Changing them rebuilds just that part: it keeps its
+name, its colour and **Hidden by default**, and the group's other parts do not move. Its
+Position and Rotation stay read-only, because a part moves with its group. For example
+(all values in millimetres):
+
+1. Open a project with a group that has a Cube in it, and click the group.
+2. Click the Cube in the group's **Parts** list. The breadcrumb shows `Group ▸ Cube`.
+3. Type `2` into **Corner radius** and press **Enter**. The part's corners round off,
+   and **Size** still reads the same three numbers.
+4. Choose `X` under **Rounded axis**. The rounding moves to the four edges that run left
+   to right. If the part is too thin across X for a 2 mm radius, the Inspector shows the
+   same "must be smaller than half the shortest side" message and nothing changes.
+5. Press **Undo** to put the corners back one step at a time.
+
+A part that is a ready-made part (a washer grouped with a cube) or a combination of other
+shapes (a Union) still has no fields to change here, and the Inspector says why.
+
 **Transform** — where the shape is and how it is turned:
 
 - **Position X/Y/Z** — the middle of the shape, in millimetres from the grid's origin.
@@ -206,9 +224,12 @@ state you have to clear.
 
 Two cases, and the panel tells you which:
 
-- **You are looking inside a group.** The breadcrumb at the top of the panel shows
-  `Group ▸ Part`. A part inside a group is shown for measurement only — step back up to
-  the group with the breadcrumb link to change anything.
+- **You are looking inside a group, at a part with no sizes of its own.** The breadcrumb
+  at the top of the panel shows `Group ▸ Part`. A plain shape inside a group (a Cube, a
+  Cylinder) keeps its own Parameters, which you can change there (see **Inside a group**
+  above). A ready-made part or a combined shape inside a group does not, and a part's
+  Position and Rotation are always for measurement only: step back up to the group with
+  the breadcrumb link to move it.
 - **The shape was made by combining others.** A Union, Subtract or Group has no numbers of
   its own: its shape *is* the shapes it was built from. Select one of those and change it.
 
