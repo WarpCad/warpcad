@@ -58,6 +58,27 @@ describe('appUpdate store', () => {
     expect(store.versionLabel).not.toMatch(/0\.0\.0|\+/)
   })
 
+  it('Help reads `WarpCad build <commit>` on the web, as before (build-017)', () => {
+    expect(store.helpVersionLine).toBe(`WarpCad build ${store.commit}`)
+  })
+
+  it('inside a native shell Help names the release, commit, platform and shell version (build-017)', async () => {
+    const global = /** @type {any} */ (globalThis)
+    global.__TAURI_INTERNALS__ = {
+      invoke: (/** @type {string} */ cmd) => (cmd === 'shell_info' ? Promise.resolve({ platform: 'ios', version: '9.8.7' }) : Promise.reject(new Error(cmd))),
+    }
+    try {
+      setActivePinia(createPinia())
+      const native = useAppUpdateStore()
+      const release = native.version === '0.0.0' ? 'dev' : native.version
+      // Before the shell answers: no shell version yet, and no platform from an unstamped build.
+      expect(native.helpVersionLine).toBe(`WarpCad ${release} (${native.commit}) · Native app`)
+      await vi.waitFor(() => expect(native.helpVersionLine).toBe(`WarpCad ${release} (${native.commit}) · iOS app 9.8.7`))
+    } finally {
+      delete global.__TAURI_INTERNALS__
+    }
+  })
+
   it('check() reports the latest version, and clears checking', async () => {
     store.attach({ checkNow: vi.fn().mockResolvedValue('latest') })
     const pending = store.check()

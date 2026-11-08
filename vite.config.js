@@ -12,6 +12,7 @@ import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
 import { addAnalyticsSources, measurementId } from './scripts/analytics-build.mjs'
+import { shellTarget } from './scripts/native-build.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -131,14 +132,15 @@ const SENTRY = sentryBuildOptions(process.env)
  * `vite build --mode native` (`npm run build:native`, `TODO/build-017`): the bundle the Tauri shell
  * loads from disk. Relative base so `file`-style and custom-protocol URLs resolve, its own output
  * folder so it never overwrites the Pages build, and `__SHELL__` stamped with the target the shell
- * passes in `WARPCAD_SHELL` (default `tauri`).
+ * passes in (see {@link shellTarget}). No service worker and no web manifest: the shell serves its
+ * files from disk (`src/pwa.js`, `docs/decisions/native-mobile-shell.md` Q2).
  */
 export default defineConfig(({ command, mode }) => ({
   define: {
     __GA_MEASUREMENT_ID__: JSON.stringify(command === 'build' && mode !== 'native' ? GA_ID : ''),
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_COMMIT__: JSON.stringify(APP_COMMIT),
-    __SHELL__: JSON.stringify(command === 'build' && mode === 'native' ? process.env.WARPCAD_SHELL || 'tauri' : ''),
+    __SHELL__: JSON.stringify(command === 'build' && mode === 'native' ? shellTarget(process.env) : ''),
   },
   base: mode === 'native' ? './' : basePath(process.env.BASE_PATH),
   // Dedicated, strict port: with auto-increment-on-conflict (Vite's default),
@@ -180,6 +182,8 @@ export default defineConfig(({ command, mode }) => ({
     // `gzipSize`/`brotliSize` show what travels over the wire, not just the parsed size.
     visualizer({ filename: 'stats.html', gzipSize: true, brotliSize: true, template: 'treemap' }),
     VitePWA({
+      // The native bundle has no worker to generate or register (`TODO/build-017`).
+      disable: mode === 'native',
       // `TODO/build-005`: a new worker installs, activates and takes control the moment it is
       // found (stated below, not left to the plugin's defaults). `src/pwa.js` intercepts the
       // plugin's automatic reload (`onNeedReload`) so the page is never reloaded under the user.

@@ -25,7 +25,22 @@
  * @typedef {object} ShellInfo
  * @property {boolean} native true when the page runs inside a native shell
  * @property {string} target the build-time shell target (`''` on the web)
+ * @property {string} platform the OS the target names (`ios`, `macos`, `android`, `windows`), `''` when unknown
  */
+
+/**
+ * What the shell itself reports through its `shell_info` command (`warpcad-native/src-tauri/src/lib.rs`).
+ *
+ * @typedef {object} ShellDetails
+ * @property {string} platform the OS the shell runs on (`ios`, `macos`, `android`, `windows`), `''` when unknown
+ * @property {string} version the shell's own version, `''` when unknown
+ */
+
+/** The command the shell registers for {@link loadShellDetails}. */
+export const SHELL_INFO_COMMAND = 'shell_info'
+
+/** How each platform is written in the UI ("iOS app", "macOS app"). */
+const PLATFORM_NAMES = Object.freeze({ ios: 'iOS', macos: 'macOS', android: 'Android', windows: 'Windows' })
 
 /**
  * The part of the global object the shell reads: the bridge the Tauri webview injects, when there is one.
@@ -63,7 +78,64 @@ export function isNativeShell(probe) {
  * @returns {ShellInfo}
  */
 export function shellInfo(probe) {
-  return { native: isNativeShell(probe), target: probe.target }
+  return { native: isNativeShell(probe), target: probe.target, platform: platformOfTarget(probe.target) }
+}
+
+/**
+ * The OS a build target names: `tauri-ios` is `ios`. A bare `tauri` or an unknown target gives `''`.
+ *
+ * @param {string} target the build-time `__SHELL__` value
+ * @returns {string}
+ */
+export function platformOfTarget(target) {
+  const os = target.startsWith('tauri-') ? target.slice('tauri-'.length) : ''
+  return Object.hasOwn(PLATFORM_NAMES, os) ? os : ''
+}
+
+/**
+ * The platform as the UI writes it: `iOS`, `macOS`, `Android`, `Windows`. Unknown gives `Native`.
+ *
+ * @param {string} platform
+ * @returns {string}
+ */
+export function platformName(platform) {
+  return Object.hasOwn(PLATFORM_NAMES, platform) ? PLATFORM_NAMES[/** @type {keyof typeof PLATFORM_NAMES} */ (platform)] : 'Native'
+}
+
+/**
+ * Help's version line inside a native shell (`TODO/build-017`):
+ * `WarpCad <version> (<commit>) · <platform> app <shell version>`, for example
+ * `WarpCad 1.13.0 (a1b2c3d) · iOS app 1.13.0`. The package's `0.0.0` placeholder reads `dev`, as the
+ * header label does (`TODO/ai-024`). A shell version not yet known is left off rather than guessed.
+ *
+ * @param {{ version: string, commit: string, platform: string, shellVersion: string }} parts
+ * @returns {string}
+ */
+export function nativeVersionLine({ version, commit, platform, shellVersion }) {
+  const release = version === '0.0.0' ? 'dev' : version
+  const app = `${platformName(platform)} app${shellVersion ? ` ${shellVersion}` : ''}`
+  return `WarpCad ${release} (${commit}) · ${app}`
+}
+
+/**
+ * Asks the shell what it is. Falls back to the build target's platform and no version when the
+ * command is missing or answers with something unexpected, so Help still shows a line.
+ *
+ * @param {ShellProbe} probe
+ * @param {BridgeGlobal} [global] the global object to read the bridge from
+ * @returns {Promise<ShellDetails>}
+ */
+export async function loadShellDetails(probe, global = /** @type {BridgeGlobal} */ (/** @type {unknown} */ (globalThis))) {
+  const fallback = { platform: platformOfTarget(probe.target), version: '' }
+  try {
+    const answer = /** @type {{ platform?: unknown, version?: unknown } | null} */ (await invoke(SHELL_INFO_COMMAND, {}, global))
+    return {
+      platform: typeof answer?.platform === 'string' && answer.platform ? answer.platform : fallback.platform,
+      version: typeof answer?.version === 'string' ? answer.version : '',
+    }
+  } catch {
+    return fallback
+  }
 }
 
 /**

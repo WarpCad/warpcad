@@ -297,7 +297,7 @@ onBeforeUnmount(() => {
             </footer>
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
-              <span data-testid="help-version">WarpCad {{ update.buildLabel }}</span>
+              <span data-testid="help-version">{{ update.helpVersionLine }}</span>
               <button
                 type="button"
                 class="help__btn"

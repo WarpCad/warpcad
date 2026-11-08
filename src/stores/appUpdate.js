@@ -13,6 +13,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { loadShellDetails, nativeVersionLine, probeShell, shellInfo } from '../native/shell.js'
+
 /** The package version and short commit this build was made from (`vite.config.js` `define`). */
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0'
 const COMMIT = typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'dev'
@@ -43,6 +45,22 @@ export const useAppUpdateStore = defineStore('appUpdate', () => {
   const buildLabel = `build ${COMMIT}`
   /** The header's version label, `TODO/ui-077`; see {@link headerVersionLabel}. */
   const versionLabel = headerVersionLabel(VERSION, COMMIT)
+  /**
+   * Help's version line (`TODO/build-005`, `TODO/build-017`). On the web it reads
+   * `WarpCad build <commit>`. Inside a native shell it reads
+   * `WarpCad <version> (<commit>) · <platform> app <shell version>`; the shell version arrives from
+   * the shell's `shell_info` command a moment after start, so the line first shows without it.
+   */
+  const probe = probeShell()
+  const shell = shellInfo(probe)
+  const helpVersionLine = ref(
+    shell.native ? nativeVersionLine({ version: VERSION, commit: COMMIT, platform: shell.platform, shellVersion: '' }) : `WarpCad ${buildLabel}`,
+  )
+  if (shell.native) {
+    void loadShellDetails(probe).then((details) => {
+      helpVersionLine.value = nativeVersionLine({ version: VERSION, commit: COMMIT, platform: details.platform, shellVersion: details.version })
+    })
+  }
   /** A newer build has been installed and a reload would run it. */
   const needRefresh = ref(false)
   /** The first install finished: the app now works offline. */
@@ -134,6 +152,7 @@ export const useAppUpdateStore = defineStore('appUpdate', () => {
     commit,
     buildLabel,
     versionLabel,
+    helpVersionLine,
     needRefresh,
     offlineReady,
     checking,
