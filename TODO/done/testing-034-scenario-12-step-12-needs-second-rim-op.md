@@ -6,7 +6,9 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-08 from a scripted drive of scenario 12 during ui-104's Step 6)
 depends: []
-status: open
+status: done
+
+**What shipped (2026-11-08):** step 12 of `TODO/ACCEPTANCE.md` scenario 12 now breaks a later step instead of stacking a second rim operation. It Subtracts the sphere from the cube, then widens the Chamfer to 18 mm (applies, the Subtract shrinks) and to 25 mm (refused by name on the Chamfer row, the document unchanged after Cancel and Back to latest). Scenario 12 was re-driven end to end, steps 1–12 PASS, at laptop 1440x900 Chromium. Observed: the refusal names the Chamfer step, not the Subtract, because the kernel does not fail a boolean on geometry.
 ---
 
 ## Problem

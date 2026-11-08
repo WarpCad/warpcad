@@ -3550,10 +3550,14 @@ preview strip and the rollback strip (with **Roll forward**), and the header's *
     Library to an empty part of the viewport, well away from the Sphere's spot. Look at
     the viewport, the strip and the list again. Then press **Roll forward** on the strip.
 11. Tap the Sphere row and press **Move up**; look; press **Undo**.
-12. *Break it on purpose.* Select the cube alone, press **Fillet**, choose **Top (+Z)**,
-    radius `4`, commit. Then in History tap the **Chamfer** row, **Edit**, set Radius to
-    `18` (the chamfer now eats nearly the whole top face, so the later fillet cannot fit),
-    press **Apply**.
+12. *Break it on purpose.* Close History. Click the cube, Shift-click the sphere, and press
+    **Subtract** on the Operations toolbar (the cube minus the sphere; they are far apart, so the
+    cube comes out whole). Open **History**, tap the **Chamfer** row, **Edit**, set Radius to `18`,
+    press **Apply**. Then **Edit** the same row again, set Radius to `25` (wider than the 40 mm
+    cube's top can absorb, so the Subtract has no chamfered cube to cut from), press **Apply**.
+    Read the strip and the row, then **Cancel** and press **Back to latest**. No second rim
+    operation (Fillet or Chamfer) appears in this step: the kernel refuses those on one solid by
+    design.
 
 **Expect**:
 - Step 4: History lists at least, in order, `Cube 1 — placed`, `Chamfer Top (+Z) 5 mm on
@@ -3583,13 +3587,22 @@ preview strip and the rollback strip (with **Roll forward**), and the header's *
   (chamfered Cube, Cone, Sphere) are on screen, the row order is Cube, Chamfer, Cone,
   Sphere, and nothing was deleted or reordered along the way.
 - Step 11: the rows swap and the viewport looks **identical**; Undo swaps them back.
-- Step 12: either the edit applies and the geometry is visibly correct, **or** it is
-  refused with a named message (`Step 5 (Fillet Top (+Z) 4 mm on Cube 1) can't be built:
-  ...`), the document is unchanged (the chamfer still reads its old value) and the failing
-  row is marked `broken` while the message is up. **Not acceptable**: the cube vanishes or
-  turns wrong-shaped, the sphere moves or disappears, or nothing at all is said — the exact
-  failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
+- Step 12, Subtract: the cube and sphere become one body, `Subtract 1`, and History gains a
+  fifth row `Subtract Cube 1 + Sphere 1`. The Cone is untouched.
+- Step 12, Radius `18`: the edit applies, the Chamfer row reads `18 mm`, `Subtract 1` shrinks
+  (its volume drops visibly, 63316 to 45856 mm³ for a 3 mm chamfer widened to 18), the Subtract
+  row and the Cone are untouched, and no row carries a `broken` chip.
+- Step 12, Radius `25`: the edit is **refused with a named message**. The strip reads `Step 2
+  (Chamfer Top (+Z) 18 mm on Cube 1) can't be built: modify.chamferRim: radius 25mm is wider
+  than the cross-section can absorb — ... Use a smaller radius.`, the Chamfer row carries the
+  `broken` chip with the same text, and the form stays open. After **Cancel** and **Back to
+  latest** the document is unchanged: the Chamfer row still reads `18 mm`, the `Subtract`
+  row, the Cone and the Sphere's step are all still there with the same volumes, and no
+  `broken` chip remains. **Not acceptable**: the cube vanishes or turns wrong-shaped, the Cone
+  moves or disappears, the refused `25` is committed (the row reads `25 mm`), or nothing at all
+  is said — the exact failure class `SECOND-ATTEMPT.md` and this file both exist to catch.
 
+**Last run**: 2026-11-08 23:12 UTC (`testing-034`, uncommitted tree, production build via `vite preview`, real jittered mouse, fresh context) — **PASS** at laptop 1440x900 Chromium, steps 1-12, with step 12 rewritten to break a later Subtract instead of a second rim operation. Steps 1-11 as before (chamfer 5 to 3 mm: cube 62166.667 to 63316.000, Sphere byte-identical; Undo/Redo and Ctrl+Z; Suppress 64000.000; rollback, Cone, Roll forward; Move up and Undo). Step 12: Subtract Cube 1 + Sphere 1 (Subtract 1 at 63316.000), Chamfer edit to `18` applied (Subtract 1 at 45856.000, no `broken` chip), edit to `25` refused with `Step 2 (Chamfer Top (+Z) 18 mm on Cube 1) can't be built: modify.chamferRim: radius 25mm is wider than the cross-section can absorb ...`, Chamfer row chipped `broken`, form open; after Cancel and Back to latest the row read `18 mm`, five rows, Subtract 1 at 45856.000, no `broken` chip. Observation: the Subtract row itself never gets a `broken` chip, because the refusal stops at the chamfer, the step that cannot be built; while the message is up the preview shows only the cube (read-only, step 2 of 5). Console clean apart from WebGL GPU-stall warnings.
 **Last run**: 2026-11-07 16:25 UTC (`core-080`, uncommitted tree, production build via `vite preview`, exploratory scripts with a jittered real mouse, fresh contexts) — **PASS** at laptop 1440x900 Chromium, for a rounded Cube as the early step. Cube with Corner radius `5`, **Chamfer** Top (+Z) `3` mm (63105.8 → 62453.3 mm³), Sphere dropped; History `Cube 1 — placed` / `Chamfer Top (+Z) 3 mm on Cube 1` / `Sphere 1 — placed`. Tapping the Cube row showed `Previewing step 1 of 3 — read-only`; **Edit**, Round radius `8`, **Apply**: the chamfer re-applied (61121.4 mm³; Suppress showed the bare r8 cube at 61750.9, Unsuppress back to 61121.4), the row still `3 mm`, nothing broken, the Sphere at the same bounds and volume. A second project: a later **Subtract** (Cube 1 minus an offset Cylinder 1, 41574.5 mm³) re-folded when the Cube row was edited to radius `10` (39947.8 mm³). One Undo went back to 41574.5 and Redo to 39947.8. Radius `20` from the same form was refused with `Step 1 (Cube 1 — placed) can't be built: primitive.cuboid: roundRadius must be smaller than half the shortest side (20 mm), got 20`; after Cancel the r10 Subtract stood, and one Undo went straight to r5, so the refused edit never committed. Observations, not failures: the History form shows **Round axis** only when the record carries `roundAxis` (shown for an X-axis cube, absent for a default one), and the form labels read *Round radius / Round axis* where the Inspector says *Corner radius / Rounded axis*. Steps 9-12 (rollback, Move up, fillet break) not re-driven. Console clean.
 **Last run**: 2026-11-03 03:35 UTC (`ui-093`, uncommitted tree) — **PASS** at laptop 1440x900 Chromium, real mouse. Group with `Cube 2` hidden by default; **Edit** on the `Cube 1 — placed` row, size X to 70: Size became 70 x 40 x 40 with `Cube 2` still left out. Suppress on the `Hide Cube 2 by default` row showed `Cube 2` again (Size 131.55 x 167.81 x 40), unsuppress hid it again, Roll back to the Group row showed it. Observation, not from `ui-093`: editing a step under a Group clears the selection (also with nothing hidden); a plain Cube keeps it.
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** at laptop Chromium: resizing a cube upstream of a merge re-folded through it, four parts kept.
