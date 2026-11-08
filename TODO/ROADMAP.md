@@ -33,7 +33,7 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 ## Next up — recommended TODOs
 
-*Last reviewed 2026-11-07 (rows 22w–22za added from the VERIFY.md third pass: cold reads, real-GPU looks, measured taps, model behaviour over MCP, and the owner-decision batch. Before that, rows 22t–22v added from the VERIFY.md Safari pass: desktop Safari, the iOS Simulator and native dialogs, each waiting on one owner setup step. Before that, 13 rows 22g–22s added from the VERIFY.md AI-drivable pass: rows an AI drive can settle, handed to TODO files. Before that, six ready findings added as rows 22a–22f, per the owner's decision that day; `core-065`, the gear tasks and the threads tasks are deferred, so they are not in the table. `core-080` rounded Cube closed, with `ui-100`–`ui-103` filed from its acceptance drive). Before that 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
+*Last reviewed 2026-11-08 (M19 reordered so it can actually be done: the owner cannot sign yet, so rows 1–7 are Mac-only work, row 8 is the signing gate, and every device run comes after it. Before that 2026-11-07 (rows 22w–22za added from the VERIFY.md third pass: cold reads, real-GPU looks, measured taps, model behaviour over MCP, and the owner-decision batch. Before that, rows 22t–22v added from the VERIFY.md Safari pass: desktop Safari, the iOS Simulator and native dialogs, each waiting on one owner setup step. Before that, 13 rows 22g–22s added from the VERIFY.md AI-drivable pass: rows an AI drive can settle, handed to TODO files. Before that, six ready findings added as rows 22a–22f, per the owner's decision that day; `core-065`, the gear tasks and the threads tasks are deferred, so they are not in the table. `core-080` rounded Cube closed, with `ui-100`–`ui-103` filed from its acceptance drive). Before that 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
 
 **Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
 (widened 2026-10-26; iOS first) that
@@ -44,18 +44,19 @@ this repository still need a green full run before they are pushed.
 
 | # | Milestone | Task | Why now | Model |
 |---|---|---|---|---|
-| 1 | `M19` | ▶ [`build-017`](M19-build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 app (iOS, iPadOS, macOS, Android, Windows) beside this repo, bundling the build, then hand the native TODOs to it | Everything in M19 builds on it | opus |
-| 2 | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPhone; settle the decision record's unknowns | Its answers set `io-014`'s and `ai-026`'s scope | sonnet |
-| 3 | `M19` | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build | Early on purpose: Tauri's open iOS bugs are in this step. **Owner steps first** (Apple Developer account, bundle id) | sonnet |
-| 4 | `M19` | [`render-006`](../../warpcad-native/TODO/M19-render-006-webgl-context-restore.md) Restore the 3D view after a lost WebGL context | "Reload the page" is a dead end with no browser chrome | opus |
-| 5 | `M19` | [`io-014`](../../warpcad-native/TODO/M19-io-014-native-app-file-mode.md) Save, open and export real files, visible in the Files app | Local file access | opus |
-| 6 | `M19` | [`io-015`](../../warpcad-native/TODO/M19-io-015-native-durable-autosave-and-library.md) Mirror the autosave and My parts to native files | iOS can evict WebView storage | sonnet |
-| 7 | `M19` | [`ai-025`](../../warpcad-native/TODO/M19-ai-025-native-keychain-credentials.md) API key and GitHub token in the Keychain | Secrets out of evictable storage | sonnet |
-| 8 | `M19` | [`ai-026`](../../warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app | MCP service for agents | opus |
-| 9 | `M19` | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28, the iOS app end to end, on the iPhone; free-form pass | The only check a fake Tauri boundary cannot stand in for | sonnet |
-| 10 | `M19` | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) App Store listing, privacy, licence audits; stops at the owner's **Submit** | Ends at the Part 6 legal gate | sonnet |
-| 11 | `M19` | [`build-024`](../../warpcad-native/TODO/M19-build-024-native-android-icons-and-defaults.md) Android launcher icons, splash and colours (split from `build-023`, needs the Android SDK and `cargo tauri android init`) | Needs the Android SDK; before build-020 | sonnet |
-| 11a | `M19` | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (a Swift Tauri plugin) | Owner request 2026-11-07. **After `build-020`**: a 1.1 feature, not on the submission's cut line | opus |
+| 1 | `M19` | ▶ [`build-017`](M19-build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 app beside this repo, bundling the build, then hand the native TODOs to it. Groundwork landed; still open: the macOS launch, the iOS simulator run, the M19 hand-off and the first `warpcad-native` commit | Everything in M19 builds on it. **Mac only, no signing** | opus |
+| 2 | `M19` | [`render-006`](../../warpcad-native/TODO/M19-render-006-webgl-context-restore.md) Restore the 3D view after a lost WebGL context | "Reload the page" is a dead end with no browser chrome. Mac shell + simulator; device check in `testing-011` | opus |
+| 3 | `M19` | [`io-014`](../../warpcad-native/TODO/M19-io-014-native-app-file-mode.md) Save, open and export real files, visible in the Files app | Local file access. Mac shell + simulator (it has a Files app); device check in `testing-011` | opus |
+| 4 | `M19` | [`io-015`](../../warpcad-native/TODO/M19-io-015-native-durable-autosave-and-library.md) Mirror the autosave and My parts to native files | iOS can evict WebView storage. After `io-014`; device check in `testing-011` | sonnet |
+| 5 | `M19` | [`ai-025`](../../warpcad-native/TODO/M19-ai-025-native-keychain-credentials.md) API key and GitHub token in the Keychain | Secrets out of evictable storage. Mac + simulator Keychain, mocked endpoint; device check in `testing-011` | sonnet |
+| 6 | `M19` | [`ai-026`](../../warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app | MCP service for agents. macOS shell first, as the file already says; iPhone over Wi-Fi in `testing-011` | opus |
+| 7 | `M19` | [`build-024`](../../warpcad-native/TODO/M19-build-024-native-android-icons-and-defaults.md) Android launcher icons, splash and colours (split from `build-023`) | No signing needed. **Owner OK first** to install the Android SDK and NDK (several GB) | sonnet |
+| 8 | `M19` | **Owner step: signing setup.** Apple ID in Xcode with the paid team, team ID, Apple Distribution certificate, iPhone registered, App Store Connect record for `com.warpcad.app`, an App Store Connect API key. The full list is in [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) | **The gate: nothing installs on a device before this.** Rows 1–7 do not wait for it | — |
+| 9 | `M19` | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build | First app on the iPhone. Tauri's open iOS bugs are in this step | sonnet |
+| 10 | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the TestFlight build on the iPhone; settle the decision record's unknowns | First device run. A device answer that contradicts rows 2–6 files a finding against that row | sonnet |
+| 11 | `M19` | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28, the iOS app end to end, on the iPhone; free-form pass | Holds every on-device check from rows 2–6. The only check a fake Tauri boundary cannot stand in for | sonnet |
+| 11a | `M19` | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) App Store listing, privacy, licence audits; stops at the owner's **Submit** | Ends at the Part 6 legal gate | sonnet |
+| 11b | `M19` | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (a Swift Tauri plugin) | Owner request 2026-11-07. **After `build-020`**: a 1.1 feature, not on the submission's cut line | opus |
 | 13 | `FIND` | ▶ [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop | Found by the `ui-083` commit gate; decide intended change or regression | sonnet |
 | 16e | `FIND` | ▶ [`core-079`](FIND-core-079-whole-model-subtract-off-main-thread.md) Whole-model Subtract blocks the main thread for 624 ms; move the composite union off it | Filed 2026-11-04 from io-024. Ranked low 2026-11-04 at the owner's request | opus |
 | 16f | `FIND` | [`testing-016`](FIND-testing-016-part-default-hidden-canvas-same-flakes.md) Canvas "same" checks in `part-default-hidden.e2e.js` flake, alone and in the full suite | Filed 2026-11-04 while landing core-078 Part 2; reproduces on HEAD | sonnet |
@@ -119,7 +120,7 @@ this repository still need a green full run before they are pushed.
 
 **Still waiting on you**
 
-- **For M19 to start `build-019`:** cleared 2026-10-31 (Apple Developer membership active; bundle identifier `com.warpcad.app` confirmed).
+- **For M19 to start `build-019`:** membership and bundle identifier `com.warpcad.app` were cleared 2026-10-31, but **as of 2026-11-08 the owner cannot sign anything yet**. Next up row 8 lists the signing setup. Every device install waits on it; Next up rows 1–7 do not.
 - **For M19 to finish `build-020`:** the price amount and countries, and the Part 6 review in `docs/decisions/app-store-licensing.md`. **Decided 2026-11-07:** the owner will not contact a lawyer, so Part 6 has no outside reviewer and stays not done in substance; the store submission is still gated on it as written. Help-content and prose licence are decided (see below). iPad scope and Sentry were decided 2026-11-07 (see `build-020`). The
   submission itself is yours.
   - **Decided 2026-11-07 (in `build-020`):** paid app at one price, age rating 4+. Help GIFs fetched from the web, not bundled. **Decided 2026-11-07:** the app loads all Help from the web and ships none of it (prose licence option (b)). Still open: the price amount and countries, and the Part 6 legal review.
@@ -151,14 +152,14 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Milestone | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|---|
 | M19 — Native iOS app | [`build-017`](M19-build-017-tauri-ios-shell-scaffold.md) Scaffold the Tauri 2 iOS app in `~/src/@WarpCad/warpcad-native`, bundling the WarpCad build | feature | high | opus | ▶ **ready** |
-| M19 — Native iOS app | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the owner's iPhone; settle the decision record's unverified rows | feature | high | sonnet | ⏳ after `build-017` |
-| M19 — Native iOS app | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Distribution signing and a TestFlight build | feature | high | sonnet | ⏳ after `build-017`; owner steps first |
+| M19 — Native iOS app | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the owner's iPhone; settle the decision record's unverified rows | feature | high | sonnet | ⏳ after `build-019` (first device run) |
+| M19 — Native iOS app | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Distribution signing and a TestFlight build | feature | high | sonnet | ⏳ after `build-017`; **owner signing setup first** (Next up row 8) |
 | M19 — Native iOS app | [`render-006`](../../warpcad-native/TODO/M19-render-006-webgl-context-restore.md) Restore the 3D view after a lost WebGL context | finding | high | opus | ⏳ after `build-017` |
-| M19 — Native iOS app | [`io-014`](../../warpcad-native/TODO/M19-io-014-native-app-file-mode.md) Save, open and export real files in the app, visible in the Files app | feature | high | opus | ⏳ after `build-017`, `build-018` |
+| M19 — Native iOS app | [`io-014`](../../warpcad-native/TODO/M19-io-014-native-app-file-mode.md) Save, open and export real files in the app, visible in the Files app | feature | high | opus | ⏳ after `build-017` |
 | M19 — Native iOS app | [`io-015`](../../warpcad-native/TODO/M19-io-015-native-durable-autosave-and-library.md) Mirror the autosave and My parts to native files | feature | medium | sonnet | ⏳ after `io-014` |
 | M19 — Native iOS app | [`ai-025`](../../warpcad-native/TODO/M19-ai-025-native-keychain-credentials.md) API key and GitHub token in the iOS Keychain | feature | medium | sonnet | ⏳ after `build-017` |
-| M19 — Native iOS app | [`ai-026`](../../warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app (loopback, opt-in Wi-Fi with a token) | feature | high | opus | ⏳ after `build-017`, `build-018` |
-| M19 — Native iOS app | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Acceptance scenario 28 on the iPhone, plus the free-form pass | feature | high | sonnet | ⏳ after `build-019`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026` |
+| M19 — Native iOS app | [`ai-026`](../../warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app (loopback, opt-in Wi-Fi with a token) | feature | high | opus | ⏳ after `build-017` |
+| M19 — Native iOS app | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Acceptance scenario 28 on the iPhone, plus the free-form pass | feature | high | sonnet | ⏳ after `build-018`, `build-019`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026` |
 | M19 — Native iOS app | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) App Store readiness; stops at the owner's Submit | feature | high | sonnet | ⏳ after `build-019`, `testing-011` |
 | M19 — Native iOS app | [`build-024`](../../warpcad-native/TODO/M19-build-024-native-android-icons-and-defaults.md) Android launcher icons, splash and colours (split from `build-023`) | feature | medium | sonnet | ⏳ needs the Android SDK; before `build-020` |
 | M19 — Native iOS app | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR camera and add it to My parts as a mesh part | feature | medium | opus | ⏳ after `build-017`, `build-018`, `render-006`; scheduled after `build-020` |
@@ -203,33 +204,38 @@ commit. The new repository has no pre-push gate of its own; its gates are `cargo
 (`build-017`).
 
 Playwright cannot drive a WKWebView inside an app. Each row's `*.e2e.js` runs at `/` with a fake Tauri boundary
-(`e2e/fixtures/nativeShell.js`, `build-017`), and **every row also names what it drives on the owner's iPhone**.
+(`e2e/fixtures/nativeShell.js`, `build-017`), and each row is checked on the macOS shell and the iOS simulator, which need no signing. **The iPhone checks for
+`render-006`, `io-014`, `io-015`, `ai-025` and `ai-026` are all in scenario 28** (`testing-011`, steps 3–9), so those
+rows close without a device.
 Scenario 28 (`testing-011`) is the one acceptance check only the device can pass.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `build-017` | Scaffold `warpcad-native` (Tauri 2), `build:native` here, `src/native/shell.js` (no `@tauri-apps/api` dependency: its licence expression is not on the allow-list), capabilities default-deny, `cargo deny`; Tauri health check re-run | Build | — | 1, 7; on device |
-| `build-018` | On-device probe: size, cold start, memory, context loss, storage survival, `ws://`, file picker, Files visibility, **which agents can reach an in-app MCP server** | Build | `build-017` | 10 |
-| `build-019` | Distribution signing and a TestFlight build, early, because Tauri's open iOS issues are in this step. Owner steps first | Build | `build-017` | 1, 7, 10 on device |
+| `build-017` | Scaffold `warpcad-native` (Tauri 2), `build:native` here, `src/native/shell.js` (no `@tauri-apps/api` dependency: its licence expression is not on the allow-list), capabilities default-deny, `cargo deny`; Tauri health check re-run | Build | — | 1, 7 on the macOS shell and the simulator |
+| `build-018` | On-device probe: size, cold start, memory, context loss, storage survival, `ws://`, file picker, Files visibility, **which agents can reach an in-app MCP server**. First device run, on the TestFlight build | Build | `build-019` | 1, 7, 10 |
+| `build-019` | Distribution signing and a TestFlight build, early, because Tauri's open iOS issues are in this step. Owner signing setup first; the first device install | Build | `build-017` | opens on device |
 | `render-006` | `webglcontextrestored` rebuild plus a **Restore view** fallback; no page reload | Finding | `build-017` | 1, 7, 10 |
-| `io-014` | `native-app` file mode: Save in place to Documents (shown in Files), Open + Browse…, exports as real files, Open in WarpCad | Operation | `build-017`, `build-018` | 10, 11, 22, 23, 26 |
+| `io-014` | `native-app` file mode: Save in place to Documents (shown in Files), Open + Browse…, exports as real files, Open in WarpCad | Operation | `build-017` | 10, 11, 22, 23, 26 |
 | `io-015` | Native mirror of the autosave and My parts; restore on launch when IndexedDB was evicted | Core | `io-014` | 1, 10 |
 | `ai-025` | Keychain behind `createCredentialStore`; one-time migration | Control | `build-017` | 24 |
-| `ai-026` | `rmcp` Streamable HTTP server in the app relaying to `TabEndpoint`; lease from the existing sheet; loopback by default, Wi-Fi opt-in with a token; works only while the app is on screen | Control | `build-017`, `build-018` | 24, 25, 27 |
-| `testing-011` | Acceptance scenario **28**, the iOS app end to end, driven on the iPhone; the M19 free-form pass | Testing | `build-019`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026` | creates 28; 1, 7, 10, 25 |
+| `ai-026` | `rmcp` Streamable HTTP server in the app relaying to `TabEndpoint`; lease from the existing sheet; loopback by default, Wi-Fi opt-in with a token; works only while the app is on screen | Control | `build-017` | 24, 25, 27 |
+| `testing-011` | Acceptance scenario **28**, the iOS app end to end, driven on the iPhone; the M19 free-form pass | Testing | `build-018`, `build-019`, `render-006`, `io-014`, `io-015`, `ai-025`, `ai-026` | creates 28; 1, 7, 10, 25 |
 | `build-020` | Listing, privacy labels and manifest, icons, native and asset licence audits, owner decisions; **stops before Submit** (Part 6 legal gate) | Build | `build-019`, `testing-011` | 28, 1, 7, 10 |
 | `io-026` | LiDAR scan → My parts mesh part: a Swift Tauri plugin (Object Capture by default, scene reconstruction if the iPad can't), a `WCSCAN1` buffer parsed in `src/io/meshFormats/`, metres Y-up → mm Z-up at that boundary. Post-submit 1.1 | Operation | `build-017`, `build-018`, `render-006` | 26, 31, 10, 28 |
 
-**Suggested order** (the owner can use the app after each step): `build-017` (app on the phone from Xcode) →
-`build-018` → `build-019` (app from TestFlight) → `render-006` → `io-014` → `io-015` → `ai-025` → `ai-026` →
-`testing-011` (**stop for the five-minute free-form pass on the iPhone**) → `build-020` (**stop for the owner's
-legal review and Submit**). `render-006`, `ai-025` and `build-019` do not depend on each other and can run in any
-order after `build-017`.
+**Order (reordered 2026-11-08: the owner cannot sign yet, so no device install is possible until the signing gate).**
 
-**This is a lot for one weekend.** Seven of the ten rows involve the device or an owner step, which the runner
-cannot speed up. If time runs short, the cut line that still gives a publishable app is: `build-017`, `build-019`,
-`render-006`, `io-014`, `testing-011` (with steps 7 and 8 marked not driven), `build-020`. `io-015`, `ai-025` and
-`ai-026` can follow in a 1.1 update.
+1. **On this Mac, no signing:** `build-017` → `render-006` → `io-014` → `io-015` → `ai-025` → `ai-026`, plus
+   `build-024` whenever the owner agrees to the Android SDK install. Each is checked on the macOS shell and the
+   iOS simulator. `render-006`, `ai-025` and `io-014` do not depend on each other.
+2. **The signing gate (owner):** the setup listed in `build-019` and in Next up row 8.
+3. **On the iPhone:** `build-019` (first install, from TestFlight) → `build-018` (measure it; a contradicting
+   answer files a finding against rows 2–6) → `testing-011` (**stop for the five-minute free-form pass**) →
+   `build-020` (**stop for the owner's legal review and Submit**). `io-026` comes after that, as a 1.1 feature.
+
+**If time runs short**, the cut line that still gives a publishable app is: `build-017`, `render-006`, `io-014`,
+then the signing gate, `build-019`, `build-018`, `testing-011` (with steps 7 and 8 marked not driven) and
+`build-020`. `io-015`, `ai-025` and `ai-026` can follow in a 1.1 update.
 
 ### M20 — Home page at warpcad.com
 

@@ -26,34 +26,30 @@ iOS alone to **five platforms: iOS, iPadOS, macOS, Android and Windows**. iOS an
 target (`ios`): one bundle, one App Store record, an iPhone-and-iPad (universal) build. Nothing native
 exists yet.
 
-**Scope of this task:** scaffold all five targets and prove each *launches the bundled app*. iOS (on the
-owner's iPhone) is still the first-class target and the one the rest of M19 finishes. macOS, Android and
-Windows get a working scaffold and a smoke launch here; their signing, store and platform-specific
-features are follow-up rows filed in `warpcad-native` (see "Follow-up rows to file").
+**Scope of this task (narrowed 2026-11-08, owner decision):** the macOS shell and the iOS simulator
+only. Both run with no signing, so this task needs nothing from the owner. Android and Windows, and
+the iPadOS and iPhone device runs, are follow-up rows, not part of this task. The follow-up rows are
+listed under "Follow-up rows to file". iOS stays the first-class target the rest of M19 finishes.
 
 Done means:
 
 - `~/src/@WarpCad/warpcad-native` exists, is a git repository, and holds a Tauri 2 project whose
   iOS target builds and launches **the full WarpCad app from bundled files**. It has no remote URL
   and no `devUrl` in a release build, as App Store 2.5.2 requires.
-- `cargo tauri ios dev` runs it on an iOS simulator, and `cargo tauri ios build` produces an app
-  that installs and opens on the owner's iPhone from Xcode (development signing, the owner's
-  personal team). `cargo tauri dev` runs the same shell as a **macOS** window. That is the quick
-  iteration loop for every later M19 row, and it is where `ai-026`'s MCP server is first tested.
-- The other four targets are scaffolded and launch the same bundle:
-  - **macOS**: `cargo tauri dev` / `cargo tauri build` produce a `.app` on this machine.
-  - **iPadOS**: the iOS build runs on an iPad (universal, `TARGETED_DEVICE_FAMILY = 1,2`); the owner
-    confirms on their iPad, or on a simulator if none is at hand (WebGL does not count there).
-  - **Android**: `cargo tauri android init` succeeds and `cargo tauri android dev` launches on an
-    emulator or device. Needs Android Studio, the SDK/NDK and `ANDROID_HOME`/`NDK_HOME`; record what the
-    machine lacks and ask before installing several GB.
-  - **Windows**: this Mac cannot build it. Add a `windows-latest` GitHub Actions job that runs
-    `cargo tauri build` and uploads the unsigned installer; "launches" is verified by the owner on a
-    Windows machine, or recorded as not driven.
+- `cargo tauri ios dev` runs it on an iOS simulator. A simulator build needs no signing. Any device
+  build or install is **not** part of this task, because the owner cannot sign yet: it waits for
+  `build-019` (signing, TestFlight) and then `build-018` (the first device run). `cargo tauri dev`
+  runs the same shell as a **macOS** window. That is the quick iteration loop for every later M19 row,
+  and it is where `ai-026`'s MCP server is first tested.
+- **macOS**: `cargo tauri dev` launches the shell with the viewport and a placed box, and
+  `cargo tauri build` produces a `.app` on this machine (unsigned is fine for this task).
+- The shell is checked on the iOS simulator (`cargo tauri ios dev`) with the same viewport check.
+  Simulator results do not count for WebGL, so this is a smoke launch only.
+- Hand-off: the first `warpcad-native` commit exists, and the native TODOs are moved as described below.
 - This repository gains a `build:native` script that produces the web bundle the shell ships, and
   one framework-free adapter, `src/native/shell.js`, that is the only code in `src/` that knows it
   is inside Tauri.
-- Opening the app on the phone shows the viewport; a box can be dragged in and stays; the Help
+- Opening the app in the macOS shell and in the iOS simulator shows the viewport; a box can be dragged in and stays; the Help
   version line names both the WarpCad commit that was bundled and the shell version.
 
 ## Interaction model
@@ -131,7 +127,7 @@ No new control. What the user sees changes in three places, all driven by `isNat
    cannot change once an App Store Connect record exists. App name **WarpCad**. Minimum iOS,
    macOS and Android API level: whatever Tauri 2's template sets, recorded. The identifier is shared by
    all five targets.
-   **Deferred 2026-10-26:** the owner was asked to confirm `com.warpcad.app` and deferred the answer; no decision yet. `build-019` stays blocked on it.
+   **Confirmed by the owner 2026-11-08:** `com.warpcad.app` is the bundle identifier for all five targets. It was deferred 2026-10-26. `build-019` is no longer blocked on it.
 3. `beforeBuildCommand`: `npm --prefix ../warpcad run build:native`, with the sibling path in
    one variable (`WARPCAD_WEB`, default `../warpcad`) so a checkout elsewhere still works. Stamp
    the bundled commit (`git -C $WARPCAD_WEB rev-parse --short HEAD`) into the build.
@@ -192,6 +188,10 @@ Do this **last**, once `warpcad-native` builds and its first commit exists. The 
 
 ## Follow-up rows to file (in `warpcad-native/TODO/`, as part of the hand-off)
 
+**Added 2026-11-08 by the scope narrowing above:** Android (`cargo tauri android init` and an emulator
+launch, needs the SDK, which is `build-024`'s prerequisite), iPadOS on device (`build-018`), and Windows
+(a `windows-latest` CI job that builds an unsigned installer, owner-verified launch).
+
 One row each, with the three Interaction Model fields where a control is involved:
 
 - **macOS**: Developer ID signing, notarization, a `.dmg`, and the Mac App Store question; menu bar
@@ -219,11 +219,9 @@ XL (was L): five targets. Land iOS and macOS first and file the rest as follow-u
   placed. Also run it without the fixture and check the PWA's version line is unchanged. Chromium,
   Firefox and WebKit, because the service-worker path differs by engine. Laptop viewport only:
   no layout change.
-- **On device** (the Playwright spec cannot reach WKWebView inside an app): launch on the owner's
-  iPhone and hand-drive **acceptance scenarios 1 and 7** (two bodies remain; touch-only
-  navigation) and the `SECOND-ATTEMPT.md` lighting check (the scene is not too dark). Report
-  PASS/FAIL per scenario with the device model and iOS version. Simulator results do not count for
-  WebGL.
+- **On device: moved to `build-018` (2026-11-08), which runs after `build-019`'s signing.** The iPhone install, acceptance scenarios 1 and 7 on
+  the phone, and the `SECOND-ATTEMPT.md` lighting check now belong to that task. This task does not
+  close on them. Simulator results do not count for WebGL, so none is claimed here.
 - **Per platform smoke**: macOS launches and shows the viewport with a box placed; Android launches on an
   emulator or device and shows the viewport; Windows builds in CI (launch recorded as owner-driven or not
   driven); iPadOS recorded with device model. Report PASS / FAIL / not driven per platform.

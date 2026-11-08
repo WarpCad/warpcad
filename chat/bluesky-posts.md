@@ -2754,3 +2754,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** name check against My parts only, nested parts carried, Adjustable sizes removed → diff (src/stores/library.js, src/core/userPart.js, SaveToLibrarySheet.vue); owner's group saved under a new name with 2 nested parts carried → hand drive this session; unit 8670 passed, e2e stored full green → stamp check this session.
 **To Add:** docs/screenshots/user-library-save-sheet.png
+
+## 2026-11-08T21:56:40Z — Native shell groundwork: Help names the platform and shell version
+
+**Post:** WarpCad's native shell is in progress. Inside the native app, Help's version line now names the platform and the shell's version. The web version line is unchanged. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Help line reads `WarpCad <version> (<commit>) · <platform> app <shell version>` inside a shell and `WarpCad build <commit>` on the web → src/native/shell.spec.js and src/stores/appUpdate.spec.js (diff in this commit); unit suite passed in full on this code 2026-11-08T21:37:18Z → stored run, `stamp check` this session; e2e suite passed in full 2026-11-08T21:41:58Z → stored run, `stamp check` this session.
+**To Add:** screenshot of the Help version line inside the native shell, once a shell build runs on a device or simulator.

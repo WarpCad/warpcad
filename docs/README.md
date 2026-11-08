@@ -163,6 +163,10 @@ nothing to install. The home page, **https://warpcad.com**, links every page her
   tablet width: the Library and Inspector as bottom sheets, the navigation pad that folds behind
   **✥**, the Operations toolbar, the File menu and the sketch sheet; plus the touch gestures
   (drag a shape in, two-finger pan, pinch, tap the triad).
+- [The native apps: iPhone, iPad, Mac, Android and Windows](native-apps.md) — WarpCad as an
+  installed app: one section per platform, how it differs from the web app (a bundled copy that
+  works offline, its own storage that does not share projects with `app.warpcad.com`, no
+  analytics), reading the Help version line that names the app, and building the apps yourself.
 - [Sketch primitives](sketch-mode.md) — drag **Sketch** from the Library, draw
   outlines with Line, Rectangle, Circle and Polygon, mark outlines Solid or Hole, stack
   slices, and turn them into a solid with Linear, Revolve, Helical, Outline or Loft; then

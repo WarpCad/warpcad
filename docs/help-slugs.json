@@ -64,7 +64,8 @@
     "assistant-subscription",
     "assistant-step-limit",
     "claude-code",
-    "agent-prompting"
+    "agent-prompting",
+    "native-apps"
   ],
   "aliases": {}
 }

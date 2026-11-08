@@ -3982,3 +3982,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** user report and cause (takenParts merged project + library) → TODO/done/ui-105 Problem; nested-part and self-name faults → TODO/done/ui-105 Reproduction, hand drive this session; record-name labels → TODO Problem §2; old exposed-param parts still load → e2e user-library.e2e.js passed this session.
 **To Add:** docs/media/user-library-save.gif
+
+## 2026-11-08T21:56:40Z — Native shell groundwork: Help names the platform and shell version
+
+**Post:** WarpCad is getting a native shell built on Tauri 2. The plan is one modeler packaged for five platforms: iOS, iPadOS, macOS, Android and Windows. This commit is groundwork. Inside the native app, Help's version line names the platform and the shell's version. On the web the line stays as it was.
+
+The shell reports its own platform and version through one command. The page asks for it at start-up and falls back to the build target when the command is missing, so the line always shows something useful.
+
+Nothing here has run on a device yet. The on-device run is a later task, and it waits on signing.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five platforms, Tauri 2, scope and device-run deferral → TODO/M19-build-017-tauri-ios-shell-scaffold.md (this commit's diff, "Scope of this task" and "On device" lines); Help line format and web line unchanged → src/stores/appUpdate.spec.js and src/native/shell.spec.js (diff in this commit); suites green on this code → stored runs 2026-11-08T21:37:18Z and 2026-11-08T21:41:58Z via `stamp check`.
+**To Add:** none

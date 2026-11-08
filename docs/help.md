@@ -68,6 +68,8 @@ To see the full build string:
 
 1. Click the **?** button (labelled **Help**) at the top of the window.
 2. Scroll to the version line at the bottom of any page. It names the version and the commit.
+   In an installed app it also names the platform and the app's own version, for example
+   `WarpCad 1.13.0 (a1b2c3d) · iOS app 1.13.0` (see [The native apps](native-apps.md)).
 
 ## Offline
 
