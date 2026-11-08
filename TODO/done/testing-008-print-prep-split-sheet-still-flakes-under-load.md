@@ -5,8 +5,11 @@ kind: finding
 priority: low
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+**Shipped:** the race was in the test helper, not the render. `faceOn` in `e2e/docs/print-prep.docs.js` read the zoom scale after a fixed 300 ms pause, and under load the camera's next animation frame could land after that pause. The loop then read the old scale and fired one wheel step too many. The helper now records the viewport's `data-frames-rendered` counter, performs the action, and polls until the counter advances by one. No `src/` change was needed and `maxDiffPixelRatio` was not touched. Reproduced with 16 workers: 7 of 16 failed before, 16/16 passed after. Open question: the `split-sheet-manual-joints.png` baseline may be stale (header Share button, inspector Rounded-axis row), so the shot sits close to the 0.01 tolerance. Not regenerated here.
+
 
 ## Problem
 

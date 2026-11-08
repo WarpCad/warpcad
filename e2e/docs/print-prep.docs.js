@@ -112,24 +112,30 @@ test.describe('docs media: print prep', () => {
    * person would with the wheel; wheel events are fired on the canvas so the zoom is exact.
    */
   const faceOn = async (page) => {
-    await page.getByTestId('gizmo-view-right').click()
+    const frames = async () => Number(await viewport(page).getAttribute('data-frames-rendered'))
+    // The camera moves at once but the viewport draws, and re-projects the cut plane, on its next
+    // animation frame. Under load that frame can land well after a fixed pause, so a scale read
+    // too early is the old one and the loop zooms twice. Wait for a real frame after each act.
+    const afterFrames = async (act) => {
+      const before = await frames()
+      await act()
+      await expect.poll(frames).toBeGreaterThanOrEqual(before + 1)
+    }
     const readScale = () =>
       page.evaluate(() => Number(document.querySelector('[data-testid="cut-plane"]')?.getAttribute('data-face-u')?.split(',')[0]))
+    await afterFrames(() => page.getByTestId('gizmo-view-right').click())
     for (let i = 0; i < 40; i += 1) {
-      // The camera eases after a view click or a wheel step. Judge the scale only once it has
-      // stopped moving: a reading taken mid-ease lands the zoom at a different point each run.
-      const first = await readScale()
-      await page.waitForTimeout(300)
       const scale = await readScale()
-      if (Math.abs(scale - first) > 1e-3) continue
       if (scale >= 3.5 && scale <= 5.5) return
-      await page.evaluate((deltaY) => {
-        const canvas = document.querySelector('[data-testid="viewport"] canvas')
-        const box = canvas.getBoundingClientRect()
-        canvas.dispatchEvent(
-          new WheelEvent('wheel', { deltaY, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, bubbles: true, cancelable: true })
-        )
-      }, scale < 3.5 ? -60 : 60)
+      await afterFrames(() =>
+        page.evaluate((deltaY) => {
+          const canvas = document.querySelector('[data-testid="viewport"] canvas')
+          const box = canvas.getBoundingClientRect()
+          canvas.dispatchEvent(
+            new WheelEvent('wheel', { deltaY, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, bubbles: true, cancelable: true })
+          )
+        }, scale < 3.5 ? -60 : 60)
+      )
     }
     throw new Error('could not zoom the cut face to a tappable size')
   }
