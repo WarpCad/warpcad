@@ -2745,3 +2745,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** rounded radius and axis on a grouped Cube → unit inspector.spec.js and paramEdit.spec.js, full run this session (8621 passed, 0 failed); group-case e2e → full e2e run this session (5290 passed, 0 failed).
 **To Add:** none
+
+## 2026-11-08T21:42:22Z — Save to library: My parts only, fixed parts
+
+**Post:** WarpCad: saving a group to My parts no longer trips over the project's own copy of a part. Names clash only with My parts, parts nested inside come along, and a saved part is fixed: to get another size, change it and save it under a new name. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** name check against My parts only, nested parts carried, Adjustable sizes removed → diff (src/stores/library.js, src/core/userPart.js, SaveToLibrarySheet.vue); owner's group saved under a new name with 2 nested parts carried → hand drive this session; unit 8670 passed, e2e stored full green → stamp check this session.
+**To Add:** docs/screenshots/user-library-save-sheet.png

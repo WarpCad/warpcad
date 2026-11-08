@@ -416,16 +416,16 @@
   "user-library-place.gif": {
     "spec": "e2e/docs/user-library.docs.js",
     "theme": "light",
-    "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
-    "bytes": 458832,
-    "seconds": 6.6
+    "specHash": "7c04cc7a9818789f9f4f130f0ab2c1c0a5191dd46c44496d4f4ce2cea272dc09",
+    "bytes": 428364,
+    "seconds": 6.4
   },
   "user-library-save.gif": {
     "spec": "e2e/docs/user-library.docs.js",
     "theme": "light",
-    "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
-    "bytes": 682589,
-    "seconds": 8.1
+    "specHash": "7c04cc7a9818789f9f4f130f0ab2c1c0a5191dd46c44496d4f4ce2cea272dc09",
+    "bytes": 330233,
+    "seconds": 6.2
   },
   "pi-model-switch.gif": {
     "spec": "e2e/docs/variables.docs.js",
@@ -1047,16 +1047,16 @@
   "user-library-place.dark.gif": {
     "spec": "e2e/docs/user-library.docs.js",
     "theme": "dark",
-    "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
-    "bytes": 394338,
-    "seconds": 6.1
+    "specHash": "7c04cc7a9818789f9f4f130f0ab2c1c0a5191dd46c44496d4f4ce2cea272dc09",
+    "bytes": 426156,
+    "seconds": 6.3
   },
   "user-library-save.dark.gif": {
     "spec": "e2e/docs/user-library.docs.js",
     "theme": "dark",
-    "specHash": "34d51cb5c4fde20f09affcee3dc076a2f8289ecab6f08b53f217856e7ce52195",
-    "bytes": 728378,
-    "seconds": 8.5
+    "specHash": "7c04cc7a9818789f9f4f130f0ab2c1c0a5191dd46c44496d4f4ce2cea272dc09",
+    "bytes": 345592,
+    "seconds": 6.2
   },
   "window-shrink.dark.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",

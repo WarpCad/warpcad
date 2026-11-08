@@ -43,7 +43,7 @@
  * | `get_reference_image` | no | Browser only (`ai-008`). `{ sliceId? }`: list the reference images (attachments, sketch slices' photos) or return one, with its pixel size and scale. |
  * | `set_reference_scale` | no document write | Browser only. `{ sliceId, fromPx, toPx, distanceMm, label?, checks? }`: an attached image's scale from a printed length; cross-checks other dimensions. |
  * | `locate_in_image` | no | Browser only. `{ sliceId, query, boxesPx }`: boxes in image pixels and in sketch-plane mm; refused until the image is scaled. |
- * | `save_to_library` | **never** | Browser only. `{ id, name, expose? }`: *proposes* a My parts save; the user's Confirm tap saves it. |
+ * | `save_to_library` | **never** | Browser only. `{ id, name }`: *proposes* a My parts save; the user's Confirm tap saves it. |
  * | `list_variables` | no | `{ id? }`: every project variable — name, kind, value (and in words), unit or options, and `usedBy` (each step and slot that reads it); a formula also its `formula` (as a person reads it), `stored`, `reads`, `error` and `varies`. With `id`, also the slots that step can bind (`bindableParams`), or core's reason it cannot. |
  * | `define_variable` | yes | `{ name, kind, value, label?, unit?, min?, max?, options? }`: one `var.define` record (`TODO/ai-014`). Counted as one record. |
  * | `set_variable` | yes | `{ name, value }`: every bound param follows, in one revision. Runs `variableImpactOf` first; a value that would break a dependent writes nothing and returns `breakages`. Returns `changedParams`, `parts`, `summary`. |

@@ -2,7 +2,7 @@
 <script setup>
 /**
  * A library Save the assistant proposed (`TODO/ai-008`). The model's `save_to_library` only
- * proposes: this card shows the name and the sizes it would expose, and nothing is written to
+ * proposes: this card shows the name, and nothing is written to
  * **My parts** until the user taps **Confirm** (`ai-save-confirm`). **Not now** drops it.
  *
  * Precondition: a turn that built the body landed (a discarded turn has no proposal). Feedback:
@@ -44,7 +44,6 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
     <p class="save__title">
       Save <strong data-testid="ai-save-name">{{ item.name }}</strong> to My parts?
     </p>
-    <p v-if="item.labels.length > 0" class="save__sizes" data-testid="ai-save-sizes">Adjustable: {{ item.labels.join(', ') }}</p>
     <div class="save__actions">
       <template v-if="open">
         <button type="button" class="save__button save__button--confirm" data-testid="ai-save-confirm" :disabled="busy" @click="emit('confirm')">
@@ -83,7 +82,6 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
   margin: 0;
 }
 
-.save__sizes,
 .save__status {
   font-size: 12px;
   color: var(--text-2);

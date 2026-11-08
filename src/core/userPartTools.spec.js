@@ -7,12 +7,11 @@ import { lookupEntry, paramOptions, hasEditableParams } from './kernel/registry.
 import { definePartFromSelection } from './library.js'
 import { canEditParams, compositeParamEditRecord } from './paramEdit.js'
 import { describeBody } from './inspector.js'
-import { effectiveUserPart, resetUserParts, setLibraryParts, setProjectParts } from './userPart.js'
+import { effectiveUserPart, libraryUserParts, lineageUserPartOps, partsToCarry, resetUserParts, setLibraryParts, setProjectParts } from './userPart.js'
 import {
   duplicatePart,
-  exposableParams,
-  exposedFrom,
   holdsRepeat,
+  lineageNameProblem,
   partNameProblem,
   renamePart,
   saveToLibraryGate,
@@ -123,48 +122,103 @@ describe('saveToLibraryGate — a repeat is never saved (TODO/ui-076)', () => {
   })
 })
 
-describe('exposableParams — the numbers a group can expose', () => {
-  it('lists the positive dimensions of the group’s history, not its position or rotation', () => {
-    const doc = groupDocument()
-    const found = exposableParams(doc, 'group-1')
-    const labels = found.map((candidate) => candidate.label)
-    expect(labels).toContain('Cube 1 size X')
-    expect(labels).toContain('Cube 1 size Z')
-    expect(labels).toContain('Cylinder 1 height')
-    expect(labels).toContain('Cylinder 1 diameter')
-    // `center` is where it sits, not how big it is.
-    expect(labels.some((label) => /center/i.test(label))).toBe(false)
-    const height = found.find((candidate) => candidate.label === 'Cylinder 1 height')
-    expect(height).toMatchObject({ recordId: 'cyl-1', path: 'height', value: 20, unit: 'mm' })
+describe('lineageNameProblem — a name the body is built from (TODO/ui-105)', () => {
+  it('is empty when the body uses no part of that name', () => {
+    expect(lineageNameProblem('Feather', new Set(['user.other']))).toBe('')
+    expect(lineageNameProblem('Feather', new Set())).toBe('')
   })
 
-  it('gives every candidate a distinct key', () => {
-    const keys = exposableParams(groupDocument(), 'group-1').map((candidate) => candidate.key)
-    expect(new Set(keys).size).toBe(keys.length)
+  it('names the typed name, trimmed, and compares by slug', () => {
+    const ops = new Set(['user.esp8266-feather'])
+    expect(lineageNameProblem('  esp8266 feather ', ops)).toBe('esp8266 feather is built from a part with that name — pick another name')
+    expect(lineageNameProblem('ESP8266 Feather', ops)).toBe('ESP8266 Feather is built from a part with that name — pick another name')
   })
 
-  it('is empty for an unknown body rather than throwing', () => {
-    expect(exposableParams(groupDocument(), 'nope')).toEqual([])
+  it('leaves empty and symbol-only names to partNameProblem', () => {
+    expect(lineageNameProblem('', new Set(['user.'])).length).toBe(0)
+    expect(lineageNameProblem('!!!', new Set(['user.']))).toBe('')
   })
 })
 
-describe('exposedFrom — chosen candidates become capture options', () => {
-  it('builds unique, valid parameter names with a range around the current value', () => {
-    const doc = groupDocument()
-    const candidates = exposableParams(doc, 'group-1')
-    const chosen = candidates.filter((candidate) => ['Cylinder 1 height', 'Cube 1 size X'].includes(candidate.label))
-    const exposeParams = exposedFrom(chosen)
-    expect(exposeParams).toHaveLength(2)
-    for (const param of exposeParams) {
-      expect(param.name).toMatch(/^[A-Za-z][A-Za-z0-9_-]*$/)
-      expect(param.name.length).toBeLessThanOrEqual(32)
-      expect(param.min).toBeGreaterThan(0)
-      expect(param.min).toBeLessThan(param.max)
-    }
-    expect(new Set(exposeParams.map((param) => param.name)).size).toBe(2)
-    // And they are accepted by the real capture, which re-validates everything.
-    const definition = definePartFromSelection(doc, 'group-1', { name: 'Kit', exposeParams })
-    expect(definition.params).toHaveLength(2)
+describe('partNameProblem is checked against My parts only (TODO/ui-105)', () => {
+  it('a part only the project carries does not block its name; the library one does', () => {
+    const definition = definePartFromSelection(groupDocument(), 'group-1', { name: 'Hexagon' })
+    setProjectParts([definition])
+    expect(libraryUserParts()).toEqual([])
+    expect(partNameProblem('Hexagon', libraryUserParts())).toBe('')
+    setLibraryParts([definition])
+    expect(partNameProblem('hexagon ', libraryUserParts())).toMatch(/already exists/)
+  })
+})
+
+/**
+ * A document that places `inner` and merges it with a cube, like the Feather group.
+ *
+ * @param {import('./userPart.js').UserPartDefinition} inner
+ */
+function nestingDocument(inner) {
+  const doc = createDocument()
+  doc.append({ id: 'u-1', op: inner.op, name: 'Inner 1', params: {} }, LOCAL)
+  doc.append({ id: 'cube-2', op: 'primitive.cuboid', name: 'Cube 2', params: { size: [4, 4, 4], center: [30, 0, 2] } }, LOCAL)
+  doc.append(
+    { id: 'group-2', op: 'group.assemble', name: 'Outer', target: 'u-1', operands: ['cube-2'], consumes: ['u-1', 'cube-2'], params: { names: ['Inner', 'Cube 2'] } },
+    LOCAL
+  )
+  return doc
+}
+
+describe('lineageUserPartOps — the parts a body is built from, by records alone', () => {
+  it('is empty for a body of plain primitives and for an unknown body', () => {
+    expect([...lineageUserPartOps(groupDocument(), 'group-1')]).toEqual([])
+    expect([...lineageUserPartOps(groupDocument(), 'nope')]).toEqual([])
+  })
+
+  it('lists a placed part, and the parts that part nests', () => {
+    const leaf = definePartFromSelection(groupDocument(), 'group-1', { name: 'Leaf' })
+    setProjectParts([leaf])
+    const middleDoc = createDocument()
+    middleDoc.append({ id: 'l-1', op: leaf.op, name: 'Leaf 1', params: {} }, LOCAL)
+    const middle = definePartFromSelection(middleDoc, 'l-1', { name: 'Middle' })
+    setProjectParts([leaf, middle])
+    const doc = nestingDocument(middle)
+    expect([...lineageUserPartOps(doc, 'group-2')].sort()).toEqual(['user.leaf', 'user.middle'])
+  })
+})
+
+describe('partsToCarry — what a save copies into My parts (TODO/ui-105)', () => {
+  /** leaf <- middle <- outer, all carried by the project. */
+  function chain() {
+    const leaf = definePartFromSelection(groupDocument(), 'group-1', { name: 'Leaf', version: 3 })
+    setProjectParts([leaf])
+    const middleDoc = createDocument()
+    middleDoc.append({ id: 'l-1', op: leaf.op, name: 'Leaf 1', params: {} }, LOCAL)
+    const middle = definePartFromSelection(middleDoc, 'l-1', { name: 'Middle', version: 2 })
+    setProjectParts([leaf, middle])
+    const outerDoc = createDocument()
+    outerDoc.append({ id: 'm-1', op: middle.op, name: 'Middle 1', params: {} }, LOCAL)
+    const outer = definePartFromSelection(outerDoc, 'm-1', { name: 'Outer' })
+    return { leaf, middle, outer }
+  }
+
+  it('returns every nested project-only part, leaves first, at the project’s version', () => {
+    const { leaf, middle, outer } = chain()
+    expect(partsToCarry(outer).map((part) => [part.op, part.version])).toEqual([
+      [leaf.op, 3],
+      [middle.op, 2],
+    ])
+  })
+
+  it('leaves out a nested part My parts already holds, whatever its version, and what it nests', () => {
+    const { leaf, middle, outer } = chain()
+    setLibraryParts([leaf, { ...middle, version: 1 }])
+    expect(partsToCarry(outer)).toEqual([])
+    setLibraryParts([leaf])
+    expect(partsToCarry(outer).map((part) => part.op)).toEqual([middle.op])
+  })
+
+  it('is empty for a part that nests nothing', () => {
+    const plain = definePartFromSelection(groupDocument(), 'group-1', { name: 'Plain' })
+    expect(partsToCarry(plain)).toEqual([])
   })
 })
 
@@ -208,9 +262,12 @@ describe('usageOf — how many placed instances use a part', () => {
 describe('a placed part’s exposed parameters reach the Inspector’s schema', () => {
   function placed() {
     const source = groupDocument()
-    const exposeParams = exposedFrom(
-      exposableParams(source, 'group-1').filter((candidate) => candidate.label === 'Cylinder 1 height')
-    )
+    // New saves expose nothing (TODO/ui-105), but a part saved earlier with exposed sizes must
+    // still load and place with its fields, so the core option stays and is exercised here.
+    /** @type {import('./userPart.js').ExposedParam[]} */
+    const exposeParams = [
+      { name: 'cylinder-1-height', unit: 'mm', default: 20, min: 2, max: 200, binds: [{ record: 'cyl-1', path: 'height' }] },
+    ]
     const definition = definePartFromSelection(source, 'group-1', { name: 'Standoff', exposeParams })
     setLibraryParts([definition])
     const doc = createDocument()

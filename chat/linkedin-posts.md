@@ -3967,3 +3967,18 @@ The unit and end-to-end suites passed on this tree before the commit. The accept
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** rounded radius and axis on a grouped Cube, composite refusal → unit inspector.spec.js and paramEdit.spec.js, full run this session (8621 passed, 0 failed); group-case e2e → full e2e run this session (5290 passed, 0 failed); acceptance walkthrough still in progress → TODO/FIND-ui-104.
 **To Add:** none
+
+## 2026-11-08T21:42:22Z — Save to library: My parts only, fixed parts
+
+**Post:** A WarpCad user couldn't save a group of their own to the library. The sheet said a part by that name already existed, but My parts held nothing by that name. The open project did, because placing a part copies its definition into the project, and the check was reading both lists.
+
+The fix splits the two name spaces: only My parts can block a library name. Following the user's own file showed two more problems behind it. A group that contains a part only the project carries now brings that part into My parts with it, innermost first. A name the group is itself built from is refused with a sentence that says so, because saving it would make the part contain itself.
+
+The sheet also stopped offering "Adjustable sizes". It labelled numbers by internal record names the user never sees, and a saved part is now fixed. To get another size, place it, change it, and save it under a new name. Parts already saved with adjustable sizes keep working.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** user report and cause (takenParts merged project + library) → TODO/done/ui-105 Problem; nested-part and self-name faults → TODO/done/ui-105 Reproduction, hand drive this session; record-name labels → TODO Problem §2; old exposed-param parts still load → e2e user-library.e2e.js passed this session.
+**To Add:** docs/media/user-library-save.gif

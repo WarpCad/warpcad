@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { createDocument } from '../../core/document.js'
 import { piBoltRepeated } from '../../core/__fixtures__/piScenes.js'
 import { makeContext } from './__fixtures__/context.js'
+import { definePartFromSelection } from '../../core/library.js'
+import { resetUserParts, setLibraryParts, setProjectParts } from '../../core/userPart.js'
 import { createToolRegistry } from './index.js'
 
 /**
@@ -62,19 +64,25 @@ describe('group.assemble takes explicit part names (so sub-parts stay addressabl
 })
 
 describe('save_to_library', () => {
-  it('proposes the name and exposed sizes and writes nothing', () => {
-    const { run, document, groupId, plate, proposals } = setup()
+  afterEach(() => resetUserParts())
+
+  it('proposes the name and writes nothing', () => {
+    const { run, document, groupId, proposals } = setup()
     const before = document.entries.length
     const version = document.version
-    const result = run('save_to_library', { id: groupId, name: 'Pi 7 board', expose: [`${plate}:size.2`] })
+    const result = run('save_to_library', { id: groupId, name: 'Pi 7 board' })
     expect(result.error).toBeUndefined()
     expect(result.saved).toBe(false)
-    expect(result.proposed).toMatchObject({ bodyId: groupId, name: 'Pi 7 board' })
-    expect(result.proposed.expose).toEqual([expect.objectContaining({ key: `${plate}:size.2`, valueMm: 1.6 })])
+    expect(result.proposed).toEqual({ bodyId: groupId, name: 'Pi 7 board' })
     expect(result.note).toMatch(/Confirm/)
     expect(document.entries).toHaveLength(before)
     expect(document.version).toBe(version)
-    expect(proposals).toEqual([{ bodyId: groupId, name: 'Pi 7 board', expose: [`${plate}:size.2`], labels: [expect.any(String)] }])
+    expect(proposals).toEqual([{ bodyId: groupId, name: 'Pi 7 board' }])
+  })
+
+  it('has no expose input any more (TODO/ui-105): a saved part is fixed', () => {
+    const definition = tools.definitions('ai').find((tool) => tool.name === 'save_to_library')
+    expect(Object.keys(/** @type {any} */ (definition).inputSchema.properties).sort()).toEqual(['id', 'name', 'rationale'])
   })
 
   it('the latest proposal in a turn replaces an earlier one', () => {
@@ -84,13 +92,28 @@ describe('save_to_library', () => {
     expect(proposals.map((p) => p.name)).toEqual(['Second'])
   })
 
-  it('refuses an unusable name, an unknown body and an unknown size key, naming the choices', () => {
+  it('refuses an unusable name and an unknown body', () => {
     const { run, groupId } = setup()
     expect(run('save_to_library', { id: groupId, name: '   ' }).error).toMatch(/name/i)
     expect(run('save_to_library', { id: 'nope-1', name: 'X' }).error).toMatch(/nope-1/)
-    const result = run('save_to_library', { id: groupId, name: 'X', expose: ['made-up:key'] })
-    expect(result.error).toMatch(/made-up:key/)
-    expect(result.error).toMatch(/size\.2/)
+  })
+
+  it('accepts a name only the open project carries, and refuses one My parts holds', () => {
+    const { run, document, groupId } = setup()
+    const definition = definePartFromSelection(document, groupId, { name: 'Board kit' })
+    setProjectParts([definition])
+    expect(run('save_to_library', { id: groupId, name: 'Board kit' }).error).toBeUndefined()
+    setLibraryParts([definition])
+    expect(run('save_to_library', { id: groupId, name: 'board kit' }).error).toMatch(/already exists/)
+  })
+
+  it('refuses a name the body is built from, with no kernel work', () => {
+    const { run, document, groupId } = setup()
+    const inner = definePartFromSelection(document, groupId, { name: 'Inner kit' })
+    setProjectParts([inner])
+    document.append({ id: 'inner-1', op: inner.op, name: 'Inner kit 1', params: {} }, { origin: 'local' })
+    const result = run('save_to_library', { id: 'inner-1', name: 'Inner kit' })
+    expect(result.error).toBe('Inner kit is built from a part with that name — pick another name.')
   })
 
   it('is browser-only: over MCP there is no one to tap Confirm', () => {

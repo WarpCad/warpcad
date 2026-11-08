@@ -38,7 +38,6 @@ test.describe('docs media: user library', () => {
   const saveStandoff = async (page) => {
     await press(page, 'library-save')
     await page.getByTestId('save-library-name').fill('Standoff')
-    await press(page, 'save-library-param-cyl-1:height')
     await press(page, 'save-library-submit')
     await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
   }
@@ -48,7 +47,6 @@ test.describe('docs media: user library', () => {
     await groupIt(page)
     await press(page, 'library-save')
     await page.getByTestId('save-library-name').fill('Standoff')
-    await page.getByTestId('save-library-param-cyl-1:height').check()
     await shot(page, 'user-library-save-sheet.png', { locator: page.getByTestId('save-library-sheet') })
   })
 
@@ -59,8 +57,6 @@ test.describe('docs media: user library', () => {
     await press(page, 'library-save')
     await page.waitForTimeout(500)
     await page.getByTestId('save-library-name').fill('Standoff')
-    await page.waitForTimeout(400)
-    await press(page, 'save-library-param-cyl-1:height')
     await page.waitForTimeout(400)
     await press(page, 'save-library-submit')
     await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')

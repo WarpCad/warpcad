@@ -9,7 +9,8 @@ A saved part keeps everything inside it: the same shapes, the same **named sub-p
 (so you can still select, align or subtract *Cylinder 1* on its own), and the same
 colours, including any colour you set yourself in the Inspector's **Color** control (on the
 whole group, or on one named part). It does not keep a picture of the shape: it keeps the
-steps that built it, so it can be resized if you choose to expose a size (below).
+steps that built it. A saved part is fixed: to get another size, see
+[Saving another size](#saving-another-size).
 
 ## A worked example: a standoff
 
@@ -23,14 +24,13 @@ steps that built it, so it can be resized if you choose to expose a size (below)
    still recolour a copy, or **Reset** it to the default colour, on its own).
 5. Tap **Save to library…** (in the Inspector, or **To library** in the Operations
    toolbar). The Save sheet opens.
-6. Name it **Standoff**. Under **Adjustable sizes**, tick *Cylinder 1 height* if you want
-   to change the height after placing it. Tap **Save**.
+6. Name it **Standoff**. Tap **Save**.
 7. A toast says **Saved Standoff** and the new row is at the top of **My parts**. On a phone
    the Library is a sheet: tap **Library**, then **My parts** to open the section.
 8. Start a new project (**File ▾ → New**), open the Library, expand **My parts** and drag
    **Standoff** into the view. It lands where you release, with both shapes, complete.
 
-![The Save to library sheet: a name field reading Standoff, the category My parts, and the group's sizes with Cylinder 1 height ticked](./screenshots/user-library-save-sheet.png)
+![The Save to library sheet: a name field reading Standoff and the category My parts](./screenshots/user-library-save-sheet.png)
 
 ![The Library panel scrolled to its My parts section: a count of 1, the Import part file and Import model file buttons, and a Standoff row with a thumbnail and a menu button](./screenshots/library-my-parts.png)
 
@@ -194,14 +194,32 @@ characters, and cannot match another part's name when the capitals, spaces and p
 are ignored (*Standoff* and *standoff* are the same name; *Stand-off* is different). The
 sheet tells you which rule you hit and keeps **Save** dimmed until it is fixed.
 
-## Adjustable sizes
+Only the parts already in **My parts** count. A part your open project carries (one you placed
+and then deleted from My parts, or one that came with a project you opened) never blocks a name,
+so you can put it into My parts under its own name. A group built from a part cannot take that
+part's name, because the new part would contain itself: the sheet says *Standoff is built from a
+part with that name, pick another name*.
 
-The sheet lists the sizes in the group's history: a cube's width, depth and height, a
-cylinder's diameter and height, a bolt's length. Tick the ones you want to change after
-placing the part. On every copy you place, each ticked size becomes a numeric field under
-**Parameters** in the Inspector, with a range from a tenth to ten times the saved value, so
-one saved Standoff can be 8 mm tall in one place and 20 mm in another. A size you did not
-tick is fixed.
+Saving a group also copies into My parts any part inside it that My parts does not have yet, so
+the saved part never depends on something that is only in this project. A part My parts already
+has is left as it is.
+
+## Saving another size
+
+A saved part is fixed: the sheet has no sizes to tick. To get a different size, get the scene to
+the size you want, then save it again under a new name.
+
+1. Drag a copy of the part in, or build the shape again: for a standoff, a **Cylinder** whose
+   **Height** you set to `20` in the Inspector, grouped with whatever else it needs.
+2. Select the finished group (or the placed copy, if you changed it) so it is the one selected
+   body.
+3. Tap **To library**, type **Standoff 20 mm** and tap **Save**.
+
+**Standoff 20 mm** is a new row in My parts. Standoff itself is unchanged, and so are any copies of
+it you placed earlier.
+
+A part you saved in an older version of WarpCad with a size ticked still shows that size as a field
+under **Parameters** when you place it, and the field still works.
 
 ## The ⋯ menu on a My parts row
 
@@ -245,7 +263,8 @@ For example:
 After you delete a part you have used, the project still holds its own copy, so the part's row
 stays in My parts. The row reads **Only in this project**, and a small **Project** label marks
 its tile on a narrow rail. Such a row isn't saved anywhere else, so it can't be renamed. It can
-still be dragged in, and **Duplicate** puts a copy back into My parts for good.
+still be dragged in, and **Duplicate** puts a copy back into My parts for good. You can also put
+it back by saving a placed copy, as the example below does.
 
 Tap **⋯** on the row and the menu says why it is listed, for example *Not in My parts. It's
 listed because it's placed once in this project.* If the part is used inside another placed
@@ -265,6 +284,11 @@ For example:
    placed copy from the view, or choose Duplicate to keep it. Tap **Cancel**.
 3. Select the placed Spacer in the view and delete it. The Spacer row leaves My parts. Undo, and
    it comes back.
+4. Put it back for good: select the placed copy (named *Spacer 1*), tap **To library**, keep the
+   name *Spacer 1* and tap **Save**. A toast reads *Saved Spacer 1*. My parts now holds *Spacer 1*,
+   which contains Spacer, and the Spacer row has lost its *Only in this project* label because
+   saving copied it in too. If you type *Spacer* as the name instead, the sheet refuses it, since
+   *Spacer 1* is built from Spacer.
 
 ![The menu of a My parts row for Spacer, open over the list: its note reads Not in My parts, it's listed because it's placed once in this project; Rename is greyed out and Duplicate, Export part file and Delete are available](./screenshots/user-library-project-only.png)
 

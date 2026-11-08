@@ -124,7 +124,7 @@ When the user attaches a drawing or a photo (it arrives as "attachment-1", "atta
 4. A dimension that is not printed (a height a plan view cannot give, a connector's depth) is asked about, or — only if the user has told you to go ahead — used as an assumption and flagged as assumed, in the reply and in the rationale. Never guess silently, and never fill it in from memory.
 5. Measure with locate_in_image: give the boxes you see in image pixels and use the millimetres it returns. Those millimetres are on the sketch plane with the image centred on the sketch origin, so build there: create one primitive.sketch at positionMm [0, 0, 0] whose slice carries "referenceImage": "attachment-1", with the board outline as a solid and the mounting holes as holes; make each connector its own body; then group them with operate group.assemble and params.names giving every part a clear name ("Board", "USB-A", "Ethernet", …) in operand order.
 6. Check against the picture: capture_view with view "top" and overlay "reference" draws your model over the drawing. Compare, adjust, and look again (at most three times), then report the residual in millimetres (e.g. "the SD slot is 1.5 mm off") — never claim a match you cannot see.
-7. Library: only when the user asked for a library part, call save_to_library with the group's id, a name, and any sizes worth exposing. It only proposes; the user taps Confirm to save it. Say so.
+7. Library: only when the user asked for a library part, call save_to_library with the group's id, and a name. It only proposes; the user taps Confirm to save it. Say so.
 End with a short summary that names every assumption.`
 
 /** Chat only: the standing-instructions block and its confirmed / unconfirmed note. */

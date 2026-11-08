@@ -445,7 +445,7 @@ export function useAgent() {
     if (item?.kind !== 'save' || (item.status !== 'proposed' && item.status !== 'failed')) return
     chat.updateItem(index, { ...item, status: 'saving', error: undefined })
     const library = useLibraryStore()
-    const result = await library.saveProposed({ bodyId: documentStore.raw.currentIdOf(item.bodyId) ?? item.bodyId, name: item.name, expose: item.expose })
+    const result = await library.saveProposed({ bodyId: documentStore.raw.currentIdOf(item.bodyId) ?? item.bodyId, name: item.name })
     const latest = chat.items[index]
     if (latest?.kind !== 'save') return
     chat.updateItem(index, result.ok ? { ...latest, status: 'saved', op: result.op } : { ...latest, status: 'failed', error: result.reason })

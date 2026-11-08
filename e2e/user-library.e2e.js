@@ -249,8 +249,9 @@ test('Standoff: build a group, Save to library, reload, File > New, drag it in f
   await expect(page.getByTestId('save-library-name-problem')).toContainText(/name/i)
   await name.fill('Standoff')
   await expect(page.getByTestId('save-library-submit')).toBeEnabled()
-  // Expose the cylinder's height as an adjustable size.
-  await input.press(page.locator('[data-testid^="save-library-param-cylinder-"][data-testid$=":height"]'))
+  // A saved part is fixed: the sheet offers no Adjustable sizes (TODO/ui-105).
+  await expect(page.locator('[data-testid^="save-library-param-"]')).toHaveCount(0)
+  await expect(page.getByTestId('save-library-no-params')).toHaveCount(0)
   await input.press(page.getByTestId('save-library-submit'))
 
   await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
@@ -303,31 +304,40 @@ test('Standoff: build a group, Save to library, reload, File > New, drag it in f
   await withRowSettings(page, 'user.standoff', () => expect(page.getByTestId('library-in-project-user.standoff')).toBeVisible())
 })
 
-test('a placed part shows its exposed size as a field, and editing it resizes the part with its sub-parts intact', async ({ page }, info) => {
+test('a part saved earlier with an exposed size still places with its field, and editing it resizes the part (TODO/ui-105 keeps reading these)', async ({ page }, info) => {
   const input = await pointer(page, info)
-  await buildGroup(page, input, info)
-  const before = await boundsText(page)
-  await input.press(page.getByTestId('op-library-save'))
-  await page.getByTestId('save-library-name').fill('Standoff')
-  await input.press(page.locator('[data-testid^="save-library-param-cylinder-"][data-testid$=":height"]'))
-  await input.press(page.getByTestId('save-library-submit'))
-  await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff')
-
+  // Seeded straight into IndexedDB: the Save sheet no longer makes a part with exposed sizes.
+  await seedParts(page, [
+    [
+      'user.old-standoff',
+      {
+        definition: {
+          op: 'user.old-standoff',
+          name: 'Old standoff',
+          version: 1,
+          result: 'r1',
+          records: [{ id: 'r1', op: 'primitive.cylinder', params: { height: 50, diameter: 8, center: [0, 0, 25] } }],
+          params: [{ name: 'cylinder-1-height', unit: 'mm', default: 50, min: 5, max: 500, binds: [{ record: 'r1', path: 'height' }] }],
+        },
+        savedAt: Date.now(),
+      },
+    ],
+  ])
   await openLibrary(page, input.press)
   const p = await viewportPoint(page, ...DROPS(info).c)
   const toggle = page.getByTestId('library-section-toggle-user')
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
-  await input.dragRow(page.getByTestId('library-row-user.standoff'), p.x, p.y)
+  await input.dragRow(page.getByTestId('library-row-user.old-standoff'), p.x, p.y)
   await closeLibrary(page, input.press)
-  await expect(page.getByTestId('inspector-name')).toHaveText('Standoff 1')
+  await expect(page.getByTestId('inspector-name')).toHaveText('Old standoff 1')
+  const before = await boundsText(page)
 
-  const field = page.locator('[data-testid^="inspector-param-cylinder-"][data-testid$="-height"]')
+  const field = page.getByTestId('inspector-param-cylinder-1-height')
   await field.scrollIntoViewIfNeeded()
   await expect(field).toHaveValue('50')
   await field.fill('30')
   await field.press('Enter')
   await expect.poll(() => boundsText(page)).not.toBe(before)
-  expect((await partNames(page)).sort()).toEqual(['Cube 1', 'Cylinder 1'])
 })
 
 test('the My parts menu: Duplicate, Rename, Export, and Delete that keeps a copy in the project', async ({ page }, info) => {
@@ -499,6 +509,50 @@ test('a part nested inside a placed part is listed with the reason naming that p
   await expect(page.getByTestId('user-part-delete-message')).toContainText('Delete Feather enclosure from the view and it leaves this list.')
   await expect(page.getByTestId('user-part-delete-confirm')).toHaveCount(0)
   await input.press(page.getByTestId('user-part-delete-cancel'))
+})
+
+test('a placed project-only part saves under its suggested name, carries the part it nests into My parts, and a second body cannot take that name (TODO/ui-105)', async ({ page }, info) => {
+  const input = await pointer(page, info)
+  // The placed "Standoff 1" is selected; its part, Standoff, is only in this project.
+  await standoffOnlyInProject(page, input, info)
+  await expect(page.getByTestId('inspector-name')).toHaveText('Standoff 1')
+
+  await input.press(page.getByTestId('op-library-save'))
+  await expect(page.getByTestId('save-library-sheet')).toBeVisible()
+  await expect(page.getByTestId('save-library-name')).toHaveValue('Standoff 1')
+  // No Adjustable sizes, and no refusal: the project's parts never block a library name.
+  await expect(page.locator('[data-testid^="save-library-param-"]')).toHaveCount(0)
+  await expect(page.getByTestId('save-library-no-params')).toHaveCount(0)
+  await expect(page.getByTestId('save-library-submit')).toBeEnabled()
+
+  // A name the body is built from is refused, in words.
+  await page.getByTestId('save-library-name').fill('Standoff')
+  await expect(page.getByTestId('save-library-name-problem')).toHaveText('Standoff is built from a part with that name — pick another name')
+  await expect(page.getByTestId('save-library-submit')).toBeDisabled()
+
+  await page.getByTestId('save-library-name').fill('Standoff 1')
+  await expect(page.getByTestId('save-library-submit')).toBeEnabled()
+  await input.press(page.getByTestId('save-library-submit'))
+  await expect(page.getByTestId('library-toast')).toHaveText('Saved Standoff 1')
+  await expect(page.getByTestId('save-library-sheet')).toHaveCount(0)
+
+  // Both rows are in My parts now; the nested Standoff lost its "Only in this project" badge.
+  await openLibrary(page, input.press)
+  await expect(page.getByTestId('library-row-user.standoff-1')).toBeVisible()
+  await showRowSettings(page, 'user.standoff')
+  await expect(page.getByTestId('library-only-project-user.standoff')).toHaveCount(0)
+  await showRowSettings(page, 'user.standoff-1')
+  await expect(page.getByTestId('library-only-project-user.standoff-1')).toHaveCount(0)
+
+  // A second body under that same name is refused with the library sentence.
+  const p = await viewportPoint(page, ...DROPS(info).a)
+  await input.dragRow(page.getByTestId('library-row-primitive.cuboid'), p.x, p.y)
+  await closeLibrary(page, input.press)
+  await input.press(page.getByTestId('op-library-save'))
+  await page.getByTestId('save-library-name').fill('Standoff 1')
+  await expect(page.getByTestId('save-library-name-problem')).toHaveText('A part called "Standoff 1" already exists — pick another name')
+  await expect(page.getByTestId('save-library-submit')).toBeDisabled()
+  await input.press(page.getByTestId('save-library-cancel'))
 })
 
 test('Save to library refuses a repeat, says why in a visible line, and still saves the source (TODO/ui-076)', async ({ page }) => {

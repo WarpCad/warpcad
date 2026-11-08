@@ -1055,6 +1055,17 @@ export function effectiveUserParts() {
 }
 
 /**
+ * Every usable part in the stored library layer alone — what **My parts** holds, without the
+ * open project's own copies (`TODO/ui-105`). Names are checked against this, not
+ * {@link effectiveUserParts}: a part the project carries never blocks a library name.
+ *
+ * @returns {UserPartDefinition[]} In op order.
+ */
+export function libraryUserParts() {
+  return [...libraryParts.values()].sort((a, b) => (a.op < b.op ? -1 : a.op > b.op ? 1 : 0))
+}
+
+/**
  * @typedef {object} UserPartStatus
  * @property {number | null} projectVersion The open project's copy, if it carries one.
  * @property {number | null} libraryVersion The local library's copy, if it has one.
@@ -1237,7 +1248,97 @@ export function sameGeometry(a, b, toleranceMm = 0) {
 }
 
 /** Coordinate tolerance of the capture check: the 1e-9 mm the module's tests state. */
-const CAPTURE_TOLERANCE_MM = 1e-9
+export const CAPTURE_TOLERANCE_MM = 1e-9
+
+/**
+ * The ids of the records a body's value was built from: its terminal record and everything
+ * reached through `target` and `operands` — never `supersedes`/`consumes`, which are document
+ * bookkeeping. Read from the records alone, no kernel work.
+ *
+ * @param {import('./document.js').WarpDocument} document
+ * @param {string} recordId The body's terminal record.
+ * @returns {{ ids: Set<string>, missing: string | undefined }} `missing` is the first id the
+ *   lineage names that the document has no record for.
+ */
+export function lineageRecordIds(document, recordId) {
+  /** @type {Set<string>} */
+  const ids = new Set()
+  const pending = [recordId]
+  while (pending.length > 0) {
+    const id = /** @type {string} */ (pending.pop())
+    if (ids.has(id)) continue
+    const record = document.recordOf(id)
+    if (record === undefined) return { ids, missing: id }
+    ids.add(id)
+    for (const ref of [record.target, ...(record.operands ?? [])]) {
+      const target = refId(ref)
+      if (target !== undefined) pending.push(target)
+    }
+  }
+  return { ids, missing: undefined }
+}
+
+/**
+ * Every `user.*` op a body's lineage uses, directly or through the parts those nest
+ * (`TODO/ui-105`). Records only, no kernel work, so a sheet can ask it on every keystroke.
+ * Nested definitions resolve through the document's own copies first, then the registry.
+ *
+ * @param {import('./document.js').WarpDocument} document
+ * @param {string} bodyId The body's id (its lineage root) or any record id in its lineage.
+ * @returns {Set<string>} Empty for an unknown body.
+ */
+export function lineageUserPartOps(document, bodyId) {
+  /** @type {Set<string>} */
+  const used = new Set()
+  const rootId = document.rootOf(bodyId) ?? bodyId
+  const body = document.bodies().find((candidate) => candidate.id === rootId)
+  if (body === undefined) return used
+  const known = new Map(document.userParts().map((part) => [part.op, part]))
+  const pending = []
+  for (const id of lineageRecordIds(document, body.recordId).ids) {
+    const op = document.recordOf(id)?.op
+    if (op !== undefined && isUserPartOp(op)) pending.push(op)
+  }
+  while (pending.length > 0) {
+    const op = /** @type {string} */ (pending.pop())
+    if (used.has(op)) continue
+    used.add(op)
+    const definition = known.get(op) ?? effectiveUserPart(op)
+    if (definition !== undefined) pending.push(...nestedOpsOf(definition))
+  }
+  return used
+}
+
+/**
+ * The parts a save of `definition` must also put into My parts (`TODO/ui-105`): every part it
+ * nests, directly or deeper, that the stored library does not hold, as the open project carries
+ * it (so at the project's version). **Leaves first** — each child comes before any part that
+ * nests it — because `storage/userLibrary.js` checks nesting against what is already stored.
+ * A nested part the library holds is left alone, whatever its version, and so is what it nests.
+ *
+ * @param {UserPartDefinition} definition The part about to be saved.
+ * @returns {UserPartDefinition[]} Not including `definition`. A nested op nothing can resolve
+ *   is left out; the save itself then names it.
+ */
+export function partsToCarry(definition) {
+  /** @type {UserPartDefinition[]} */
+  const ordered = []
+  /** @type {Set<string>} */
+  const seen = new Set()
+  /** @param {UserPartDefinition} part */
+  const visit = (part) => {
+    for (const op of nestedOpsOf(part)) {
+      if (seen.has(op) || libraryParts.has(op)) continue
+      seen.add(op)
+      const child = effective.get(op)
+      if (child === undefined) continue
+      visit(child)
+      ordered.push(child)
+    }
+  }
+  visit(definition)
+  return ordered
+}
 
 /**
  * Capture a body's lineage as a self-contained part definition (`TODO/core-037`).
@@ -1268,20 +1369,8 @@ export function capturePart(document, bodyId, options) {
   if (body === undefined) throw new UserPartError(`there is no body "${bodyId}" to save as a part`)
   const label = body.name
 
-  /** @type {Set<string>} */
-  const wanted = new Set()
-  const pending = [body.recordId]
-  while (pending.length > 0) {
-    const id = /** @type {string} */ (pending.pop())
-    if (wanted.has(id)) continue
-    const record = document.recordOf(id)
-    if (record === undefined) throw new UserPartError(`"${label}" depends on "${id}", which is not built`)
-    wanted.add(id)
-    for (const ref of [record.target, ...(record.operands ?? [])]) {
-      const target = refId(ref)
-      if (target !== undefined) pending.push(target)
-    }
-  }
+  const { ids: wanted, missing } = lineageRecordIds(document, body.recordId)
+  if (missing !== undefined) throw new UserPartError(`"${label}" depends on "${missing}", which is not built`)
 
   const broken = new Set(document.brokenSteps().map((step) => step.id))
   /** @type {OpRecord[]} */

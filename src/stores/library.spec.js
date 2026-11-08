@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { piBoltRepeated } from '../core/__fixtures__/piScenes.js'
 import { createUserLibrary } from '../storage/userLibrary.js'
-import { resetUserParts, setLibraryParts, effectiveUserPart } from '../core/userPart.js'
+import { resetUserParts, setLibraryParts, setProjectParts, effectiveUserPart } from '../core/userPart.js'
 import { cubeTriangles, binaryStl, asciiBytes } from '../io/__fixtures__/stl.js'
 import { setMeshWorkerFactory } from '../io/meshClient.js'
 import { useDocumentStore } from './document.js'
@@ -119,15 +119,15 @@ describe('Save to library — the gate follows the selection count', () => {
 })
 
 describe('the Save sheet', () => {
-  it('opens on the selected group with a suggested name, the My parts category and the group’s numbers to expose', () => {
+  it('opens on the selected group with a suggested name and the My parts category, and offers no sizes to expose (TODO/ui-105)', () => {
     const { library, selection, documentStore } = setup()
     combine(documentStore, selection)
     expect(library.openSave()).toBe(true)
     expect(library.saveOpen).toBe(true)
     expect(library.saveName).toBe('Group 1')
     expect(library.saveCategory).toBe('user')
-    expect(library.saveCandidates.map((c) => c.label)).toContain('Cylinder 1 height')
-    expect(library.saveChosen).toEqual([])
+    expect(library).not.toHaveProperty('saveCandidates')
+    expect(library).not.toHaveProperty('saveChosen')
   })
 
   it('validates the name live: empty, too long, and duplicate each give their own message and block Save', async () => {
@@ -162,7 +162,6 @@ describe('the Save sheet', () => {
     combine(documentStore, selection)
     library.openSave()
     library.saveName = 'Standoff'
-    library.saveChosen = [library.saveCandidates.find((c) => c.label === 'Cylinder 1 height').key]
     expect(await library.save()).toBe(true)
 
     expect(library.saveOpen).toBe(false)
@@ -170,7 +169,9 @@ describe('the Save sheet', () => {
     expect(library.toast.text).toBe('Saved Standoff')
     expect(backend.rows.has('user.standoff')).toBe(true)
     expect(backend.rows.get('user.standoff').thumbnail).toMatch(/^data:image\/png/)
-    expect(effectiveUserPart('user.standoff')?.params).toHaveLength(1)
+    // A saved part is fixed: no sizes are exposed (TODO/ui-105).
+    expect(effectiveUserPart('user.standoff')?.params).toHaveLength(0)
+    expect(backend.rows.get('user.standoff').definition.params).toEqual([])
     expect(library.userRows.map((row) => row.label)).toEqual(['Standoff'])
     expect(library.userRows[0]).toMatchObject({ op: 'user.standoff', inLibrary: true, usage: 0 })
     expect(library.userRows[0].thumbnail).toMatch(/^data:image\/png/)
@@ -599,5 +600,173 @@ describe('A part only in the open project is listed while the project uses it (T
   it('projectOnlyNote gives the menu note for a row', async () => {
     const { library } = await projectOnly(1)
     expect(library.userRows[0].projectOnlyNote).toBe("Not in My parts. It's listed because it's placed once in this project.")
+  })
+})
+
+describe('Save to library checks names against My parts only (TODO/ui-105)', () => {
+  /** Saves Standoff, places it twice, then deletes it from My parts: the project keeps its copy. */
+  async function projectOnlyStandoff() {
+    const ctx = setup()
+    combine(ctx.documentStore, ctx.selection)
+    ctx.library.openSave()
+    ctx.library.saveName = 'Standoff'
+    await ctx.library.save()
+    const text = (ctx.library.exportPart('user.standoff'), ctx.downloads[0].text)
+    ctx.documentStore.append({ id: 'u-1', op: 'user.standoff', name: 'Standoff 1', params: {} }, { origin: 'local' })
+    ctx.library.beginDelete('user.standoff')
+    await ctx.library.confirmDelete()
+    expect(ctx.backend.rows.has('user.standoff')).toBe(false)
+    expect(effectiveUserPart('user.standoff')).toBeDefined()
+    return { ...ctx, text }
+  }
+
+  /** A loose cube, selected, with the sheet open on it. */
+  function openOnLooseCube(ctx, size = 3) {
+    ctx.documentStore.append({ id: 'cube-9', op: 'primitive.cuboid', name: 'Cube 9', params: { size: [size, size, size], center: [60, 0, 0] } }, { origin: 'local' })
+    ctx.selection.select('cube-9')
+    expect(ctx.library.openSave()).toBe(true)
+  }
+
+  it('a part only the project carries does not block its name, and the save stores it with no project-only badge', async () => {
+    const ctx = await projectOnlyStandoff()
+    const { library, selection, backend } = ctx
+    selection.select('group-1')
+    library.openSave()
+    expect(library.saveName).toBe('Group 1')
+    library.saveName = 'Standoff'
+    expect(library.nameProblem).toBe('')
+    expect(library.canSave).toBe(true)
+    expect(await library.save()).toBe(true)
+    expect(backend.rows.has('user.standoff')).toBe(true)
+    // Same geometry as the project's copy: the project's version, so no update prompt.
+    expect(backend.rows.get('user.standoff').definition.version).toBe(1)
+    expect(library.userRows.find((row) => row.op === 'user.standoff')).toMatchObject({ inLibrary: true, userPart: { newerVersionAvailable: false } })
+  })
+
+  it('with the same name in My parts the save is refused with the existing sentence', async () => {
+    const { library, selection, documentStore } = setup()
+    combine(documentStore, selection)
+    library.openSave()
+    library.saveName = 'Standoff'
+    await library.save()
+    selection.select('group-1')
+    library.openSave()
+    library.saveName = 'Standoff'
+    expect(library.nameProblem).toBe('A part called "Standoff" already exists — pick another name')
+    expect(await library.save()).toBe(false)
+  })
+
+  it('different geometry under the project’s name saves at the project’s version + 1, and the row says newer', async () => {
+    const ctx = await projectOnlyStandoff()
+    openOnLooseCube(ctx)
+    ctx.library.saveName = 'Standoff'
+    expect(ctx.library.nameProblem).toBe('')
+    expect(await ctx.library.save()).toBe(true)
+    expect(ctx.backend.rows.get('user.standoff').definition.version).toBe(2)
+    expect(ctx.library.userRows.find((row) => row.op === 'user.standoff')).toMatchObject({
+      inLibrary: true,
+      userPart: { projectVersion: 1, libraryVersion: 2, newerVersionAvailable: true },
+    })
+  })
+
+  it('a body named like a library part never blocks that name (body names are not checked)', async () => {
+    const { library, selection, documentStore } = setup()
+    documentStore.append({ id: 'hex-body', op: 'primitive.cuboid', name: 'Hexagon', params: { size: [2, 2, 2], center: [40, 0, 0] } }, { origin: 'local' })
+    combine(documentStore, selection)
+    library.openSave()
+    library.saveName = 'Hexagon'
+    expect(library.nameProblem).toBe('')
+  })
+
+  it('a name the body is built from is refused, in words, while typing', async () => {
+    const ctx = await projectOnlyStandoff()
+    const { library, selection, documentStore } = ctx
+    documentStore.append({ id: 'cube-9', op: 'primitive.cuboid', name: 'Cube 9', params: { size: [3, 3, 3], center: [60, 0, 0] } }, { origin: 'local' })
+    documentStore.append(
+      { id: 'group-2', op: 'group.assemble', name: 'Outer', target: 'u-1', operands: ['cube-9'], consumes: ['u-1', 'cube-9'], params: { names: ['Inner', 'Cube 9'] } },
+      { origin: 'local' }
+    )
+    selection.select('group-2')
+    library.openSave()
+    library.saveName = '  standoff '
+    expect(library.nameProblem).toBe('standoff is built from a part with that name — pick another name')
+    expect(library.canSave).toBe(false)
+    expect(await library.save()).toBe(false)
+    library.saveName = 'Outer'
+    expect(library.nameProblem).toBe('')
+  })
+
+  it('saving a group carries the project-only parts inside it into My parts, leaves first, and the outer save succeeds', async () => {
+    const ctx = await projectOnlyStandoff()
+    const { library, selection, documentStore, backend } = ctx
+    documentStore.append({ id: 'cube-9', op: 'primitive.cuboid', name: 'Cube 9', params: { size: [3, 3, 3], center: [60, 0, 0] } }, { origin: 'local' })
+    documentStore.append(
+      { id: 'group-2', op: 'group.assemble', name: 'Outer', target: 'u-1', operands: ['cube-9'], consumes: ['u-1', 'cube-9'], params: { names: ['Inner', 'Cube 9'] } },
+      { origin: 'local' }
+    )
+    const order = []
+    const save = backend.save.bind(backend)
+    backend.save = async (definition, extras) => {
+      order.push(definition.op)
+      return save(definition, extras)
+    }
+    selection.select('group-2')
+    library.openSave()
+    expect(library.saveName).toBe('Outer')
+    expect(await library.save()).toBe(true)
+    expect(library.saveError).toBe('')
+    expect(order).toEqual(['user.standoff', 'user.outer'])
+    expect(backend.rows.get('user.standoff').definition.version).toBe(1)
+    expect(library.userRows.find((row) => row.op === 'user.standoff')?.inLibrary).toBe(true)
+  })
+
+  it('a nested part My parts already holds is left alone', async () => {
+    const ctx = await projectOnlyStandoff()
+    const { library, selection, documentStore, backend } = ctx
+    const held = { ...effectiveUserPart('user.standoff'), version: 7 }
+    backend.rows.set('user.standoff', { definition: held })
+    await library.start()
+    documentStore.append({ id: 'cube-9', op: 'primitive.cuboid', name: 'Cube 9', params: { size: [3, 3, 3], center: [60, 0, 0] } }, { origin: 'local' })
+    documentStore.append(
+      { id: 'group-2', op: 'group.assemble', name: 'Outer', target: 'u-1', operands: ['cube-9'], consumes: ['u-1', 'cube-9'], params: { names: ['Inner', 'Cube 9'] } },
+      { origin: 'local' }
+    )
+    selection.select('group-2')
+    library.openSave()
+    expect(await library.save()).toBe(true)
+    expect(backend.rows.get('user.standoff').definition.version).toBe(7)
+  })
+
+  it('rename: a part only the project carries never blocks a name; one in My parts does', async () => {
+    const ctx = await projectOnlyStandoff()
+    const { library, selection } = ctx
+    // Two saved parts: Bracket (new) and Gizmo, then rename Gizmo to the project-only Standoff.
+    selection.select('group-1')
+    library.openSave()
+    library.saveName = 'Bracket'
+    await library.save()
+    library.beginRename('user.bracket')
+    library.renameName = 'Standoff'
+    expect(library.renameProblem).toBe('')
+    library.renameName = 'Bracket'
+    expect(library.renameProblem).toBe('')
+    expect(await library.commitRename()).toBe(true)
+  })
+
+  it('import adds a part the project carries and My parts lacks, and still skips one My parts holds', async () => {
+    const { library, backend, text } = await projectOnlyStandoff()
+    expect(await library.importText(text)).toMatchObject({ added: ['Standoff'], skipped: [], problems: [] })
+    expect(backend.rows.has('user.standoff')).toBe(true)
+    expect(await library.importText(text)).toMatchObject({ added: [], skipped: ['Standoff'] })
+  })
+
+  it('the assistant’s proposal follows the same rule: a project-only name is saved, a lineage name is refused', async () => {
+    const ctx = await projectOnlyStandoff()
+    const { library, documentStore } = ctx
+    const looseId = 'cube-9'
+    documentStore.append({ id: looseId, op: 'primitive.cuboid', name: 'Cube 9', params: { size: [3, 3, 3], center: [60, 0, 0] } }, { origin: 'local' })
+    expect(await library.saveProposed({ bodyId: 'u-1', name: 'Standoff' })).toMatchObject({ ok: false, reason: expect.stringMatching(/built from a part with that name/) })
+    expect(await library.saveProposed({ bodyId: looseId, name: 'Standoff', expose: ['ignored:key'] })).toMatchObject({ ok: true, op: 'user.standoff' })
+    expect(await library.saveProposed({ bodyId: looseId, name: 'standoff' })).toMatchObject({ ok: false, reason: expect.stringMatching(/already exists/) })
   })
 })

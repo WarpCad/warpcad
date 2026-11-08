@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-105 — Save to library checks names against My parts only, no Adjustable sizes (2026-11-08 21:38)
+
+Scenarios 18 and 10 were driven at laptop width on Chromium only; the sheet's phone and tablet layouts are covered by `user-library.e2e.js` but nobody has tapped them since the sizes list went. The docs' *Saving another size* steps were written without confirming every edit they mention on a placed fixed part.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the iPhone and the iPad, select a group, tap **To library**: the sheet is shorter, Name/Category/Cancel/Save are still thumb-sized, and the *built from a part with that name* line wraps cleanly under the field | Open | |
+| 2 | Follow `docs/user-library.md` *Saving another size* exactly as written on a saved part; every step does what the page says | Open | |
+
 ### build-023 — Native app icons, launch background and accent (2026-11-07 UTC)
 
 Built by generator `npm run icons` in `warpcad-native`. Nothing was run on a simulator or device, and no iOS or macOS build was made, so Xcode's asset-catalog settings are unproven. Android is split out as `build-024`.

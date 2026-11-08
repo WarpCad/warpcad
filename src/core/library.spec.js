@@ -1092,4 +1092,34 @@ describe('a Bolt / screw drag whose Type strands the row default Fit (TODO/core-
     // The ghost's offset builds the same params; it used to throw `unknown fit "loose"`.
     expect(() => libraryModule.ghostOffsetMm('hardware.bolt', { type, spec })).not.toThrow()
   })
+
+  describe('the version a save takes when the project already carries the op (TODO/ui-105)', () => {
+    /** @param {number} size */
+    function cubeDocument(size) {
+      const document = createDocument({ replica: 'abcdef' })
+      document.append({ id: 'cube-1', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [size, size, size] } }, { origin: 'local' })
+      return document
+    }
+
+    it('takes version 1 when neither layer carries the op', () => {
+      expect(libraryModule.definePartFromSelection(cubeDocument(3), 'cube-1', { name: 'Block' }).version).toBe(1)
+    })
+
+    it('takes the project’s version when the body is the same geometry as the project’s copy', () => {
+      setProjectParts([libraryModule.definePartFromSelection(cubeDocument(3), 'cube-1', { name: 'Block', version: 4 })])
+      const saved = libraryModule.definePartFromSelection(cubeDocument(3), 'cube-1', { name: 'Block' })
+      expect(saved.version).toBe(4)
+    })
+
+    it('takes the project’s version + 1 when the geometry differs', () => {
+      setProjectParts([libraryModule.definePartFromSelection(cubeDocument(3), 'cube-1', { name: 'Block', version: 4 })])
+      const saved = libraryModule.definePartFromSelection(cubeDocument(5), 'cube-1', { name: 'Block' })
+      expect(saved.version).toBe(5)
+    })
+
+    it('keeps an explicit version', () => {
+      setProjectParts([libraryModule.definePartFromSelection(cubeDocument(3), 'cube-1', { name: 'Block', version: 4 })])
+      expect(libraryModule.definePartFromSelection(cubeDocument(5), 'cube-1', { name: 'Block', version: 9 }).version).toBe(9)
+    })
+  })
 })

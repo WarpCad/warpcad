@@ -31,12 +31,20 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { userLibrarySection } from '../core/library.js'
 import { definePartFromSelection } from '../core/library.js'
-import { USER_PART_PREFIX as USER_PREFIX, effectiveUserPart, effectiveUserParts, nestedOpsOf, requiredUserParts, slugify } from '../core/userPart.js'
+import {
+  USER_PART_PREFIX as USER_PREFIX,
+  effectiveUserPart,
+  libraryUserParts,
+  lineageUserPartOps,
+  nestedOpsOf,
+  partsToCarry,
+  requiredUserParts,
+  slugify,
+} from '../core/userPart.js'
 import {
   copyNameFor,
   duplicatePart,
-  exposableParams,
-  exposedFrom,
+  lineageNameProblem,
   partNameProblem,
   renamePart,
   holdsRepeat,
@@ -343,9 +351,13 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  /** Every part that exists right now, for name checks. */
+  /**
+   * The names **My parts** holds right now, for name checks (`TODO/ui-105`). The open project's
+   * own copies are not in it: the library and the project do not share a name space, and
+   * everything that checks a name (save, rename, duplicate, import) writes to the library.
+   */
   function takenParts() {
-    return effectiveUserParts().map((part) => ({ op: part.op, name: part.name }))
+    return libraryUserParts().map((part) => ({ op: part.op, name: part.name }))
   }
 
   // --- Save to library… ---------------------------------------------------------------
@@ -368,17 +380,22 @@ export const useLibraryStore = defineStore('library', () => {
   const saveBodyId = ref(/** @type {string | null} */ (null))
   const saveName = ref('')
   const saveCategory = ref('user')
-  /** @type {import('vue').Ref<import('../core/userPartTools.js').ExposableParam[]>} */
-  const saveCandidates = ref([])
-  const saveChosen = ref(/** @type {string[]} */ ([]))
   const saveError = ref('')
   const saving = ref(false)
+
+  /** The `user.*` ops the open sheet's body is built from, by records alone (`TODO/ui-105`). */
+  const saveLineageOps = computed(() => {
+    if (!saveOpen.value || saveBodyId.value === null) return new Set()
+    void revision.value
+    void documentStore.version
+    return lineageUserPartOps(documentStore.raw, saveBodyId.value)
+  })
 
   const nameProblem = computed(() => {
     if (!saveOpen.value) return ''
     void revision.value
     void documentStore.version
-    return partNameProblem(saveName.value, takenParts())
+    return partNameProblem(saveName.value, takenParts()) || lineageNameProblem(saveName.value, saveLineageOps.value)
   })
 
   const canSave = computed(() => saveOpen.value && !saving.value && nameProblem.value === '')
@@ -395,8 +412,6 @@ export const useLibraryStore = defineStore('library', () => {
     saveBodyId.value = body.id
     saveName.value = body.name
     saveCategory.value = 'user'
-    saveCandidates.value = exposableParams(documentStore.raw, body.id)
-    saveChosen.value = []
     saveError.value = ''
     saving.value = false
     saveOpen.value = true
@@ -416,13 +431,16 @@ export const useLibraryStore = defineStore('library', () => {
    *
    * @param {string} id
    * @param {string} name Trimmed.
-   * @param {readonly import('../core/userPartTools.js').ExposableParam[]} chosen
    * @returns {Promise<string>} The saved part's op.
    */
-  async function commitSave(id, name, chosen) {
-    const definition = definePartFromSelection(documentStore.raw, id, { name, exposeParams: exposedFrom(chosen) })
+  async function commitSave(id, name) {
+    // Always a fixed part: a new save exposes no sizes (`TODO/ui-105`).
+    const definition = definePartFromSelection(documentStore.raw, id, { name })
     const geometry = documentStore.raw.bodies().find((body) => body.id === id)?.geometry
     const thumbnail = geometry === undefined ? null : boundaries.thumbnailer(geometry)
+    // Parts it nests that My parts lacks go in first, leaves first, so each save finds its
+    // children already stored. They keep the project's version and get no thumbnail.
+    for (const nested of partsToCarry(definition)) await backendOf().save(nested)
     await backendOf().save(definition, { thumbnail })
     await reload()
     expanded.value = true
@@ -439,8 +457,7 @@ export const useLibraryStore = defineStore('library', () => {
     const id = saveBodyId.value
     const name = saveName.value.trim()
     try {
-      const chosen = saveCandidates.value.filter((candidate) => saveChosen.value.includes(candidate.key))
-      await commitSave(id, name, chosen)
+      await commitSave(id, name)
       closeSave()
       return true
     } catch (error) {
@@ -455,7 +472,7 @@ export const useLibraryStore = defineStore('library', () => {
    * tap. Everything is checked again against the live document now: the name may have been taken
    * and the body changed since the proposal.
    *
-   * @param {{ bodyId: string, name: string, expose: readonly string[] }} proposal
+   * @param {{ bodyId: string, name: string }} proposal
    * @returns {Promise<{ ok: true, op: string } | { ok: false, reason: string }>}
    */
   async function saveProposed(proposal) {
@@ -465,10 +482,10 @@ export const useLibraryStore = defineStore('library', () => {
     if (!documentStore.bodies.some((body) => body.id === proposal.bodyId)) {
       return { ok: false, reason: 'That body is no longer in the project' }
     }
-    const candidates = exposableParams(documentStore.raw, proposal.bodyId)
-    const chosen = candidates.filter((candidate) => proposal.expose.includes(candidate.key))
+    const builtFrom = lineageNameProblem(name, lineageUserPartOps(documentStore.raw, proposal.bodyId))
+    if (builtFrom) return { ok: false, reason: builtFrom }
     try {
-      return { ok: true, op: await commitSave(proposal.bodyId, name, chosen) }
+      return { ok: true, op: await commitSave(proposal.bodyId, name) }
     } catch (error) {
       return { ok: false, reason: error instanceof Error ? error.message : String(error) }
     }
@@ -875,8 +892,6 @@ export const useLibraryStore = defineStore('library', () => {
     saveOpen,
     saveName,
     saveCategory,
-    saveCandidates,
-    saveChosen,
     saveError,
     saving,
     nameProblem,

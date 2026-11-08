@@ -6,10 +6,9 @@
  * Opened from the Inspector header's *Save to library…* (`library-save`) or the Operations
  * toolbar's matching button, both gated on exactly one body being selected (`library.saveGate`).
  *
- * - **Fields**: Name (suggested from the body's own name), Category (*My parts*), and the list of
- *   numbers of the group that can be exposed as parameters — a checkbox per number, off by
- *   default. A ticked number becomes a field in the Inspector on every placed copy, so one
- *   saved Standoff can be placed at 8 mm and again at 20 mm.
+ * - **Fields**: Name (suggested from the body's own name) and Category (*My parts*). A saved part
+ *   is fixed (`TODO/ui-105`): to get another size, place it, change it and save it under a new
+ *   name. The name is checked against My parts only, and against the parts the group is built from.
  * - **Validation** is the store's (`library.nameProblem`): empty, over-long and duplicate names
  *   each say so, and Save stays disabled until the name is acceptable. A capture that the part
  *   format cannot carry (a conditional or broken step) stays here in a `role="alert"`, by name.
@@ -67,7 +66,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         <HelpButton topic="save-to-library" class="save-sheet__help" />
       </div>
       <p class="save-sheet__note">
-        Saves this group as a part you can drag into any project, with its sub-parts and names intact.
+        Saves this group as a fixed part you can drag into any project. To save another size, place it, change it, and save it under a new name.
       </p>
 
       <label class="save-sheet__field">
@@ -99,28 +98,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
           <option value="user">My parts</option>
         </select>
       </label>
-
-      <fieldset class="save-sheet__params">
-        <legend class="save-sheet__legend">Adjustable sizes (optional)</legend>
-        <p v-if="library.saveCandidates.length === 0" class="save-sheet__note" data-testid="save-library-no-params">
-          This group has no sizes to expose. It will save as a fixed part.
-        </p>
-        <template v-else>
-          <p class="save-sheet__note">
-            Tick the sizes you want to change after placing it. Each becomes a field in the Inspector.
-          </p>
-          <label v-for="candidate in library.saveCandidates" :key="candidate.key" class="save-sheet__check">
-            <input
-              v-model="library.saveChosen"
-              type="checkbox"
-              :value="candidate.key"
-              :data-testid="`save-library-param-${candidate.key}`"
-            />
-            <span class="save-sheet__check-label">{{ candidate.label }}</span>
-            <span class="save-sheet__check-value">{{ Number(candidate.value.toFixed(3)) }} {{ candidate.unit }}</span>
-          </label>
-        </template>
-      </fieldset>
 
       <p v-if="library.saveError" class="save-sheet__problem" role="alert" data-testid="save-library-error">
         {{ library.saveError }}
@@ -233,54 +210,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
   line-height: 1.4;
   color: var(--danger);
   overflow-wrap: anywhere;
-}
-
-.save-sheet__params {
-  margin: 0;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  min-width: 0;
-  max-height: 32dvh;
-  overflow-y: auto;
-}
-
-.save-sheet__legend {
-  padding: 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-2);
-}
-
-.save-sheet__check {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.save-sheet__check input {
-  flex: none;
-  width: 20px;
-  height: 20px;
-}
-
-.save-sheet__check-label {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.save-sheet__check-value {
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-2);
 }
 
 .save-sheet__actions {

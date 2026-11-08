@@ -35,8 +35,6 @@
  * @property {'save'} kind
  * @property {string} bodyId
  * @property {string} name
- * @property {string[]} expose `exposableParams` keys.
- * @property {string[]} labels What each exposed size is called.
  * @property {'proposed' | 'saving' | 'saved' | 'cancelled' | 'failed'} status
  * @property {string} [op] The saved part's op, once saved.
  * @property {string} [error] Why the Save failed.

@@ -768,7 +768,7 @@ describe('runTurn — drawings and the save proposal', () => {
     const { ctx } = setup({ client })
     const outcome = await runTurn({ userMessage: 'make a block and save it to my library', ctx })
     expect(outcome.status).toBe('done')
-    expect(outcome.saveProposal).toEqual({ bodyId: 'cuboid-abcdef-1', name: 'Block', expose: [], labels: [] })
+    expect(outcome.saveProposal).toEqual({ bodyId: 'cuboid-abcdef-1', name: 'Block' })
   })
 
   it('drops the proposal with a turn that did not land (its body was never kept)', async () => {

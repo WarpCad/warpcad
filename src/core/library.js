@@ -46,9 +46,10 @@
  */
 
 import { evaluateOp } from './kernel/index.js'
+import { policyFor } from './kernel/tessellation.js'
 import { boundsOf } from './kernel/group.js'
 import { lookupEntry, reconcileParamEdit, registry } from './kernel/registry.js'
-import { capturePart, effectiveUserPart, effectiveUserParts, isUserPartOp, userPartStatus } from './userPart.js'
+import { CAPTURE_TOLERANCE_MM, capturePart, effectiveUserPart, effectiveUserParts, isUserPartOp, sameGeometry, userPartStatus } from './userPart.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
@@ -403,11 +404,28 @@ export function libraryRow(op) {
  * @param {WarpDocument} document
  * @param {string} id The selected body's id.
  * @param {import('./userPart.js').CaptureOptions} options `{ name, exposeParams, version }`.
+ *   Without a `version`, the one the save takes (`TODO/ui-105`): 1 when the open project does not
+ *   carry `user.<slug(name)>`; otherwise the project's version when the body is the same geometry
+ *   as the project's copy, and the project's version + 1 when it is not, so the library row then
+ *   reads as the newer one and the project's placed instances keep their own.
  * @returns {import('./userPart.js').UserPartDefinition}
  * @throws {import('./userPart.js').UserPartError} Naming what stopped it.
  */
 export function definePartFromSelection(document, id, options) {
-  return capturePart(document, id, options)
+  const definition = capturePart(document, id, options)
+  if (options.version !== undefined) return definition
+  const projectVersion = userPartStatus(definition.op).projectVersion
+  if (projectVersion === null) return definition
+  const body = document.bodies().find((candidate) => candidate.id === (document.rootOf(id) ?? id))
+  let same = false
+  try {
+    // The registered copy is the project's (project wins), at its defaults and at the
+    // document's resolution, the way `capturePart` rebuilds it.
+    same = body !== undefined && sameGeometry(evaluateOp(definition.op, {}, { policy: policyFor(document.resolution()) }), body.geometry, CAPTURE_TOLERANCE_MM)
+  } catch {
+    same = false
+  }
+  return { ...definition, version: same ? projectVersion : projectVersion + 1 }
 }
 
 /**
