@@ -19,7 +19,8 @@ import { withRowSettings } from './support/libraryRow.js'
  * units); the toast counts the six duplicates skipped. Drag it in, drag a Cube in beside it; a
  * first click on the model selects the whole, a second narrows to the part under the pointer with
  * a breadcrumb and that part's own size. The Objects list expands to every part. Align the Cube to
- * one part's X centre (to 0.01 mm), Subtract another part from the Cube (one body with a pocket;
+ * one part's X centre (to 0.01 mm), Subtract the whole model from the Cube with no main-thread
+ * long task and Undo it in one step (`TODO/core-079`), Subtract another part from the Cube (one body with a pocket;
  * a visible cutting part uses its model up, as `docs/booleans.md` says), reload (the cut stays), **File ▸ New** (the part stays in My parts). Refusals: a
  * text file named `x.3mf`, a STEP file dropped on the panel, a file over the size cap.
  *
@@ -125,6 +126,49 @@ function boundsIn(page, bodyId, partName = null) {
   )
 }
 
+/**
+ * Start watching the main thread for blocking (`TODO/core-079`). Where the engine reports Long
+ * Tasks (Chromium), every `longtask` entry's duration; elsewhere (Firefox, WebKit have no
+ * `longtask` entries) the longest gap between zero-delay timer ticks, which a blocking task
+ * stretches by its own length.
+ */
+async function watchMainThread(page) {
+  await page.evaluate(() => {
+    const watch = { longestMs: 0, kind: 'longtask', stop: () => {} }
+    if (PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) watch.longestMs = Math.max(watch.longestMs, entry.duration)
+      })
+      observer.observe({ type: 'longtask' })
+      watch.stop = () => observer.disconnect()
+    } else {
+      watch.kind = 'timer gap'
+      let last = performance.now()
+      let running = true
+      const tick = () => {
+        const now = performance.now()
+        watch.longestMs = Math.max(watch.longestMs, now - last)
+        last = now
+        if (running) setTimeout(tick, 0)
+      }
+      setTimeout(tick, 0)
+      watch.stop = () => {
+        running = false
+      }
+    }
+    /** @type {any} */ (window).__mainThreadWatch = watch
+  })
+}
+
+/** @returns {Promise<{ longestMs: number, kind: string }>} */
+async function stopWatchingMainThread(page) {
+  return page.evaluate(() => {
+    const watch = /** @type {any} */ (window).__mainThreadWatch
+    watch.stop()
+    return { longestMs: watch.longestMs, kind: watch.kind }
+  })
+}
+
 /** The three Size fields, as numbers. */
 async function inspectorSize(page) {
   return Promise.all(['x', 'y', 'z'].map(async (axis) => Number(await page.getByTestId(`inspector-size-${axis}`).inputValue())))
@@ -220,6 +264,34 @@ test('import feather.3mf: 3 parts, drill to one, align a cube to it, cut with an
   const partAfter = await boundsIn(page, featherId, 'Part 2')
   expect(partAfter.min[0]).toBeCloseTo(partBefore.min[0], 6)
   expect(Math.abs((cube.min[0] + cube.max[0]) / 2 - (partAfter.min[0] + partAfter.max[0]) / 2)).toBeLessThan(0.01)
+
+  // Subtract with the WHOLE model (TODO/core-079): the Cube first, then the model's own row ticked.
+  // The union of the model's parts and the cut run in the evaluation worker, so the main thread
+  // never blocks for a long task (50 ms, the Long Tasks API's own threshold). Then one Undo puts
+  // both bodies back, untouched, for the one-part cut below.
+  await openObjectList(page, input)
+  await input.press(page.getByTestId(`objects-row-${cubeId}`))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cubeId)
+  await openObjectList(page, input)
+  await input.press(page.getByTestId(`objects-check-${featherId}`))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
+  await watchMainThread(page)
+  await input.press(page.getByTestId('operation-subtract'))
+  const wholeCut = page.locator('[data-testid="scene-bodies"] li[data-body-op="boolean.subtract"]')
+  await expect(wholeCut).toHaveCount(1, { timeout: 30_000 })
+  await expect(wholeCut).toHaveAttribute('data-body-volume', /.+/, { timeout: 30_000 })
+  await expect(page.getByTestId('operation-pending')).toHaveCount(0)
+  const blocked = await stopWatchingMainThread(page)
+  expect(blocked.longestMs, `longest main-thread ${blocked.kind} during the whole-model cut`).toBeLessThan(50)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const wholeVolume = Number(await wholeCut.getAttribute('data-body-volume'))
+  expect(wholeVolume).toBeLessThan(64_000 - 100)
+  expect(wholeVolume).toBeGreaterThan(64_000 - (50.8 * 22.86 * 1.57 + 2 * 16 * 24 * 2.95) - 1)
+  // One step: a single Undo brings back the Cube and the whole model, and nothing else.
+  await input.press(page.getByTestId('undo-button'))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  expect((await sceneBodies(page)).map((body) => body.id).sort()).toEqual([cubeId, featherId].sort())
 
   // Subtract with one part: the Cube is the base, the model's plate the cutter. One cut body. A
   // visible part used as a cutter uses its group up, as any cutting shape is (docs/booleans.md).

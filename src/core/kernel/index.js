@@ -172,6 +172,71 @@ function cacheHit(cached, json, inputs, pieces, ops, entry, tables, policy) {
   return true
 }
 
+/** The ops whose result can be built off the main thread and handed in (`TODO/core-079`). */
+export const PREBUILT_BOOLEAN_OPS = Object.freeze(['boolean.union', 'boolean.subtract', 'boolean.intersect'])
+
+/**
+ * @typedef {object} PrebuiltBoolean
+ * @property {string} op
+ * @property {readonly unknown[]} operands The operand values it was built from, by identity.
+ * @property {readonly (string | undefined)[]} pieces Each operand's `pieces` address.
+ * @property {Geom3} value
+ */
+
+/**
+ * Booleans built elsewhere, by their first operand's value (`TODO/core-079`).
+ *
+ * @type {WeakMap<object, PrebuiltBoolean[]>}
+ */
+const prebuiltBooleans = new WeakMap()
+
+/**
+ * Hand the fold a boolean the evaluation worker built (`TODO/core-079`): the next fold of a
+ * `boolean.*` record over these **identical** operand values and `pieces` takes `value` instead
+ * of building it. A boolean is a pure function of its operands, and kernel values are immutable,
+ * so this is exactly what the fold would have built — the worker runs this same fold, and
+ * `transport.js` carries planes so the result arrives bit-identical. A record over any other
+ * values (the document changed while the worker worked) misses, and builds here as ever.
+ *
+ * @param {string} op One of {@link PREBUILT_BOOLEAN_OPS}.
+ * @param {readonly unknown[]} operands Target first, as the record lists them.
+ * @param {readonly (string | undefined)[]} pieces
+ * @param {Geom3} value
+ * @returns {void}
+ */
+export function rememberPrebuiltBoolean(op, operands, pieces, value) {
+  const first = operands[0]
+  if (!PREBUILT_BOOLEAN_OPS.includes(op) || first === null || typeof first !== 'object') return
+  const held = prebuiltBooleans.get(first) ?? []
+  held.push({ op, operands: [...operands], pieces: [...pieces], value })
+  prebuiltBooleans.set(first, held)
+}
+
+/**
+ * @param {OpRecord} record
+ * @param {RegistryEntry} entry
+ * @param {readonly { id: string, pieces?: string }[]} refs
+ * @param {Map<string, Geom3 | Group>} byId
+ * @returns {Geom3 | undefined}
+ */
+function prebuiltBooleanOf(record, entry, refs, byId) {
+  // Only the stock entry, with no params: a re-registered op is a different build.
+  if (!PREBUILT_BOOLEAN_OPS.includes(record.op) || entry !== registry[record.op]) return undefined
+  if (record.params !== undefined && Object.keys(record.params).length > 0) return undefined
+  const values = refs.map((ref) => byId.get(ref.id))
+  const first = values[0]
+  if (first === undefined) return undefined
+  const held = prebuiltBooleans.get(first)
+  if (held === undefined) return undefined
+  const match = held.find(
+    (candidate) =>
+      candidate.op === record.op &&
+      candidate.operands.length === values.length &&
+      candidate.operands.every((operand, index) => operand === values[index] && candidate.pieces[index] === refs[index].pieces)
+  )
+  return match?.value
+}
+
 /**
  * @typedef {object} EvaluateResult
  * @property {Group} group Named results, in document order.
@@ -320,8 +385,12 @@ export function evaluate(records, options = {}) {
     // narrows a geom2.
     const wantsRaw = entry.rawOperands === true
     const acceptsPieces = entry.subPartOperands === true
+    // TODO/core-079: a boolean the evaluation worker already built from these very operand
+    // values — a whole multi-part model as the cutter — is taken as built, so neither its union
+    // nor the boolean runs on this thread. The operands still resolve (and throw) below as ever.
+    const prebuilt = prebuiltBooleanOf(record, entry, inputRefs, byId)
     /** @type {any[]} */
-    const inputs = inputRefs.map((ref) => {
+    const inputs = prebuilt !== undefined ? [] : inputRefs.map((ref) => {
       const resolved = byId.get(ref.id)
       if (resolved === undefined) {
         throw new Error(
@@ -405,7 +474,7 @@ export function evaluate(records, options = {}) {
       // this is the one place the wider possibility is acknowledged.
       // A `group.*` op hands back the `Group` it was given, parts intact — that is
       // what lets V1's `.snap(...).snap(...)` chain survive the fold as two records.
-      value = /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs, policy }))
+      value = prebuilt ?? /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs, policy }))
     }
 
     /** @type {CachedBuild | undefined} */

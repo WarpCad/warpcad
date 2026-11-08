@@ -22,6 +22,8 @@ import { useSelectionStore } from '../../stores/selection.js'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { CROSSFADE_MS } from '../../composables/useTierCrossfade.js'
+import { setEvaluationWorkerFactory } from '../../core/kernel/evaluationClient.js'
+import { runEvaluationJob } from '../../core/kernel/evaluationJob.js'
 
 /**
  * Fillet and Chamfer (`TODO/ui-027`) — the toolbar's first **exactly-1**-gated
@@ -1572,5 +1574,93 @@ describe('OperationsToolbar — the groups tier (TODO/ui-082)', () => {
     expect(phone.get('[data-testid="operations-toolbar"]').attributes('data-ops-tier')).toBe('icons')
     expect(phone.find('[data-testid^="ops-group-"]').exists()).toBe(false)
     expect(phone.find('[data-testid="operation-mirror"]').exists()).toBe(true)
+  })
+})
+
+describe('OperationsToolbar — a whole-model cut runs off the main thread (TODO/core-079)', () => {
+  /** Answers only when told to, running the real job on a structured clone — the boundary mock. */
+  class FakeWorker {
+    constructor() {
+      /** @type {Record<string, ((event: { data: any }) => void)[]>} */
+      this.listeners = { message: [], error: [] }
+      /** @type {any[]} */
+      this.posted = []
+    }
+
+    /**
+     * @param {string} type
+     * @param {(event: { data: any }) => void} listener
+     */
+    addEventListener(type, listener) {
+      this.listeners[type]?.push(listener)
+    }
+
+    removeEventListener() {}
+
+    terminate() {}
+
+    /** @param {any} message */
+    postMessage(message) {
+      this.posted.push(structuredClone(message))
+    }
+
+    answerLast() {
+      const message = this.posted.at(-1)
+      const result = structuredClone(runEvaluationJob(message.job))
+      for (const listener of this.listeners.message) {
+        listener({ data: { id: message.id, channel: message.channel, generation: message.generation, ok: true, result } })
+      }
+    }
+  }
+
+  /** @type {FakeWorker | undefined} */
+  let worker
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    worker = undefined
+    setEvaluationWorkerFactory(() => /** @type {any} */ ((worker = new FakeWorker())))
+  })
+
+  afterEach(() => {
+    setEvaluationWorkerFactory(null)
+    vi.restoreAllMocks()
+  })
+
+  it('Subtract with a multi-part cutter shows a pending line, holds the buttons, then lands and selects the result', async () => {
+    const documentStore = useDocumentStore()
+    const selection = useSelectionStore()
+    documentStore.appendAll([
+      { id: 'a', op: 'primitive.cuboid', params: { size: [4, 4, 4], center: [0, 0, 0] } },
+      { id: 'b', op: 'primitive.cuboid', params: { size: [4, 4, 4], center: [3, 0, 0] } },
+      { id: 'model', op: 'group.assemble', name: 'Model', target: 'a', operands: ['b'], params: { names: ['A', 'B'] } },
+      { id: 'plate', op: 'primitive.cuboid', name: 'Plate', params: { size: [20, 20, 2], center: [0, 0, 0] } },
+    ])
+    selection.select('plate')
+    selection.toggle('model')
+    const wrapper = mount(OperationsToolbar)
+    const append = vi.spyOn(documentStore, 'append')
+
+    await wrapper.get('[data-testid="operation-subtract"]').trigger('click')
+    await nextTick()
+    const pending = wrapper.get('[data-testid="operation-pending"]')
+    expect(pending.text()).toMatch(/Subtract/)
+    expect(pending.attributes('role')).toBe('status')
+    expect(wrapper.get('[data-testid="operation-subtract"]').attributes('disabled')).toBeDefined()
+    expect(append).not.toHaveBeenCalled()
+
+    const fake = /** @type {FakeWorker} */ (worker)
+    fake.answerLast()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await nextTick()
+    expect(wrapper.find('[data-testid="operation-pending"]').exists()).toBe(false)
+    const ids = documentStore.bodies.map((body) => body.id)
+    const cut = ids.find((id) => id.startsWith('bool-'))
+    expect(cut).toBeDefined()
+    // Both operands are consumed by the cut, and the result is selected, as for any boolean.
+    expect(ids).not.toContain('plate')
+    expect(ids).not.toContain('model')
+    expect(selection.ids).toEqual([cut])
+    expect(append).toHaveBeenCalledTimes(0) // through the store's own appendOperation, not the component
   })
 })

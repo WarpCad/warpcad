@@ -6,7 +6,9 @@ priority: low
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-04 from io-024's measurements)
 depends: [io-024]
-status: open
+status: done
+
+**What shipped (2026-11-08):** the composite union is cached per group (`combined`, measure job returns it), and a whole-model Subtract/Union/Intersect with a multi-part operand runs its boolean in the kernel worker (`boolean` job) with a "Subtract in progress…" line, so the main thread only sends the operands and commits the result. Align was not moved (box bounds only, no union; see core-029). The synchronous fold remains the fallback. Measured on the owner's Feather 3MF, Chromium: 1.25 s pending, longest main-thread gap 43 ms at landing, 29 ms at the click (phone WebKit 1.6 s, 25 ms). The TODO's 16 ms target is met for the send and the click; the commit is about 11.5 ms and a denser model could push it past 16 ms (TODO/VERIFY.md, core-079).
 ---
 
 ## Goal

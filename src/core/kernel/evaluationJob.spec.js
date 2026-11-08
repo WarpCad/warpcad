@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
+import modeling from '@jscad/modeling'
 
+import { combine } from './group.js'
 import { evaluate, evaluateOp } from './index.js'
 import { createLatestOnlyQueue, runEvaluationJob } from './evaluationJob.js'
 import { measureGeometry } from './measure.js'
-import { packGeometry } from './transport.js'
+import { packGeometry, unpackGeometry } from './transport.js'
 
 /**
  * The evaluation worker's job function (`TODO/core-029`), tested with no `Worker` at all.
@@ -61,6 +63,30 @@ describe('runEvaluationJob — measure', () => {
 
   it('refuses a job kind it does not know, by name', () => {
     expect(() => runEvaluationJob(/** @type {any} */ ({ kind: 'teleport' }))).toThrow(/teleport/)
+  })
+
+  // TODO/core-079: a composite's volume needs its union, so the worker hands the union back
+  // rather than throw it away — the main thread then never builds it for a cut.
+  it('hands back the union it built for a composite, identical to the main thread\'s', () => {
+    const pi = /** @type {any} */ (evaluateOp('raspberrypi.bplus', {}))
+    const cube = /** @type {any} */ (evaluateOp('primitive.cuboid', { size: [2, 2, 2] }))
+    const result = /** @type {any} */ (runEvaluationJob({
+      kind: 'measure',
+      // With planes, as the document store sends it: the Pi's parts are boolean results, and
+      // their cached planes are what the main thread's own union would read.
+      bodies: structuredClone([packGeometry(pi, { planes: true }), packGeometry(cube, { planes: true })]),
+    }))
+    const combined = unpackGeometry(structuredClone(result.measurements[0].combined))
+    const expected = modeling.geometries.geom3.toPolygons(combine(pi))
+    const actual = modeling.geometries.geom3.toPolygons(/** @type {any} */ (combined))
+    expect(actual.map((polygon) => polygon.vertices)).toEqual(expected.map((polygon) => polygon.vertices))
+    // Planes too: JSCAD reads a polygon's cached plane, and one recomputed from the corners
+    // differs in the 13th digit — enough to move a later cut's vertices.
+    expect(actual.map((polygon) => modeling.geometries.poly3.plane(polygon))).toEqual(
+      expected.map((polygon) => modeling.geometries.poly3.plane(polygon)),
+    )
+    // A bare solid is its own union: nothing to hand back.
+    expect(result.measurements[1].combined).toBeUndefined()
   })
 })
 
@@ -142,5 +168,62 @@ describe('runEvaluationJob splitFace (TODO/ui-067)', () => {
     )
     expect(result.face).toBeUndefined()
     expect(result.error).toMatch(/outside the body/)
+  })
+})
+
+describe('runEvaluationJob — boolean (TODO/core-079: a whole multi-part model as the cutter)', () => {
+  const PLATE = { id: 'plate', op: 'primitive.cuboid', params: { size: [90, 60, 6], center: [30, 25, 0] } }
+
+  /**
+   * The plate cut by the Pi on this thread — the fold's own path, the answer to match.
+   *
+   * @param {string | { id: string, pieces: string }} cutter
+   */
+  function cutHere(cutter) {
+    const { byId } = evaluate([PLATE, { id: 'pi', op: 'raspberrypi.bplus', params: {} }, { id: 'cut', op: 'boolean.subtract', target: 'plate', operands: [cutter] }])
+    return /** @type {any} */ (byId.get('cut'))
+  }
+
+  it('cuts in the worker exactly what the fold cuts here, union of the composite included', () => {
+    const plate = /** @type {any} */ (evaluateOp(PLATE.op, PLATE.params))
+    const pi = /** @type {any} */ (evaluateOp('raspberrypi.bplus', {}))
+    const result = /** @type {any} */ (runEvaluationJob(structuredClone({
+      kind: 'boolean',
+      op: 'boolean.subtract',
+      operands: [packGeometry(plate, { planes: true }), packGeometry(pi, { planes: true })],
+      pieces: [undefined, undefined],
+    })))
+    expect(result.kind).toBe('boolean')
+    expect(result.error).toBeUndefined()
+    const cut = /** @type {any} */ (unpackGeometry(structuredClone(result.geometry)))
+    const expected = cutHere('pi')
+    const { geom3 } = modeling.geometries
+    expect(geom3.toPolygons(cut).map((polygon) => polygon.vertices)).toEqual(geom3.toPolygons(expected).map((polygon) => polygon.vertices))
+    expect(modeling.measurements.measureVolume(cut)).toBeCloseTo(modeling.measurements.measureVolume(expected), 9)
+  })
+
+  it('honours a pieces address, and reports a bad one as the kernel words it', () => {
+    const plate = /** @type {any} */ (evaluateOp(PLATE.op, PLATE.params))
+    const pi = /** @type {any} */ (evaluateOp('raspberrypi.bplus', {}))
+    const part = /** @type {string} */ (Object.keys(pi.parts).find((name) => pi.names.includes(name)))
+    /** @param {string} pieces */
+    const job = (pieces) => /** @type {any} */ (structuredClone({
+      kind: 'boolean',
+      op: 'boolean.subtract',
+      operands: [packGeometry(plate, { planes: true }), packGeometry(pi, { planes: true })],
+      pieces: [undefined, pieces],
+    }))
+    const one = /** @type {any} */ (runEvaluationJob(job(part)))
+    const expected = cutHere({ id: 'pi', pieces: part })
+    expect(modeling.measurements.measureVolume(/** @type {any} */ (unpackGeometry(one.geometry)))).toBeCloseTo(modeling.measurements.measureVolume(expected), 9)
+    const bad = /** @type {any} */ (runEvaluationJob(job('nope')))
+    expect(bad.geometry).toBeUndefined()
+    expect(bad.error).toMatch(/no part named "nope"/)
+  })
+
+  it('refuses an op that is not a boolean', () => {
+    const cube = packGeometry(/** @type {any} */ (evaluateOp('primitive.cuboid', { size: [2, 2, 2] })))
+    const result = /** @type {any} */ (runEvaluationJob({ kind: 'boolean', op: 'transform.translate', operands: [cube], pieces: [undefined] }))
+    expect(result.error).toMatch(/not a boolean/)
   })
 })

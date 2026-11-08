@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### core-079 — Whole-model Subtract off the main thread (2026-11-08 23:03 UTC)
+
+The 3MF whole-model cut is now a worker job with a pending line. The pending line sits where the error line is, and the cut's commit is still one main-thread task of about 11.5 ms. Not covered by a standing acceptance check: the phone-width layout of the pending line, and whether a dense real model's commit crosses 16 ms.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At 390 px width, the "Subtract in progress…" line does not push the operation buttons off-screen or cause horizontal scroll | Open | |
+| 2 | On a denser 3MF than the Feather, the main-thread commit after a whole-model Subtract stays under 16 ms | Open | |
+
 ### ui-105 — Save to library checks names against My parts only, no Adjustable sizes (2026-11-08 21:38)
 
 Scenarios 18 and 10 were driven at laptop width on Chromium only; the sheet's phone and tablet layouts are covered by `user-library.e2e.js` but nobody has tapped them since the sizes list went. The docs' *Saving another size* steps were written without confirming every edit they mention on a placed fixed part.

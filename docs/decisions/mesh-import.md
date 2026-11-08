@@ -339,7 +339,7 @@ board as one shell (33,720 triangles), or a 30 k-triangle generated STL where no
 | Undo (re-fold) / Redo | — | 17 ms / 33 ms, no long task | same (30 k STL) |
 | Volume (worker union of 29 parts) | — | 2.0 s after the drop, off the main thread | 1.6 s |
 | Export the whole model as one STL | — | 1.0 s in the worker, no gap over 17 ms | 255 ms |
-| **Subtract with the whole model as the cutter** | — | **one 624 ms long task** | 179 ms |
+| **Subtract with the whole model as the cutter** (`core-079`) | one 624 ms long task (320–363 ms in the Node synthetic) | sends operands 6–14 ms; the worker unions and subtracts in 1.25 s (Chromium), off the main thread with a pending line; the commit ~11.5 ms; longest gap 43 ms at landing, 29 ms at the click (phone WebKit: 1.6 s, 25 ms) | 179 ms |
 
 The three fixes, all in the main-thread paths a group-valued body takes:
 

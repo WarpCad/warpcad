@@ -93,8 +93,13 @@ describe('evaluation client — identical results', () => {
     const outcome = await pending
 
     expect(outcome.superseded).toBe(false)
-    expect(outcome.result.measurements[0]).toEqual(measureGeometry(pi))
-    expect(outcome.result.measurements[1]).toEqual(measureGeometry(bolt))
+    // A composite's answer also carries the union it was measured on (TODO/core-079).
+    const { combined: piUnion, ...piMeasured } = outcome.result.measurements[0]
+    const { combined: boltUnion, ...boltMeasured } = outcome.result.measurements[1]
+    expect(piMeasured).toEqual(measureGeometry(pi))
+    expect(boltMeasured).toEqual(measureGeometry(bolt))
+    expect(piUnion?.kind).toBe('solid')
+    expect(boltUnion?.kind).toBe('solid')
   })
 })
 
@@ -164,7 +169,9 @@ describe('evaluation client — fallback', () => {
     const outcome = await channel.request(measureJob(pi))
     expect(evaluationWorkerAvailable()).toBe(false)
     expect(outcome.superseded).toBe(false)
-    expect(outcome.result.measurements[0]).toEqual(measureGeometry(pi))
+    const { combined, ...measured } = outcome.result.measurements[0]
+    expect(measured).toEqual(measureGeometry(pi))
+    expect(combined?.kind).toBe('solid')
   })
 
   it('a worker that dies mid-request answers its outstanding work on this thread instead', async () => {

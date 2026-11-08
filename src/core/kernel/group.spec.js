@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import {
@@ -10,6 +10,7 @@ import {
   bisect,
   calcCenterWith,
   calcSnap,
+  cachedCombinedOf,
   centroidOf,
   combine,
   createGroup,
@@ -25,6 +26,7 @@ import {
   partMetaOf,
   pick,
   freePartName,
+  rememberCombined,
   renamePart,
   renamedPartProblem,
   setPartHidden,
@@ -154,6 +156,54 @@ describe('createGroup / isGroup / add', () => {
     const outer = add(createGroup(), inner, 'tap', { subpartPrefix: 'tap-' })
     expect(outer.names).toEqual(['tap'])
     expect(Object.keys(outer.parts)).toEqual(['tap', 'tap-head', 'tap-shaft'])
+  })
+})
+
+describe('combine — one union per group (TODO/core-079)', () => {
+  /** 29 parts, the Feather 3MF's count, overlapping in a row so every union is real CSG. */
+  function manyParts() {
+    let group = createGroup('many')
+    for (let index = 0; index < 29; index += 1) {
+      group = add(group, transforms.translate([index * 3, 0, 0], big()), `part${index}`)
+    }
+    return group
+  }
+
+  it('unions a group once: the second toGeom3 is the same solid, with no union run', () => {
+    const group = manyParts()
+    const first = toGeom3(group)
+    const union = vi.spyOn(modeling.booleans, 'union')
+    try {
+      expect(toGeom3(group)).toBe(first)
+      expect(combine(group)).toBe(first)
+      expect(cachedCombinedOf(group)).toBe(first)
+      expect(union).not.toHaveBeenCalled()
+    } finally {
+      union.mockRestore()
+    }
+    expect(measurements.measureVolume(first)).toBeCloseTo(10 * 10 * (28 * 3 + 10), 6)
+  })
+
+  it('a named subset or noholes is not the default union, so it is never served from it', () => {
+    const group = manyParts()
+    toGeom3(group)
+    expect(measurements.measureVolume(combine(group, 'part0,part1'))).toBeCloseTo(10 * 10 * 13, 6)
+    const holed = addHole(group, big())
+    expect(toGeom3(holed)).not.toBe(combine(holed, undefined, { noholes: true }))
+  })
+
+  it('serves a union built elsewhere (the evaluation worker) for that exact group', () => {
+    const group = manyParts()
+    const elsewhere = toGeom3(manyParts())
+    rememberCombined(group, elsewhere)
+    const union = vi.spyOn(modeling.booleans, 'union')
+    try {
+      expect(toGeom3(group)).toBe(elsewhere)
+      expect(union).not.toHaveBeenCalled()
+    } finally {
+      union.mockRestore()
+    }
+    expect(cachedCombinedOf(manyParts())).toBeUndefined()
   })
 })
 

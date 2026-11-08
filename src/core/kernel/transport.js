@@ -57,6 +57,11 @@ const { geometries } = modeling
  */
 
 /**
+ * A solid's polygon planes, index-aligned with its {@link PackedSolid}: JSCAD `[nx, ny, nz, w]`.
+ * @typedef {number[][]} PackedPlanes
+ */
+
+/**
  * @typedef {object} PackedGroup
  * @property {'group'} kind
  * @property {string} name
@@ -67,12 +72,16 @@ const { geometries } = modeling
  *   (TODO/core-026). Optional so a message packed before it existed still unpacks.
  * @property {Record<string, import('./group.js').PartMeta>} [meta] Part metadata
  *   (TODO/core-075): which parts are split keys, what to buy. Absent when there is none.
+ * @property {{ parts: Record<string, PackedPlanes>, holes: PackedPlanes[] }} [planes] Every
+ *   polygon's plane (`TODO/core-079`), only when packed with `{ planes: true }`.
  */
 
 /**
  * @typedef {object} PackedSolidGeometry
  * @property {'solid'} kind
  * @property {PackedSolid} polygons
+ * @property {PackedPlanes} [planes] Each polygon's plane (`TODO/core-079`), only when
+ *   packed with `{ planes: true }`.
  */
 
 /** @typedef {PackedGroup | PackedSolidGeometry} PackedGeometry */
@@ -106,27 +115,55 @@ function packSolid(solid) {
 }
 
 /**
+ * Each polygon's plane, index-aligned with {@link packSolid}'s polygons (`TODO/core-079`).
+ * `toPolygons` has already applied the transform stack in `packSolid`, so this reads the same
+ * polygon objects; a malformed solid has no planes to send, and unpacks as before.
+ *
+ * @param {Geom3} solid
+ * @returns {PackedPlanes}
+ */
+function packPlanes(solid) {
+  try {
+    return geometries.geom3.toPolygons(solid).map((polygon) => geometries.poly3.plane(polygon))
+  } catch {
+    return []
+  }
+}
+
+/**
  * @param {PackedSolid} polygons
+ * @param {PackedPlanes} [planes] Present (and the same length) when the packer sent planes.
  * @returns {Geom3}
  */
-function unpackSolid(polygons) {
+function unpackSolid(polygons, planes) {
+  const exact = planes !== undefined && planes.length === polygons.length
   return geometries.geom3.create(
-    /** @type {any} */ (polygons.map((vertices) => ({ vertices })))
+    /** @type {any} */ (polygons.map((vertices, index) => (exact ? { vertices, plane: planes[index] } : { vertices })))
   )
 }
 
 /**
  * A body's geometry as something `postMessage` can carry.
  *
+ * `planes` (`TODO/core-079`) also sends each polygon's plane, so the geometry unpacks
+ * **bit-identical** for a boolean: JSCAD's booleans read a polygon's cached plane, and a
+ * boolean result's polygons carry the plane of the face they were merged from — one recomputed
+ * from the corners on the far side differs in the 13th digit, enough to move a cut's vertices.
+ * The measure job asks for it, because the union it builds comes back to be cut with. Export
+ * does not: it never runs a boolean on what it receives.
+ *
  * @param {Geom3 | Group} geometry
+ * @param {{ planes?: boolean }} [options]
  * @returns {PackedGeometry}
  */
-export function packGeometry(geometry) {
+export function packGeometry(geometry, options = {}) {
+  const withPlanes = options.planes === true
   if (isGroup(geometry)) {
     /** @type {Record<string, PackedSolid>} */
     const parts = {}
     for (const [partName, part] of Object.entries(geometry.parts)) parts[partName] = packSolid(part)
-    return {
+    /** @type {PackedGroup} */
+    const packed = {
       kind: 'group',
       name: geometry.name,
       names: [...geometry.names],
@@ -137,8 +174,17 @@ export function packGeometry(geometry) {
       // Plain data (TODO/core-075): Print pieces needs it on the worker side.
       ...(geometry.meta === undefined ? {} : { meta: JSON.parse(JSON.stringify(geometry.meta)) }),
     }
+    if (withPlanes) {
+      /** @type {Record<string, PackedPlanes>} */
+      const partPlanes = {}
+      for (const [partName, part] of Object.entries(geometry.parts)) partPlanes[partName] = packPlanes(part)
+      packed.planes = { parts: partPlanes, holes: geometry.holes.map((hole) => packPlanes(hole)) }
+    }
+    return packed
   }
-  return { kind: 'solid', polygons: packSolid(/** @type {Geom3} */ (geometry)) }
+  const solid = /** @type {Geom3} */ (geometry)
+  const polygons = packSolid(solid)
+  return withPlanes ? { kind: 'solid', polygons, planes: packPlanes(solid) } : { kind: 'solid', polygons }
 }
 
 /**
@@ -153,18 +199,18 @@ export function unpackGeometry(packed) {
   if (packed.kind === 'group') {
     /** @type {Record<string, Geom3>} */
     const parts = {}
-    for (const [partName, part] of Object.entries(packed.parts)) parts[partName] = unpackSolid(part)
+    for (const [partName, part] of Object.entries(packed.parts)) parts[partName] = unpackSolid(part, packed.planes?.parts[partName])
     return {
       name: packed.name,
       names: [...packed.names],
       parts,
-      holes: packed.holes.map(unpackSolid),
+      holes: packed.holes.map((hole, index) => unpackSolid(hole, packed.planes?.holes[index])),
       // A packed group from before TODO/core-026 has no colours; it comes back uncoloured.
       colors: { ...(packed.colors ?? {}) },
       ...(packed.meta === undefined ? {} : { meta: { ...packed.meta } }),
     }
   }
-  return unpackSolid(packed.polygons)
+  return unpackSolid(packed.polygons, packed.planes)
 }
 
 /**

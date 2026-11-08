@@ -23,9 +23,10 @@ import { applyMergeUndo } from '../core/mergeUndo.js'
 import { appendRepeat as appendRepeatRecord, detachRepeat as detachRepeatRecords } from '../core/repeat.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
-import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf } from '../core/kernel/group.js'
+import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf, rememberCombined } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
-import { packGeometry } from '../core/kernel/transport.js'
+import { PREBUILT_BOOLEAN_OPS, rememberPrebuiltBoolean } from '../core/kernel/index.js'
+import { packGeometry, unpackGeometry } from '../core/kernel/transport.js'
 import { promptIndex as buildPromptIndex } from '../core/prompt.js'
 import { useAlignReferenceStore } from './alignReference.js'
 import { useColorPreviewStore } from './colorPreview.js'
@@ -126,11 +127,16 @@ function requestMeasurements(list, channel, onLanded) {
     .map((body) => body.geometry)
     .filter((geometry) => isGroup(geometry) && !cachedMeasurementOf(geometry))
   if (waiting.length === 0 || !evaluationWorkerAvailable()) return
-  channel.request({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry)) }).then(
+  channel.request({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry, { planes: true })) }).then(
     (outcome) => {
       if (outcome.superseded || outcome.result.kind !== 'measure') return
       outcome.result.measurements.forEach((measured, index) => {
         const geometry = waiting[index]
+        // TODO/core-079: the union the worker measured on, kept for a later cut with this body,
+        // so a whole multi-part model as a Subtract cutter is not unioned here again.
+        if (measured.combined !== undefined) {
+          rememberCombined(/** @type {import('../core/kernel/group.js').Group} */ (geometry), /** @type {any} */ (unpackGeometry(measured.combined)))
+        }
         rememberMeasurement(
           geometry,
           measured.error === undefined && measured.bounds && measured.volumeMm3 !== undefined
@@ -351,6 +357,82 @@ export const useDocumentStore = defineStore('document', () => {
   function append(record, transaction = {}) {
     appendAll([record], transaction)
     return record
+  }
+
+  /**
+   * The Union, Subtract or Intersect the evaluation worker is building, or `null`
+   * (`TODO/core-079`). The Operations toolbar shows it and holds its buttons meanwhile.
+   *
+   * @type {import('vue').Ref<{ id: string, op: string } | null>}
+   */
+  const pendingOperation = ref(/** @type {{ id: string, op: string } | null} */ (null))
+  /** Its own channel, so a measurement never supersedes a cut, nor a cut a measurement. */
+  const operationChannel = createEvaluationChannel('operation')
+
+  /**
+   * A boolean record's operand references, as `{ id, pieces }`, target first.
+   *
+   * @param {OpRecord} record
+   * @returns {{ id: string, pieces?: string }[]}
+   */
+  function operandRefsOf(record) {
+    return [...(record.target === undefined || record.target === null ? [] : [record.target]), ...(record.operands ?? [])].map((ref) =>
+      typeof ref === 'string' ? { id: ref } : /** @type {{ id: string, pieces?: string }} */ (ref)
+    )
+  }
+
+  /**
+   * Whether {@link appendOperation} sends this record to the evaluation worker
+   * (`TODO/core-079`): a Union, Subtract or Intersect with a multi-part operand — the union
+   * of its parts is most of the work — while a worker is running. Anything else, and every
+   * operation with no worker to be had, is appended on this thread at once, as before.
+   *
+   * @param {OpRecord} record
+   * @returns {boolean}
+   */
+  function operationOffThread(record) {
+    if (!PREBUILT_BOOLEAN_OPS.includes(record.op)) return false
+    if (record.params !== undefined && Object.keys(record.params).length > 0) return false
+    const values = operandRefsOf(record).map((ref) => raw.scene.byId.get(ref?.id))
+    if (values.length < 2 || values.some((value) => value === undefined)) return false
+    if (!values.some((value) => isGroup(value) && (value.names.length > 1 || value.holes.length > 0))) return false
+    return evaluationWorkerAvailable()
+  }
+
+  /**
+   * Append a Union, Subtract or Intersect, built in the evaluation worker when
+   * {@link operationOffThread} says so (`TODO/core-079`: a whole 29-part model as the cutter
+   * blocked this thread for 624 ms). This thread packs the operands and posts them; the worker
+   * runs the union and the boolean; the answer is handed to the fold and the record is appended
+   * through {@link append} — one step, the caller's origin, the same as a synchronous append.
+   * If the worker's answer cannot be used (superseded, refused, or the document changed under
+   * it so the operands are other values now), the append builds here exactly as it always did,
+   * and throws the document's own error for a record the kernel refuses.
+   *
+   * @param {OpRecord} record
+   * @param {{ origin?: string }} [transaction]
+   * @returns {Promise<OpRecord>} Resolves once appended; rejects with the append's error.
+   */
+  async function appendOperation(record, transaction = {}) {
+    if (!operationOffThread(record)) return append(record, transaction)
+    const refs = operandRefsOf(record)
+    const values = refs.map((ref) => /** @type {any} */ (raw.scene.byId.get(ref.id)))
+    const pieces = refs.map((ref) => ref.pieces)
+    pendingOperation.value = { id: String(record.id), op: record.op }
+    try {
+      const outcome = await operationChannel.request({
+        kind: 'boolean',
+        op: record.op,
+        operands: values.map((value) => packGeometry(value, { planes: true })),
+        pieces,
+      })
+      if (!outcome.superseded && outcome.result.kind === 'boolean' && outcome.result.geometry !== undefined) {
+        rememberPrebuiltBoolean(record.op, values, pieces, /** @type {any} */ (unpackGeometry(outcome.result.geometry)))
+      }
+      return append(record, transaction)
+    } finally {
+      pendingOperation.value = null
+    }
   }
 
   /**
@@ -1115,6 +1197,9 @@ export const useDocumentStore = defineStore('document', () => {
     load,
     append,
     appendAll,
+    appendOperation,
+    operationOffThread,
+    pendingOperation,
     batch,
     revise,
     setColorOverride,

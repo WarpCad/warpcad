@@ -451,6 +451,17 @@ function titleFor(operation) {
 const runError = ref(/** @type {string | null} */ (null))
 
 /**
+ * The label of the operation the evaluation worker is building (`TODO/core-079`), or `null`.
+ * While it is set, the pending line shows and Union/Subtract/Intersect/Group stay held, so a
+ * second click cannot start a second cut on operands the first is about to consume.
+ */
+const pendingLabel = computed(() => {
+  const pending = documentStore.pendingOperation
+  if (pending === null) return null
+  return OPERATIONS.find((operation) => operation.op === pending.op)?.label ?? pending.op
+})
+
+/**
  * Run one operation over the current selection.
  *
  * @param {string} op Registry key, e.g. `'boolean.union'`.
@@ -533,6 +544,19 @@ function run(op, label) {
   // "Group 1 › Cube 1".
   if (op === 'group.assemble' && planned?.op !== 'group.merge') {
     record.params = { names: operands.map((operand) => operand.name) }
+  }
+
+  // TODO/core-079: a boolean with a multi-part operand (a whole imported model as the cutter)
+  // is built in the evaluation worker; the store appends it when it lands, and the pending line
+  // below says so meanwhile. With no worker, `operationOffThread` is false and this is skipped.
+  if (planned?.op !== 'group.merge' && documentStore.operationOffThread(record)) {
+    documentStore.appendOperation(record, { origin: 'local' }).then(
+      () => selection.select(id),
+      (error) => {
+        runError.value = error instanceof Error ? error.message : String(error)
+      },
+    )
+    return
   }
 
   try {
@@ -1764,7 +1788,7 @@ onBeforeUnmount(() => {
         :key="operation.op"
         type="button"
         class="ops__btn"
-        :disabled="disabled"
+        :disabled="disabled || pendingLabel !== null"
         :data-testid="`operation-${operation.label.toLowerCase()}`"
         :data-op="operation.op"
         :aria-expanded="operation.op === 'group.assemble' ? openPopover === 'group-merge' : undefined"
@@ -1947,6 +1971,12 @@ onBeforeUnmount(() => {
          rather than in the console — the path Fillet/Chamfer established and
          Snap/Align reused (TODO/ui-040). -->
     <p v-if="runError" class="ops__error" data-testid="operation-error">{{ runError }}</p>
+
+    <!-- TODO/core-079: a cut with a whole multi-part model runs in the evaluation worker, so the
+         app keeps drawing; this line is the feedback that it is on its way. -->
+    <p v-if="pendingLabel" class="ops__pending" role="status" aria-live="polite" data-testid="operation-pending">
+      {{ pendingLabel }} in progress…
+    </p>
 
     <!-- Teleported to `<body>`, not left as a normal descendant of `.ops` —
          see this class's own CSS comment for why. `.ops` has a
@@ -2435,6 +2465,17 @@ onBeforeUnmount(() => {
  * "danger" custom property, and that pair's own comment records the decision
  * not to introduce one for a single message.
  */
+.ops__pending {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .ops__error {
   margin: 0;
   padding: 6px 8px;

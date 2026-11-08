@@ -651,11 +651,50 @@ function resolvePieces(group, pieces) {
  * @returns {Geom3}
  */
 export function combine(group, pieces, options = {}) {
+  const whole = pieces === undefined && !options.noholes
+  if (whole) {
+    const known = combinedSolids.get(group)
+    if (known !== undefined) return known
+  }
   const names = resolvePieces(group, pieces)
   const solids = names.map((name) => group.parts[name])
   const united = solids.length === 1 ? solids[0] : booleans.union(solids)
-  if (options.noholes || group.holes.length === 0) return united
-  return booleans.subtract(united, ...group.holes)
+  const result = options.noholes || group.holes.length === 0 ? united : booleans.subtract(united, ...group.holes)
+  if (whole) combinedSolids.set(group, result)
+  return result
+}
+
+/**
+ * Each group's default {@link combine} — every visible part, holes subtracted — by group object
+ * (`TODO/core-079`). A group is immutable and `combine` is a pure function of it, so the union is
+ * built at most once per group: a whole 29-part model cut from two plates, or cut after the
+ * evaluation worker already unioned it to measure its volume, is not unioned again on the main
+ * thread. A `WeakMap`, so a group nothing holds any more takes its union with it.
+ *
+ * @type {WeakMap<Group, Geom3>}
+ */
+const combinedSolids = new WeakMap()
+
+/**
+ * Record a group's default {@link combine} built somewhere else — the evaluation worker, which
+ * unions a composite to measure its volume and hands the union back (`TODO/core-079`). The
+ * solid must be exactly what `combine(group)` would build; `transport.js` carries the polygon
+ * planes so that it is, to the bit.
+ *
+ * @param {Group} group
+ * @param {Geom3} solid
+ * @returns {void}
+ */
+export function rememberCombined(group, solid) {
+  if (!combinedSolids.has(group)) combinedSolids.set(group, solid)
+}
+
+/**
+ * @param {Group} group
+ * @returns {Geom3 | undefined} The group's default {@link combine}, if it has been built.
+ */
+export function cachedCombinedOf(group) {
+  return combinedSolids.get(group)
 }
 
 /**

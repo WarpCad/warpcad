@@ -27,7 +27,8 @@
  * @module core/kernel/evaluationJob
  */
 
-import { evaluateOp, policyFor } from './index.js'
+import { cachedCombinedOf, createGroup, isGroup } from './group.js'
+import { evaluate, evaluateOp, policyFor, PREBUILT_BOOLEAN_OPS } from './index.js'
 import { measureGeometry } from './measure.js'
 import { previewSplitFace } from './split.js'
 import { packGeometry, unpackGeometry } from './transport.js'
@@ -48,6 +49,9 @@ import { packGeometry, unpackGeometry } from './transport.js'
  * @typedef {object} MeasureOutcome
  * @property {BoundsMm} [bounds]
  * @property {number} [volumeMm3]
+ * @property {PackedGeometry} [combined] The composite's union the volume was measured on
+ *   (`TODO/core-079`), planes included so it unpacks bit-identical; absent for a bare solid or
+ *   a one-part group, whose union is itself.
  * @property {string} [error]
  */
 
@@ -94,8 +98,27 @@ import { packGeometry, unpackGeometry } from './transport.js'
  * @property {string} [error] The kernel's reason when it could not.
  */
 
-/** @typedef {MeasureJob | BuildJob | SplitFaceJob} EvaluationJob */
-/** @typedef {MeasureResult | BuildResult | SplitFaceResult} EvaluationResult */
+/**
+ * A Union, Subtract or Intersect over operands that crossed the boundary (`TODO/core-079`): a
+ * whole multi-part model as the cutter took 624 ms on the main thread, most of it the union of
+ * its 29 parts. The worker runs **the fold itself** on a one-record document, so `pieces`
+ * addressing, the union and the boolean are the very code the main thread would run.
+ * @typedef {object} BooleanJob
+ * @property {'boolean'} kind
+ * @property {string} op One of `PREBUILT_BOOLEAN_OPS`.
+ * @property {PackedGeometry[]} operands Target first, packed with planes.
+ * @property {(string | undefined)[]} pieces Each operand's `pieces` address.
+ */
+
+/**
+ * @typedef {object} BooleanResult
+ * @property {'boolean'} kind
+ * @property {PackedGeometry} [geometry] The result, packed with planes, when it built.
+ * @property {string} [error] The kernel's reason when it did not.
+ */
+
+/** @typedef {MeasureJob | BuildJob | SplitFaceJob | BooleanJob} EvaluationJob */
+/** @typedef {MeasureResult | BuildResult | SplitFaceResult | BooleanResult} EvaluationResult */
 
 /**
  * Run one evaluation job.
@@ -110,7 +133,14 @@ export function runEvaluationJob(job) {
       kind: 'measure',
       measurements: job.bodies.map((packed) => {
         try {
-          return measureGeometry(unpackGeometry(packed))
+          const geometry = unpackGeometry(packed)
+          const measured = measureGeometry(geometry)
+          // TODO/core-079: the volume needed the composite's union, so hand it back — the main
+          // thread then cuts with it rather than union a 29-part model again. A group whose
+          // union is just its one part has nothing worth the trip.
+          if (!isGroup(geometry) || (geometry.names.length < 2 && geometry.holes.length === 0)) return measured
+          const combined = cachedCombinedOf(geometry)
+          return combined === undefined ? measured : { ...measured, combined: packGeometry(combined, { planes: true }) }
         } catch (error) {
           return { error: error instanceof Error ? error.message : String(error) }
         }
@@ -130,6 +160,23 @@ export function runEvaluationJob(job) {
       return { kind: 'splitFace', face: previewSplitFace(unpackGeometry(job.body), /** @type {any} */ (job.params)) }
     } catch (error) {
       return { kind: 'splitFace', error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+  if (job?.kind === 'boolean') {
+    try {
+      if (!PREBUILT_BOOLEAN_OPS.includes(job.op)) throw new Error(`"${job.op}" is not a boolean op`)
+      /** @type {Map<string, any>} */
+      const byId = new Map(job.operands.map((packed, index) => [`operand${index}`, unpackGeometry(packed)]))
+      const refs = job.operands.map((_, index) => {
+        const pieces = job.pieces?.[index]
+        return pieces === undefined ? `operand${index}` : { id: `operand${index}`, pieces }
+      })
+      const folded = evaluate([{ id: 'result', op: job.op, target: refs[0], operands: refs.slice(1) }], {
+        initial: { byId, group: createGroup('') },
+      })
+      return { kind: 'boolean', geometry: packGeometry(/** @type {any} */ (folded.byId.get('result')), { planes: true }) }
+    } catch (error) {
+      return { kind: 'boolean', error: error instanceof Error ? error.message : String(error) }
     }
   }
   throw new Error(`evaluation job: unknown kind "${/** @type {any} */ (job)?.kind}"`)
