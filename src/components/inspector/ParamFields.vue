@@ -117,7 +117,21 @@ const blockingOpLabel = computed(() => {
 
 /** The last rejected value's message — `ui-027`'s kernel-error surface, reused. */
 const paramError = ref(/** @type {string | null} */ (null))
-watch(() => props.body.id, () => { paramError.value = null })
+/** The field the refusal belongs to (`field.key`), or `''` for the panel-level fallback (TODO/ui-100). */
+const errorKey = ref('')
+watch(() => props.body.id, () => { paramError.value = null; errorKey.value = '' })
+
+/**
+ * Whether `key` is the field the current refusal is about.
+ *
+ * @param {string} key
+ */
+function invalidFor(key) {
+  return paramError.value !== null && errorKey.value === key
+}
+
+/** Whether the refusal has no known field and shows panel-level, under the list. */
+const orphanError = computed(() => paramError.value !== null && !props.body.params.some((field) => field.key === errorKey.value))
 
 /**
  * The composite this drilled-into part belongs to, when that composite has params a user
@@ -201,6 +215,7 @@ function seedValueOf(field, index) {
 /** @param {string} path */
 function onUnbind(path) {
   paramError.value = null
+  errorKey.value = path.split('.')[0]
   try {
     variableCommands.unbind(props.body.bind?.recordId ?? '', path)
   } catch (error) {
@@ -268,10 +283,12 @@ function fieldEditable(field) {
  *
  * @param {() => import('../../composables/useParamCommands.js').ParamResult | void} edit
  * @param {import('../../stores/repairDialog.js').PendingField | null} pending
+ * @param {string} [key] The edited field's `field.key`, so the refusal shows beside it.
  * @returns {boolean} Whether it was refused.
  */
-function runEdit(edit, pending) {
+function runEdit(edit, pending, key = '') {
   paramError.value = null
+  errorKey.value = key
   try {
     const result = edit()
     if (result && 'needsRepair' in result) {
@@ -295,7 +312,7 @@ function commitParamField(event, key) {
     if (!editable.value) return
     // Unlike a number, an empty string is refused loudly rather than ignored, and the
     // field is put back by hand since nothing the binding can see changed.
-    if (runEdit(() => setOne(key, raw), null)) {
+    if (runEdit(() => setOne(key, raw), null, key)) {
       /** @type {HTMLInputElement} */ (event.target).value = fieldValue(`param-${key}`, raw)
     }
     return
@@ -303,7 +320,7 @@ function commitParamField(event, key) {
   const parsed = parseNumeric(raw)
   editingField.value = ''
   if (parsed === null || !editable.value) return
-  runEdit(() => setOne(key, parsed), null)
+  runEdit(() => setOne(key, parsed), null, key)
 }
 
 /**
@@ -322,6 +339,7 @@ function commitParamComponent(event, key, index) {
         ? paramCommands.setParamComponent(props.body.id, key, index, parsed)
         : paramCommands.setPartParamComponent(props.body.id, part, key, index, parsed),
     null,
+    key,
   )
 }
 
@@ -359,7 +377,7 @@ function onEnumChange(event, field) {
     bodyId: props.body.id,
     key: field.key,
     value: option.value,
-  })
+  }, field.key)
   // A refusal changed nothing the binding can see, so put the DOM back by hand.
   if (refused) select.value = selectedValue(field)
 }
@@ -395,11 +413,12 @@ function onEnumChange(event, field) {
                 <span class="params__component-label">{{ component.label }}</span>
                 <input
                   class="params__input"
-                  :class="{ 'params__input--editable': fieldEditable(field) }"
+                  :class="{ 'params__input--editable': fieldEditable(field), 'params__input--invalid': invalidFor(field.key) }"
                   type="text"
                   inputmode="decimal"
                   :readonly="!fieldEditable(field)"
                   :data-testid="`inspector-param-${field.key}-${component.label.toLowerCase()}`"
+                  :aria-invalid="invalidFor(field.key) ? 'true' : undefined"
                   :aria-label="`${field.label} ${component.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
                   :value="fieldValue(`param-${field.key}-${index}`, displayValue(component.value, field.unit))"
                   @focus="onFieldFocus($event, `param-${field.key}-${index}`)"
@@ -452,9 +471,10 @@ function onEnumChange(event, field) {
               v-else
               :id="`param-select-${field.key}`"
               class="params__select"
-              :class="{ 'params__select--pending': pendingFor(field) }"
+              :class="{ 'params__select--pending': pendingFor(field), 'params__select--invalid': invalidFor(field.key) }"
               :disabled="!fieldEditable(field)"
               :data-testid="`inspector-param-${field.key}`"
+              :aria-invalid="invalidFor(field.key) ? 'true' : undefined"
               :data-pending="pendingFor(field) ? 'true' : 'false'"
               :value="selectedValue(field)"
               @change="onEnumChange($event, field)"
@@ -497,11 +517,12 @@ function onEnumChange(event, field) {
             <template v-else>
               <input
                 class="params__input"
-                :class="{ 'params__input--editable': fieldEditable(field) }"
+                :class="{ 'params__input--editable': fieldEditable(field), 'params__input--invalid': invalidFor(field.key) }"
                 type="text"
                 :inputmode="field.kind === 'text' ? 'text' : 'decimal'"
                 :readonly="!fieldEditable(field)"
                 :data-testid="`inspector-param-${field.key}`"
+                :aria-invalid="invalidFor(field.key) ? 'true' : undefined"
                 :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
                 :value="fieldValue(`param-${field.key}`, displayValue(field.value, field.unit))"
                 @focus="onFieldFocus($event, `param-${field.key}`)"
@@ -528,10 +549,11 @@ function onEnumChange(event, field) {
             />
           </dd>
         </template>
+        <dd v-if="invalidFor(field.key)" class="params__error params__error--field" role="alert" data-testid="inspector-param-error">{{ paramError }}</dd>
       </template>
     </dl>
 
-    <p v-if="paramError" class="params__error" data-testid="inspector-param-error">{{ paramError }}</p>
+    <p v-if="orphanError" class="params__error" role="alert" data-testid="inspector-param-error">{{ paramError }}</p>
 
     <!-- Drilled into one part of a composite: its parent's choices, read-only, and the way
          back up to where they can be changed (TODO/ui-052). -->
@@ -689,6 +711,12 @@ function onEnumChange(event, field) {
   color: var(--text-1);
 }
 
+.params__input--invalid,
+.params__select--invalid {
+  border-color: var(--danger);
+  outline: 1px solid var(--danger);
+}
+
 .params__input--editable:focus-visible,
 .params__select:focus-visible,
 .params__link:focus-visible {
@@ -755,6 +783,11 @@ function onEnumChange(event, field) {
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.params__error--field {
+  margin: 0 0 2px;
+  border-color: var(--danger);
 }
 
 .params__error {

@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-07 from the core-080 acceptance drive)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** the refusal now renders directly under the edited field, in a `role="alert"` element with `data-testid="inspector-param-error"`, and the field gets `aria-invalid` and a danger border. The panel-level message stays as the fallback when no field matches. The Delete bar was not restacked; the placement alone clears it at 390 and 1440 wide.
 
 ## Problem
 

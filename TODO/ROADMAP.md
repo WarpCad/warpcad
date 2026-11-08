@@ -62,7 +62,6 @@ this repository still need a green full run before they are pushed.
 | 17a | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB of kernel out of the main bundle) | Low; follows `perf-003` | opus |
 | 21 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
 | 22 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
-| 22a | `FIND` | [`ui-100`](FIND-ui-100-inspector-refusal-message-hidden-under-delete.md) A refused Inspector edit's message is hidden under the sticky Delete bar | Medium; filed from the core-080 drive | sonnet |
 | 22b | `FIND` | [`ui-101`](FIND-ui-101-webkit-phone-enum-select-below-tap-size.md) The Inspector's enum select is below tap size in WebKit at phone width | Medium; filed from the core-080 drive | sonnet |
 | 22c | `FIND` | [`testing-013`](FIND-testing-013-getting-started-tour-times-out-under-full-load.md) The getting-started docs tour times out under the full e2e matrix | Medium; passes alone | sonnet |
 | 22d | `FIND` | [`ui-102`](FIND-ui-102-history-edit-form-rounded-cube-fields.md) The History edit form shows a rounded Cube's fields inconsistently | Low; filed from the core-080 drive | sonnet |
@@ -315,7 +314,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-013` | The getting-started docs tour times out at 30 s in the full e2e matrix, and passes alone | Finding | — | none |
 | `testing-015` | Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | Finding | `testing-005` | none |
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
-| `ui-100` | A refused Inspector edit's error message is drawn under the sticky Delete bar, so it is hidden until the user scrolls. Filed 2026-11-07 from the core-080 acceptance drive | Finding | — | 33, 12 |
 | `ui-101` | The Inspector's enum select is 23 px tall in WebKit at phone width, below tap size (shared enum styling). Filed 2026-11-07 from the core-080 drive | Finding | — | 2 |
 | `ui-102` | The History edit form shows a rounded Cube's Round axis only when the record carries it, and labels it differently from the Inspector. Filed 2026-11-07 from the core-080 drive | Finding | — | 12 |
 | `ui-103` | The History panel's Apply button's text is the same colour as its background on hover. Filed 2026-11-07 from the core-080 drive | Finding | — | none |
@@ -454,7 +452,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (ready, unparked 2026-11-07); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 32 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, `ui-100`, `ui-101`, `ui-102`, `ui-103`, `ui-104`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
+| [Findings](#findings-open-rows) | 31 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, `ui-101`, `ui-102`, `ui-103`, `ui-104`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

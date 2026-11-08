@@ -51,6 +51,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-100 — Refusal message under the edited field (2026-11-08 23:58 UTC)
+
+A refused edit's message now sits under the edited field, not under the Delete bar. Checked in headless Chromium at 390x844 (the message is directly under the Corner radius field, outlined, and the Delete button is clear) and 1440x900. Real-device look at phone width is still to do.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone, refuse a Cube's Corner radius (for example 12 on a 40x20 box) and confirm the message reads clearly above Delete with no overlap | Open | |
+
 ### core-079 — Whole-model Subtract off the main thread (2026-11-08 23:03 UTC)
 
 The 3MF whole-model cut is now a worker job with a pending line. The pending line sits where the error line is, and the cut's commit is still one main-thread task of about 11.5 ms. Not covered by a standing acceptance check: the phone-width layout of the pending line, and whether a dense real model's commit crosses 16 ms.

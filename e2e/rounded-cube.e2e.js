@@ -325,6 +325,29 @@ test('Rounded axis moves the rounding to the edges along it, and a radius too bi
   await expect(page.getByTestId('inspector-param-error')).toContainText(
     'roundRadius must be smaller than half the shortest side (10 mm), got 12',
   )
+  // TODO/ui-100: the reason sits next to the edited field, in view, not under the Delete bar.
+  const radiusField = page.getByTestId('inspector-param-roundRadius')
+  await expect(radiusField).toHaveAttribute('aria-invalid', 'true')
+  const errorBox = page.getByTestId('inspector-param-error')
+  const fieldRect = await radiusField.boundingBox()
+  const errorRect = await errorBox.boundingBox()
+  expect(fieldRect).not.toBeNull()
+  expect(errorRect).not.toBeNull()
+  if (fieldRect && errorRect) {
+    expect(errorRect.y).toBeGreaterThanOrEqual(fieldRect.y)
+    expect(errorRect.y - (fieldRect.y + fieldRect.height)).toBeLessThan(40)
+  }
+  const viewportSize = page.viewportSize()
+  if (errorRect && viewportSize) {
+    expect(errorRect.y).toBeGreaterThanOrEqual(0)
+    expect(errorRect.y + errorRect.height).toBeLessThanOrEqual(viewportSize.height)
+  }
+  const coveredByDelete = await errorBox.evaluate((node) => {
+    const rect = node.getBoundingClientRect()
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    return !!hit && !!hit.closest('[data-testid="inspector-delete"]')
+  })
+  expect(coveredByDelete).toBe(false)
   const [refused] = await sceneBodies(page)
   expect(refused.volumeMm3).toBeCloseTo(aboutX.volumeMm3, 3)
   expect(refused.bounds).toEqual(aboutX.bounds)
