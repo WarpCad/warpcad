@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.14.0](https://github.com/WarpCad/warpcad/compare/v1.13.0...v1.14.0) (2026-11-08)
+
+### Features
+
+* **inspector:** corner radius and rounded axis for a Cube in a group ([9295c8e](https://github.com/WarpCad/warpcad/commit/9295c8eb9fb3e87441f9624bba23b2400dec1eaa))
+
 ## [1.13.0](https://github.com/WarpCad/warpcad/compare/v1.12.0...v1.13.0) (2026-11-08)
 
 ### Features
