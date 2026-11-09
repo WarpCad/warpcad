@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** ran only the one still on the `docs-laptop` and `docs-laptop-dark` projects (the spec is laptop-only; the other four skip) with `--update-snapshots=all`, because the default `changed` mode kept the old PNGs: the 1% `maxDiffPixelRatio` hid the stale header. The new stills show the `ui-090` header (`1 hidden · Show all` above `1 object`), the Share button and the pinned `v0.0.0 · 0000000` label. The magenta bar is the `save-status` mask: a probe read the chip's box as x 1073.5, y 18.5, 222.5 × 15 px, which matches the bar. No docs spec change. `e2e/docs-media.spec.js` passes; no GIF was touched.
 
 ## Problem
 
