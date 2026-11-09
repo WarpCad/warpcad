@@ -201,6 +201,8 @@ test('changing the Screen model in the Inspector rebuilds the placed screen in p
   const model = page.getByTestId('inspector-param-model')
   await expect(model).toHaveJSProperty('tagName', 'SELECT')
   await expect(model).toHaveValue('touchScreen2')
+  // Tap size on every engine (TODO/ui-101): WebKit rendered a native select 23px tall.
+  expect((await model.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44)
   await expect(model.locator('option')).toHaveText(SCREENS.map((screen) => new RegExp(screen.label)))
   await model.selectOption('miniPiTFT')
 

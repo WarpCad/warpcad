@@ -881,6 +881,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 ---
 
 | ✅ `ui-100` | A refused Inspector edit's error now sits under the edited field, with its field error state, so it is in view at every width. Was hidden under the sticky Delete bar | Finding | — | 33, 12 |
+| ✅ `ui-101` | The Inspector's enum selects render 44 px tall in WebKit at phone width. WebKit ignored `min-height` on a native select (measured 23 px); `.params__select` now sets an explicit `height: 44px` with `box-sizing: border-box`, shared by every enum field. Was below tap size | Finding | — | 2 |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1253,5 +1254,6 @@ convention going forward.
 | `core-079` | 2026-11-08 23:03 | 60m wall clock from Step 3 (22:03 UTC start). Opus agent wrote the union cache and the worker boolean (one agent session, resumed for the follow-up and the e2e step); Haiku ran typecheck (clean), unit (8,685 passed) and the e2e pair webkit-phone + firefox-tablet (1,032 passed, 262 skipped). Acceptance 31, 5, 3 PASS by hand; core-053 and io-006 repros PASS.
 | `testing-034` | 2026-11-08 23:13 | 4m wall clock from Step 3 (start 23:08 UTC; no preflight run, the stamp was stale). Sonnet agent rewrote scenario 12 step 12 and re-drove scenario 12 (steps 1–12 PASS, laptop Chromium). Text-only change: no code, no unit or e2e run. |
 | `ui-100` | 2026-11-08 23:58 | 28m wall clock from Step 3 (start 23:30 UTC). Sonnet agent did RED/GREEN; the rounded-cube spec now asserts the field error state, placement and hit-test. Typecheck, unit (8685) and the pair e2e run 5 (webkit-tablet + firefox-laptop) green. Scenario 33 refusal path driven by hand at 390×844 and 1440×900 Chromium; full scenario 33 not re-driven. |
+| `ui-101` | 2026-11-09 01:03 | 5m wall clock from Step 1 (haiku session, Sonnet agent did RED/GREEN). Shared `.params__select` gets `height: 44px`; WebKit phone roundAxis measured 23 → 44 px. Typecheck and unit (8685) green; changed-scope e2e on webkit-phone + chromium-phone 22/24, 2 skipped (the Pi Model check is Chromium-only by the spec's file-level skip, so it has no WebKit run). Scenario 2 steps 1–4 driven by hand at 390×844 WebKit (drop, select, Type/Size/Fit/Length; 44 px enum heights; one body, console clean). Gizmo steps 5–8 not re-driven. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-07 from the core-080 acceptance drive)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** the cause was WebKit ignoring `min-height` on a natively drawn `<select>`. The shared `.params__select` rule in `ParamFields.vue` now also sets `box-sizing: border-box` and `height: 44px`, so every enum field gets it. The WebKit phone check is on the rounded-cube roundAxis select; the Pi Model check was added to `e2e/raspberrypi-screen-library.e2e.js`, which skips non-Chromium engines, so it has no WebKit run.
 
 ## Problem
 

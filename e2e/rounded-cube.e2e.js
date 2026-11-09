@@ -256,6 +256,8 @@ async function snapshot(page, testInfo, label) {
   const select = await page.getByTestId('inspector-param-roundAxis').boundingBox()
   expect(params).not.toBeNull()
   expect(select).not.toBeNull()
+  // A native select keeps tap size on every engine (TODO/ui-101): WebKit gave it 23px.
+  expect(select?.height ?? 0).toBeGreaterThanOrEqual(44)
   if (params && select) expect(select.x + select.width).toBeLessThanOrEqual(params.x + params.width + 1)
 }
 

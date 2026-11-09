@@ -725,10 +725,13 @@ function onEnumChange(event, field) {
 }
 
 /* A native select: the iOS wheel picker on touch, 44px so it is a real tap target, and
-   16px text so iOS Safari does not zoom the page on focus. */
+   16px text so iOS Safari does not zoom the page on focus. WebKit ignores `min-height` on
+   a natively drawn select (it measured 23px), so the height is explicit (TODO/ui-101). */
 .params__select {
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+  height: 44px;
   min-height: 44px;
   padding: 4px 8px;
   border: 1px solid var(--border-strong, var(--border));
