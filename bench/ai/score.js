@@ -233,12 +233,12 @@ export function runChecks(checks, facts) {
 
 /**
  * Dollars per million tokens, from `docs/decisions/ai-partner.md` decision 9 (the `claude-api`
- * skill's model table, cached 2026-09-25). Dated data, not a promise: check it before quoting a
+ * skill's model table, cached 2026-09-25; re-checked 2026-11-09 against platform.claude.com/docs/en/about-claude/pricing, which put Sonnet 5.5 cache hits at $0.10). Dated data, not a promise: check it before quoting a
  * cost, and an id missing here costs `null`, never a guess. Cache writes are 1.25× input.
  */
 export const PRICES = Object.freeze({
   'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2 },
+  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.1 },
 })
 
 /**

@@ -327,7 +327,7 @@ The owner declined the real Claude Code before/after drive, so nothing yet shows
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | In a real Claude Code on a fresh project file, ask *a 40 mm cube with a 10 mm hole straight through it*: it places the cube on the grid, subtracts, measures, and does not ask about units. Ask the ambiguous airfoil request: zero writes. | Moved | Moved 2026-11-07 to `FIND-testing-022`: an AI drive can settle it. |
-| 2 | The cap is still 2,048 in the current Claude Code (`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` was reported but not re-checked online). | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 2 | The cap is still 2,048 in the current Claude Code (`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` was reported but not re-checked online). | OK | 2026-11-09: No. code.claude.com/docs/en/mcp (For MCP server authors) gives 4,096 characters for server instructions and upfront tool descriptions and 16,384 for tool-search descriptions; 'before v2.1.296 the shorter limit was 2,048'. `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` (v2.1.280+) overrides both (code.claude.com/docs/en/env-vars). Our 1,900-character prompt is under either cap; `mcp/prompt.spec.js` keeps 2,048 as a conservative bound for older Claude Code. |
 
 ### ai-031 — Agents store the prompt in the project (2026-10-28 17:38)
 
@@ -569,7 +569,7 @@ The owner names in `LICENSING.md` "Trademarks and names" came from the TODO text
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Check each owner's current legal name and mark on its own trademark page (Raspberry Pi Ltd, Apple Inc., Samsung Electronics, Google LLC, Adafruit Industries, Pimoroni Ltd, Anthropic PBC, GitHub Inc., Functional Software Inc. d/b/a Sentry) and fix any sentence that differs | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 1 | Check each owner's current legal name and mark on its own trademark page (Raspberry Pi Ltd, Apple Inc., Samsung Electronics, Google LLC, Adafruit Industries, Pimoroni Ltd, Anthropic PBC, GitHub Inc., Functional Software Inc. d/b/a Sentry) and fix any sentence that differs | OK | 2026-11-09: Raspberry Pi Ltd (raspberrypi.com/trademark-rules), Apple Inc. (apple.com/legal/intellectual-property/trademark/appletmlist.html), Google LLC (about.google/brand-resource-center/trademark-list), GitHub, Inc. (brand.github.com/foundations/logo), Anthropic, PBC (anthropic.com/legal/trademark-guidelines), Functional Software, Inc. d/b/a Sentry (sentry.io/legal/terms), Pimoroni Ltd (shop.pimoroni.com/en-ca/pages/about-us) and Samsung Electronics Co., Ltd. (samsung.com/us legal notices) all match; no sentence changed. Adafruit's own page names no owner; USPTO records (trademarks.justia.com) list the marks under Limor Fried DBA Adafruit Industries, so 'Adafruit Industries' stands. |
 
 ### build-011 — Third-party notices (2026-10-17 14:25)
 
@@ -861,7 +861,7 @@ Everything automated ran against a **fake** `document.modelContext`; the real AP
 | 1 | Chrome 146+ with `chrome://flags/#enable-webmcp-testing` Enabled: open the Model Context Tool Inspector extension on WarpCad and confirm 19 tools list and `capture_view` is absent. | Issue | 2026-10-17, Chrome with flag, live (old) build: `getTools()` listed 20 tools, so registration works; the inspector extension was not used. Count is now 20 and `capture_view` absence not re-checked. |
 | 2 | Ask the agent *add a 40 mm cube and put a 20 mm sphere on top of it*: both appear, History shows one row with a `webmcp` chip, **Undo AI turn** removes both. | OK | 2026-10-17: with `navigator.modelContext` aliased, Claude in Chrome added a 10-cube row and Undo AI turn removed it (scenario 27). Without the alias it never found the tools; the app now sets the alias (`ai-024`). The 40 mm cube + sphere request itself was not run. |
 | 3 | Two WarpCad tabs open: confirm the agent reaches the tab you are looking at (Decision 13's visible-tab hypothesis; neither the spec nor Chrome's pages say what happens). | Open | |
-| 4 | Whether a deployed (https) app needs an origin-trial token before the API exists for ordinary visitors, and the trial's end date. `docs/webmcp.md` deliberately leaves this out until confirmed from Chrome's own page. | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 4 | Whether a deployed (https) app needs an origin-trial token before the API exists for ordinary visitors, and the trial's end date. `docs/webmcp.md` deliberately leaves this out until confirmed from Chrome's own page. | Open | 2026-11-09: developer.chrome.com/blog/ai-webmcp-origin-trial and developer.chrome.com/docs/ai/webmcp say only 'Join the WebMCP origin trial from Chrome 149' and that the flag works for local development; neither states a token requirement for deployed sites or an end date (the origin-trials dashboard page would not render). `docs/webmcp.md` left silent. Unconfirmed secondary hints: Blink intent lists the trial Chrome 149-156; Edge's trial page shows 2026-11-17. |
 | 5 | Tool results against Chrome's 1.5K-character advice on a large project: `measure` and `check_printability` over many bodies come back whole with an `oversize` note, unmeasured. | Open | 2026-11-07: The registry half (the tools called directly on a 50-body project) moved to `FIND-testing-019`; the real-Chrome WebMCP half stays here. |
 
 ### ai-012 — Live bridge, dev host (2026-10-14)
@@ -1009,7 +1009,7 @@ The scorer and runner are proved with the scripted provider (a good transcript s
 |---|---|---|---|
 | 1 | Run `ANTHROPIC_API_KEY=… npm run eval:ai` once (about $1-3 at the default model; `--max-cost` caps it), look at `bench/results/ai/*.md`, and commit it as the **baseline** every later change is compared against | Open | |
 | 2 | Calibrate the case thresholds against that first run: the hole volume range (60500-63800), bracket fill (at most 0.85), wing length (100-1500 mm). Are any too tight or too loose to mean anything? | Open | |
-| 3 | Check the price table (`bench/ai/score.js`, dated 2026-09-25) against the current model prices before quoting a cost | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 3 | Check the price table (`bench/ai/score.js`, dated 2026-09-25) against the current model prices before quoting a cost | OK | 2026-11-09: platform.claude.com/docs/en/about-claude/pricing: Opus 5.5 $4 in / $20 out / $0.20 cache hit; Sonnet 5.5 $2 in / $10 out / $0.10 cache hit. Sonnet 5.5 cacheRead was 0.2 and is fixed to 0.1 in `bench/ai/score.js` (and `score.spec.js`). |
 | 4 | Product call: the browser-driven runner for scenario 18 (an image needs a canvas, `capture_view` a GPU) is not built. Worth building, or is the live scenario enough? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 5 | Product call: `askedOrAssumed` is a crude text check (a question mark, or the word "assume"). Is it good enough for the ambiguous and under-specified cases, or does it need a stricter test? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
@@ -1160,7 +1160,7 @@ Metric nut rows have no V1 source (ISO 4032 from memory of the standard, not a f
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Spot-check the ISO 4032 nut rows in `nut-specs.js` (m1.6-m20: across flats, corners, height) against a published table | Moved | Moved 2026-11-07 to `FIND-docs-031`: an AI drive can settle it. |
+| 1 | Spot-check the ISO 4032 nut rows in `nut-specs.js` (m1.6-m20: across flats, corners, height) against a published table | OK | 2026-11-09: m1.6-m20 s, e min, m max match two published tables (royasutton.github.io omdl ISO 4032 database; torqbolt.com ISO 4032 table). Only M14 e differs: omdl 23.35, torqbolt 23.36; kept 23.36. No change. |
 | 2 | Is the flat 45-entry Spec list usable on a phone, or does it want `<optgroup>`s? | Moved | Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### sketch-004 — Auto-trace a photographed part to scale (2026-10-06 01:56)

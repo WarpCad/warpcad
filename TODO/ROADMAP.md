@@ -73,7 +73,6 @@ this repository still need a green full run before they are pushed.
 | 22m | `FIND` | ▶ [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
 | 22n | `FIND` | ▶ [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
 | 22o | `FIND` | ▶ [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
-| 22p | `FIND` | ▶ [`docs-031`](FIND-docs-031-verify-external-facts-docs-cite.md) Check the outside facts (trademarks, ISO 4032, prices, WebMCP trial, MCP cap) VERIFY.md rows cite (5 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
 | 22q | `FIND` | ▶ [`docs-032`](FIND-docs-032-link-agent-prompting-guide-from-home-page.md) Link the agent prompting guide from the warpcad.com home page (`docs-029` #3) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
 | 22r | `FIND` | ▶ [`docs-033`](FIND-docs-033-regenerate-objects-hide-split-piece-still.md) Regenerate the `objects-hide-split-piece` still without rewriting every GIF (2 rows) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
 | 22s | `FIND` | ▶ [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed Pages build (`perf-002` #1) | From the 2026-11-07 VERIFY.md pass: rows an AI drive can settle | sonnet |
@@ -319,7 +318,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-023` | Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 11, 26 |
 | `testing-024` | Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `testing-025` | Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 24, 25 (scripted only) |
-| `docs-031` | Check the outside facts (trademarks, ISO 4032, prices, WebMCP trial, MCP cap) VERIFY.md rows cite (5 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `docs-032` | Link the agent prompting guide from the warpcad.com home page (`docs-029` #3). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `docs-033` | Regenerate the `objects-hide-split-piece` still without rewriting every GIF (2 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
@@ -444,7 +442,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (ready, unparked 2026-11-07); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 27 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
+| [Findings](#findings-open-rows) | 26 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

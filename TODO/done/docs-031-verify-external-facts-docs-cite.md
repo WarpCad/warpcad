@@ -6,8 +6,14 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped as written, with one fact fixed.** Four of the five rows checked out and are now `OK` with
+> citations in `TODO/VERIFY.md`. The one wrong fact was the Sonnet 5.5 cache-hit price in
+> `bench/ai/score.js` ($0.20 to $0.10), with its spec updated. The WebMCP origin-trial row (ai-021 #4)
+> stays `Open` on purpose: Chrome's own pages state neither a token rule for deployed sites nor an end
+> date, so `docs/webmcp.md` stays silent.
 
 ## Problem
 

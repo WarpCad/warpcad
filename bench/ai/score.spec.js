@@ -94,7 +94,7 @@ describe('cost and aggregation', () => {
   it('prices a run from the dated table, cache writes at 1.25× input', () => {
     expect(costUsd({ input: 1_000_000, cacheRead: 0, cacheWrite: 0, output: 0 }, 'claude-opus-5-5')).toBeCloseTo(PRICES['claude-opus-5-5'].input, 6)
     expect(costUsd({ input: 0, cacheRead: 0, cacheWrite: 1_000_000, output: 0 }, 'claude-opus-5-5')).toBeCloseTo(5, 6)
-    expect(costUsd({ input: 100_000, cacheRead: 1_000_000, cacheWrite: 0, output: 50_000 }, 'claude-sonnet-5-5')).toBeCloseTo(0.2 + 0.2 + 0.5, 6)
+    expect(costUsd({ input: 100_000, cacheRead: 1_000_000, cacheWrite: 0, output: 50_000 }, 'claude-sonnet-5-5')).toBeCloseTo(0.2 + 0.1 + 0.5, 6)
   })
 
   it('has no price for a model it does not know, and says null rather than guessing', () => {
