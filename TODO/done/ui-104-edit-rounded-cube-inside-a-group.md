@@ -6,7 +6,7 @@ priority: medium
 model: opus
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-07 from the owner's report on huzzah-feather-esp8266.ndjson)
 depends: []
-status: open
+status: done
 ---
 
 ## Problem
