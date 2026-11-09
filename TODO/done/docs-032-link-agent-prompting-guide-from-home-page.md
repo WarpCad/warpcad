@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** the home page list is generated, so no line was hand-added. `agent-prompting` was already in the live index and showed under "More"; it is now in the "The AI partner" group in `docs-groups.json`, and `e2e/fixtures/index.json` gained the page so the offline build still passes. Commit 7219a05 in `warpcad.github.io`.
 
 ## Problem
 

@@ -185,7 +185,7 @@ Not covered by an acceptance scenario, and not runnable unattended: it needs a m
 |---|---|---|---|
 | 1 | After deploy, give a model with web search only `https://app.warpcad.com/help/agent-prompting.html` (and separately `https://app.warpcad.com/llms.txt`) and ask it to write the box-and-lid prompt. Record whether it found the page and used the exact tool names (`define_variable`, `apply_records`, `bind_param`, `set_variable`, `describe_scene`, `measure`, `check_printability`). | Moved | Moved 2026-11-07 to `FIND-testing-032`: a model with web access can settle it. Could not be run here: no web-search model, and the page is not deployed. |
 | 2 | After deploy, `curl -I` `https://app.warpcad.com/llms.txt`, `/llms-full.txt` and `/help/agent-prompting.html` return 200 with a readable content type. | Moved | Moved 2026-11-07 to `FIND-testing-024`: an AI drive can settle it. The build copies the first two from `public/` and writes the third; checked against a local build only. |
-| 3 | Add the guide to the docs list on the home page (`warpcad.github.io`, one line), noted in this task's closing commit. | Moved | Moved 2026-11-07 to `FIND-docs-032`: an AI drive can settle it. Different repository; not touched here. |
+| 3 | Add the guide to the docs list on the home page (`warpcad.github.io`, one line), noted in this task's closing commit. | OK | Moved 2026-11-07 to `FIND-docs-032`, done 2026-11-09: grouped under The AI partner in `warpcad.github.io` (7219a05); the home page build renders the link. |
 
 ### ui-093 — Mark a part hidden or shown by default (2026-11-03 14:20 UTC)
 
