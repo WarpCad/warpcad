@@ -101,8 +101,12 @@ async function drill(page, plateId, hole) {
   await expect(page.getByTestId('operation-operand-rest')).toContainText(hole)
   await page.getByTestId('operation-subtract').click()
   const cut = page.locator('[data-testid="scene-bodies"] li[data-body-op="boolean.subtract"]')
+  // The cut is applied off-thread: until it lands, the previous drill's cut (or plate-1) is still
+  // the visible body, so wait for the pending state to clear and for a NEW cut id to appear.
+  await expect(page.getByTestId('operation-pending')).toHaveCount(0, { timeout: 20_000 })
   await expect(cut).toHaveCount(1, { timeout: 20_000 })
-  const id = /** @type {string} */ (await cut.getAttribute('data-body-id'))
+  await expect(cut).not.toHaveAttribute('data-body-id', plateId, { timeout: 20_000 })
+  const id =/** @type {string} */ (await cut.getAttribute('data-body-id'))
   await volumeOf(page, id)
   return id
 }
