@@ -6,8 +6,15 @@ priority: low
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-07 from the core-080 acceptance drive)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** the fix was a specificity collision, not a missing token. The generic
+> `.actions__btn:hover:not(:disabled)` rule set `color: var(--accent)`, and that outranked the
+> primary button's own `--accent-contrast` text colour, so the hovered text matched the `--accent`
+> background. A new `.actions__btn--primary:hover:not(:disabled)` rule in
+> `src/components/timeline/TimelineRow.vue` keeps `--accent-contrast` while hovered. No palette
+> token changed. The new spec is `e2e/history-apply-hover.e2e.js`.
 
 ## Problem
 

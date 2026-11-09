@@ -592,6 +592,12 @@ function cancel() {
   color: var(--accent-contrast);
 }
 
+/* The generic hover rule above paints text with --accent, which is this button's own
+   background; keep the contrast token while hovered (TODO/ui-103). */
+.actions__btn--primary:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+
 .edit {
   display: flex;
   flex-direction: column;
