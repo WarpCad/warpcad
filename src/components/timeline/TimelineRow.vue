@@ -355,7 +355,7 @@ function cancel() {
         <select
           v-else-if="field.kind === 'choice'"
           v-model="draft[field.key]"
-          class="edit__input"
+          class="edit__input edit__input--select"
           :data-testid="`timeline-field-${field.key}`"
         >
           <option v-for="choice in field.choices" :key="choice.value" :value="choice.value">
@@ -619,7 +619,8 @@ function cancel() {
 .edit__input {
   flex: 1;
   min-width: 0;
-  min-height: 34px;
+  /* Tap size on every field (TODO/ui-102 measured the axis select at 34px and 23px on WebKit). */
+  min-height: 44px;
   padding: 4px 6px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -635,6 +636,13 @@ function cancel() {
 .edit__input--axis {
   width: 64px;
   flex: 0 0 auto;
+}
+
+/* WebKit ignores min-height on a natively drawn select and measures it at 23px, so the
+   height is explicit (the same fix as the Inspector's .params__select, TODO/ui-101). */
+.edit__input--select {
+  box-sizing: border-box;
+  height: 44px;
 }
 
 .edit__buttons {

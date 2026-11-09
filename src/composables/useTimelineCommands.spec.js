@@ -227,6 +227,41 @@ describe('useTimelineCommands (TODO/ui-032)', () => {
     expect(face?.choices?.find((choice) => choice.value === 'z+')?.label).toBe('Top (+Z)')
   })
 
+  describe('a rounded Cube shows the Inspector\'s fields (TODO/ui-102)', () => {
+    /** @param {Record<string, unknown>} extra */
+    function seedCube(extra) {
+      useDocumentStore().append(
+        { id: 'cube-r', op: 'primitive.cuboid', name: 'Cube 1', params: { size: [40, 40, 40], ...extra } },
+        { origin: 'local' }
+      )
+      return useTimelineCommands().fieldsFor('cube-r')
+    }
+
+    /** @type {Array<[string, Record<string, any>]>} */
+    const cases = [
+      ['omits roundAxis', {}],
+      ['carries roundAxis x', { roundAxis: 'x', roundRadius: 3 }],
+    ]
+    it.each(cases)('a record that %s lists Corner radius and Rounded axis', (_name, extra) => {
+      const fields = seedCube(extra)
+      const axis = fields.find((field) => field.key === 'roundAxis')
+      const radius = fields.find((field) => field.key === 'roundRadius')
+      expect(axis).toMatchObject({ label: 'Rounded axis', kind: 'choice', value: extra.roundAxis ?? 'z' })
+      expect(axis?.choices?.map((choice) => choice.value)).toEqual(['x', 'y', 'z'])
+      expect(radius).toMatchObject({ label: 'Corner radius', kind: 'number', value: extra.roundRadius ?? 0 })
+      expect(fields.find((field) => field.key === 'size')).toMatchObject({ kind: 'vector' })
+    })
+
+    it('writes a changed default-axis edit and treats an unchanged default as a no-op', () => {
+      seedCube({})
+      const timeline = useTimelineCommands()
+      expect(timeline.applyEdit('cube-r', { roundAxis: 'z', roundRadius: 0 }).ok).toBe(false)
+      expect(timeline.applyEdit('cube-r', { roundRadius: 4, roundAxis: 'x' }).ok).toBe(true)
+      const params = useDocumentStore().raw.recordOf('cube-r')?.params
+      expect(params).toMatchObject({ roundRadius: 4, roundAxis: 'x' })
+    })
+  })
+
   // --- section 16: suppress ----------------------------------------------
 
   it('suppresses a step: the cube reverts, the sphere stays, nothing is deleted', () => {

@@ -306,7 +306,37 @@ export function useTimelineCommands() {
         }
       }
     }
-    return fields
+    return withNativeSchema(record, fields)
+  }
+
+  /**
+   * A native op with a registry schema (a Cube's corner rounding) lists the schema's
+   * fields as the Inspector does: its labels, a default when the record omits the key
+   * (`TODO/ui-102`). The record's other fields (Size) stay as they are.
+   *
+   * @param {{ op: string, params?: Record<string, any> }} record
+   * @param {StepField[]} fields
+   * @returns {StepField[]}
+   */
+  function withNativeSchema(record, fields) {
+    const params = record.params ?? {}
+    const schema = paramOptions(record.op, params)
+    if (schema === undefined || schema === null) return fields
+    const out = fields.slice()
+    for (const [key, field] of Object.entries(schema)) {
+      if (RESERVED.has(key)) continue
+      const value = params[key] ?? field.default
+      if (value === undefined) continue
+      /** @type {StepField} */
+      const entry =
+        field.kind === 'enum'
+          ? { key, label: field.label, kind: 'choice', value, choices: field.options }
+          : { key, label: field.label, kind: 'number', value }
+      const at = out.findIndex((existing) => existing.key === key)
+      if (at >= 0) out[at] = entry
+      else out.push(entry)
+    }
+    return out
   }
 
   /**
@@ -346,6 +376,15 @@ export function useTimelineCommands() {
       }
     }
     try {
+      // A schema field the record omits is shown at its default; resubmitting that
+      // default is not an edit, and must not put a value in the log nobody chose.
+      if (current !== undefined) {
+        const shown = new Map(fieldsFor(id).map((field) => [field.key, field.value]))
+        const given = current.params ?? {}
+        changes = Object.fromEntries(
+          Object.entries(changes).filter(([key, value]) => given[key] !== undefined || !Object.is(shown.get(key), value))
+        )
+      }
       const record = stepParamEditRecord(documentStore.raw, id, changes)
       if (record === null) {
         return report({

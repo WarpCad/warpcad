@@ -63,7 +63,6 @@ this repository still need a green full run before they are pushed.
 | 21 | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | Owner steps; no agent can run them | — |
 | 22 | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load, and two app-header screenshots drifted | Medium; now on a Findings row | sonnet |
 | 22c | `FIND` | [`testing-013`](FIND-testing-013-getting-started-tour-times-out-under-full-load.md) The getting-started docs tour times out under the full e2e matrix | Medium; passes alone | sonnet |
-| 22d | `FIND` | [`ui-102`](FIND-ui-102-history-edit-form-rounded-cube-fields.md) The History edit form shows a rounded Cube's fields inconsistently | Low; filed from the core-080 drive | sonnet |
 | 22e | `FIND` | [`ui-103`](FIND-ui-103-history-apply-button-text-matches-background-on-hover.md) The History Apply button's text matches its background on hover | Low; filed from the core-080 drive | sonnet |
 | 22ea | `FIND` | [`ui-104`](FIND-ui-104-edit-rounded-cube-inside-a-group.md) A Cube inside a group cannot be given a corner radius or rounded axis | Medium; filed from the owner's report on huzzah-feather-esp8266 | opus |
 | 22f | `FIND` | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and translucency checks on all three engines | Low; waits on `testing-005` (done) | sonnet |
@@ -313,7 +312,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-013` | The getting-started docs tour times out at 30 s in the full e2e matrix, and passes alone | Finding | — | none |
 | `testing-015` | Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | Finding | `testing-005` | none |
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
-| `ui-102` | The History edit form shows a rounded Cube's Round axis only when the record carries it, and labels it differently from the Inspector. Filed 2026-11-07 from the core-080 drive | Finding | — | 12 |
 | `ui-103` | The History panel's Apply button's text is the same colour as its background on hover. Filed 2026-11-07 from the core-080 drive | Finding | — | none |
 | `ui-104` | A Cube that is part of a group shows no Corner radius or Rounded axis, and its params cannot be edited (`describeSubPart` skips the native schema). Filed 2026-11-07 from the owner's report | Finding | — | 6, 12, 32 |
 | `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none (part of 6) |
@@ -450,7 +448,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (ready, unparked 2026-11-07); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 30 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, `ui-102`, `ui-103`, `ui-104`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
+| [Findings](#findings-open-rows) | 29 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, `ui-103`, `ui-104`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `docs-031`, `docs-032`, `docs-033`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

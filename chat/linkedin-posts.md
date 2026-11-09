@@ -3997,3 +3997,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five platforms, Tauri 2, scope and device-run deferral → TODO/M19-build-017-tauri-ios-shell-scaffold.md (this commit's diff, "Scope of this task" and "On device" lines); Help line format and web line unchanged → src/stores/appUpdate.spec.js and src/native/shell.spec.js (diff in this commit); suites green on this code → stored runs 2026-11-08T21:37:18Z and 2026-11-08T21:41:58Z via `stamp check`.
 **To Add:** none
+
+## 2026-11-09T01:17:01Z — History edit form matches the Inspector for a rounded Cube
+
+**Post:** A small fix with a clear lesson: the History panel built its edit fields only from what a saved step had stored. A default-valued parameter that a step never wrote never appeared, and the same setting had different labels in History and in the Inspector.
+
+The fix reads the field list from the same schema the Inspector uses, so both panels show the same fields, labels and defaults. The change also meant the History axis select was 34px tall on desktop Chromium and 23px on WebKit, below tap size, so the form's inputs now meet the 44px minimum.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** field list and labels → unit spec, 25/25 passing; History case → rounded-cube e2e, 45/45 on the full 3x3 matrix; 34/23px before and 44px after → that e2e's measured tap size, this session
+**To Add:** none
+

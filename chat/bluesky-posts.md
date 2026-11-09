@@ -2763,3 +2763,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Help line reads `WarpCad <version> (<commit>) · <platform> app <shell version>` inside a shell and `WarpCad build <commit>` on the web → src/native/shell.spec.js and src/stores/appUpdate.spec.js (diff in this commit); unit suite passed in full on this code 2026-11-08T21:37:18Z → stored run, `stamp check` this session; e2e suite passed in full 2026-11-08T21:41:58Z → stored run, `stamp check` this session.
 **To Add:** screenshot of the Help version line inside the native shell, once a shell build runs on a device or simulator.
+
+## 2026-11-09T01:17:01Z — History edit form matches the Inspector for a rounded Cube
+
+**Post:** The History edit form now shows a rounded Cube's corner radius and rounded axis under the Inspector's own labels, with the default axis visible even when the record doesn't store it. The fields also got bigger tap targets on phones. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** labels and default-axis field → unit spec in useTimelineCommands.spec.js (25/25); rounded-cube e2e History case 45/45 on the full 3x3 matrix; tap size 34/23px → 44px measured by that e2e, this session
+**To Add:** none
+

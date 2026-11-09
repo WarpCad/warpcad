@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, outside the milestone plan (filed 2026-11-07 from the core-080 acceptance drive)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-09):** `fieldsFor` in `src/composables/useTimelineCommands.js` now lists a native
+> op's registry schema fields the way the Inspector does: the same "Corner radius" and "Rounded axis"
+> labels, with the default shown when the record omits the key. `applyEdit` treats a resubmitted default
+> as no edit. The e2e run also found the History axis select at 34 px (23 px in WebKit), the same
+> class as ui-101, so `.edit__input` now has a 44 px minimum and the select a 44 px explicit height.
+> `paramEdit.js` needed no change. Acceptance scenario 12 was **not** re-driven by hand in this run;
+> `timeline-panel.e2e.js` (Chamfer edit and replay) passed on the pair run.
 
 ## Problem
 

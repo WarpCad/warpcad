@@ -484,3 +484,41 @@ test('a Cube inside a group takes a Corner radius and Rounded axis; Size, the ot
   expect(await fieldNumber(page, 'inspector-param-roundRadius')).toBeCloseTo(2, 3)
   await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('x')
 })
+
+test('History edits a default-axis Cube with the Inspector\'s fields and labels, and the Inspector shows the same values (TODO/ui-102)', async ({
+  page,
+}, testInfo) => {
+  const sharp = await placeCube(page)
+  expect(sharp.volumeMm3).toBeCloseTo(64000, 0)
+
+  await page.getByTestId('timeline-toggle').click()
+  await expect(page.getByTestId('timeline-panel')).toBeVisible()
+  await page.getByTestId('timeline-row-1').click()
+  await page.getByTestId('timeline-edit').click()
+  await expect(page.getByTestId('timeline-edit-form')).toBeVisible()
+
+  // The default is shown although the record omits it, under the Inspector's names.
+  const form = page.getByTestId('timeline-edit-form')
+  await expect(form.getByText('Corner radius', { exact: true })).toBeVisible()
+  await expect(form.getByText('Rounded axis', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('timeline-field-roundAxis')).toHaveValue('z')
+
+  await page.getByTestId('timeline-field-roundRadius').fill('5')
+  await page.getByTestId('timeline-field-roundAxis').selectOption('x')
+  // The Inspector is behind the open History panel here, so this snapshot checks the
+  // History form itself: no horizontal scroll, and the axis select at tap size.
+  await page.getByTestId('timeline-field-roundAxis').scrollIntoViewIfNeeded()
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `history-edit-${testInfo.project.name}.png`) })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  const axisBox = await page.getByTestId('timeline-field-roundAxis').boundingBox()
+  expect(axisBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+  await page.getByTestId('timeline-apply').click()
+  await expect(page.getByTestId('timeline-edit-form')).toHaveCount(0)
+
+  await page.getByTestId('timeline-close').click()
+  await expect(page.getByTestId('timeline-panel')).toHaveCount(0)
+  await expect(page.getByTestId('inspector-params')).toBeVisible()
+  expect(await fieldNumber(page, 'inspector-param-roundRadius')).toBeCloseTo(5, 3)
+  await expect(page.getByTestId('inspector-param-roundAxis')).toHaveValue('x')
+})
