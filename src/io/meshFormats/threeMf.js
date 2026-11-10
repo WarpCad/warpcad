@@ -95,7 +95,12 @@ const UNIT_SCALES = Object.freeze({ micron: 0.001, millimeter: 1, centimeter: 10
  * @property {Float32Array} positions File units. Parts with the same mesh share one array.
  * @property {Uint32Array} indices
  * @property {number[]} matrix 16 numbers, `mat4` order, translation in file units.
+ * @property {number} [color] The file's colour for this part, `0xRRGGBB` (`TODO/io-027`). Absent when
+ *   the file gives none, or the part's triangles disagree.
+ * @property {number} [colorAlpha] Its alpha in `(0, 1)`; absent at 1.
  */
+
+/** @typedef {{ color: number, alpha: number }} FileColour */
 
 /**
  * @typedef {{ ok: true, format: '3mf', unitScale: number, parts: ThreeMfPart[], duplicates: number,
@@ -371,6 +376,69 @@ function parseTransform(raw, where) {
   return matrixFromThreeMf(numbers)
 }
 
+// --- colours (`TODO/io-027`) ----------------------------------------------------------------
+
+/** Distinct triangle paints tracked per object before it counts as mixed. */
+const MAX_PAINTS = 64
+
+/**
+ * A strict 3MF colour: `#RRGGBB` or `#RRGGBBAA`. Anything else, and a fully transparent colour
+ * (a kernel colour needs alpha above 0), is `null`: colour is not geometry, so it never refuses.
+ *
+ * @param {string | undefined} raw
+ * @returns {FileColour | null}
+ */
+function parseColour(raw) {
+  if (raw === undefined) return null
+  const match = /^#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?$/.exec(raw.trim())
+  if (match === null) return null
+  const alpha = match[2] === undefined ? 1 : Number.parseInt(match[2], 16) / 255
+  if (alpha === 0) return null
+  return { color: Number.parseInt(match[1], 16), alpha }
+}
+
+/**
+ * @param {Map<string, (FileColour | null)[]>} groups
+ * @param {string | undefined} pid
+ * @param {string | undefined} index
+ * @returns {FileColour | null}
+ */
+function lookupColour(groups, pid, index) {
+  if (pid === undefined || index === undefined) return null
+  const at = parseIndex(index)
+  const list = groups.get(pid.trim())
+  if (list === undefined || at < 0 || at >= list.length) return null
+  return list[at]
+}
+
+/**
+ * An object's colour: its own `pid`/`pindex`, else the one colour all its triangles resolve to.
+ *
+ * @param {ModelObject} object
+ * @param {Map<string, (FileColour | null)[]>} groups
+ * @returns {FileColour | null}
+ */
+function resolveObjectColour(object, groups) {
+  const own = lookupColour(groups, object.pid, object.pindex)
+  if (own !== null) return own
+  if (object.paints.size === 0 || object.paints.size > MAX_PAINTS) return null
+  /** @type {FileColour | null} */
+  let found = null
+  for (const paint of object.paints) {
+    /** @type {FileColour | null} */
+    let colour = own
+    if (paint !== '') {
+      const bar = paint.indexOf('|')
+      const pid = paint.slice(0, bar)
+      colour = lookupColour(groups, pid === '' ? object.pid : pid, paint.slice(bar + 1))
+    }
+    if (colour === null) return null
+    if (found !== null && (found.color !== colour.color || found.alpha !== colour.alpha)) return null
+    found = colour
+  }
+  return found
+}
+
 // --- the model -------------------------------------------------------------------------------
 
 /**
@@ -382,6 +450,10 @@ function parseTransform(raw, where) {
  * @property {Float32Array} positions
  * @property {Uint32Array} indices
  * @property {{ objectId: string, matrix: number[] }[]} components
+ * @property {string | undefined} pid The object's property group id, as written.
+ * @property {string | undefined} pindex
+ * @property {Set<string>} paints Distinct `pid|p1` of its triangles (`''` for none), capped.
+ * @property {FileColour | null} colour Resolved once the whole document is read.
  */
 
 /**
@@ -401,6 +473,10 @@ function readModel(text, limits, meshLimits) {
   let unit = 'millimeter'
   let required = ''
   let sawModel = false
+  /** @type {Map<string, (FileColour | null)[]>} property group id → its colours, by index */
+  const colourGroups = new Map()
+  /** @type {(FileColour | null)[] | null} */
+  let openGroup = null
   /** @type {ModelObject | null} */
   let current = null
   /** @type {number[]} */
@@ -446,6 +522,10 @@ function readModel(text, limits, meshLimits) {
             positions: new Float32Array(0),
             indices: new Uint32Array(0),
             components: [],
+            pid: attributes.pid,
+            pindex: attributes.pindex,
+            paints: new Set(),
+            colour: null,
           }
           vertices = []
           triangles = []
@@ -483,8 +563,24 @@ function readModel(text, limits, meshLimits) {
           const c = parseIndex(attributes.v3)
           if (a < 0 || b < 0 || c < 0) throw new Refusal(`object ${current.id} has a triangle whose vertex is not a whole number`)
           triangles.push(a, b, c)
+          if (current.paints.size <= MAX_PAINTS) {
+            current.paints.add(attributes.p1 === undefined && attributes.pid === undefined ? '' : `${attributes.pid?.trim() ?? ''}|${attributes.p1 ?? ''}`)
+          }
           return
         }
+        case 'basematerials':
+        case 'colorgroup': {
+          openGroup = []
+          const id = attributes.id?.trim() ?? ''
+          if (id !== '' && !colourGroups.has(id)) colourGroups.set(id, openGroup)
+          return
+        }
+        case 'base':
+          openGroup?.push(parseColour(attributes.displaycolor))
+          return
+        case 'color':
+          openGroup?.push(parseColour(attributes.color))
+          return
         case 'beamlattice':
           throw new Refusal('it uses beam lattices, which are not read')
         case 'component': {
@@ -504,6 +600,7 @@ function readModel(text, limits, meshLimits) {
       }
     },
     close(name) {
+      if (name === 'basematerials' || name === 'colorgroup') openGroup = null
       if (name !== 'object' || current === null) return
       if (current.kind === 'mesh') {
         const vertexCount = vertices.length / 3
@@ -524,6 +621,7 @@ function readModel(text, limits, meshLimits) {
     },
   })
   if (!sawModel) throw new Refusal('it has no <model>')
+  for (const object of objects.values()) if (object.kind === 'mesh') object.colour = resolveObjectColour(object, colourGroups)
 
   if (!Object.hasOwn(UNIT_SCALES, unit)) throw new Refusal(`its unit "${unit.slice(0, 20)}" is not one 3MF defines`)
   for (const prefix of required.trim().split(/\s+/).filter((word) => word !== '')) {
@@ -674,7 +772,15 @@ function flatten(objects, items, limits) {
       if (parts.length >= limits.maxParts) {
         throw new Refusal(`it has more than ${formatCount(limits.maxParts)} parts`, parts.length + 1)
       }
-      parts.push({ name, positions: mesh.positions, indices: mesh.indices, matrix })
+      /** @type {ThreeMfPart} */
+      const part = { name, positions: mesh.positions, indices: mesh.indices, matrix }
+      // The colour belongs to the placed part (`object`), not the shared mesh; the first of an
+      // exact duplicate placement wins, because the others are never pushed.
+      if (object.colour !== null) {
+        part.color = object.colour.color
+        if (object.colour.alpha < 1) part.colorAlpha = object.colour.alpha
+      }
+      parts.push(part)
       triangleCount += mesh.indices.length / 3
     }
   }

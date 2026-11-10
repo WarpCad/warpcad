@@ -59,6 +59,7 @@ import {
   snap,
 } from './group.js'
 import { label } from './text.js'
+import { assertRecordColor } from './colors.js'
 import { splitWithJoint } from './split.js'
 import { importMesh, meshValueOf } from './recipes/importMesh.js'
 import {
@@ -1948,9 +1949,25 @@ export const registry = Object.freeze({
     if (new Set(names).size !== names.length) {
       throw new Error(`${op}: operand names must be unique, got ${JSON.stringify(names)}`)
     }
+    // Optional recipe colours (`TODO/io-027`): one entry per operand, `{ color, colorAlpha? }` or
+    // `null`. Absent, the op folds as it always did.
+    const colors = params.colors
+    if (colors !== undefined) {
+      if (!Array.isArray(colors) || colors.length !== inputs.length) {
+        throw new Error(`${op}: expected one colors entry per operand (${inputs.length}), got ${JSON.stringify(colors)}`)
+      }
+      colors.forEach((entry, index) => {
+        if (entry === null) return
+        if (typeof entry !== 'object' || Array.isArray(entry) || entry.color === undefined) {
+          throw new Error(`${op}: colors entry ${index + 1} must be null or { color, colorAlpha? }, got ${JSON.stringify(entry)}`)
+        }
+        assertRecordColor(entry.color, entry.colorAlpha, `${op}: part "${names[index]}"`)
+      })
+    }
     let group = createGroup()
     inputs.forEach((geometry, index) => {
-      group = add(group, geometry, names[index])
+      const entry = colors?.[index]
+      group = entry ? add(group, geometry, names[index], { color: entry.color, colorAlpha: entry.colorAlpha }) : add(group, geometry, names[index])
     })
     return group
   }),

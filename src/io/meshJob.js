@@ -87,7 +87,7 @@ import { formatForName, parseMeshFile, unsupportedFormatReason } from './meshFor
  * @property {true} ok
  * @property {string} format
  * @property {number} unitScale Millimetres per file unit.
- * @property {{ name: string | null, positions: Float32Array, indices: Uint32Array, matrix: readonly number[] }[]} parts
+ * @property {{ name: string | null, positions: Float32Array, indices: Uint32Array, matrix: readonly number[], color?: number, colorAlpha?: number }[]} parts
  *   Each part's mesh in file units and its placement, translation in file units. Parts drawing
  *   the same mesh share the same `positions` array.
  * @property {number} [duplicates]
@@ -276,7 +276,13 @@ export async function importParsedMesh(fileName, parsed, overrides = {}) {
       const problem = matrixProblem(matrix)
       if (problem !== null) return { ok: false, reason: `${names[index]} cannot be placed: its ${problem}` }
       const mesh = /** @type {{ welded: any, record: MeshAssetRecord }} */ (meshes.get(part.positions))
-      parts.push({ name: names[index], assetId: mesh.record.id, triangleCount: mesh.welded.triangleCount, matrix })
+      /** @type {import('./meshPart.js').AssemblyPart} */
+      const placed = { name: names[index], assetId: mesh.record.id, triangleCount: mesh.welded.triangleCount, matrix }
+      if (part.color !== undefined) {
+        placed.color = part.color
+        if (part.colorAlpha !== undefined) placed.colorAlpha = part.colorAlpha
+      }
+      parts.push(placed)
     }
     /** @type {Map<string, MeshAssetRecord>} */
     const assets = new Map()

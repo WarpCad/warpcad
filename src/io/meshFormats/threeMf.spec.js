@@ -18,6 +18,7 @@ import {
   FIXTURE_SIZES,
   boxMeshXml,
   buildZip,
+  colouredThreeMf,
   featherShapedModel,
   featherShapedThreeMf,
   modelXml,
@@ -351,5 +352,75 @@ describe('degenerate and hostile packages', () => {
   it('refuses inflated XML over the cap without reading it all', async () => {
     const bytes = await featherShapedThreeMf()
     expect(await refusal(bytes, { maxXmlBytes: 1000 })).toMatch(/larger than/)
+  })
+})
+
+describe('colours (TODO/io-027)', () => {
+  /** @param {any} result @param {string} name */
+  const named = (result, name) => result.parts.find((/** @type {any} */ part) => part.name === name)
+
+  it('reads an object colour from basematerials, a colorgroup (with alpha), and uniform triangle colours', async () => {
+    const result = await parsed(await colouredThreeMf())
+    expect(named(result, 'Board').color).toBe(0x447766)
+    expect(named(result, 'Board').colorAlpha).toBeUndefined()
+    expect(named(result, 'Pad').color).toBe(0xe8ad23)
+    expect(named(result, 'Pad').colorAlpha).toBeCloseTo(128 / 255, 6)
+    expect(named(result, 'Led').color).toBe(0xf6f6f3)
+  })
+
+  it('gives no colour for mixed triangles, a bad hex, an out-of-range pindex, or nothing at all', async () => {
+    const result = await parsed(await colouredThreeMf())
+    for (const name of ['Mixed', 'Bad', 'Far', 'Plain']) {
+      expect(named(result, name), name).toBeDefined()
+      expect('color' in named(result, name), name).toBe(false)
+      expect('colorAlpha' in named(result, name), name).toBe(false)
+    }
+  })
+
+  it('never refuses a file over a bad colour, and a file with no colours is unchanged', async () => {
+    const plain = await parsed(await pack(`<object id="1" name="a">${BOX}</object>`, `<item objectid="1" transform="${IDENTITY}"/>`))
+    expect(Object.keys(plain.parts[0]).sort()).toEqual(['indices', 'matrix', 'name', 'positions'])
+    const bad = modelXml({
+      objects: `<basematerials id="1"><base displaycolor="#12345"/><base displaycolor="#GGGGGG"/><base displaycolor="#1234567"/><base/></basematerials><object id="2" pid="1" pindex="2">${BOX}</object>`,
+      build: '<item objectid="2"/>',
+    })
+    const result = await parsed(await packageThreeMf(bad))
+    expect(result.parts).toHaveLength(1)
+    expect('color' in result.parts[0]).toBe(false)
+  })
+
+  it('treats a fully transparent colour (alpha 00) as no colour, since a kernel colour needs alpha above 0', async () => {
+    const model = modelXml({
+      objects: `<basematerials id="1"><base displaycolor="#FF000000"/></basematerials><object id="2" pid="1" pindex="0">${BOX}</object>`,
+      build: '<item objectid="2"/>',
+    })
+    expect('color' in (await parsed(await packageThreeMf(model))).parts[0]).toBe(false)
+  })
+
+  it('an exact duplicate placement keeps the first colour; one mesh in two places keeps one colour each', async () => {
+    const model = modelXml({
+      objects:
+        '<basematerials id="1"><base displaycolor="#FF0000"/><base displaycolor="#0000FF"/></basematerials>' +
+        `<object id="2" name="red" pid="1" pindex="0">${BOX}</object><object id="3" name="blue" pid="1" pindex="1">${BOX}</object>`,
+      build:
+        `<item objectid="2" transform="${IDENTITY}"/><item objectid="3" transform="${IDENTITY}"/>` +
+        `<item objectid="3" transform="1 0 0 0 1 0 0 0 1 20 0 0"/>`,
+    })
+    const result = await parsed(await packageThreeMf(model))
+    expect(result.duplicates).toBe(1)
+    expect(result.parts.map((/** @type {any} */ part) => part.color)).toEqual([0xff0000, 0x0000ff])
+  })
+
+  it('carries a colour through the import into group.assemble params.colors, and validates', async () => {
+    const result = await importMeshBytes('coloured.3mf', await colouredThreeMf())
+    if (!result.ok || result.kind !== 'assembly') throw new Error('expected an assembly')
+    expect(result.parts.find((part) => part.name === 'Board')?.color).toBe(0x447766)
+    const definition = meshAssemblyDefinition({ name: 'coloured', assets: result.assets, parts: result.parts, unitScale: result.unitScale })
+    const group = /** @type {any} */ (definition.records.at(-1))
+    expect(group.params.colors).toHaveLength(result.parts.length)
+    expect(group.params.colors[0]).toEqual({ color: 0x447766 })
+    expect(group.params.colors[1].colorAlpha).toBeCloseTo(128 / 255, 6)
+    expect(group.params.colors.filter((/** @type {any} */ entry) => entry === null)).toHaveLength(4)
+    expect(validateUserPart(definition).ok).toBe(true)
   })
 })

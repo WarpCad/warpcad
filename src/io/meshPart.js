@@ -75,6 +75,8 @@ export const UNIT_SCALES = Object.freeze({ mm: 1, cm: 10, inch: 25.4 })
  * @property {string} assetId The `asset.mesh` it draws.
  * @property {number} triangleCount
  * @property {readonly number[]} matrix 16 numbers, `mat4` order, millimetres, offset baked in.
+ * @property {number} [color] The file's colour, `0xRRGGBB` (`TODO/io-027`).
+ * @property {number} [colorAlpha] Its alpha in `(0, 1)`; absent at 1.
  */
 
 /**
@@ -105,9 +107,21 @@ export function meshPartDefinition({ record, name, triangleCount, op, units = 'm
 }
 
 /**
+ * One `group.assemble` colour entry for a part.
+ *
+ * @param {AssemblyPart} part
+ * @returns {{ color: number, colorAlpha?: number } | null}
+ */
+function fileColour(part) {
+  if (part.color === undefined) return null
+  return part.colorAlpha === undefined ? { color: part.color } : { color: part.color, colorAlpha: part.colorAlpha }
+}
+
+/**
  * The part an imported assembly becomes (`TODO/io-024`): one `asset.mesh` per distinct mesh, one
  * `import.mesh` per part, and a flat `group.assemble` over them — or, for one part, the ordinary
- * mesh pair.
+ * mesh pair. A one-part file stays uncoloured: a recipe colour lives on a group's parts
+ * (`core/colorOverride.js`), and wrapping one part in a group would change how it selects.
  *
  * @param {{ assets: readonly MeshAssetRecord[], parts: readonly AssemblyPart[], name: string, op?: string, unitScale?: number }} options
  * @returns {MeshPartDefinition}
@@ -141,7 +155,16 @@ export function meshAssemblyDefinition({ assets, parts, name, op, unitScale = 1 
       ...placed,
       ...(single
         ? []
-        : [{ id: MESH_MODEL_ID, op: 'group.assemble', operands: placed.map((record) => record.id), params: { names: parts.map((part) => part.name) } }]),
+        : [
+            {
+              id: MESH_MODEL_ID,
+              op: 'group.assemble',
+              operands: placed.map((record) => record.id),
+              // The file's colours are the recipe tier (`TODO/io-027`); only when some part has one,
+              // so an uncoloured file's definition is exactly what it was.
+              params: { names: parts.map((part) => part.name), ...(parts.some((part) => part.color !== undefined) ? { colors: parts.map(fileColour) } : {}) },
+            },
+          ]),
     ],
     params: [],
   }

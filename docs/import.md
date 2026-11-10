@@ -141,7 +141,14 @@ its check box to add it to what is already selected.
 - **Units come from the file.** A 3MF says which units it is in, so there is no **Units**
   control and no *Units assumed* badge.
 - **Not parametric**, like an STL: sizes are measurements, not settings.
-- **Ignored:** colours and materials, thumbnails and slices. Beam lattices are refused. A 3MF
+- **Colours are kept.** An object's colour (a `basematerials` or `colorgroup` entry) becomes that
+  part's colour, so each part draws in the colour it had in the file. Choose **File → Import
+  model…** and pick a 3MF that has colours (one written by step23mf, PrusaSlicer or Bambu
+  Studio), then place it. Click the model, then click one part again to narrow to it: the
+  Inspector's **Color** row shows the file's colour, and **Reset** after a recolour brings it
+  back. A part whose triangles carry different colours, a colour the reader cannot parse, and a
+  file with a single part are left in the theme palette.
+- **Ignored:** material names, textures and multi-properties, thumbnails and slices. Beam lattices are refused. A 3MF
   whose objects live in separate files inside the package (the *production extension*, which
   some slicers write) is refused with a reason rather than imported in part. So is a file that
   requires an extension WarpCad does not understand.

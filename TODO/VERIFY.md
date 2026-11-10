@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-027 — Import a 3MF's object colours (2026-11-10 18:55 UTC)
+
+Why this is here: unit tests and the import e2e cover the colour path on all nine projects, but no rendered-pixel check of the ring was taken, and the pads and most LEDs were not read off the Inspector.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | NeoPixel ring imported via File → Import model…: the board reads green, the LEDs white, the pads amber on screen | Open | Board `#447766` and `PCB Component (2)` `#f6f6f3` read off the Inspector; pads and the rest not yet |
+| 2 | Reset after a recolour on an LED returns to `#f6f6f3`, not the theme palette | Open | |
+
 ### ui-107 — Import model… from the File menu, placed in the view (2026-11-10 17:46 UTC)
 
 Scenarios 26 and 31 were driven at all three widths with a scripted real pointer and trusted touch. They cover the flow, but not how it feels on a real phone, the owner's own file, or two layout judgment calls the implementer made.

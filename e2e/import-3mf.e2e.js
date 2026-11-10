@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 
-import { featherShapedThreeMf } from '../src/io/__fixtures__/threeMf.js'
+import { colouredThreeMf, featherShapedThreeMf } from '../src/io/__fixtures__/threeMf.js'
 import { closeLibrary, isPhone, openLibrary, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
 import { importModel, myPartsCount, openObjectList as openObjects } from './support/importModel.js'
 
@@ -369,4 +369,35 @@ test('refusals: a text file named x.3mf, a STEP file, a file over the cap — ea
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
   expect(await myPartsCount(page)).toBe(0)
   await info.attach(`import-3mf-refused-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
+})
+
+test('a 3MF with colours: each part draws in its file colour, the Inspector shows it, and Reset returns to it (TODO/io-027)', async ({ page }, info) => {
+  test.setTimeout(120_000)
+  const input = await pointer(page, info)
+  const file = { name: 'coloured.3mf', mimeType: 'model/3mf', buffer: Buffer.from(await colouredThreeMf()) }
+  const at = isPhone(info) ? [0.5, 0.3] : [0.45, 0.5]
+  const id = await importAndPlace(page, input, file, at)
+
+  await openObjectList(page, input)
+  const expand = page.getByTestId(`objects-expand-${id}`)
+  if ((await expand.getAttribute('aria-expanded')) !== 'true') await input.press(expand)
+
+  // A coloured part: the Color row reads the file colour and Reset is idle.
+  await input.press(page.getByTestId(`objects-part-${id}-Led`))
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Led')
+  await expect(page.getByTestId('inspector-color-value')).toHaveText('#f6f6f3')
+  await expect(page.getByTestId('inspector-color-reset')).toBeDisabled()
+  await info.attach(`import-3mf-coloured-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
+
+  // Recolour it: the user's choice wins; Reset returns to the file colour, not the palette.
+  await page.getByTestId('inspector-color-input').fill('#ff0000')
+  await expect(page.getByTestId('inspector-color-value')).toHaveText('#ff0000')
+  await input.press(page.getByTestId('inspector-color-reset'))
+  await expect(page.getByTestId('inspector-color-value')).toHaveText('#f6f6f3')
+
+  // A part the file left uncoloured stays on the palette.
+  await openObjectList(page, input)
+  await input.press(page.getByTestId(`objects-part-${id}-Plain`))
+  await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('Plain')
+  await expect(page.getByTestId('inspector-color-value')).toHaveText('Default')
 })

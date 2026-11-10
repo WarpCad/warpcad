@@ -157,3 +157,16 @@ describe('an imported assembly (TODO/io-024)', () => {
     expect(result.ok ? '' : result.reason).toMatch(/Too many triangles: 36, limit 30/)
   })
 })
+
+describe('an assembly definition with colours (TODO/io-027)', () => {
+  it('emits params.colors only when some part has a colour, and none for a single part', async () => {
+    const result = await boardImport()
+    const plain = boardDefinition(result)
+    expect('colors' in /** @type {any} */ (plain.records.at(-1)).params).toBe(false)
+    const parts = result.parts.map((part, index) => (index === 1 ? { ...part, color: 0xf6f6f3 } : index === 2 ? { ...part, color: 0xe8ad23, colorAlpha: 0.5 } : part))
+    const coloured = meshAssemblyDefinition({ name: 'board', assets: result.assets, parts, unitScale: result.unitScale })
+    expect(/** @type {any} */ (coloured.records.at(-1)).params.colors).toEqual([null, { color: 0xf6f6f3 }, { color: 0xe8ad23, colorAlpha: 0.5 }])
+    const single = meshAssemblyDefinition({ name: 'one', assets: result.assets, parts: [{ ...result.parts[0], color: 0x112233 }], unitScale: 1 })
+    expect(single.records.some((record) => record.op === 'group.assemble')).toBe(false)
+  })
+})

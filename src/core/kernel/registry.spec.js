@@ -474,6 +474,32 @@ describe('native builders', () => {
     expect(registry['boolean.intersect'].ui).toBeUndefined()
   })
 
+  describe('group.assemble params.colors — TODO/io-027', () => {
+    const cube = () => primitives.cuboid({ size: [1, 1, 1] })
+    const assemble = (/** @type {any} */ extra) =>
+      /** @type {any} */ (build('group.assemble', { params: { names: ['a', 'b'], ...extra }, inputs: [cube(), cube()].map((value) => ({ value })) }))
+
+    it('without colors folds exactly as before (no colours)', () => {
+      expect(assemble({}).colors).toEqual({})
+    })
+
+    it('bakes one recipe colour per operand; null leaves a part uncoloured', () => {
+      const group = assemble({ colors: [{ color: 0x447766 }, null] })
+      expect(group.colors.a).toMatchObject({ color: 0x447766, alpha: 1 })
+      expect(group.colors.b).toBeUndefined()
+      const alpha = assemble({ colors: [null, { color: 0xe8ad23, colorAlpha: 0.5 }] })
+      expect(alpha.colors.b.alpha).toBeCloseTo(0.5, 6)
+    })
+
+    it('refuses a wrong-length array, a non-array, and a bad entry', () => {
+      expect(() => assemble({ colors: [{ color: 1 }] })).toThrow(/colors/)
+      expect(() => assemble({ colors: 'red' })).toThrow(/colors/)
+      expect(() => assemble({ colors: [{ color: 0x1000000 }, null] })).toThrow(/colour/)
+      expect(() => assemble({ colors: [{ colorAlpha: 0.5 }, null] })).toThrow(/color/)
+      expect(() => assemble({ colors: [3, null] })).toThrow(/colors/)
+    })
+  })
+
   // TODO/core-076: `group.assemble`'s sibling, which keeps a group's own parts.
   describe('group.merge — TODO/core-076', () => {
     const solid = (/** @type {number} */ x) => transforms.translate([x, 0, 0], primitives.cuboid({ size: [2, 2, 2] }))

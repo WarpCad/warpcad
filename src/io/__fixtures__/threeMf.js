@@ -169,9 +169,10 @@ export const CONTENT_TYPES =
  * A mesh object's `<mesh>` for an axis-aligned box from the origin, wound outward.
  *
  * @param {[number, number, number]} size
+ * @param {(triangle: number) => string} [paint] Extra attributes for triangle `n` (` pid="1" p1="0"`).
  * @returns {string}
  */
-export function boxMeshXml([x, y, z]) {
+export function boxMeshXml([x, y, z], paint = () => '') {
   const v = [
     [0, 0, 0], [x, 0, 0], [x, y, 0], [0, y, 0],
     [0, 0, z], [x, 0, z], [x, y, z], [0, y, z],
@@ -184,7 +185,7 @@ export function boxMeshXml([x, y, z]) {
     '<mesh><vertices>' +
     v.map(([a, b, c]) => `<vertex x="${a}" y="${b}" z="${c}"/>`).join('') +
     '</vertices><triangles>' +
-    t.map(([a, b, c]) => `<triangle v1="${a}" v2="${b}" v3="${c}"/>`).join('') +
+    t.map(([a, b, c], n) => `<triangle v1="${a}" v2="${b}" v3="${c}"${paint(n)}/>`).join('') +
     '</triangles></mesh>'
   )
 }
@@ -262,4 +263,54 @@ export function featherShapedThreeMf() {
     crc: 1,
   }))
   return packageThreeMf(featherShapedModel(), { extra: thumbnails })
+}
+
+/** The 3MF materials namespace (`<colorgroup>`). */
+export const MATERIAL_NS = 'http://schemas.microsoft.com/3dmanufacturing/material/2015/02'
+
+/**
+ * The model document of the coloured fixture (`TODO/io-027`): small, generated, no owner file.
+ * Resources: `basematerials` 1 (`#447766`, `#F6F6F3`), `colorgroup` 2 (`#E8AD2380`, one entry),
+ * `basematerials` 3 (a bad hex, `red`). Objects, each a 10 mm box in a row along X:
+ *
+ * - 11 `Board`: `pid=1 pindex=0`, so 0x447766.
+ * - 12 `Pad`: `colorgroup` 2, so 0xE8AD23 at alpha 128/255.
+ * - 13 `Led`: no object colour; every triangle `pid=1 p1=1`, so 0xF6F6F3 through uniform triangles.
+ * - 14 `Mixed`: triangles alternate `p1=0` and `p1=1`, so no colour.
+ * - 15 `Bad`: `pid=3 pindex=0` (a bad hex), so no colour.
+ * - 16 `Far`: `pid=1 pindex=9` (out of range), so no colour.
+ * - 17 `Plain`: nothing at all.
+ *
+ * @returns {string}
+ */
+export function colouredModel() {
+  const box = (/** @type {(n: number) => string} */ paint) => boxMeshXml([10, 10, 10], paint)
+  const resources =
+    '<basematerials id="1"><base name="green" displaycolor="#447766"/><base name="white" displaycolor="#F6F6F3"/></basematerials>' +
+    '<m:colorgroup id="2"><m:color color="#E8AD2380"/></m:colorgroup>' +
+    '<basematerials id="3"><base name="bad" displaycolor="red"/></basematerials>'
+  const object = (/** @type {number} */ id, /** @type {string} */ name, /** @type {string} */ paint, /** @type {(n: number) => string} */ tri = () => '') =>
+    `<object id="${id}" type="model" name="${name}"${paint}>${box(tri)}</object>`
+  const objects =
+    resources +
+    object(11, 'Board', ' pid="1" pindex="0"') +
+    object(12, 'Pad', ' pid="2" pindex="0"') +
+    object(13, 'Led', '', () => ' pid="1" p1="1"') +
+    object(14, 'Mixed', '', (n) => ` pid="1" p1="${n % 2}"`) +
+    object(15, 'Bad', ' pid="3" pindex="0"') +
+    object(16, 'Far', ' pid="1" pindex="9"') +
+    object(17, 'Plain', '')
+  const build = [11, 12, 13, 14, 15, 16, 17]
+    .map((id, index) => `<item objectid="${id}" transform="1 0 0 0 1 0 0 0 1 ${index * 15} 0 0"/>`)
+    .join('')
+  return modelXml({ objects, build, attributes: ` xmlns:m="${MATERIAL_NS}" requiredextensions="m"` })
+}
+
+/**
+ * The coloured fixture as a package.
+ *
+ * @returns {Promise<Uint8Array>}
+ */
+export function colouredThreeMf() {
+  return packageThreeMf(colouredModel())
 }
