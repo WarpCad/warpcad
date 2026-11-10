@@ -999,6 +999,56 @@ export function ensureProjectParts(definitions) {
 }
 
 /**
+ * Take a definition back out of the project layer (`TODO/ui-107`): what cancelling an import's
+ * placement session does with the part it staged for the ghost. The caller withdraws only an op
+ * the open document does not carry, so a placed instance never loses its definition.
+ *
+ * @param {string} op
+ * @returns {void}
+ */
+export function withdrawProjectPart(op) {
+  if (!projectParts.delete(op)) return
+  refresh()
+}
+
+/**
+ * Whether a definition is an imported model (`TODO/io-009`): it holds an `import.mesh` record.
+ * Read by records alone, so a part that cannot be built still answers.
+ *
+ * @param {{ records?: readonly any[] } | undefined} definition
+ * @returns {boolean}
+ */
+export function isMeshPart(definition) {
+  return Array.isArray(definition?.records) && definition.records.some((record) => record?.op === IMPORT_MESH_OP)
+}
+
+/** The fields of an `import.mesh` that Change units writes, and nothing else may differ in. */
+const UNIT_FIELDS = new Set(['unitScale', 'unitsConfirmed'])
+
+/**
+ * Whether `next` is `current` read in other units (`TODO/ui-107`'s Change units, `withUnits`):
+ * the same mesh records and the same result, with only `unitScale` and `unitsConfirmed` of each
+ * `import.mesh` changed. The one op change a revision of a placed part may make, because the
+ * geometry is still the same file.
+ *
+ * @param {UserPartDefinition | undefined} current
+ * @param {UserPartDefinition | undefined} next
+ * @returns {boolean}
+ */
+export function isUnitsReread(current, next) {
+  if (current === undefined || next === undefined || !isMeshPart(current)) return false
+  if (current.result !== next.result || current.records.length !== next.records.length) return false
+  if (JSON.stringify(current.params) !== JSON.stringify(next.params)) return false
+  /** @param {any} record */
+  const stripped = (record) => {
+    if (record?.op !== IMPORT_MESH_OP) return JSON.stringify(record)
+    const params = Object.fromEntries(Object.entries(record.params ?? {}).filter(([key]) => !UNIT_FIELDS.has(key)))
+    return JSON.stringify({ ...record, params })
+  }
+  return current.records.every((record, index) => stripped(record) === stripped(next.records[index]))
+}
+
+/**
  * @typedef {object} ProjectPartsSnapshot
  * @property {Map<string, UserPartDefinition>} parts
  * @property {Map<string, string>} unavailable

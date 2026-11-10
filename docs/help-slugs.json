@@ -65,7 +65,8 @@
     "assistant-step-limit",
     "claude-code",
     "agent-prompting",
-    "native-apps"
+    "native-apps",
+    "import"
   ],
   "aliases": {}
 }

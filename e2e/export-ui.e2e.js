@@ -445,7 +445,8 @@ test('Export… is in File ▾, last in the "This device" group, and dimmed with
   // (d) the reason is the item's accessible description, not just a hover tooltip a phone never shows.
   await expect(item).toHaveAccessibleDescription('Nothing to export')
 
-  // Order inside the group: Save/Download, Open…, Merge file… (TODO/ui-062), Share… (TODO/io-016), Export…
+  // Order inside the group: Save/Download, Open…, Merge file… (TODO/ui-062), Import model… and
+  // Import to library… (TODO/ui-107), Share… (TODO/io-016), Export…
   const order = await page.evaluate(() =>
     Array.from(document.querySelectorAll('[role="group"][aria-label="This device"] button')).map((b) =>
       b.getAttribute('data-testid'),
@@ -453,8 +454,10 @@ test('Export… is in File ▾, last in the "This device" group, and dimmed with
   )
   expect(order.at(-1)).toBe('file-export')
   expect(order.at(-2)).toBe('file-share')
-  expect(order.at(-3)).toBe('file-merge')
-  expect(order.at(-4)).toBe('file-open')
+  expect(order.at(-3)).toBe('file-import-part')
+  expect(order.at(-4)).toBe('file-import-model')
+  expect(order.at(-5)).toBe('file-merge')
+  expect(order.at(-6)).toBe('file-open')
 
   // Pressing the dimmed item does nothing: the menu stays and no popover appears.
   await item.click({ force: true })

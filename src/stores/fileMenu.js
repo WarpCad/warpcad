@@ -44,6 +44,16 @@
  * when it cannot. The gist is saved only by that item (or the Share sheet): Ctrl/Cmd+S
  * stays local, and the chip says how far behind the gist is instead of pushing.
  *
+ * ## Import model… and Import part file… (`TODO/ui-107`)
+ *
+ * Two items in the "This device" group, right after **Merge file…**: **Import model…** brings an
+ * STL or 3MF into the open project (`stores/modelImport.js`), placed in the view; **Import part
+ * file…** reads WarpCad's own part file into My parts (`stores/library.js`'s `importText`). Both
+ * change the document or what it is built from, so both are dimmed with {@link importReason}
+ * while History previews a past step, the rule every document-changing item follows. The picker
+ * itself is a hidden `<input type=file>` in `FileMenu.vue`, clicked inside the gesture once
+ * {@link requestImport} says yes.
+ *
  * ## What "non-empty" means
  *
  * Any step in the log, not the body count: a project whose every step is suppressed has no
@@ -66,6 +76,8 @@ import { useMergeStore } from './merge.js'
 import { usePersistenceStore } from './persistence.js'
 import { useProjectSettingsStore } from './projectSettings.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
+import { IMPORT_PREVIEW_REASON } from './modelImport.js'
+import { useTimelineStore } from './timeline.js'
 
 /** @typedef {'open' | 'load' | 'new' | 'share' | 'share-update'} ConfirmKind */
 
@@ -102,6 +114,25 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const merge = useMergeStore()
   const gist = useGistStore()
   const publisher = useGistPublish()
+  const timeline = useTimelineStore()
+
+  /** `TODO/ui-107`: why Import model… and Import part file… are dimmed, or `''`. */
+  const importReason = computed(() => (timeline.previewing ? IMPORT_PREVIEW_REASON : ''))
+
+  /**
+   * **Import model…** / **Import part file…** (`TODO/ui-107`): close the menu and say whether the
+   * caller should open its file picker — synchronously, inside the click, which is the gesture the
+   * `<input type=file>` needs. Dimmed (and a no-op) while History previews.
+   *
+   * @returns {boolean}
+   */
+  function requestImport() {
+    if (importReason.value !== '') return false
+    menuOpen.value = false
+    exportDialog.close()
+    resolutionDialog.close()
+    return true
+  }
 
   const menuOpen = ref(false)
   const connectOpen = ref(false)
@@ -513,6 +544,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     requestOpen,
     requestNew,
     requestMerge,
+    importReason,
+    requestImport,
     requestLoad,
     requestOpenShared,
     pendingShared,

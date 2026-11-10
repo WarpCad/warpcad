@@ -47,6 +47,8 @@ import SnapGuides from './SnapGuides.vue'
 import CutPlaneOverlay from './CutPlaneOverlay.vue'
 import SplitSheet from '../features/SplitSheet.vue'
 import RepeatSheet from './RepeatSheet.vue'
+import ModelImportStatus from './ModelImportStatus.vue'
+import PlacementSession from './PlacementSession.vue'
 import { createCutPlaneAnnotation, updateCutPlaneAnnotation } from '../../render/cutPlane.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
@@ -2888,9 +2890,18 @@ const dropTarget = {
     scheduleRender()
   },
 
-  commit(op, clientXPx, clientYPx, overrides = {}) {
+  commit(op, clientXPx, clientYPx, overrides = {}, place = undefined) {
     const point = resolveDropPoint(variantKey(op, overrides), op, overrides, clientXPx, clientYPx)
     if (!point) return null
+    // `TODO/ui-107`: an import's armed session (or a dropped model file) commits through its own
+    // `place` — the definition and the records in one transaction — at the same snapped point a
+    // Library drop would use. It selects what it placed.
+    if (place !== undefined) {
+      if (timeline.previewing) return null
+      const placedId = place({ x: point.x, y: point.y })
+      syncBodies()
+      return placedId
+    }
     // Every document mutation goes through the command layer, inside a
     // transaction with an origin (CLAUDE.md Architecture). The component never
     // touches the action log itself.
@@ -3930,6 +3941,7 @@ onBeforeUnmount(() => {
     :data-repeat-outlines="repeatOutlineCount"
     :data-hover-transient="hoverTransientName"
     :data-placing="placement.isDragging ? 'true' : 'false'"
+    :data-placement-armed="placement.armed ? 'true' : 'false'"
     :data-ghost="ghostVisible ? 'visible' : 'hidden'"
     :data-snapped="snapped ? 'true' : 'false'"
     :data-transforming="preview.isActive ? 'true' : 'false'"
@@ -3964,6 +3976,11 @@ onBeforeUnmount(() => {
       @wheel="onWheel"
       @contextmenu.prevent
     />
+
+    <!-- TODO/ui-107: an import's armed placement session — the pointer surface over the canvas
+         (under every other overlay, so the chrome stays usable) and its chip. -->
+    <PlacementSession v-if="!presentation" @wheel="onWheel" />
+    <ModelImportStatus v-if="!presentation" />
 
     <p v-if="webglError" class="viewport__error" data-testid="viewport-webgl-unavailable">
       {{ webglError }}
@@ -4009,8 +4026,11 @@ onBeforeUnmount(() => {
          gizmo, both attached to whatever is selected right now, both
          non-interactive so neither can swallow the click that selects. -->
     <DimensionLines v-if="!presentation" :annotations="dimensionAnnotations" />
+    <!-- Not while an import waits to be placed (TODO/ui-107): the gizmo is stacked above the
+         session layer, so a press on a selected body's ring would turn that body instead of
+         moving the ghost. It comes back on the placed model, which the commit selects. -->
     <Gizmo
-      v-if="!timeline.previewing && !presentation"
+      v-if="!timeline.previewing && !presentation && !placement.armed"
       :annotation="gizmoAnnotation"
       :dial="dialAnnotation"
       :ruler="rulerAnnotation"
@@ -4087,6 +4107,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* TODO/ui-107: while an import waits to be placed, its chip takes the bottom row of the view, and
+   the navigation chrome and the scale readout move up by its height (they read this variable),
+   so the chip never covers the zoom buttons or the readout at any width. */
+.viewport[data-placement-armed='true'] {
+  --placement-chip-room: 60px;
+}
+
 .viewport {
   position: relative;
   width: 100%;

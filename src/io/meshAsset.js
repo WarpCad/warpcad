@@ -70,7 +70,7 @@ export const MESH_ASSET_OP = 'asset.mesh'
 
 /** @type {Readonly<MeshLimits>} */
 export const MESH_LIMITS = Object.freeze({
-  /** The largest file **Import model file…** reads at all (25 MiB). */
+  /** The largest file **File → Import model…** reads at all (25 MiB). */
   maxFileBytes: 25 * 1024 * 1024,
   /** The largest encoded mesh a record may hold (5 MiB, before base64). */
   maxStoredBytes: 5 * 1024 * 1024,

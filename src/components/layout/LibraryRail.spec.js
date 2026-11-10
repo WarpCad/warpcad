@@ -68,19 +68,12 @@ describe('LibraryRail — every catalogue row is a recognisable tile (TODO/ui-08
     expect(wrapper.find('[data-testid="library-rows-hardware"]').exists()).toBe(true)
   })
 
-  it('has the ? help button and the ⋯ menu with Import part file… and Import model… at the top', async () => {
+  it('has the ? help button at the top, and no import items: importing is in the File menu (TODO/ui-107)', () => {
     const wrapper = mount(LibraryRail)
     expect(wrapper.find('[data-testid="help-library"]').exists()).toBe(true)
-    const more = wrapper.get('[data-testid="library-rail-more"]')
-    expect(more.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('[data-testid="library-rail-more"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="library-import"]').exists()).toBe(false)
-    await more.trigger('click')
-    expect(more.attributes('aria-expanded')).toBe('true')
-    await wrapper.get('[data-testid="library-import"]').trigger('click')
-    expect(wrapper.emitted('import-part')).toHaveLength(1)
-    await more.trigger('click')
-    await wrapper.get('[data-testid="library-import-model"]').trigger('click')
-    expect(wrapper.emitted('import-model')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="library-import-model"]').exists()).toBe(false)
   })
 
   it('keeps My parts collapsible: its toggle is a tile with the count as a badge', async () => {
@@ -199,10 +192,10 @@ describe('LibraryRail — the section launchers (TODO/ui-081)', () => {
     expect(wrapper.find('[data-testid="library-section-popout"]').exists()).toBe(false)
   })
 
-  it('keeps the ? help button and the ⋯ menu at the top of the rail', () => {
+  it('keeps the ? help button at the top of the rail, with no ⋯ import menu (TODO/ui-107)', () => {
     const wrapper = mount(LibraryRail, LAUNCHERS)
     expect(wrapper.find('[data-testid="help-library"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="library-rail-more"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="library-rail-more"]').exists()).toBe(false)
   })
 
   it('a tap opens the section pop-out: heading and rows from the labelled column, aria-expanded, the shared openPopout', async () => {

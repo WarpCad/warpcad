@@ -60,7 +60,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
         Your saved parts could not all be read: {{ library.loadProblem }}
       </p>
       <p v-if="library.userRows.length === 0 && library.brokenRows.length === 0" class="library-section-popout__hint" data-testid="library-user-empty">
-        Nothing saved yet. Select a group, then choose Save to library… — or choose Import model… under ⋯ for an STL or 3MF — and it appears here.
+        Nothing saved yet. Select something in the view, then choose Save to library…, and it appears here.
       </p>
       <ul class="library-section-popout__rows" data-testid="library-rows-user">
         <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />

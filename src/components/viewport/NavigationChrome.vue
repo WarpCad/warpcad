@@ -303,7 +303,7 @@ const STEPS = Object.freeze([
 .chrome {
   position: absolute;
   left: 12px;
-  bottom: calc(12px + var(--viewport-bottom-inset, 0px));
+  bottom: calc(12px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -486,7 +486,7 @@ const STEPS = Object.freeze([
    `ui-046` fold stays phone-only. Keep this block and the media block in step. */
 .chrome[data-chrome-tier='compact'] {
   left: 8px;
-  bottom: calc(8px + var(--viewport-bottom-inset, 0px));
+  bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
   padding: 4px;
 }
 
@@ -518,7 +518,7 @@ const STEPS = Object.freeze([
 @media (max-width: 480px) {
   .chrome {
     left: 8px;
-    bottom: calc(8px + var(--viewport-bottom-inset, 0px));
+    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
     padding: 4px;
   }
 
@@ -572,7 +572,7 @@ const STEPS = Object.freeze([
   }
 
   .chrome--sketch-sheet {
-    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + 24%);
+    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px) + 24%);
   }
 }
 

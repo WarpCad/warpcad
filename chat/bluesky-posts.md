@@ -2773,3 +2773,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** labels and default-axis field → unit spec in useTimelineCommands.spec.js (25/25); rounded-cube e2e History case 45/45 on the full 3x3 matrix; tap size 34/23px → 44px measured by that e2e, this session
 **To Add:** none
 
+
+## 2026-11-10T17:57:00Z — Import model… now brings an STL or 3MF into your project
+
+**Post:** WarpCad's File menu has Import model… now. Pick an STL or 3MF, a see-through ghost waits on the grid, and a click (or a drag and lift on touch) puts it in your project, selected. It no longer lands in your parts library. Undo takes it back in one step. #CAD #OpenSource
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** File → Import model…, ghost placement, never saved to My parts, one Undo → diff (FileMenu.vue, placement.js, document.js importUserPart) and e2e/import-model.e2e.js passing on all nine projects this session
+**To Add:** docs/media/import-model-place.gif

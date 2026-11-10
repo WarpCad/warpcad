@@ -4,9 +4,10 @@ import { openApp, startMovie, endMovie, shot, settle, humanDrag } from './suppor
 import { featherShapedThreeMf } from '../../src/io/__fixtures__/threeMf.js'
 
 /**
- * Docs media for `docs/user-library.md`'s **Importing a model with its parts: 3MF**
- * (`TODO/io-024`): the Objects list expanded under an imported 3MF model, one part selected, as a
- * still; and import, drop, drill into one part and Align a Cube against it, as a movie. The
+ * Docs media for `docs/import.md`'s **Importing a model with its parts: 3MF** (`TODO/io-024`,
+ * through File → Import model… since `TODO/ui-107`): the Objects list expanded under an imported
+ * 3MF model, one part selected, as a still; and import, place, drill into one part and Align a
+ * Cube against it, as a movie. The
  * fixture is generated (`src/io/__fixtures__/threeMf.js`), shaped like a FreeCAD export of the
  * Adafruit Feather: a plate and a box placed twice, unnamed, so the parts are `Part 1` … `Part 3`.
  * No third-party model is used. Laptop, Chromium.
@@ -19,17 +20,35 @@ test.describe('docs media: import a 3MF with its parts', () => {
 
   const featherFile = async () => ({ name: 'feather.3mf', mimeType: 'model/3mf', buffer: Buffer.from(await featherShapedThreeMf()) })
 
-  /** Glide to Import model file… with the real mouse and choose the fixture. */
-  const importFeather = async (page) => {
-    const el = page.getByTestId('library-import-model')
-    await el.scrollIntoViewIfNeeded()
+  /** Glide to a control with the real mouse and press it. */
+  const glideAndClick = async (page, testid) => {
+    const el = page.getByTestId(testid)
     const b = await el.boundingBox()
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 })
     await page.waitForTimeout(250)
-    const chooser = page.waitForEvent('filechooser')
     await el.click()
+  }
+
+  /**
+   * File → Import model…, choose the fixture, then move the ghost to `at` and click to place it.
+   *
+   * @param {import('@playwright/test').Page} page
+   * @param {{ x: number, y: number }} at
+   */
+  const importFeather = async (page, at) => {
+    await glideAndClick(page, 'file-menu-button')
+    await expect(page.getByTestId('file-menu')).toBeVisible()
+    const chooser = page.waitForEvent('filechooser')
+    await glideAndClick(page, 'file-import-model')
     await (await chooser).setFiles(await featherFile())
-    await expect(page.getByTestId('library-row-user.feather')).toBeVisible()
+    await expect(page.getByTestId('placement-chip')).toBeVisible()
+    await page.mouse.move(at.x - 120, at.y - 60, { steps: 6 })
+    await page.mouse.move(at.x, at.y, { steps: 24 })
+    await page.waitForTimeout(400)
+    await page.mouse.down()
+    await page.waitForTimeout(60)
+    await page.mouse.up()
+    await expect(page.getByTestId('placement-chip')).toHaveCount(0)
   }
 
   /** The canvas point at a fraction of its box. */
@@ -76,10 +95,7 @@ test.describe('docs media: import a 3MF with its parts', () => {
 
   test('import-3mf-parts still', async ({ page }) => {
     await openApp(page)
-    await page.getByTestId('library-section-toggle-user').click()
-    await importFeather(page)
-    await page.getByTestId('library-toast').evaluate((el) => el.remove?.())
-    await dragRowTo(page, 'library-row-user.feather', await canvasAt(page, 0.45, 0.55))
+    await importFeather(page, await canvasAt(page, 0.45, 0.55))
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
     const id = /** @type {string} */ (await page.locator('[data-testid="scene-bodies"] li').first().getAttribute('data-body-id'))
     const list = page.getByTestId('object-list')
@@ -99,17 +115,14 @@ test.describe('docs media: import a 3MF with its parts', () => {
 
   test('import-3mf-align', { tag: '@movie' }, async ({ page }) => {
     await openApp(page)
-    await page.getByTestId('library-section-toggle-user').click()
     // The Cube is already in the scene, to the right: the movie is about the 3MF.
     await dragRowTo(page, 'library-row-primitive.cuboid', await canvasAt(page, 0.78, 0.6))
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
     const cubeId = /** @type {string} */ (await page.locator('[data-testid="scene-bodies"] li').first().getAttribute('data-body-id'))
     await settle(page)
     await startMovie(page, 'import-3mf-align')
-    await importFeather(page)
-    await page.waitForTimeout(1400)
     const drop = await canvasAt(page, 0.38, 0.55)
-    await dragRowTo(page, 'library-row-user.feather', drop)
+    await importFeather(page, drop)
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
     const featherId = (await page.locator('[data-testid="scene-bodies"] li').evaluateAll((items) =>
       items.map((item) => ({ id: item.getAttribute('data-body-id'), op: item.getAttribute('data-body-op') })),

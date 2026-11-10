@@ -3,32 +3,34 @@ import { test, expect } from '@playwright/test'
 
 import { featherShapedThreeMf } from '../src/io/__fixtures__/threeMf.js'
 import { closeLibrary, isPhone, openLibrary, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
-import { withRowSettings } from './support/libraryRow.js'
+import { importModel, myPartsCount, openObjectList as openObjects } from './support/importModel.js'
 
 /**
- * Import a 3MF as one placeable part whose objects are selectable sub-parts (`TODO/io-024`),
- * driven against `/`.
+ * Import a 3MF into the project as one placed model whose objects are selectable sub-parts
+ * (`TODO/io-024`), through **File → Import model…** (`TODO/ui-107`), driven against `/`.
  *
  * The fixture is generated (`src/io/__fixtures__/threeMf.js`) in the shape of the owner's FreeCAD
  * export of the Adafruit Feather: a plate and a box, the box placed twice (once with FreeCAD's
  * quarter turn), no names, the whole set written three times, deflated, a thumbnail per object.
  * The owner's own file is never committed; it is driven by hand in `TODO/ACCEPTANCE.md` scenario 31.
  *
- * The TODO's own example, end to end: **Import model file…** through the real chooser; the row
- * reads **Mesh**, **3 parts** and the whole model's size, with no Units control (3MF states its
- * units); the toast counts the six duplicates skipped. Drag it in, drag a Cube in beside it; a
+ * The TODO's own example, end to end: **File → Import model…** through the real chooser; place it
+ * in the view (hover and click, or drag the ghost on touch); the status line counts the six
+ * duplicates skipped; the Inspector offers no Units control (3MF states its units); **My parts does
+ * not change**. Drag a Cube in beside it; a
  * first click on the model selects the whole, a second narrows to the part under the pointer with
  * a breadcrumb and that part's own size. The Objects list expands to every part. Align the Cube to
  * one part's X centre (to 0.01 mm), Subtract the whole model from the Cube with no main-thread
  * long task and Undo it in one step (`TODO/core-079`), Subtract another part from the Cube (one body with a pocket;
- * a visible cutting part uses its model up, as `docs/booleans.md` says), reload (the cut stays), **File ▸ New** (the part stays in My parts). Refusals: a
- * text file named `x.3mf`, a STEP file dropped on the panel, a file over the size cap.
+ * a visible cutting part uses its model up, as `docs/booleans.md` says), reload (the cut stays, with
+ * no library entry behind it), **File ▸ New** (My parts still empty). Refusals: a text file named
+ * `x.3mf`, a STEP file dropped on the view, a file over the size cap.
  *
  * Input is real (see `support/humanInput.js`): trusted CDP touch at Chromium phone/tablet width, a
  * real mouse elsewhere. All three viewports and all three engines: the worker inflates the zip with
  * `DecompressionStream`, the thumbnail is a canvas, the part persists in IndexedDB, and the file
- * input differs per engine. Screenshots are attached at each viewport (the tags and the Objects
- * list wrap differently in a sheet), as `import-model.e2e.js` does.
+ * input differs per engine. Screenshots are attached at each viewport (the Objects list wraps
+ * differently in a sheet), as `import-model.e2e.js` does.
  */
 
 /** The model's parts and their own sizes, in millimetres (the fixture's, read in its own frame). */
@@ -48,32 +50,21 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('viewport')).toBeVisible()
 })
 
-/** Choose a file through the button's real file chooser (in the rail's ⋯ menu in the icons tier). */
-async function chooseModel(page, input, file) {
-  const chooser = page.waitForEvent('filechooser')
-  const more = page.getByTestId('library-rail-more')
-  if (await more.isVisible().catch(() => false)) await input.press(more)
-  await input.press(page.getByTestId('library-import-model'))
-  await (await chooser).setFiles(file)
-}
-
-async function ensureUserOpen(page, input) {
-  const toggle = page.getByTestId('library-section-toggle-user')
-  if (!(await toggle.isVisible().catch(() => false))) return
-  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await input.press(toggle)
-}
-
 /** Open the Objects list, through the Inspector sheet where there is one. */
 async function openObjectList(page, input) {
-  const list = page.getByTestId('object-list')
-  if (await list.isVisible().catch(() => false)) return
-  const inspector = page.getByTestId('inspector')
-  if ((await page.getByTestId('inspector-tab').isVisible().catch(() => false)) && (await inspector.getAttribute('data-open')) !== 'true') {
-    await input.press(page.getByTestId('inspector-tab'))
-    await expect(inspector).toHaveAttribute('data-open', 'true')
-  }
-  if (!(await list.isVisible().catch(() => false))) await input.press(page.getByTestId('inspector-objects-header'))
-  await expect(list).toBeVisible()
+  await openObjects(page, input.press)
+}
+
+/** File → Import model…, then place the model at canvas fractions `at`; returns its body id. */
+async function importAndPlace(page, input, file, at) {
+  await importModel(page, input.press, file)
+  await expect(page.getByTestId('placement-chip-label')).toHaveText(`Place ${file.name}`)
+  const p = await viewportPoint(page, at[0], at[1])
+  await input.placeArmed(p.x, p.y)
+  await expect(page.getByTestId('placement-chip')).toHaveCount(0)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', /[1-9]/)
+  const bodies = await sceneBodies(page)
+  return bodies[bodies.length - 1].id
 }
 
 /** A click (or tap) on the 3D view at a fraction of the canvas. */
@@ -177,35 +168,22 @@ async function inspectorSize(page) {
 test('import feather.3mf: 3 parts, drill to one, align a cube to it, cut with another, reload, File > New', async ({ page }, info) => {
   test.setTimeout(150_000)
   const input = await pointer(page, info)
-  await openLibrary(page, input.press)
-  await ensureUserOpen(page, input)
-  await chooseModel(page, input, await featherFile())
+  expect(await myPartsCount(page)).toBe(0)
 
-  const op = 'user.feather'
-  const row = page.getByTestId(`library-row-${op}`)
-  await expect(row).toBeVisible()
-  await expect(page.getByTestId('library-toast')).toHaveText(
+  // Place the model, then a Cube on the same spot (it overlaps the model, for the cut below).
+  const at = isPhone(info) ? [0.5, 0.3] : [0.45, 0.5]
+  const featherId = await importAndPlace(page, input, await featherFile(), at)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const op = (await sceneBodies(page)).find((body) => body.id === featherId).op
+  expect(op).toBe('user.feather')
+  await expect(page.getByTestId('model-import-notice')).toHaveText(
     'Imported feather.3mf, 3 parts, 36 triangles, 50.8 × 28.6 × 4.52 mm. 6 exact duplicates skipped.',
   )
-  await withRowSettings(page, op, async () => {
-    await expect(page.getByTestId('library-mesh-tag')).toHaveText('Mesh')
-    await expect(page.getByTestId('library-mesh-parts')).toHaveText('3 parts')
-    await expect(page.getByTestId('library-mesh-size')).toHaveText('50.8 × 28.6 × 4.52 mm')
-    // 3MF states its units: nothing to choose, nothing assumed.
-    await expect(page.getByTestId(`library-mesh-units-${op}`)).toHaveCount(0)
-    await expect(page.getByTestId('library-mesh-assumed')).toHaveCount(0)
-    await expect(page.getByTestId(`library-thumb-${op}`)).toBeVisible()
-  })
-  await expect(page.getByTestId('library-import-progress')).toHaveCount(0)
-  await info.attach(`import-3mf-row-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
+  // Selected as the whole assembly (io-024's first click), and never in My parts.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', featherId)
+  expect(await myPartsCount(page)).toBe(0)
+  await info.attach(`import-3mf-placed-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
-
-  // Drag the model in, then a Cube on the same spot (it overlaps the model, for the cut below).
-  const at = isPhone(info) ? [0.5, 0.24] : [0.45, 0.5]
-  let p = await viewportPoint(page, at[0], at[1])
-  await input.dragRow(row, p.x, p.y)
-  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
-  const featherId = (await sceneBodies(page)).find((body) => body.op === op).id
   // The whole model lands centred on the drop point, lowest point on the ground, parts in place.
   const whole = await boundsIn(page, featherId)
   expect(whole.min[2]).toBeCloseTo(0, 6)
@@ -219,7 +197,7 @@ test('import feather.3mf: 3 parts, drill to one, align a cube to it, cut with an
   expect(turned.min[2] - plate.min[2]).toBeCloseTo(1.57, 3)
 
   await openLibrary(page, input.press)
-  p = await viewportPoint(page, at[0], at[1])
+  const p = await viewportPoint(page, at[0], at[1])
   await input.dragRow(page.getByTestId('library-row-primitive.cuboid'), p.x, p.y)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
   await closeLibrary(page, input.press)
@@ -232,6 +210,10 @@ test('import feather.3mf: 3 parts, drill to one, align a cube to it, cut with an
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', featherId)
   await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveCount(0)
   expect((await inspectorSize(page))[0]).toBeCloseTo(50.8, 2)
+  // 3MF states its units: the Inspector offers nothing to choose, and assumes nothing.
+  await expect(page.getByTestId('inspector-mesh-note')).toContainText(/not parametric/i)
+  await expect(page.getByTestId('inspector-mesh-units')).toHaveCount(0)
+  await expect(page.getByTestId('inspector-mesh-assumed')).toHaveCount(0)
   await openObjectList(page, input)
   const expand = page.getByTestId(`objects-expand-${featherId}`)
   if ((await expand.getAttribute('aria-expanded')) !== 'true') await input.press(expand)
@@ -313,38 +295,27 @@ test('import feather.3mf: 3 parts, drill to one, align a cube to it, cut with an
   expect(volume).toBeLessThan(64_000 - 100)
   expect(volume).toBeGreaterThan(64_000 - 50.8 * 22.86 * 1.57 - 1)
 
-  // Reload: the part and the cut survive.
+  // Reload: the cut survives, built from the project's own copy of the model — no library entry.
   await page.reload()
   await expect(page.getByTestId('viewport')).toBeVisible()
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
   expect((await sceneBodies(page)).map((body) => body.op)).toEqual(['boolean.subtract'])
-  await expect(page.getByTestId('library-user-count')).toHaveText('1')
+  expect(await myPartsCount(page)).toBe(0)
 
-  // File ▸ New: the scene empties; the part stays in My parts, still 3 parts.
+  // File ▸ New: the scene empties; My parts never had it.
   await input.press(page.getByTestId('file-menu-button'))
   await input.press(page.getByTestId('file-new'))
   const replace = page.getByTestId('file-open-confirm-replace')
   if (await replace.isVisible().catch(() => false)) await input.press(replace)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
-  await openLibrary(page, input.press)
-  await ensureUserOpen(page, input)
-  await expect(page.getByTestId(`library-row-${op}`)).toBeVisible()
-  await withRowSettings(page, op, () => expect(page.getByTestId('library-mesh-parts')).toHaveText('3 parts'))
+  expect(await myPartsCount(page)).toBe(0)
 })
 
 test('a first click selects the whole model, a second narrows to the part under the pointer', async ({ page }, info) => {
   const input = await pointer(page, info)
-  await openLibrary(page, input.press)
-  await ensureUserOpen(page, input)
-  await chooseModel(page, input, await featherFile())
-  const row = page.getByTestId('library-row-user.feather')
-  await expect(row).toBeVisible()
   const at = isPhone(info) ? [0.5, 0.3] : [0.45, 0.5]
-  const p = await viewportPoint(page, at[0], at[1])
-  await input.dragRow(row, p.x, p.y)
+  const id = await importAndPlace(page, input, await featherFile(), at)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
-  await closeLibrary(page, input.press)
-  const id = (await sceneBodies(page))[0].id
 
   // Clear the selection on empty ground, then click the model twice.
   await clickView(page, ...(await emptyGround(page)))
@@ -365,31 +336,37 @@ test('a first click selects the whole model, a second narrows to the part under 
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', id)
 })
 
-test('refusals: a text file named x.3mf, a STEP file dropped on the panel, a file over the cap', async ({ page }, info) => {
+test('refusals: a text file named x.3mf, a STEP file, a file over the cap — each in words, nothing added', async ({ page }, info) => {
   const input = await pointer(page, info)
-  await openLibrary(page, input.press)
-  await ensureUserOpen(page, input)
 
-  await chooseModel(page, input, { name: 'x.3mf', mimeType: 'model/3mf', buffer: Buffer.from('just some notes') })
-  await expect(page.getByTestId('library-import-error')).toHaveText('Not a valid 3MF: it is not a zip package')
-  await expect(page.locator('[data-testid^="library-row-user."]')).toHaveCount(0)
+  await importModel(page, input.press, { name: 'x.3mf', mimeType: 'model/3mf', buffer: Buffer.from('just some notes') })
+  await expect(page.getByTestId('model-import-error')).toHaveText('Not a valid 3MF: it is not a zip package')
+  await expect(page.getByTestId('placement-chip')).toHaveCount(0)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
 
   const big = Buffer.alloc(25 * 1024 * 1024 + 1)
   big.set([0x50, 0x4b, 0x03, 0x04])
-  await chooseModel(page, input, { name: 'huge.3mf', mimeType: 'model/3mf', buffer: big })
-  await expect(page.getByTestId('library-import-error')).toHaveText('That file is larger than 25 MB')
-  await expect(page.locator('[data-testid^="library-row-user."]')).toHaveCount(0)
+  await importModel(page, input.press, { name: 'huge.3mf', mimeType: 'model/3mf', buffer: big })
+  await expect(page.getByTestId('model-import-error')).toHaveText('That file is larger than 25 MB')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
 
-  // Dropping a file on the panel is a laptop-width convenience (the panel is a sheet there).
+  // A STEP file through the picker (its filter offers .stl and .3mf, but a person can pick anything).
+  await importModel(page, input.press, { name: '2821 Adafruit ESP8266 Feather.step', mimeType: 'application/step', buffer: Buffer.from('ISO-10303-21;') })
+  await expect(page.getByTestId('model-import-error')).toHaveText('STEP files are not read yet. Export 3MF or STL from your CAD program')
+
+  // At laptop width, a broken .3mf dropped on the view is refused in the same status line.
   if (info.project.name.endsWith('-laptop')) {
     const transfer = await page.evaluateHandle(() => {
       const data = new DataTransfer()
-      data.items.add(new File(['ISO-10303-21;'], '2821 Adafruit ESP8266 Feather.step', { type: 'application/step' }))
+      data.items.add(new File(['just some notes'], 'notes.3mf', { type: 'model/3mf' }))
       return data
     })
-    await page.dispatchEvent('#library-sheet', 'dragover', { dataTransfer: transfer })
-    await page.dispatchEvent('#library-sheet', 'drop', { dataTransfer: transfer })
-    await expect(page.getByTestId('library-import-error')).toHaveText('STEP files are not read yet. Export 3MF or STL from your CAD program')
-    await expect(page.locator('[data-testid^="library-row-user."]')).toHaveCount(0)
+    const p = await viewportPoint(page, 0.5, 0.5)
+    await page.getByTestId('viewport').dispatchEvent('dragover', { dataTransfer: transfer, clientX: p.x, clientY: p.y })
+    await page.getByTestId('viewport').dispatchEvent('drop', { dataTransfer: transfer, clientX: p.x, clientY: p.y })
+    await expect(page.getByTestId('model-import-error')).toHaveText('Not a valid 3MF: it is not a zip package')
   }
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
+  expect(await myPartsCount(page)).toBe(0)
+  await info.attach(`import-3mf-refused-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
 })

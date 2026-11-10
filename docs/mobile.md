@@ -200,7 +200,7 @@ After a merge, the strip that reports it sits across the top of the 3D view, und
 and pushes the view down rather than covering the toolbar or the navigation pad. **Show** on it
 opens the History sheet.
 
-![The File menu open on a phone, listing New, Download copy, Open, Merge file, Share, Export, Resolution and Connect repository.](./screenshots/file-menu-phone.png)
+![The File menu open on a phone, listing New, Download copy, Open, Merge file, Import model, Import part file, Share, Export, Resolution and Connect repository.](./screenshots/file-menu-phone.png)
 
 ## Sketching
 

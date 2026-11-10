@@ -125,14 +125,19 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
 Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
 **Share** and the status light. It works the same on a laptop, a tablet and a phone: tap
 it and a menu opens under it, with four groups: the items for **this device** at the top
-(**New**, the save item, **Open…**, **Merge file…**, **Share…**, **Export…**), a **Design** group holding the **Resolution**
+(**New**, the save item, **Open…**, **Merge file…**, **Import model…**, **Import part file…**,
+**Share…**, **Export…**), a **Design** group holding the **Resolution**
 setting and **Project settings…** (see [Design intent](design-intent.md)), **Hosted storage**,
 and **Short links**, the GitHub token for gist links ([Two GitHub tokens, and how they
 differ](#two-github-tokens-and-how-they-differ)). The first line of the menu repeats the
 status message in full, which is how you read it on a phone, where the status light in the bar
 is only a dot.
 
-![The File menu open: a status line, then New, Download copy, Open…, Merge file…, Share… and Export…, a Design group with Resolution: Normal… and Project settings…, a Hosted storage group with Connect repository…, and a Short links group with Connect GitHub for gists…](./screenshots/file-menu.png)
+**Import model…** brings an STL or 3MF file into the open project, placed in the 3D view, and
+**Import part file…** adds the parts in a WarpCad part file to the Library's My parts. Both are
+explained in [Importing a model file](import.md).
+
+![The File menu open: a status line, then New, Download copy, Open…, Merge file…, Import model…, Import part file…, Share… and Export…, a Design group with Resolution: Normal… and Project settings…, a Hosted storage group with Connect repository…, and a Short links group with Connect GitHub for gists…](./screenshots/file-menu.png)
 
 Opening the menu never changes what is selected, and nothing in it is greyed out because of
 what is selected.

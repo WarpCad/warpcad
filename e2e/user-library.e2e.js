@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { showRowSettings, withRowSettings } from './support/libraryRow.js'
+import { importPartFile, myPartsCount } from './support/importModel.js'
+import { serializePartFile } from '../src/core/userPartFile.js'
 
 /**
  * Save a group to the library and place it again (`TODO/ui-055`), driven against `/`.
@@ -201,6 +203,35 @@ async function buildGroup(page, input, info) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toBeVisible()
+})
+
+test('the Library has no import buttons; File > Import part file… adds the parts to My parts and says where they went (TODO/ui-107)', async ({ page }, info) => {
+  const input = await pointer(page, info)
+  await openLibrary(page, input.press)
+  // Neither the column's My parts header nor the rail has an import control any more.
+  await expect(page.getByTestId('library-import')).toHaveCount(0)
+  await expect(page.getByTestId('library-import-model')).toHaveCount(0)
+  await expect(page.getByTestId('library-rail-more')).toHaveCount(0)
+  await closeLibrary(page, input.press)
+  expect(await myPartsCount(page)).toBe(0)
+
+  const standoff = {
+    op: 'user.standoff',
+    name: 'Standoff',
+    version: 1,
+    result: 'r1',
+    records: [{ id: 'r1', op: 'primitive.cuboid', params: { size: [10, 10, 20], center: [0, 0, 10] } }],
+    params: [],
+  }
+  const text = serializePartFile([standoff], {})
+  await importPartFile(page, input.press, { name: 'standoff.warpcad-part.json', mimeType: 'application/json', buffer: Buffer.from(text) })
+  await expect(page.getByTestId('library-toast')).toHaveText('Added Standoff to My parts. Open Library to place it')
+  expect(await myPartsCount(page)).toBe(1)
+  // The project did not change: a part file is a set of library entries, not a placed object.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
+  await openLibrary(page, input.press)
+  await expect(page.getByTestId('library-row-user.standoff')).toBeVisible()
+  await info.attach(`library-import-part-${info.project.name}`, { body: await page.screenshot(), contentType: 'image/png' })
 })
 
 test('Save to library is gated on exactly one selected body, and says why when it is not', async ({ page }, info) => {

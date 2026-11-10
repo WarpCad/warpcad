@@ -691,6 +691,28 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * `TODO/ui-107`: **File → Import model…** — the project carries `definition` (a part the
+   * library has never seen) and `build`'s records place it, as **one** undoable step with a
+   * local origin, named by `transaction.label` (*Import bracket.stl*). Core's
+   * `document.importUserPart`, routed here for the selection-before `meta` Undo restores and
+   * one `refresh()`. Atomic: it throws the core's refusal and changes nothing.
+   *
+   * @param {import('../core/userPart.js').UserPartDefinition} definition
+   * @param {() => OpRecord[]} build
+   * @param {{ label?: string }} [transaction]
+   * @returns {OpRecord[]}
+   */
+  function importPart(definition, build, transaction = {}) {
+    const records = raw.importUserPart(definition, build, {
+      origin: 'local',
+      label: transaction.label,
+      meta: { selectionBefore: [...useSelectionStore().ids] },
+    })
+    refresh()
+    return records
+  }
+
+  /**
    * Several appends that each need the document *as the previous one left it*,
    * committed as **one undoable step**, atomically (`TODO/ui-044`, core's
    * `document.batch`). `build` gets an `append` to call as often as it needs and
@@ -1197,6 +1219,7 @@ export const useDocumentStore = defineStore('document', () => {
     load,
     append,
     appendAll,
+    importPart,
     appendOperation,
     operationOffThread,
     pendingOperation,

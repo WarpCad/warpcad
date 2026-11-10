@@ -184,7 +184,7 @@ head brings its thread and tap with it.
 **An imported 3MF model works the same way.** Each of its components is a named part
 (`Part 1`, `Part 22`, … when the file carries no names), so you can position against one chip
 on a board you imported. See
-[Importing a model with its parts: 3MF](user-library.md#importing-a-model-with-its-parts-3mf).
+[Importing a model with its parts: 3MF](import.md#importing-a-model-with-its-parts-3mf).
 
 **You can only drill into a part you can click** — in the 3D view. A part that sits
 *inside* another one — a Raspberry Pi's mounting holes, for instance, which pass through

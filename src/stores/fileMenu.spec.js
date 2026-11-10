@@ -15,6 +15,7 @@ import { useFileMenuStore } from './fileMenu.js'
 import { setGistDependencies, useGistStore } from './gist.js'
 import { setHostedDependencies, useHostedStore } from './hosted.js'
 import { setPersistenceDependencies, usePersistenceStore } from './persistence.js'
+import { useTimelineStore } from './timeline.js'
 
 /**
  * `TODO/ui-033` — the File menu's UI state and the two rules that live in it:
@@ -131,6 +132,30 @@ describe('useFileMenuStore', () => {
     const menu = useFileMenuStore()
     menu.requestOpen()
     expect(menu.confirm).toBe('open')
+  })
+
+  describe('Import model… and Import part file… (TODO/ui-107)', () => {
+    it('are enabled on an empty project, and a request closes the menu and says to open the picker', () => {
+      const menu = useFileMenuStore()
+      expect(menu.importReason).toBe('')
+      menu.openMenu()
+      expect(menu.requestImport()).toBe(true)
+      expect(menu.menuOpen).toBe(false)
+    })
+
+    it('are dimmed with a reason while History previews a past step, and a request does nothing', () => {
+      const document = useDocumentStore()
+      document.append(cube('a'))
+      document.append(cube('b'))
+      const timeline = useTimelineStore()
+      timeline.selectRow('a')
+      expect(timeline.previewing).toBe(true)
+      const menu = useFileMenuStore()
+      expect(menu.importReason).toBe('Return to the latest step to import')
+      menu.openMenu()
+      expect(menu.requestImport()).toBe(false)
+      expect(menu.menuOpen).toBe(true)
+    })
   })
 
   describe('New (TODO/ui-054)', () => {

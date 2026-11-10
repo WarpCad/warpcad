@@ -14,8 +14,8 @@
  * - **One pop-out at a time**, across both panels, in the layout store's `openPopout`
  *   (`library-row:<op>`). Escape closes it and returns focus to the tile; a press anywhere outside
  *   the rail closes it without swallowing the press, so a tap on the viewport still selects.
- * - **The top** holds the ? help button and a ⋯ menu with **Import part file…** and
- *   **Import model…** (the panel owns the file inputs; this emits `import-part` / `import-model`).
+ * - **The top** holds the ? help button. It had a ⋯ menu with the two import items until
+ *   `TODO/ui-107` moved both to the File menu (an import is a project action, not a Library one).
  * - **My parts** stays collapsible: its toggle is a tile with the count as a badge.
  * - **The Repeat hint** (`ui-069`) cannot fit a 72px rail, so it is a callout pinned to the rail's
  *   top-right edge, with the same text and test id. It ignores the pointer, so it never blocks the
@@ -29,7 +29,7 @@
  * with a 10px short name. A tap opens that section's **pop-out** (`LibrarySectionPopout`), in the
  * same shared `openPopout` slot (`library-section:<id>`), so opening it closes any other pop-out of
  * either panel and vice versa. Tapping it again closes it, Escape closes it and returns focus to the
- * launcher, and a press outside closes it without swallowing the press. The top keeps ? and ⋯.
+ * launcher, and a press outside closes it without swallowing the press. The top keeps ?.
  *
  * A change of form (a tier change) closes whichever pop-out belonged to the form that is going, at
  * once and without animation; the panel holds the form steady while a drag is under way.
@@ -51,7 +51,6 @@ const props = defineProps({
   form: { type: /** @type {import('vue').PropType<'tiles' | 'launchers'>} */ (String), default: 'tiles' },
 })
 
-const emit = defineEmits(['import-part', 'import-model'])
 
 /** The `openPopout` prefix for a Library row pop-out. */
 const POPOUT_PREFIX = 'library-row:'
@@ -67,8 +66,6 @@ const repeat = useRepeatStore()
 const panelLayout = usePanelLayoutStore()
 
 const railEl = ref(/** @type {HTMLElement | null} */ (null))
-const moreButton = ref(/** @type {HTMLButtonElement | null} */ (null))
-const moreOpen = ref(false)
 const popoutTopPx = ref(0)
 
 /** The op whose pop-out is open, or `null` (another panel's pop-out, or none). */
@@ -133,7 +130,6 @@ function launcherFor(id) {
 
 /** A tap on a launcher: open its section, switch to it from another pop-out, or close it. */
 function onLaunch(/** @type {string} */ id) {
-  moreOpen.value = false
   panelLayout.openPopout = openSectionId.value === id ? null : `${SECTION_PREFIX}${id}`
 }
 
@@ -162,7 +158,6 @@ async function placePopout(op) {
 
 /** A tap on a tile: open its pop-out, switch to it from another, or close it if it is open. */
 function onTap(/** @type {string} */ op) {
-  moreOpen.value = false
   if (openOp.value === op) {
     panelLayout.openPopout = null
     return
@@ -182,21 +177,9 @@ watch(
   () => closePopout(),
 )
 
-function toggleMore() {
-  closePopout()
-  moreOpen.value = !moreOpen.value
-}
-
-/** @param {'import-part' | 'import-model'} which */
-function choose(which) {
-  moreOpen.value = false
-  if (which === 'import-part') emit('import-part')
-  else emit('import-model')
-}
-
 // Escape closes whichever is open and hands focus back to what opened it.
 useEscapeToClose(
-  () => (openOp.value !== null || openSectionId.value !== null || moreOpen.value) && !userPartUiOpen.value,
+  () => (openOp.value !== null || openSectionId.value !== null) && !userPartUiOpen.value,
   () => {
     const op = openOp.value
     if (op !== null) {
@@ -208,10 +191,7 @@ useEscapeToClose(
     if (sectionId !== null) {
       panelLayout.openPopout = null
       void nextTick(() => launcherFor(sectionId)?.focus())
-      return
     }
-    moreOpen.value = false
-    void nextTick(() => moreButton.value?.focus())
   },
 )
 
@@ -226,11 +206,10 @@ function onDocumentPointerDown(event) {
   const target = /** @type {Node | null} */ (event.target)
   if (target && railEl.value?.contains(target)) return
   closePopout()
-  moreOpen.value = false
 }
 
 watch(
-  () => openOp.value !== null || openSectionId.value !== null || moreOpen.value,
+  () => openOp.value !== null || openSectionId.value !== null,
   (anything) => {
     if (anything) document.addEventListener('pointerdown', onDocumentPointerDown, true)
     else document.removeEventListener('pointerdown', onDocumentPointerDown, true)
@@ -249,20 +228,6 @@ onBeforeUnmount(() => {
     <div class="library-rail__scroll">
       <div class="library-rail__top">
         <HelpButton topic="library" class="library-rail__help" />
-        <button
-          ref="moreButton"
-          type="button"
-          class="library-rail__more"
-          data-testid="library-rail-more"
-          aria-haspopup="menu"
-          :aria-expanded="moreOpen"
-          aria-controls="library-rail-menu"
-          aria-label="More Library actions"
-          title="More: import a part file or a model"
-          @click="toggleMore"
-        >
-          <span aria-hidden="true">⋯</span>
-        </button>
       </div>
 
       <!-- The pop-out tier (TODO/ui-081): one launcher per section, each opening its pop-out. -->
@@ -359,36 +324,10 @@ onBeforeUnmount(() => {
       </template>
     </div>
 
-    <div v-if="moreOpen" id="library-rail-menu" class="library-rail__menu" role="menu" data-testid="library-rail-menu">
-      <button
-        type="button"
-        role="menuitem"
-        class="library-rail__menu-item"
-        data-testid="library-import"
-        title="Add the parts in a part file to My parts"
-        @click="choose('import-part')"
-      >
-        Import part file…
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        class="library-rail__menu-item"
-        data-testid="library-import-model"
-        title="Add an STL model file to My parts as a part you can place"
-        @click="choose('import-model')"
-      >
-        Import model…
-      </button>
-    </div>
-
     <!-- Callouts pinned to the rail's top-right edge: what a 72px rail cannot hold as a paragraph. -->
     <div class="library-rail__callouts">
       <p v-if="repeat.libraryHint" class="library-rail__callout" data-testid="library-repeat-hint">
         {{ repeat.libraryHint }}
-      </p>
-      <p v-if="library.modelImporting" class="library-rail__callout" role="status" data-testid="library-import-progress">
-        Reading {{ library.modelImporting }}…
       </p>
       <p v-if="library.importError" class="library-rail__callout library-rail__callout--error" role="alert" data-testid="library-import-error">
         {{ library.importError }}
@@ -434,7 +373,6 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
-.library-rail__more,
 .library-rail__toggle {
   position: relative;
   display: grid;
@@ -452,13 +390,10 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.library-rail__more:hover,
-.library-rail__toggle:hover,
-.library-rail__more[aria-expanded='true'] {
+.library-rail__toggle:hover {
   border-color: var(--border-strong);
 }
 
-.library-rail__more:focus-visible,
 .library-rail__toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -588,42 +523,6 @@ onBeforeUnmount(() => {
   font-size: 10px;
   line-height: 16px;
   text-align: center;
-}
-
-.library-rail__menu {
-  position: absolute;
-  top: 56px;
-  left: calc(100% + 6px);
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 200px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-glass);
-  backdrop-filter: blur(8px);
-  box-shadow: var(--shadow-overlay);
-}
-
-.library-rail__menu-item {
-  min-height: var(--tap);
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.library-rail__menu-item:hover,
-.library-rail__menu-item:focus-visible {
-  border-color: var(--border-strong);
-  outline: none;
 }
 
 .library-rail__callouts {

@@ -468,11 +468,13 @@ import {
   bakedRecolorsOf,
   effectiveUserPart,
   ensureProjectParts,
+  isUnitsReread,
   isUserPartOp,
   projectPartsSnapshot,
   requiredUserParts,
   restoreProjectParts,
   setProjectParts,
+  validateUserPart,
 } from './userPart.js'
 import { foldColorOverrides } from './colorOverride.js'
 import { bodyViewOf, encodeViewHidden, normalizeViewHidden, viewHiddenMapOf, withViewHidden } from './visibility.js'
@@ -953,6 +955,9 @@ export class ReplayRejection extends Error {
  * @property {(transaction: TransactionOptions) => void} showAll `TODO/ui-089`: clear every hide.
  * @property {() => import('./userPart.js').UserPartDefinition[]} userParts `TODO/core-037`:
  *   the user-part definitions the project carries, in op order.
+ * @property {(definition: import('./userPart.js').UserPartDefinition, build: () => OpRecord[], transaction: TransactionOptions) => OpRecord[]} importUserPart
+ *   `TODO/ui-107`: carry a part definition the library never saw and append the records that
+ *   place it, as one undoable step. Atomic: a refusal changes nothing.
  * @property {(id: string) => string | undefined} currentIdOf
  * @property {(id: string) => string | undefined} rootOf
  * @property {(id: string) => OpRecord[]} lineageOf
@@ -1121,6 +1126,7 @@ const STAMPED_MUTATORS = Object.freeze([
   'setAiRecordsPerTurn',
   'setViewHidden',
   'showAll',
+  'importUserPart',
 ])
 
 /**
@@ -4492,7 +4498,11 @@ export function createDocument(options = {}) {
           'lineage itself, and a revision edits a step, never what it continues or retires'
       )
     }
-    if (record.op !== current.op && !(DETACHABLE_OPS.has(current.op) && record.op === 'transform.translate')) {
+    // `TODO/ui-107`: the second, as narrow — a placed imported model re-read in other units
+    // (Change units in the Inspector), which is the same file's geometry under a part of its own.
+    const partOf = (/** @type {string} */ op) => userParts.get(op) ?? effectiveUserPart(op)
+    const reread = isUserPartOp(current.op) && isUserPartOp(record.op) && isUnitsReread(partOf(current.op), partOf(record.op))
+    if (record.op !== current.op && !(DETACHABLE_OPS.has(current.op) && record.op === 'transform.translate') && !reread) {
       throw new Error(
         `document.reviseRecords: "${id}" may not change from ${current.op} to ${record.op} — ` +
           'only a Snap or Align may be detached into a plain move'
@@ -4582,6 +4592,52 @@ export function createDocument(options = {}) {
     append(record, transaction) {
       const { records, scene: next } = document.appendAll([record], transaction)
       return { record: records[0], scene: next }
+    },
+
+    /**
+     * `TODO/ui-107`: **File → Import model…** — the project carries a part definition the
+     * library has never seen, and the records that place it are appended, as **one**
+     * transaction with the caller's origin (one press of Undo removes the instance).
+     *
+     * The definition goes into the project layer first, so `build` can make the drop records
+     * against the registry (`recordsForDrop` needs the op registered) and the fold can build it;
+     * then the fold adopts it into this project's own copies ({@link adoptUserPart}), exactly as
+     * a part placed from My parts is. After Undo the copy stays in memory, as every placed
+     * part's does, and a save no longer writes it: `serializeProject` writes only the parts live
+     * records require.
+     *
+     * Atomic. An invalid definition, an op this project already carries as a *different* part,
+     * or records that do not fold, throw — and the document, its part copies and the project
+     * layer are left exactly as they were (a layer entry the caller staged before is the
+     * caller's to withdraw).
+     */
+    importUserPart(definition, build, transaction) {
+      requireOrigin('importUserPart', transaction)
+      const verdict = validateUserPart(definition)
+      if (!verdict.ok) throw new Error(`document.importUserPart: ${verdict.reason}`)
+      const part = verdict.definition
+      const carried = userParts.get(part.op)
+      if (carried !== undefined && JSON.stringify(carried) !== JSON.stringify(part)) {
+        throw new Error(`document.importUserPart: this project already carries a different part as ${part.op}`)
+      }
+      const layer = projectPartsSnapshot()
+      const partsBefore = userParts
+      userParts = new Map(userParts)
+      try {
+        ensureProjectParts([part])
+        const records = build()
+        if (!records.some((record) => record.op === part.op)) {
+          throw new Error(`document.importUserPart: nothing places ${part.op}`)
+        }
+        // Inside a batch, not a bare `appendAll`: its fast path can commit the part record
+        // before a later record throws, and an import must leave nothing behind.
+        document.batch(() => document.appendAll(records, transaction), { label: transaction.label })
+        return records
+      } catch (error) {
+        userParts = partsBefore
+        restoreProjectParts(layer)
+        throw error
+      }
     },
 
     /**

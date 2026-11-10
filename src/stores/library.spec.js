@@ -9,7 +9,8 @@ import { piBoltRepeated } from '../core/__fixtures__/piScenes.js'
 import { createUserLibrary } from '../storage/userLibrary.js'
 import { resetUserParts, setLibraryParts, setProjectParts, effectiveUserPart } from '../core/userPart.js'
 import { cubeTriangles, binaryStl, asciiBytes } from '../io/__fixtures__/stl.js'
-import { setMeshWorkerFactory } from '../io/meshClient.js'
+import { importMeshBytes } from '../io/meshJob.js'
+import { meshPartDefinition } from '../io/meshPart.js'
 import { useDocumentStore } from './document.js'
 import { useLibraryStore } from './library.js'
 import { useSelectionStore } from './selection.js'
@@ -255,7 +256,7 @@ describe('My parts rows', () => {
     const { library, backend } = setup()
     expect(await library.importText(text)).toMatchObject({ added: ['Standoff'], skipped: [], problems: [] })
     expect(backend.rows.has('user.standoff')).toBe(true)
-    expect(library.toast.text).toBe('Imported Standoff')
+    expect(library.toast.text).toBe('Added Standoff to My parts. Open Library to place it')
     expect(await library.importText(text)).toMatchObject({ added: [], skipped: ['Standoff'] })
     const bad = await library.importText('{nope')
     expect(bad.problems[0].reason).toMatch(/JSON/)
@@ -263,38 +264,33 @@ describe('My parts rows', () => {
   })
 })
 
-describe('Import model file — the Library flow (TODO/io-009)', () => {
-  const fileOf = (bytes, name) => ({ name, size: bytes.byteLength, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) })
+describe('My parts after ui-107 — a mesh part in the library keeps its Units control', () => {
+  const meshOf = async (size, name) => {
+    const result = await importMeshBytes(`${name}.stl`, binaryStl(cubeTriangles(size)))
+    return meshPartDefinition({ record: result.record, name, triangleCount: result.triangleCount })
+  }
 
-  beforeEach(() => setMeshWorkerFactory(() => { throw new Error('no worker in jsdom') }))
-
-  it('adds the file as a Mesh part with its size, toast and thumbnail, and refuses a bad file inline', async () => {
-    const { library, backend } = setup()
-    const outcome = await library.importModel(fileOf(binaryStl(cubeTriangles(20)), 'bracket.stl'))
-    expect(outcome).toMatchObject({ ok: true, op: 'user.bracket' })
-    expect(backend.rows.get('user.bracket').thumbnail).toBe('data:image/png;base64,AAAA')
-    const row = library.userRows.find((candidate) => candidate.op === 'user.bracket')
-    expect(row.mesh).toMatchObject({ triangleCount: 12, units: 'mm', unitsConfirmed: false, sizeText: '20 × 20 × 20 mm' })
-    expect(library.toast.text).toBe('Imported bracket.stl — 12 triangles, 20 × 20 × 20 mm')
-    expect(library.expanded).toBe(true)
-    expect(library.modelImporting).toBe('')
-
-    const before = library.userRows.length
-    const bad = await library.importModel(fileOf(asciiBytes('this is not a model'), 'x.stl'))
-    expect(bad.ok).toBe(false)
-    expect(library.importError).not.toBe('')
-    expect(library.userRows).toHaveLength(before)
+  it('the library store no longer imports a model file: that is File → Import model…, into the project', () => {
+    const { library } = setup()
+    expect(library.importModel).toBeUndefined()
+    expect(library.modelImporting).toBeUndefined()
   })
 
-  it('names a second import of the same file "<name> copy" and re-reads in other units as a new version', async () => {
-    const { library, backend } = setup()
-    await library.importModel(fileOf(binaryStl(cubeTriangles(2)), 'bracket.stl'))
-    await library.importModel(fileOf(binaryStl(cubeTriangles(2)), 'bracket.stl'))
-    expect(backend.rows.has('user.bracket-copy')).toBe(true)
+  it('re-reads a stored mesh part in other units as a new version', async () => {
+    const backend = fakeBackend([await meshOf(2, 'bracket')])
+    const { library } = setup(backend)
+    await library.start()
     expect(await library.setMeshUnits('user.bracket', 'inch')).toBe(true)
     const row = library.userRows.find((candidate) => candidate.op === 'user.bracket')
     expect(row.mesh).toMatchObject({ units: 'inch', unitsConfirmed: true, sizeText: '50.8 × 50.8 × 50.8 mm' })
     expect(backend.rows.get('user.bracket').definition.version).toBe(2)
+  })
+
+  it('a mesh part only the project carries gets no My parts row (open question 1)', async () => {
+    const { library, documentStore } = setup()
+    setProjectParts([await meshOf(2, 'scan')])
+    documentStore.append({ id: 'scan-1', op: 'user.scan', name: 'scan 1', params: {} }, { origin: 'local' })
+    expect(library.userRows.map((row) => row.op)).toEqual([])
   })
 })
 

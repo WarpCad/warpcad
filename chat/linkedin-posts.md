@@ -4011,3 +4011,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** field list and labels → unit spec, 25/25 passing; History case → rounded-cube e2e, 45/45 on the full 3x3 matrix; 34/23px before and 44px after → that e2e's measured tap size, this session
 **To Add:** none
 
+
+## 2026-11-10T17:57:00Z — Import model… now brings an STL or 3MF into your project
+
+**Post:** Importing an STL or 3MF in WarpCad used to save it into the parts library, so the 3D view stayed empty until you went looking for the new row and dragged it in. A user reported exactly that: a 3MF import, an empty view, and a surprise entry in My parts.
+
+Import model… now lives in the File menu and adds the model to the open project. While the file is read, a status line says so. Then a see-through ghost of the model waits on the grid; you click where it goes, or on a phone drag it with one finger and lift. It lands selected, with its size in the Inspector, and one Undo removes it. Saving it to the library is now a separate choice, Save to library… in the Inspector.
+
+Driving it by hand on a tablet turned up two touch bugs the scripted tests had missed: a model that was already selected could be rotated by the drag meant for the new one, and on a phone the ghost started under the open Inspector sheet. Both are fixed, each with a test.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** owner's report (3MF → empty view, row in My parts) → TODO/done/ui-107 Problem section; File-menu import, ghost placement, one Undo, Save to library… in Inspector → diff; two touch bugs found by the hand drive and fixed with a spec case run RED then GREEN → this session (TODO/ACCEPTANCE.md scenario 26 Last run, e2e/import-model.e2e.js)
+**To Add:** docs/media/import-model-place.gif, docs/screenshots/file-menu-import.png

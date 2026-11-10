@@ -38,7 +38,7 @@ export const IMPORT_MESH_OP = 'import.mesh'
 /** The id of the `import.mesh` record inside a mesh part — the part's `result`. */
 export const MESH_MODEL_ID = 'model'
 
-/** The units **Import model file…** offers, as millimetres per file unit. */
+/** The units **File → Import model…** offers, as millimetres per file unit. */
 export const UNIT_SCALES = Object.freeze({ mm: 1, cm: 10, inch: 25.4 })
 
 /** @typedef {keyof typeof UNIT_SCALES} MeshUnits */

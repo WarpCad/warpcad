@@ -11,7 +11,10 @@
  * - **Precondition**: exactly one body selected ({@link saveGate}). A multi-selection is first
  *   combined with *Combine into group*, which the disabled reason says.
  * - **Trigger**: *Save to library…* opens the sheet ({@link openSave}); a row's ⋯ menu opens
- *   Rename, Duplicate, Export part file and Delete; *Import part file…* is in the section header.
+ *   Rename, Duplicate, Export part file and Delete; **File → Import part file…** reads a part file
+ *   into My parts ({@link importText}, `TODO/ui-107`). A model file (STL, 3MF) is **not** imported
+ *   here any more: File → Import model… brings it into the open project (`stores/modelImport.js`),
+ *   and Save to library… is how it then gets a row.
  * - **Feedback**: the new row at the top of My parts with its thumbnail, a "Saved <name>" toast,
  *   an "in this project" dot on a used part, and — on Delete with placed instances — the choice
  *   to keep a copy in the project.
@@ -34,6 +37,7 @@ import { definePartFromSelection } from '../core/library.js'
 import {
   USER_PART_PREFIX as USER_PREFIX,
   effectiveUserPart,
+  isMeshPart,
   libraryUserParts,
   lineageUserPartOps,
   nestedOpsOf,
@@ -48,6 +52,7 @@ import {
   partNameProblem,
   renamePart,
   holdsRepeat,
+  placedProjectMesh,
   saveToLibraryGate,
   projectOnlyBecause,
   projectOnlyRemedy,
@@ -57,8 +62,7 @@ import {
 import { evaluateOp } from '../core/kernel/index.js'
 import { MAX_PART_FILE_CHARS, parsePartFile, partFileName, serializePartFile } from '../core/userPartFile.js'
 import { formatCount } from '../io/meshAsset.js'
-import { cancelModelImport, importModelFile } from '../io/meshClient.js'
-import { UNIT_SCALES, meshAssemblyDefinition, meshPartDefinition, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
+import { UNIT_SCALES, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
 import { renderPartThumbnail } from '../render/partThumbnail.js'
 import { downloadBytes } from '../storage/download.js'
 import { createUserLibrary, loadUserLibrary } from '../storage/userLibrary.js'
@@ -70,7 +74,7 @@ import { useTimelineStore } from './timeline.js'
 const MESH_THUMBNAIL_FACES = 12_000
 
 /**
- * What the toast says after an import. An STL, or a 3MF of one part: the file, its triangles and
+ * What the line says after a model import (`stores/modelImport.js`, `TODO/ui-107`). An STL, or a 3MF of one part: the file, its triangles and
  * size. A 3MF of several parts (`TODO/io-024`) also says how many, and how many exact duplicates
  * and non-model objects were skipped, only when there were any.
  *
@@ -296,7 +300,15 @@ export const useLibraryStore = defineStore('library', () => {
       })
       // `ui-096`: a part that is only in the open project is listed only while the project uses
       // it. The definition stays in the document (undo needs it); this filters the list.
-      .filter((row) => row.inLibrary || row.usage > 0 || row.nestedIn.length > 0)
+      // `ui-107` (open question 1): …and never when it is an **imported model** — one that came
+      // in through File → Import model… was never in My parts, and listing it here is exactly
+      // the "it jumped into my library" the owner objected to. Its home is Objects and the
+      // Inspector; Save to library… gives it a row. The rule is "a mesh part My parts does not
+      // hold", read off the definition: no provenance has to be stored, it survives save and
+      // reload, and it needs nothing from a file saved before this task. The cost: a mesh placed
+      // from My parts and later deleted from it has no project-only row either. Save to library…
+      // puts it back, so nothing is lost; every other kind of part keeps its `ui-096` row.
+      .filter((row) => row.inLibrary || ((row.usage > 0 || row.nestedIn.length > 0) && !isMeshPart(effectiveUserPart(row.op))))
       // Newest first ("the new row appears at the top of My parts"); a part that is only in
       // the open project has no save time and follows, by name — `userLibrarySection`'s order.
       .sort((a, b) => (stamps[b.op] ?? 0) - (stamps[a.op] ?? 0))
@@ -388,8 +400,21 @@ export const useLibraryStore = defineStore('library', () => {
     if (!saveOpen.value || saveBodyId.value === null) return new Set()
     void revision.value
     void documentStore.version
-    return lineageUserPartOps(documentStore.raw, saveBodyId.value)
+    return lineageOpsFor(saveBodyId.value)
   })
+
+  /**
+   * The `user.*` ops a body is built from, for the "built from a part with that name" check — none
+   * for an imported model placed as-is (`TODO/ui-107`): it is saved as that part itself, not as a
+   * new part that nests it, so its own name is the natural one to keep.
+   *
+   * @param {string} id
+   * @returns {Set<string>}
+   */
+  function lineageOpsFor(id) {
+    if (placedProjectMesh(documentStore.raw, id) !== null) return new Set()
+    return lineageUserPartOps(documentStore.raw, id)
+  }
 
   const nameProblem = computed(() => {
     if (!saveOpen.value) return ''
@@ -410,7 +435,9 @@ export const useLibraryStore = defineStore('library', () => {
     const body = documentStore.bodies.find((candidate) => candidate.id === selection.onlyId)
     if (body === undefined) return false
     saveBodyId.value = body.id
-    saveName.value = body.name
+    // `TODO/ui-107`: an imported model saves as its own part, so the sheet suggests the part's
+    // name (`bracket`), not the placed instance's (`bracket 1`).
+    saveName.value = placedProjectMesh(documentStore.raw, body.id)?.name ?? body.name
     saveCategory.value = 'user'
     saveError.value = ''
     saving.value = false
@@ -434,6 +461,8 @@ export const useLibraryStore = defineStore('library', () => {
    * @returns {Promise<string>} The saved part's op.
    */
   async function commitSave(id, name) {
+    const imported = placedProjectMesh(documentStore.raw, id)
+    if (imported !== null) return commitImportedSave(imported, name)
     // Always a fixed part: a new save exposes no sizes (`TODO/ui-105`).
     const definition = definePartFromSelection(documentStore.raw, id, { name })
     const geometry = documentStore.raw.bodies().find((body) => body.id === id)?.geometry
@@ -441,6 +470,34 @@ export const useLibraryStore = defineStore('library', () => {
     // Parts it nests that My parts lacks go in first, leaves first, so each save finds its
     // children already stored. They keep the project's version and get no thumbnail.
     for (const nested of partsToCarry(definition)) await backendOf().save(nested)
+    await backendOf().save(definition, { thumbnail })
+    await reload()
+    expanded.value = true
+    revealOp.value = definition.op
+    showToast(`Saved ${name}`)
+    return definition.op
+  }
+
+  /**
+   * Save to library… on an imported model placed as-is (`TODO/ui-107`): the project's copy of the
+   * definition itself goes into My parts under the chosen name — the same geometry, one row, with
+   * its mesh size. Under the project's own op it keeps the project's version (`ui-105`'s
+   * same-geometry rule), so the row shows no "newer version"; under another name it is a part of
+   * its own, version 1.
+   *
+   * @param {UserPartDefinition} projectCopy
+   * @param {string} name Trimmed.
+   * @returns {Promise<string>}
+   */
+  async function commitImportedSave(projectCopy, name) {
+    const op = `${USER_PREFIX}${slugify(name)}`
+    const definition = op === projectCopy.op ? { ...projectCopy, name } : { ...duplicatePart(projectCopy, name) }
+    let thumbnail = null
+    try {
+      thumbnail = boundaries.thumbnailer(evaluateOp(projectCopy.op, {}), { maxFaces: MESH_THUMBNAIL_FACES })
+    } catch {
+      thumbnail = null
+    }
     await backendOf().save(definition, { thumbnail })
     await reload()
     expanded.value = true
@@ -482,7 +539,7 @@ export const useLibraryStore = defineStore('library', () => {
     if (!documentStore.bodies.some((body) => body.id === proposal.bodyId)) {
       return { ok: false, reason: 'That body is no longer in the project' }
     }
-    const builtFrom = lineageNameProblem(name, lineageUserPartOps(documentStore.raw, proposal.bodyId))
+    const builtFrom = lineageNameProblem(name, lineageOpsFor(proposal.bodyId))
     if (builtFrom) return { ok: false, reason: builtFrom }
     try {
       return { ok: true, op: await commitSave(proposal.bodyId, name) }
@@ -764,89 +821,16 @@ export const useLibraryStore = defineStore('library', () => {
       await reload()
       expanded.value = true
       revealOp.value = addedOps[0] ?? null
-      showToast(`Imported ${added.join(', ')}`)
+      // `TODO/ui-107`: says where the parts went, now that this is a File menu item.
+      showToast(`Added ${added.join(', ')} to My parts. Open Library to place ${added.length === 1 ? 'it' : 'them'}`)
     }
     const failure = problems.map((problem) => (problem.op ? `${problem.op}: ${problem.reason}` : problem.reason)).join('; ')
     importError.value =
       failure !== '' ? failure : added.length === 0 && skipped.length > 0 ? `${skipped.join(', ')} already in My parts` : ''
+    // Started from the File menu now (`TODO/ui-107`), so the Library may be closed: a file that
+    // added nothing says why where it can be seen.
+    if (added.length === 0 && importError.value !== '') showToast(`Nothing imported: ${importError.value}`)
     return { added, skipped, problems }
-  }
-
-  // --- Import model file… (TODO/io-009) ---------------------------------------------------
-
-  /** The file being read right now, or `''` — the "Reading bracket.stl…" row. */
-  const modelImporting = ref('')
-
-  /**
-   * A free part name for an imported file: its base name, or "<name> copy" when taken.
-   *
-   * @param {string} name
-   * @returns {string}
-   */
-  function importedNameFor(name) {
-    const taken = takenParts()
-    return partNameProblem(name, taken) === '' ? name : copyNameFor(name, taken)
-  }
-
-  /**
-   * Read a model file (STL) in the worker and add it to My parts as a part. A second file
-   * supersedes the one being read. Never throws; a refusal is {@link importError}.
-   *
-   * @param {File} file
-   * @returns {Promise<{ ok: true, op: string } | { ok: false, reason: string } | { superseded: true }>}
-   */
-  async function importModel(file) {
-    importError.value = ''
-    expanded.value = true
-    modelImporting.value = file.name
-    const outcome = await importModelFile(file)
-    if (outcome.superseded) return { superseded: true }
-    modelImporting.value = ''
-    const { result } = outcome
-    if (!result.ok) {
-      importError.value = result.reason
-      return { ok: false, reason: result.reason }
-    }
-    try {
-      const name = importedNameFor(result.name)
-      const op = `${USER_PREFIX}${slugify(name)}`
-      // A 3MF is an assembly of placed meshes (`TODO/io-024`); one part of it is an ordinary mesh row.
-      const definition =
-        result.kind === 'assembly'
-          ? meshAssemblyDefinition({ assets: result.assets, parts: result.parts, name, op, unitScale: result.unitScale })
-          : meshPartDefinition({ record: result.record, name, triangleCount: result.triangleCount, op })
-      await backendOf().save(definition, { thumbnail: null })
-      await reload()
-      // The thumbnail is drawn once, from the part as the registry now builds it.
-      // One frame to paint the row first, then a thumbnail with a lowered face budget: a scan
-      // has far more faces than a 96 px picture can show, and drawing them all would hold the
-      // main thread for several frames (measured in docs/decisions/mesh-import.md).
-      await new Promise((resolve) => setTimeout(resolve, 0))
-      let thumbnail = null
-      try {
-        thumbnail = boundaries.thumbnailer(evaluateOp(op, {}), { maxFaces: MESH_THUMBNAIL_FACES })
-      } catch {
-        thumbnail = null
-      }
-      if (thumbnail !== null) {
-        await backendOf().save(definition, { thumbnail })
-        await reload()
-      }
-      revealOp.value = op
-      const info = meshRowInfo(op)
-      showToast(importedToast(file.name, result, info?.sizeText ?? ''))
-      return { ok: true, op }
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
-      importError.value = `Could not add ${file.name}: ${reason}`
-      return { ok: false, reason }
-    }
-  }
-
-  /** Stop reading the model file in progress, if any. */
-  function cancelImportModel() {
-    cancelModelImport()
-    modelImporting.value = ''
   }
 
   /**
@@ -874,9 +858,6 @@ export const useLibraryStore = defineStore('library', () => {
   return {
     revision,
     thumbnails,
-    modelImporting,
-    importModel,
-    cancelImportModel,
     setMeshUnits,
     revealOp,
     loadProblem,

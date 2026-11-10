@@ -8,13 +8,20 @@
  * events, not HTML drag and drop, so it never reaches here. A dropped file that is not an image
  * is still handed to `attach`, which says why it was refused in the composer.
  *
+ * **Except a model file** (`TODO/ui-107`): a dropped `.stl` or `.3mf` is File → Import model… with
+ * the position already chosen, so it goes to `stores/modelImport.js` and commits at the drop point
+ * in the project (no placement session, no chat). The model is named by its extension, the same
+ * test the importer itself starts from (`formatForName`).
+ *
  * @module composables/useImageDrop
  */
 
 import { ref } from 'vue'
 
+import { formatForName } from '../io/meshFormats/index.js'
 import { useAgent } from './useAgent.js'
 import { useAssistantStore } from '../stores/assistant.js'
+import { useModelImportStore } from '../stores/modelImport.js'
 
 /**
  * @param {DragEvent} event
@@ -30,6 +37,7 @@ function carriesFiles(event) {
 export function useImageDrop() {
   const assistant = useAssistantStore()
   const agent = useAgent()
+  const modelImport = useModelImportStore()
   /** A file is being dragged over the viewport — for `data-image-drop`. */
   const dropActive = ref(false)
 
@@ -54,8 +62,14 @@ export function useImageDrop() {
     dropActive.value = false
     const files = Array.from(event.dataTransfer?.files ?? [])
     if (files.length === 0) return
+    const at = { clientX: event.clientX, clientY: event.clientY }
+    const models = files.filter((file) => formatForName(file.name) !== null)
+    const images = files.filter((file) => formatForName(file.name) === null)
+    // Each model is its own placed body at the drop point, read in turn.
+    for (const file of models) await modelImport.importFile(file, { at })
+    if (images.length === 0) return
     assistant.open()
-    for (const file of files) await agent.attach(file)
+    for (const file of images) await agent.attach(file)
   }
 
   return { dropActive, onDragOver, onDragLeave, onDrop }

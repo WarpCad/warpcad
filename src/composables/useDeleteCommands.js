@@ -100,7 +100,7 @@ export function useDeleteCommands() {
   /** Why the control is disabled, or `''` when it is enabled. */
   const reason = computed(() => {
     if (sketchEditor.active) return 'Not available while editing a sketch'
-    if (placement.isDragging) return 'Finish placing first'
+    if (placement.isPlacing) return 'Finish placing first'
     if (transformPreview.isActive) return 'Finish the drag first'
     if (timeline.previewing) return 'Previewing history — read-only'
     const current = target.value

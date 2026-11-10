@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
- * The model-file formats **Import model file…** reads (`TODO/io-009`), keyed by extension.
+ * The model-file formats **File → Import model…** reads (`TODO/io-009`), keyed by extension.
  *
  * Each entry is a parser to the same `{ positions, indices }` contract, so a follow-up
  * format (OBJ — sized in `docs/decisions/mesh-import.md`) is one entry here and one parser

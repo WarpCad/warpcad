@@ -80,7 +80,6 @@ import HelpButton from '../controls/HelpButton.vue'
 import LibraryRail from './LibraryRail.vue'
 import LibraryRow from './LibraryRow.vue'
 import LibrarySection from './LibrarySection.vue'
-import { acceptAttribute } from '../../io/meshFormats/index.js'
 
 const props = defineProps({
   /**
@@ -105,11 +104,6 @@ const sections = LIBRARY_SECTIONS
  */
 const library = useLibraryStore()
 const isOpen = ref(false)
-const importInput = ref(/** @type {HTMLInputElement | null} */ (null))
-const modelInput = ref(/** @type {HTMLInputElement | null} */ (null))
-/** The file types **Import model file…** offers (`.stl`, `.3mf`); no `capture`, so a phone offers Files. */
-const modelAccept = acceptAttribute()
-const fileDragOver = ref(false)
 const panelEl = ref(/** @type {HTMLElement | null} */ (null))
 
 /**
@@ -160,48 +154,6 @@ watch(
     }, PULSE_MS)
   },
 )
-
-/** Read the chosen part file and add its parts to the local library. */
-async function onImportFile(/** @type {Event} */ event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file) return
-  await library.importText(await file.text())
-}
-
-/** Read the chosen model file; the store parses it in a worker and adds the part. */
-async function onModelFile(/** @type {Event} */ event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file) return
-  await library.importModel(file)
-}
-
-/** @param {DragEvent} event */
-function hasFiles(event) {
-  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
-}
-
-/** Dropping a file on the panel is a convenience at laptop width; the button is the path. */
-function onFileDragOver(/** @type {DragEvent} */ event) {
-  if (!hasFiles(event)) return
-  event.preventDefault()
-  fileDragOver.value = true
-}
-
-function onFileDragLeave() {
-  fileDragOver.value = false
-}
-
-async function onFileDrop(/** @type {DragEvent} */ event) {
-  fileDragOver.value = false
-  if (!hasFiles(event)) return
-  event.preventDefault()
-  const file = event.dataTransfer?.files?.[0]
-  if (file) await library.importModel(file)
-}
 
 watch(
   () => props.collapseSignal,
@@ -292,18 +244,12 @@ onBeforeUnmount(() => {
     <LibraryRail
       v-if="railForm"
       :form="libraryTier === 'popout' ? 'launchers' : 'tiles'"
-      @import-part="importInput?.click()"
-      @import-model="modelInput?.click()"
     />
 
     <div
       v-else
       id="library-sheet"
       class="library__sheet"
-      :data-file-over="fileDragOver ? 'true' : 'false'"
-      @dragover="onFileDragOver"
-      @dragleave="onFileDragLeave"
-      @drop="onFileDrop"
     >
       <div class="library__hint-row">
         <p class="library__hint" data-testid="library-hint">
@@ -319,8 +265,8 @@ onBeforeUnmount(() => {
 
       <!-- My parts (TODO/ui-055): parts the person saved from a group. A collapsible section,
            so the fixed catalogue is not pushed off a phone sheet by a long personal list.
-           Import part file… lives in the header, where the section is, so it is reachable
-           even before the first part exists. -->
+           Importing is not here (TODO/ui-107): File → Import model… brings a model into the
+           project, and File → Import part file… reads a part file into this list. -->
       <div class="library__user-head">
         <h2 class="library__heading library__heading--toggle" data-testid="library-heading-user">
           <button
@@ -336,35 +282,8 @@ onBeforeUnmount(() => {
             <span class="library__count" data-testid="library-user-count">{{ library.userRows.length + library.brokenRows.length }}</span>
           </button>
         </h2>
-        <button
-          type="button"
-          class="library__import"
-          data-testid="library-import"
-          title="Add the parts in a part file to My parts"
-          @click="importInput?.click()"
-        >
-          Import part file…
-        </button>
-        <button
-          type="button"
-          class="library__import"
-          data-testid="library-import-model"
-          title="Add an STL model file to My parts as a part you can place"
-          @click="modelInput?.click()"
-        >
-          Import model file…
-        </button>
       </div>
       <div v-show="library.expanded" id="library-user-body" data-testid="library-user-body">
-        <p
-          v-if="library.modelImporting"
-          class="library__reading"
-          role="status"
-          data-testid="library-import-progress"
-        >
-          <span class="library__spinner" aria-hidden="true" />
-          Reading {{ library.modelImporting }}…
-        </p>
         <p v-if="library.importError" class="library__import-error" role="alert" data-testid="library-import-error">
           {{ library.importError }}
         </p>
@@ -372,7 +291,7 @@ onBeforeUnmount(() => {
           Your saved parts could not all be read: {{ library.loadProblem }}
         </p>
         <p v-if="library.userRows.length === 0 && library.brokenRows.length === 0" class="library__hint" data-testid="library-user-empty">
-          Nothing saved yet. Select a group, then choose Save to library… — or choose Import model file… for an STL or 3MF — and it appears here.
+          Nothing saved yet. Select something in the view, then choose Save to library…, and it appears here.
         </p>
         <ul class="library__rows" data-testid="library-rows-user">
           <LibraryRow v-for="row in library.userRows" :key="row.op" :row="row" user />
@@ -380,30 +299,6 @@ onBeforeUnmount(() => {
         </ul>
       </div>
     </div>
-
-    <!-- The file inputs behind Import part file… and Import model file…, shared by the column and
-         the rail's ⋯ menu. Visually hidden, in the panel's positioned box (ui-055), so WebKit and
-         Firefox do not grow the page. -->
-    <input
-      ref="importInput"
-      type="file"
-      accept=".json,application/json"
-      class="library__file"
-      data-testid="library-import-input"
-      tabindex="-1"
-      aria-hidden="true"
-      @change="onImportFile"
-    />
-    <input
-      ref="modelInput"
-      type="file"
-      :accept="modelAccept"
-      class="library__file"
-      data-testid="library-import-model-input"
-      tabindex="-1"
-      aria-hidden="true"
-      @change="onModelFile"
-    />
 
     <!-- Follows the pointer while the drag is over ordinary UI; the viewport's
          ghost mesh replaces it once the drag crosses into the 3D view. -->
@@ -569,67 +464,6 @@ onBeforeUnmount(() => {
   background: var(--surface-2);
   font-size: 11px;
   letter-spacing: 0;
-}
-
-.library__import {
-  /* Its own line in the 210 px column, so neither it nor the heading wraps. */
-  flex: 1 1 100%;
-  min-height: 44px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.library__import:hover {
-  border-color: var(--border-strong);
-}
-
-.library__reading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: var(--text-2);
-}
-
-.library__spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border-strong);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: library-spin 0.8s linear infinite;
-}
-
-@keyframes library-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .library__spinner {
-    animation: none;
-  }
-}
-
-.library__sheet[data-file-over='true'] {
-  outline: 2px dashed var(--accent);
-  outline-offset: -4px;
-}
-
-.library__file {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .library__import-error {

@@ -31,6 +31,8 @@ import { formatMmValue } from '../../core/units.js'
 import { meshPartInfo } from '../../io/meshPart.js'
 import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { useModelImportStore } from '../../stores/modelImport.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
@@ -102,6 +104,20 @@ const meshInfo = computed(() => {
   const part = effectiveUserPart(props.body.op)
   return part === undefined ? null : meshPartInfo(part)
 })
+
+/**
+ * **Units** for a selected imported mesh (`TODO/ui-107`): an STL states none, and an import no
+ * longer has a My parts row to change them on. A 3MF states its units, so it offers none.
+ */
+const MESH_UNITS = Object.freeze(['mm', 'cm', 'inch'])
+const modelImport = useModelImportStore()
+const timeline = useTimelineStore()
+
+/** @param {Event} event */
+function onMeshUnits(event) {
+  const select = /** @type {HTMLSelectElement} */ (event.target)
+  modelImport.setUnits(props.body.id, /** @type {'mm' | 'cm' | 'inch'} */ (select.value))
+}
 
 /** A group's part whose record is a composite recipe (`TODO/ui-104`): its options live in History. */
 const partIsRecipe = computed(() => isSubPart.value && lookupEntry(editability.value.blockedBy ?? '')?.kind === 'composite')
@@ -574,12 +590,28 @@ function onEnumChange(event, field) {
       </p>
     </div>
 
-    <p v-else-if="meshInfo" class="params__note" data-testid="inspector-mesh-note">
-      Imported model: {{ meshInfo.name }} ({{ meshInfo.triangleCount.toLocaleString('en-US') }} triangles). A
-      mesh is not parametric, so it has no sizes to edit — Size below is a measurement. Move,
-      rotate, combine and cut it as usual. To read the file in other units, change Units on its
-      My parts row and place it again.
-    </p>
+    <div v-else-if="meshInfo" class="params__mesh">
+      <p class="params__note" data-testid="inspector-mesh-note">
+        Imported model: {{ meshInfo.name }} ({{ meshInfo.triangleCount.toLocaleString('en-US') }} triangles). A
+        mesh is not parametric, so it has no sizes to edit — Size below is a measurement. Move,
+        rotate, combine and cut it as usual.<template v-if="!meshInfo.unitsStated"> If the size looks wrong, the file was
+        drawn in other units: change Units.</template>
+      </p>
+      <label v-if="!meshInfo.unitsStated" class="params__mesh-units">
+        <span class="params__label">Units</span>
+        <select
+          class="params__input params__select"
+          data-testid="inspector-mesh-units"
+          :value="meshInfo.units ?? 'mm'"
+          :aria-label="`Units of ${meshInfo.name}`"
+          :disabled="timeline.previewing"
+          @change="onMeshUnits($event)"
+        >
+          <option v-for="unit in MESH_UNITS" :key="unit" :value="unit">{{ unit }}</option>
+        </select>
+        <span v-if="!meshInfo.unitsConfirmed" class="params__badge" data-testid="inspector-mesh-assumed">Units assumed: mm</span>
+      </label>
+    </div>
     <!-- A repeat body (TODO/ui-069): these are its source's parameters, changed on the source. -->
     <p v-else-if="body.repeat && !isSubPart" class="params__note" data-testid="inspector-params-repeat-note">
       These are {{ body.repeat.sourceName }}'s. Change them on {{ body.repeat.sourceName }} (Go to
@@ -768,6 +800,27 @@ function onEnumChange(event, field) {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-3);
+}
+
+.params__mesh-units {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.params__mesh-units .params__select {
+  width: auto;
+  min-width: 96px;
+}
+
+.params__badge {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 11px;
 }
 
 .params__note {

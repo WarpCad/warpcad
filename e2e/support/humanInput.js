@@ -117,7 +117,61 @@ export async function pointer(page, info) {
     await sleep(350)
   }
 
-  return { press, dragRow }
+  /**
+   * Place an armed import (`TODO/ui-107`) at (ex, ey) as a person would: with a mouse, hover in
+   * from elsewhere with a wobble and click; with trusted touch, put a finger on the ghost where it
+   * starts (the centre of the view), drag it there and lift; with a plain touchscreen, tap there.
+   *
+   * @param {number} ex
+   * @param {number} ey
+   */
+  async function placeArmed(ex, ey) {
+    await expect(page.getByTestId('placement-chip')).toBeVisible()
+    await expectHit(ex, ey, 'placement-session-layer')
+    const steps = 18
+    if (cdp) {
+      // The finger goes down where the ghost is waiting: the session's start point (the centre of
+      // the visible grid, which a phone's open sheet moves up), not the centre of the layer's box.
+      const layer = page.getByTestId('placement-session-layer')
+      const box = await layer.boundingBox()
+      if (!box) throw new Error('no placement surface')
+      const startX = Number(await layer.getAttribute('data-start-x'))
+      const startY = Number(await layer.getAttribute('data-start-y'))
+      const sx = (Number.isFinite(startX) && startX > 0 ? startX : box.x + box.width / 2) + wobble(4)
+      const sy = (Number.isFinite(startY) && startY > 0 ? startY : box.y + box.height / 2) + wobble(4)
+      await expectHit(sx, sy, 'placement-session-layer')
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: sx, y: sy, id: 1 }] })
+      await sleep(90)
+      for (let i = 1; i <= steps; i += 1) {
+        const t = i / steps
+        await cdp.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: sx + (ex - sx) * t + (i < steps ? wobble(3) : 0), y: sy + (ey - sy) * t + (i < steps ? wobble(3) : 0), id: 1 }],
+        })
+        await sleep(14)
+      }
+      await sleep(90)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    } else if (touchTap) {
+      await page.touchscreen.tap(ex, ey)
+    } else {
+      const sx = ex - 80 + wobble(20)
+      const sy = ey - 50 + wobble(20)
+      await page.mouse.move(sx, sy, { steps: 3 })
+      for (let i = 1; i <= steps; i += 1) {
+        const t = i / steps
+        await page.mouse.move(sx + (ex - sx) * t + (i < steps ? wobble(3) : 0), sy + (ey - sy) * t + (i < steps ? wobble(3) : 0))
+        await sleep(12)
+      }
+      await sleep(80)
+      await page.mouse.down()
+      await sleep(50)
+      await page.mouse.up()
+    }
+    await sleep(250)
+  }
+
+  return { press, dragRow, placeArmed }
 }
 
 /** @param {import('@playwright/test').Page} page @param {number} fx @param {number} fy */

@@ -60,6 +60,16 @@
  * latest step to merge`, or `Wait for the Assistant to finish` while an AI turn is landing.
  * What came in is reported by the merge toast or banner (`MergeToast.vue`, `MergeBanner.vue`).
  *
+ * ## `Import model…` and `Import part file…` (`TODO/ui-107`)
+ *
+ * Right after `Merge file…`. **Import model…** (`file-import-model`) opens the system picker for an
+ * STL or 3MF (`acceptAttribute()`, no `capture`, so a phone offers Files) and brings the model into
+ * the open project, placed in the view (`stores/modelImport.js`). **Import part file…**
+ * (`file-import-part`) reads WarpCad's own part file into My parts (`library.importText`), and its
+ * toast says so. Both are dimmed with their reason under the label while History previews, like
+ * `Merge file…`. Their `<input type=file>`s live outside the teleported popover, so closing the
+ * menu — which the click does first — never unmounts the input the click is about to open.
+ *
  * ## `Resolution: Normal` (`TODO/core-035`)
  *
  * The one row of its own **Design** group, after `Export…`'s group. Its label **is** the current design resolution, so the setting
@@ -114,6 +124,9 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useStatusSurface } from '../../composables/useStatusSurface.js'
+import { acceptAttribute } from '../../io/meshFormats/index.js'
+import { useLibraryStore } from '../../stores/library.js'
+import { useModelImportStore } from '../../stores/modelImport.js'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
@@ -156,6 +169,41 @@ const surface = useStatusSurface()
 const documentStore = useDocumentStore()
 const share = useShareStore()
 const gist = useGistStore()
+const library = useLibraryStore()
+const modelImport = useModelImportStore()
+
+/** `TODO/ui-107`: the file types Import model… offers (`.stl`, `.3mf`). */
+const modelAccept = acceptAttribute()
+/** @type {import('vue').Ref<HTMLInputElement | null>} */
+const modelInput = ref(null)
+/** @type {import('vue').Ref<HTMLInputElement | null>} */
+const partInput = ref(null)
+
+/** **Import model…**: the picker, opened inside the click (the input needs the gesture). */
+function requestImportModel() {
+  if (menu.requestImport()) modelInput.value?.click()
+}
+
+/** **Import part file…**: the same, for WarpCad's own `.json` part file. */
+function requestImportPart() {
+  if (menu.requestImport()) partInput.value?.click()
+}
+
+/** @param {Event} event */
+async function onModelFile(event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const file = input.files?.[0]
+  input.value = ''
+  if (file) await modelImport.importFile(file)
+}
+
+/** @param {Event} event */
+async function onPartFile(event) {
+  const input = /** @type {HTMLInputElement} */ (event.target)
+  const file = input.files?.[0]
+  input.value = ''
+  if (file) await library.importText(await file.text())
+}
 
 /** `TODO/io-016`: why **Share…** is dimmed — the Share button's own precondition — or `''`. */
 const shareReason = computed(() => (documentStore.bodies.length === 0 ? 'Nothing to share yet' : ''))
@@ -223,7 +271,7 @@ const busy = computed(
   () =>
     menu.anyOpen ||
     overlays.anyOpen ||
-    placement.isDragging ||
+    placement.isPlacing ||
     help.isOpen ||
     transformPreview.bodyId !== '' ||
     sketchEditor.active,
@@ -485,6 +533,36 @@ onBeforeUnmount(() => {
               </span>
             </button>
             <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-import-model"
+              :aria-disabled="menu.importReason !== '' ? 'true' : undefined"
+              :aria-describedby="menu.importReason !== '' ? 'file-import-model-reason' : undefined"
+              title="Bring an STL or 3MF model into this project, placed in the 3D view"
+              @click="requestImportModel()"
+            >
+              <span>Import model…</span>
+              <span v-if="menu.importReason !== ''" id="file-import-model-reason" class="file-menu__reason" data-testid="file-import-model-reason">
+                {{ menu.importReason }}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-import-part"
+              :aria-disabled="menu.importReason !== '' ? 'true' : undefined"
+              :aria-describedby="menu.importReason !== '' ? 'file-import-part-reason' : undefined"
+              title="Add the parts in a WarpCad part file to My parts"
+              @click="requestImportPart()"
+            >
+              <span>Import part file…</span>
+              <span v-if="menu.importReason !== ''" id="file-import-part-reason" class="file-menu__reason" data-testid="file-import-part-reason">
+                {{ menu.importReason }}
+              </span>
+            </button>
+            <button
               v-if="persistence.diskCanWatch"
               type="button"
               role="menuitem"
@@ -663,6 +741,30 @@ onBeforeUnmount(() => {
     <GistConnectDialog />
     <ConflictDialog />
     <DiskChangeDialog />
+
+    <!-- TODO/ui-107: the pickers behind Import model… and Import part file…. Out here, not in the
+         teleported menu, so closing the menu does not unmount them; visually hidden inside this
+         positioned box (ui-055's lesson), so WebKit and Firefox do not grow the page. -->
+    <input
+      ref="modelInput"
+      type="file"
+      :accept="modelAccept"
+      class="file-menu__file"
+      data-testid="file-import-model-input"
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onModelFile"
+    />
+    <input
+      ref="partInput"
+      type="file"
+      accept=".json,application/json"
+      class="file-menu__file"
+      data-testid="file-import-part-input"
+      tabindex="-1"
+      aria-hidden="true"
+      @change="onPartFile"
+    />
   </div>
 </template>
 
@@ -670,6 +772,14 @@ onBeforeUnmount(() => {
 .file-menu-root {
   position: relative;
   display: flex;
+}
+
+.file-menu__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .file-button {

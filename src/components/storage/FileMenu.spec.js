@@ -364,7 +364,18 @@ describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
     const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
     // Save as gist… (TODO/io-021) under the save item; Merge file… (TODO/ui-062) directly under
     // Open…; Share… (TODO/io-016) before Export…, which stays last.
-    expect(ids).toEqual(['file-new', 'file-save', 'file-save-as-gist', 'file-open', 'file-merge', 'file-share', 'file-export'])
+    // Import model… and Import part file… (TODO/ui-107) right after Merge file….
+    expect(ids).toEqual([
+      'file-new',
+      'file-save',
+      'file-save-as-gist',
+      'file-open',
+      'file-merge',
+      'file-import-model',
+      'file-import-part',
+      'file-share',
+      'file-export',
+    ])
   })
 
   it('an empty scene: dimmed, with the reason visible AND as the accessible description', async () => {
@@ -598,5 +609,46 @@ describe('FileMenu — an Open in progress (TODO/core-032)', () => {
     expect(wrapper.find('[data-testid="file-open-pending"]').exists()).toBe(false)
     expect(button.attributes('aria-busy')).toBeUndefined()
     expect(body().q('file-open')?.disabled).toBe(false)
+  })
+})
+
+describe('FileMenu — Import model… and Import part file… (TODO/ui-107)', () => {
+  it('each opens its own picker inside the click and closes the menu; the model picker offers .stl and .3mf with no capture', async () => {
+    const { wrapper } = setup('fallback')
+    const model = wrapper.get('[data-testid="file-import-model-input"]').element
+    const part = wrapper.get('[data-testid="file-import-part-input"]').element
+    expect(model.getAttribute('accept')).toBe('.stl,.3mf')
+    expect(model.hasAttribute('capture')).toBe(false)
+    expect(part.getAttribute('accept')).toBe('.json,application/json')
+    const modelClick = vi.spyOn(model, 'click').mockImplementation(() => {})
+    const partClick = vi.spyOn(part, 'click').mockImplementation(() => {})
+    await openMenu(wrapper)
+    body().q('file-import-model').click()
+    await nextTick()
+    expect(modelClick).toHaveBeenCalledTimes(1)
+    expect(useFileMenuStore().menuOpen).toBe(false)
+    await openMenu(wrapper)
+    body().q('file-import-part').click()
+    await nextTick()
+    expect(partClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('while History previews a past step both are dimmed with the reason under the label, and do nothing', async () => {
+    const { wrapper } = setup('fallback')
+    const documentStore = useDocumentStore()
+    documentStore.append({ id: 'a', op: 'primitive.cuboid', name: 'a', params: { size: [10, 10, 10], center: [0, 0, 5] } })
+    documentStore.append({ id: 'b', op: 'primitive.cuboid', name: 'b', params: { size: [10, 10, 10], center: [0, 0, 5] } })
+    useTimelineStore().selectRow('a')
+    const model = wrapper.get('[data-testid="file-import-model-input"]').element
+    const modelClick = vi.spyOn(model, 'click').mockImplementation(() => {})
+    await openMenu(wrapper)
+    const item = body().q('file-import-model')
+    expect(item.getAttribute('aria-disabled')).toBe('true')
+    expect(body().q('file-import-model-reason').textContent.trim()).toBe('Return to the latest step to import')
+    expect(body().q('file-import-part-reason').textContent.trim()).toBe('Return to the latest step to import')
+    item.click()
+    await nextTick()
+    expect(modelClick).not.toHaveBeenCalled()
+    expect(useFileMenuStore().menuOpen).toBe(true)
   })
 })

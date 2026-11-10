@@ -56,7 +56,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
 .readout {
   position: absolute;
   right: 12px;
-  bottom: calc(12px + var(--viewport-bottom-inset, 0px));
+  bottom: calc(12px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -112,7 +112,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
 @media (max-width: 480px) {
   .readout {
     right: 8px;
-    bottom: calc(8px + var(--viewport-bottom-inset, 0px));
+    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
     padding: 6px 8px;
   }
 

@@ -50,8 +50,8 @@ column with the row's name, its lists (Type and Size, for example) and **Reset**
 ![The Bolt icon tapped: a panel with its Type and Size lists open beside the icon column.](./screenshots/library-row-popout.png)
 
 You can drag from that panel too. It fades while you drag so you can see where you are dropping,
-then comes back. Press **Escape** to close it. The **?** at the top of the column opens help, and
-**⋯** holds **Import part file…** and **Import model…**.
+then comes back. Press **Escape** to close it. The **?** at the top of the column opens help.
+Importing a file is in the **File** menu ([Importing a model file](import.md)).
 
 **Example**
 

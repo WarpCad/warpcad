@@ -73,6 +73,10 @@ nothing to install. The home page, **https://warpcad.com**, links every page her
 - [Saving your own parts: Save to library and My parts](user-library.md) — turning a
   group into a part in the Library, naming it, choosing which sizes stay adjustable, and
   placing it again in any project.
+- [Importing a model file](import.md) — **File ▾ → Import model…** brings an STL or 3MF
+  into the open project, placed in the 3D view with the pointer or a finger; Units for an STL,
+  a 3MF's separate parts, the size limits, **Save to library…** to keep it for other projects,
+  and **Import part file…** for WarpCad's own part files.
 - [Precise placement: Align](snap-align.md) — the Operations toolbar's
   Align button, which moves one shape to a computed position against another
   (or onto the grid's origin) without combining or discarding either one.

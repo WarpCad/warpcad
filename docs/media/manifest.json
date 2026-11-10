@@ -472,9 +472,9 @@
   "import-model-place.gif": {
     "spec": "e2e/docs/import-model.docs.js",
     "theme": "light",
-    "specHash": "9393f0964b7aace49de260056ab1ee05fd42b7214fddeafdece27cda1cffabc3",
-    "bytes": 1309932,
-    "seconds": 9.9
+    "specHash": "8f5078eb5065b99f8af1124ad3f25a4cb03cbc4a17b54401ff8e031df046ea4a",
+    "bytes": 1252970,
+    "seconds": 10.9
   },
   "print-prep-manual-joint.gif": {
     "spec": "e2e/docs/print-prep.docs.js",
@@ -724,9 +724,9 @@
   "import-model-place.dark.gif": {
     "spec": "e2e/docs/import-model.docs.js",
     "theme": "dark",
-    "specHash": "9393f0964b7aace49de260056ab1ee05fd42b7214fddeafdece27cda1cffabc3",
-    "bytes": 1254682,
-    "seconds": 9.8
+    "specHash": "8f5078eb5065b99f8af1124ad3f25a4cb03cbc4a17b54401ff8e031df046ea4a",
+    "bytes": 1198724,
+    "seconds": 10.7
   },
   "inspector-colour.dark.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
@@ -1082,15 +1082,15 @@
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",
     "theme": "dark",
-    "specHash": "3c5c96e4a716ea5164e5c5e69d7f924a1fd77b6476c1e26e9f67f323557a2bb6",
-    "bytes": 2016716,
-    "seconds": 15.6
+    "specHash": "0a7c9fb0d9b1c3cd36703584191d66d896e0ee4d7ed501c3ba27422d18b32cc4",
+    "bytes": 2189026,
+    "seconds": 17.3
   },
   "import-3mf-align.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",
     "theme": "light",
-    "specHash": "3c5c96e4a716ea5164e5c5e69d7f924a1fd77b6476c1e26e9f67f323557a2bb6",
-    "bytes": 1825636,
-    "seconds": 15.6
+    "specHash": "0a7c9fb0d9b1c3cd36703584191d66d896e0ee4d7ed501c3ba27422d18b32cc4",
+    "bytes": 1923915,
+    "seconds": 17.1
   }
 }

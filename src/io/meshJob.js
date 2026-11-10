@@ -6,7 +6,7 @@
  *
  * ## Import: only the validator's output survives
  *
- * A file chosen with **Import model file…** is untrusted bytes. {@link importMeshFile}:
+ * A file chosen with **File → Import model…** is untrusted bytes. {@link importMeshFile}:
  *
  * 1. refuses a file over {@link MESH_LIMITS}`.maxFileBytes` **before reading it**;
  * 2. parses it (`./meshFormats/`), which checks a binary STL's length equation before

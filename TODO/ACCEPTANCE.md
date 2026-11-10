@@ -80,6 +80,7 @@ just clicked, not both at once).
 
 **Also re-drive**: re-run the closed-finding repros after any panel-layout change: ui-072 (phone Library drag), ui-043 and ui-027 (phone toolbar), ui-015 (tablet toolbar vs gizmo), ui-070 (phone Inspector tab over the Library sheet). Also re-run the ui-072 repro (phone Library drag registers) after any Library sheet or pop-out change (ui-081). Also drive by hand with the Assistant sheets overlaying the viewport at phone width; both bodies stay visible after closing (ai-029).
 
+**Last run**: 2026-11-10 17:45 UTC (`ui-107`, uncommitted tree, preview build, exploratory scripts with a jittered real pointer, trusted CDP touch on Chromium and touchscreen taps on WebKit, fresh profiles) — **PASS** at laptop 1440x900 Chromium and Firefox: two models imported through **File ▾ → Import model…** and a third dropped on the view, then a Cube dragged in beside them: five bodies, every one still drawn. Console clean.
 **Last run**: 2026-11-07 16:25 UTC (`core-080`, uncommitted tree, production build via `vite preview`, exploratory scripts with a jittered real mouse, fresh contexts) — **PASS** at laptop 1440x900 Chromium. A Cube dropped and given Corner radius `5` (volume 64000 → 63105.8 mm³, bounds and Size still 40 x 40 x 40, upright edges visibly rounded), then a Sphere and a Cylinder dropped elsewhere: all three remained. A click on empty grid cleared the selection; clicking the cube selected only it (gizmo, dimension lines, Corner radius 5 in the Inspector), then clicking the sphere selected only the sphere. Console clean.
 **Last run**: 2026-11-05 19:46 UTC (`ui-094`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer) — **PASS** at laptop 1440x900 Chromium, real mouse and jittered Library drags: a Cube then a Cylinder, both remained (2 bodies).
 **Last run**: 2026-11-04 UTC (`core-078` Part 4, step 7 only, uncommitted tree, dev server, exploratory script) — **PASS**
@@ -2903,6 +2904,7 @@ image, no script, no dialog, nothing executed; **Project settings…** says the 
 came with the file and offers **Use this project's instructions** rather than treating them
 as the user's own.
 
+**Last run**: 2026-11-10 17:45 UTC (`ui-107`, uncommitted tree, preview build, exploratory scripts with a jittered real pointer, trusted CDP touch on Chromium and touchscreen taps on WebKit, fresh profiles) — **PASS (step 1-2, the import path only)** at laptop Chromium and Firefox, tablet Chromium, phone Chromium and WebKit, 720 px WebKit: a project carrying imported STLs and no library entries, served from a mocked `#/gist/<32 hex>`, opened in a fresh profile in the shared viewer with every imported mesh drawn (screenshots). A made-up short id was refused as *This link looks incomplete* before any fetch. Steps 3-7 (hostile lines, intent, merge metadata, formulas) not re-driven: `ui-107` does not touch the loader's validation.
 **Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop Chromium: `hostile-merge.ndjson` refused by name (*project-state: merge: `clock` is above 1099511627776, which no clock reaches*). New for `io-024`: a saved project whose 3MF part had one placement matrix tampered to 17 numbers opened with *skipped 1 step (user.esp8266-feather): part "esp8266 feather" … can't be loaded: record "p1": matrix must be a list of 16 numbers*; the Cube in the same file loaded and nothing else was lost; console clean. Hostile 3MF files themselves (DOCTYPE, ENTITY, a component cycle, nested bombs, `p:path`, bad indices, hostile names) are covered by `threeMf.spec.js`. Not driven: hostile-intent, the version-3 file, the assistant.
 **Last run**: 2026-10-15 UTC (`io-009`) — **PASS** at laptop 1440x900 Chromium. `hostile-images`, `hostile-intent` and `hostile-merge` fixtures: no script ran, the app stayed up, the image was dropped by name and the merge file refused by name. New step: a saved project whose imported part's `asset.mesh` has a NaN coordinate opened with a named warning (*part lbracket can't be loaded … a coordinate …*) and the rest of the project intact.
 **Last run**: 2026-09-05 — PASS (already covered by an automated test, not yet
@@ -3129,6 +3131,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
 
 **Also re-drive**: Not yet hand-driven since ui-063 changed Snap/Align operand naming; drive once at the next milestone check (ui-063).
 
+**Last run**: 2026-11-10 17:45 UTC (`ui-107`, uncommitted tree, preview build, exploratory scripts with a jittered real pointer, trusted CDP touch on Chromium and touchscreen taps on WebKit, fresh profiles) — **PASS (the ui-107 variant)** at laptop Chromium and Firefox, tablet Chromium, phone Chromium and WebKit, 720 px WebKit: three imported models (two through the File menu, one dropped on the view at laptop) survived a reload with My parts still at 0 and no broken rows, so the project carries the definitions itself. The Cube/Cylinder union steps were not re-driven.
 **Last run**: 2026-11-08 21:30 UTC (`ui-105`, uncommitted tree, production build via `vite preview`, exploratory scripts with a jittered real mouse, fresh profile, laptop 1440x900 Chromium) — **PASS for the part this task touches** (steps 1–3 and the file half by other means; hosted half not driven): a copy of the owner's huzzah-feather-esp8266.ndjson opened through **File ▸ Open…** (the `<input>` path Firefox and Safari use), its group saved to My parts as *Feather with cutters* (carrying the two project parts it nests), then a **page reload** restored the session by itself with the same 1 object, 51.25 × 22.86 mm, and **95** History steps (the file's 95 records); My parts still listed 3, none *Only in this project*, none broken. Console clean.
 **Last run**: 2026-11-07 16:25 UTC (`core-080`, uncommitted tree, production build via `vite preview`, exploratory scripts with a jittered real mouse, fresh contexts) — **PASS** at laptop 1440x900 on Chromium (steps 1-5) and WebKit (steps 1-2, 6-7). A Cube with Corner radius `6` and Rounded axis `X`, a Cylinder overlapping it, both selected (Shift-click), **Union**: one body, 75661.614 mm³. Chip went to `Saved · 10:10`; after a reload, `Restored your last session`, same bounds and volume, History `Cube 1 — placed` / `Cylinder 1 — placed` / `Union Cylinder 1 + Cube 1`, and the Cube row's **Edit** form read radius 6, axis x (its preview showed the X-rounded cube). WebKit: **File ▾** showed **Download copy**; chip `Download started: warpcad-project-20261107-1010.ndjson`, whose cuboid line carries `"roundRadius":6,"roundAxis":"x"`; a Sphere dropped; **Open…** → **Replace** → that file: the Sphere gone, the union back with identical bounds and volume, chip `Opened … · 3 steps`. Chromium's **Save** picker and the hosted half (steps 8-10) not driven. Console clean.
 **Last run**: 2026-11-05 23:45 UTC (`ui-095`, uncommitted tree, dev server, exploratory script with a jittered real mouse, fresh profile) — **PASS** at laptop 1440x900 Chromium with My parts in play: a placed `esp8266 feather 1` whose My parts entry had just been deleted (the project keeps its copy) came back from a reload unchanged, chip `Saved · 18:42` then `Restored your last session`; My parts deletions (a broken entry) stayed gone after a reload. Union, the file round trip and the hosted half not driven (no persistence code beyond the library store changed). Console and page errors: none.
@@ -4053,6 +4056,7 @@ box and nothing is sent; with no scale available, it asks rather than builds.
 
 **Also re-drive**: re-drive at 820x1180 and a hand-resized ~720 px window, on WebKit and one other engine (ui-079).
 
+**Last run**: 2026-11-10 17:45 UTC (`ui-107`, uncommitted tree, preview build, exploratory scripts with a jittered real pointer, trusted CDP touch on Chromium and touchscreen taps on WebKit, fresh profiles) — **PASS (the shared Save to library path only; no key, per the no-API-key rule)** at laptop Chromium and Firefox and phone WebKit: **Save to library…** on an imported model suggested its name (*Case V2*) and added one My parts row; a second import of the same file suggested *Cool Snicket copy*, and typing the taken *Cool Snicket* showed *A part called "Cool Snicket" already exists — pick another name* with Save disabled (`ui-105`'s clash). Steps 1-7 with the model were not driven.
 **Last run**: 2026-11-08 21:30 UTC (`ui-105`, uncommitted tree, production build) — **PASS for the library half only** (no key; steps 1-4 and 7 not driven) at laptop 1440x900 Chromium, jittered real mouse, on a copy of the owner's huzzah-feather-esp8266 file: selecting the group and tapping **To library** suggested *esp8266 feather* and refused it (*esp8266 feather is built from a part with that name — pick another name*, Save disabled, no sizes list); renamed *Feather with cutters*, it saved (toast) and My parts went 0 → 3 (it carried *esp8266 feather 1* and *esp8266 feather*). After **File ▸ New** My parts still read 3; the part dragged in complete, 51.3 × 22.9 × 6.4 mm, the same named sub-parts, *USB clearance cutter* still hidden. Typing *feather WITH cutters * for the placed copy was refused (*A part called "Feather with cutters" already exists*). The placed copy (ending in a translate, `core-055`) saved as *Feather with cutters 1*. Console clean.
 **Last run**: 2026-11-05 23:45 UTC (`ui-095`, uncommitted tree) — **PASS for the library half only** (no key; steps 1-4 and 7 not driven) at laptop 1440x900 Chromium, jittered real mouse: the Feather 3MF and a Cube grouped (Group opens its merge popover; **Group** there) and saved as *Feather enclosure*; after File ▸ New it dragged in complete, 115.5 × 62.3 × 40 mm. Deleting the Feather while the enclosure nests it was refused (*esp8266 feather is used inside Feather enclosure in My parts. Delete Feather enclosure first.*, Cancel only). Console clean.
 **Last run**: 2026-11-03 UTC (`ai-034`, uncommitted tree) — **PASS, scripted only**: `e2e/ai-drawing.e2e.js` 3 of 3 on `chromium-laptop` after the Assistant's open-before-key-loads change. Not hand-driven.
@@ -4373,30 +4377,39 @@ Added 2026-10-15 with `io-009`: the first scenario where a **file from outside**
 and the first library part with no parameters. It shares scenario 3's "renders complete, not
 partial" rule and scenario 8's hostile-input rule.
 
-**Steps**:
-1. Open the app to an empty scene. Open the Library, expand **My parts**, tap **Import model
-   file…** and choose an STL (a real one from the wild, or an L-bracket you made).
-2. Read the row: a **Mesh** tag, the size in mm, **Units assumed: mm**. If the size looks wrong
-   for the part, switch **Units** to *inch* or *cm*.
-3. Drag the row into the view and release.
-4. Select it. Read the Inspector.
-5. Drag a **Cylinder** in so it overlaps the part. In the Objects list select the model first,
+**Steps** (rewritten 2026-11-10 with `TODO/ui-107`: a model file is imported into the **project**
+from the File menu, never into My parts):
+1. Open the app to an empty scene. Note the My parts count. Open **File ▾ → Import model…**
+   (`file-import-model`) and choose an STL (a real one from the wild, or an L-bracket you made).
+2. Read the line at the top of the view while it is read (*Reading bracket.stl…*), then the chip
+   *Place bracket.stl · Cancel*. Move the pointer over the grid (on touch: drag the ghost with one
+   finger) and click (lift) where it should go.
+3. Read the Inspector: its size, the not-parametric note, **Units** and *Units assumed: mm*. If the
+   size looks wrong for the part, switch **Units** to *inch* or *cm*; Undo; Redo.
+4. Drag a **Cylinder** in so it overlaps the part. In the Objects list select the model first,
    then tick the cylinder, and tap **Subtract**.
-6. **File ▾ → Export**, STL. Open the file in a viewer or slicer.
-7. Reload; then **File ▾ → New**.
-8. *Drive it differently on purpose:* choose a text file renamed `x.stl`; choose a second file
-   while the first is still being read.
+5. **File ▾ → Export**, STL. Open the file in a viewer or slicer.
+6. Reload; then **File ▾ → New**.
+7. *Drive it differently on purpose:* choose a text file renamed `x.stl`; choose a second file
+   while the first is still being read; start an import and press **Cancel**, and another and
+   press Esc; at laptop width drop the STL file straight onto the view; select a placed model and
+   choose **Save to library…**.
 
-**Expect**: The row appears with a thumbnail (a picture of the part, not a swatch) and its true
-size. The dropped part is the **whole** model, sitting on the ground at the pointer, selected,
-with its size in the Inspector, read-only, and a note that a mesh is not parametric. Subtract
-leaves one body with a pocket in it; the exported STL is closed (no holes in a slicer) and
-smaller than the original by about the overlap. After reload the part and the cut body are still
-there; after File ▸ New the part is still in My parts. The text file is refused under the My
-parts header in words and My parts is unchanged; a second file replaces the first.
+**Expect**: The ghost (the whole model, see-through) follows the pointer and lands where it was
+clicked, sitting on the ground, **selected**, listed in Objects, with its size in the Inspector,
+read-only, a note that a mesh is not parametric, and *Import bracket.stl* as the Undo label. **My
+parts' count does not change**, and there is no My parts row for it. Units re-reads the size as one
+step that Undo puts back. Subtract leaves one body with a pocket in it; the exported STL is closed
+(no holes in a slicer) and smaller than the original by about the overlap. After reload the cut
+body is still there (the project carries the part; no library entry behind it); after File ▸ New
+My parts is still unchanged. The text file is refused in words in the line at the top of the view,
+and nothing is added; a second file replaces the first; Cancel and Esc add nothing; a dropped file
+lands at the drop point with no chip; Save to library… suggests the part's name and gives it one My
+parts row with the same size.
 
 **Also re-drive**: re-drive at 820x1180 and a hand-resized ~720 px window, on WebKit and one other engine (ui-079).
 
+**Last run**: 2026-11-10 17:45 UTC (`ui-107`, uncommitted tree, preview build, exploratory scripts with a jittered real pointer, trusted CDP touch on Chromium and touchscreen taps on WebKit, fresh profiles) — **PASS, after two fixes this drive found** at laptop Chromium and Firefox, tablet 820x1180 Chromium (trusted touch), phone 390x844 Chromium and WebKit, and a 720 px WebKit window, with real files from the wild (`Case V2.stl`, 4,148 triangles, 104 mm; `Cool Snicket.stl`; `DtM-v3.stl`, 942 kB; `Grand Blorr (3).stl`). Chip *Place Case V2.stl · Cancel*; placed, selected, size in the Inspector, the not-parametric note, Units *inch* re-read 104 → 2641.6 with Undo/Redo; Undo label *Import Case V2.stl*; one Undo removed it; `x.stl` refused (*Not a valid STL: …*, `role=alert`), nothing added; Cancel and Esc added nothing; a second file chosen while `DtM-v3.stl` was still read replaced it; a file dropped on the view at laptop landed at once with no chip; My parts stayed at 0 throughout; reload kept every body; Save to library… added one row. **Found and fixed:** (1) with a model already selected, the second session's touch drag landed on that model's gizmo, which is stacked above the session layer, and turned it 6° instead of placing (now hidden while a session is armed; new spec case); (2) at phone width the ghost started under the open Inspector sheet, out of reach (now the centre of the visible band above the chip). Not driven: Subtract and Export of the imported STL (unchanged by `ui-107`), a slicer, a real phone.
 **Last run**: 2026-11-04 15:27 UTC (`io-024`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer and fresh profiles) — **PASS** at laptop 1440x900 Chromium with Adafruit's own Feather STL (33,722 triangles, a real file from the wild): the row read **Mesh**, 51.3 × 22.9 × 6.37 mm and **Units assumed: mm**, with its Units control (an STL row is unchanged by `io-024`); the model dropped; the Inspector showed the not-parametric note; Subtract of an overlapping Cylinder left one body; a reload kept it; File ▸ New kept the part in My parts; `x.stl` was refused with *Not a valid STL: …* and nothing added; a second file chosen while a slow 3MF was still being read replaced it (only the STL row was added). `e2e/import-model.e2e.js` passes at chromium-laptop. Not driven: the units switch, exporting the STL part, WebKit.
 **Last run**: 2026-10-21 UTC (`ui-084`, uncommitted tree) — **PASS** at tablet 820x1180 and 900x1000 on Chromium and WebKit: Import model... from the rail's ... menu, a 40 x 20 x 10 mm STL appeared as a My parts tile whose pop-out read the true size; the model and a cylinder dropped; Subtract left one body with a pocket (checked in the screenshot). Export, reload and the hostile-input variants were not re-driven. Console and page errors: none.
 **Previous run**: 2026-10-15 UTC (`io-009`) — **PASS** at laptop 1440x900 Chromium and phone 390x844 Chromium + WebKit for the import/size/target parts (real `page.mouse`, jittered 24-step drags, fresh profile). A hand-made sloppy ASCII L-bracket STL (T-junction at the inner corner, 3 decimals): row read 40 × 20 × 40 mm; placed complete; Subtract left one `boolean.subtract` body; the exported STL had 0 open edges and a volume of 4067 mm³ (a Monte Carlo check of bracket minus the cylinder gave 4023 ± 70). Reload kept the part and body; File ▸ New kept the part. Not driven: a real third-party STL, a slicer.
@@ -4564,16 +4577,17 @@ scenario):
 
 Added 2026-11-04 with `TODO/io-024`: the first file from outside that becomes **several selectable
 parts** rather than one shell. It shares scenario 26's import rules, scenario 6's selection depth and
-scenario 8's hostile-input rule. Control names: **Import model file…** (`library-import-model`), the
-My parts row's **Mesh** and **N parts** tags (`library-mesh-tag`, `library-mesh-parts`), the
-Objects list's ▸ (`objects-expand-<id>`) and part rows (`objects-part-<id>-<name>`, checks
+scenario 8's hostile-input rule. Control names (since `TODO/ui-107`): **File ▾ → Import model…**
+(`file-import-model`), the placement chip (`placement-chip`, its **Cancel** `placement-chip-cancel`),
+the status line (`model-import-notice`, `model-import-error`), the Objects list's ▸ (`objects-expand-<id>`) and part rows (`objects-part-<id>-<name>`, checks
 `objects-part-check-<id>-<name>`), **⇔ Align** and its top line (`align-operands`).
 
 **Steps** (driven with the owner's real file, `~/Downloads/esp8266 feather.3mf`, a FreeCAD export of
 Adafruit's Feather HUZZAH ESP8266 STEP, which is never committed):
-1. Open the Library, expand **My parts**, tap **Import model file…** and choose the `.3mf`.
-2. Read the row and the toast.
-3. Drag the row into the view and release. Drag a **Cube** in beside it.
+1. Note the My parts count. Open **File ▾ → Import model…** and choose the `.3mf`.
+2. Read the line at the top of the view, then place the ghost: hover and click (on touch, drag it
+   and lift). Read the line again after the click. Drag a **Cube** in beside it.
+3. Read the Inspector for the whole model: no **Units** control.
 4. Click the board once; read the Inspector. Click again on the large module (the ESP-12); read the
    breadcrumb and the size.
 5. Hold **Shift** and click the Cube; press **⇔ Align** and read the top line. Then pick the Cube
@@ -4582,7 +4596,7 @@ Adafruit's Feather HUZZAH ESP8266 STEP, which is never committed):
    tap **Subtract**; Undo.
 7. **File ▾ → Export**: the whole model as STL, then **Print pieces**.
 8. Reload; then **File ▾ → New**.
-9. *Drive it differently on purpose:* drop the row, Undo, drop it twice, and check the second copy is
+9. *Drive it differently on purpose:* import it, Undo, import it twice, and check the second copy is
    whole; choose a second file while the first is still being read; at phone width, pick a 1.6 mm
    resistor from the Objects list.
 10. *Added with `TODO/ui-094`:* tap `Part 22` in the Objects list, tap its name at the top of the
@@ -4592,11 +4606,11 @@ Adafruit's Feather HUZZAH ESP8266 STEP, which is never committed):
    while the field is open.
 
 **Expect**:
-- Step 2: **29 parts**, not 87; **Mesh**; 51.3 × 22.9 × 6.37 mm; no **Units** control and no *Units
-  assumed* badge (3MF states its units); the toast *Imported esp8266 feather.3mf, 29 parts, 29,718
-  triangles, 51.3 × 22.9 × 6.37 mm. 58 exact duplicates skipped.*
-- Step 3: the whole model lands centred on the pointer with its lowest point on the ground, every
-  part in place relative to the others.
+- Step 2: the line *Imported esp8266 feather.3mf, 29 parts, 29,718 triangles, 51.3 × 22.9 × 6.37 mm.
+  58 exact duplicates skipped.*; the whole model lands centred on the pointer with its lowest point
+  on the ground, every part in place relative to the others, selected as the whole assembly. **My
+  parts' count does not change** (the owner's report: *I do NOT expect it to jump into my library*).
+- Step 3: no **Units** control and no *Units assumed* badge (3MF states its units).
 - Step 4: the whole is selected first (51.26 × 22.86 × 6.37), then `Part 22` alone: 24 × 16 × 2.95,
   sitting on the board at Z = 1.57. `Part 1` (the board) reads 50.8 × 22.86 × 1.57, and the ten
   `10K` resistors (`Part 6` … `Part 15`) are each in their own place on the board, none at the
@@ -4608,11 +4622,12 @@ Adafruit's Feather HUZZAH ESP8266 STEP, which is never committed):
   Undo brings both back.
 - Step 7: the STL is written; open edges are reported, naming `JSTPH` (`Part 19`) and `KMR2`
   (`Part 23`), which are broken in the source file. Print pieces refuses at `Part 19` with its reason.
-- Step 8: both copies and the Cube come back; after File ▸ New the part is still in My parts.
+- Step 8: both copies and the Cube come back; after File ▸ New My parts is still unchanged.
 - Step 9: the second copy has all 29 parts and the same size; the second file replaces the first;
   at 390 px the Objects list shows 29 rows of 44 px, scrolls inside its sheet, never sideways, and a
   tapped resistor reads 1.63 × 0.81 × 0.38.
-- At 390 px, 820 px and 1440 px: no horizontal scroll; the row's ⋯ menu stays inside the window.
+- At 390 px, 820 px and 1440 px: no horizontal scroll; the placement chip sits in its own row above
+  the tabs, with the navigation pad and the scale readout lifted clear of it.
 - Step 10: the breadcrumb reads `Objects ▸ esp8266 feather 1 ▸ ESP-12`; the row stays between
   `Part 21` and `Part 23`; History gains *Rename Part 22 to ESP-12 on esp8266 feather 1*; the Align
   top line names `ESP-12`; Undo brings back `Part 22` with it still selected, Redo `ESP-12`; the name
@@ -4621,6 +4636,7 @@ Adafruit's Feather HUZZAH ESP8266 STEP, which is never committed):
 - Never: three boards stacked in one place, a pile of parts at the origin, one resistor where there
   are ten, a part named by the file that vanishes, or a main-thread stall when selecting the model.
 
+**Last run**: 2026-11-10 17:45 UTC (`ui-107`, uncommitted tree, preview build, exploratory scripts with a jittered real pointer, trusted CDP touch on Chromium and touchscreen taps on WebKit, fresh profiles) — **PASS (steps 1-3, 8)** at laptop Chromium and Firefox, tablet Chromium, phone Chromium and WebKit, 720 px WebKit, with the owner's `esp8266 feather.3mf` through **File ▾ → Import model…**: the line read *Imported esp8266 feather.3mf, 29 parts, 29,718 triangles, 51.3 × 22.9 × 6.37 mm. 58 exact duplicates skipped.*; placed selected as the whole assembly (51.25 wide); no Units control; **My parts' count did not change**; reload kept it. Steps 4-7, 9-10 not re-driven (selection, Align, export and rename are unchanged; `e2e/import-3mf.e2e.js` passes on all nine projects). The owner's `6538 RV-8803…` file is not on this machine.
 **Last run**: 2026-11-08 22:45 UTC (`core-079`, uncommitted tree, preview build, jittered real pointer, fresh profile) — **PASS** at laptop Chromium and phone WebKit (22:46): the owner's `esp8266 feather.3mf`, toast 29 parts / 29,718 triangles. Whole-model Subtract showed "Subtract in progress…", landed in about 1.25 s (Chromium), with no long task over 50 ms; one Undo restored both bodies. Console clean.
 **Last run**: 2026-11-05 23:45 UTC (`ui-095`, uncommitted tree) — **PASS (steps 1-3, 8 and the ui-095 delete flows)** at laptop 1440x900 Chromium with the owner's real file: toast *Imported esp8266 feather.3mf, 29 parts, 29,718 triangles, 51.3 × 22.9 × 6.37 mm. 58 exact duplicates skipped.*; the row dragged in whole. With the Feather's stored entry removed (the owner's broken state), the enclosure showed as a ⚠ row, *Can't be loaded: it uses esp8266-feather, which is no longer in My parts*, the banner named *Feather enclosure*, a drag of it placed nothing, its ⋯ offered only **Delete…**, and Delete removed the row and the banner for good (reload). Phone 390x844 WebKit, touch only, seeded: same, no sideways scroll, sheet Delete 48 px tall. Steps 4-7, 9-10 not driven (nothing in selection, Align, export or rename changed). Console clean.
 **Last run**: 2026-11-05 19:46 UTC (`ui-094`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer) — **PASS** at laptop 1440x900 Chromium and WebKit (real mouse), phone 390x844 Chromium (trusted CDP touch) and WebKit, the owner's real file. Steps 1-3 as before (29 parts). Step 10: `Part 22` tapped in the Objects list, named `ESP-12`: breadcrumb `ESP-12`, row between `Part 21` and `Part 23`, History *Rename Part 22 to ESP-12 on esp8266 feather 1*, Align top line *Aligning Cube 1 to esp8266 feather 1 › ESP-12* with the Cube's X centre on the part's exactly, one-part Subtract with `ESP-12` (one body), Undo ×3 back to `Part 22` still selected, Redo ×3, reload kept `ESP-12`. Differently: an eye-hidden `Part 23` renamed `KMR2` stayed hidden and Undo put the eye back on `Part 23`; Ctrl+Z with the Align popover open undid the rename and the popover re-read the restored selection (`… › Part 23 to World origin`), no error; typing a name and tapping another part committed it and moved there. Phone: pencil 44x44, field 366x44, keyboard Done and tap-away both commit, no sideways scroll. A rename on the 29-part model: ~4-6 ms main thread to commit, next frame by ~30 ms, no long task. Console clean throughout. Steps 4-9 were not re-driven this time; the open item below (624 ms whole-model Subtract) is untouched by `ui-094`.

@@ -32,7 +32,7 @@ steps that built it. A saved part is fixed: to get another size, see
 
 ![The Save to library sheet: a name field reading Standoff and the category My parts](./screenshots/user-library-save-sheet.png)
 
-![The Library panel scrolled to its My parts section: a count of 1, the Import part file and Import model file buttons, and a Standoff row with a thumbnail and a menu button](./screenshots/library-my-parts.png)
+![The Library panel scrolled to its My parts section: a count of 1 and a Standoff row with a thumbnail and a menu button](./screenshots/library-my-parts.png)
 
 ![Group a cube and a cylinder, tap Save to library, name it Standoff and tap Save: a toast reads Saved Standoff and a Standoff row appears in My parts](./media/user-library-save.gif)
 
@@ -40,134 +40,10 @@ steps that built it. A saved part is fixed: to get another size, see
 
 ## Importing a model file
 
-You do not have to build every part: if you already have a model as an **STL** file (from
-Thingiverse, a scan, a bracket someone else designed), **Import model file…** in the My
-parts header turns it into a part you can drag into the view like any other. A **3MF** file
-keeps the model's separate components as parts you can select one by one: see
-[Importing a model with its parts: 3MF](#importing-a-model-with-its-parts-3mf).
-
-1. Open the Library and expand **My parts** (on a phone, tap **Library** first).
-2. Tap **Import model file…** and choose `bracket.stl`. A *Reading bracket.stl…* line shows
-   while it is read. Choosing a second file while one is still being read replaces it.
-3. A row appears at the top of **My parts** with a thumbnail, the name, a **Mesh** tag and its
-   size in millimetres, and a toast reads *Imported bracket.stl, 12 triangles, 40 × 20 × 10 mm*.
-4. **Check the size under its name.** STL files carry no units, so the row says
-   **Units assumed: mm** until you touch **Units**. If a bracket reads 0.04 × 0.02 × 0.01 mm,
-   switch **Units** to *inch* (or *cm*) and the size updates. Do this before you place it: a
-   copy already in the project keeps the units it was placed with.
-5. Drag the row into the view. It lands on the ground plane under the pointer, centred, not
-   buried or off at the file's own origin.
-6. Select it: the Inspector shows its name and its size (read-only). To cut a pocket, add a
-   **Cube**, select the model first and the cube second, and tap **Subtract**.
-
-![The My parts row for an imported bracket: a thumbnail, the name, a Mesh tag, its size 40 × 20 × 10 mm, a Units control and the Units assumed: mm badge](./screenshots/import-model-row.png)
-
-![Tap Import model file, choose bracket.stl, then drag its row from My parts into the 3D view: the whole bracket lands selected, and the Inspector shows its size](./media/import-model-place.gif)
-
-### What it reads, and its limits
-
-- **Formats:** binary and ASCII **STL** (`.stl`), and **3MF** (`.3mf`), which keeps a model's
-  components as separate parts (below). OBJ and glTF are planned; the importer is built so
-  each is one more reader.
-- **Size caps:** a file up to 25 MB and **250,000 triangles**, and a stored mesh up to 5 MB.
-  A file over a cap is refused with its reason shown under the **My parts** header, and nothing
-  is added. A file that is not an STL, or is cut short, is refused the same way.
-- **Cleaned up on the way in:** corners that coincide are welded so the faces share edges,
-  and triangles with no area are dropped, so the part exports as a closed shape.
-- **Not parametric.** An imported mesh has no sizes to edit: the Inspector says so and shows
-  its size as a measurement. You can move, rotate, scale, combine and cut it (Union, Subtract,
-  Intersect work as with any body), but not change its dimensions as numbers.
-- **STEP, IGES and BREP are out of scope.** Those are exact solid models, not triangle meshes,
-  and reading them needs a different kind of geometry engine than this app has. "STEP does not
-  import" is how the app is built, not a bug. Export STL from your other program instead, or
-  3MF, to keep the parts. A `.step` or `.stp` file dropped on the panel is refused with *STEP
-  files are not read yet. Export 3MF or STL from your CAD program*.
-- **Exporting the part** (⋯ ▸ **Export part file**) carries the mesh. It is refused with a
-  reason if the file would be larger than **Import part file…** reads (8 million characters).
-
-On a laptop you can also drop a `.stl` or `.3mf` file straight onto the Library panel. Touch
-screens have no file drag, so the button is the way in there.
-
-## Importing a model with its parts: 3MF
-
-An STL is one fused shell: a circuit board's STL has nothing to design against but its
-outline. A **3MF** file can hold each component of the model separately, and WarpCad keeps
-them: the import is **one part** you drag in as a whole, and each component inside it is a
-**sub-part** you can select, measure, align against or cut with, exactly like the named parts
-of a Raspberry Pi ([Selecting a part inside a group](groups.md#selecting-a-part-inside-a-group)).
-
-Many parts are published as STEP. WarpCad does not read STEP yet, so convert it to 3MF in
-another program first. FreeCAD (free) does it; the steps below were checked with FreeCAD 1.1.4.
-
-### Example: the Adafruit Feather HUZZAH ESP8266
-
-Millimetres, Z up.
-
-1. Download `2821 Adafruit ESP8266 Feather.step` from Adafruit's
-   [CAD parts repository](https://github.com/adafruit/Adafruit_CAD_Parts/tree/main/2821%20Feather%20HUZZAH%20ESP8266).
-   Open it in FreeCAD with **File ▸ Import…**. The Model tree shows one top item,
-   **Adafruit ESP8266 Feather v4**, holding a **PCB Component** group with the board and its
-   28 components.
-2. In the Model tree, click **only the top item**, then **File ▸ Export…**, choose the type
-   **3D Manufacturing Format (\*.3mf)**, and save `feather.3mf`. (If you select every item in the
-   tree instead, FreeCAD writes each component three times over. WarpCad notices the exact copies
-   and skips them, so the result is the same; the toast just says how many it skipped.)
-3. In WarpCad, open the Library, expand **My parts**, tap **Import model file…**, and choose the
-   `.3mf`. The row reads **Mesh**, **29 parts** and **51.3 × 22.9 × 6.37 mm**, and a toast
-   reads *Imported feather.3mf, 29 parts, 29,718 triangles, 51.3 × 22.9 × 6.37 mm.* (The
-   triangle count depends on FreeCAD's export settings.)
-4. Drag the row into the view and release. Drag a **Cube** in beside it.
-5. **Click the board once**: all of it is selected, and the Inspector shows the whole model's
-   size. **Click again on the large 24 × 16 mm module** (the ESP-12): the breadcrumb reads
-   `feather 1 ▸ Part 22`, and the Inspector shows that part's own size, 24 × 16 × 2.95 mm.
-6. Hold **Shift** and click the Cube, then press **⇔ Align**. The popover's top line reads
-   **Aligning feather 1 › Part 22 to Cube 1**: the board is the shape you picked first, so it
-   moves, and the part you addressed is what is measured. Tap the button you want, say
-   **X center**. To move the **Cube** against the part instead, pick the Cube first, then
-   tick `Part 22` under the board in the Inspector's **Objects** list.
-7. To cut a pocket for a connector, follow
-   [Cutting with just one part](booleans.md#cutting-with-just-one-part-of-a-multi-part-shape):
-   select the plate, tick the part in the Objects list, and tap **Subtract**. A part used as a
-   cutting shape uses the model up, as any cutting shape is; drag in another copy, or Undo.
-
-![The Objects list expanded under an imported 3MF model: one row per part, Part 1 to Part 3, with Part 2 selected and the breadcrumb reading Objects, feather 1, Part 2](./screenshots/import-3mf-parts.png)
-
-![Choose a 3MF with Import model file, drag its row into the view, click the model twice to narrow to one part, Shift-click a cube and press Align: the popover names the part](./media/import-3mf-align.gif)
-
-**Small parts are easier to reach from the list.** A 1.6 mm resistor is hard to hit with a
-click and impossible with a finger. Select the model, open the Inspector's **Objects** list,
-and expand it with its **▸**: every part has its own row. Tap a row to select that part, or
-its check box to add it to what is already selected.
-
-### What a 3MF import keeps, and what it does not
-
-- **Each placed component is one part**, in the place the file puts it. The whole model lands
-  centred under the pointer with its lowest point on the ground, and the parts keep their
-  places relative to each other. A component placed twice is two parts; an exact copy at the
-  same place is skipped and counted in the toast.
-- **Names only if the file has them.** A part takes its object's name from the file. FreeCAD
-  writes no names, so its parts are `Part 1`, `Part 2`, … in the file's order. Click a part
-  and read its size to tell them apart. A name used twice is numbered: `10K 1`, `10K 2`.
-  Once you know which is which, give it a name of your own: tap `Part 22`, tap its name at the
-  top of the Inspector, type `ESP-12` and press **Enter**
-  ([Naming a part of a group](selection-and-inspector.md#naming-a-part-of-a-group)). **Save to
-  Library** afterwards so new copies keep the names.
-- **A hole in a part is not a part.** A board's mounting holes are holes in the `Board` mesh,
-  not parts of their own, so you can align against `Board` or the ESP-12 module, but not
-  against one mounting hole by itself (unlike the Raspberry Pi, whose holes are named parts).
-- **Units come from the file.** A 3MF says which units it is in, so the row has no **Units**
-  control and no *Units assumed* badge.
-- **Not parametric**, like an STL: sizes are measurements, not settings.
-- **Ignored:** colours and materials, thumbnails and slices. Beam lattices are refused. A 3MF
-  whose objects live in separate files inside the package (the *production extension*, which
-  some slicers write) is refused in words rather than imported in part; so is a file that
-  requires an extension WarpCad does not understand.
-- **The same caps as an STL:** 25 MB per file and 250,000 triangles in the whole model, every
-  placed copy counted.
-- **Exporting:** a component the source file left broken stays broken. In the Feather's file,
-  `Part 19` (the JST connector) has 12 edges shared by more than two triangles and `Part 23`
-  (the button) has 6 open edges, so **Export ▸ Print pieces** refuses at `Part 19` with its
-  reason.
+An STL or 3MF file is not imported here any more. **File ▾ → Import model…** brings it into the
+project you have open, placed in the 3D view, and it does not appear in My parts. To keep an
+imported model, select it and choose **Save to library…**. See
+[Importing a model file](import.md).
 
 ## When Save to library… is available
 
@@ -230,9 +106,10 @@ under **Parameters** when you place it, and the field still works.
 | **Export part file** | Downloads a `.warpcad-part.json` file you can share or keep. |
 | **Delete…** | Removes the part from My parts. See below. |
 
-**Import part file…** in the My parts header adds the parts in such a file. A part whose name
-you already have is skipped; a file that is not a part file, or a part that does not pass the
-same safety checks as a project file, is reported by name.
+**File ▾ → Import part file…** adds the parts in such a file to My parts, and a toast says so
+(*Added Standoff to My parts. Open Library to place it*). A part whose name you already have is
+skipped; a file that is not a part file, or a part that does not pass the same safety checks as
+a project file, is reported by name.
 
 On a phone the menu is a bottom sheet with large buttons.
 
@@ -306,7 +183,7 @@ A part that can't be loaded can't be dragged into the view. Its **⋯** menu off
 2. Tap **Delete…**, then **Delete**.
 
 The row and its line in the message go away, and stay gone when you reload. If you still have
-the missing part as a part file, **Import part file…** brings it back instead, and the part
+the missing part as a part file, **File ▾ → Import part file…** brings it back instead, and the part
 that uses it loads again the next time you open WarpCad.
 
 ![My parts with one ordinary row and, below it, a row with a warning sign reading Feather enclosure, Can't be loaded: it uses esp8266-feather, which is no longer in My parts; the message above the list names Feather enclosure and says to delete it from its menu](./screenshots/user-library-broken-part.png)

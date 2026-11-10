@@ -51,6 +51,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-107 — Import model… from the File menu, placed in the view (2026-11-10 17:46 UTC)
+
+Scenarios 26 and 31 were driven at all three widths with a scripted real pointer and trusted touch. They cover the flow, but not how it feels on a real phone, the owner's own file, or two layout judgment calls the implementer made.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone and iPad: File → Import model…, then drag the waiting ghost with one finger and lift. Does the ghost start where you can see it (with and without a model already selected and the Inspector sheet open), and does it follow the finger without lag on a 30k-triangle file? | Open | |
+| 2 | The owner's own `6538 RV-8803…` 3MF from the original report: imported through File → Import model…, it is in the view and in Objects, and My parts does not change. | Open | |
+| 3 | At phone width the *Reading… / Imported…* status line sits at the top centre, visually over the operations toolbar row, as the Library toast already does. Is that acceptable, or should it move? | Open | |
+| 4 | Save to library… on a single imported STL says *Saves this group as a fixed part*. Check whether "group" reads wrong for one mesh (the wording predates `ui-107`). | Open | |
+
 ### ui-100 — Refusal message under the edited field (2026-11-08 23:58 UTC)
 
 A refused edit's message now sits under the edited field, not under the Delete bar. Checked in headless Chromium at 390x844 (the message is directly under the Corner radius field, outlined, and the Delete button is clear) and 1440x900. Real-device look at phone width is still to do.

@@ -2,14 +2,15 @@
 import { test, expect } from '@playwright/test'
 
 import { featherShapedThreeMf } from '../src/io/__fixtures__/threeMf.js'
-import { isPhone, openLibrary, closeLibrary, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
+import { isPhone, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
+import { importModel } from './support/importModel.js'
 
 /**
  * Rename a part of a group (`TODO/ui-094`), driven against `/`.
  *
  * The TODO's own flow on the generated Feather-shaped 3MF (`src/io/__fixtures__/threeMf.js`, whose
- * objects have no names, so they arrive as `Part 1`, `Part 2`, `Part 3`): **Import model file…**
- * through the real chooser, drag it in, tap `Part 2` under the Objects list, tap the name at the top
+ * objects have no names, so they arrive as `Part 1`, `Part 2`, `Part 3`): **File → Import model…**
+ * through the real chooser, place it in the view, tap `Part 2` under the Objects list, tap the name at the top
  * of the Inspector, type `ESP-12`, press Enter. The breadcrumb, the Objects list row (still second),
  * History's Undo label and the part's red colour all follow; Undo and Redo keep the selection on the
  * part; a reload keeps the name. A duplicate is refused in the field's helper line with the field
@@ -36,28 +37,6 @@ test.beforeEach(async ({ page }) => {
 /** @returns {Promise<{ name: string, mimeType: string, buffer: Buffer }>} */
 async function featherFile() {
   return { name: 'feather.3mf', mimeType: 'model/3mf', buffer: Buffer.from(await featherShapedThreeMf()) }
-}
-
-/**
- * Choose a file through the button's real file chooser (in the rail's ⋯ menu in the icons tier).
- *
- * @param {import('@playwright/test').Page} page
- * @param {Press} press
- * @param {{ name: string, mimeType: string, buffer: Buffer }} file
- */
-async function chooseModel(page, press, file) {
-  const chooser = page.waitForEvent('filechooser')
-  const more = page.getByTestId('library-rail-more')
-  if (await more.isVisible().catch(() => false)) await press(more)
-  await press(page.getByTestId('library-import-model'))
-  await (await chooser).setFiles(file)
-}
-
-/** @param {import('@playwright/test').Page} page @param {Press} press */
-async function ensureUserOpen(page, press) {
-  const toggle = page.getByTestId('library-section-toggle-user')
-  if (!(await toggle.isVisible().catch(() => false))) return
-  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await press(toggle)
 }
 
 /**
@@ -125,17 +104,13 @@ async function typeName(page, press, name) {
 
 test('name an imported model’s Part 2: everywhere follows, Undo/Redo keep the part selected, reload keeps the name', async ({ page }, info) => {
   test.setTimeout(150_000)
-  const { press, dragRow } = await pointer(page, info)
-  await openLibrary(page, press)
-  await ensureUserOpen(page, press)
-  await chooseModel(page, press, await featherFile())
-  const row = page.getByTestId('library-row-user.feather')
-  await expect(row).toBeVisible()
-  const at = isPhone(info) ? [0.5, 0.24] : [0.45, 0.5]
+  const { press, placeArmed } = await pointer(page, info)
+  // File → Import model… (TODO/ui-107): the model comes into the project, placed in the view.
+  await importModel(page, press, await featherFile())
+  const at = isPhone(info) ? [0.5, 0.3] : [0.45, 0.5]
   const point = await viewportPoint(page, at[0], at[1])
-  await dragRow(row, point.x, point.y)
+  await placeArmed(point.x, point.y)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
-  await closeLibrary(page, press)
   const featherId = /** @type {string} */ ((await sceneBodies(page)).find((body) => body.op === 'user.feather')?.id)
 
   // Colour Part 2 red first, so the rename has a colour to carry (the colour UI is ui-037's spec).
@@ -181,17 +156,13 @@ test('name an imported model’s Part 2: everywhere follows, Undo/Redo keep the 
 
 test('a duplicate name is refused in the field, which stays open; Escape abandons it', async ({ page }, info) => {
   test.setTimeout(120_000)
-  const { press, dragRow } = await pointer(page, info)
-  await openLibrary(page, press)
-  await ensureUserOpen(page, press)
-  await chooseModel(page, press, await featherFile())
-  const row = page.getByTestId('library-row-user.feather')
-  await expect(row).toBeVisible()
-  const at = isPhone(info) ? [0.5, 0.24] : [0.45, 0.5]
+  const { press, placeArmed } = await pointer(page, info)
+  // File → Import model… (TODO/ui-107): the model comes into the project, placed in the view.
+  await importModel(page, press, await featherFile())
+  const at = isPhone(info) ? [0.5, 0.3] : [0.45, 0.5]
   const point = await viewportPoint(page, at[0], at[1])
-  await dragRow(row, point.x, point.y)
+  await placeArmed(point.x, point.y)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
-  await closeLibrary(page, press)
   const featherId = /** @type {string} */ ((await sceneBodies(page)).find((body) => body.op === 'user.feather')?.id)
 
   await openParts(page, press, featherId)

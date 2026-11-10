@@ -64,7 +64,7 @@ export async function tabEndpoint() {
       document: () => documentStore.raw,
       selection: { ids: () => [...selection.ids], select: (ids) => selection.selectMany(ids) },
       capture: () => viewportCapture() ?? undefined,
-      isEditing: () => placement.isDragging || transform.bodyId !== '' || fieldFocused(),
+      isEditing: () => placement.isPlacing || transform.bodyId !== '' || fieldFocused(),
       // `TODO/ai-033`: the project's step limit in force, read on every call.
       limits: () => useAiLimitStore().limits(),
     })
