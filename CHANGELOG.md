@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.16.0](https://github.com/WarpCad/warpcad/compare/v1.15.0...v1.16.0) (2026-11-10)
+
 ## [1.15.0](https://github.com/WarpCad/warpcad/compare/v1.14.0...v1.15.0) (2026-11-10)
 
 ### Features
