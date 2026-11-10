@@ -136,6 +136,8 @@ export class FormulaError extends Error {
  * @property {(name: string) => readonly string[]} idsNamed Every body with this name.
  * @property {(id: string) => string | null} nameOf A root id's current name, or `null`.
  * @property {(id: string) => string | null} rootOf Any id's lineage root, or `null` if unknown.
+ * @property {(id: string) => string | null} [describe] `TODO/FIND-ui-106`: what a live body was
+ *   built from (`Group of Bolt, Nut`), so a name clash can tell its bodies apart; `null` for none.
  */
 
 /** @typedef {'+' | '-' | '*' | '/' | '==' | '!=' | '<' | '<=' | '>' | '>=' | '&&' | '||'} BinaryOp */
@@ -1243,6 +1245,18 @@ function writableId(id, label, at) {
 }
 
 /**
+ * A body id for a clash message, with what it was built from when the lookup says.
+ *
+ * @param {string} id
+ * @param {FormulaLookup} lookup
+ * @returns {string}
+ */
+function shownWithOrigin(id, lookup) {
+  const origin = lookup.describe?.(id)
+  return typeof origin === 'string' && origin.length > 0 ? `${shown(id)} in ${shown(origin)}` : shown(id)
+}
+
+/**
  * The stored form of a formula a person or agent typed: every body named by its lineage-root
  * id (`#cube-a1-3`), variables by name, parts as text. A name two bodies share is refused,
  * listing them.
@@ -1267,7 +1281,7 @@ export function formulaToStored(text, lookup) {
       const first = ids.at(0) ?? ''
       if (ids.length > 1) {
         const count = ids.length === 2 ? 'Two' : String(ids.length)
-        throw new FormulaError(`${count} bodies are named ${name} (${ids.map((id) => shown(id)).join(', ')}): use #${shown(first)} to choose one.`, { code: 'reference' })
+        throw new FormulaError(`${count} bodies are named ${name} (${ids.map((id) => shownWithOrigin(id, lookup)).join(ids.some((id) => lookup.describe?.(id)) ? '; ' : ', ')}): use #${shown(first)} to choose one.`, { code: 'reference' })
       }
       return { kind: 'id', text: writableId(first, body.text, 0) }
     },

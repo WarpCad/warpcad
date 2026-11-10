@@ -384,6 +384,42 @@ describe('supersession — one logical body per lineage (TODO/ui-012)', () => {
   })
 })
 
+describe('formulaLookup().idsNamed over a consumed chain (TODO/ui-106)', () => {
+  /** The owner's chain: a part renamed, then merged twice, each merge result carrying the name. */
+  function featherChain() {
+    const document = createDocument({ registry: { ...fakeRegistry, 'style.rename': realRegistry['style.rename'], 'body.delete': realRegistry['body.delete'] } })
+    document.append({ id: 'p', op: 'fake.box', name: 'Part 1' }, { origin: 'local' })
+    document.renameBody('p', 'feather', { origin: 'local' })
+    document.append({ id: 'x', op: 'fake.box', name: 'Box X' }, { origin: 'local' })
+    document.append({ id: 'g1', op: 'fake.merge', name: 'feather', target: /** @type {string} */ (document.currentIdOf('p')), operands: ['x'], consumes: [/** @type {string} */ (document.currentIdOf('p')), 'x'] }, { origin: 'local' })
+    document.append({ id: 'y', op: 'fake.box', name: 'Box Y' }, { origin: 'local' })
+    document.append({ id: 'g2', op: 'fake.merge', name: 'feather', target: 'g1', operands: ['y'], consumes: ['g1', 'y'] }, { origin: 'local' })
+    return document
+  }
+
+  it('names only the live body when consumed ancestors share the name', () => {
+    expect(featherChain().formulaLookup().idsNamed('feather')).toEqual(['g2'])
+  })
+
+  it('still finds a consumed body by name when no live body has it', () => {
+    const lookup = featherChain().formulaLookup()
+    expect(lookup.idsNamed('Box X')).toEqual(['x'])
+  })
+
+  it('names nothing once the live body is deleted, not its consumed ancestors', () => {
+    const document = featherChain()
+    document.deleteBodies(['g2'], { origin: 'local' })
+    expect(document.formulaLookup().idsNamed('feather')).toEqual([])
+  })
+
+  it('keeps every live body that shares a name', () => {
+    const document = createDocument({ registry: fakeRegistry })
+    document.append({ id: 'a', op: 'fake.box', name: 'Screw' }, { origin: 'local' })
+    document.append({ id: 'b', op: 'fake.box', name: 'Screw' }, { origin: 'local' })
+    expect(document.formulaLookup().idsNamed('Screw')).toEqual(['a', 'b'])
+  })
+})
+
 describe('consumption — several bodies retired into one (TODO/ui-014)', () => {
   /**
    * `supersedes` answers "this record *continues* that body's identity" — a moved

@@ -2634,6 +2634,25 @@ export function createDocument(options = {}) {
   }
 
   /**
+   * Whether a consumed lineage's final consumer (following the chain of merges) was deleted.
+   *
+   * @param {string} root
+   * @returns {boolean}
+   */
+  function isConsumedIntoDeleted(root) {
+    /** @type {Set<string>} */
+    const seen = new Set()
+    let current = root
+    while (mergedInto.has(current) && !seen.has(current)) {
+      seen.add(current)
+      const next = rootById.get(mergedInto.get(current) ?? '')
+      if (next === undefined) return false
+      current = next
+    }
+    return current !== root && isDeletedRoot(current)
+  }
+
+  /**
    * What the user currently calls the body rooted at `rootId` (`TODO/core-038`): its newest
    * `style.rename`, else the root record's own name. `undefined` when it has neither.
    *
@@ -6137,8 +6156,31 @@ export function createDocument(options = {}) {
     /** `TODO/FIND-core-078`: body names ↔ root ids for the formula printer. */
     formulaLookup() {
       return {
-        idsNamed: (name) => rootOrder.filter((root) => !isDeletedRoot(root) && currentNameOfRoot(root) === name),
+        idsNamed: (name) => {
+          const named = rootOrder.filter((root) => !isDeletedRoot(root) && currentNameOfRoot(root) === name)
+          // TODO/ui-106: a name a live body holds is that body's; consumed ancestors sharing it
+          // are earlier steps of its history. With no live holder a consumed body is still
+          // reachable (a cutter that went into a Subtract), unless what consumed it was deleted.
+          const live = named.filter((root) => !mergedInto.has(root))
+          if (live.length > 0) return live
+          return named.filter((root) => !isConsumedIntoDeleted(root))
+        },
         nameOf: (id) => (rootById.has(id) ? currentNameOfRoot(id) ?? null : null),
+        // TODO/FIND-ui-106: what a body was built from, e.g. `Group of Bolt, Nut`, so a clash
+        // between two live bodies of one name can be told apart.
+        describe: (id) => {
+          const root = rootById.get(id)
+          const current = root === undefined ? undefined : document.currentIdOf(root)
+          const record = current === undefined ? undefined : recordById.get(current)
+          if (record === undefined) return null
+          const sources = (record.consumes ?? [])
+            .map((ref) => rootById.get(typeof ref === 'string' ? ref : String(/** @type {any} */ (ref)?.id)))
+            .filter((source) => source !== undefined)
+            .map((source) => currentNameOfRoot(source) ?? source)
+          if (sources.length === 0) return null
+          const verb = /** @type {Record<string, string>} */ (STEP_VERBS)[record.op] ?? 'Built'
+          return `${verb} of ${sources.join(', ')}`
+        },
         rootOf: (id) => {
           const root = rootById.get(id)
           return root === undefined || isDeletedRoot(root) ? null : root

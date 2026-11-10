@@ -82,7 +82,6 @@ this repository still need a green full run before they are pushed.
 | 22y | `FIND` | ▶ [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows | From the 2026-11-07 VERIFY.md third pass | sonnet |
 | 22z | `FIND` | ▶ [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP instead of an API key | From the 2026-11-07 VERIFY.md third pass | sonnet |
 | 22za | `FIND` | ▶ [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md, draft a recommendation each, ask in batches | From the 2026-11-07 VERIFY.md third pass; ends in questions for the owner | sonnet |
-| 22zb | `FIND` | ▶ [`ui-106`](FIND-ui-106-variable-from-object-counts-consumed-bodies-as-name-clashes.md) A formula variable naming an object is refused as ambiguous when only one live body has the name (consumed ancestors counted) | From the owner's 2026-11-09 report on the huzzah-feather project | sonnet |
 | 23 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
 | 25 | `M11` | Gears (M11, runs last): `ui-057` → `ui-058` → `core-048` → `core-049` → `core-062` → `testing-002` → `docs-021` | Order from M11's suggested order | sonnet / opus |
 
@@ -326,7 +325,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
 | `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
 | `testing-033` | Gather the ~80 owner decisions parked in VERIFY.md, draft a recommendation each, ask in batches. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
-| `ui-106` | A formula variable naming an object is refused as ambiguous when only one live body has the name; the hint suggests a consumed ancestor. Filed 2026-11-09 from the owner's report | Finding | — | 105, 104 |
 
 ---
 

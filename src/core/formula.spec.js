@@ -539,8 +539,41 @@ describe('names in the text, ids in the file', () => {
   })
 
   it('refuses a name two bodies share, listing them', () => {
+    // Deliberate rewording (TODO/FIND-ui-106): without a description the ids stand alone.
     const error = formulaErrorOf(() => formulaToStored('Screw.width', lookup))
     expect(error.message).toBe('Two bodies are named Screw (screw-a1-2, screw-a1-5): use #screw-a1-2 to choose one.')
+  })
+
+  it('a live clash shows each body with the group it was built from', () => {
+    const described = {
+      ...lookup,
+      describe: (/** @type {string} */ id) => (id === 'screw-a1-2' ? 'Group of Bolt, Nut' : id === 'screw-a1-5' ? 'Merge of Base' : null),
+    }
+    const error = formulaErrorOf(() => formulaToStored('Screw.width', described))
+    expect(error.message).toBe('Two bodies are named Screw (screw-a1-2 in Group of Bolt, Nut; screw-a1-5 in Merge of Base): use #screw-a1-2 to choose one.')
+    expect(error.message).not.toContain('\n')
+  })
+
+  it('names a live body even though consumed ancestors share its name (TODO/ui-106)', () => {
+    // Real lookups return the live body only; the formula layer sees a single id.
+    const chain = { ...lookup, idsNamed: (/** @type {string} */ name) => (name === 'feather' ? ['group-2'] : []), rootOf: (/** @type {string} */ id) => id }
+    expect(formulaToStored('[feather].width', chain)).toBe('#group-2.width')
+  })
+
+  it('a two-live-bodies clash suggests a live id and describes each', () => {
+    const clash = { ...lookup, describe: undefined }
+    const error = formulaErrorOf(() => formulaToStored('Screw.width', clash))
+    expect(error.message).toContain('use #screw-a1-2 to choose one')
+  })
+
+  it('a consumed cutter with a unique name still resolves', () => {
+    const cutter = { ...lookup, idsNamed: (/** @type {string} */ name) => (name === 'Cutter' ? ['cutter-1'] : []), rootOf: (/** @type {string} */ id) => id }
+    expect(formulaToStored('Cutter.width', cutter)).toBe('#cutter-1.width')
+  })
+
+  it('a deleted body is not matched', () => {
+    const none = { ...lookup, idsNamed: () => [] }
+    expect(formulaErrorOf(() => formulaToStored('Gone.width', none)).message).toMatch(/no body named Gone/)
   })
 
   it('shows #id for a deleted body, a shared name and a name holding ]', () => {

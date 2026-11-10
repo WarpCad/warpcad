@@ -186,8 +186,11 @@ have rotated is measured as it sits: its `width` is how far it reaches along wor
 its own edge. A distance between two faces is a subtraction: `box.top.max.z - box.board.max.z`.
 
 **Names with spaces or hyphens go in square brackets**: `[Cube 1].width`,
-`BPlus.[pi-mb].height`. If two shapes have the same name, WarpCad asks you to pick one by its id
-(`#cube-a1-3.width`); **Insert…** does this for you. Renaming a shape later doesn't break a
+`BPlus.[pi-mb].height`. If two shapes you can see have the same name, WarpCad asks you to pick
+one by its id (`#cube-a1-3.width`); the message says what each was built from, such as *Group of
+Bolt, Nut*, and **Insert…** does the picking for you. A shape that was merged into a later one
+(you renamed *Bolt* to *Screw*, then grouped it twice) doesn't count: `[Screw].width` means the
+shape that is left. Renaming a shape later doesn't break a
 formula, because the file stores the shape's id and the panel shows its current name.
 
 ### Functions
