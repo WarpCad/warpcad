@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.17.0](https://github.com/WarpCad/warpcad/compare/v1.16.0...v1.17.0) (2026-11-10)
+
+### Features
+
+* **io:** keep a 3MF's object colours as each part's colour (TODO/io-027) ([cf08c20](https://github.com/WarpCad/warpcad/commit/cf08c20afc5e093eb5e289c9fa71741bf4860b2c))
+
 ## [1.16.0](https://github.com/WarpCad/warpcad/compare/v1.15.0...v1.16.0) (2026-11-10)
 
 ## [1.15.0](https://github.com/WarpCad/warpcad/compare/v1.14.0...v1.15.0) (2026-11-10)
