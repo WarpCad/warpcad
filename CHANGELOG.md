@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.15.0](https://github.com/WarpCad/warpcad/compare/v1.14.0...v1.15.0) (2026-11-10)
+
+### Features
+
+* **ui:** import an STL or 3MF into the project from File → Import model… (TODO/ui-107) ([e376b5d](https://github.com/WarpCad/warpcad/commit/e376b5da16d8e46b20b576b0201756a03ba139d0))
+* **ui:** show platform and shell version in Help inside a native shell ([4ca61a0](https://github.com/WarpCad/warpcad/commit/4ca61a0fb8d8737ba48b874623f99ee8e25ab91e))
+
+### Bug Fixes
+
+* **core:** a formula name prefers the live body, not its consumed ancestors (TODO/ui-106) ([b4a6057](https://github.com/WarpCad/warpcad/commit/b4a6057db910f42bdfedcfd45dc978d46d4af5cd)), references [#id](https://github.com/WarpCad/warpcad/issues/id)
+* **testing:** wait for a real frame before reading the docs zoom (TODO/testing-008) ([7fb75e7](https://github.com/WarpCad/warpcad/commit/7fb75e7a927a1ab3d976a510decda551646531b1))
+* **ui:** check library names against My parts only; saved parts are fixed (TODO/ui-105) ([02715d0](https://github.com/WarpCad/warpcad/commit/02715d0763b9d20c75a1cdddeaa77e99b9ba7320))
+* **ui:** keep the History Apply button's text readable on hover (TODO/ui-103) ([a4abdfa](https://github.com/WarpCad/warpcad/commit/a4abdfa791646cf7e715a06af162bb5299673c1d))
+* **ui:** list a rounded Cube's History fields from the Inspector schema (TODO/ui-102) ([0cee076](https://github.com/WarpCad/warpcad/commit/0cee076f2b0253b04c2d7357b4090d76cb907ef2))
+* **ui:** show a refused Inspector edit under its field (TODO/ui-100) ([1474968](https://github.com/WarpCad/warpcad/commit/14749684a2d0de310e1be5c9659c8a9415059601))
+* **ui:** size the shared enum select to tap height in WebKit (TODO/ui-101) ([0f933bc](https://github.com/WarpCad/warpcad/commit/0f933bc8008f4e907cbd6fb6b38c2fad8b158124))
+
+### Performance Improvements
+
+* **core:** run whole-model booleans in the kernel worker (TODO/core-079) ([6f067f0](https://github.com/WarpCad/warpcad/commit/6f067f0edcddc620f5b5e63bd9329e76d1eb60dd))
+
 ## [1.14.0](https://github.com/WarpCad/warpcad/compare/v1.13.0...v1.14.0) (2026-11-08)
 
 ### Features
