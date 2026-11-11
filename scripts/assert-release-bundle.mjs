@@ -6,7 +6,7 @@
  *
  * @module scripts/assert-release-bundle
  */
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -30,10 +30,23 @@ export function findDevOnlyMarkers(dir) {
   return found
 }
 
+/**
+ * `TODO/ui-119`: the native bundle ships no Help (the app reads it from app.warpcad.com), so a
+ * `help/` folder in it means the help plugin emitted for the wrong mode.
+ *
+ * @param {string} dir A build folder.
+ * @returns {boolean} True when `dir/help` exists.
+ */
+export function findBundledHelp(dir) {
+  return existsSync(join(dir, 'help'))
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const dir = process.argv[2]
+  const args = process.argv.slice(2)
+  const noHelp = args.includes('--no-help')
+  const dir = args.find((arg) => !arg.startsWith('--'))
   if (!dir) {
-    console.error('usage: node scripts/assert-release-bundle.mjs <build dir>')
+    console.error('usage: node scripts/assert-release-bundle.mjs <build dir> [--no-help]')
     process.exit(2)
   }
   const found = findDevOnlyMarkers(dir)
@@ -42,5 +55,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error('A development-only flag (VITE_E2E_HOOKS / VITE_LIVE_BRIDGE) was on for this build.')
     process.exit(1)
   }
-  console.log(`${dir}: no development-only code in the bundle`)
+  if (noHelp && findBundledHelp(dir)) {
+    console.error(`${dir}/help exists: the native build must ship no Help (TODO/ui-119).`)
+    process.exit(1)
+  }
+  console.log(`${dir}: no development-only code in the bundle${noHelp ? ', and no bundled Help' : ''}`)
 }

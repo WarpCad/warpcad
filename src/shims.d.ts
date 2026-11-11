@@ -57,6 +57,8 @@ declare const __APP_COMMIT__: string
 declare const __GA_MEASUREMENT_ID__: string
 // `TODO/build-017`: the native shell the build targets (`tauri`, and so on); `''` on the web build.
 declare const __SHELL__: string
+// `TODO/ui-119`: where Help is read from, `https://app.warpcad.com/help/` in the native build; `''` on the web.
+declare const __HELP_BASE__: string
 
 // vite-plugin-pwa's virtual registration module (its own `client.d.ts` pulls in typings for every
 // framework, none of which is installed here), narrowed to what `src/pwa.js` uses.

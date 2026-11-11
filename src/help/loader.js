@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /**
- * Fetches the bundled help (`TODO/ui-061`): `help/index.json` and `help/<page>.html`, which
+ * Fetches the help (`TODO/ui-061`): `help/index.json` and `help/<page>.html`, which
  * `scripts/vite-plugin-help.mjs` renders from `docs/` at build time (and serves on request under
- * `npm run dev`). Same origin and precached by the service worker, so it works offline.
+ * `npm run dev`). On the web it is same origin and precached by the service worker, so it works
+ * offline. The native build ships none and reads it from `https://app.warpcad.com/help/`
+ * (`TODO/ui-119`), a build-time constant (`__HELP_BASE__`), never a runtime setting.
  *
- * The fragment is trusted markup produced by our own build from our own docs; it is the only
- * thing in the app rendered with `v-html`, and the page's CSP forbids inline script anyway.
+ * The fragment is therefore not trusted: it is the only thing in the app rendered with `v-html`, and
+ * `HelpSheet.vue` passes it through `src/help/sanitize.js` first, on the web and in the native app alike.
  *
  * The network is a boundary (CLAUDE.md "mock at the boundary"): tests replace it with
  * {@link setHelpFetch}.
@@ -43,12 +45,15 @@ export function resetHelpCache() {
 }
 
 /**
- * The URL of something under `help/`, honouring the app's base path.
+ * The URL of something under `help/`: under the app's base path on the web, under
+ * `https://app.warpcad.com/help/` in the native build (`__HELP_BASE__`, `vite.config.js`).
  *
  * @param {string} path e.g. `index.json`, `booleans.html`, `img/screenshots/a.png`
  * @returns {string}
  */
 export function helpUrl(path) {
+  const fixed = typeof __HELP_BASE__ === 'string' ? __HELP_BASE__ : ''
+  if (fixed !== '') return `${fixed}${path}`
   const base = import.meta.env?.BASE_URL ?? '/'
   return `${base.endsWith('/') ? base : `${base}/`}help/${path}`
 }
@@ -87,7 +92,8 @@ export function resolveSlug(index, slug) {
 }
 
 /**
- * One page's HTML, with its pictures pointed at the bundled folder.
+ * One page's HTML, with its pictures pointed at the help folder ({@link helpUrl}). Not yet
+ * sanitised: the sheet does that just before rendering it.
  *
  * @param {string} slug page slug (`booleans`)
  * @returns {Promise<string>}

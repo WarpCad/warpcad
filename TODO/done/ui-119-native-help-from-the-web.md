@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: M19
 depends: [build-017]
-status: open
+status: done
 ---
+
+> **Shipped as specified (option (a)).** The Help sheet renders through `src/help/sanitize.js` on web and native alike, native Help loads from `https://app.warpcad.com/help/` (build-time constant), the native build ships no `help/` folder, and the native CSP adds only that host to `connect-src` and `img-src`. One follow-up is open: `e2e/help-deep-link.e2e.js:57` (docs-028) uses the same live `route.fetch()` + `fulfill` pattern that caused a rare e2e stall here; it was left alone as out of scope. Still unconfirmed on the real shell (CSP under `tauri://localhost`, CORS from app.warpcad.com, acceptance scenario 28).
 
 > **Two repositories.** Web changes here: `src/help/loader.js`, `src/help/sanitize.js` (new),
 > `src/components/layout/HelpSheet.vue`, `scripts/vite-plugin-help.mjs`, `vite.config.js`. Native

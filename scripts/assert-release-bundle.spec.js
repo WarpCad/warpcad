@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { PREVIEW_TRANSPORT_MARKER } from '../src/ai/bridge/previewTransport.js'
-import { findDevOnlyMarkers } from './assert-release-bundle.mjs'
+import { findBundledHelp, findDevOnlyMarkers } from './assert-release-bundle.mjs'
 
 /** @type {string[]} */
 const dirs = []
@@ -41,5 +41,18 @@ describe('findDevOnlyMarkers', () => {
 
   it('ignores non-js files', () => {
     expect(findDevOnlyMarkers(fixture({ 'a.css': '__e2eImport' }))).toEqual([])
+  })
+})
+
+describe('findBundledHelp (TODO/ui-119)', () => {
+  it('passes a build with no help/ folder', () => {
+    expect(findBundledHelp(fixture({ 'app.js': 'ok' }))).toBe(false)
+  })
+
+  it('reports a build that still carries help/', () => {
+    const dir = fixture({ 'app.js': 'ok' })
+    mkdirSync(join(dir, 'help'))
+    writeFileSync(join(dir, 'help', 'index.json'), '{}')
+    expect(findBundledHelp(dir)).toBe(true)
   })
 })

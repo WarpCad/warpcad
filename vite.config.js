@@ -12,7 +12,7 @@ import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
 import { addAnalyticsSources, measurementId } from './scripts/analytics-build.mjs'
-import { devFlagDefines, shellTarget } from './scripts/native-build.mjs'
+import { devFlagDefines, helpBaseDefine, shellTarget } from './scripts/native-build.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -142,6 +142,8 @@ export default defineConfig(({ command, mode }) => ({
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_COMMIT__: JSON.stringify(APP_COMMIT),
     __SHELL__: JSON.stringify(command === 'build' && mode === 'native' ? shellTarget(process.env) : ''),
+    // `TODO/ui-119`: the native bundle ships no Help and reads it from app.warpcad.com.
+    __HELP_BASE__: helpBaseDefine(mode),
   },
   base: mode === 'native' ? './' : basePath(process.env.BASE_PATH),
   // Dedicated, strict port: with auto-increment-on-conflict (Vite's default),
@@ -175,7 +177,8 @@ export default defineConfig(({ command, mode }) => ({
     ...livePreviewBridgePlugins(),
     vue(),
     // `TODO/ui-061`: docs/*.md rendered to help/<page>.html at build time (dev: on request).
-    warpcadHelp({ version: APP_VERSION, commit: APP_COMMIT }),
+    // `TODO/ui-119`: the native mode emits none of it; the app reads Help from app.warpcad.com.
+    warpcadHelp({ version: APP_VERSION, commit: APP_COMMIT, emit: mode !== 'native' }),
     // `TODO/build-011`: THIRD-PARTY-NOTICES.txt beside index.html, linked from the Help footer.
     warpcadNotices(),
     // Bundle-size treemap, written to the repo root (not `dist/`: that is deployed to Pages and

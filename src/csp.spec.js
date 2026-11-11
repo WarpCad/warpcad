@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // @ts-nocheck — reads source files with node:fs; `src/` is typed for the browser (no @types/node).
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -69,5 +69,52 @@ describe('index.html Content-Security-Policy', () => {
 
   it('names no wildcard host anywhere', () => {
     expect(meta?.[1] ?? '').not.toMatch(/(^|\s)\*(\s|;|$)|https?:\/\/\*/)
+  })
+
+  it('does not gain the native app’s help host: the web build serves Help from its own origin (TODO/ui-119)', () => {
+    expect(meta?.[1] ?? '').not.toContain('app.warpcad.com')
+  })
+})
+
+/**
+ * `TODO/ui-119`: the native shell loads Help from `https://app.warpcad.com/help/`, so its policy
+ * (`warpcad-native/src-tauri/tauri.conf.json`, `app.security.csp`) lets exactly that host through
+ * `connect-src` (the text) and `img-src` (the pictures), and nothing broader. Skipped when the
+ * sibling repository is not checked out next to this one (CI).
+ */
+const NATIVE_CONF = join(process.cwd(), '..', 'warpcad-native', 'src-tauri', 'tauri.conf.json')
+const HELP_HOST = 'https://app.warpcad.com'
+
+describe.skipIf(!existsSync(NATIVE_CONF))('warpcad-native tauri.conf.json Content-Security-Policy', () => {
+  const raw = existsSync(NATIVE_CONF) ? JSON.parse(readFileSync(NATIVE_CONF, 'utf8')).app.security.csp : ''
+  const native = directives(raw)
+
+  it('adds exactly the help host to connect-src, beside self, the IPC hosts and the web build’s API hosts', () => {
+    expect([...native['connect-src']].sort()).toEqual(
+      [
+        "'self'",
+        'ipc:',
+        'http://ipc.localhost',
+        'https://api.anthropic.com',
+        'https://api.github.com',
+        'https://gist.githubusercontent.com',
+        HELP_HOST,
+      ].sort(),
+    )
+  })
+
+  it('adds exactly the help host to img-src, for the Help pictures', () => {
+    expect(native['img-src']).toEqual(["'self'", 'blob:', 'data:', HELP_HOST])
+  })
+
+  it('names the help host in no other directive, and no wildcard or bare scheme anywhere', () => {
+    const others = Object.entries(native).filter(([name]) => name !== 'connect-src' && name !== 'img-src')
+    for (const [name, values] of others) expect(values, name).not.toContain(HELP_HOST)
+    expect(raw).not.toMatch(/(^|\s)\*(\s|;|$)|https?:\/\/\*/)
+    expect(Object.values(native).flat()).not.toContain('https:')
+  })
+
+  it('keeps scripts to self only', () => {
+    expect(native['script-src']).toEqual(["'self'"])
   })
 })

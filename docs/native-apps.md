@@ -13,7 +13,9 @@ app as in a browser at the same screen width.
 ## How the app differs from the web app
 
 - **It works offline from the first launch.** The whole web app is bundled inside the
-  install, so it never downloads WarpCad from the internet. There is no "Install app"
+  install, so it never downloads WarpCad from the internet. The one exception is these help
+  pages, which the app reads from `app.warpcad.com` (see [Help in the app](#help-in-the-app)
+  below). There is no "Install app"
   prompt, no browser address bar, and no update banner: a new version arrives as an app
   update from the store.
 - **It has its own storage.** Projects you make in the app are kept by the app. They are
@@ -26,6 +28,25 @@ app as in a browser at the same screen width.
   only copy of what you make in it.
 - **No analytics.** The app does not load Google Analytics. See
   [Privacy](privacy.md) for what the web app measures.
+
+## Help in the app
+
+The app does not carry these help pages inside it. It reads them from `app.warpcad.com` each
+time you open one, so they stay current without making the install larger. Help opens in
+the same sheet as in a browser, and every tool's **?** still opens the right section.
+
+**Try it:** tap **?**, or open **File ▾ → Help and documentation**. Help loads from
+app.warpcad.com, so it needs a connection the first time you open a page. If you are offline
+you see **Help needs a connection. Everything else in WarpCad works offline.** Tap **Retry**
+once you are back online and the page opens. Modelling, saving and opening projects all keep
+working while you are offline; only Help waits for the connection.
+
+![The Help sheet in the iPhone app with no connection: "Help needs a connection. Everything else in WarpCad works offline." and a Retry button.](./screenshots/native-help-offline.png)
+
+The help pages are published for the current web version of WarpCad, and your app may be a
+version behind or ahead. When the two differ, a line under the version line at the bottom of
+each page says so, for example `This help is for WarpCad 1.14.0; this app is 1.13.0.` A
+control described on the page may then look different, or not exist yet, in your app.
 
 ## iPhone and iPad
 
@@ -82,8 +103,9 @@ window and `npm run ios:dev` for the iPhone and iPad simulator. Each build first
 
 ## About the pictures on this page
 
-There are none yet. The pictures on the other help pages are recorded automatically by the
-test suite in a browser, and no automated test drives the native apps yet, so any picture
-here would have to be a hand-made screenshot. Those are not allowed on these pages.
+The one picture here, the offline Help sheet, is recorded automatically by the test suite in
+a browser that stands in for the iPhone app. No automated test drives the native apps
+themselves yet, so any other picture here would have to be a hand-made screenshot. Those are
+not allowed on these pages.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

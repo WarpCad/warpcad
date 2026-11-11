@@ -151,3 +151,79 @@ describe('HelpSheet (TODO/ui-061)', () => {
     expect(help.contentsOpen).toBe(true)
   })
 })
+
+describe('HelpSheet with Help from the network (TODO/ui-119)', () => {
+  // An earlier case leaves `#/help/<slug>` in the address, which the sheet's hash mirror would reopen on mount.
+  beforeEach(() => window.history.replaceState(null, '', '/'))
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    setHelpFetch()
+    resetHelpCache()
+  })
+
+  it('renders the page through the sanitiser: no handler, no script, no off-origin picture', async () => {
+    PAGES.booleans = '<h1 id="booleans">Combining shapes</h1><p>Union<img src=x onerror="window.__pwned=1"></p><script>window.__pwned=1</script>'
+    try {
+      const { help } = setup()
+      help.open('boolean')
+      await flushPromises()
+      const article = q('help-content')
+      expect(article.textContent).toContain('Union')
+      expect(article.querySelector('[onerror]')).toBeNull()
+      expect(article.querySelector('script')).toBeNull()
+      expect(article.querySelector('img')).toBeNull()
+    } finally {
+      PAGES.booleans = '<h1 id="booleans">Combining shapes</h1><p>Union</p>'
+    }
+  })
+
+  it('inside the native shell, offline: says Help needs a connection, and Retry loads it once back online', async () => {
+    vi.stubGlobal('__TAURI_INTERNALS__', { invoke: async () => ({ platform: 'ios', version: '1.13.0' }) })
+    const { help } = setup()
+    let online = false
+    setHelpFetch(async (url) => {
+      if (!online) throw new TypeError('Load failed')
+      const text = String(url)
+      if (text.endsWith('help/index.json')) return { ok: true, text: async () => JSON.stringify(INDEX) }
+      const m = /help\/([\w-]+)\.html$/.exec(text)
+      return { ok: true, text: async () => PAGES[m[1]] }
+    })
+    help.open('boolean')
+    await flushPromises()
+    expect(q('help-error')?.textContent).toContain('Help needs a connection. Everything else in WarpCad works offline.')
+    expect(q('help-retry')?.textContent?.trim()).toBe('Retry')
+    online = true
+    q('help-retry').click()
+    await flushPromises()
+    expect(q('help-error')).toBeNull()
+    expect(q('help-content').textContent).toContain('Union')
+    expect(q('help-contents-booleans')).not.toBeNull()
+  })
+
+  it('shows the skew line when the fetched Help names another WarpCad version, and none when it matches', async () => {
+    const { help } = setup()
+    setHelpFetch(async (url) => {
+      const text = String(url)
+      if (text.endsWith('help/index.json')) return { ok: true, text: async () => JSON.stringify({ ...INDEX, version: '9.9.9', commit: 'abc1234' }) }
+      const m = /help\/([\w-]+)\.html$/.exec(text)
+      return { ok: true, text: async () => PAGES[m[1]] }
+    })
+    help.open('boolean')
+    await flushPromises()
+    expect(q('help-version-skew')?.textContent).toBe('This help is for WarpCad 9.9.9; this app is 0.0.0.')
+
+    help.close()
+    await flushPromises()
+    resetHelpCache()
+    setHelpFetch(async (url) => {
+      const text = String(url)
+      if (text.endsWith('help/index.json')) return { ok: true, text: async () => JSON.stringify({ ...INDEX, version: '0.0.0' }) }
+      const m = /help\/([\w-]+)\.html$/.exec(text)
+      return { ok: true, text: async () => PAGES[m[1]] }
+    })
+    help.open('boolean')
+    await flushPromises()
+    expect(q('help-content')).not.toBeNull()
+    expect(q('help-version-skew')).toBeNull()
+  })
+})

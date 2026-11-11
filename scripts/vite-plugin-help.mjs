@@ -54,10 +54,12 @@ export function helpRuntimeCaching() {
 }
 
 /**
- * @param {{ docsDir?: string }} [options]
+ * @param {{ docsDir?: string, version?: string, commit?: string, emit?: boolean }} [options] `emit: false` (the
+ *   native mode, `TODO/ui-119`) still checks the docs but writes no `help/` into the bundle: the native
+ *   app reads Help from app.warpcad.com, and the pictures alone are about 200 MB.
  * @returns {import('vite').Plugin}
  */
-export function warpcadHelp({ docsDir = 'docs', version, commit } = {}) {
+export function warpcadHelp({ docsDir = 'docs', version, commit, emit = true } = {}) {
   const root = resolve(docsDir)
   /** The published-slug lockfile (`docs/help-slugs.json`, `TODO/docs-028`). */
   const lockFile = join(root, 'help-slugs.json')
@@ -132,6 +134,7 @@ export function warpcadHelp({ docsDir = 'docs', version, commit } = {}) {
     },
 
     generateBundle() {
+      if (!emit) return
       const help = current()
       for (const page of Object.values(help.pages)) {
         this.emitFile({ type: 'asset', fileName: `help/${page.slug}.html`, source: page.html })

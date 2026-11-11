@@ -3,8 +3,10 @@
 /**
  * The in-app Help sheet (`TODO/ui-061`), mounted once in `AppView.vue`.
  *
- * - **Content**: the bundled docs (`src/help/loader.js`), rendered to HTML at build time, so
- *   it opens offline and always matches the running version of the app.
+ * - **Content**: the docs (`src/help/loader.js`), rendered to HTML at build time. On the web they
+ *   are bundled, so Help opens offline and matches the running version. The native app reads them
+ *   from app.warpcad.com (`TODO/ui-119`): offline it says Help needs a connection, and a line names
+ *   both versions when they differ. Every page is sanitised (`src/help/sanitize.js`) before `v-html`.
  * - **Trigger**: a **?** (`HelpButton.vue`) in a tool pop-up's header, **Help** in the File menu,
  *   the header's **?**, or the `?` / F1 keys (`useHelpShortcut`). All of them call `help.open`.
  * - **Feedback**: the page opens scrolled to the tool's heading, which flashes. Contents lists
@@ -21,8 +23,10 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/loader.js'
+import { helpUrl, loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/loader.js'
+import { sanitizeHelpHtml } from '../../help/sanitize.js'
 import { TOPICS } from '../../help/topics.js'
+import { isNativeShell, probeShell } from '../../native/shell.js'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
 
@@ -47,6 +51,28 @@ const state = ref('loading')
 const content = ref(null)
 /** @type {import('vue').Ref<HTMLElement | null>} */
 const closeButton = ref(null)
+
+/**
+ * Inside the native shell Help comes from app.warpcad.com (`TODO/ui-119`), so a failed load means
+ * no connection rather than an empty cache.
+ */
+const native = isNativeShell(probeShell())
+
+/**
+ * `TODO/ui-119`: the fetched Help can be newer or older than the app (the native app reads it from
+ * the web). Names both versions when they differ; `''` when they match or the index names none.
+ */
+const skewLine = computed(() => {
+  const helpVersion = index.value?.version
+  if (!helpVersion || helpVersion === update.version) return ''
+  return `This help is for WarpCad ${helpVersion}; this app is ${update.version}.`
+})
+
+/** Try again after a failed load: the index too, if it never arrived (the loader keeps no failure cached). */
+function retry() {
+  if (index.value === null) void loadIndex()
+  void show()
+}
 
 const currentTitle = computed(() => {
   const entry = index.value?.pages.find((p) => p.slug === help.page)
@@ -89,7 +115,8 @@ async function show() {
   try {
     const fragment = await loadHelpPage(slug)
     if (token !== loadToken) return
-    html.value = fragment
+    // The only `v-html` in the app: rebuilt from the allow-list first, on the web and in the native app alike.
+    html.value = sanitizeHelpHtml(fragment, { imgBase: helpUrl('img/') })
     state.value = 'ready'
   } catch {
     if (token !== loadToken) return
@@ -276,12 +303,16 @@ onBeforeUnmount(() => {
             <p v-else-if="state === 'moved'" class="help__status" role="status" data-testid="help-moved">
               This page has moved or no longer exists. Pick another from Contents.
             </p>
+            <div v-else-if="state === 'error' && native" class="help__status" role="alert" data-testid="help-error">
+              Help needs a connection. Everything else in WarpCad works offline.
+              <button type="button" class="help__btn" data-testid="help-retry" @click="retry()">Retry</button>
+            </div>
             <div v-else-if="state === 'error'" class="help__status" role="alert" data-testid="help-error">
               Could not load this page. If you are offline and have not opened Help before, it is not cached
               yet — reconnect once and it will be.
-              <button type="button" class="help__btn" data-testid="help-retry" @click="show()">Try again</button>
+              <button type="button" class="help__btn" data-testid="help-retry" @click="retry()">Try again</button>
             </div>
-            <!-- Build-time HTML from this repository's own docs (see `src/help/loader.js`). -->
+            <!-- Help HTML from our docs build, fetched (from app.warpcad.com in the native app) and sanitised (`src/help/sanitize.js`). -->
             <article
               v-show="state === 'ready'"
               class="help__content"
@@ -309,6 +340,7 @@ onBeforeUnmount(() => {
               </button>
               <span v-if="update.message" class="help__version-message" role="status" data-testid="pwa-check-message">{{ update.message }}</span>
             </div>
+            <p v-if="state === 'ready' && skewLine" class="help__version-skew" data-testid="help-version-skew">{{ skewLine }}</p>
           </div>
         </div>
       </div>
@@ -317,6 +349,12 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.help__version-skew {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
 .help__version {
   display: flex;
   flex-wrap: wrap;
