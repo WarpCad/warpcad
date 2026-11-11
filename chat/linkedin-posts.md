@@ -4026,3 +4026,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** owner's report (3MF → empty view, row in My parts) → TODO/done/ui-107 Problem section; File-menu import, ghost placement, one Undo, Save to library… in Inspector → diff; two touch bugs found by the hand drive and fixed with a spec case run RED then GREEN → this session (TODO/ACCEPTANCE.md scenario 26 Last run, e2e/import-model.e2e.js)
 **To Add:** docs/media/import-model-place.gif, docs/screenshots/file-menu-import.png
+
+
+## 2026-11-11T00:24:03Z — Architecture audit files 25 roadmap rows, no code changed
+
+**Post:** WarpCad's architecture audit ran as a prompt, and its only output was documentation. It read both repositories, the web app and the native shell around it, and filed what it found as TODO files and roadmap rows. No source code was changed. The result is 25 rows, grouped under a theme-architecture umbrella that covers tokens, shared components and overlays.
+
+Two of the findings are concrete enough to act on. One npm advisory covers custom dev middleware, and the app's live bridge is custom dev middleware. Another notes that error messages quote document names and body text, so an unhandled one can send document text to Sentry. Both are open.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 25 rows (11c–11h, 22zb–22zt) → git diff of TODO/ROADMAP.md, this commit; audit writes only TODO files and roadmap rows → header of .claude/prompts/architecture-audit.md; live bridge covered by the Vite advisory → row 22zb in TODO/ROADMAP.md (text of TODO/FIND-build-025); error messages quote document text to Sentry → row 22zq (text of TODO/FIND-core-082); both status open → Status field of those two files
+**To Add:** none

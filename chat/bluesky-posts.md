@@ -2783,3 +2783,13 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** File → Import model…, ghost placement, never saved to My parts, one Undo → diff (FileMenu.vue, placement.js, document.js importUserPart) and e2e/import-model.e2e.js passing on all nine projects this session
 **To Add:** docs/media/import-model-place.gif
+
+
+## 2026-11-11T00:24:03Z — Architecture audit files 25 roadmap rows, no code changed
+
+**Post:** WarpCad ran an architecture audit over the web app and its native shell. It filed 25 roadmap rows: theme tokens, shared overlays, and a few security and build checks. No source code changed. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 25 rows (11c–11h, 22zb–22zt) → git diff of TODO/ROADMAP.md, this commit; audit writes only TODO files and roadmap rows → header of .claude/prompts/architecture-audit.md; no src/ file in the commit → git status, this session
+**To Add:** none
