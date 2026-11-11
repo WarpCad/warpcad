@@ -19,6 +19,12 @@
 
 import { BRIDGE_EVENT, PREVIEW_BRIDGE_PATH } from './protocol.js'
 
+/**
+ * Present in a bundle only when the preview transport was compiled in. `scripts/assert-release-bundle.mjs`
+ * searches for it, so a build that ships cannot carry the bridge unnoticed.
+ */
+export const PREVIEW_TRANSPORT_MARKER = 'x-warpcad-preview-transport'
+
 /** The event `useLiveBridge` listens for when the stream drops (the dev host's own name). */
 export const PREVIEW_DISCONNECT = 'vite:ws:disconnect'
 
@@ -63,7 +69,7 @@ export function createPreviewTransport({ tabId, origin = '', EventSourceImpl, fe
     // A failed post means the host has gone; the stream's own error reports that to the user.
     fetchImpl(`${base}/message${query}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', [PREVIEW_TRANSPORT_MARKER]: '1' },
       body: JSON.stringify(data),
       keepalive: false,
     }).catch(() => {})

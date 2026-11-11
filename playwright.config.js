@@ -137,6 +137,8 @@ const WANTS_DOCS = process.env.WARPCAD_DOCS_PROJECTS === '1' || process.argv.som
 if (WANTS_DOCS) process.env.WARPCAD_DOCS_PROJECTS = '1'
 
 const LIVE_OUT = 'dist-live-bridge'
+// The plain e2e build gets its own folder too, so `dist/` only ever holds a build made to ship.
+const E2E_OUT = 'dist-e2e'
 const LIVE_ORIGIN = 'http://127.0.0.1:5185'
 const ORIGIN = PREVIEW ? 'http://localhost:5184' : 'http://localhost:5183'
 
@@ -177,7 +179,7 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   webServer: [{
-    command: PREVIEW ? 'VITE_E2E_HOOKS=1 npm run build && npx vite preview --port 5184 --strictPort' : 'VITE_E2E_HOOKS=1 npm run dev',
+    command: PREVIEW ? `VITE_E2E_HOOKS=1 npx vite build --outDir ${E2E_OUT} && npx vite preview --outDir ${E2E_OUT} --port 5184 --strictPort` : 'VITE_E2E_HOOKS=1 npm run dev',
     url: ORIGIN,
     // A preview server serves whatever `dist/` it was started on, so reusing one risks a stale
     // build; the command above rebuilds, so only reuse it when asked (`E2E_REUSE=1`).

@@ -103,7 +103,6 @@ this repository still need a green full run before they are pushed.
 | 22zo | `FIND` | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast (queued), Banner, Chip, SectionHeading, ListRow | Theme chain | sonnet |
 | 22zp | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep: replace the remaining style literals and empty the guard's allow-list | Theme chain, last | sonnet |
 | 22zq | `FIND` | ▶ [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so an unhandled one sends document text to Sentry | From the architecture audit; low | sonnet |
-| 22zr | `FIND` | ▶ [`build-026`](FIND-build-026-release-builds-assert-no-test-hooks.md) A release or native build fails if the e2e hooks or the preview bridge are compiled in | From the architecture audit; low | sonnet |
 | 22zs | `FIND` | ▶ [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | From the architecture audit; low | sonnet |
 | 22zt | `FIND` | ▶ [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains | From the architecture audit; low | sonnet |
 | 23 | `M05` | M5 threads: [`core-074`](M05-core-074-thread-geometry-recipes.md), then [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) | Ready; its dependency on `core-073` was dropped 2026-10-24 | opus / sonnet |
@@ -202,7 +201,6 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 | Findings | [`core-081`](FIND-core-081-operation-records-built-in-two-places.md) Build operation records in one core module, not in the toolbar and the AI tools separately | finding | medium | opus | ▶ **ready** |
 | Findings | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables | finding | medium | opus | ▶ **ready** |
 | Findings | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so an unhandled one sends document text to Sentry | finding | low | sonnet | ▶ **ready** |
-| Findings | [`build-026`](FIND-build-026-release-builds-assert-no-test-hooks.md) A release or native build fails if the e2e hooks or the preview bridge are compiled in | finding | low | sonnet | ▶ **ready** |
 | Findings | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | finding | low | sonnet | ▶ **ready** |
 | Findings | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains | finding | low | sonnet | ▶ **ready** |
 |  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
@@ -394,7 +392,6 @@ Open findings that belong to no single milestone. Closed findings are in
 | `core-081` | Build operation records in one core module, not in the toolbar and the AI tools separately. Filed 2026-11-10 from the architecture audit | Finding | — | 4, 5, 6, 16, 32 |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
 | `core-082` | Error messages quote body and file names, so an unhandled one sends document text to Sentry. Filed 2026-11-10 from the architecture audit | Finding | — | none |
-| `build-026` | A release or native build fails if the e2e hooks or the preview bridge are compiled in. Filed 2026-11-10 from the architecture audit | Finding | — | none |
 | `ui-109` | Break the import cycle between the gist, file-menu and share stores. Filed 2026-11-10 from the architecture audit | Finding | — | 29, 30 |
 | `docs-034` | Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains. Filed 2026-11-10 from the architecture audit | Finding | — | none |
 
@@ -510,7 +507,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (ready, unparked 2026-11-07); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
 | [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 42 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`, and from the 2026-11-10 architecture audit 19 rows: the theme chain (`ui-111`–`ui-118`, `render-008`, `testing-036`), `ui-108`–`ui-110`, `core-081`, `core-082`, `build-026`, `io-028`, `docs-034`. |
+| [Findings](#findings-open-rows) | 41 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`, and from the 2026-11-10 architecture audit 19 rows: the theme chain (`ui-111`–`ui-118`, `render-008`, `testing-036`), `ui-108`–`ui-110`, `core-081`, `core-082`, `io-028`, `docs-034`. |
 | [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
 | Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
 

@@ -46,7 +46,7 @@ const MIME = {
  * @param {string} build `BUILD_A` or `BUILD_B`
  */
 function stampedCopy(dir, build) {
-  cpSync(join(process.cwd(), 'dist'), dir, { recursive: true })
+  cpSync(join(process.cwd(), 'dist-e2e'), dir, { recursive: true })
   const indexPath = join(dir, 'index.html')
   const html = readFileSync(indexPath, 'utf8')
   expect(html).toMatch(/<meta name="version" content="[^"]*">/)

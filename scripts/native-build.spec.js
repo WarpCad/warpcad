@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { shellTarget } from './native-build.mjs'
+import { devFlagDefines, shellTarget } from './native-build.mjs'
 
 describe('shellTarget', () => {
   it('uses WARPCAD_SHELL when the caller names a target', () => {
@@ -21,5 +21,18 @@ describe('shellTarget', () => {
   it('falls back to a bare `tauri` when nothing says which platform', () => {
     expect(shellTarget({})).toBe('tauri')
     expect(shellTarget({ WARPCAD_SHELL: '', TAURI_ENV_PLATFORM: '' })).toBe('tauri')
+  })
+})
+
+describe('devFlagDefines', () => {
+  it('forces both development-only flags to empty in the native mode', () => {
+    expect(devFlagDefines('native')).toEqual({
+      'import.meta.env.VITE_E2E_HOOKS': '""',
+      'import.meta.env.VITE_LIVE_BRIDGE': '""',
+    })
+  })
+
+  it('leaves the other modes to the environment', () => {
+    expect(devFlagDefines('production')).toEqual({})
   })
 })

@@ -12,7 +12,7 @@ import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
 import { addAnalyticsSources, measurementId } from './scripts/analytics-build.mjs'
-import { shellTarget } from './scripts/native-build.mjs'
+import { devFlagDefines, shellTarget } from './scripts/native-build.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -137,6 +137,7 @@ const SENTRY = sentryBuildOptions(process.env)
  */
 export default defineConfig(({ command, mode }) => ({
   define: {
+    ...devFlagDefines(mode),
     __GA_MEASUREMENT_ID__: JSON.stringify(command === 'build' && mode !== 'native' ? GA_ID : ''),
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_COMMIT__: JSON.stringify(APP_COMMIT),

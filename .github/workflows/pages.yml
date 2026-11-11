@@ -73,6 +73,8 @@ jobs:
           # repository variable unset the build carries no tag and its CSP allows no Google host. The
           # measurement ID is public by design (a variable, not a secret).
           GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
+      # No development-only code (`VITE_E2E_HOOKS`, `VITE_LIVE_BRIDGE`) may ship.
+      - run: node scripts/assert-release-bundle.mjs dist
       # Source maps (TODO/build-009; replaces @sentry/vite-plugin, whose dependency `sentry` is
       # FSL-licensed). The build wrote hidden maps only because SENTRY_AUTH_TOKEN was set. Each bundle
       # file and its map are uploaded to Sentry's release-files API under the release the app reports

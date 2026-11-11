@@ -3,6 +3,7 @@ node_modules/
 .DS_Store
 dist/
 dist-native/
+dist-e2e/
 dist-ssr/
 dist-live-bridge/
 test-results/

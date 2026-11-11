@@ -6,8 +6,11 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+
+> **Shipped as proposed, with two additions.** `assert-release-bundle.mjs` exports a pure `findDevOnlyMarkers`. The preview marker is the header name `x-warpcad-preview-transport`, sent on every bridge POST, so it only exists in a bundle when the transport is compiled in. Also: `e2e/pwa-update.e2e.js` now copies `dist-e2e`, the only other reader of `dist/` by path.
 
 ## Problem
 
