@@ -6,12 +6,20 @@ priority: medium
 model: sonnet
 milestone: M19
 depends: [build-017]
-status: open
+status: done
 ---
+
+> **What shipped:** the CSS and viewport half of the fix. `viewport-fit=cover` is on, the four
+> `--layout-safe-*` variables live in `src/styles/tokens.css`, and the header, the phone tab bar,
+> the Library rail, the Inspector and the navigation chrome read them. The 14 direct
+> `env(safe-area-inset-bottom)` uses now read `--layout-safe-bottom`. `e2e/safe-area.e2e.js`
+> asserts the chrome sits inside faked iPhone 15 insets. The device-level hypothesis (what iOS
+> really does with the notch and home indicator) is **not** confirmed; that needs the simulator or
+> hardware, and the home-indicator tap-zone item (step 5) has only the tab bar's growth behind it.
 
 ## Problem
 
-`TODO/M19-build-017-tauri-ios-shell-scaffold.md:66-69` says the native app "must respect the notch
+`../warpcad-native/TODO/M19-build-017-tauri-ios-shell-scaffold.md:66-69` says the native app "must respect the notch
 and home-indicator safe areas (`viewport-fit=cover` plus the existing `env(safe-area-inset-*)`
 padding)". Two things in the code do not match that sentence:
 

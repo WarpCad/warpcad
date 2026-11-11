@@ -157,7 +157,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
     width: 100%;
     max-height: 80vh;
     border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding-bottom: max(14px, var(--layout-safe-bottom));
   }
 
   .usage__footer {

@@ -156,7 +156,7 @@ const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboa
     transform: none;
     width: 100%;
     max-height: calc(100dvh - 24px - var(--modal-keyboard, 0px));
-    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 16px calc(14px + var(--layout-safe-bottom));
     border-width: 1px 0 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }

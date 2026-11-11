@@ -106,7 +106,7 @@ const safe = computed(() =>
   align-items: center;
   gap: 4px 10px;
   padding: 4px 8px 4px 14px;
-  padding-bottom: max(4px, env(safe-area-inset-bottom));
+  padding-bottom: max(4px, var(--layout-safe-bottom));
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
   color: var(--text-1);

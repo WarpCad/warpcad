@@ -302,8 +302,9 @@ const bodyStyle = computed(() => {
   const style = {
     // The store's target track, applied as-is in every tier (`TODO/ui-084` removed the 200px hold
     // that stood in for the icon rail until it existed).
-    '--library-width': `${panelLayout.layout.libraryWidthPx}px`,
-    '--inspector-width': `${panelLayout.layout.inspectorWidthPx}px`,
+    // The rail / column grows by the left inset, whose padding it then spends (`TODO/ui-120`).
+    '--library-width': `calc(${panelLayout.layout.libraryWidthPx}px + var(--layout-safe-left))`,
+    '--inspector-width': `calc(${panelLayout.layout.inspectorWidthPx}px + var(--layout-safe-right))`,
     // How much width the Operations toolbar leaves for the orientation gizmo (`TODO/ui-084`).
     '--gizmo-reserve': `${panelLayout.layout.gizmoReservePx}px`,
   }
@@ -447,7 +448,7 @@ function onInspectorClaim() {
   /* Tighter than the old 8px because the 44px controls now set the bar's height
      (~52px at phone width, up from ~30px). The cross-cutting decision calls that
      growth a deliberate cost; there is no reason to add to it with padding. */
-  padding: 4px 14px;
+  padding: calc(4px + var(--layout-safe-top)) calc(14px + var(--layout-safe-right)) 4px calc(14px + var(--layout-safe-left));
   border-bottom: 1px solid var(--border);
   background: var(--surface-1);
 }
@@ -600,10 +601,10 @@ function onInspectorClaim() {
      phone-width screenshot during ui-010's acceptance drive, which is exactly
      the class of bug a passing spec cannot see. Zero at widths where the
      Library is a column instead of a sheet. */
-  --viewport-bottom-inset: 0px;
+  --viewport-bottom-inset: var(--layout-safe-bottom);
   /* Height of the Library sheet's collapsed tab. The Inspector sheet stacks
      directly on top of it rather than over it, so it reads the same number. */
-  --library-tab-height: 52px;
+  --library-tab-height: calc(52px + var(--layout-safe-bottom));
   /* How tall the Inspector sheet is allowed to get at phone width, and how tall
      its collapsed tab is — both kept in step with the panel's own values. */
   --inspector-sheet-height: 38vh;
@@ -777,7 +778,7 @@ function onInspectorClaim() {
 
 @media (max-width: 480px) {
   .app__bar {
-    padding: 4px 6px;
+    padding: calc(4px + var(--layout-safe-top)) calc(6px + var(--layout-safe-right)) 4px calc(6px + var(--layout-safe-left));
     gap: 8px;
   }
 

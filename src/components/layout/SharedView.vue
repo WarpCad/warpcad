@@ -260,7 +260,7 @@ async function closeAbout() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 16px calc(10px + var(--layout-safe-bottom));
   border-top: 1px solid var(--border);
   background: var(--surface-1);
 }

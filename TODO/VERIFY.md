@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-120 — Safe-area chrome on a real notched phone (2026-11-11 16:39 UTC)
+
+The CSS and viewport contract is done and tested with faked insets, but whether iOS really insets the web view, or lets the header sit under the status bar, is a device question no spec can answer.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On an iPhone with a Dynamic Island (simulator or hardware), portrait and landscape: the header, the Library tab bar, the Inspector and the navigation chrome clear the status bar, Dynamic Island, rounded corners and home indicator; the 3D view still runs edge to edge behind them | Open | |
+| 2 | Same device, Safari with the app added to the home screen (standalone mode): repeat row 1 | Open | |
+
 ### io-027 — Import a 3MF's object colours (2026-11-10 18:55 UTC)
 
 Why this is here: unit tests and the import e2e cover the colour path on all nine projects, but no rendered-pixel check of the ring was taken, and the pads and most LEDs were not read off the Inspector.

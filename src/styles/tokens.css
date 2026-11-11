@@ -8,6 +8,14 @@
 :root {
   color-scheme: dark light;
 
+  /* The device's safe area (`TODO/ui-120`): the notch / Dynamic Island, rounded corners and home
+     indicator. The only place `env()` is read; components use these variables, which also lets a
+     test set them. Zero where the device has no inset. Needs `viewport-fit=cover` in index.html. */
+  --layout-safe-top: env(safe-area-inset-top, 0px);
+  --layout-safe-right: env(safe-area-inset-right, 0px);
+  --layout-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --layout-safe-left: env(safe-area-inset-left, 0px);
+
   --surface-0: #10131a;
   --surface-1: #171b24;
   --surface-2: #1f2530;

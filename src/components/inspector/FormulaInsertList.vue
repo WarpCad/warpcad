@@ -179,7 +179,7 @@ function choose(quantity) {
     z-index: 45;
     max-height: 60vh;
     overflow-y: auto;
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-bottom: max(8px, var(--layout-safe-bottom));
     border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
     box-shadow: var(--shadow-overlay);
   }

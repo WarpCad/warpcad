@@ -757,7 +757,7 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
     left: 0;
     width: 100%;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(12px + var(--layout-safe-bottom));
     /* Two fields per row and no intro paragraph: the sheet stays under half the screen, so the
        cut plane's handle (at the middle of the body) is not hidden behind it. */
     display: grid;
@@ -789,9 +789,9 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
   .split > .split__actions {
     position: sticky;
-    bottom: calc(-12px - env(safe-area-inset-bottom, 0px));
-    margin: 0 -12px calc(-12px - env(safe-area-inset-bottom, 0px));
-    padding: 6px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(-12px - var(--layout-safe-bottom));
+    margin: 0 -12px calc(-12px - var(--layout-safe-bottom));
+    padding: 6px 12px calc(12px + var(--layout-safe-bottom));
     background: var(--surface-glass);
   }
 

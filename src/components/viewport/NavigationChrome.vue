@@ -302,7 +302,7 @@ const STEPS = Object.freeze([
 <style scoped>
 .chrome {
   position: absolute;
-  left: 12px;
+  left: calc(12px + var(--layout-safe-left));
   bottom: calc(12px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
   display: flex;
   flex-direction: column;
@@ -485,7 +485,7 @@ const STEPS = Object.freeze([
    the tablet's narrow pane gets them too. Every control, test id, title and `aria-label` stays; the
    `ui-046` fold stays phone-only. Keep this block and the media block in step. */
 .chrome[data-chrome-tier='compact'] {
-  left: 8px;
+  left: calc(8px + var(--layout-safe-left));
   bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
   padding: 4px;
 }
@@ -517,7 +517,7 @@ const STEPS = Object.freeze([
 
 @media (max-width: 480px) {
   .chrome {
-    left: 8px;
+    left: calc(8px + var(--layout-safe-left));
     bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
     padding: 4px;
   }

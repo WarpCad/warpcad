@@ -575,7 +575,7 @@ function apply() {
 }
 
 .repair--sheet .repair__footer {
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  padding-bottom: calc(12px + var(--layout-safe-bottom));
 }
 
 .repair--sheet .repair__btn {

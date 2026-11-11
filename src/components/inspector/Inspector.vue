@@ -1263,6 +1263,8 @@ watch([() => body.value?.id, colorPart], () => {
   min-height: 0;
   background: var(--surface-1);
   border-left: 1px solid var(--border);
+  /* The column is the app's right edge: clear of a landscape notch (`TODO/ui-120`). */
+  padding-right: var(--layout-safe-right);
 }
 
 .inspector__tab {

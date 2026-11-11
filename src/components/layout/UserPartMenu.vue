@@ -270,7 +270,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
   max-height: 80dvh;
   overflow-y: auto;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(10px + var(--layout-safe-bottom));
 }
 
 .umenu__title,

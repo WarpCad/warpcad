@@ -324,6 +324,9 @@ onBeforeUnmount(() => {
   min-height: 0;
   background: var(--surface-1);
   border-right: 1px solid var(--border);
+  /* The column / rail is the app's left edge: keep it clear of a landscape notch (`TODO/ui-120`). */
+  padding-left: var(--layout-safe-left);
+  padding-bottom: var(--layout-safe-bottom);
 }
 
 /* The tier crossfade (`TODO/ui-084`, `useTierCrossfade`): the form swaps in the same frame this
@@ -501,6 +504,8 @@ onBeforeUnmount(() => {
     left: 0;
     z-index: 10;
     border-right: none;
+    padding-left: 0;
+    padding-bottom: 0;
     border-top: 1px solid var(--border);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     background: var(--surface-glass);
@@ -513,8 +518,9 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 44px;
-    padding: 6px 12px;
+    /* The tab bar is the bottom edge: its content clears the home indicator (`TODO/ui-120`). */
+    min-height: calc(44px + var(--layout-safe-bottom));
+    padding: 6px 12px calc(6px + var(--layout-safe-bottom));
     border: none;
     background: transparent;
     color: var(--text-1);
