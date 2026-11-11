@@ -42,6 +42,7 @@ export const TOPICS = Object.freeze({
   repeat: { page: 'snap-align', anchor: 'repeating-a-placement-on-every-hole', title: 'Repeat' },
   // The File menu's popovers and dialogs.
   file: { page: 'save-load', anchor: 'the-file-menu', title: 'File menu' },
+  'native-files': { page: 'save-load', anchor: 'in-the-ios-app', title: 'Files in the iOS app' },
   export: { page: 'export', anchor: 'exporting-a-file-step-by-step', title: 'Export' },
   resolution: { page: 'resolution', anchor: 'the-four-settings', title: 'Resolution' },
   'project-settings': { page: 'design-intent', anchor: 'set-your-projects-standing-instructions', title: 'Project settings' },

@@ -74,6 +74,26 @@ describe('invoke', () => {
     await expect(invoke('ping', { n: 1 }, global)).resolves.toBe('ok')
     expect(calls).toEqual([['ping', { n: 1 }]])
   })
+
+  it('passes the Tauri invoke options (a raw-body write headers) through only when given (TODO/io-014)', async () => {
+    /** @type {unknown[][]} */
+    const calls = []
+    const global = {
+      __TAURI_INTERNALS__: {
+        invoke: (/** @type {unknown[]} */ ...args) => {
+          calls.push(args)
+          return Promise.resolve(null)
+        },
+      },
+    }
+    const body = new Uint8Array([1])
+    await invoke('plugin:fs|write_file', body, global, { headers: { path: 'a' } })
+    await invoke('ping', {}, global)
+    expect(calls).toEqual([
+      ['plugin:fs|write_file', body, { headers: { path: 'a' } }],
+      ['ping', {}],
+    ])
+  })
 })
 
 describe('platformOfTarget and platformName', () => {

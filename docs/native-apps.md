@@ -23,9 +23,11 @@ app as in a browser at the same screen width.
   `app.warpcad.com`, and the browser cannot see the app's projects either. Moving a project
   between the two takes a project file: in the browser, **File ▾ → Download copy** (or the save
   item your browser shows) writes one, and **File ▾ → Open…** reads one.
-- **Your projects as files in the Files app** (iPhone and iPad), with real file paths on Mac and
-  Windows, come in a later version of the app. Until then, treat the app's own storage as the
-  only copy of what you make in it.
+- **Your projects are files in the Files app** (iPhone and iPad). **File ▾ → Save** writes the
+  project to WarpCad's folder, **On My iPhone › WarpCad**, and saves over the same file each
+  time; **Open…** lists those projects and **Browse…** picks one from iCloud Drive. See
+  [Saving in the iOS app](save-load.md#in-the-ios-app). Exports go to the **Exports** folder
+  beside them: see [Exporting in the iOS app](export.md#in-the-ios-app).
 - **No analytics.** The app does not load Google Analytics. See
   [Privacy](privacy.md) for what the web app measures.
 

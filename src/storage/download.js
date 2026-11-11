@@ -18,8 +18,19 @@
  * Framework-free and DOM-free by injection: `env` is the browser globals (default
  * `globalThis`), so a unit test needs no real anchor, Blob or object URL.
  *
+ * ## Inside the native app (`TODO/io-014`)
+ *
+ * A Blob download may do nothing at all in the Tauri shell's WKWebView, so there it is never
+ * used: {@link saveBytes} writes `Documents/Exports/<name>` instead (`src/native/files.js`) and
+ * says where the file is, and {@link downloadBytes} **throws**, so a caller that still reaches it
+ * fails loudly in a test rather than silently on the phone. Every export goes through
+ * `saveBytes`.
+ *
  * @module storage/download
  */
+
+import { writeExport } from '../native/files.js'
+import { isNativeShell, probeShell } from '../native/shell.js'
 
 /** How long the object URL outlives the click — revoking at once can cancel the download. */
 export const REVOKE_AFTER_MS = 30_000
@@ -48,6 +59,9 @@ function reasonOf(error) {
  * @returns {{ ok: true, name: string } | { ok: false, name: string, error: string }}
  */
 export function downloadBytes(data, name, mimeType, env = globalThis) {
+  if (isNativeShell(probeShell(env))) {
+    throw new Error(`A browser download of ${name} was started inside the native app; it must go through saveBytes`)
+  }
   try {
     const blob = new env.Blob([data], { type: mimeType })
     const url = env.URL.createObjectURL(blob)
@@ -63,6 +77,31 @@ export function downloadBytes(data, name, mimeType, env = globalThis) {
     const { setTimeout: later } = env
     later(() => env.URL.revokeObjectURL(url), REVOKE_AFTER_MS)
     return { ok: true, name }
+  } catch (error) {
+    return { ok: false, name, error: reasonOf(error) }
+  }
+}
+
+/**
+ * Hand a file over, by whichever path this build has (`TODO/io-014`): in the native app a real
+ * file in `Documents/Exports/` (`native: true`, `place` saying where it is, for the toast); on the
+ * web the {@link downloadBytes} download (`native: false`), started **synchronously inside this
+ * call**, before its first `await`, so it stays inside the caller's user gesture.
+ *
+ * @param {Uint8Array | string} data
+ * @param {string} name
+ * @param {string} mimeType
+ * @param {any} [env] Browser globals; default `globalThis`.
+ * @returns {Promise<{ ok: true, name: string, native: false } | { ok: true, name: string, native: true, place: string } | { ok: false, name: string, error: string }>}
+ */
+export async function saveBytes(data, name, mimeType, env = globalThis) {
+  if (!isNativeShell(probeShell(env))) {
+    const result = downloadBytes(data, name, mimeType, env)
+    return result.ok ? { ...result, native: false } : result
+  }
+  try {
+    const { place } = await writeExport(name, data, env)
+    return { ok: true, name, native: true, place }
   } catch (error) {
     return { ok: false, name, error: reasonOf(error) }
   }

@@ -43,10 +43,19 @@ export const SHELL_INFO_COMMAND = 'shell_info'
 const PLATFORM_NAMES = Object.freeze({ ios: 'iOS', macos: 'macOS', android: 'Android', windows: 'Windows' })
 
 /**
+ * Tauri's per-call invoke options: a raw-body command (a `tauri-plugin-fs` write) reads its path
+ * and options from these headers (`TODO/io-014`).
+ *
+ * @typedef {object} InvokeOptions
+ * @property {Record<string, string>} headers
+ */
+
+/**
  * The part of the global object the shell reads: the bridge the Tauri webview injects, when there is one.
  *
  * @typedef {object} BridgeGlobal
- * @property {{ invoke?: (cmd: string, args: Record<string, unknown>) => Promise<unknown> }} [__TAURI_INTERNALS__]
+ * @property {{ invoke?: (cmd: string, args?: any, options?: any) => Promise<unknown> }} [__TAURI_INTERNALS__]
+ *   `args` is JSON, or a raw body's bytes; `options` is {@link InvokeOptions}.
  */
 
 /**
@@ -143,14 +152,15 @@ export async function loadShellDetails(probe, global = /** @type {BridgeGlobal} 
  * the page has no bridge, so callers can use one `catch` for "not available here".
  *
  * @param {string} cmd the command name the Rust side registered
- * @param {Record<string, unknown>} [args] the arguments, as JSON
+ * @param {Record<string, unknown> | Uint8Array} [args] the arguments, as JSON, or a raw body's bytes
  * @param {BridgeGlobal} [global] the global object to read the bridge from
+ * @param {InvokeOptions} [options] headers, for a raw-body command; passed on only when given
  * @returns {Promise<unknown>}
  */
-export function invoke(cmd, args = {}, global = /** @type {BridgeGlobal} */ (/** @type {unknown} */ (globalThis))) {
+export function invoke(cmd, args = {}, global = /** @type {BridgeGlobal} */ (/** @type {unknown} */ (globalThis)), options = undefined) {
   const internals = global.__TAURI_INTERNALS__
   if (!internals || typeof internals.invoke !== 'function') {
     return Promise.reject(new Error(`native command "${cmd}" needs the native shell`))
   }
-  return internals.invoke(cmd, args)
+  return options === undefined ? internals.invoke(cmd, args) : internals.invoke(cmd, args, options)
 }

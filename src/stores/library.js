@@ -64,7 +64,7 @@ import { MAX_PART_FILE_CHARS, parsePartFile, partFileName, serializePartFile } f
 import { formatCount } from '../io/meshAsset.js'
 import { UNIT_SCALES, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
 import { renderPartThumbnail } from '../render/partThumbnail.js'
-import { downloadBytes } from '../storage/download.js'
+import { saveBytes } from '../storage/download.js'
 import { createUserLibrary, loadUserLibrary } from '../storage/userLibrary.js'
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
@@ -165,7 +165,8 @@ export const useLibraryStore = defineStore('library', () => {
   /** @type {Required<LibraryBoundaries>} */
   let boundaries = {
     download: (text, name) => {
-      downloadBytes(text, name, 'application/json')
+      // A browser download, or in the native app a file in Documents/Exports (`TODO/io-014`).
+      void saveBytes(text, name, 'application/json')
     },
     thumbnailer: (geometry, options) => renderPartThumbnail(geometry, options),
   }

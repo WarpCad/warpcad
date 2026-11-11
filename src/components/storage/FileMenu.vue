@@ -149,6 +149,8 @@ import ProjectSettingsDialog from './ProjectSettingsDialog.vue'
 import ReplaceConfirmDialog from './ReplaceConfirmDialog.vue'
 import ResolutionPopover from './ResolutionPopover.vue'
 import SaveAsGistDialog from './SaveAsGistDialog.vue'
+import NativeOpenSheet from './NativeOpenSheet.vue'
+import ProjectNameDialog from './ProjectNameDialog.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useShareStore } from '../../stores/share.js'
@@ -382,14 +384,33 @@ function disconnect() {
   void hosted.disconnect()
 }
 
+/**
+ * `TODO/io-014`: a project tapped in the Files app or Mail is queued by the shell. Ask for it when
+ * this mounts, whenever the app comes back to the front, and once a pending load has finished.
+ */
+function checkInbound() {
+  if (document.visibilityState === 'hidden') return
+  void menu.openInbound()
+}
+watch(
+  () => persistence.loading,
+  (loading) => {
+    if (loading === '') checkInbound()
+  },
+)
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('focus', checkInbound)
+  document.addEventListener('visibilitychange', checkInbound)
   // `TODO/io-017`: restore a stored gist connection (no network) for the menu row and the Share sheet.
   void gist.start().catch(() => {})
+  checkInbound()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('resize', measure)
+  window.removeEventListener('focus', checkInbound)
+  document.removeEventListener('visibilitychange', checkInbound)
 })
 </script>
 
@@ -741,6 +762,8 @@ onBeforeUnmount(() => {
     <GistConnectDialog />
     <ConflictDialog />
     <DiskChangeDialog />
+    <ProjectNameDialog />
+    <NativeOpenSheet />
 
     <!-- TODO/ui-107: the pickers behind Import model… and Import part file…. Out here, not in the
          teleported menu, so closing the menu does not unmount them; visually hidden inside this

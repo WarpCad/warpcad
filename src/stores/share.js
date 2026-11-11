@@ -41,7 +41,7 @@ import { serializeNdjson } from '../core/ndjson.js'
 import { parseProject } from '../core/project.js'
 import { createProjectId } from '../core/replica.js'
 import { projectIdOfRecords, shareFileName, withProjectId } from '../core/shareCopy.js'
-import { downloadBytes } from '../storage/download.js'
+import { saveBytes } from '../storage/download.js'
 import { useDocumentStore } from './document.js'
 import { useFileMenuStore } from './fileMenu.js'
 import { usePersistenceStore } from './persistence.js'
@@ -227,11 +227,15 @@ export const useShareStore = defineStore('share', () => {
     })
   }
 
-  /** **Save a copy of the file**: the project as sent, downloaded (`storage/download.js`). */
-  function saveFile() {
+  /**
+   * **Save a copy of the file**: the project as sent, downloaded (`storage/download.js`), or in the
+   * native app written to `Documents/Exports/` (`TODO/io-014`).
+   */
+  async function saveFile() {
     if (shared === null) return
-    const result = downloadBytes(shared.text, shareFileName(name.value), PROJECT_MIME)
-    status.value = result.ok ? `Download started: ${result.name}` : `Couldn't save the file: ${result.error}`
+    const result = await saveBytes(shared.text, shareFileName(name.value), PROJECT_MIME)
+    if (!result.ok) status.value = `Couldn't save the file: ${result.error}`
+    else status.value = result.native ? `Saved to ${result.place}` : `Download started: ${result.name}`
   }
 
   /**

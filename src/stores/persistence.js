@@ -90,7 +90,7 @@ import { ReplayRejection } from '../core/document.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../core/project.js'
 import { createAutosaver } from '../storage/autosave.js'
-import { createFileStorage } from '../storage/fileSystem.js'
+import { createFileStorage, projectFileName } from '../storage/fileSystem.js'
 import { createIndexedDbBackend } from '../storage/indexeddb.js'
 import { createLocalStorageMirror } from '../storage/localMirror.js'
 import { useDocumentStore } from './document.js'
@@ -114,6 +114,12 @@ export const WAITING_TEXT = 'Changes waiting to merge'
  * read again (`TODO/io-012`). It stays until a merge, a save, or a dismissal.
  */
 export const MAY_HAVE_CHANGED_TEXT = 'This file may have changed. Use File ▾ → Merge file… to bring it in.'
+/**
+ * The chip's words after **Browse…** in the native app opened a file from elsewhere (`TODO/io-014`):
+ * it is a copy, and Save writes a new file in the app's own folder, never back to where it came
+ * from. It stays until a Save, a New or another Open.
+ */
+export const OPENED_COPY_TEXT = "Opened a copy — Save writes to WarpCad's folder"
 /** What the merge toast calls the source when every incoming row has origin `mcp`. */
 const MCP_SOURCE_NAME = 'Claude Code'
 
@@ -309,6 +315,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
   let unwatchedFile = false
   /** Set on focus or a return to the tab, when {@link unwatchedFile} means nothing can be checked. */
   const mayHaveChanged = ref(false)
+  /** The project came from **Browse…** in the native app: a copy (`TODO/io-014`). */
+  const openedCopy = ref(false)
   /** @type {Promise<void> | null} */
   let diskCheck = null
 
@@ -430,6 +438,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (loadWarning.value) return loadWarning.value
     if (diskChange.value !== null) return diskIssue.value === '' ? WAITING_TEXT : DISK_CHANGED_TEXT
     if (mayHaveChanged.value) return MAY_HAVE_CHANGED_TEXT
+    if (openedCopy.value) return OPENED_COPY_TEXT
     if (notice.value) return notice.value
     if (autosaveState.value === 'saving') return 'Saving…'
     if (gistChipText.value !== '') return gistChipText.value
@@ -619,11 +628,15 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * project is what is written. Only a change that cannot be merged (a different project, an
    * unreadable file) writes nothing and asks in the dialog — `{ ok: false, conflict: true }`.
    *
-   * @param {{ saveAs?: boolean }} [options]
+   * In the native app (`TODO/io-014`) a project with no file yet needs a `name`; without one the
+   * result is `{ ok: false, needsName: true }` and nothing is written ({@link needsFileName} lets
+   * the File menu ask first).
+   *
+   * @param {{ saveAs?: boolean, name?: string }} [options]
    * @returns {Promise<import('../storage/fileSystem.js').SaveResult | { ok: false, conflict: true }>}
    */
-  async function saveFile({ saveAs = false } = {}) {
-    if (!saveAs && diskKnown !== null && deps.files.capabilities.mode === 'native') {
+  async function saveFile({ saveAs = false, name = undefined } = {}) {
+    if (!saveAs && diskKnown !== null && deps.files.capabilities.canSaveInPlace) {
       await checkDiskFile()
       // Saving is the user asking now: a merge held back only by an open menu goes ahead.
       if (diskWaiting.value) await mergePendingDiskChange({ force: true })
@@ -632,20 +645,56 @@ export const usePersistenceStore = defineStore('persistence', () => {
         return { ok: false, conflict: true }
       }
     }
-    return writeFile({ saveAs })
+    return writeFile({ saveAs, ...(name === undefined ? {} : { name }) })
+  }
+
+  /**
+   * Whether a Save must ask for a file name first (`TODO/io-014`): in the native app, on Save As…
+   * or while the project has no file of its own yet.
+   *
+   * @param {boolean} saveAs
+   * @returns {boolean}
+   */
+  function needsFileName(saveAs) {
+    return deps.files.capabilities.mode === 'native-app' && (saveAs || deps.files.currentName === null)
+  }
+
+  /**
+   * What the name sheet offers: the project's own name, else the default file name's stem.
+   *
+   * @returns {string}
+   */
+  function suggestedFileName() {
+    return projectName.value !== '' ? projectName.value : nameOfFile(projectFileName('native-app'))
+  }
+
+  /**
+   * The native app's own projects for the Open sheet, newest first (`TODO/io-014`). A folder that
+   * cannot be read is an error on the chip and an empty list.
+   *
+   * @returns {Promise<Array<{ name: string, lastModified: number }>>}
+   */
+  async function listProjectFiles() {
+    if (typeof deps.files.list !== 'function') return []
+    try {
+      return await deps.files.list()
+    } catch (error) {
+      errorMessage.value = `Couldn't list WarpCad's folder: ${reasonOf(error)}`
+      return []
+    }
   }
 
   /**
    * The write itself, with no disk check — what Save does after its check, and what the
    * dialog's explicit **Overwrite the file** does.
    *
-   * @param {{ saveAs: boolean }} options
+   * @param {{ saveAs: boolean, name?: string }} options
    * @returns {Promise<import('../storage/fileSystem.js').SaveResult>}
    */
-  async function writeFile({ saveAs }) {
+  async function writeFile({ saveAs, name }) {
     const text = serializeProject(documentStore.raw)
-    const result = await deps.files.save(text, { saveAs })
-    if (result.ok && result.mode === 'native') {
+    const result = await deps.files.save(text, { saveAs, ...(name === undefined ? {} : { name }) })
+    if (result.ok && result.mode !== 'fallback') {
       projectName.value = nameOfFile(result.name)
       // Now in step with the file this handle points at (a Save As points it somewhere new).
       diskKnown = { text, lastModified: null }
@@ -657,6 +706,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (result.ok) {
       errorMessage.value = ''
       mayHaveChanged.value = false
+      openedCopy.value = false
       if (result.refusedName !== undefined) {
         // Not an error: the user's data is in the download. But the picker may have left an empty
         // file with a real project's name where they chose, and that part loses work if unread.
@@ -665,12 +715,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
             `An empty file named ${result.refusedName} may have been left where you chose to save; you can delete it.`,
           REFUSED_NOTICE_MS,
         )
-      } else if (result.mode === 'native') {
+      } else if (result.mode !== 'fallback') {
         showNotice(`Saved to ${result.name} · ${clock(Date.now())}`, SAVED_NOTICE_MS)
       } else {
         // "Started", never "saved": a download cannot be confirmed to have landed.
         showNotice(`Download started: ${result.name}`, DOWNLOAD_NOTICE_MS)
       }
+    } else if ('exists' in result || 'needsName' in result) {
+      // The name sheet shows these and asks again; they are not a failed save.
     } else if (!('cancelled' in result)) {
       clearNotice()
       errorMessage.value = `Couldn't save ${result.name ?? 'the project file'}: ${result.error}`
@@ -697,6 +749,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
     errorMessage.value = ''
     loadWarning.value = ''
+    openedCopy.value = false
     projectName.value = nameOfFile(name)
     if (loaded.skipped) {
       clearNotice()
@@ -715,7 +768,29 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   async function openFile() {
     if (loading.value) return { ok: false, message: 'Another file is still opening' }
-    const picked = await deps.files.open()
+    return openPicked(await deps.files.open())
+  }
+
+  /**
+   * Open one of the native app's own projects from the Open sheet (`TODO/io-014`). Like
+   * {@link openFile} it does not confirm, and the file becomes the Save target and the watched file.
+   *
+   * @param {string} name
+   * @returns {Promise<{ ok: true, name: string, steps: number } | { ok: false, cancelled: true } | { ok: false, message: string }>}
+   */
+  async function openProjectFile(name) {
+    if (loading.value) return { ok: false, message: 'Another file is still opening' }
+    if (typeof deps.files.openNamed !== 'function') return { ok: false, message: 'Not available here' }
+    return openPicked(await deps.files.openNamed(name))
+  }
+
+  /**
+   * The part of an Open after the file is in hand: load it, then adopt it as the Save target.
+   *
+   * @param {import('../storage/fileSystem.js').OpenResult} picked
+   * @returns {Promise<{ ok: true, name: string, steps: number } | { ok: false, cancelled: true } | { ok: false, message: string }>}
+   */
+  async function openPicked(picked) {
     if (!picked.ok) {
       if ('cancelled' in picked) return { ok: false, cancelled: true }
       clearNotice()
@@ -733,6 +808,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       diskCanWatch.value = diskKnown !== null
       unwatchedFile = diskKnown === null
       mayHaveChanged.value = false
+      openedCopy.value = picked.copy === true
     }
     return opened
   }
@@ -825,6 +901,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     diskKnown = null
     unwatchedFile = false
     mayHaveChanged.value = false
+    openedCopy.value = false
     clearPending()
     diskCanWatch.value = false
   }
@@ -1097,6 +1174,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
     flush,
     onVisibilityChange,
     saveFile,
+    needsFileName,
+    suggestedFileName,
+    listProjectFiles,
+    openProjectFile,
     openFile,
     openText,
     mergeFile,

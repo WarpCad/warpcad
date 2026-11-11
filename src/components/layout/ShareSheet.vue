@@ -48,7 +48,7 @@ import { parseNdjson } from '../../core/ndjson.js'
 import { serializeProject } from '../../core/project.js'
 import { shareFileName } from '../../core/shareCopy.js'
 import { DEFAULT_SHARE_NAME, encodeShareLink } from '../../core/shareLink.js'
-import { downloadBytes } from '../../storage/download.js'
+import { saveBytes } from '../../storage/download.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
@@ -231,16 +231,20 @@ async function copy() {
   showToast(`Link copied, ${size}`)
 }
 
-/** **Send the file** — the project file, downloaded, as File ▾ → Download copy does. */
-function sendFile() {
-  const result = downloadBytes(serializeProject(toRaw(documentStore.raw)), shareFileName(shareName.value), 'application/x-ndjson')
+/**
+ * **Send the file** — the project file, downloaded, as File ▾ → Download copy does; in the native
+ * app written to `Documents/Exports/` instead (`TODO/io-014`).
+ */
+async function sendFile() {
+  const result = await saveBytes(serializeProject(toRaw(documentStore.raw)), shareFileName(shareName.value), 'application/x-ndjson')
   if (!result.ok) {
     problem.value = `Couldn't save the file: ${result.error}`
     return
   }
   closeSheet()
-  persistence.announce(`Download started: ${result.name}`)
-  showToast(`Download started: ${result.name}`)
+  const words = result.native ? `Saved to ${result.place}` : `Download started: ${result.name}`
+  persistence.announce(words)
+  showToast(words)
 }
 
 // File ▾ → Share… asks for the sheet through the store.

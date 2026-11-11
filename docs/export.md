@@ -129,6 +129,15 @@ glTF is the exception, because the format itself insists on **metres** and **Y u
 file records that conversion in one place (so it opens the right way up and the right
 size in a glTF viewer) and leaves your geometry untouched.
 
+## In the iOS app
+
+In the WarpCad app for iPhone and iPad there is no download. **Export** writes a real file to the
+**Exports** folder inside WarpCad's own folder, and the status line says where it is, for example
+**Saved to Files › On My iPhone › WarpCad › Exports › cube-1.stl**. To find it, open the
+**Files** app and tap **Browse → On My iPhone → WarpCad → Exports**. From there you can open it in
+a slicer or share it. Exporting the same name again replaces the earlier file. **Print pieces**
+and a project copy from **Share** go to the same folder.
+
 ## File names
 
 - One body: its name, lowercased — `Union 1` becomes `union-1.stl`, `Cube 1` becomes

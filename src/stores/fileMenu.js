@@ -54,6 +54,22 @@
  * itself is a hidden `<input type=file>` in `FileMenu.vue`, clicked inside the gesture once
  * {@link requestImport} says yes.
  *
+ * ## In the native app (`TODO/io-014`)
+ *
+ * `persistence.fileCapabilities.mode === 'native-app'`: **Save** with no file yet, and **Save As…**,
+ * first ask for a name in the name sheet ({@link nameRequest}, `ProjectNameDialog.vue`); a name
+ * that is already another project's is refused there ({@link nameError}) and asked again.
+ * **Open…** keeps the replace-confirm, then opens the Open sheet ({@link openSheetOpen},
+ * `NativeOpenSheet.vue`) in place of the picker: the app's own projects, and **Browse…** for the
+ * system document picker. Cancelling the sheet after a confirmed replace loses nothing, because
+ * nothing is replaced until a file is chosen.
+ *
+ * A `.ndjson` tapped in the Files app or Mail reaches the app through the shell's open-URL queue
+ * ({@link openInbound}): it is copied into Documents if it lives elsewhere, then goes through
+ * {@link requestOpenShared}, so a copy of the open project asks **Merge their changes** or **Open
+ * theirs instead** (`ui-062`), anything to lose asks **Replace the project?**, and an empty
+ * project opens it at once.
+ *
  * ## What "non-empty" means
  *
  * Any step in the log, not the body count: a project whose every step is suppressed has no
@@ -66,7 +82,10 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, toRaw } from 'vue'
 
 import { useGistPublish } from '../composables/useGistPublish.js'
+import { parseNdjson } from '../core/ndjson.js'
+import { projectIdOfRecords } from '../core/shareCopy.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
+import { importOpenedFile, readProjectFile, takeOpenedFiles } from '../native/files.js'
 import { useAlignReferenceStore } from './alignReference.js'
 import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
@@ -101,6 +120,9 @@ const GIST_TOAST_MS = 6000
  * @property {string | null} projectId The id it was sent with, `null` for a legacy project.
  * @property {() => void} leave Leave the Shared view (resume autosave) just before the load, so
  *   the load is the change that autosaves.
+ * @property {string} [fileName] `TODO/io-014`: a project in the native app's Documents folder (one
+ *   tapped in the Files app or Mail). Open, either answer, opens that file, so it becomes the Save
+ *   target; Merge merges its text as for any shared copy.
  */
 
 export const useFileMenuStore = defineStore('fileMenu', () => {
@@ -142,6 +164,14 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const confirm = ref(null)
   /** `TODO/io-016`: the shared project the `share` / `share-update` question is about. */
   const pendingShared = shallowRef(/** @type {SharedOpenRequest | null} */ (null))
+  /** `TODO/io-014`: the name sheet's pending Save (`saveAs`, and the name it offers), or `null`. */
+  const nameRequest = ref(/** @type {{ saveAs: boolean, name: string } | null} */ (null))
+  /** Why the name sheet's last name was refused, or `''`. */
+  const nameError = ref('')
+  /** A named save is being written: the sheet's Save button waits. */
+  const nameBusy = ref(false)
+  /** `TODO/io-014`: the native app's Open sheet. */
+  const openSheetOpen = ref(false)
   /** `TODO/io-021`: the **Save as gist…** dialog. */
   const gistSaveOpen = ref(false)
   /** The last gist save's failure, in `gistMessages.js`'s wording, for that dialog — or `''`. */
@@ -168,6 +198,8 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       gistConnectOpen.value ||
       gistSaveOpen.value ||
       confirm.value !== null ||
+      nameRequest.value !== null ||
+      openSheetOpen.value ||
       exportDialog.isOpen ||
       resolutionDialog.isOpen ||
       projectSettings.isOpen
@@ -199,7 +231,111 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
    */
   function saveLocal({ saveAs = false } = {}) {
     menuOpen.value = false
+    if (persistence.needsFileName(saveAs)) {
+      nameError.value = ''
+      nameRequest.value = { saveAs, name: persistence.suggestedFileName() }
+      return
+    }
     void persistence.saveFile({ saveAs })
+  }
+
+  /**
+   * The name sheet's **Save** (`TODO/io-014`): write under `name`. A name that is taken, or not a
+   * file name, keeps the sheet open with the reason; anything else closes it, and the chip reports.
+   *
+   * @param {string} name as typed
+   * @returns {Promise<void>}
+   */
+  async function saveNamed(name) {
+    const request = nameRequest.value
+    if (request === null || nameBusy.value) return
+    nameBusy.value = true
+    try {
+      const result = await persistence.saveFile({ saveAs: request.saveAs, name })
+      // Asked again: a taken name, no name, or one that is not a file name (no file was named).
+      const askAgain = !result.ok && ('exists' in result || 'needsName' in result || ('error' in result && !('name' in result)))
+      if (askAgain && 'error' in result) {
+        nameError.value = result.error
+        return
+      }
+      nameRequest.value = null
+      nameError.value = ''
+    } finally {
+      nameBusy.value = false
+    }
+  }
+
+  function cancelNamed() {
+    nameRequest.value = null
+    nameError.value = ''
+  }
+
+  /** What Open does once nothing is in the way: the Open sheet in the native app, else the picker. */
+  function beginOpen() {
+    if (persistence.fileCapabilities.mode === 'native-app') {
+      openSheetOpen.value = true
+      return
+    }
+    void persistence.openFile()
+  }
+
+  /**
+   * The Open sheet's row: open one of the app's own projects. Called after the replace-confirm.
+   *
+   * @param {string} name
+   */
+  function openFromSheet(name) {
+    openSheetOpen.value = false
+    void persistence.openProjectFile(name)
+  }
+
+  /** The Open sheet's **Browse…**: the system document picker. */
+  function browseFromSheet() {
+    openSheetOpen.value = false
+    void persistence.openFile()
+  }
+
+  function closeOpenSheet() {
+    openSheetOpen.value = false
+  }
+
+  /** One {@link openInbound} at a time. */
+  let inboundBusy = false
+
+  /**
+   * Open the newest project the shell was asked to open (`TODO/io-014`). A no-op outside the
+   * native app and while a load is pending; the shell keeps the file queued until then.
+   *
+   * @returns {Promise<void>}
+   */
+  async function openInbound() {
+    if (inboundBusy || persistence.loading || persistence.fileCapabilities.mode !== 'native-app') return
+    inboundBusy = true
+    try {
+      const last = (await takeOpenedFiles()).at(-1)
+      if (last === undefined) return
+      /** @type {string} */
+      let name
+      /** @type {string} */
+      let text
+      try {
+        name = await importOpenedFile(last)
+        text = (await readProjectFile(name)).text
+      } catch (error) {
+        persistence.announce(`Couldn't open ${last.name}: ${error instanceof Error ? error.message : String(error)}`)
+        return
+      }
+      /** @type {string | null} */
+      let projectId = null
+      try {
+        projectId = projectIdOfRecords(parseNdjson(text).records)
+      } catch {
+        // Not readable as a project: Open refuses it by name, as for any file.
+      }
+      requestOpenShared({ name, copyText: text, theirText: text, projectId, leave: () => {}, fileName: name })
+    } finally {
+      inboundBusy = false
+    }
   }
 
   /**
@@ -248,7 +384,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       confirm.value = 'open'
       return
     }
-    void persistence.openFile()
+    beginOpen()
   }
 
   /**
@@ -325,6 +461,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     if (request === null) return
     request.leave()
     if (how === 'merge') void persistence.mergeText(request.theirText, request.name)
+    else if (request.fileName !== undefined) void persistence.openProjectFile(request.fileName)
     else void persistence.openText(how === 'copy' ? request.copyText : request.theirText, request.name)
   }
 
@@ -368,7 +505,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
       pendingShared.value = null
       return
     }
-    if (kind === 'open') void persistence.openFile()
+    if (kind === 'open') beginOpen()
     else if (kind === 'load') settleReplace(true)
     else if (kind === 'new') startNewProject()
     // `share-update`'s replace answer is **Open theirs instead**: the same project, so its id stays.
@@ -490,6 +627,14 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
    *   so an Escape with nothing open still reaches the History strip's "leave preview".
    */
   function dismissTopmost() {
+    if (nameRequest.value !== null) {
+      cancelNamed()
+      return true
+    }
+    if (openSheetOpen.value) {
+      openSheetOpen.value = false
+      return true
+    }
     if (exportDialog.isOpen) {
       exportDialog.close()
       return true
@@ -538,6 +683,16 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     closeMenu,
     toggleMenu,
     saveLocal,
+    nameRequest,
+    nameError,
+    nameBusy,
+    saveNamed,
+    cancelNamed,
+    openSheetOpen,
+    openFromSheet,
+    browseFromSheet,
+    closeOpenSheet,
+    openInbound,
     requestExport,
     requestResolution,
     requestProjectSettings,

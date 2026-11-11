@@ -75,7 +75,7 @@ import { EXPORT_FORMATS, ExportError, exportFilename, resolveExportScope } from 
 import { EXPORT_CANCELLED, cancelExport, pendingFilename, runExport, runPrintPiecesExport } from '../core/exportClient.js'
 import { refoldRequestOf } from '../core/exportJob.js'
 import { CHOOSABLE_RESOLUTIONS, resolutionLabel } from '../core/kernel/tessellation.js'
-import { downloadBytes } from '../storage/download.js'
+import { saveBytes } from '../storage/download.js'
 import { useDocumentStore } from './document.js'
 import { usePersistenceStore } from './persistence.js'
 import { useSelectionStore } from './selection.js'
@@ -101,8 +101,10 @@ export const PENDING_AFTER_MS = 100
 
 /**
  * @typedef {object} ExportDependencies
- * @property {(result: ExportResult) => void} download Hand a finished file to the browser;
- *   throws on failure so the popover can name it.
+ * @property {(result: ExportResult) => void | Promise<void | { native: boolean, place?: string }>} download
+ *   Hand a finished file over — a browser download, or in the native app a file in
+ *   `Documents/Exports/` (`TODO/io-014`), whose `place` the chip names. Throws (or rejects) on
+ *   failure so the popover can name it.
  * @property {() => Promise<(bodies: readonly ExportBody[]) => Promise<ExportResult>>} loadGltfExporter
  *   Resolve `exportGltf`. A function because it is a dynamic import: `GLTFExporter` is most
  *   of export's bundle cost and nobody exports on first paint.
@@ -124,9 +126,11 @@ export function setExportDependencies(next) {
 /** @returns {ExportDependencies} */
 function resolveDependencies() {
   dependencies ??= {
-    download(result) {
-      const outcome = downloadBytes(result.bytes, result.filename, result.mimeType)
+    async download(result) {
+      // Synchronous up to the browser download (`saveBytes`), so it stays inside the gesture.
+      const outcome = await saveBytes(result.bytes, result.filename, result.mimeType)
       if (!outcome.ok) throw new Error(outcome.error)
+      return outcome
     },
     loadGltfExporter: async () => (await import('../render/export.js')).exportGltf,
   }
@@ -392,9 +396,10 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
         ...(refold === undefined ? {} : { refold }),
       })
       if (mine !== attempt) return // closed while it was preparing: nobody is waiting for this file
-      deps.download(result)
+      const handed = await deps.download(result)
       // The triangle count is how a user can see the Resolution setting did something.
-      persistence.announce(`Exported ${result.filename} — ${result.triangleCount.toLocaleString('en-US')} triangles`)
+      const triangles = `${result.triangleCount.toLocaleString('en-US')} triangles`
+      persistence.announce(handed?.native ? `Saved to ${handed.place} — ${triangles}` : `Exported ${result.filename} — ${triangles}`)
       close()
     } catch (failure) {
       if (mine !== attempt) return
@@ -433,12 +438,11 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
       const { bodies } = resolveExportScope(live, ids)
       const result = await runPrintPiecesExport(bodies)
       if (mine !== attempt) return
-      deps.download({ bytes: result.bytes, filename: result.filename, mimeType: result.mimeType, triangleCount: 0 })
+      const handed = await deps.download({ bytes: result.bytes, filename: result.filename, mimeType: result.mimeType, triangleCount: 0 })
       printPiecesFiles.value = result.files
       printPiecesZip.value = result.filename
-      persistence.announce(
-        `Exported ${result.filename} — ${result.files.length} piece${result.files.length === 1 ? '' : 's'}`
-      )
+      const pieces = `${result.files.length} piece${result.files.length === 1 ? '' : 's'}`
+      persistence.announce(handed?.native ? `Saved to ${handed.place} — ${pieces}` : `Exported ${result.filename} — ${pieces}`)
     } catch (failure) {
       if (mine !== attempt) return
       if (failure instanceof Error && failure.name === EXPORT_CANCELLED) return

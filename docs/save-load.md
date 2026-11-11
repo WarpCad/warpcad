@@ -311,6 +311,52 @@ If you have selected an earlier step in **History**, the 3D view is showing that
 at — and the menu says so at the top while it is true. **Open…** still works, and ends the
 preview when the new project loads.
 
+## In the iOS app
+
+In the WarpCad app for iPhone and iPad ([The native apps](native-apps.md)) your projects are
+real files. They live in WarpCad's own folder, which the **Files** app shows as
+**On My iPhone › WarpCad** (**On My iPad › WarpCad** on an iPad). The File menu says **Save**
+and **Save As…** here, never **Download copy**, because a second Save writes over the same file
+instead of making a new copy each time.
+
+**Try it:**
+
+1. Drag a **Cube** into the view. Tap **File ▾ → Save**. The first time, a sheet asks for a
+   name: type `bracket` and tap **Save**. The status line reads **Saved to bracket.ndjson**.
+2. Open the **Files** app and tap **Browse → On My iPhone → WarpCad**. `bracket.ndjson` is there.
+3. Back in WarpCad, move the cube and tap **File ▾ → Save** again. Nothing asks this time, and
+   the same file updates. There is still one `bracket.ndjson` in the folder, not two.
+4. To open a project from iCloud Drive, tap **File ▾ → Open… → Browse…** and pick it.
+
+![The Open sheet in the iPhone app: two projects in WarpCad's folder, bracket.ndjson and phone stand.ndjson, each with the date it was saved, above Cancel and Browse… buttons](./screenshots/native-open-sheet.png)
+
+What each item does in the app:
+
+- **Save** writes the project to its file in WarpCad's folder. A project that has no file yet
+  asks for a name first. If the name is already used by another project, the sheet says so and
+  asks again, so another project is never overwritten.
+- **Save As…** asks for a new name and saves there. Later Saves go to the new file.
+- **Open…** shows a sheet listing the projects in WarpCad's folder, newest first. Tap one to
+  open it. If the open project has steps, WarpCad asks before replacing it, as everywhere else.
+- **Browse…**, at the bottom of that sheet, opens the system file picker, so you can pick a
+  project from iCloud Drive or another app's folder. WarpCad reads that file once, as a copy.
+  The status line says **Opened a copy — Save writes to WarpCad's folder**, and the next Save
+  asks for a name and writes a new file in WarpCad's folder. It never writes back to iCloud Drive.
+
+If something else changes a project file in WarpCad's folder while it is open, for example you
+replace it from the Files app or an AI agent edits it, WarpCad merges the change in by itself when
+you come back to the app, as Chromium on a desktop does, and the merge summary offers **Undo
+merge**. A copy opened through **Browse…** cannot be read again, so for one of those you get the
+line described in [When WarpCad can't see the file change](#when-warpcad-cant-see-the-file-change)
+instead.
+If a Save cannot be written, the status line says **Couldn't save bracket.ndjson** with the reason.
+The app never falls back to a download.
+
+Exports go to a folder of their own: see [Exporting your model](export.md#in-the-ios-app). After
+an export, the first line of the File menu says where the file went:
+
+![The File menu in the iPhone app after an STL export, its first line reading Saved to Files › On My iPhone › WarpCad › Exports › cube-1.stl — 12 triangles](./screenshots/native-export-toast.png)
+
 ## Keeping a copy in a GitHub repository
 
 Autosave keeps your work in *this* browser, on *this* device. Connecting a GitHub

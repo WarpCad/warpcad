@@ -12,6 +12,7 @@ import {
   getFileCapabilities,
   projectFileName,
 } from './fileSystem.js'
+import { createFakeTauriFs } from '../native/__fixtures__/fakeFs.js'
 
 /**
  * `TODO/io-001` — file Save / Open, with the capability check `ui-033` reads.
@@ -559,5 +560,182 @@ describe('readCurrent — noticing the file changed on disk (TODO/ai-009)', () =
     storage.adopt(await storage.open())
     disk.fail = true
     expect(await storage.readCurrent()).toEqual({ ok: false, error: 'NotFoundError: gone', name: 'bracket.ndjson' })
+  })
+})
+
+/**
+ * `TODO/io-014`: the third mode, inside the native app. `native-app` is checked **first**: the
+ * macOS shell's WebKit and a Chromium test page both define the File System Access pickers, and
+ * the app's own Documents folder must still win over them.
+ */
+describe('native-app mode (TODO/io-014)', () => {
+  /** An env with the fake Tauri bridge, and both FSA pickers present to prove the order. */
+  function appEnv() {
+    const fs = createFakeTauriFs()
+    const env = {
+      __TAURI_INTERNALS__: { invoke: (cmd, args, options) => (cmd === 'shell_info' ? Promise.resolve({ platform: 'ios', version: '1.13.0' }) : fs.invoke(cmd, args, options)) },
+      showSaveFilePicker: vi.fn(),
+      showOpenFilePicker: vi.fn(),
+    }
+    return { env, fs }
+  }
+
+  it('mode order: native-app wins over File System Access when the bridge is present', () => {
+    const { env } = appEnv()
+    expect(getFileCapabilities(env)).toEqual({
+      mode: 'native-app',
+      canSaveInPlace: true,
+      saveLabel: 'Save',
+      saveAsLabel: 'Save As…',
+      openLabel: 'Open…',
+    })
+    expect(createFileStorage(env).capabilities.mode).toBe('native-app')
+  })
+
+  it('without the bridge the order is unchanged: native, then fallback', () => {
+    expect(getFileCapabilities({ showSaveFilePicker: () => {}, showOpenFilePicker: () => {} }).mode).toBe('native')
+    expect(getFileCapabilities({}).mode).toBe('fallback')
+  })
+
+  it('offers a plain default name for the name sheet', () => {
+    expect(projectFileName('native-app')).toBe('warpcad-project.ndjson')
+  })
+
+  it('the first Save writes Documents/<name>.ndjson; the second overwrites the same file, never a copy', async () => {
+    const { env, fs } = appEnv()
+    const storage = createFileStorage(env)
+    expect(storage.currentName).toBeNull()
+    await expect(storage.save('one\n', { name: 'bracket' })).resolves.toEqual({ ok: true, mode: 'native-app', name: 'bracket.ndjson' })
+    expect(storage.currentName).toBe('bracket.ndjson')
+    await expect(storage.save('two\n')).resolves.toEqual({ ok: true, mode: 'native-app', name: 'bracket.ndjson' })
+    expect(fs.documents()).toEqual(['bracket.ndjson'])
+    expect(fs.text('bracket.ndjson')).toBe('two\n')
+    expect(env.showSaveFilePicker).not.toHaveBeenCalled()
+  })
+
+  it('Save with no file and no name writes nothing and says a name is needed', async () => {
+    const { env, fs } = appEnv()
+    const result = await createFileStorage(env).save('x')
+    expect(result).toMatchObject({ ok: false, needsName: true })
+    expect(fs.documents()).toEqual([])
+  })
+
+  it('Save As… names a new file and moves the Save target to it', async () => {
+    const { env, fs } = appEnv()
+    const storage = createFileStorage(env)
+    await storage.save('one', { name: 'bracket' })
+    await expect(storage.save('two', { saveAs: true, name: 'bracket v2' })).resolves.toMatchObject({ ok: true, name: 'bracket v2.ndjson' })
+    await storage.save('three')
+    expect(fs.text('bracket.ndjson')).toBe('one')
+    expect(fs.text('bracket v2.ndjson')).toBe('three')
+  })
+
+  it('a new name that is already taken is refused, and the existing file is not overwritten', async () => {
+    const { env, fs } = appEnv()
+    fs.put('bracket.ndjson', 'someone else’s')
+    const result = await createFileStorage(env).save('mine', { name: 'bracket' })
+    expect(result).toMatchObject({ ok: false, exists: true, name: 'bracket.ndjson' })
+    expect(result.error).toMatch(/already/)
+    expect(fs.text('bracket.ndjson')).toBe('someone else’s')
+  })
+
+  it('a name that is not a plain file name is refused before anything is written', async () => {
+    const { env, fs } = appEnv()
+    const result = await createFileStorage(env).save('x', { name: '../escape' })
+    expect(result).toMatchObject({ ok: false })
+    expect(result.error).toMatch(/name/i)
+    expect(fs.documents()).toEqual([])
+  })
+
+  it('a refused write says so and never falls back to a download (io-008 in native-app mode)', async () => {
+    const { env, fs } = appEnv()
+    const dom = { createElement: vi.fn(), body: { appendChild: vi.fn() } }
+    env.document = dom
+    fs.fail('plugin:fs|write_text_file', 'forbidden path: .bracket.ndjson.tmp')
+    const storage = createFileStorage(env)
+    const result = await storage.save('x', { name: 'bracket' })
+    expect(result).toEqual({ ok: false, error: 'forbidden path: .bracket.ndjson.tmp', name: 'bracket.ndjson' })
+    expect(dom.createElement).not.toHaveBeenCalled()
+    expect(storage.capabilities.mode).toBe('native-app')
+    // A failed first save leaves no Save target behind.
+    expect(storage.currentName).toBeNull()
+  })
+
+  it('lists the app’s own projects, newest first', async () => {
+    const { env, fs } = appEnv()
+    fs.put('a.ndjson', '1')
+    fs.put('b.ndjson', '2')
+    await expect(createFileStorage(env).list()).resolves.toEqual([
+      { name: 'b.ndjson', lastModified: fs.mtime('b.ndjson') },
+      { name: 'a.ndjson', lastModified: fs.mtime('a.ndjson') },
+    ])
+  })
+
+  it('opening one of its projects reads it, and adopting it makes Save write back to it', async () => {
+    const { env, fs } = appEnv()
+    fs.put('bracket.ndjson', 'v1\n')
+    const storage = createFileStorage(env)
+    const opened = await storage.openNamed('bracket.ndjson')
+    expect(opened).toEqual({ ok: true, name: 'bracket.ndjson', text: 'v1\n', handle: 'bracket.ndjson', lastModified: fs.mtime('bracket.ndjson') })
+    storage.adopt(opened)
+    await storage.save('v2\n')
+    expect(fs.text('bracket.ndjson')).toBe('v2\n')
+  })
+
+  it('opening a project that has gone is an error by name', async () => {
+    const { env } = appEnv()
+    const opened = await createFileStorage(env).openNamed('gone.ndjson')
+    expect(opened).toMatchObject({ ok: false, name: 'gone.ndjson' })
+  })
+
+  it('Browse… (open) uses the system document picker and returns a copy: no Save target, nothing to re-read', async () => {
+    const { env, fs } = appEnv()
+    fs.putOutside('/iCloud/shelf.ndjson', 'remote\n')
+    fs.queuePick('/iCloud/shelf.ndjson')
+    const storage = createFileStorage(env)
+    const opened = await storage.open()
+    expect(opened).toEqual({ ok: true, name: 'shelf.ndjson', text: 'remote\n', copy: true })
+    expect(env.showOpenFilePicker).not.toHaveBeenCalled()
+    storage.adopt(opened)
+    expect(storage.currentName).toBeNull()
+    expect(await storage.readCurrent()).toBeNull()
+  })
+
+  it('a dismissed document picker is a cancel', async () => {
+    const { env, fs } = appEnv()
+    fs.queuePick(null)
+    await expect(createFileStorage(env).open()).resolves.toEqual({ ok: false, cancelled: true })
+  })
+
+  it('readCurrent re-reads the app’s file, so the focus merge (io-010) sees a change made elsewhere', async () => {
+    const { env, fs } = appEnv()
+    const storage = createFileStorage(env)
+    await storage.save('v1\n', { name: 'bracket' })
+    const first = fs.mtime('bracket.ndjson')
+    expect(await storage.readCurrent({ lastModified: first })).toEqual({ ok: true, name: 'bracket.ndjson', text: '', lastModified: first })
+    fs.put('bracket.ndjson', 'v1\nv2\n')
+    expect(await storage.readCurrent({ lastModified: first })).toEqual({
+      ok: true,
+      name: 'bracket.ndjson',
+      text: 'v1\nv2\n',
+      lastModified: fs.mtime('bracket.ndjson'),
+    })
+  })
+
+  it('readCurrent reports a file that has gone, by name, without throwing', async () => {
+    const { env, fs } = appEnv()
+    const storage = createFileStorage(env)
+    await storage.save('v1\n', { name: 'bracket' })
+    fs.fail('plugin:fs|stat', 'No such file or directory (os error 2)')
+    expect(await storage.readCurrent()).toEqual({ ok: false, error: 'No such file or directory (os error 2)', name: 'bracket.ndjson' })
+  })
+
+  it('forgetHandle makes the next Save ask for a name again', async () => {
+    const { env } = appEnv()
+    const storage = createFileStorage(env)
+    await storage.save('v1', { name: 'bracket' })
+    storage.forgetHandle()
+    expect(storage.currentName).toBeNull()
+    await expect(storage.save('v2')).resolves.toMatchObject({ ok: false, needsName: true })
   })
 })

@@ -57,6 +57,8 @@ const SURFACES = Object.freeze([
   'src/components/storage/ConnectDialog.vue',
   'src/components/storage/GistConnectDialog.vue',
   'src/components/storage/SaveAsGistDialog.vue',
+  'src/components/storage/ProjectNameDialog.vue',
+  'src/components/storage/NativeOpenSheet.vue',
   'src/components/layout/SharedAboutPopup.vue',
   'src/components/sketch/SketchPanelSheet.vue',
   'src/components/sketch/ReferenceImagePanel.vue',

@@ -24,6 +24,18 @@
  *
  * | Notice the file changed on disk (`TODO/ai-009`) | yes — {@link FileStorage.readCurrent} re-reads the handle | **no** — the picked `File` is a one-time copy |
  *
+ * ## A third mode inside the native app (`TODO/io-014`)
+ *
+ * In the Tauri shell (`isNativeShell()`), `native-app` is checked **first**, before File System
+ * Access: projects are saved **in place** to the app's Documents folder (the Files app's *On My
+ * iPhone › WarpCad*) through `src/native/files.js`, a temp file and a rename each time. The first
+ * Save of a project has no file yet, so it needs a name ({@link FileStorage.save}'s `name`; the
+ * File menu asks), and so does Save As…. **Open** in this mode is two things: {@link
+ * FileStorage.openNamed} reads one of the app's own projects (and can be adopted as the Save
+ * target and re-read, so `io-010`'s focus merge works), and {@link FileStorage.open} is **Browse…**,
+ * the system document picker, whose file is treated as a **copy**: never the Save target, never
+ * re-read. Nothing in this mode ever falls back to a download.
+ *
  * So the module answers "what can I honestly offer?" through
  * {@link getFileCapabilities}, and `ui-033` labels its controls from that —
  * `Save` / `Save As…` where in-place save exists, **`Download copy`** and no
@@ -36,6 +48,8 @@
  * @module storage/fileSystem
  */
 
+import { listProjects, pickFile, projectExists, projectFileNameFor, readPickedFile, readProjectFile, statProjectFile, writeProjectFile } from '../native/files.js'
+import { isNativeShell, probeShell } from '../native/shell.js'
 import { downloadBytes } from './download.js'
 
 /** The FSA picker's accepted types, and the `<input accept>` list — see {@link ACCEPT_ATTRIBUTE}. */
@@ -66,7 +80,7 @@ const EXTENSION = '.ndjson'
 
 /**
  * @typedef {object} FileCapabilities
- * @property {'native' | 'fallback'} mode
+ * @property {'native-app' | 'native' | 'fallback'} mode
  * @property {boolean} canSaveInPlace Whether a second Save can overwrite the same file.
  * @property {'Save' | 'Download copy'} saveLabel What the Save item should say.
  * @property {'Save As…' | null} saveAsLabel `null` when Save As would duplicate Save —
@@ -76,12 +90,17 @@ const EXTENSION = '.ndjson'
 
 /**
  * What the current browser can honestly do. Feature-detected on the function,
- * never a UA sniff — a stubbed non-function property is not support.
+ * never a UA sniff — a stubbed non-function property is not support. Inside the native shell the
+ * app's own Documents folder wins over File System Access (`TODO/io-014`).
  *
  * @param {any} [env]
+ * @param {string} [shellTarget] the build-time shell target; `''` asks about the browser alone
  * @returns {FileCapabilities}
  */
-export function getFileCapabilities(env = globalThis) {
+export function getFileCapabilities(env = globalThis, shellTarget = undefined) {
+  if (isNativeShell(probeShell(env ?? {}, shellTarget))) {
+    return { mode: 'native-app', canSaveInPlace: true, saveLabel: 'Save', saveAsLabel: 'Save As…', openLabel: 'Open…' }
+  }
   const native =
     typeof env?.showSaveFilePicker === 'function' && typeof env?.showOpenFilePicker === 'function'
   return native
@@ -121,27 +140,33 @@ export function formatFileStamp(date) {
  * would otherwise dedupe to `warpcad-project (3).ndjson`, which is
  * indistinguishable from the previous copy and worse in a phone's Files app.
  *
- * @param {'native' | 'fallback'} mode
+ * @param {'native-app' | 'native' | 'fallback'} mode
  * @param {Date} [date]
  * @returns {string}
  */
 export function projectFileName(mode, date = new Date()) {
-  return mode === 'native'
+  return mode !== 'fallback'
     ? `${BASE_NAME}${EXTENSION}`
     : `${BASE_NAME}-${formatFileStamp(date)}${EXTENSION}`
 }
 
 /**
- * @typedef {{ ok: true, mode: 'native' | 'fallback', name: string, refusedName?: string }
+ * @typedef {{ ok: true, mode: 'native-app' | 'native' | 'fallback', name: string, refusedName?: string }
  *   | { ok: false, cancelled: true }
+ *   | { ok: false, needsName: true, error: string }
+ *   | { ok: false, exists: true, error: string, name: string }
  *   | { ok: false, error: string, name?: string }} SaveResult
+ *   `needsName` and `exists` only in `native-app` mode: there is no file yet and no name was given,
+ *   or the new name is already another project's.
  */
 
 /**
- * @typedef {{ ok: true, name: string, text: string, handle?: unknown, lastModified?: number }
+ * @typedef {{ ok: true, name: string, text: string, handle?: unknown, lastModified?: number, copy?: true }
  *   | { ok: false, cancelled: true }
  *   | { ok: false, error: string, name?: string }} OpenResult
- *   `handle` and `lastModified` only on the native path.
+ *   `handle` and `lastModified` only on the native path, and for one of the native app's own
+ *   projects (`handle` is then its file name). `copy` marks a file opened through **Browse…** in
+ *   the native app: a one-time copy, as on the fallback path (`TODO/io-014`).
  */
 
 /**
@@ -175,6 +200,16 @@ function messageOf(error) {
 }
 
 /**
+ * A native-app failure's words: the shell's own reason (`files.js` makes each an `Error` with it).
+ *
+ * @param {unknown} error
+ * @returns {string}
+ */
+function appMessageOf(error) {
+  return error instanceof Error ? error.message || error.name : String(error)
+}
+
+/**
  * The picker rejects with `AbortError` when the user dismisses it — which is not
  * a failure, and reporting it as one would nag on every cancel.
  *
@@ -189,7 +224,12 @@ function isCancel(error) {
  * @property {FileCapabilities} capabilities A getter: it flips to the fallback shape for the
  *   rest of the session once the browser refuses a write (`TODO/io-008`).
  * @property {string | null} currentName The retained handle's file name, if any.
- * @property {(text: string, options?: { saveAs?: boolean, now?: Date }) => Promise<SaveResult>} save
+ * @property {(text: string, options?: { saveAs?: boolean, now?: Date, name?: string }) => Promise<SaveResult>} save
+ *   `name` (`native-app` only): what to call a new file, as typed (`bracket`); used when there is
+ *   no file yet or on Save As….
+ * @property {() => Promise<Array<{ name: string, lastModified: number }>>} list `native-app` only:
+ *   the app's own projects, newest first; empty elsewhere.
+ * @property {(name: string) => Promise<OpenResult>} openNamed `native-app` only: read one of them.
  * @property {() => Promise<OpenResult>} open Must be called synchronously from the
  *   user's click: the fallback opens its picker before the first `await`.
  * @property {(result: OpenResult) => void} adopt Call after an opened file was
@@ -216,6 +256,60 @@ export function createFileStorage(env = globalThis) {
   let nativeWriteRefused = false
   /** @type {any} */
   let handle = null
+  /** `native-app`: the Documents file this project saves to, or `null` before its first Save. */
+  /** @type {string | null} */
+  let appFile = null
+
+  const inApp = () => storage.capabilities.mode === 'native-app'
+
+  /**
+   * `native-app` Save: in place when there is a file, otherwise under the given name, which must
+   * not already be another project's. A failure is reported, never turned into a download.
+   *
+   * @param {string} text
+   * @param {{ saveAs: boolean, name?: string }} options
+   * @returns {Promise<SaveResult>}
+   */
+  async function saveInApp(text, { saveAs, name }) {
+    /** @type {string | null} */
+    let target = appFile
+    if (saveAs || target === null) {
+      if (name === undefined) return { ok: false, needsName: true, error: 'Choose a name for the project file' }
+      target = projectFileNameFor(name)
+      if (target === null) return { ok: false, error: `"${name.trim()}" can't be used as a file name — choose another name` }
+    }
+    try {
+      if (target !== appFile && (await projectExists(target, env))) {
+        return { ok: false, exists: true, name: target, error: `${target} already exists in WarpCad's folder — choose another name` }
+      }
+      await writeProjectFile(target, text, env)
+    } catch (error) {
+      return { ok: false, error: appMessageOf(error), name: target }
+    }
+    appFile = target
+    return { ok: true, mode: 'native-app', name: target }
+  }
+
+  /**
+   * `native-app` Browse…: the system document picker. The file is a copy (`copy: true`).
+   *
+   * @returns {Promise<OpenResult>}
+   */
+  async function browseInApp() {
+    /** @type {{ path: string, name: string } | null} */
+    let picked
+    try {
+      picked = await pickFile(env)
+    } catch (error) {
+      return { ok: false, error: appMessageOf(error) }
+    }
+    if (picked === null) return { ok: false, cancelled: true }
+    try {
+      return { ok: true, name: picked.name, text: await readPickedFile(picked.path, env), copy: true }
+    } catch (error) {
+      return { ok: false, error: appMessageOf(error), name: picked.name }
+    }
+  }
 
   /**
    * @param {string} text
@@ -242,7 +336,7 @@ export function createFileStorage(env = globalThis) {
       await writable.close()
       return { ok: true, mode: 'native', name: target.name }
     } catch (error) {
-      return { ok: false, error: messageOf(error), name: target.name, refused: isWriteRefused(error) }
+      return { ok: false, error: appMessageOf(error), name: target.name, refused: isWriteRefused(error) }
     }
   }
 
@@ -277,14 +371,15 @@ export function createFileStorage(env = globalThis) {
   /** @type {FileStorage} */
   const storage = {
     get capabilities() {
-      return nativeWriteRefused ? getFileCapabilities({}) : getFileCapabilities(env)
+      return nativeWriteRefused ? getFileCapabilities({}, '') : getFileCapabilities(env)
     },
 
     get currentName() {
-      return handle?.name ?? null
+      return inApp() ? appFile : handle?.name ?? null
     },
 
-    async save(text, { saveAs = false, now = new Date() } = {}) {
+    async save(text, { saveAs = false, now = new Date(), name = undefined } = {}) {
+      if (inApp()) return saveInApp(text, { saveAs, name })
       if (storage.capabilities.mode === 'fallback') {
         return downloadCopy(text, projectFileName('fallback', now))
       }
@@ -313,19 +408,48 @@ export function createFileStorage(env = globalThis) {
     },
 
     open() {
+      if (inApp()) return browseInApp()
       if (storage.capabilities.mode === 'fallback') return openWithInput()
       return openWithPicker()
     },
 
+    async list() {
+      return inApp() ? listProjects(env) : []
+    },
+
+    async openNamed(name) {
+      try {
+        const read = await readProjectFile(name, env)
+        return { ok: true, name: read.name, text: read.text, handle: read.name, lastModified: read.lastModified }
+      } catch (error) {
+        return { ok: false, error: appMessageOf(error), name }
+      }
+    },
+
     adopt(result) {
-      if (result.ok) handle = result.handle ?? null
+      if (!result.ok) return
+      if (inApp()) appFile = typeof result.handle === 'string' ? result.handle : null
+      else handle = result.handle ?? null
     },
 
     forgetHandle() {
       handle = null
+      appFile = null
     },
 
     async readCurrent(known) {
+      if (inApp()) {
+        if (appFile === null) return null
+        const name = appFile
+        try {
+          const { lastModified } = await statProjectFile(name, env)
+          if (known !== undefined && lastModified === known.lastModified) return { ok: true, name, text: '', lastModified }
+          const read = await readProjectFile(name, env)
+          return { ok: true, name, text: read.text, lastModified: read.lastModified }
+        } catch (error) {
+          return { ok: false, error: appMessageOf(error), name }
+        }
+      }
       if (handle === null || typeof handle.getFile !== 'function') return null
       const target = handle
       try {
