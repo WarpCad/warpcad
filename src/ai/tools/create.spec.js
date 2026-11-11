@@ -150,12 +150,12 @@ describe('the create tool', () => {
     expect(document.entries).toHaveLength(0)
   })
 
-  it('leaves the hostile-input point cap to the sketch model, which refuses it by name', () => {
+  it('refuses a point count over the sketch model\'s cap, in the schema and again in the model', () => {
     const points = Array.from({ length: 4097 }, (_, index) => [Math.cos(index), Math.sin(index)])
     const huge = { ...SQUARE_SKETCH, slices: [{ id: 's1', zMm: 0, profiles: [{ id: 'p1', kind: 'polyline', role: 'solid', closed: true, pointsMm: points }] }] }
     const document = createDocument({ replica: 'abcdef' })
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.sketch', positionMm: [0, 0, 0], params: huge }))
-    expect(result.reason).toMatch(/at most 4096 points/)
+    expect(result.reason).toMatch(/at most 4096 (points|items)/)
     expect(document.entries).toHaveLength(0)
   })
 

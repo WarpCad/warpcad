@@ -22,4 +22,17 @@ stretch before actually being exercised by real code, per the same rule's
 "re-run the health check when it's actually about to be pulled in" guidance for a
 gap between selection and use.
 
+## Advisory gate
+
+CI (`.github/workflows/ci.yml`) runs `npm audit --omit=dev --audit-level=high` in the root and
+in `mcp/`. A high or critical advisory in what ships fails the build. A third step,
+`npm audit --audit-level=critical || true`, prints the whole tree including dev tools and never
+fails: dev-tree advisories (release-it and its proxy chain, vite-plugin-pwa, `@vue/test-utils`) are
+reported and fixed when a non-downgrading release exists, since `npm audit fix --force` currently
+proposes older majors for some of them.
+
+There is deliberately no audit in `.githooks/pre-push`: it needs the network, its result changes
+with no change to the code being pushed, and a push would fail for a reason the author cannot
+fix locally. The advisory database moves daily, so CI is where it is checked.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

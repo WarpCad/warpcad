@@ -6,8 +6,10 @@ priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** `npm audit --omit=dev` is clean in the root and in `mcp/` (zod fixed in `mcp/`; the root production tree already passed). The CI gate is live: a blocking production audit at `high` for both trees, and a non-blocking dev-tree report. No major-version bump was taken, so `storybook`, `release-it` and `vite-plugin-pwa` keep their versions, and 15 dev-tree advisories stay open for lack of a non-downgrade fix. `maxItems` caps were added to the four unbounded tool-schema arrays, reusing the sketch model's limits. The AI fixtures and the agent-prompting doc were re-stamped after the schema change. Acceptance 25 was partially driven and 23 was not (see `TODO/ACCEPTANCE.md`).
 
 ## Problem
 

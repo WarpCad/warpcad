@@ -35,6 +35,11 @@ jobs:
       - run: npm run spdx
       - run: npm run licenses
       - run: npm run mcp:licenses
+      # Advisory gate (docs/decisions/stack-defaults-health-check.md): high or critical advisories
+      # in what ships fail the build; the dev tree is reported, not blocking.
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm --prefix mcp audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical || true
       - run: npm run typecheck
       - run: npm run test:unit -- --run
       # No Playwright here, not even the `guards` project: the release does not run e2e. The

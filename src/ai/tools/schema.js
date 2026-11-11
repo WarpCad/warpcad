@@ -63,7 +63,7 @@
 
 import { labelForParam } from '../../core/inspector.js'
 import { paramOptions, registry as kernelRegistry } from '../../core/kernel/registry.js'
-import { EXTRUSION_DEFAULTS, EXTRUSION_METHODS, PROFILE_KINDS, PROFILE_ROLES } from '../../sketch/profile.js'
+import { EXTRUSION_DEFAULTS, EXTRUSION_METHODS, MAX_POLYLINE_POINTS, MAX_PROFILES_PER_SLICE, MAX_SLICES, PROFILE_KINDS, PROFILE_ROLES } from '../../sketch/profile.js'
 import { CURVE_KINDS } from '../../sketch/curves.js'
 
 /**
@@ -608,7 +608,7 @@ const CURVE_PARAMS_SCHEMA = /** @type {JsonSchema} */ ({
     ),
     objectSchema(
       {
-        controlPointsMm: { type: 'array', items: VEC2, description: 'Three or more points the closed spline passes through, relative to atMm.' },
+        controlPointsMm: { type: 'array', items: VEC2, maxItems: MAX_POLYLINE_POINTS, description: 'Three or more points the closed spline passes through, relative to atMm.' },
         samplesPerSegment: { type: 'integer', description: 'Points per span between control points (default 8).' },
       },
       ['controlPointsMm'],
@@ -653,7 +653,7 @@ const PROFILE_SCHEMAS = {
       id: ID,
       kind: { type: 'string', const: 'polyline' },
       role: ROLE,
-      pointsMm: { type: 'array', items: VEC2, description: 'The outline’s points in order; do not repeat the first point at the end.' },
+      pointsMm: { type: 'array', items: VEC2, maxItems: MAX_POLYLINE_POINTS, description: 'The outline’s points in order; do not repeat the first point at the end.' },
       closed: { type: 'boolean', description: 'true for an outline that encloses area; an open chain is never part of the solid.' },
       source: objectSchema(
         { curve: CURVE_NAME, params: CURVE_PARAMS_SCHEMA, atMm: AT },
@@ -705,6 +705,7 @@ export const SKETCH_PARAMS_SCHEMA = Object.freeze(
     {
       slices: {
         type: 'array',
+        maxItems: MAX_SLICES,
         description:
           'One slice for linear, revolve, helical and outline; two or more, each at its own zMm with exactly one solid outline, for loft.',
         items: objectSchema(
@@ -718,7 +719,7 @@ export const SKETCH_PARAMS_SCHEMA = Object.freeze(
               description:
                 'Optional, browser only (TODO/ai-008): an attached image ("attachment-1") to keep on this slice as its reference photo, centred on the sketch origin at the scale set_reference_scale gave it. Refused until it has a scale.',
             },
-            profiles: { type: 'array', items: { anyOf: [...PROFILE_KINDS.map((kind) => PROFILE_SCHEMAS[kind]), CURVE_PROFILE_SCHEMA] } },
+            profiles: { type: 'array', maxItems: MAX_PROFILES_PER_SLICE, items: { anyOf: [...PROFILE_KINDS.map((kind) => PROFILE_SCHEMAS[kind]), CURVE_PROFILE_SCHEMA] } },
           },
           ['id', 'zMm', 'profiles']
         ),
