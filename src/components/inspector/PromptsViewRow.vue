@@ -69,6 +69,13 @@ const detailId = computed(() => `prompts-detail-${props.prompt.id}`)
 
 /** @type {Record<import('../../core/prompt.js').PromptRole, string>} */
 const ROLE_LABELS = { made: 'Made', changed: 'Changed', wentInto: 'Went into' }
+/**
+ * The label for one part's role. Takes the role as a typed parameter so the
+ * template's `part.role` is checked here, not indexed as `any`.
+ * @param {import('../../core/prompt.js').PromptRole} role
+ * @returns {string}
+ */
+const roleLabel = (role) => ROLE_LABELS[role]
 
 // --- editing (`TODO/ui-092`, part 4) ---------------------------------------
 
@@ -214,7 +221,7 @@ watch(
               @click="emit('select', part.bodyId)"
             >
               <span class="part__name">{{ part.name }}</span>
-              <span class="part__role" data-testid="prompts-part-role">{{ ROLE_LABELS[part.role] }}</span>
+              <span class="part__role" data-testid="prompts-part-role">{{ roleLabel(part.role) }}</span>
               <span v-if="!part.drawn" class="part__hidden" data-testid="prompts-part-hidden">hidden</span>
             </button>
           </li>
