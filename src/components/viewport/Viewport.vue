@@ -25,7 +25,7 @@
  * Rendering is on demand: a frame is scheduled when something actually changes,
  * rather than a permanently-spinning rAF loop burning battery on a static scene.
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { Euler, Group as ThreeGroup, Mesh, Raycaster, Vector2, Vector3 } from 'three'
 import Grid from './Grid.vue'
 import OrientationGizmo from './OrientationGizmo.vue'
@@ -49,6 +49,7 @@ import SplitSheet from '../features/SplitSheet.vue'
 import RepeatSheet from './RepeatSheet.vue'
 import ModelImportStatus from './ModelImportStatus.vue'
 import PlacementSession from './PlacementSession.vue'
+import ViewportContextBanner from './ViewportContextBanner.vue'
 import { createCutPlaneAnnotation, updateCutPlaneAnnotation } from '../../render/cutPlane.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
@@ -104,7 +105,8 @@ import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { unpackGeometry } from '../../core/kernel/transport.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
-import { createViewport } from '../../render/scene.js'
+import { createViewport, rebuildGpuResources } from '../../render/scene.js'
+import { createContextRecovery } from '../../render/contextRecovery.js'
 import {
   addXrayTwin,
   applyViewVisibility,
@@ -312,6 +314,20 @@ const canvasEl = ref(/** @type {HTMLCanvasElement | null} */ (null))
 const dragMode = ref('orbit')
 const theme = ref(preferredTheme())
 const webglError = ref('')
+/**
+ * `TODO/render-006`: where the view stands after the browser released its WebGL context, and how
+ * many Restore view attempts failed. Drives the banner; `ready` whenever the context is healthy.
+ */
+const contextState = ref(/** @type {import('../../render/contextRecovery.js').ContextState} */ ('ready'))
+const contextFailures = ref(0)
+const contextRecovery = createContextRecovery({
+  onChange(state, failures) {
+    contextState.value = state
+    contextFailures.value = failures
+  },
+})
+/** Bumped to give the canvas a fresh element (and so a fresh context) when the old one stays lost. */
+const canvasKey = ref(0)
 const isDragging = ref(false)
 const ghostVisible = ref(false)
 
@@ -797,12 +813,15 @@ const previewCentre = new Vector3()
 const framesRendered = shallowRef(0)
 
 function scheduleRender() {
-  if (rafId) return
+  // No frames while the context is lost (`TODO/render-006`): nothing calls into a dead context,
+  // and the restore schedules the first frame back.
+  if (rafId || contextRecovery.state !== 'ready') return
   rafId = requestAnimationFrame(renderFrame)
 }
 
 function renderFrame() {
   rafId = 0
+  if (contextRecovery.state !== 'ready') return
   if (viewport) {
     try {
       viewport.render(orbit)
@@ -3617,14 +3636,88 @@ function onMode(mode) {
 
 // --- lifecycle ------------------------------------------------------------
 
-/** @param {Event} event */
+/**
+ * The browser released the GPU (`TODO/render-006`): a background tab, a backgrounded iOS app, a
+ * driver reset. `preventDefault` is what allows the context to be restored at all.
+ *
+ * @param {Event} event
+ */
 function onContextLost(event) {
   event.preventDefault()
   // The assistant's capture_view renders through this context: with it gone, the agent stops
   // offering the tool rather than offering one that fails (`TODO/ai-007`).
   setViewportCapture(null)
-  webglError.value =
-    'The 3D context was lost (the browser released the GPU). Reload the page to restore the view.'
+  if (rafId) cancelAnimationFrame(rafId)
+  rafId = 0
+  // Ignored unless drawing: a repeat event during the wait must not cut it short.
+  contextRecovery.lost()
+}
+
+/**
+ * The browser handed the context back. three.js's own handler, registered on the canvas before
+ * this one, has already reset its internal state; `rebuildGpuResources` marks what it re-uploads.
+ */
+function onContextRestored() {
+  if (!viewport) return
+  if (rebuildGpuResources(viewport.renderer, viewport.graph.scene) === null) return
+  resumeDrawing()
+}
+
+/** Back to drawing: the banner goes, capture_view comes back, and the first frame is scheduled. */
+function resumeDrawing() {
+  if (!viewport) return
+  contextRecovery.restored()
+  setViewportCapture(createOffscreenCapture({ renderer: viewport.renderer, graph: viewport.graph }))
+  // Re-applies the size (a fresh canvas starts at 300×150) and schedules the frame.
+  measure()
+}
+
+/** @param {HTMLCanvasElement | null | undefined} canvas */
+function attachContextListeners(canvas) {
+  canvas?.addEventListener('webglcontextlost', onContextLost)
+  canvas?.addEventListener('webglcontextrestored', onContextRestored)
+}
+
+/** @param {HTMLCanvasElement | null | undefined} canvas */
+function detachContextListeners(canvas) {
+  canvas?.removeEventListener('webglcontextlost', onContextLost)
+  canvas?.removeEventListener('webglcontextrestored', onContextRestored)
+}
+
+let restoring = false
+
+/**
+ * **Restore view** (`TODO/render-006`): dispose the renderer and draw the same scene graph through
+ * a fresh one. On the same canvas if its context is alive again, otherwise on a new canvas
+ * element, since a canvas whose context stays lost can never give out another. Never a page
+ * reload: the document, both undo stacks, the selection, the camera and the kernel worker are
+ * untouched.
+ */
+async function onRestoreView() {
+  if (!viewport || restoring) return
+  restoring = true
+  let ok = false
+  try {
+    detachContextListeners(canvasEl.value)
+    if (viewport.isContextLost()) {
+      canvasKey.value += 1
+      await nextTick()
+    }
+    const canvas = canvasEl.value
+    if (canvas) {
+      // three's listeners go on in the renderer's constructor, ahead of the app's, as on mount.
+      viewport.replaceRenderer(canvas)
+      attachContextListeners(canvas)
+      ok = !viewport.isContextLost()
+    }
+  } catch {
+    ok = false
+    attachContextListeners(canvasEl.value)
+  } finally {
+    restoring = false
+  }
+  if (ok) resumeDrawing()
+  else contextRecovery.attemptFailed()
 }
 
 function onThemeChange() {
@@ -3713,7 +3806,7 @@ onMounted(() => {
     // silently blank rectangle.
     webglError.value = `This browser could not start WebGL: ${String(error)}`
   }
-  canvas.addEventListener('webglcontextlost', onContextLost)
+  attachContextListeners(canvas)
 
   unregisterTarget = placement.registerTarget(dropTarget)
   stopWatchers.push(
@@ -3878,7 +3971,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', measure)
   themeQuery?.removeEventListener('change', onThemeChange)
   themeQuery = null
-  canvasEl.value?.removeEventListener('webglcontextlost', onContextLost)
+  detachContextListeners(canvasEl.value)
+  contextRecovery.dispose()
   removeHoverArtifacts()
   removeRepeatOutlines()
   for (const object of bodyMeshes.values()) disposeBodyObject(object)
@@ -3929,7 +4023,7 @@ onBeforeUnmount(() => {
     :data-camera-distance="overlay.distanceMm.toFixed(2)"
     :data-camera-target="overlay.target"
     :data-frames-rendered="framesRendered"
-    :data-webgl="webglError ? 'unavailable' : 'ready'"
+    :data-webgl="webglError ? 'unavailable' : contextState === 'ready' ? 'ready' : 'lost'"
     :data-theme="theme"
     :data-body-count="announcedBodies.length"
     :data-selected-id="selection.onlyId ?? ''"
@@ -3960,7 +4054,10 @@ onBeforeUnmount(() => {
     :data-scale-step="sketchMode ? sketchEditor.scaleStep : ''"
     :data-image-tool="sketchMode ? sketchEditor.imageTool : ''"
   >
+    <!-- `:key`: Restore view swaps in a fresh canvas element when the old context stays lost
+         (TODO/render-006), keeping every handler below. -->
     <canvas
+      :key="canvasKey"
       ref="canvasEl"
       class="viewport__canvas"
       :class="{
@@ -3985,6 +4082,14 @@ onBeforeUnmount(() => {
     <p v-if="webglError" class="viewport__error" data-testid="viewport-webgl-unavailable">
       {{ webglError }}
     </p>
+    <!-- TODO/render-006: the browser released the GPU; the view restores itself or offers to. -->
+    <ViewportContextBanner
+      v-else-if="contextState !== 'ready'"
+      :state="contextState"
+      :failures="contextFailures"
+      :presentation="presentation"
+      @restore="onRestoreView"
+    />
 
     <!-- The scene's contents, in the DOM. Not decoration: it is what makes the
          placed bodies assertable and announceable without pixel-picking a

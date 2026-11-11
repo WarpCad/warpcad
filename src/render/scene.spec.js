@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, it, expect } from 'vitest'
-import { Color, Light, LineSegments } from 'three'
-import { createSceneGraph, VIEWPORT_COLORS, VIEWPORT_THEMES } from './scene.js'
+import { BoxGeometry, Color, Light, LineSegments, Mesh, MeshStandardMaterial, Texture } from 'three'
+import { createSceneGraph, rebuildGpuResources, VIEWPORT_COLORS, VIEWPORT_THEMES } from './scene.js'
 import { createOrbitCamera, STANDARD_VIEWS } from './camera.js'
 
 /**
@@ -177,5 +177,55 @@ describe('createSceneGraph', () => {
     const graph = createSceneGraph()
     graph.dispose()
     expect(graph.scene.children).toHaveLength(0)
+  })
+})
+
+/**
+ * `TODO/render-006`: after a context restore, every material and every texture with image data is
+ * marked for re-upload. The renderer is a stub: only its context's `isContextLost` is read.
+ */
+describe('rebuildGpuResources', () => {
+  /** @param {boolean} lost */
+  const rendererWith = (lost) => /** @type {any} */ ({ getContext: () => ({ isContextLost: () => lost }) })
+
+  it('marks every material once, lights and grid included, and only textures that have an image', () => {
+    const graph = createSceneGraph()
+    const shared = new MeshStandardMaterial()
+    const mapped = new MeshStandardMaterial()
+    mapped.map = new Texture(/** @type {any} */ ({ width: 2, height: 2 }))
+    const empty = new Texture()
+    mapped.emissiveMap = empty
+    graph.scene.add(new Mesh(new BoxGeometry(), shared), new Mesh(new BoxGeometry(), shared), new Mesh(new BoxGeometry(), mapped))
+    const sharedVersion = shared.version
+    const mapVersion = mapped.map.version
+    const emptyVersion = empty.version
+
+    const marked = rebuildGpuResources(rendererWith(false), graph.scene)
+
+    // Four grid tiers plus the two body materials; the lights have no material and need none.
+    expect(marked).toEqual({ materials: 6, textures: 1 })
+    expect(shared.version).toBe(sharedVersion + 1)
+    expect(mapped.map.version).toBe(mapVersion + 1)
+    expect(empty.version).toBe(emptyVersion)
+    expect(graph.scene.children.filter((child) => child instanceof Light).length).toBeGreaterThan(0)
+  })
+
+  it('does nothing while the context is still lost', () => {
+    const graph = createSceneGraph()
+    const material = new MeshStandardMaterial()
+    graph.scene.add(new Mesh(new BoxGeometry(), material))
+    const version = material.version
+    expect(rebuildGpuResources(rendererWith(true), graph.scene)).toBeNull()
+    expect(material.version).toBe(version)
+  })
+
+  it('handles a mesh with an array of materials and an empty scene', () => {
+    const graph = createSceneGraph()
+    const a = new MeshStandardMaterial()
+    const b = new MeshStandardMaterial()
+    graph.scene.add(new Mesh(new BoxGeometry(), [a, b, a]))
+    expect(rebuildGpuResources(rendererWith(false), graph.scene)?.materials).toBe(6)
+    graph.dispose()
+    expect(rebuildGpuResources(rendererWith(false), graph.scene)).toEqual({ materials: 0, textures: 0 })
   })
 })

@@ -200,6 +200,31 @@ that instead of a blank rectangle. The navigation pad and triad keep working —
 they drive the camera, not the renderer — so the app stays usable while you fix
 the browser setting or move to another device.
 
+## If the 3D view goes blank
+
+Sometimes the system takes the graphics chip back from WarpCad: on an iPhone or iPad after
+the app has been in the background, in a browser tab you left for a while, or when a graphics
+driver resets. The 3D view then pauses and a banner appears over it. Nothing else is lost.
+Your parts, the selection, the camera and the undo history all stay as they were, and the
+page never reloads.
+
+**Try it:**
+
+1. Switch to another app for a few minutes, then come back to WarpCad.
+2. If the 3D view shows *The 3D view was paused by the system. Restoring…*, wait a moment.
+   The view usually comes back by itself within a second or two, and the banner goes away.
+3. If the banner instead offers **Restore view**, tap it. WarpCad redraws the scene with the
+   same camera, and whatever was selected is still selected, with its handles and the
+   Inspector as you left them.
+4. Tap **Undo** if you like. It still undoes your last change, because the undo history was
+   never touched.
+
+![The 3D view on a phone with the banner "The 3D view was paused by the system and has not come back on its own." and a Restore view button under it.](./screenshots/viewport-restore.png)
+
+If **Restore view** fails twice, the banner says the view could not be restored and offers
+**Save a copy**. That saves your project the same way **File ▾ → Save As…** (or
+**Download copy**) does, so you can restart the app or browser and open the copy.
+
 ## While you are drawing a sketch
 
 There used to be a **Sketch** button on the navigation pad. It is gone: a sketch is now a

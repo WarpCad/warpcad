@@ -67,6 +67,12 @@ home indicator.
    the exact commit it was built from in brackets, and then the app's own version. It ends in
    `iOS app` on an iPhone or iPad.
 
+If you come back to the app after a while and the 3D view is blank, with a banner reading
+*Restoring…* or offering **Restore view**, see
+[If the 3D view goes blank](viewport-navigation.md#if-the-3d-view-goes-blank). The app
+has no reload button, so the view restores itself, or restores when you tap that button,
+without losing your parts or your undo history.
+
 ## Mac
 
 The Mac app opens WarpCad in its own window, with the persistent side panels of the laptop

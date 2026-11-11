@@ -205,11 +205,61 @@ export function createSceneGraph(options = {}) {
 }
 
 /**
+ * Get a scene ready to draw again on a context the browser has just restored (`TODO/render-006`).
+ *
+ * three.js does most of the work itself. Its own `webglcontextrestored` handler, registered on the
+ * canvas before the app's, re-runs `initGLContext`, which replaces every internal map (properties,
+ * attributes, geometries, textures, programs, render states) with an empty one. On the next
+ * `render`, each geometry is re-uploaded from the typed arrays its `BufferAttribute`s still hold,
+ * each material's program is recompiled, render targets are re-created, and viewport and scissor
+ * are re-applied. That works only because nothing in this app releases an attribute's array after
+ * upload (no `onUpload` disposer) and no texture's `ImageBitmap` is closed while still in use.
+ *
+ * What this adds is to mark every material, and every texture with image data, `needsUpdate`, so the
+ * re-upload does not depend on three's internal version bookkeeping. three.js does not follow
+ * semver (it is pinned exactly in `package.json`). Lights and the grid are plain scene objects, so
+ * they come back with everything else. The frame loop, `capture_view` and the banner are the
+ * component's job.
+ *
+ * Runs once per restore, never per frame, so the traversal's allocations are fine.
+ *
+ * @param {Pick<WebGLRenderer, 'getContext'>} renderer
+ * @param {import('three').Object3D} scene
+ * @returns {{ materials: number, textures: number } | null} what was marked, or null while the
+ *   context is still lost (a restore event that raced a second loss)
+ */
+export function rebuildGpuResources(renderer, scene) {
+  const gl = renderer.getContext()
+  if (!gl || gl.isContextLost()) return null
+  /** @type {Set<import('three').Material>} */
+  const materials = new Set()
+  /** @type {Set<import('three').Texture>} */
+  const textures = new Set()
+  scene.traverse((object) => {
+    const material = /** @type {any} */ (object).material
+    if (!material) return
+    for (const each of Array.isArray(material) ? material : [material]) {
+      if (materials.has(each)) continue
+      materials.add(each)
+      for (const value of Object.values(each)) {
+        if (value && value.isTexture && value.image) textures.add(value)
+      }
+    }
+  })
+  for (const material of materials) material.needsUpdate = true
+  for (const texture of textures) texture.needsUpdate = true
+  return { materials: materials.size, textures: textures.size }
+}
+
+/**
  * @typedef {object} Viewport
  * @property {SceneGraph} graph
- * @property {WebGLRenderer} renderer
+ * @property {WebGLRenderer} renderer the current renderer; replaced by `replaceRenderer`
  * @property {(widthPx: number, heightPx: number) => void} setSize
  * @property {(orbit: OrbitCamera) => void} render
+ * @property {() => boolean} isContextLost
+ * @property {(canvas: HTMLCanvasElement) => void} replaceRenderer dispose the renderer and draw the
+ *   same scene graph through a fresh one on `canvas`; throws, keeping the old one, if WebGL fails
  * @property {() => void} dispose
  */
 
@@ -230,22 +280,34 @@ export function createSceneGraph(options = {}) {
  */
 export function createViewport(canvas, options = {}) {
   const graph = createSceneGraph({ fovDeg: options.fovDeg, theme: options.theme })
-  const renderer = new WebGLRenderer({
-    canvas,
-    antialias: true,
-    // Keeps the drawing buffer readable after compositing, so Playwright can
-    // sample real rendered pixels across all three engines and assert the scene
-    // is neither blank nor uniformly dark. Cheap at this scene's size.
-    preserveDrawingBuffer: true,
-  })
-  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, options.maxPixelRatio ?? 2))
+  /** @param {HTMLCanvasElement} target */
+  const makeRenderer = (target) => {
+    const made = new WebGLRenderer({
+      canvas: target,
+      antialias: true,
+      // Keeps the drawing buffer readable after compositing, so Playwright can
+      // sample real rendered pixels across all three engines and assert the scene
+      // is neither blank nor uniformly dark. Cheap at this scene's size.
+      preserveDrawingBuffer: true,
+    })
+    made.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, options.maxPixelRatio ?? 2))
+    return made
+  }
+  let renderer = makeRenderer(canvas)
+  // The last size asked for, so a replacement renderer on a fresh canvas starts at it.
+  let sizeWidthPx = 0
+  let sizeHeightPx = 0
 
   return {
     graph,
-    renderer,
+    get renderer() {
+      return renderer
+    },
 
     setSize(widthPx, heightPx) {
       if (!(widthPx > 0) || !(heightPx > 0)) return
+      sizeWidthPx = widthPx
+      sizeHeightPx = heightPx
       renderer.setSize(widthPx, heightPx, false)
       graph.setAspect(widthPx / heightPx)
     },
@@ -253,6 +315,25 @@ export function createViewport(canvas, options = {}) {
     render(orbit) {
       graph.applyCamera(orbit)
       renderer.render(graph.scene, graph.camera)
+    },
+
+    isContextLost() {
+      const gl = renderer.getContext()
+      return !gl || gl.isContextLost()
+    },
+
+    replaceRenderer(nextCanvas) {
+      // The scene graph (meshes, materials, lights, grid) holds no GPU handles of its own: three
+      // keeps them in per-renderer maps, so a new renderer uploads all of it afresh on its first
+      // render. Only the renderer is replaced, never the scene, the document or the camera.
+      const previous = renderer
+      try {
+        previous.dispose()
+      } catch {
+        // Disposing into a lost context deletes nothing; it must not stop the replacement.
+      }
+      renderer = makeRenderer(nextCanvas)
+      if (sizeWidthPx > 0 && sizeHeightPx > 0) renderer.setSize(sizeWidthPx, sizeHeightPx, false)
     },
 
     dispose() {
