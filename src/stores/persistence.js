@@ -93,6 +93,8 @@ import { createAutosaver } from '../storage/autosave.js'
 import { createFileStorage, projectFileName } from '../storage/fileSystem.js'
 import { createIndexedDbBackend } from '../storage/indexeddb.js'
 import { createLocalStorageMirror } from '../storage/localMirror.js'
+import { createNativeAutosaveMirror } from '../storage/nativeMirror.js'
+import { NATIVE_PAUSE_EVENT, isNativeShell, probeShell } from '../native/shell.js'
 import { useDocumentStore } from './document.js'
 import { differentProjectText, mergeStateOfProject, useMergeStore } from './merge.js'
 import { UnrelatedProjectError } from '../core/document.js'
@@ -129,6 +131,8 @@ const MCP_SOURCE_NAME = 'Claude Code'
  * @property {import('../storage/fileSystem.js').FileStorage} files
  * @property {import('../storage/localMirror.js').SyncMirror} [mirror] The synchronous
  *   safety copy a dying page can still write; omitted in tests that do not care.
+ * @property {import('../storage/autosave.js').NativeMirror} [nativeMirror] `TODO/io-015`: the iOS
+ *   app's copy of the autosave in *Application Support*; omitted on the web and in tests that do not care.
  * @property {() => Promise<void>} [nextPaint] Resolves once a frame showing the current
  *   state has been painted (`TODO/core-032`) — the UI boundary a load waits on before it
  *   folds. The real one is {@link afterNextPaint}; omitted (a test that does not care), the
@@ -201,6 +205,8 @@ function resolveDependencies() {
     backend: createIndexedDbBackend(),
     files: createFileStorage(),
     mirror: createLocalStorageMirror(),
+    // Only inside a native shell; the mirror itself then does nothing unless that shell is iOS.
+    ...(isNativeShell(probeShell()) ? { nativeMirror: createNativeAutosaveMirror() } : {}),
     nextPaint: afterNextPaint,
   }
   return dependencies
@@ -276,6 +282,11 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const nextPaint = deps.nextPaint ?? noPaint
   /** `TODO/io-016`: the name the project was last opened or saved under, or `''`. */
   const projectName = ref('')
+  /**
+   * `TODO/io-015`: whether the one-time toast "Restored your last session from the app's backup
+   * copy." shows. Set only by a restore that came from the app copy; the toast clears it.
+   */
+  const nativeRestoreNotice = ref(false)
   /** `TODO/io-016`: whether autosave is suspended (the Shared view is showing). */
   const autosaveSuspended = ref(false)
   /** `TODO/io-021`: when this session last wrote the project to its gist (epoch ms), or 0. */
@@ -378,6 +389,16 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const autosaver = createAutosaver({
     backend: deps.backend,
     mirror: deps.mirror,
+    nativeMirror: deps.nativeMirror,
+    // A copy that does not parse is no copy; a copy that parses but would not load is refused like any autosave.
+    validateNative(text) {
+      try {
+        parseProject(text)
+        return true
+      } catch {
+        return false
+      }
+    },
     getText: () => serializeProject(documentStore.raw),
     onStatus(status) {
       if (status.state === 'saving') {
@@ -519,12 +540,13 @@ export const usePersistenceStore = defineStore('persistence', () => {
         } else if (loaded.ok) {
           // The page died before IndexedDB committed; the synchronous copy is the newer
           // truth. Push it into IndexedDB now (the mirror is cleared once that lands).
-          if (restored.fromMirror) needsWrite = true
+          if (restored.fromMirror || restored.fromNative) needsWrite = true
           savedAt.value = restored.savedAt
           autosaveState.value = 'saved'
           // Persistent, not a passing notice: the session lost records on the way in, and
           // the user has to be able to read which before the next autosave makes it final.
           if (loaded.skipped) loadWarning.value = `Restored your last session, but ${loaded.skipped}`
+          else if (restored.fromNative) nativeRestoreNotice.value = true
           else showNotice('Restored your last session', RESTORED_NOTICE_MS)
         } else {
           // Keep the unreadable copy where the next autosave cannot overwrite it,
@@ -550,6 +572,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', onPageHide)
       window.addEventListener('focus', onWindowFocus)
+      window.addEventListener(NATIVE_PAUSE_EVENT, onNativePause)
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', onDocumentVisibility)
@@ -591,6 +614,14 @@ export const usePersistenceStore = defineStore('persistence', () => {
     else if (visibility === 'visible') void checkDiskFile()
   }
 
+  /**
+   * `TODO/io-015`: the native shell is about to resign active (the app is going to the background).
+   * The synchronous mirror and the app-copy write go out now, before iOS suspends the web view.
+   */
+  function onNativePause() {
+    void flush()
+  }
+
   function onWindowFocus() {
     void checkDiskFile()
   }
@@ -603,6 +634,11 @@ export const usePersistenceStore = defineStore('persistence', () => {
     void flush()
   }
 
+  /** Close the one-time "restored from the app's backup copy" toast. */
+  function dismissNativeRestoreNotice() {
+    nativeRestoreNotice.value = false
+  }
+
   /** Stop listening. Tests, and HMR teardown. */
   function stop() {
     stopWatch?.()
@@ -611,6 +647,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('pagehide', onPageHide)
       window.removeEventListener('focus', onWindowFocus)
+      window.removeEventListener(NATIVE_PAUSE_EVENT, onNativePause)
     }
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', onDocumentVisibility)
@@ -1189,5 +1226,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
     projectName,
     autosaveSuspended,
     setAutosaveSuspended,
+    nativeRestoreNotice,
+    dismissNativeRestoreNotice,
+    onNativePause,
   }
 })

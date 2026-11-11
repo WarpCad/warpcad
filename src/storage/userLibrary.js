@@ -99,9 +99,58 @@ function friendlyReason(reason, nameOf) {
  * @param {typeof openDB} [options.open] Injected in tests — the boundary this is mocked at.
  * @param {string} [options.name]
  * @param {() => number} [options.now]
+ * @param {import('./nativeMirror.js').NativeLibraryMirror} [options.mirror] `TODO/io-015`: the iOS
+ *   app's copy of each part in *Application Support*. Written after every save and delete, and read
+ *   when IndexedDB holds no parts (or cannot be opened). A failure of it is logged, never thrown.
+ * @param {(message: string) => void} [options.onMirrorProblem] Where a mirror problem goes; defaults to `console.warn`.
  * @returns {UserLibrary}
  */
-export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = () => Date.now() } = {}) {
+export function createUserLibrary({
+  open = openDB,
+  name = PARTS_DB_NAME,
+  now = () => Date.now(),
+  mirror,
+  onMirrorProblem = (message) => console.warn(message),
+} = {}) {
+  /**
+   * Run a mirror operation; its failure is logged and never reaches the caller.
+   *
+   * @param {() => Promise<void>} operation
+   */
+  async function mirrored(operation) {
+    try {
+      await operation()
+    } catch (error) {
+      onMirrorProblem(`The app's backup copy of My parts was not updated: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  /**
+   * The rows the app copy holds, as IndexedDB would; a file that is not a part record is left out.
+   *
+   * @returns {Promise<{ key: string, value: unknown }[]>}
+   */
+  async function readMirror() {
+    if (!mirror) return []
+    try {
+      /** @type {{ key: string, value: unknown }[]} */
+      const rows = []
+      for (const { text } of await mirror.list()) {
+        try {
+          const record = JSON.parse(text.split('\n')[0])
+          const op = record?.definition?.op
+          if (typeof op === 'string' && op !== '') rows.push({ key: op, value: record })
+        } catch {
+          /* not a part record: ignored */
+        }
+      }
+      return rows
+    } catch (error) {
+      onMirrorProblem(`The app's backup copy of My parts could not be read: ${error instanceof Error ? error.message : String(error)}`)
+      return []
+    }
+  }
+
   /** @type {Promise<import('idb').IDBPDatabase> | null} */
   let connection = null
 
@@ -129,11 +178,44 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
   }
 
   /** @returns {Promise<{ key: string, value: unknown }[]>} */
-  async function readAll() {
+  async function readStore() {
     const db = await database()
     const tx = db.transaction(PARTS_STORE, 'readonly')
     const [keys, values] = await Promise.all([tx.store.getAllKeys(), tx.store.getAll(), tx.done])
     return values.map((value, index) => ({ key: String(keys[index]), value }))
+  }
+
+  /**
+   * What IndexedDB holds, or, when it holds no part or cannot be opened, what the app copy holds
+   * (`TODO/io-015`), which is then written back to IndexedDB. With no app copy either, the read
+   * is IndexedDB's own: empty, or its error.
+   *
+   * @returns {Promise<{ key: string, value: unknown }[]>}
+   */
+  async function readAll() {
+    /** @type {{ key: string, value: unknown }[]} */
+    let rows = []
+    try {
+      rows = await readStore()
+    } catch (error) {
+      if (!mirror) throw error
+      const restored = await readMirror()
+      if (restored.length === 0) throw error
+      return restored
+    }
+    if (rows.length > 0 || !mirror) return rows
+    const restored = await readMirror()
+    if (restored.length > 0) {
+      // Best effort: the parts are usable either way, and the next save writes IndexedDB again.
+      try {
+        const db = await database()
+        const tx = db.transaction(PARTS_STORE, 'readwrite')
+        await Promise.all([...restored.map(({ key, value }) => tx.store.put(value, key)), tx.done])
+      } catch {
+        /* the app copy still holds them */
+      }
+    }
+    return restored
   }
 
   return {
@@ -208,6 +290,7 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
         ...(thumbnail === undefined ? {} : { thumbnail }),
       }
       await Promise.all([tx.store.put(record, definition.op), tx.done])
+      if (mirror) await mirrored(() => mirror.write(definition.op, `${JSON.stringify(record)}\n`))
       return definition
     },
 
@@ -215,6 +298,7 @@ export function createUserLibrary({ open = openDB, name = PARTS_DB_NAME, now = (
       const db = await database()
       const tx = db.transaction(PARTS_STORE, 'readwrite')
       await Promise.all([tx.store.delete(op), tx.done])
+      if (mirror) await mirrored(() => mirror.remove(op))
     },
 
     close() {

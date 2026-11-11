@@ -26,6 +26,7 @@ import SubscriptionRoute from '../components/ai/SubscriptionRoute.vue'
 import ConnectClaudeCode from '../components/ai/ConnectClaudeCode.vue'
 import MergeBanner from '../components/display/MergeBanner.vue'
 import MergeToast from '../components/display/MergeToast.vue'
+import NativeRestoreToast from '../components/display/NativeRestoreToast.vue'
 import RepeatToast from '../components/display/RepeatToast.vue'
 import SaveStatus from '../components/display/SaveStatus.vue'
 import FileMenu from '../components/storage/FileMenu.vue'
@@ -371,6 +372,8 @@ function onInspectorClaim() {
     <MergeToast />
     <!-- What a Repeat's Apply did, with Undo (TODO/ui-069): the same in-flow slot. -->
     <RepeatToast />
+    <!-- Once, when the iOS app restored from its own backup copy (TODO/io-015): the same in-flow slot. -->
+    <NativeRestoreToast />
     <MergeBanner />
     <TimelineStrips />
     <main

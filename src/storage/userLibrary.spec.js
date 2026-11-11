@@ -227,3 +227,107 @@ describe('loadUserLibrary', () => {
     expect(effectiveUserPart('user.bracket')).toBeUndefined()
   })
 })
+
+/**
+ * `TODO/io-015` — the app-data copy of My parts, `Application Support/library/<id>.ndjson`
+ * in the iOS app. The native boundary is the `mirror` option, mocked here.
+ */
+describe('createUserLibrary — the native mirror (TODO/io-015)', () => {
+  function fakeMirror(initial = []) {
+    /** @type {Map<string, string>} */
+    const held = new Map(initial)
+    return {
+      held,
+      write: vi.fn(async (op, text) => {
+        held.set(op, text)
+      }),
+      remove: vi.fn(async (op) => {
+        held.delete(op)
+      }),
+      list: vi.fn(async () => [...held].map(([op, text]) => ({ file: `${op}.ndjson`, text }))),
+    }
+  }
+
+  it('mirrors a save as one NDJSON line holding the record, after the IndexedDB write', async () => {
+    const fake = fakeOpen()
+    const mirror = fakeMirror()
+    const library = createUserLibrary({ open: fake.open, now: () => 1234, mirror })
+    await library.save(part())
+    expect([...mirror.held.keys()]).toEqual(['user.bracket'])
+    const text = mirror.held.get('user.bracket')
+    expect(text.endsWith('\n')).toBe(true)
+    expect(JSON.parse(text)).toEqual({ definition: part(), savedAt: 1234 })
+  })
+
+  it('a mirror failure is logged and never fails the save', async () => {
+    const fake = fakeOpen()
+    const mirror = fakeMirror()
+    mirror.write = vi.fn(async () => {
+      throw new Error('disk full')
+    })
+    const problems = vi.fn()
+    const library = createUserLibrary({ open: fake.open, mirror, onMirrorProblem: problems })
+    await expect(library.save(part())).resolves.toMatchObject({ op: 'user.bracket' })
+    expect(fake.data.has('user.bracket')).toBe(true)
+    expect(problems).toHaveBeenCalledTimes(1)
+  })
+
+  it('a refused part is not mirrored', async () => {
+    const mirror = fakeMirror()
+    const library = createUserLibrary({ open: fakeOpen().open, mirror })
+    await expect(library.save(part({ records: [{ id: 'r1', op: 'body.delete' }] }))).rejects.toThrow()
+    expect(mirror.write).not.toHaveBeenCalled()
+  })
+
+  it('mirrors a delete', async () => {
+    const mirror = fakeMirror()
+    const library = createUserLibrary({ open: fakeOpen().open, mirror })
+    await library.save(part())
+    await library.remove('user.bracket')
+    expect(mirror.remove).toHaveBeenCalledWith('user.bracket')
+    expect(mirror.held.size).toBe(0)
+  })
+
+  it('restores the parts from the mirror when IndexedDB holds none, and writes them back', async () => {
+    const mirror = fakeMirror([['user.bracket', `${JSON.stringify({ definition: part(), savedAt: 77 })}\n`]])
+    const fake = fakeOpen()
+    const library = createUserLibrary({ open: fake.open, mirror })
+    const { parts, savedAt } = await library.list()
+    expect(parts.map((p) => p.op)).toEqual(['user.bracket'])
+    expect(savedAt['user.bracket']).toBe(77)
+    expect(fake.data.has('user.bracket')).toBe(true)
+  })
+
+  it('restores from the mirror when IndexedDB cannot be opened', async () => {
+    const mirror = fakeMirror([['user.bracket', `${JSON.stringify({ definition: part(), savedAt: 77 })}\n`]])
+    const open = vi.fn(async () => {
+      throw new Error('connection lost')
+    })
+    const library = createUserLibrary({ open, mirror })
+    const { parts } = await library.list()
+    expect(parts.map((p) => p.op)).toEqual(['user.bracket'])
+  })
+
+  it('does not touch the mirror when IndexedDB has parts', async () => {
+    const mirror = fakeMirror([['user.other', `${JSON.stringify({ definition: part({ op: 'user.other', name: 'Other' }), savedAt: 1 })}\n`]])
+    const fake = fakeOpen([['user.bracket', { definition: part(), savedAt: 5 }]])
+    const library = createUserLibrary({ open: fake.open, mirror })
+    const { parts } = await library.list()
+    expect(parts.map((p) => p.op)).toEqual(['user.bracket'])
+    expect(mirror.list).not.toHaveBeenCalled()
+  })
+
+  it('ignores a mirror file that is not a part record', async () => {
+    const mirror = fakeMirror([['user.bad', '{ torn']])
+    const library = createUserLibrary({ open: fakeOpen().open, mirror })
+    const { parts } = await library.list()
+    expect(parts).toEqual([])
+  })
+
+  it('with IndexedDB unreadable and no mirror, list still rejects as before', async () => {
+    const open = vi.fn(async () => {
+      throw new Error('connection lost')
+    })
+    await expect(createUserLibrary({ open }).list()).rejects.toThrow('connection lost')
+  })
+})

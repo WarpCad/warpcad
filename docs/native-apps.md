@@ -75,6 +75,31 @@ If you come back to the app after a while and the 3D view is blank, with a banne
 has no reload button, so the view restores itself, or restores when you tap that button,
 without losing your parts or your undo history.
 
+## Where your work is kept
+
+In the iPhone and iPad app, your open project and your My parts are kept in two places on the
+device: the app's web storage, where the editor saves as you work, and a backup copy in the
+app's own Application Support folder. iOS can clear web storage on its own to free space. The
+backup copy is what lets WarpCad recover from that.
+
+**What you'll see:** if iOS clears the web storage, WarpCad finds the backup copy the next time
+you open the app and shows *Restored your last session from the app's backup copy.* The project
+that was open comes back with its History, and the parts you had in My parts come back with it.
+Nothing needs to be reinstalled.
+
+**Try it:**
+
+1. Open the app, tap **Library** and place two parts in the 3D view. Wait until the saved
+   indicator shows that the project is saved.
+2. Delete and reinstall nothing. If iOS clears the app's web storage to free space, WarpCad finds
+   the backup copy the next time you open it and shows *Restored your last session…*.
+3. Check that your two parts are there, and that **History** lists the placements you made.
+
+The backup copy is written after each save, and again when the app goes to the background. It is
+not a second project to manage: it always holds the same project the editor has open.
+
+![The restore toast on a phone, *Restored your last session from the app's backup copy.*, above the two parts it brought back.](./screenshots/native-restore-toast.png)
+
 ## Mac
 
 The Mac app opens WarpCad in its own window, with the persistent side panels of the laptop
@@ -111,9 +136,9 @@ window and `npm run ios:dev` for the iPhone and iPad simulator. Each build first
 
 ## About the pictures on this page
 
-The one picture here, the offline Help sheet, is recorded automatically by the test suite in
-a browser that stands in for the iPhone app. No automated test drives the native apps
-themselves yet, so any other picture here would have to be a hand-made screenshot. Those are
-not allowed on these pages.
+The pictures here, the offline Help sheet and the restore toast, are recorded automatically by
+the test suite in a browser that stands in for the iPhone app, with a fake of the native shell
+in place of the real one. Any other picture here would have to be a hand-made screenshot, and
+those are not allowed on these pages.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

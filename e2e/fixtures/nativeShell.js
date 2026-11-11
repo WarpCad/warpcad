@@ -140,3 +140,31 @@ export const queueNativePick = (page, path, text) =>
  */
 export const failNativeCommand = (page, cmd, message) =>
   page.evaluate(({ cmd, message }) => /** @type {any} */ (window).__nativeShell.fs.fail(cmd, message), { cmd, message })
+
+/**
+ * Every file in the fake `$APPDATA` folder (`TODO/io-015`), as `{ path: text }`. The fake lives in
+ * the page and a reload empties it, so a spec that reloads reads this first and hands it to
+ * {@link seedNativeAppData}: the real folder survives a relaunch; the fake does not.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Record<string, string>>}
+ */
+export const nativeAppData = (page) =>
+  page.evaluate(() => {
+    const fs = /** @type {any} */ (window).__nativeShell.fs
+    return Object.fromEntries(fs.appData().map((/** @type {string} */ path) => [path, fs.appText(path)]))
+  })
+
+/**
+ * Put files into the fake `$APPDATA` folder before the next page load's scripts run, as the app's
+ * earlier session would have left them. Call after {@link installNativeShell}, before `page.goto` or `reload`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {Record<string, string>} files `$APPDATA`-relative path → text
+ */
+export async function seedNativeAppData(page, files) {
+  await page.addInitScript((files) => {
+    const fs = /** @type {any} */ (window).__nativeShell.fs
+    for (const [path, text] of Object.entries(files)) fs.putAppData(path, text)
+  }, files)
+}

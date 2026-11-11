@@ -65,6 +65,8 @@ import { formatCount } from '../io/meshAsset.js'
 import { UNIT_SCALES, meshPartInfo, meshPartSizeMm, withUnits } from '../io/meshPart.js'
 import { renderPartThumbnail } from '../render/partThumbnail.js'
 import { saveBytes } from '../storage/download.js'
+import { isNativeShell, probeShell } from '../native/shell.js'
+import { createNativeLibraryMirror } from '../storage/nativeMirror.js'
 import { createUserLibrary, loadUserLibrary } from '../storage/userLibrary.js'
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
@@ -210,7 +212,8 @@ export const useLibraryStore = defineStore('library', () => {
   let toastTimer = null
 
   function backendOf() {
-    if (backend === null) backend = createUserLibrary()
+    // `TODO/io-015`: inside a native shell My parts is also kept in the app's own folder.
+    if (backend === null) backend = createUserLibrary(isNativeShell(probeShell()) ? { mirror: createNativeLibraryMirror() } : {})
     return backend
   }
 

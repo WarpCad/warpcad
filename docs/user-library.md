@@ -195,4 +195,7 @@ project file, but a project that uses a part carries a copy of its definition, s
 opens on another machine without that machine having the part. Use **Export part file** to
 move a part between machines.
 
+In the iPhone and iPad app, My parts is also kept as a backup copy in the app's own storage, so
+it survives iOS clearing the web storage. See [Where your work is kept](native-apps.md#where-your-work-is-kept).
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -709,4 +709,90 @@ describe('usePersistenceStore', () => {
       expect(persistence.errorMessage).toBe('')
     })
   })
+  describe('the native mirror (TODO/io-015)', () => {
+    function fakeNative(text = null) {
+      const native = {
+        text,
+        writes: /** @type {string[]} */ ([]),
+        async read() {
+          return native.text
+        },
+        async write(record) {
+          native.writes.push(record.text)
+          native.text = record.text
+        },
+      }
+      return native
+    }
+
+    it('restores the session from the app copy when IndexedDB is empty, says so once, and saves it back to IndexedDB', async () => {
+      const text = twoCubeText()
+      const backend = fakeBackend()
+      const nativeMirror = fakeNative(text)
+      setPersistenceDependencies({ backend, files: fakeFiles(), nativeMirror })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      expect(persistence.nativeRestoreNotice).toBe(false)
+      await persistence.start()
+
+      expect(documentStore.bodies.map((body) => body.id)).toEqual(['cube-1', 'cube-2'])
+      expect(persistence.nativeRestoreNotice).toBe(true)
+      persistence.dismissNativeRestoreNotice()
+      expect(persistence.nativeRestoreNotice).toBe(false)
+      await vi.advanceTimersByTimeAsync(600)
+      expect(backend.saves.map((save) => save.text)).toEqual([text])
+    })
+
+    it('says nothing when IndexedDB had the session', async () => {
+      const text = twoCubeText()
+      const backend = fakeBackend({ stored: { text, savedAt: 1 } })
+      setPersistenceDependencies({ backend, files: fakeFiles(), nativeMirror: fakeNative(text) })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      expect(persistence.nativeRestoreNotice).toBe(false)
+    })
+
+    it('an app copy that is not a project is ignored and the app starts empty', async () => {
+      const backend = fakeBackend()
+      setPersistenceDependencies({ backend, files: fakeFiles(), nativeMirror: fakeNative('not a project') })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      expect(persistence.nativeRestoreNotice).toBe(false)
+      expect(documentStore.bodies).toEqual([])
+      expect(persistence.errorMessage).toBe('')
+    })
+
+    it('a restore followed by a new placement keeps both (the second attempt\'s overwrite bug)', async () => {
+      const text = twoCubeText()
+      const backend = fakeBackend()
+      setPersistenceDependencies({ backend, files: fakeFiles(), nativeMirror: fakeNative(text) })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      documentStore.append(cube('cube-3', [80, 0, 5]))
+      await nextTick()
+      await vi.advanceTimersByTimeAsync(600)
+      expect(documentStore.bodies.map((body) => body.id)).toEqual(['cube-1', 'cube-2', 'cube-3'])
+      expect(backend.stored.text).toContain('cube-3')
+      expect(backend.stored.text).toContain('cube-1')
+    })
+
+    it('the shell\'s pause event flushes the synchronous mirror and starts the app-copy write at once', async () => {
+      const backend = fakeBackend()
+      const mirror = fakeMirror()
+      const nativeMirror = fakeNative()
+      setPersistenceDependencies({ backend, files: fakeFiles(), mirror, nativeMirror })
+      const persistence = usePersistenceStore()
+      const documentStore = useDocumentStore()
+      await persistence.start()
+      documentStore.append(cube('cube-1', [0, 0, 5]))
+      await nextTick()
+
+      persistence.onNativePause()
+      expect(mirror.record?.text).toBe(serializeProject(documentStore.raw)) // synchronous
+      expect(nativeMirror.writes).toEqual([serializeProject(documentStore.raw)])
+    })
+  })
+
 })

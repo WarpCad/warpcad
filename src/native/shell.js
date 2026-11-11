@@ -36,6 +36,13 @@
  * @property {string} version the shell's own version, `''` when unknown
  */
 
+/**
+ * The DOM event the shell dispatches on `window` when the app is about to lose the foreground
+ * (`warpcad-native`'s window-focus-lost handler, iOS `applicationWillResignActive`), so the page can
+ * flush its autosave early (`TODO/io-015`).
+ */
+export const NATIVE_PAUSE_EVENT = 'warpcad-native-pause'
+
 /** The command the shell registers for {@link loadShellDetails}. */
 export const SHELL_INFO_COMMAND = 'shell_info'
 

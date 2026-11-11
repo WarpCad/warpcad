@@ -533,3 +533,186 @@ describe('createAutosaver — suspended (the Shared view)', () => {
     expect(mirror.cleared).toBe(0)
   })
 })
+
+/**
+ * `TODO/io-015` — the app-data copy (`Application Support/autosave.ndjson`) in the iOS app.
+ * The native boundary is the two-method `nativeMirror` interface, mocked here; the real one is
+ * `nativeMirror.spec.js`'s.
+ */
+describe('createAutosaver — the native mirror (TODO/io-015)', () => {
+  /** A project text whose newest Lamport counter is `counter`. */
+  const project = (/** @type {number} */ counter, tag = '') => `{"k":"state","tag":"${tag}"}\n{"id":"box-abcdef-${counter}"}\n`
+
+  /**
+   * @param {object} [options]
+   * @param {string | null} [options.stored]
+   * @param {(record: any) => Promise<void>} [options.write]
+   * @param {() => Promise<string | null>} [options.read]
+   */
+  function nativeMirror(options = {}) {
+    /** @type {any[]} */
+    const writes = []
+    /** @type {string | null} */
+    let held = options.stored ?? null
+    return {
+      writes,
+      write: vi.fn(async (/** @type {any} */ record) => {
+        if (options.write) await options.write(record)
+        writes.push(record)
+        held = record.text
+      }),
+      read: vi.fn(options.read ?? (async () => held)),
+    }
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-19T12:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('writes the same text to the mirror after the debounce — not before', async () => {
+    const backend = memoryBackend()
+    const native = nativeMirror()
+    const { saver, setText } = autosaver({ backend, nativeMirror: native })
+    setText(project(3))
+    saver.notifyChange()
+    await vi.advanceTimersByTimeAsync(499)
+    expect(native.write).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(2)
+    expect(backend.writes.map((r) => r.text)).toEqual([project(3)])
+    expect(native.writes.map((r) => r.text)).toEqual([project(3)])
+  })
+
+  it('still writes the mirror when the IndexedDB write fails, and the chip still says Not saved', async () => {
+    const backend = memoryBackend({ save: async () => { throw new Error('blocked') } })
+    const native = nativeMirror()
+    const { saver, last } = autosaver({ backend, nativeMirror: native })
+    saver.notifyChange()
+    await vi.advanceTimersByTimeAsync(600)
+    expect(native.write).toHaveBeenCalledTimes(1)
+    expect(last().state).toBe('error')
+  })
+
+  it('a mirror failure is reported to the log, and does not turn Saved into Not saved', async () => {
+    const backend = memoryBackend()
+    const problems = vi.fn()
+    const native = nativeMirror({ write: async () => { throw new Error('disk full') } })
+    const { saver, last } = autosaver({ backend, nativeMirror: native, onNativeProblem: problems })
+    saver.notifyChange()
+    await vi.advanceTimersByTimeAsync(600)
+    expect(last().state).toBe('saved')
+    expect(problems).toHaveBeenCalledTimes(1)
+    expect(String(problems.mock.calls[0][0])).toContain('disk full')
+  })
+
+  it('a mirror that never answers does not delay or block Saved, nor the next write', async () => {
+    const backend = memoryBackend()
+    const native = nativeMirror({ write: () => new Promise(() => {}) })
+    const { saver, last, setText } = autosaver({ backend, nativeMirror: native })
+    saver.notifyChange()
+    await vi.advanceTimersByTimeAsync(600)
+    expect(last().state).toBe('saved')
+    setText('next')
+    saver.notifyChange()
+    await vi.advanceTimersByTimeAsync(600)
+    expect(backend.writes.map((r) => r.text)).toEqual(['v1', 'next'])
+  })
+
+  it('a page being hidden starts the mirror write at once, beside the synchronous mirror', async () => {
+    const backend = memoryBackend()
+    const native = nativeMirror()
+    const { saver, setText } = autosaver({ backend, nativeMirror: native })
+    setText(project(4))
+    saver.notifyChange()
+    saver.flushSync()
+    expect(native.write).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(600)
+    expect(native.write).toHaveBeenCalledTimes(1)
+  })
+
+  describe('restore', () => {
+    /** @param {{ idb?: string | null, native?: string | null, valid?: (text: string) => boolean, nativeRead?: () => Promise<string | null> }} given */
+    function setup({ idb = null, native = null, valid, nativeRead }) {
+      const backend = memoryBackend()
+      if (idb !== null) backend.stored = { text: idb, savedAt: 1000 }
+      const problems = vi.fn()
+      const mirror = nativeMirror({ stored: native, read: nativeRead })
+      const made = autosaver({ backend, nativeMirror: mirror, validateNative: valid, onNativeProblem: problems })
+      return { ...made, problems, mirror }
+    }
+
+    it('IndexedDB only: restores it, not marked as native', async () => {
+      const { saver } = setup({ idb: project(2) })
+      expect(await saver.restore()).toEqual({ kind: 'found', text: project(2), savedAt: 1000 })
+    })
+
+    it('native only: native wins because IndexedDB has no autosave, and says where it came from', async () => {
+      const { saver } = setup({ native: project(2) })
+      const result = await saver.restore()
+      expect(result).toMatchObject({ kind: 'found', text: project(2), fromNative: true })
+    })
+
+    it('native only, and IndexedDB cannot be opened at all: native still restores', async () => {
+      const backend = memoryBackend({ load: async () => { throw new Error('connection lost') } })
+      const { saver } = autosaver({ backend, nativeMirror: nativeMirror({ stored: project(2) }) })
+      expect(await saver.restore()).toMatchObject({ kind: 'found', text: project(2), fromNative: true })
+    })
+
+    it('both equal: IndexedDB is used, with no restore announcement', async () => {
+      const { saver } = setup({ idb: project(2), native: project(2) })
+      const result = await saver.restore()
+      expect(result).toEqual({ kind: 'found', text: project(2), savedAt: 1000 })
+      expect(result).not.toHaveProperty('fromNative')
+    })
+
+    it('both differ: the later Lamport stamp wins — native newer', async () => {
+      const { saver } = setup({ idb: project(2, 'idb'), native: project(9, 'native') })
+      expect(await saver.restore()).toMatchObject({ kind: 'found', text: project(9, 'native'), fromNative: true })
+    })
+
+    it('both differ: the later Lamport stamp wins — IndexedDB newer', async () => {
+      const { saver } = setup({ idb: project(9, 'idb'), native: project(2, 'native') })
+      expect(await saver.restore()).toEqual({ kind: 'found', text: project(9, 'idb'), savedAt: 1000 })
+    })
+
+    it('both differ with the same stamp: IndexedDB stays (never a merge)', async () => {
+      const { saver } = setup({ idb: project(5, 'idb'), native: project(5, 'native') })
+      expect(await saver.restore()).toEqual({ kind: 'found', text: project(5, 'idb'), savedAt: 1000 })
+    })
+
+    it('reads stamps from the state line too, as [counter, replica] pairs', async () => {
+      const older = `{"k":"state","merge":{"project":[4,"abcdef"]}}\n`
+      const newer = `{"k":"state","merge":{"project":[11,"abcdef"]}}\n`
+      const { saver } = setup({ idb: older, native: newer })
+      expect(await saver.restore()).toMatchObject({ text: newer, fromNative: true })
+    })
+
+    it('native corrupt: ignored with a message, IndexedDB restored', async () => {
+      const { saver, problems } = setup({ idb: project(2), native: '{ torn', valid: () => false })
+      expect(await saver.restore()).toEqual({ kind: 'found', text: project(2), savedAt: 1000 })
+      expect(problems).toHaveBeenCalledTimes(1)
+      expect(String(problems.mock.calls[0][0])).toMatch(/backup copy/i)
+    })
+
+    it('native corrupt and IndexedDB empty: starts empty, with the message', async () => {
+      const { saver, problems } = setup({ native: '{ torn', valid: () => false })
+      expect(await saver.restore()).toEqual({ kind: 'empty' })
+      expect(problems).toHaveBeenCalledTimes(1)
+    })
+
+    it('a native read that throws is the same as no native copy', async () => {
+      const { saver, problems } = setup({ idb: project(2), nativeRead: async () => { throw new Error('nope') } })
+      expect(await saver.restore()).toEqual({ kind: 'found', text: project(2), savedAt: 1000 })
+      expect(problems).toHaveBeenCalledTimes(1)
+    })
+
+    it('without a native mirror, restore is exactly what it was', async () => {
+      const backend = memoryBackend()
+      const { saver } = autosaver({ backend })
+      expect(await saver.restore()).toEqual({ kind: 'empty' })
+    })
+  })
+})

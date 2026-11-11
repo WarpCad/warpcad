@@ -28,10 +28,13 @@
  */
 export function createFakeTauriFs(options = {}) {
   const DOCUMENT = 6
+  /** `BaseDirectory.AppData` (`TODO/io-015`): kept in the same maps under this prefix, away from Documents. */
+  const APPDATA = 14
+  const APP = '@appdata'
   /** @type {Map<string, { bytes: number[], mtime: number }>} Documents-relative path → file. */
   const files = new Map()
   /** @type {Set<string>} Documents-relative directories; `''` is Documents itself. */
-  const dirs = new Set([''])
+  const dirs = new Set(['', APP])
   /** @type {Map<string, number[]>} Absolute paths outside Documents (iCloud Drive, other apps). */
   const outside = new Map()
   /** @type {Set<string>} Outside paths the dialog has handed out this session. */
@@ -74,10 +77,11 @@ export function createFakeTauriFs(options = {}) {
    * @param {unknown} baseDir
    */
   function inDocuments(path, baseDir) {
-    if (baseDir !== DOCUMENT) throw `forbidden path: ${path}`
+    if (baseDir !== DOCUMENT && baseDir !== APPDATA) throw `forbidden path: ${path}`
     const parts = String(path).split('/').filter((part) => part !== '' && part !== '.')
     if (parts.includes('..')) throw `forbidden path: ${path}`
-    return parts.join('/')
+    // `$APPDATA` is a second scope; its files never appear as Documents.
+    return (baseDir === APPDATA ? [APP, ...parts] : parts).join('/')
   }
 
   /** @param {string} path */
@@ -157,11 +161,13 @@ export function createFakeTauriFs(options = {}) {
       /** @type {Array<{ name: string, isDirectory: boolean, isFile: boolean, isSymlink: boolean }>} */
       const entries = []
       for (const dir of dirs) {
+        if (target === '' && dir === APP) continue
         if (dir !== target && dir.startsWith(prefix) && !dir.slice(prefix.length).includes('/')) {
           entries.push({ name: dir.slice(prefix.length), isDirectory: true, isFile: false, isSymlink: false })
         }
       }
       for (const path of files.keys()) {
+        if (target === '' && path.startsWith(`${APP}/`)) continue
         if (path.startsWith(prefix) && !path.slice(prefix.length).includes('/')) {
           entries.push({ name: path.slice(prefix.length), isDirectory: false, isFile: true, isSymlink: false })
         }
@@ -237,7 +243,20 @@ export function createFakeTauriFs(options = {}) {
     /** @returns {boolean} Whether this fake answers `cmd`. */
     handles: (/** @type {string} */ cmd) => Object.hasOwn(handlers, cmd),
     /** Every file under Documents, sorted, as Documents-relative paths. */
-    documents: () => [...files.keys()].sort(),
+    documents: () => [...files.keys()].filter((path) => !path.startsWith(`${APP}/`)).sort(),
+    /** Every file under `$APPDATA` (`TODO/io-015`), sorted, `$APPDATA`-relative. */
+    appData: () => [...files.keys()].filter((path) => path.startsWith(`${APP}/`)).map((path) => path.slice(APP.length + 1)).sort(),
+    /** A `$APPDATA`-relative file's text, or `null`. */
+    appText: (/** @type {string} */ path) => {
+      const file = files.get(`${APP}/${path}`)
+      return file === undefined ? null : decoder.decode(new Uint8Array(file.bytes))
+    },
+    /** Put a file under `$APPDATA`, as the app's own earlier session would have. */
+    putAppData: (/** @type {string} */ path, /** @type {string} */ text) => {
+      const parent = parentOf(`${APP}/${path}`)
+      handlers['plugin:fs|mkdir']({ path: parent.slice(APP.length), options: { baseDir: APPDATA, recursive: true } }, {})
+      files.set(`${APP}/${path}`, { bytes: Array.from(encoder.encode(text)), mtime: tick() })
+    },
     /** A Documents-relative file's text, or `null`. */
     text: (/** @type {string} */ path) => {
       const file = files.get(path)

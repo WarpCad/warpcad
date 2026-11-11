@@ -41,6 +41,8 @@
  * @module storage/autosave
  */
 
+import { counterOfId, isReplicaId } from '../core/replica.js'
+
 /**
  * @typedef {object} StoredProject
  * @property {string} text The whole project, as `src/core/project.js` serialises it.
@@ -56,11 +58,19 @@
  */
 
 /**
+ * `TODO/io-015`: the iOS app's second copy, in *Application Support* (`./nativeMirror.js`).
+ *
+ * @typedef {object} NativeMirror
+ * @property {(record: StoredProject) => Promise<void>} write
+ * @property {() => Promise<string | null>} read The copy's text, `null` when there is none.
+ */
+
+/**
  * @typedef {{ state: 'saving' } | { state: 'saved', at: number } | { state: 'error', message: string, detail: string }} AutosaveStatus
  */
 
 /**
- * @typedef {{ kind: 'empty' } | { kind: 'found', text: string, savedAt: number, fromMirror?: true } | { kind: 'failed', message: string, detail: string }} RestoreResult
+ * @typedef {{ kind: 'empty' } | { kind: 'found', text: string, savedAt: number, fromMirror?: true, fromNative?: true } | { kind: 'failed', message: string, detail: string }} RestoreResult
  */
 
 /**
@@ -83,6 +93,44 @@
 /** What the chip says, and what `docs/save-load.md` quotes. */
 export const STORAGE_UNAVAILABLE_MESSAGE = 'Not saved — browser storage unavailable'
 export const STORAGE_FULL_MESSAGE = 'Not saved — browser storage is full'
+
+/** What the log says of a backup copy that cannot be used (`TODO/io-015`). */
+export const NATIVE_COPY_UNUSABLE_MESSAGE = "The app's backup copy of your last session could not be read, so it was ignored"
+
+/**
+ * The newest Lamport counter a project text carries: the largest counter of any replica-scoped
+ * record id (`box-abcdef-7`), and of any stamp in the state line (a `[counter, replica]` pair or a
+ * `{ counter, replica }` object). `0` for a text with none (a legacy file, or not a project).
+ * Reading only, and it never throws: this decides a recovery, not a merge.
+ *
+ * @param {string} text
+ * @returns {number}
+ */
+export function lamportOfText(text) {
+  let newest = 0
+  /** @param {unknown} value */
+  function visit(value) {
+    if (typeof value === 'string') {
+      newest = Math.max(newest, counterOfId(value))
+    } else if (Array.isArray(value)) {
+      if (value.length === 2 && Number.isSafeInteger(value[0]) && value[0] >= 0 && isReplicaId(value[1])) newest = Math.max(newest, value[0])
+      for (const item of value) visit(item)
+    } else if (value !== null && typeof value === 'object') {
+      const { counter, replica } = /** @type {Record<string, unknown>} */ (value)
+      if (Number.isSafeInteger(counter) && /** @type {number} */ (counter) >= 0 && isReplicaId(replica)) newest = Math.max(newest, /** @type {number} */ (counter))
+      for (const item of Object.values(value)) visit(item)
+    }
+  }
+  for (const line of text.split('\n')) {
+    if (line.trim() === '') continue
+    try {
+      visit(JSON.parse(line))
+    } catch {
+      /* a torn line carries no stamp */
+    }
+  }
+  return newest
+}
 
 /**
  * @param {unknown} error
@@ -107,6 +155,13 @@ function describeFailure(error) {
  * @param {() => number} [options.now]
  * @param {import('./localMirror.js').SyncMirror} [options.mirror] A synchronous
  *   safety copy — see `localMirror.js` for why an unload-time IndexedDB write is not enough.
+ * @param {NativeMirror} [options.nativeMirror] `TODO/io-015`: the iOS app's copy in *Application
+ *   Support*, written after each IndexedDB write (whether it succeeds or fails) and read at restore.
+ *   A failure of it is logged through `onNativeProblem`, never shown as "Not saved", and never
+ *   awaited by the IndexedDB path.
+ * @param {(text: string) => boolean} [options.validateNative] Whether a copy read from `nativeMirror`
+ *   is a usable project; a copy that is not is ignored. Defaults to "any text".
+ * @param {(message: string) => void} [options.onNativeProblem] Where a mirror problem goes; defaults to `console.warn`.
  * @returns {Autosaver}
  */
 export function createAutosaver({
@@ -118,6 +173,9 @@ export function createAutosaver({
   timeoutMs = 8000,
   now = () => Date.now(),
   mirror,
+  nativeMirror,
+  validateNative = () => true,
+  onNativeProblem = (message) => console.warn(message),
 }) {
   let changeCount = 0
   let savedCount = 0
@@ -150,6 +208,39 @@ export function createAutosaver({
     })
   }
 
+  /** The change count the app copy last started a write for. */
+  let nativeStartedCount = 0
+
+  /**
+   * Start the app-copy write for `text` (the document as of `target` changes) without awaiting it.
+   * Writes to it never overlap (its own chain), and one that fails or hangs is only logged.
+   *
+   * @param {string} text
+   * @param {number} target
+   */
+  function mirrorToNative(text, target) {
+    if (!nativeMirror || nativeStartedCount >= target) return
+    nativeStartedCount = target
+    const record = { text, savedAt: now() }
+    const start = async () => withTimeout(Promise.resolve(nativeMirror.write(record)))
+    // Straight away when idle (a dying page may not get another tick), else after the one in flight.
+    const attempt = nativeInFlight === 0 ? start() : nativeChain.then(start)
+    nativeInFlight += 1
+    nativeChain = attempt
+      .catch((error) => {
+        // Retry on the next change: this one did not land.
+        if (nativeStartedCount === target) nativeStartedCount = target - 1
+        onNativeProblem(`The app's backup copy was not written: ${error instanceof Error ? error.message : String(error)}`)
+      })
+      .finally(() => {
+        nativeInFlight -= 1
+      })
+  }
+
+  let nativeInFlight = 0
+  /** @type {Promise<void>} */
+  let nativeChain = Promise.resolve()
+
   function cancelTimer() {
     if (timer !== null) clearTimeout(timer)
     timer = null
@@ -168,9 +259,11 @@ export function createAutosaver({
   async function writeOnce() {
     if (savedCount === changeCount) return
     const target = changeCount
+    /** @type {string | null} */
+    let text = null
     try {
       const savedAt = now()
-      const text = getText()
+      text = getText()
       await withTimeout(Promise.resolve(backend.save({ text, savedAt })))
       savedCount = target
       // A change that arrived while this write was in flight has its own timer
@@ -189,17 +282,38 @@ export function createAutosaver({
       // retries. The error is a persistent status until a write succeeds.
       onStatus({ state: 'error', ...describeFailure(error) })
     }
+    // After the IndexedDB write, whichever way it went: the app copy is the one that survives
+    // when that store is reclaimed. Not awaited, so it can never slow or fail the path above.
+    if (text !== null) mirrorToNative(text, target)
   }
 
   /** @type {Autosaver} */
   const autosaver = {
     async restore() {
+      /** @returns {Promise<StoredProject | null>} The usable app copy, or `null` (with a log line when there is a copy that cannot be used). */
+      async function readNative() {
+        if (!nativeMirror) return null
+        try {
+          const text = await withTimeout(Promise.resolve(nativeMirror.read()))
+          if (text === null || text === undefined) return null
+          if (typeof text !== 'string' || !validateNative(text)) {
+            onNativeProblem(NATIVE_COPY_UNUSABLE_MESSAGE)
+            return null
+          }
+          return { text, savedAt: now() }
+        } catch (error) {
+          onNativeProblem(`${NATIVE_COPY_UNUSABLE_MESSAGE} (${error instanceof Error ? error.message : String(error)})`)
+          return null
+        }
+      }
+
       const candidate = mirror?.read() ?? null
       // Validated here as well as in the real mirror: a duck-typed backend is a boundary too.
       const pending =
         candidate !== null && typeof candidate.text === 'string' && Number.isFinite(candidate.savedAt)
           ? candidate
           : null
+      const native = await readNative()
       /** @type {StoredProject | null} */
       let stored = null
       try {
@@ -207,7 +321,13 @@ export function createAutosaver({
       } catch (error) {
         // IndexedDB unreadable — but a mirror copy is still a real, recoverable session.
         if (pending !== null) return { kind: 'found', ...pending, fromMirror: true }
+        if (native !== null) return { kind: 'found', ...native, fromNative: true }
         return { kind: 'failed', ...describeFailure(error) }
+      }
+      // `TODO/io-015`: the app copy wins only when IndexedDB has no autosave, or when it carries a
+      // later Lamport stamp (a crash between the two writes). Never a merge: recovery, not sync.
+      if (native !== null && pending === null && (stored === null || (native.text !== stored.text && lamportOfText(native.text) > lamportOfText(stored.text)))) {
+        return { kind: 'found', ...native, fromNative: true }
       }
       if (pending !== null && (stored === null || pending.savedAt > stored.savedAt)) {
         return { kind: 'found', text: pending.text, savedAt: pending.savedAt, fromMirror: true }
@@ -237,9 +357,12 @@ export function createAutosaver({
 
     flushSync() {
       if (suspended) return
-      if (savedCount !== changeCount && mirror) {
+      if (savedCount !== changeCount && (mirror || nativeMirror)) {
         try {
-          mirror.write({ text: getText(), savedAt: now() })
+          const text = getText()
+          mirror?.write({ text, savedAt: now() })
+          // The page may be suspended before IndexedDB answers: start the app copy now.
+          mirrorToNative(text, changeCount)
         } catch {
           /* serialisation failed; the async flush below reports it */
         }

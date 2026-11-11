@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createFakeTauriFs } from './__fixtures__/fakeFs.js'
 import {
+  APPDATA_BASE_DIR,
   DOCUMENT_BASE_DIR,
   exportPlace,
   listProjects,
@@ -14,6 +15,10 @@ import {
   statProjectFile,
   takeOpenedFiles,
   importOpenedFile,
+  listAppData,
+  readAppData,
+  removeAppData,
+  writeAppData,
   writeExport,
   writeProjectFile,
 } from './files.js'
@@ -275,5 +280,63 @@ describe('takeOpenedFiles and importOpenedFile — a project tapped in the Files
     await expect(importOpenedFile(entry, global)).resolves.toBe('bracket 3.ndjson')
     expect(fs.text('bracket.ndjson')).toBe('mine')
     expect(fs.text('bracket 3.ndjson')).toBe('theirs')
+  })
+})
+
+describe('the app-data copy (TODO/io-015) — $APPDATA, never Documents', () => {
+  it('writes through a hidden temp file and a rename in the AppData base directory', async () => {
+    const { fs, invoke, global } = shell()
+    await writeAppData('autosave.ndjson', '{"a":1}\n', global, 'abc')
+    expect(fs.calls.map((c) => [c.cmd, c.path, c.newPath])).toEqual([
+      ['plugin:fs|mkdir', '', undefined],
+      ['plugin:fs|write_text_file', '.autosave.ndjson.abc.tmp', undefined],
+      ['plugin:fs|rename', '.autosave.ndjson.abc.tmp', 'autosave.ndjson'],
+    ])
+    const write = invoke.mock.calls.find(([cmd]) => cmd === 'plugin:fs|write_text_file')
+    expect(JSON.parse(write[2].headers.options)).toEqual({ baseDir: APPDATA_BASE_DIR })
+    expect(APPDATA_BASE_DIR).toBe(14)
+    expect(fs.appText('autosave.ndjson')).toBe('{"a":1}\n')
+    expect(fs.documents()).toEqual([])
+  })
+
+  it('makes the folder for a nested path, and replaces an earlier copy whole', async () => {
+    const { fs, global } = shell()
+    await writeAppData('library/user.bolt.ndjson', 'one', global, 'a')
+    await writeAppData('library/user.bolt.ndjson', 'two', global, 'b')
+    expect(fs.appData()).toEqual(['library/user.bolt.ndjson'])
+    expect(fs.appText('library/user.bolt.ndjson')).toBe('two')
+  })
+
+  it('removes the temp file and rejects when the rename fails', async () => {
+    const { fs, global } = shell()
+    fs.fail('plugin:fs|rename', 'disk full')
+    await expect(writeAppData('autosave.ndjson', 'x', global, 'abc')).rejects.toThrow('disk full')
+    expect(fs.appData()).toEqual([])
+  })
+
+  it('reads a file back, and answers null for one that is not there', async () => {
+    const { fs, global } = shell()
+    expect(await readAppData('autosave.ndjson', global)).toBeNull()
+    fs.putAppData('autosave.ndjson', 'héllo')
+    expect(await readAppData('autosave.ndjson', global)).toBe('héllo')
+  })
+
+  it('lists a folder, empty when it does not exist yet, and removes a file quietly', async () => {
+    const { fs, global } = shell()
+    expect(await listAppData('library', global)).toEqual([])
+    fs.putAppData('library/b.ndjson', '1')
+    fs.putAppData('library/a.ndjson', '2')
+    expect(await listAppData('library', global)).toEqual(['a.ndjson', 'b.ndjson'])
+    await removeAppData('library/a.ndjson', global)
+    await removeAppData('library/a.ndjson', global)
+    expect(await listAppData('library', global)).toEqual(['b.ndjson'])
+  })
+
+  it('refuses a path that reaches outside the folder or is hidden', async () => {
+    const { global } = shell()
+    for (const bad of ['', '../escape', 'a/../b', '.hidden', 'library//x']) {
+      await expect(writeAppData(bad, 'x', global), bad).rejects.toThrow(/not a path/)
+      await expect(readAppData(bad, global), bad).rejects.toThrow(/not a path/)
+    }
   })
 })

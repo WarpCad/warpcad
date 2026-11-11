@@ -808,6 +808,13 @@ first five rows below.
 | ✅ `build-022` | Home page live on `warpcad.com`: domain verified, HTTPS enforced, apex and `www` moved to GitHub, `app` untouched. Row 10 (next scheduled run) tracked in VERIFY | Build | `docs-027` | owner device checks (VERIFY row 9) |
 | ✅ `build-023` | Native iOS, macOS and Windows icons from one generator (`npm run icons`), `#10131a` launch background, `AccentColor` `#5aa9e6`, version `1.12.0`, window defaults. Android split to `build-024` | Build | `build-017` | owner device checks (iPhone and iPad home screen, Dock, taskbar) |
 
+## M19 — Native iOS app
+
+| id | Title | Area | Depends | Demo |
+|---|---|---|---|---|
+| ✅ `ui-120` | The header, tab bar, Library rail, Inspector and navigation chrome read the device safe-area insets (`viewport-fit=cover`, `--layout-safe-*` variables); the notch and home-indicator hypothesis still needs a simulator or device check | UI | `build-017` | 1 (phone chrome clears faked iPhone 15 insets; device check open) |
+| ✅ `io-014` | Save, open and export real files in the iOS app: Save writes in place to Documents, Open lists the app's projects with Browse…, exports write to Documents/Exports, and Open in WarpCad copies an inbound file in. Partly driven: scenario 11 PASS and 10 (local half) PASS; 22, 23, 26, the hosted half of 10, and the simulator doc run are not driven, see the TODO's Shipped note | Operation | `build-017` | 10, 11, 26 (partly driven, see the TODO) |
+
 ## Findings
 
 Open findings that belong to no single milestone. (`/fix-todo` Step 8 marks rows here the same way
@@ -836,6 +843,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `io-020` | A gist is published under the Share sheet's Name, not "Untitled" when the project was never saved: the name feeds the gist's title, README and file; Update renames them. Found 2026-10-28 by the owner | Finding | — | 30 |
 | ✅ `io-017` | Store and share a project as a GitHub gist: short link, generated README, project file, fine-grained Gists-only token (Step 0 reversed the filing's "no fine-grained gist permission" premise); Stage 3 (merge before update) split off as `io-019`. Filed 2026-10-27 at the owner's request | Feature | — | 22, 29, 30 |
 | ✅ `io-021` | File ▾ → Save as gist…: a gist is created from the File menu (name and Secret/Public, connect first when there is no token), then File ▾ → Save to gist updates it; the save chip reads Saved to gist and Ctrl/Cmd+S stays local. Filed 2026-10-28 at the owner's request | Feature | — | 30 |
+| ✅ `io-015` | Mirror the autosave and My parts to native files: a backup copy in Application Support, restored on launch when IndexedDB is empty or unreadable, with a one-time toast. Shipped across both repositories; the on-device pause-flush time is still to be measured in `testing-011`. Filed under `warpcad-native/TODO/done/io-015-native-durable-autosave-and-library.md` | Feature | `io-014` | acceptance 1 and 10 hand-driven in Chrome (10 partial: File Save named no file; Open and the hosted steps not driven), e2e native-restore on the pair, docs picture recorded |
 | ✅ `io-022` | Put the prompts that made a project in its gist README: a **How this was made** section quoting each prompt, with the shapes it produced under it; **Include prompts in the README** in the Share sheet, on by default, leaves them out when unticked. Filed 2026-10-28 at the owner's request | Feature | `ai-031`, `io-020` | 30 (hand-drive pending, see Completion Log) |
 | ✅ `io-024` | Import a 3MF (the Adafruit Feather's 29 components, converted from STEP) as one placeable part whose objects are selectable sub-parts; a part may hold several meshes; a hand-rolled zip and XML reader, no new dependency. Whole-model Subtract is 624 ms on the main thread, filed as `core-079`. Filed 2026-11-02 | Feature | — | new 31; 1, 3, 5, 6, 8, 10, 11, 26 |
 | ✅ `io-019` | Update gist merges the gist's newer revision into the open project (the same `mergeIn` as Merge file…) before publishing, instead of refusing with `changed-remotely`; new refusal kinds `different-project`, `merge-conflict`, `merge-unavailable`, `merge-failed`. Split off `io-017` Stage 3 | Feature | `io-017`, `io-010` | 22, 30 |
@@ -1279,5 +1287,9 @@ convention going forward.
 | `build-025` | 2026-11-11 02:27 | 1h44m |
 | `build-026` | 2026-11-11 14:41 | 12m |
 | `core-081` | 2026-11-11 15:37 | ~19m |
+| `build-017` | 2026-11-11 09:58 | — |
+| `ui-120` | 2026-11-11 16:39 | ~13m |
+| `io-014` | 2026-11-11 18:14 | ~57m from the Step 3 start (17:17 UTC); most of it waiting on the Opus implementation and the e2e pair. Typecheck and unit green, rotating pair 1151 passed, native-files spec 54/54; scenario 11 PASS, 10 local half PASS |
+| `io-015` | 2026-11-11 18:43 | 26m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

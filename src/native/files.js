@@ -28,6 +28,9 @@ import { invoke, loadShellDetails, probeShell } from './shell.js'
 /** `BaseDirectory.Document` in `@tauri-apps/api/path`: `$DOCUMENT`, the app's Documents folder on iOS. */
 export const DOCUMENT_BASE_DIR = 6
 
+/** `BaseDirectory.AppData` in `@tauri-apps/api/path`: `$APPDATA`, *Library/Application Support/<bundle id>* on iOS (`TODO/io-015`). */
+export const APPDATA_BASE_DIR = 14
+
 /** The folder under Documents every export goes to. */
 export const EXPORTS_FOLDER = 'Exports'
 
@@ -140,14 +143,15 @@ function split(path) {
  * @param {Uint8Array} bytes
  * @param {FilesGlobal} global
  * @param {string} tempId
+ * @param {number} [baseDir] {@link DOCUMENT_BASE_DIR} or {@link APPDATA_BASE_DIR}
  */
-async function writeAtomic(command, path, bytes, global, tempId) {
+async function writeAtomic(command, path, bytes, global, tempId, baseDir = DOCUMENT_BASE_DIR) {
   const { dir, base } = split(path)
   const temp = `${dir}.${base}.${tempId}.tmp`
-  const docs = { baseDir: DOCUMENT_BASE_DIR }
+  const docs = { baseDir }
   try {
     await call(command, bytes, global, { headers: { path: encodeURIComponent(temp), options: JSON.stringify(docs) } })
-    await call('plugin:fs|rename', { oldPath: temp, newPath: path, options: { oldPathBaseDir: DOCUMENT_BASE_DIR, newPathBaseDir: DOCUMENT_BASE_DIR } }, global)
+    await call('plugin:fs|rename', { oldPath: temp, newPath: path, options: { oldPathBaseDir: baseDir, newPathBaseDir: baseDir } }, global)
   } catch (error) {
     await call('plugin:fs|remove', { path: temp, options: docs }, global).catch(() => {})
     throw error
@@ -358,4 +362,78 @@ export async function importOpenedFile(opened, global = /** @type {FilesGlobal} 
     return name
   }
   throw new Error(`no free name for ${opened.name} in WarpCad's folder`)
+}
+
+/**
+ * Whether `path` is a safe `$APPDATA`-relative path: plain segments, no `..`, no leading dot, no
+ * empty segment.
+ *
+ * @param {string} path `autosave.ndjson`, `library/user.bolt.ndjson`
+ */
+function isAppDataPath(path) {
+  return path !== '' && path.split('/').every(isPlainName)
+}
+
+/**
+ * Write `text` to `$APPDATA/<path>` (*Application Support* on iOS) through a temp file and a rename,
+ * as {@link writeProjectFile} does, creating the folders first (`TODO/io-015`). This is the app's
+ * private copy of what IndexedDB holds: the OS can reclaim a web view's storage but not this folder.
+ *
+ * @param {string} path `$APPDATA`-relative, `autosave.ndjson` or `library/<id>.ndjson`
+ * @param {string} text
+ * @param {FilesGlobal} [global]
+ * @param {string} [tempId]
+ * @returns {Promise<void>}
+ */
+export async function writeAppData(path, text, global = /** @type {FilesGlobal} */ (globalThis), tempId = randomId()) {
+  if (!isAppDataPath(path)) throw new Error(`"${path}" is not a path WarpCad can keep a backup under`)
+  const { dir } = split(path)
+  await call('plugin:fs|mkdir', { path: dir.replace(/\/$/, ''), options: { baseDir: APPDATA_BASE_DIR, recursive: true } }, global)
+  await writeAtomic('plugin:fs|write_text_file', path, encoder.encode(text), global, tempId, APPDATA_BASE_DIR)
+}
+
+/**
+ * Read `$APPDATA/<path>`. `null` when there is no such file; a file that exists but cannot be read rejects.
+ *
+ * @param {string} path
+ * @param {FilesGlobal} [global]
+ * @returns {Promise<string | null>}
+ */
+export async function readAppData(path, global = /** @type {FilesGlobal} */ (globalThis)) {
+  if (!isAppDataPath(path)) throw new Error(`"${path}" is not a path WarpCad can read a backup from`)
+  const options = { baseDir: APPDATA_BASE_DIR }
+  if ((await call('plugin:fs|exists', { path, options }, global)) !== true) return null
+  return decodeText(await call('plugin:fs|read_text_file', { path, options }, global))
+}
+
+/**
+ * Delete `$APPDATA/<path>`; a file already gone is not an error.
+ *
+ * @param {string} path
+ * @param {FilesGlobal} [global]
+ * @returns {Promise<void>}
+ */
+export async function removeAppData(path, global = /** @type {FilesGlobal} */ (globalThis)) {
+  if (!isAppDataPath(path)) throw new Error(`"${path}" is not a path WarpCad can remove a backup from`)
+  const options = { baseDir: APPDATA_BASE_DIR }
+  if ((await call('plugin:fs|exists', { path, options }, global)) !== true) return
+  await call('plugin:fs|remove', { path, options }, global)
+}
+
+/**
+ * The visible files directly inside `$APPDATA/<dir>`; empty when the folder does not exist.
+ *
+ * @param {string} dir `library`
+ * @param {FilesGlobal} [global]
+ * @returns {Promise<string[]>}
+ */
+export async function listAppData(dir, global = /** @type {FilesGlobal} */ (globalThis)) {
+  if (!isAppDataPath(dir)) throw new Error(`"${dir}" is not a folder WarpCad keeps backups in`)
+  const options = { baseDir: APPDATA_BASE_DIR }
+  if ((await call('plugin:fs|exists', { path: dir, options }, global)) !== true) return []
+  const entries = /** @type {Array<{ name?: unknown, isFile?: unknown }>} */ ((await call('plugin:fs|read_dir', { path: dir, options }, global)) ?? [])
+  return entries
+    .filter((entry) => entry.isFile === true && typeof entry.name === 'string' && isPlainName(entry.name))
+    .map((entry) => /** @type {string} */ (entry.name))
+    .sort()
 }
