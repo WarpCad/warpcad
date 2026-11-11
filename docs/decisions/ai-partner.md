@@ -615,6 +615,44 @@ on it. Two things make the AI path a *new* XSS surface:
    create the key in a Console workspace with a monthly spend limit. That's the honest
    answer to "what if it leaks anyway".
 
+### Amendment — the native app keeps the key in the Keychain (`ai-025`, 2026-11-11)
+
+**What changed.** In the native shell (`isNativeShell()`), `chooseCredentialStore()`, the caller of
+`createCredentialStore`, returns a Keychain-backed store behind the same `CredentialStore`
+interface (`src/storage/tokenStorage.js`). The Anthropic key (`ai-anthropic`) and the hosted token
+(`hosted-git`) go to the Keychain, service `com.warpcad.app`, accounts `anthropic` and `hosted-git`,
+`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`. Every other credential (the gist token) stays in
+IndexedDB. Safari and desktop browsers are unchanged. The key sheet's storage line comes from the
+store (`createAiKeyStore().description`): *Stored in this iPhone's Keychain.*
+
+**Migration.** A read that finds no Keychain item but an IndexedDB record copies it over, reads it
+back, and deletes the IndexedDB record only when the read-back matches. A failed write or a
+mismatched read-back keeps the IndexedDB record, and the next launch tries again.
+
+**Trust model, stated once.** A script on the page can still call `keychain_get('anthropic')`; the
+BYOK client reads the key that way. The gain is that iOS cannot evict the Keychain item with the web
+storage, and that the commands reach only the two allow-listed accounts. It is not protection from a
+compromised page.
+
+**Backend choice: a Swift file, not the `keyring` crate.** The health check Library decisions asks for
+could not be run: this was written offline, and `keyring` 3.x with its Apple-native backend on iOS
+was **not verified** (iOS support, maintainer count, last release, licence all unchecked). Rather than
+pull in an unchecked dependency, the three commands (`keychain_get`, `keychain_set`,
+`keychain_delete`; `warpcad-native/src-tauri/src/keychain.rs`) call one Swift file
+(`keychain-swift/Keychain.swift`, about 60 lines over `SecItemAdd`, `SecItemCopyMatching`,
+`SecItemUpdate` and `SecItemDelete`) that `build.rs` compiles with `swiftc` into a static library. No
+crate and no Swift package is added; a Tauri Swift mobile plugin was rejected because it covers iOS
+only and the macOS shell needs the same commands. The allow-list is checked in Rust before the
+Keychain is touched, and on the page before the call.
+
+| Option | Verdict |
+|---|---|
+| `keyring` 3.x, Apple-native backend | Not chosen: health unverified offline. Re-run the check before reconsidering. |
+| Tauri Swift mobile plugin | Rejected: iOS and Android only, no macOS; needs the plugin scaffold and a network-fetched Swift package. |
+| `swift-rs` | Rejected: its Swift package is fetched from GitHub at build time. |
+| `security-framework` crate | Not chosen: health unverified offline; `kSecAttrAccessible` handling unconfirmed. |
+| One Swift file, `swiftc` in `build.rs` | **Chosen**: no new dependency, builds for macOS and iOS. |
+
 ---
 
 ## Decision 9 — Cost: model, readout, prompt caching

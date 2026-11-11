@@ -49,6 +49,9 @@
 
 import { openDB } from 'idb'
 
+import { createKeychain } from '../native/keychain.js'
+import { isNativeShell, probeShell } from '../native/shell.js'
+
 export const CREDENTIAL_DB_NAME = 'warpcad-credentials'
 export const CREDENTIAL_DB_VERSION = 1
 export const CREDENTIAL_STORE_NAME = 'credentials'
@@ -65,6 +68,7 @@ export const GIST_CREDENTIAL_KEY = 'github-gist'
  * @property {(key: string, record: Record<string, any>) => Promise<void>} write Rejects on failure.
  * @property {(key: string) => Promise<void>} clear
  * @property {() => void} close
+ * @property {'browser' | 'keychain'} [location] Where a secret is kept (absent means the browser); the key sheet's wording comes from it.
  */
 
 /**
@@ -106,6 +110,8 @@ export function createCredentialStore({ open = openDB, name = CREDENTIAL_DB_NAME
   }
 
   return {
+    location: 'browser',
+
     async read(key) {
       try {
         const db = await database()
@@ -144,4 +150,115 @@ export function createCredentialStore({ open = openDB, name = CREDENTIAL_DB_NAME
       void pending?.then((db) => db.close()).catch(() => {})
     },
   }
+}
+
+/**
+ * The credential key to Keychain account map (`TODO/ai-025`). A credential with no entry (the gist
+ * token) is not allow-listed, so it stays in the fallback store.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
+export const KEYCHAIN_ACCOUNT_OF = Object.freeze({ 'ai-anthropic': 'anthropic', [HOSTED_CREDENTIAL_KEY]: 'hosted-git' })
+
+/**
+ * The credential store for the native app (`TODO/ai-025`): the Anthropic key and the hosted token
+ * live in the Keychain, everything else in `fallback` (IndexedDB). The interface is
+ * {@link CredentialStore}'s, so nothing above it changes.
+ *
+ * **Migration.** A `read` that finds nothing in the Keychain but a record in `fallback` copies it
+ * over, reads it back, and only when the read-back matches deletes the `fallback` copy. A failed
+ * write or a mismatched read-back keeps the `fallback` copy and still returns it.
+ *
+ * `read` never rejects; `write` rejects when the Keychain refuses.
+ *
+ * @param {object} options
+ * @param {import('../native/keychain.js').Keychain} options.keychain
+ * @param {CredentialStore} options.fallback
+ * @returns {CredentialStore}
+ */
+export function createKeychainCredentialStore({ keychain, fallback }) {
+  return {
+    location: 'keychain',
+
+    async read(key) {
+      const account = KEYCHAIN_ACCOUNT_OF[key]
+      if (account === undefined) return fallback.read(key)
+      /** @type {string | null} */
+      let stored = null
+      try {
+        stored = await keychain.get(account)
+      } catch {
+        // No Keychain to ask (a shell without the commands): the browser copy is the truth.
+        return fallback.read(key)
+      }
+      if (stored !== null) return parseRecord(stored)
+      const legacy = await fallback.read(key)
+      if (legacy === null) return null
+      const encoded = JSON.stringify(legacy)
+      try {
+        await keychain.set(account, encoded)
+        if ((await keychain.get(account)) === encoded) await fallback.clear(key)
+      } catch {
+        // Keep the browser copy; the next launch tries again.
+      }
+      return legacy
+    },
+
+    async write(key, record) {
+      const account = KEYCHAIN_ACCOUNT_OF[key]
+      if (account === undefined) return fallback.write(key, record)
+      await keychain.set(account, JSON.stringify(record))
+      // Nothing secret stays in IndexedDB, including a copy a failed migration left.
+      await fallback.clear(key)
+    },
+
+    async clear(key) {
+      const account = KEYCHAIN_ACCOUNT_OF[key]
+      if (account === undefined) return fallback.clear(key)
+      try {
+        await keychain.delete(account)
+      } catch {
+        // As the browser store: Disconnect still takes effect in memory.
+      }
+      await fallback.clear(key)
+    },
+
+    close() {
+      fallback.close()
+    },
+  }
+}
+
+/**
+ * @param {string} text
+ * @returns {Record<string, any> | null}
+ */
+function parseRecord(text) {
+  try {
+    const value = JSON.parse(text)
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Pick the credential store for this build. The choice is made here, in the caller of
+ * {@link createCredentialStore}, not inside it: Safari and the desktop browser get the IndexedDB
+ * store untouched, the native app gets the Keychain-backed one.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.native] Injected in tests; whether the page runs in the native shell.
+ * @param {import('../native/keychain.js').Keychain} [options.keychain]
+ * @param {() => CredentialStore} [options.browserStore]
+ * @returns {CredentialStore}
+ */
+export function chooseCredentialStore({
+  native = isNativeShell(probeShell()),
+  keychain = undefined,
+  browserStore = createCredentialStore,
+} = {}) {
+  const browser = browserStore()
+  if (!native) return browser
+  return createKeychainCredentialStore({ keychain: keychain ?? createKeychain(), fallback: browser })
 }

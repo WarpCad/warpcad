@@ -813,6 +813,7 @@ first five rows below.
 | id | Title | Area | Depends | Demo |
 |---|---|---|---|---|
 | ✅ `ui-120` | The header, tab bar, Library rail, Inspector and navigation chrome read the device safe-area insets (`viewport-fit=cover`, `--layout-safe-*` variables); the notch and home-indicator hypothesis still needs a simulator or device check | UI | `build-017` | 1 (phone chrome clears faked iPhone 15 insets; device check open) |
+| ✅ `ai-025` | API key and GitHub token in the iOS Keychain: a Keychain item for the Anthropic key and the GitHub token (`com.warpcad.app`, after first unlock, this device only), IndexedDB holds nothing secret, and a one-time migration reads back before it deletes. Shipped across both repositories; the on-device check is `testing-011` step 7 | Control | `build-017` | 24 (partly driven at `/`; device check open) |
 | ✅ `io-014` | Save, open and export real files in the iOS app: Save writes in place to Documents, Open lists the app's projects with Browse…, exports write to Documents/Exports, and Open in WarpCad copies an inbound file in. Partly driven: scenario 11 PASS and 10 (local half) PASS; 22, 23, 26, the hosted half of 10, and the simulator doc run are not driven, see the TODO's Shipped note | Operation | `build-017` | 10, 11, 26 (partly driven, see the TODO) |
 
 ## Findings
@@ -1291,5 +1292,6 @@ convention going forward.
 | `ui-120` | 2026-11-11 16:39 | ~13m |
 | `io-014` | 2026-11-11 18:14 | ~57m from the Step 3 start (17:17 UTC); most of it waiting on the Opus implementation and the e2e pair. Typecheck and unit green, rotating pair 1151 passed, native-files spec 54/54; scenario 11 PASS, 10 local half PASS |
 | `io-015` | 2026-11-11 18:43 | 26m |
+| `ai-025` | 2026-11-11 19:09 | ~22m from the Step 3 start (18:47 UTC) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

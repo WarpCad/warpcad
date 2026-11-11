@@ -59,7 +59,7 @@ import {
   createHostedClient,
   validateConnection,
 } from '../storage/hostedBackend.js'
-import { HOSTED_CREDENTIAL_KEY, createCredentialStore } from '../storage/tokenStorage.js'
+import { HOSTED_CREDENTIAL_KEY, chooseCredentialStore } from '../storage/tokenStorage.js'
 import { useDocumentStore } from './document.js'
 import { mergeStateOfProject } from './merge.js'
 import { usePersistenceStore } from './persistence.js'
@@ -95,7 +95,7 @@ export function setHostedDependencies(next) {
 
 /** @returns {HostedDependencies} */
 function resolveDependencies() {
-  dependencies ??= { client: createHostedClient(), credentials: createCredentialStore() }
+  dependencies ??= { client: createHostedClient(), credentials: chooseCredentialStore() }
   return dependencies
 }
 

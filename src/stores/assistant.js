@@ -34,7 +34,7 @@ import { computed, ref } from 'vue'
 
 import { createAnthropicClient } from '../ai/client.js'
 import { modelLabel } from '../ai/models.js'
-import { createAiKeyStore } from '../storage/aiKey.js'
+import { BROWSER_DESCRIPTION, createAiKeyStore } from '../storage/aiKey.js'
 import { useAiChatStore } from './aiChat.js'
 import { useSettingsStore } from './settings.js'
 
@@ -175,7 +175,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     if (status.value === 'testing') return 'Testing the key…'
     if (status.value === 'ok') return `Connected — ${modelName.value}`
     if (status.value === 'failed') return message.value
-    return `Key saved in this browser — not tested yet`
+    return `${(deps.keyStore.description ?? BROWSER_DESCRIPTION).replace(/\.$/, '')} — not tested yet`
   })
 
   /**

@@ -27,7 +27,7 @@
  * @module storage/aiKey
  */
 
-import { createCredentialStore } from './tokenStorage.js'
+import { chooseCredentialStore } from './tokenStorage.js'
 
 /** The key name inside `warpcad-credentials`, distinct from the hosted-git token's. */
 export const AI_CREDENTIAL_KEY = 'ai-anthropic'
@@ -37,14 +37,22 @@ export const AI_CREDENTIAL_KEY = 'ai-anthropic'
  * @property {() => Promise<{ key: string | null, persisted: boolean }>} load Never rejects.
  * @property {(key: string) => Promise<{ persisted: boolean }>} save Rejects only for an empty key.
  * @property {() => Promise<void>} forget
+ * @property {string} description Where the key is kept, in the sheet's words (from the credential store).
  */
+
+/** What the sheet says for a key in the browser's IndexedDB. */
+export const BROWSER_DESCRIPTION = 'Key saved in this browser'
+
+/** What the sheet says for a key in the native app's Keychain (`TODO/ai-025`). */
+export const KEYCHAIN_DESCRIPTION = "Stored in this iPhone's Keychain."
+
 
 /**
  * @param {object} [options]
  * @param {import('./tokenStorage.js').CredentialStore} [options.credentials] Injected in tests.
  * @returns {AiKeyStore}
  */
-export function createAiKeyStore({ credentials = createCredentialStore() } = {}) {
+export function createAiKeyStore({ credentials = chooseCredentialStore() } = {}) {
   /** The session copy: authoritative for this page, whether or not it reached storage. */
   /** @type {string | null} */
   let memoryKey = null
@@ -53,6 +61,8 @@ export function createAiKeyStore({ credentials = createCredentialStore() } = {})
   let forgotten = false
 
   return {
+    description: credentials.location === 'keychain' ? KEYCHAIN_DESCRIPTION : BROWSER_DESCRIPTION,
+
     async load() {
       if (memoryKey !== null || forgotten) return { key: memoryKey, persisted }
       try {

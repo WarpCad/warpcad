@@ -100,6 +100,11 @@ button means access is on; a solid dot means an agent is connected.
 - **Only in this browser.** It is stored in this browser's IndexedDB, next to the token the
   File menu's *Connect repository* uses. Anyone who can run code on this site in your browser
   could read it, which is why a spend limit matters.
+- **In the iOS app it is in the Keychain.** Tap **Assistant**, paste your key and tap **Save**. The
+  sheet says *Stored in this iPhone's Keychain*. The key is not in the app's web storage, is
+  kept out of device backups, and stays there if iOS clears the app's web storage. A key you saved
+  in an earlier version moves into the Keychain the first time you open the app. Deleting the app
+  removes the key.
 - **It is sent only to `api.anthropic.com`**, as the request's `x-api-key`, and nowhere else.
   The page also tells your browser to refuse connections to any other site except the ones
   WarpCad already uses (`api.github.com` for repository saving), so a script that got into the

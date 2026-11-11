@@ -19,6 +19,7 @@ Google Analytics. A copy you build or run yourself has no ID and sends nothing.
   out a rough location (country and city) and then discards it.
 - **Google signals and ad personalisation are switched off** in the tag. The app asks for no
   advertising features and no cross-device tracking.
+- **In the iOS app your Assistant API key is kept in the iPhone's Keychain**, not in the app's web storage, and stays on that device (it is not in backups). Deleting the app removes it ([The Assistant](ai-partner.md)).
 - **A shared-project link contains the project itself**, after the `#`, and is read only in the
   browser of the person who opens it; it is never sent to WarpCad's host or to Google Analytics
   ([Sharing a project by link](sharing.md)).

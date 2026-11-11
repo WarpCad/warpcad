@@ -34,6 +34,11 @@ function installInPage(commands, createFs) {
   /** @type {Map<string, unknown>} */
   const table = new Map(Object.entries(commands))
   const fs = createFs()
+  /**
+   * The fake Keychain (`TODO/ai-025`): account to string, in the page, so a reload starts it empty.
+   * @type {Map<string, string>}
+   */
+  const keychain = new Map()
   /** @type {Array<{ cmd: string, args: unknown }>} */
   const calls = []
   const internals = {
@@ -46,6 +51,9 @@ function installInPage(commands, createFs) {
       const binary = args instanceof ArrayBuffer || ArrayBuffer.isView(args)
       calls.push({ cmd, args: binary ? { bytes: /** @type {ArrayBufferView} */ (args).byteLength, headers: options?.headers ?? {} } : JSON.parse(JSON.stringify(args)) })
       if (table.has(cmd)) return Promise.resolve(JSON.parse(JSON.stringify(table.get(cmd))))
+      if (cmd === 'keychain_get') return Promise.resolve(keychain.get(args.account) ?? null)
+      if (cmd === 'keychain_set') return Promise.resolve(void keychain.set(args.account, args.value))
+      if (cmd === 'keychain_delete') return Promise.resolve(void keychain.delete(args.account))
       if (fs.handles(cmd)) return fs.invoke(cmd, args, options)
       return Promise.reject(`Command ${cmd} not found`)
     },
@@ -57,6 +65,8 @@ function installInPage(commands, createFs) {
   testSide.__nativeShell = {
     calls,
     fs,
+    /** The fake Keychain's items, `{ account: value }`. */
+    keychain: () => Object.fromEntries(keychain),
     /** @param {string} name @param {unknown} value */
     set: (name, value) => table.set(name, value),
     names: () => [...table.keys()].sort(),
@@ -168,3 +178,12 @@ export async function seedNativeAppData(page, files) {
     for (const [path, text] of Object.entries(files)) fs.putAppData(path, text)
   }, files)
 }
+
+/**
+ * Every item in the fake Keychain (`TODO/ai-025`), `{ account: value }`. The fake lives in the page
+ * and a reload empties it.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Record<string, string>>}
+ */
+export const nativeKeychain = (page) => page.evaluate(() => /** @type {any} */ (window).__nativeShell.keychain())
