@@ -13,7 +13,9 @@
 // A clean run of a pair counts as a green run (the reporter stores it as `full`, see
 // `scripts/test-progress/playwright.mjs`). The rotation moves on only after a clean run, so a
 // red pair is re-run on the same two projects until the fix is proven there; then the next run
-// moves to a new pair. State lives in `.todo-progress/e2e-rotation.json` (gitignored).
+// moves to a new pair. State lives in `.todo-progress/_e2e-rotation.json` (gitignored). The
+// leading `_` is required: the todo-progress mod reads every other file in that directory as a
+// step record, and `prune()` keeps `_` files so the rotation survives a day untouched.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -21,7 +23,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-export const STATE_FILE = join(ROOT, '.todo-progress', 'e2e-rotation.json')
+export const STATE_FILE = join(ROOT, '.todo-progress', '_e2e-rotation.json')
 
 const ENGINES = ['chromium', 'webkit', 'firefox']
 const VIEWPORTS = ['phone', 'tablet', 'laptop']

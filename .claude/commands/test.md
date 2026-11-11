@@ -58,7 +58,7 @@ it as `full`, so `stamp check` and the pre-push gate accept it.
 
 `npm run test:e2e:headless` is `node scripts/e2e-rotate.mjs`. It picks the next pair, runs
 `playwright test --project=<a> --project=<b> --project=guards`, and moves the rotation on only
-when the run is clean and unfiltered. State is in `.todo-progress/e2e-rotation.json`
+when the run is clean and unfiltered. State is in `.todo-progress/_e2e-rotation.json`
 (gitignored, per developer).
 
 - **The cycle.** Nine pairs; each pairs projects that differ in **both** engine and viewport, and
