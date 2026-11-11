@@ -47,13 +47,14 @@ import PopoverGrip from './PopoverGrip.vue'
  *
  * @module components/viewport/AlignPopover
  */
-import { computed, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, ref, toRaw, watch, watchEffect } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
 import AlignGrid from './AlignGrid.vue'
 import AlignPositionIcon from './AlignPositionIcon.vue'
 
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
+import { snapAlignRecord } from '../../core/operationRecords.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -250,19 +251,14 @@ function alignToSecond(op, params) {
   const targetOperand = second.value
   if (!movingOperand || !targetOperand) return
   const part = measuredPart.value
-  /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = {
-    id: documentStore.raw.nextId(op === 'group.snap' ? 'snap' : 'align'),
-    op,
-    // `target` before `operands` is the fold's input order: the moving body is `inputs[0]`.
-    target: part === null ? movingOperand.terminalId : { id: movingOperand.terminalId, pieces: part },
-    operands: [targetOperandRef.value ?? targetOperand.ref],
-    // A bare record id even when `target` is addressed: it names the record this one
-    // continues, not an operand (`OperationsToolbar.vue`'s module doc, §2).
-    supersedes: movingOperand.terminalId,
-    params,
-  }
-  attempt(() => documentStore.append(record, { origin: 'local' }))
+  const terminal = movingOperand.terminalId
+  // The moving body is measured by its addressed part or its Measure from part; the target by
+  // its own address or Measure to. The record's shape is `core/operationRecords.js`'s.
+  const operands = [
+    { id: movingOperand.rootId, terminal, name: movingOperand.name, ref: part === null ? terminal : { id: terminal, pieces: part } },
+    { id: targetOperand.rootId, terminal: targetOperand.terminalId, name: targetOperand.name, ref: targetOperandRef.value ?? targetOperand.ref },
+  ]
+  attempt(() => documentStore.append(snapAlignRecord(toRaw(documentStore.raw), op, operands, params), { origin: 'local' }))
 }
 
 /** The offset as a number; a cleared field is 0. */

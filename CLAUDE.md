@@ -68,6 +68,11 @@ How this app's operations work. Every feature spec must be consistent with these
   still works. It won't catch a control whose enabled state depends on a selection the
   author didn't anticipate, or a drag at a different angle, or a tap before an async step
   settles.
+- **An e2e spec that already exercises a scenario's Steps counts as that scenario's drive.**
+  When a `*.e2e.js` spec in `e2e/` covers a scenario's steps on every engine and viewport the
+  scenario names, a green run of that spec is an acceptable PASS for the scenario, and the
+  `/fix-todo` run records it as covered by that spec. A scenario no spec covers still needs the
+  `run` skill drive described above.
 - **Every `/fix-todo` run re-drives the acceptance scenarios that touch the subsystem it
   changed** and reports PASS/FAIL per `.claude/commands/fix-todo.md`. A regression there
   outranks that task's own green tests.

@@ -6,7 +6,7 @@ priority: medium
 model: opus
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
 
 ## Problem

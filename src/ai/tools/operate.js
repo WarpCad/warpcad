@@ -11,13 +11,11 @@
  *
  * The registry says *which* ops exist and how many operands each takes, and this
  * module reads that. What it cannot say is the **record shape** each op is appended
- * with, because that is not a property of the op. It is decided by whoever writes the
- * record, and today that is `src/components/viewport/OperationsToolbar.vue` (booleans
- * and Group `consume` their operands; Snap/Align/Fillet/Chamfer/Enlarge/Fit/Bisect
- * `supersede` theirs; Mirror does neither) and `src/core/transform.js` (move and turn).
- * {@link OPERATIONS} copies those shapes, and `operate.spec.js` checks each one
- * against the toolbar's or `transform.js`'s output. `transform.js` is called directly
- * rather than copied. Every registry op that takes operands is either in
+ * with, because that is not a property of the op. The shapes live in
+ * `src/core/operationRecords.js` (`TODO/core-081`), which the Operations toolbar and
+ * its popovers call too, and `src/core/transform.js` (move and turn); each
+ * {@link OPERATIONS} entry calls one of those rather than writing a record of its
+ * own. Every registry op that takes operands is either in
  * {@link OPERATIONS} or in {@link NOT_OFFERED} with a reason, and the spec fails on a
  * new op that is in neither, so a new operation cannot be silently missing from the
  * model's tools.
@@ -29,15 +27,15 @@
  * @module ai/tools/operate
  */
 
-import { consumesOf } from '../../core/booleanConsumes.js'
-import { hasMergeableParts, planGroupMerge } from '../../core/groupMerge.js'
+import { planGroupMerge } from '../../core/groupMerge.js'
 import { RIM_ORIENTATIONS } from '../../core/kernel/fillet.js'
-import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, isGroup, mirrorRotationDeg } from '../../core/kernel/group.js'
+import { DEFAULT_ROTATE_AXIS, SNAP_SIDES, isGroup } from '../../core/kernel/group.js'
 import { acceptsOperandCount, registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_PLACEMENTS, PLACEMENT_KINDS } from '../../core/kernel/split.js'
 import { DOWEL_STOCKS } from '../../core/kernel/recipes/joint.dowel.js'
 import { BUTTERFLY_SIDES } from '../../core/kernel/recipes/joint.butterfly.js'
 import { MAGNET_SIZES } from '../../core/kernel/recipes/joint.magnet.js'
+import { bisectParams, booleanRecord, groupMergeRecord, groupRecord, inPlaceRecord, mirrorRecord, snapAlignRecord } from '../../core/operationRecords.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
@@ -93,9 +91,7 @@ const FACE = /** @type {JsonSchema} */ ({
 })
 
 /**
- * A boolean: named, the first operand as the base (`target`), the rest as `operands`,
- * and every operand **consumed** — the toolbar's `run()` — except a Pi a Subtract drills
- * with (`TODO/core-064`), by the same `consumesOf` the toolbar calls.
+ * A boolean, by the toolbar's own `booleanRecord`.
  *
  * @param {string} label
  * @param {string} description
@@ -106,40 +102,25 @@ function booleanSpec(label, description) {
     label,
     description,
     params: objectSchema({}),
-    build: (document, operands, _params, op) => ({
-      id: document.nextId('bool'),
-      op,
-      name: document.nextName(label),
-      target: operands[0].ref,
-      operands: operands.slice(1).map((operand) => operand.ref),
-      consumes: consumesOf(document, op, operands),
-    }),
+    build: (document, operands, _params, op) => booleanRecord(document, op, operands),
   }
 }
 
 /**
- * A one-body edit in place: unnamed, `target` and `supersedes` both the body's current
- * record — the toolbar's Fillet/Chamfer/Enlarge/Fit/Bisect commits.
+ * A one-body edit in place, by the toolbar's own `inPlaceRecord`.
  *
  * @param {string} label
- * @param {string} prefix Id prefix, as the toolbar numbers it.
  * @param {string} description
  * @param {JsonSchema} params
  * @param {(params: Record<string, any>) => Record<string, any>} recordParams
  * @returns {OperationSpec}
  */
-function inPlaceSpec(label, prefix, description, params, recordParams) {
+function inPlaceSpec(label, description, params, recordParams) {
   return {
     label,
     description,
     params,
-    build: (document, operands, input, op) => ({
-      id: document.nextId(prefix),
-      op,
-      target: operands[0].terminal,
-      supersedes: operands[0].terminal,
-      params: recordParams(input),
-    }),
+    build: (document, operands, input, op) => inPlaceRecord(document, op, operands[0], recordParams(input)),
   }
 }
 
@@ -150,14 +131,13 @@ function inPlaceSpec(label, prefix, description, params, recordParams) {
  * real part names (data, not instructions).
  *
  * @param {string} label
- * @param {string} prefix
  * @param {string} description
  * @param {JsonSchema} params
  * @param {(params: Record<string, any>) => Record<string, any>} recordParams
  * @returns {OperationSpec}
  */
-function partHiddenSpec(label, prefix, description, params, recordParams) {
-  const spec = inPlaceSpec(label, prefix, description, params, recordParams)
+function partHiddenSpec(label, description, params, recordParams) {
+  const spec = inPlaceSpec(label, description, params, recordParams)
   return {
     ...spec,
     build: (document, operands, input, op) => {
@@ -185,14 +165,13 @@ function partHiddenSpec(label, prefix, description, params, recordParams) {
  * instructions).
  *
  * @param {string} label
- * @param {string} prefix
  * @param {string} description
  * @param {JsonSchema} params
  * @param {(params: Record<string, any>) => Record<string, any>} recordParams
  * @returns {OperationSpec}
  */
-function renamePartSpec(label, prefix, description, params, recordParams) {
-  const spec = inPlaceSpec(label, prefix, description, params, recordParams)
+function renamePartSpec(label, description, params, recordParams) {
+  const spec = inPlaceSpec(label, description, params, recordParams)
   return {
     ...spec,
     build: (document, operands, input, op) => {
@@ -204,28 +183,20 @@ function renamePartSpec(label, prefix, description, params, recordParams) {
 }
 
 /**
- * Snap or Align: the moving body (first operand) is superseded, the reference stays.
+ * Snap or Align, by the Align popover's own `snapAlignRecord`.
  *
  * @param {string} label
- * @param {string} prefix
  * @param {string} description
  * @param {JsonSchema} params
  * @param {(params: Record<string, any>) => Record<string, any>} recordParams
  * @returns {OperationSpec}
  */
-function positionSpec(label, prefix, description, params, recordParams) {
+function positionSpec(label, description, params, recordParams) {
   return {
     label,
     description,
     params,
-    build: (document, operands, input, op) => ({
-      id: document.nextId(prefix),
-      op,
-      target: operands[0].ref,
-      operands: operands.slice(1).map((operand) => operand.ref),
-      supersedes: operands[0].terminal,
-      params: recordParams(input),
-    }),
+    build: (document, operands, input, op) => snapAlignRecord(document, op, operands, recordParams(input)),
   }
 }
 
@@ -290,39 +261,8 @@ export const OPERATIONS = Object.freeze({
         description: 'Optional (TODO/ai-008): one unique part name per operand, in operand order. Default: each body’s own name.',
       },
     }),
-    build: (document, operands, params, op) => {
-      // Old records still fold; this refusal is in the tool only. A model doing this would get
-      // each composite flattened into one part, with nothing in the result to warn it (`TODO/core-076`).
-      const composite = operands.find((operand) => hasMergeableParts(document.scene.byId.get(operand.terminal)))
-      if (composite !== undefined) {
-        throw new Error(
-          `${op}: ${composite.name} has named parts, and this would flatten them into one. ` +
-            'Use group.merge to keep them; a member with a name keeps one body whole as a single part.'
-        )
-      }
-      const names = params.names ?? operands.map((operand) => operand.name)
-      if (names.length !== operands.length) throw new Error(`${op}: give one name per operand — ${operands.length} operands, ${names.length} names`)
-      const trimmed = names.map((/** @type {string} */ name) => name.trim())
-      if (trimmed.some((/** @type {string} */ name) => name === '' || name.length > 80)) throw new Error(`${op}: each part name must be 1 to 80 characters`)
-      if (new Set(trimmed).size !== trimmed.length) throw new Error(`${op}: part names must be unique, got ${JSON.stringify(trimmed)}`)
-      // `TODO/core-077`: a recoloured operand keeps its colour only in a `group.merge` record, so
-      // the planner writes the same record a click does. Named choices keep each body whole.
-      const planned = planGroupMerge(
-        document,
-        operands,
-        trimmed.map((/** @type {string} */ name) => ({ name }))
-      )
-      if (planned.record?.op === 'group.merge') return { id: document.nextId('group'), ...planned.record }
-      return {
-        id: document.nextId('group'),
-        op,
-        name: document.nextName('Group'),
-        target: operands[0].terminal,
-        operands: operands.slice(1).map((operand) => operand.terminal),
-        consumes: operands.map((operand) => operand.terminal),
-        params: { names: trimmed },
-      }
-    },
+    // A body with named parts is refused (`TODO/core-076`): it would be flattened into one part.
+    build: (document, operands, params) => groupRecord(document, operands, params.names),
   },
 
   'group.merge': {
@@ -342,16 +282,12 @@ export const OPERATIONS = Object.freeze({
         }),
       },
     }),
-    build: (document, operands, params) => ({
-      id: document.nextId('group'),
-      ...(/** @type {Omit<OpRecord, 'id'>} */ (mergePlanFor(document, operands, params).record)),
-    }),
+    build: (document, operands, params) => groupMergeRecord(document, mergePlanFor(document, operands, params)),
     viewHides: (document, operands, params) => mergePlanFor(document, operands, params).viewHides,
   },
 
   'group.snap': positionSpec(
     'Snap',
-    'snap',
     'Move the first body flush against the second (exactly two operands). The first body’s parts may be named to snap by, e.g. "head".',
     objectSchema(
       {
@@ -365,7 +301,6 @@ export const OPERATIONS = Object.freeze({
   ),
   'group.align': positionSpec(
     'Align',
-    'align',
     'Centre the first body on the second along the given axes (exactly two operands).',
     objectSchema({ axes: AXES, deltaMm: { type: 'number', description: 'Offset from centred, in millimetres. Default 0.' } }, ['axes']),
     (params) => ({ axes: params.axes, deltaMm: params.deltaMm ?? 0 })
@@ -373,28 +308,24 @@ export const OPERATIONS = Object.freeze({
 
   'modify.filletRim': inPlaceSpec(
     'Fillet',
-    'fillet',
     'Round the whole rim of one axis-aligned face of a prismatic body.',
     objectSchema({ radius: { type: 'number', description: 'Fillet radius, in millimetres.' }, orientation: FACE }, ['radius', 'orientation']),
     (params) => ({ radius: params.radius, orientation: params.orientation })
   ),
   'modify.chamferRim': inPlaceSpec(
     'Chamfer',
-    'chamfer',
     'Bevel the whole rim of one axis-aligned face of a prismatic body.',
     objectSchema({ radius: { type: 'number', description: 'Chamfer size, in millimetres.' }, orientation: FACE }, ['radius', 'orientation']),
     (params) => ({ radius: params.radius, orientation: params.orientation })
   ),
   'modify.enlarge': inPlaceSpec(
     'Resize',
-    'enlarge',
     'Grow (or shrink, with negatives) a body by a per-axis amount.',
     objectSchema({ deltaMm: vectorSchema(3, 'Change in size per axis, [x, y, z] in millimetres.') }, ['deltaMm']),
     (params) => ({ deltaMm: params.deltaMm })
   ),
   'modify.fit': inPlaceSpec(
     'Fit',
-    'fit',
     'Scale a body to an absolute size; 0 on an axis leaves that axis alone.',
     objectSchema(
       {
@@ -407,7 +338,6 @@ export const OPERATIONS = Object.freeze({
   ),
   'group.setPartHidden': partHiddenSpec(
     'Hide or show a part by default',
-    'hide',
     'Mark one named part of a group hidden by default (hidden: true: not drawn, left out of the size, Export and whole-body cuts, but still there to cut with) or shown (hidden: false). One undoable step; the last shown part cannot be hidden.',
     objectSchema(
       {
@@ -420,7 +350,6 @@ export const OPERATIONS = Object.freeze({
   ),
   'group.renamePart': renamePartSpec(
     'Rename a part',
-    'renamepart',
     'Give one named part of a Group or a placed Library part (an imported model’s Part 1, Part 2, …) a new name. One undoable step; the part keeps its place, colour and visibility. Names are unique within the body, at most 80 characters, with no comma and not only digits. A ready-made part’s own names (a bolt’s head) cannot be changed, nor a part a Repeat uses.',
     objectSchema(
       {
@@ -433,7 +362,6 @@ export const OPERATIONS = Object.freeze({
   ),
   'modify.bisect': inPlaceSpec(
     'Bisect',
-    'bisect',
     'Cut a body in two across a plane; the result is one body with parts "negative" and "positive".',
     objectSchema(
       {
@@ -445,23 +373,12 @@ export const OPERATIONS = Object.freeze({
       },
       ['axis', 'offsetMm']
     ),
-    (params) => {
-      const tilted = typeof params.angleDeg === 'number' && params.angleDeg !== 0
-      if (!tilted) return { axis: params.axis, offsetMm: params.offsetMm }
-      return {
-        axis: params.axis,
-        offsetMm: params.offsetMm,
-        angleDeg: params.angleDeg,
-        ...(params.rotateAxis === undefined ? {} : { rotateAxis: params.rotateAxis }),
-        ...(params.rotateOffsetMm === undefined ? {} : { rotateOffsetMm: params.rotateOffsetMm }),
-      }
-    }
+    (params) => bisectParams(/** @type {any} */ (params))
   ),
   // TODO/io-007: the Split sheet's record, by the same `inPlaceSpec` Bisect uses — same shape
   // (`stores/splitSheet.js` writes it: unnamed, `supersedes` the body).
   'modify.splitWithJoint': inPlaceSpec(
     'Split',
-    'split',
     'Split one body into two printable pieces across an axis plane, with a joint so they go back together. ' +
       'Joints: pins (pins printed on piece A into sockets in B; the default), tongue (a rib and groove, for thin sections), ' +
       'dowel (a socket in both pieces and a separate dowel: printed lying down, so stronger than a pin, or bought, steel or 1.75 mm filament, via jointOptions.stock), ' +
@@ -604,23 +521,7 @@ export const OPERATIONS = Object.freeze({
       },
       ['axis']
     ),
-    build: (document, operands, params, op) => {
-      const index = ['x', 'y', 'z'].indexOf(params.axis)
-      /** @type {[number, number, number]} */
-      const pointMm = [0, 0, 0]
-      if (typeof params.planeMm === 'number') pointMm[index] = params.planeMm
-      return {
-        id: document.nextId('mirror'),
-        op,
-        name: document.nextName('Mirror'),
-        target: operands[0].terminal,
-        params: {
-          axis: params.axis,
-          ...(typeof params.planeMm === 'number' ? { pointMm } : {}),
-          rotation: mirrorRotationDeg(operands[0].rotationDeg, params.axis),
-        },
-      }
-    },
+    build: (document, operands, params) => mirrorRecord(document, operands[0], { axis: params.axis, planeMm: params.planeMm }),
   },
 })
 

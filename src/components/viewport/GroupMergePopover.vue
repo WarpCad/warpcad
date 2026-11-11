@@ -26,6 +26,7 @@ import HelpButton from '../controls/HelpButton.vue'
 
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { applyViewHides, planGroupMerge } from '../../core/groupMerge.js'
+import { groupMergeRecord } from '../../core/operationRecords.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
 
@@ -93,9 +94,12 @@ function commit() {
   const current = plan.value
   if (current.record === null) return
   const raw = documentStore.raw
-  const id = raw.nextId('group')
+  /** @type {string} */
+  let id
   try {
-    documentStore.append(/** @type {import('../../core/kernel/registry.js').OpRecord} */ ({ id, ...current.record }), { origin: 'local' })
+    const record = groupMergeRecord(toRaw(raw), current)
+    id = /** @type {string} */ (record.id)
+    documentStore.append(record, { origin: 'local' })
   } catch (error) {
     commitError.message = error instanceof Error ? error.message : String(error)
     return

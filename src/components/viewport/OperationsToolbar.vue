@@ -313,11 +313,11 @@ import GroupMergePopover from './GroupMergePopover.vue'
 import OperationsGroupPopover from './OperationsGroupPopover.vue'
 import PopoverGrip from './PopoverGrip.vue'
 
-import { consumesOf } from '../../core/booleanConsumes.js'
-import { operandsHaveParts, planGroupMerge } from '../../core/groupMerge.js'
+import { operandsHaveParts } from '../../core/groupMerge.js'
+import { bisectParams, booleanRecord, groupRecord, inPlaceRecord, mirrorRecord, operandFromSelection } from '../../core/operationRecords.js'
 import { OPERATION_GROUPS, groupStates } from '../../core/operationGroups.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
-import { DEFAULT_ROTATE_AXIS, mirrorRotationDeg } from '../../core/kernel/group.js'
+import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useLibraryStore } from '../../stores/library.js'
@@ -464,11 +464,11 @@ const pendingLabel = computed(() => {
 /**
  * Run one operation over the current selection.
  *
- * @param {string} op Registry key, e.g. `'boolean.union'`.
- * @param {string} label Human label, used to name the result.
+ * @param {string} op Registry key, e.g. `'boolean.union'`. The result is named by
+ *   `core/operationRecords.js` after the op's own label.
  * @returns {void}
  */
-function run(op, label) {
+function run(op) {
   if (disabled.value) return
   runError.value = null
 
@@ -479,77 +479,26 @@ function run(op, label) {
     return
   }
 
-  // Every selected body, resolved to the record that currently represents it
-  // and — where the user has drilled in — to a named part (`TODO/ui-040`; see
-  // {@link selectedOperands} and the module doc's "Sub-part-addressed operands"
-  // section, which is now this component's one operand-building path rather
-  // than a Snap/Align-only one). The module note above on why the raw selection
-  // ids are the wrong thing to hand the kernel still applies underneath it.
-  const operands = selectedOperands.value
-  // `boolean.*`'s registry entries are `subPartNative` — they may be handed a
-  // `{ id, pieces }`. `group.assemble`'s is plain `native`, deliberately (see
-  // its own registry comment on nested composites), so a `pieces` address there
-  // would throw rather than do anything: a pick depth is *ignored* for Group,
-  // and the operand line below keeps saying so by naming the depth it is
-  // dropping. That is the one asymmetry between the four buttons on this row.
-  const addressable = op.startsWith('boolean.')
-  const [base, ...rest] = operands
-  const id = documentStore.raw.nextId(op === 'group.assemble' ? 'group' : 'bool')
-
-  // TODO/core-077: a recoloured body keeps its colour only in a `group.merge` record (a
-  // `group.assemble` is a new root and reads just its own lineage), so the planner decides. With no
-  // colour to keep it returns today's `group.assemble` and the literal below is written as before.
-  const planned =
-    op === 'group.assemble'
-      ? planGroupMerge(
-          toRaw(documentStore.raw),
-          operands.map((operand) => ({ id: operand.rootId, terminal: operand.terminalId, name: operand.name })),
-        ).record
-      : null
-
+  // Every selected body, resolved to the record that currently represents it and — where the
+  // user has drilled in — to a named part (`TODO/ui-040`). The record itself is
+  // `core/operationRecords.js`'s, shared with the AI `operate` tool (`TODO/core-081`): a
+  // boolean takes part addresses, Group groups whole bodies under their body names.
+  const operands = selectedOperands.value.map(operandFromSelection)
+  const document = toRaw(documentStore.raw)
   /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = planned?.op === 'group.merge' ? { id, ...planned } : {
-    id,
-    op,
-    name: documentStore.raw.nextName(label),
-    // `target` before `operands` is the fold's own input order, so the
-    // first-selected solid lands at `inputs[0]` — which is what makes it
-    // Subtract's minuend without this component knowing any kernel maths.
-    target: addressable ? base.ref : base.terminalId,
-    operands: rest.map((operand) => (addressable ? operand.ref : operand.terminalId)),
-    // Bare terminal ids, always — `consumes` names the *records* this one
-    // retires, which is lineage bookkeeping, not an operand reference. Exactly
-    // the distinction `ui-035` drew for `supersedes`: an object here would
-    // break `bodies()` outright. A sub-part-addressed boolean still retires the
-    // whole composite it cut with, the same as a whole-body one — except a
-    // Subtract that cuts with only a Pi's mounting holes, which leaves the Pi in
-    // the scene so it can drill the next hole (`TODO/core-064`). That rule is
-    // `core/booleanConsumes.js`'s, shared with the AI `operate` tool.
-    consumes: consumesOf(
-      documentStore.raw,
-      op,
-      operands.map((operand) => ({ terminal: operand.terminalId, ref: addressable ? operand.ref : operand.terminalId })),
-    ),
+  let record
+  try {
+    record = op === 'group.assemble' ? groupRecord(document, operands) : booleanRecord(document, op, operands)
+  } catch (error) {
+    runError.value = error instanceof Error ? error.message : String(error)
+    return
   }
-
-  // `group.assemble` (TODO/ui-015) needs one display name per operand, so the
-  // resulting Group's parts are addressable by name rather than by opaque
-  // record id (the breadcrumb `ui-016` builds later). `SelectedOperand.name` is
-  // the body's own name looked up by **lineage root** id — `documentStore.bodies`
-  // keys each summary that way, while an operand's terminal record id only
-  // coincides with it for a body that has never been superseded (moved), so
-  // looking up by the terminal id would silently miss every moved operand and
-  // fall back to its opaque record id. Deliberately `name`, not `label`: a
-  // drilled-in operand joins the new group under its own body name, never
-  // "Group 1 › Cube 1".
-  if (op === 'group.assemble' && planned?.op !== 'group.merge') {
-    record.params = { names: operands.map((operand) => operand.name) }
-  }
+  const id = /** @type {string} */ (record.id)
 
   // TODO/core-079: a boolean with a multi-part operand (a whole imported model as the cutter)
   // is built in the evaluation worker; the store appends it when it lands, and the pending line
   // below says so meanwhile. With no worker, `operationOffThread` is false and this is skipped.
-  if (planned?.op !== 'group.merge' && documentStore.operationOffThread(record)) {
+  if (documentStore.operationOffThread(record)) {
     documentStore.appendOperation(record, { origin: 'local' }).then(
       () => selection.select(id),
       (error) => {
@@ -1113,25 +1062,15 @@ function commitFilletChamfer() {
   const onlyId = selection.onlyId
   if (!onlyId) return
 
-  // Same operand-resolution discipline as `run()` above and `AlignPopover.vue`:
-  // the selection id is a lineage root, and the kernel needs the operand's
-  // *current* terminal id, not the geometry it had when first placed.
-  const targetId = documentStore.raw.currentIdOf(onlyId) ?? onlyId
-  const id = documentStore.raw.nextId(op === 'modify.filletRim' ? 'fillet' : 'chamfer')
-
-  /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = {
-    id,
-    op,
-    // See the module doc: unnamed on purpose, unlike TODO/ui-027's own
-    // Affected files note — `Body.name` is read from the lineage's root
-    // record only, so a name on a superseding record is inert at best.
-    target: targetId,
-    supersedes: targetId,
-    params: { radius: radiusMm.value, orientation: faceOrientation.value },
-  }
+  const operand = selectedOperands.value[0]
+  if (!operand) return
 
   try {
+    // Unnamed, `supersedes` the terminal record: `core/operationRecords.js`'s in-place rule.
+    const record = inPlaceRecord(toRaw(documentStore.raw), op, operandFromSelection(operand), {
+      radius: radiusMm.value,
+      orientation: faceOrientation.value,
+    })
     documentStore.append(record, { origin: 'local' })
   } catch (error) {
     // The first user-facing runtime kernel-error path on this toolbar — shown
@@ -1232,13 +1171,8 @@ function commitResize() {
   const onlyId = selection.onlyId
   if (!onlyId) return
 
-  // Same operand-resolution discipline as `commitFilletChamfer` above: the
-  // selection id is a lineage root, and the kernel needs the operand's
-  // *current* terminal id, not the geometry it had when first placed.
-  const targetId = documentStore.raw.currentIdOf(onlyId) ?? onlyId
-  /** @type {Record<'modify.enlarge' | 'modify.fit' | 'modify.bisect', string>} */
-  const idPrefixes = { 'modify.enlarge': 'enlarge', 'modify.fit': 'fit', 'modify.bisect': 'bisect' }
-  const id = documentStore.raw.nextId(idPrefixes[op])
+  const operand = selectedOperands.value[0]
+  if (!operand) return
 
   /** @type {Record<string, any>} */
   let params
@@ -1253,45 +1187,20 @@ function commitResize() {
       keepAspectRatio: fitKeepAspectRatio.value,
     }
   } else {
-    // modify.bisect (TODO/ui-036 extends this with the angled form). A falsy
-    // Angle must produce a record with the *exact* same shape as before this
-    // task — only `axis`/`offsetMm`, no `angleDeg`/`rotateAxis`/
-    // `rotateOffsetMm` keys at all — per the module doc's "Angled Bisect" §2
-    // and this task's own Testing section regression guard.
-    const angleDeg = bisectAngleDeg.value
-    const hasTilt = typeof angleDeg === 'number' && Number.isFinite(angleDeg) && angleDeg !== 0
-    if (hasTilt) {
-      const rotateOffsetMm = bisectRotateOffsetMm.value
-      params = {
-        axis: bisectAxis.value,
-        offsetMm: bisectOffsetMm.value,
-        angleDeg,
-        rotateAxis: bisectRotateAxis.value,
-        // Omitted, not `null`, when left blank — see the module doc's §4: an
-        // omitted rotateOffsetMm hinges on the third axis's own centre, which
-        // is a different, real value from a literal `0`.
-        ...(typeof rotateOffsetMm === 'number' && Number.isFinite(rotateOffsetMm)
-          ? { rotateOffsetMm }
-          : {}),
-      }
-    } else {
-      params = { axis: bisectAxis.value, offsetMm: bisectOffsetMm.value }
-    }
-  }
-
-  /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = {
-    id,
-    op,
-    // Unnamed, `supersedes`-based — see the module doc: the same reason
-    // Fillet/Chamfer's own record above stays unnamed.
-    target: targetId,
-    supersedes: targetId,
-    params,
+    // modify.bisect (TODO/ui-036 extends this with the angled form). A falsy Angle keeps the
+    // plain two-field shape, and a blank Rotate-offset is omitted: `bisectParams`'s rules.
+    params = bisectParams({
+      axis: bisectAxis.value,
+      offsetMm: bisectOffsetMm.value,
+      angleDeg: bisectAngleDeg.value,
+      rotateAxis: bisectRotateAxis.value,
+      rotateOffsetMm: bisectRotateOffsetMm.value,
+    })
   }
 
   try {
-    documentStore.append(record, { origin: 'local' })
+    // Unnamed, `supersedes` the terminal record — the same in-place rule as Fillet/Chamfer.
+    documentStore.append(inPlaceRecord(toRaw(documentStore.raw), op, operandFromSelection(operand), params), { origin: 'local' })
   } catch (error) {
     // Same first-user-facing-kernel-error path Fillet/Chamfer established —
     // an out-of-range Enlarge/Fit delta or an unknown Bisect axis surfaces
@@ -1406,33 +1315,14 @@ function commitMirror() {
   const onlyId = selection.onlyId
   if (!onlyId) return
 
-  const axis = mirrorAxis.value
-  const targetId = documentStore.raw.currentIdOf(onlyId) ?? onlyId
-  const source = documentStore.raw.bodies().find((candidate) => candidate.id === onlyId)
-  const plane = mirrorPlaneMm.value
-  const hasPlane = typeof plane === 'number' && Number.isFinite(plane)
-  /** @type {[number, number, number]} */
-  const pointMm = [0, 0, 0]
-  pointMm[AXES.indexOf(axis)] = hasPlane ? plane : 0
+  const operand = selectedOperands.value[0]
+  if (!operand) return
 
-  const id = documentStore.raw.nextId('mirror')
   /** @type {import('../../core/kernel/registry.js').OpRecord} */
-  const record = {
-    id,
-    op: 'transform.mirror',
-    name: documentStore.raw.nextName('Mirror'),
-    target: targetId,
-    params: {
-      axis,
-      // Omitted when blank, so the kernel's own default (the body's centre) applies.
-      ...(hasPlane ? { pointMm } : {}),
-      // Without this the copy of a turned part reports a zero rotation and its
-      // dimension lines measure the shadow of the box, not the part.
-      rotation: mirrorRotationDeg(source?.rotationDeg ?? [0, 0, 0], axis),
-    },
-  }
-
+  let record
   try {
+    // A blank plane is left out, so the kernel's own default (the body's centre) applies.
+    record = mirrorRecord(toRaw(documentStore.raw), operandFromSelection(operand), { axis: mirrorAxis.value, planeMm: mirrorPlaneMm.value })
     documentStore.append(record, { origin: 'local' })
   } catch (error) {
     opError.value = error instanceof Error ? error.message : String(error)
@@ -1440,7 +1330,7 @@ function commitMirror() {
   }
 
   // The new lineage root's id is the record's own id.
-  selection.select(id)
+  selection.select(/** @type {string} */ (record.id))
   closePopover()
 }
 
@@ -1503,7 +1393,7 @@ const groupMembers = computed(() => {
       disabled: disabled.value,
       title: titleFor(operation),
       expanded: operation.op === 'group.assemble' ? openPopover.value === 'group-merge' : undefined,
-      action: () => run(operation.op, operation.label),
+      action: () => run(operation.op),
     }
   }
   members.align = {
@@ -1794,7 +1684,7 @@ onBeforeUnmount(() => {
         :aria-expanded="operation.op === 'group.assemble' ? openPopover === 'group-merge' : undefined"
         :title="titleFor(operation)"
         :aria-label="titleFor(operation)"
-        @click="run(operation.op, operation.label)"
+        @click="run(operation.op)"
       >
         <span class="ops__glyph" aria-hidden="true">{{ operation.glyph }}</span>
         <span class="ops__label">{{ operation.label }}</span>
