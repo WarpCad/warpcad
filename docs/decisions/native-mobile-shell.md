@@ -599,7 +599,16 @@ Run at pull-in time for `build-017`, as the library-decisions rule requires. Che
 
 **Decided 2026-11-07:** approve Unicode-3.0, Zlib and CDLA-Permissive-2.0 for the native repository's Rust dependencies. All three come in through Tauri itself (ICU via `url`, `foldhash` via `dom_query`). They are added to `warpcad-native/deny.toml`. **Decided 2026-11-07:** also approve `Apache-2.0 WITH LLVM-exception` (`target-lexicon`, through Tauri's build tooling), and allow the project's own AGPL-3.0-or-later for the native crate. `cargo deny check licenses` passes on this record's date.
 
-**Origin scheme (task step 7):** not decided here. The owner records it when the scaffold lands.
+**Origin scheme, decided 2026-11-12 (`build-028`):** the web view's origin keys all of the app's storage (autosave, My parts, credentials), so each platform's origin is **fixed at first release**. Changing it later opens an empty app for every existing user.
+
+| Platform | Origin | How |
+|---|---|---|
+| iOS, iPadOS | `tauri://localhost` | Tauri's default |
+| macOS | `tauri://localhost` | Tauri's default |
+| Windows | `https://tauri.localhost` | `app.windows[0].useHttpsScheme: true` |
+| Android | `https://tauri.localhost` | the same flag |
+
+The flag is set in `warpcad-native/src-tauri/tauri.conf.json` and guarded by the Rust test `the_window_uses_the_https_scheme_and_must_never_change`. Under the https scheme Tauri's custom protocols (IPC included) are `https://<name>.localhost`, so the CSP's `connect-src` lists `https://ipc.localhost`. **Unverified until a Windows or Android build is inspected:** that `location.origin` is `https://tauri.localhost`, `window.isSecureContext` is `true`, `indexedDB` opens, the evaluation worker starts, and `shell_info` answers over IPC. Record the result here.
 
 ---
 

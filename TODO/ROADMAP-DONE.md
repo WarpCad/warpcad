@@ -818,6 +818,7 @@ first five rows below.
 | ✅ `io-014` | Save, open and export real files in the iOS app: Save writes in place to Documents, Open lists the app's projects with Browse…, exports write to Documents/Exports, and Open in WarpCad copies an inbound file in. Partly driven: scenario 11 PASS and 10 (local half) PASS; 22, 23, 26, the hosted half of 10, and the simulator doc run are not driven, see the TODO's Shipped note | Operation | `build-017` | 10, 11, 26 (partly driven, see the TODO) |
 | ✅ `ai-026` | An MCP server inside the native app: an `rmcp` Streamable HTTP server on axum in `warpcad-native` that relays `tools/list` and `tools/call` to the page, so the web registry stays the one source. Loopback by default (Host/Origin checked), opt-in Wi-Fi with a bearer token; listens only while the app is on screen on iOS. Shipped in warpcad-native 15ce235 on 2026-11-11; the scenario 25 drive with a real Claude Code is owed to `testing-011`. [`done/ai-026`](../../warpcad-native/TODO/done/ai-026-mcp-server-in-the-native-app.md) | Control | `build-017` | 24, 25, 27 (drive owed to `testing-011`) |
 | ✅ `ai-025` | The iOS app keeps the Anthropic key and the GitHub token in the Keychain behind `createCredentialStore`: `keychain_get`/`keychain_set`/`keychain_delete` commands limited to two accounts, one Swift file over `SecItem*` (no crate), a one-time read-back-then-delete migration from IndexedDB, and the key sheet's storage line comes from the store. Shipped in warpcad-native 937634b on 2026-11-11. Not driven: a real Keychain on a device or simulator (`testing-011` step 7); scenario 24 only partly driven with a mocked endpoint. [`done/ai-025`](../../warpcad-native/TODO/done/ai-025-native-keychain-credentials.md) | Control | `build-017` | 24 (partly driven, Keychain drive owed to `testing-011`) |
+| ✅ `build-028` | The native window sets `useHttpsScheme: true`, so Windows and Android serve the page from `https://tauri.localhost` (fixed at first release; changing it orphans every user's storage). CSP `connect-src` now lists `https://ipc.localhost`, and a Rust test fails if the flag is ever dropped. Shipped in warpcad-native. Not driven: a Windows or Android web view (`location.origin`, `isSecureContext`, IndexedDB, worker, IPC), which needs a machine or the CI artifact. [`done/build-028`](../../warpcad-native/TODO/done/build-028-windows-https-scheme-before-first-release.md) | Build | — | 1, 10 on the Windows build (owed, no machine) |
 
 ## Findings
 
@@ -1299,5 +1300,6 @@ convention going forward.
 | `ai-026` | 2026-11-12 | — (bookkeeping close; the code landed 2026-11-11 in warpcad-native 15ce235, whose retirement missed the web roadmap) |
 | `ai-025` | 2026-11-12 | — (bookkeeping close; the code landed 2026-11-11 in warpcad-native 937634b, whose retirement missed the web roadmap) |
 | `build-024` | 2026-11-12 17:58 | 15m |
+| `build-028` | 2026-11-12 20:08 | 1m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
