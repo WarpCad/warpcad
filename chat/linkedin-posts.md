@@ -4040,3 +4040,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 25 rows (11c–11h, 22zb–22zt) → git diff of TODO/ROADMAP.md, this commit; audit writes only TODO files and roadmap rows → header of .claude/prompts/architecture-audit.md; live bridge covered by the Vite advisory → row 22zb in TODO/ROADMAP.md (text of TODO/FIND-build-025); error messages quote document text to Sentry → row 22zq (text of TODO/FIND-core-082); both status open → Status field of those two files
 **To Add:** none
+
+## 2026-11-11T15:14:58Z — build-026: release bundles fail on dev-only code
+
+**Post:** A debug hook in a CAD app's browser build shouldn't depend on whether a developer's shell happened to export an environment variable. WarpCad had that dependency: a native build inherited the variables from the terminal, and nothing checked the output.
+
+Now the native build forces the two development flags off, the Playwright build writes to its own folder, and a script fails the build if either marker appears in the bundle. The same check runs in the Pages workflow. With both flags exported, the native build produced zero hits.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** native build with both flags exported: zero hits (this session); bundle check exit 0 (this session); pwa-update 36/36 and pair run 1080 passed, 0 failed (this session)
+**To Add:** none

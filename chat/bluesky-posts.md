@@ -2793,3 +2793,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 25 rows (11c–11h, 22zb–22zt) → git diff of TODO/ROADMAP.md, this commit; audit writes only TODO files and roadmap rows → header of .claude/prompts/architecture-audit.md; no src/ file in the commit → git status, this session
 **To Add:** none
+
+## 2026-11-11T15:14:58Z — build-026: release bundles fail on dev-only code
+
+**Post:** WarpCad's release builds now fail if the e2e test hook or the preview live bridge is compiled in. Native builds force both flags off, and a bundle check runs in CI. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** native build with both flags exported: zero __e2eImport and zero preview-marker hits (this session); bundle check exits 0 on dist-native (this session); pwa-update 36/36 and pair run 1080 passed, 0 failed (this session)
+**To Add:** none
