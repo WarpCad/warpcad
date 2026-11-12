@@ -91,6 +91,7 @@ import { createPlacementGhost } from '../../render/placementGhost.js'
 import { createSketchSnap } from '../../render/sketchSnap.js'
 import { createSketchHandles } from '../../render/sketchHandles.js'
 import { createSketchDraw } from '../../render/sketchDraw.js'
+import { createCameraNavigation } from '../../render/cameraNavigation.js'
 import { PICK_OFFSETS_PX, firstDrawnHit, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
 import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
 import { toGeom3 } from '../../core/kernel/index.js'
@@ -112,12 +113,6 @@ import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 /** Degrees of orbit per pixel of drag. */
 const ORBIT_DEG_PER_PX = 0.4
-/** Degrees of orbit per press of a direction button. */
-const ORBIT_STEP_DEG = 15
-/** Pixels of pan per press of a direction button. */
-const PAN_STEP_PX = 60
-/** Multiplier per press of a zoom button. */
-const ZOOM_STEP = 1.25
 /**
  * Total pointer travel, in pixels, below which a press counts as a click rather
  * than a drag. A tap on a touch screen always wanders a pixel or two.
@@ -455,6 +450,21 @@ const sketchDraw = createSketchDraw({
   scheduleRender: () => scheduleRender(),
   chain: sketchChain,
   draft: sketchDraftPath,
+})
+/**
+ * The chrome navigation (`TODO/ui-108`, extraction 5a): the direction pad, zoom, standard views, reset,
+ * the drag-mode toggle and the wheel. `src/render/cameraNavigation.js`. The drag itself stays here,
+ * since its mode depends on the press in progress.
+ */
+const navigation = createCameraNavigation({
+  orbit,
+  getMode: () => dragMode.value,
+  setMode: (mode) => {
+    dragMode.value = mode
+  },
+  isSketching: () => sketchMode.value,
+  heightPx: () => heightPx,
+  scheduleRender: () => scheduleRender(),
 })
 
 // Scratch values reused by the pointer path — CLAUDE.md's Performance rule.
@@ -1854,54 +1864,7 @@ function finishMarquee(additive, clientXPx, clientYPx) {
   selection.selectMany(enclosed, additive)
 }
 
-/** @param {WheelEvent} event */
-function onWheel(event) {
-  event.preventDefault()
-  orbit.dolly(Math.exp(event.deltaY * 0.0015))
-  scheduleRender()
-}
-
 // --- chrome + gizmo input (same camera model as the drags above) ----------
-
-/** @param {string} direction */
-function onStep(direction) {
-  // While sketching, the pad pans whatever the drag-mode toggle says: orbit is
-  // suspended, and a pad that quietly orbited would break the camera lock the
-  // mode is built on.
-  if (sketchMode.value || dragMode.value === 'pan') {
-    const stepMm = PAN_STEP_PX * (orbit.getMmPerPixel(heightPx) || 1)
-    if (direction === 'up') orbit.pan(0, stepMm)
-    else if (direction === 'down') orbit.pan(0, -stepMm)
-    else if (direction === 'left') orbit.pan(-stepMm, 0)
-    else if (direction === 'right') orbit.pan(stepMm, 0)
-  } else if (direction === 'up') orbit.orbit(0, ORBIT_STEP_DEG)
-  else if (direction === 'down') orbit.orbit(0, -ORBIT_STEP_DEG)
-  else if (direction === 'left') orbit.orbit(-ORBIT_STEP_DEG, 0)
-  else if (direction === 'right') orbit.orbit(ORBIT_STEP_DEG, 0)
-  scheduleRender()
-}
-
-/** @param {string} direction */
-function onZoom(direction) {
-  orbit.dolly(direction === 'in' ? 1 / ZOOM_STEP : ZOOM_STEP)
-  scheduleRender()
-}
-
-/** @param {string} view */
-function onSnap(view) {
-  // Unreachable while sketching — the gizmo's buttons are disabled — but
-  // guarded here too rather than trusting a component prop, because snapping
-  // to an edge-on view would leave every subsequent drag projecting onto
-  // nothing at all.
-  if (sketchMode.value) return
-  orbit.snapTo(view)
-  scheduleRender()
-}
-
-function onReset() {
-  orbit.reset()
-  scheduleRender()
-}
 
 /**
  * Frame the camera on everything in the document (`TODO/io-001`).
@@ -1939,12 +1902,6 @@ function frameLoadedContent() {
   }
   orbit.frameBounds(min, max, heightPx > 0 ? widthPx / heightPx : 1)
   scheduleRender()
-}
-
-/** @param {'orbit' | 'pan'} mode */
-function onMode(mode) {
-  if (sketchMode.value) return
-  dragMode.value = mode
 }
 
 // --- lifecycle ------------------------------------------------------------
@@ -2349,13 +2306,13 @@ onBeforeUnmount(() => {
       @pointerup="onPointerUp"
       @pointercancel="onPointerUp"
       @pointerleave="clearSketchHover"
-      @wheel="onWheel"
+      @wheel="navigation.wheel"
       @contextmenu.prevent
     />
 
     <!-- TODO/ui-107: an import's armed placement session — the pointer surface over the canvas
          (under every other overlay, so the chrome stays usable) and its chip. -->
-    <PlacementSession v-if="!presentation" @wheel="onWheel" />
+    <PlacementSession v-if="!presentation" @wheel="navigation.wheel" />
     <ModelImportStatus v-if="!presentation" />
 
     <p v-if="webglError" class="viewport__error" data-testid="viewport-webgl-unavailable">
@@ -2455,7 +2412,7 @@ onBeforeUnmount(() => {
       :azimuth-deg="overlay.azimuthDeg"
       :elevation-deg="overlay.elevationDeg"
       :disabled="sketchMode"
-      @snap="onSnap"
+      @snap="navigation.snapView"
     />
     <!-- The Sketch toolbar (TODO/sketch-001): mounted only while the editor is open,
          in the top-left slot the Operations toolbar yields. Its Slices / Extrude panels
@@ -2482,10 +2439,10 @@ onBeforeUnmount(() => {
       :sketching="sketchMode"
       :raised="navRaised"
       :sketch-sheet="sketchMode && sketchEditor.panel !== ''"
-      @step="onStep"
-      @zoom="onZoom"
-      @mode="onMode"
-      @reset="onReset"
+      @step="navigation.step"
+      @zoom="navigation.zoom"
+      @mode="navigation.setMode"
+      @reset="navigation.reset"
     />
   </div>
 </template>
