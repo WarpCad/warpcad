@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { INVALID_HOST_MESSAGES, VALID_HOST_MESSAGES } from './__fixtures__/hostMessages.js'
 import { ACCESS_LEASES, LIVE_MCP_PATH, liveEndpointUrl, parseHostMessage, parseTabMessage } from './protocol.js'
 
 describe('live MCP access leases', () => {
@@ -60,5 +61,12 @@ describe('message shapes', () => {
     expect(parseHostMessage({ type: 'paired' })).toBeNull()
     expect(parseHostMessage({ type: 'pair-refused', reason: 'wrong' })).toBeNull()
     expect(parseHostMessage({ type: 'nonsense' })).toBeNull()
+  })
+})
+
+describe('the shared host-message fixtures (ai-026: the dev and native hosts send the same ones)', () => {
+  it('parses every valid one as stated and drops every invalid one', () => {
+    for (const { data, parsed } of VALID_HOST_MESSAGES) expect(parseHostMessage(data)).toEqual(parsed)
+    for (const data of INVALID_HOST_MESSAGES) expect(parseHostMessage(data)).toBeNull()
   })
 })

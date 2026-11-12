@@ -10,6 +10,13 @@
  * Every call is logged in `window.__nativeShell.calls`. A command the table does not have rejects
  * with the string Tauri itself rejects with, so a spec sees the app's "not available" path.
  *
+ * `TODO/ai-026`: it also stands in for the native MCP host. Tauri events work as the real bridge
+ * does them (`transformCallback` + `plugin:event|listen`), so a spec can emit host messages
+ * ({@link emitNativeMcp}); and `mcp_set_access`, `mcp_reply` and `mcp_rotate_token` answer as the
+ * Rust host does, emitting the `status` it would. Refusing a call while access is off is the Rust
+ * gate's job (`warpcad-native/src-tauri/src/mcp/gate.rs`, tested there); {@link nativeMcpCall}
+ * mirrors it, so a spec can show a call after **Turn off** never reaches the page.
+ *
  *     import { installNativeShell } from './fixtures/nativeShell.js'
  *     await installNativeShell(page, { platform: 'ios', version: '1.13.0' })
  */
@@ -41,6 +48,37 @@ function installInPage(commands, createFs) {
   const keychain = new Map()
   /** @type {Array<{ cmd: string, args: unknown }>} */
   const calls = []
+  /** Tauri event handlers (`transformCallback`) and listeners (`plugin:event|listen`). */
+  /** @type {Map<number, (event: unknown) => void>} */
+  const callbacks = new Map()
+  /** @type {Array<{ event: string, handler: number }>} */
+  const listeners = []
+  let nextCallback = 1
+  /** @param {string} event @param {unknown} payload */
+  const emit = (event, payload) => {
+    for (const listener of listeners.filter((l) => l.event === event)) callbacks.get(listener.handler)?.({ event, id: 0, payload })
+  }
+  /** The fake MCP host's state (`TODO/ai-026`). */
+  const mcp = { lease: 'off', lan: false, connection: 'idle', token: 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9', expiresAt: /** @type {number | null} */ (null), nextId: 1, surface: /** @type {any} */ (null), rotations: 0 }
+  /** @type {Array<{ id: number, result: any }>} */
+  const replies = []
+  const mcpStatus = () => ({
+    type: 'status',
+    access: mcp.lease === 'off' ? 'off' : 'enabled',
+    expiresAt: mcp.expiresAt,
+    connection: mcp.lease === 'off' ? 'idle' : mcp.connection,
+    reason: mcp.lease === 'off' ? 'Live MCP access is off.' : '',
+  })
+  const mcpEndpoint = () => {
+    const on = mcp.lease !== 'off'
+    return {
+      port: on ? 5184 : null,
+      url: on ? 'http://127.0.0.1:5184/mcp' : null,
+      lanUrl: on && mcp.lan ? 'http://192.168.1.20:5184/mcp' : null,
+      token: on && mcp.lan ? mcp.token : null,
+      lanError: null,
+    }
+  }
   const internals = {
     /**
      * @param {string} cmd
@@ -51,11 +89,46 @@ function installInPage(commands, createFs) {
       const binary = args instanceof ArrayBuffer || ArrayBuffer.isView(args)
       calls.push({ cmd, args: binary ? { bytes: /** @type {ArrayBufferView} */ (args).byteLength, headers: options?.headers ?? {} } : JSON.parse(JSON.stringify(args)) })
       if (table.has(cmd)) return Promise.resolve(JSON.parse(JSON.stringify(table.get(cmd))))
+      if (cmd === 'plugin:event|listen') {
+        listeners.push({ event: args.event, handler: args.handler })
+        return Promise.resolve(args.handler)
+      }
+      if (cmd === 'plugin:event|unlisten') return Promise.resolve(null)
+      if (cmd === 'mcp_set_access') {
+        mcp.lease = args.lease
+        mcp.lan = args.lease !== 'off' && args.lan === true
+        if (args.surface) mcp.surface = args.surface
+        mcp.expiresAt = args.lease === '15m' ? Date.now() + 15 * 60_000 : args.lease === '1h' ? Date.now() + 60 * 60_000 : null
+        if (args.lease === 'off') mcp.connection = 'idle'
+        setTimeout(() => emit('warpcad-mcp-host', mcpStatus()), 0)
+        return Promise.resolve(mcpEndpoint())
+      }
+      if (cmd === 'mcp_reply') {
+        replies.push({ id: args.id, result: args.result })
+        return Promise.resolve(null)
+      }
+      if (cmd === 'mcp_rotate_token') {
+        mcp.rotations += 1
+        mcp.token = `${String(mcp.rotations).padStart(2, '0')}${mcp.token.slice(2)}`
+        mcp.connection = 'idle'
+        setTimeout(() => emit('warpcad-mcp-host', mcpStatus()), 0)
+        return Promise.resolve(mcpEndpoint())
+      }
       if (cmd === 'keychain_get') return Promise.resolve(keychain.get(args.account) ?? null)
       if (cmd === 'keychain_set') return Promise.resolve(void keychain.set(args.account, args.value))
       if (cmd === 'keychain_delete') return Promise.resolve(void keychain.delete(args.account))
       if (fs.handles(cmd)) return fs.invoke(cmd, args, options)
       return Promise.reject(`Command ${cmd} not found`)
+    },
+    /** @param {(event: unknown) => void} fn */
+    transformCallback(fn) {
+      const id = nextCallback++
+      callbacks.set(id, fn)
+      return id
+    },
+    /** @param {number} id */
+    unregisterCallback(id) {
+      callbacks.delete(id)
     },
     metadata: { currentWindow: { label: 'main' }, currentWebview: { windowLabel: 'main', label: 'main' } },
   }
@@ -70,6 +143,30 @@ function installInPage(commands, createFs) {
     /** @param {string} name @param {unknown} value */
     set: (name, value) => table.set(name, value),
     names: () => [...table.keys()].sort(),
+    /** The fake MCP host (`TODO/ai-026`). */
+    mcp: {
+      state: () => JSON.parse(JSON.stringify(mcp)),
+      replies: () => JSON.parse(JSON.stringify(replies)),
+      /** @param {string} event @param {unknown} payload */
+      emit,
+      /** A client connected (or `'ambiguous'`, two), as the host's status says. @param {'idle' | 'connected' | 'ambiguous'} connection */
+      connection(connection) {
+        mcp.connection = connection
+        emit('warpcad-mcp-host', mcpStatus())
+      },
+      /**
+       * A client's `tools/call`, as the host relays it: refused while access is off (the Rust gate),
+       * else sent to the page as a `call` host message.
+       *
+       * @param {string} name @param {unknown} input @param {string} [request]
+       */
+      call(name, input, request) {
+        if (mcp.lease === 'off') return { refused: `WarpCad refused ${name}: live MCP access is off. In WarpCad, open Assistant → Live MCP access and explicitly enable it, then retry.` }
+        const id = mcp.nextId++
+        emit('warpcad-mcp-host', { type: 'call', id, name, input, ...(request === undefined ? {} : { request }) })
+        return { id }
+      },
+    },
   }
 }
 
@@ -187,3 +284,51 @@ export async function seedNativeAppData(page, files) {
  * @returns {Promise<Record<string, string>>}
  */
 export const nativeKeychain = (page) => page.evaluate(() => /** @type {any} */ (window).__nativeShell.keychain())
+
+/**
+ * Emit a Tauri event into the page as the native host would (`TODO/ai-026`).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} event `warpcad-mcp-host` or `warpcad-mcp-paused`
+ * @param {unknown} payload
+ */
+export const emitNativeMcp = (page, event, payload) =>
+  page.evaluate(({ event, payload }) => /** @type {any} */ (window).__nativeShell.mcp.emit(event, payload), { event, payload })
+
+/**
+ * The fake MCP host's state: lease, Wi-Fi switch, connection, token, and the surface the page sent.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{ lease: string, lan: boolean, connection: string, token: string, surface: any }>}
+ */
+export const nativeMcpState = (page) => page.evaluate(() => /** @type {any} */ (window).__nativeShell.mcp.state())
+
+/**
+ * Say a client connected, as the host's status would.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {'idle' | 'connected' | 'ambiguous'} connection
+ */
+export const setNativeMcpConnection = (page, connection) =>
+  page.evaluate((connection) => /** @type {any} */ (window).__nativeShell.mcp.connection(connection), connection)
+
+/**
+ * A client's `tools/call` through the fake host: `{ id }` when relayed to the page, `{ refused }`
+ * when the host refuses it (access off).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} name
+ * @param {unknown} input
+ * @param {string} [request]
+ * @returns {Promise<{ id?: number, refused?: string }>}
+ */
+export const nativeMcpCall = (page, name, input, request) =>
+  page.evaluate(({ name, input, request }) => /** @type {any} */ (window).__nativeShell.mcp.call(name, input, request), { name, input, request })
+
+/**
+ * Every `mcp_reply` the page sent, in order.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Array<{ id: number, result: { content: Array<{ type: string, text?: string }>, isError?: boolean } }>>}
+ */
+export const nativeMcpReplies = (page) => page.evaluate(() => /** @type {any} */ (window).__nativeShell.mcp.replies())

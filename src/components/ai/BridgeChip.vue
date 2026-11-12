@@ -9,6 +9,7 @@
  */
 import { computed } from 'vue'
 
+import { PAUSED_NOTICE } from '../../composables/useLiveBridge.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 
@@ -16,6 +17,8 @@ const chat = useAiChatStore()
 const assistant = useAssistantStore()
 
 const label = computed(() => {
+  // `TODO/ai-026`: the native app is back from the background, and a client had been connected.
+  if (chat.bridge === 'paused') return PAUSED_NOTICE
   if (chat.bridge === 'connected') return 'MCP agent · connected'
   if (chat.bridge === 'enabled') return 'MCP access · enabled'
   if (chat.bridge === 'ambiguous') return 'MCP routing · ambiguous'
@@ -40,6 +43,12 @@ const label = computed(() => {
 </template>
 
 <style scoped>
+/* The paused notice is long: it wraps rather than pushing the header wider. */
+.bridge-chip[data-state='paused'] {
+  white-space: normal;
+  text-align: start;
+}
+
 .bridge-chip {
   display: inline-flex;
   flex: none;

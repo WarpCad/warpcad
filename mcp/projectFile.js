@@ -57,8 +57,7 @@ import { open, readFile, rename, stat, unlink } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
 import { LIMITS, createTurn } from '../src/ai/tools/limits.js'
-import { SET_DESCRIPTION } from '../src/ai/tools/description.js'
-import { RECORD_PROMPT, RECORD_RESPONSE } from '../src/ai/tools/prompt.js'
+import { writeToolNames } from '../src/ai/bridge/mcpSurface.js'
 import { ReplayRejection, createDocument } from '../src/core/document.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../src/core/project.js'
 import { createReplicaId } from '../src/core/replica.js'
@@ -168,31 +167,8 @@ export function loadProjectText(text, name, replica) {
   }
 }
 
-/**
- * The names of the tools that write: the registry marks them by their optional `rationale`
- * (`src/ai/tools/index.js`: "Every write tool also takes an optional `rationale`"), plus
- * `record_prompt` (`TODO/ai-031`), which writes the prompt and nothing else — so it takes the lock
- * but has no rationale, and so no `request` either (`server.js` adds that only beside a rationale).
- * `record_response` (`TODO/ai-032`) is the same: it writes the reply under the prompt, and no row;
- * so is `set_description` (`TODO/io-023`), which writes the project's description.
- *
- * @param {ToolRegistry} tools
- * @returns {Set<string>}
- */
-export function writeToolNames(tools) {
-  return new Set(
-    tools
-      .definitions('mcp')
-      .filter(
-        (definition) =>
-          definition.name === RECORD_PROMPT ||
-          definition.name === RECORD_RESPONSE ||
-          definition.name === SET_DESCRIPTION ||
-          Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale')
-      )
-      .map((definition) => definition.name)
-  )
-}
+/** `TODO/ai-026`: moved to the framework-free `src/ai/bridge/mcpSurface.js`, which the page also uses. */
+export { writeToolNames }
 
 /**
  * What the project's prompts (`TODO/ai-031`) and description (`TODO/io-023`) say, for noticing that

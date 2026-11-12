@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { test, expect } from '@playwright/test'
 
-import { failNativeCommand, installNativeShell, nativeDocuments, nativeFileText, queueNativePick } from './fixtures/nativeShell.js'
+import { failNativeCommand, installNativeShell, nativeAppData, nativeDocuments, nativeFileText, queueNativePick } from './fixtures/nativeShell.js'
 import { closeLibrary, isPhone, openLibrary, pointer, viewportPoint } from './support/humanInput.js'
 
 /**
@@ -221,6 +221,9 @@ test('io-008 in the app: a refused write says so and never falls back to a downl
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
   await placeBox(page, info)
+  // The autosave mirrors its backup with `write_text_file` 500 ms after the edit. Wait for that
+  // backup to land first, or it takes the one-shot fault below instead of the Save (`TODO/io-008`).
+  await expect.poll(async () => Object.keys(await nativeAppData(page))).toContain('autosave.ndjson')
   await failNativeCommand(page, 'plugin:fs|write_text_file', 'forbidden path: .bracket.ndjson.tmp')
   await openFileMenu(page)
   await page.getByTestId('file-save').click()

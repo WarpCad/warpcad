@@ -18,25 +18,33 @@
  *
  * The same control is available at phone and tablet widths. Access is disabled by default and
  * closes automatically when this tab disconnects, including for the unlimited lease.
+ *
+ * `TODO/ai-026`: inside the native app the host is the app's own MCP server. The sheet then says
+ * "device", shows that server's address once it listens, says **Works while WarpCad is open on
+ * screen.** where access is enabled, and adds **Allow devices on this Wi-Fi** (`NativeMcpAccess.vue`).
  */
 import { computed, ref } from 'vue'
 
 import { liveEndpointUrl } from '../../ai/bridge/protocol.js'
 import { STARTER_CLAUDE_CODE, STARTER_OTHER_AGENT } from '../../ai/mcpPrompts.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
-import { browserEngine, useLiveBridge } from '../../composables/useLiveBridge.js'
+import { browserEngine, nativeLiveHost, useLiveBridge } from '../../composables/useLiveBridge.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import { useHelpStore } from '../../stores/help.js'
 import ModalShell from '../storage/ModalShell.vue'
+import NativeMcpAccess from './NativeMcpAccess.vue'
 import StarterCopy from './StarterCopy.vue'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
 const help = useHelpStore()
 const bridge = useLiveBridge()
-/** Where a local MCP client connects (dev host only). */
-const endpointUrl = typeof window === 'undefined' ? liveEndpointUrl({ protocol: 'http:', port: '5183' }) : liveEndpointUrl(window.location)
+/** `TODO/ai-026`: inside the native app its own MCP server is the host, not the dev server. */
+const native = nativeLiveHost()
+/** Where a local MCP client connects: the dev server's port, or the app's server once it listens. */
+const devEndpointUrl = typeof window === 'undefined' ? liveEndpointUrl({ protocol: 'http:', port: '5183' }) : liveEndpointUrl(window.location)
+const endpointUrl = computed(() => (native ? chat.nativeMcp.url : devEndpointUrl))
 
 const open = computed(() => assistant.view === 'connect')
 const lease = ref(/** @type {'15m' | '1h' | 'tab' | 'unlimited'} */ ('15m'))
@@ -46,7 +54,7 @@ useEscapeToClose(() => open.value, () => close())
 
 const engineNote = computed(() => {
   // On a hosted copy live access is out of reach in every engine; the hosted block says what to use.
-  if (chat.bridge === 'unavailable') return ''
+  if (chat.bridge === 'unavailable' || native) return ''
   if (engine === 'webkit') {
     return 'Safari works here because this page is served by npm run dev on this computer. A hosted (https) copy of WarpCad cannot connect: Safari blocks it.'
   }
@@ -60,9 +68,10 @@ const status = computed(() => {
   if (chat.bridge === 'ambiguous') return chat.bridgeMessage || 'More than one MCP client or enabled tab is connected; calls are refused.'
   if (chat.bridge === 'connected') return 'An MCP client is connected to this tab.'
   if (chat.bridge === 'off') return 'Live MCP access is off.'
+  if (chat.bridge === 'paused') return chat.bridgeMessage
   if (chat.bridge === 'enabled') {
     return chat.bridgeExpiresAt === null
-      ? 'Live MCP access is enabled until this tab closes or you turn it off.'
+      ? `Live MCP access is enabled until ${native ? 'the app closes' : 'this tab closes'} or you turn it off.`
       : `Live MCP access is enabled until ${new Date(chat.bridgeExpiresAt).toLocaleTimeString()}.`
   }
   if (chat.bridge === 'expired') return 'Live MCP access expired. Enable it again to reconnect.'
@@ -71,7 +80,7 @@ const status = computed(() => {
 })
 
 const available = computed(() => chat.bridge !== 'unavailable')
-const accessEnabled = computed(() => chat.bridge === 'enabled' || chat.bridge === 'connected')
+const accessEnabled = computed(() => chat.bridge === 'enabled' || chat.bridge === 'connected' || chat.bridge === 'paused')
 
 function enable() {
   bridge.setAccess(lease.value)
@@ -117,12 +126,13 @@ function close() {
 
     <template v-else>
       <p class="connect__text" data-testid="ai-connect-explain">
-        When enabled, <strong>any MCP client on this computer</strong> that can reach the local WarpCad
-        endpoint can read and change the project open in this tab. Changes appear in History as
+        When enabled, <strong>any MCP client on this {{ native ? 'device' : 'computer' }}</strong> that can reach the local WarpCad
+        endpoint can read and change the project open in {{ native ? 'WarpCad' : 'this tab' }}. Changes appear in History as
         <em>via mcp</em>; <strong>Undo AI turn</strong> can take them back. Access is off by default.
       </p>
       <p class="connect__note" data-testid="ai-connect-endpoint" :data-endpoint="endpointUrl">
-        Endpoint: <code>{{ endpointUrl }}</code> (this computer only).
+        <template v-if="endpointUrl">Endpoint: <code>{{ endpointUrl }}</code> (this {{ native ? 'device' : 'computer' }} only).</template>
+        <template v-else>The endpoint address appears here once access is on.</template>
       </p>
       <div class="connect__starter" data-testid="ai-connect-starter-row">
         <p class="connect__text">Start the agent: paste one of these as your first message.</p>
@@ -148,10 +158,11 @@ function close() {
         <select v-model="lease" class="connect__select" data-testid="ai-connect-lease">
           <option value="15m">15 minutes</option>
           <option value="1h">1 hour</option>
-          <option value="tab">This tab</option>
+          <option value="tab">{{ native ? 'Until the app closes' : 'This tab' }}</option>
           <option value="unlimited">Until turned off</option>
         </select>
       </label>
+      <p v-if="native" class="connect__note" data-testid="ai-connect-onscreen">Works while WarpCad is open on screen.</p>
       <div class="connect__actions">
         <button v-if="accessEnabled" type="button" class="connect__button" data-testid="ai-connect-disable" @click="turnOff()">Turn off</button>
         <button type="button" class="connect__button connect__button--primary" data-testid="ai-connect-enable" @click="enable()">
@@ -159,6 +170,8 @@ function close() {
         </button>
       </div>
     </div>
+
+    <NativeMcpAccess v-if="native && available" :enabled="accessEnabled" :lease="lease" />
 
     <p v-if="engineNote" class="connect__note" role="note" data-testid="ai-connect-engine-note" :data-engine="engine">{{ engineNote }}</p>
     <p class="connect__status" role="status" data-testid="ai-connect-status" :data-state="chat.bridge">{{ status }}</p>

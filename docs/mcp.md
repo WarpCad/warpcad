@@ -413,6 +413,58 @@ lease is enabled. `/mcp` refuses requests from any other web page (including oth
 servers) and from any address but this computer's loopback. Without the explicit lease, no call
 reaches your project.
 
+## From the iOS app
+
+The [WarpCad app](native-apps.md) for iPhone, iPad and Mac runs live mode itself: no `npm run dev`,
+no computer running WarpCad. While the app is open and you've enabled access, it serves the same MCP
+endpoint, with the same tools, leases, **Undo AI turn** and **via mcp** History rows as live mode
+above.
+
+### Which agents can connect
+
+| Agent | Can it connect? |
+|---|---|
+| Claude Code on a Mac or PC on the same Wi-Fi as your iPhone or iPad | Yes. Turn on **Allow devices on this Wi-Fi** and use the command the sheet copies (it carries the token). |
+| An MCP client on the same Mac as the WarpCad Mac app, such as Claude Code | Yes, at `http://127.0.0.1:5184/mcp`, with no token. |
+| An agent running on the iPhone or iPad itself | Not known yet. It hasn't been checked on a device, so don't rely on it. This page will say once it has been. |
+
+### Try it: add a cube from your Mac
+
+On your iPhone, open WarpCad, tap **Assistant → Live MCP access…**, choose **1 hour**, tap
+**Enable access**, then turn on **Allow devices on this Wi-Fi** and tap **Copy Claude Code
+command**. Send it to your Mac (AirDrop or Universal Clipboard), run it in Terminal, and ask Claude
+Code *add a 40 mm cube*. The cube appears on your phone. Keep WarpCad on screen while the agent works.
+
+The command looks like this, with your phone's address and its token:
+
+```sh
+claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "Authorization: Bearer <token>"
+```
+
+![The Live MCP access sheet in the iPhone app with 1 hour enabled and Allow devices on this Wi-Fi turned on: the address http://192.168.1.20:5184/mcp, the token, and the Copy address, Copy token, Copy Claude Code command and New token buttons.](./screenshots/native-mcp-sheet.png)
+
+### How it behaves in the app
+
+- **It works while WarpCad is open on screen.** iOS pauses an app in the background, so the app
+  closes its endpoint when you switch away and reopens it when you come back, if your lease is still
+  on. A call that was running then is refused, and the agent is told to check `get_timeline` before
+  it retries. If an agent was connected, the header chip reads *MCP paused while WarpCad was in the
+  background* for a few seconds when you return.
+- **This device only, unless you say otherwise.** With **Allow devices on this Wi-Fi** off, the
+  endpoint answers only on the device itself (`127.0.0.1`). Turned on, it also answers on the
+  device's Wi-Fi address, and every request from another device must carry the token. The switch is
+  off by default, and you can only turn it on while access is enabled.
+- **The token.** It's 64 characters, random, and new each time the app starts. **New token** makes
+  another one and ends every connected session; an agent then needs the new command. Anyone with the
+  token on your Wi-Fi can edit the open project while the lease lasts, so share it only with your
+  own computer.
+- **Leases.** The same choices as above, except **Until the app closes** replaces **This tab**.
+  Turning access off closes the endpoint.
+- **The address.** The app uses port 5184, or the next free port if something else has it. The sheet
+  always shows the real address.
+- **No discovery.** The app doesn't advertise itself on the network; you copy the address from the
+  sheet.
+
 ## Safety
 
 - **Only one file.** The server reads and writes the file it was started with and nothing else.

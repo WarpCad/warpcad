@@ -886,6 +886,11 @@ Decision 8 (the credential never leaves the credential store).
 > build still carries no bridge: the tab side is behind `VITE_LIVE_BRIDGE`, and the preview host mounts nothing
 > without the marker. The hosted app and GitHub Pages are unchanged. Covered by `mcp/livePreview.spec.js`,
 > `src/ai/bridge/previewTransport.spec.js` and `e2e/ai-live-bridge-preview.e2e.js` (Chromium only so far).
+>
+> **Amended 2026-11-11 (`ai-026`): a third host, the native app.** Beside the dev host and the reserved
+> standalone `--live` host, the native app (`warpcad-native`) serves the endpoint itself, in Rust. It is a relay
+> with no document and no tool, like the other two; its authorization policy is the lease, plus a bearer token
+> for any peer off the device. See [The native app's host](#the-native-apps-host-ai-026-2026-11-11) below.
 
 **The question.** Decision 6 reserved `ai-012`: let Claude Code (on the user's own
 subscription, Decision 10 option B) edit the project the user has **open**, without a
@@ -930,6 +935,68 @@ by making the tab the only writer and the AI its client.
    re-initialize).
 6. **Caps, trust and data rules unchanged** (Decision 7); no subscription token is read,
    stored or sent (Decision 10 point 3).
+
+### The native app's host (`ai-026`, 2026-11-11)
+
+The third host. `npm run dev` and `npm run preview` exist only on a computer that runs WarpCad from
+source; inside the iPhone, iPad and Mac app there is no Node at all. So the app hosts the endpoint
+itself: `warpcad-native/src-tauri/src/mcp/` (Streamable HTTP at `/mcp`, `rmcp` on `axum`/`tokio`).
+
+**What stays the same.** It is the same relay: no document, no tool of its own. The page hands it
+the registry's live list, the write tools' names and the server instructions with `mcp_set_access`
+(`nativeSurface`, `src/ai/bridge/mcpSurface.js`, the module `mcp/liveHttp.js` now imports too), so
+**one registry** still feeds every transport. Each `tools/call` reaches the page as the `call` host
+message of `src/ai/bridge/protocol.js`, on a Tauri event; `useLiveBridge` reads it through the same
+`parseHostMessage` and runs it through the same `TabEndpoint`, and the page answers with `mcp_reply`.
+Calls are serial, `CALL_TIMEOUT_MS` and the "may still have landed; check `get_timeline`" refusal are
+kept, and so are `mcp/bridge.js`'s off, expired and ambiguous sentences and the five-minute idle close.
+
+**Authorization policy.**
+
+1. **The lease** (15 minutes, 1 hour, until the app closes, until turned off), off by default and
+   reset to off when the page loads. With no lease the listener is closed.
+2. **Loopback by default.** The listener binds `127.0.0.1`. The page's own origin never calls `/mcp`,
+   so any `Origin` is refused (403); `Host` must name the server's address and port (403 otherwise:
+   DNS rebinding).
+3. **Allow devices on this Wi-Fi** (off by default, only while a lease is on) binds every address and
+   requires `Authorization: Bearer <token>` from any peer that is not loopback (401 otherwise). The
+   check reads the socket's peer address, not `Host`, so a device on the LAN cannot skip the token by
+   naming `127.0.0.1`. The token is 256 bits from the OS random source, compared in constant time
+   (`subtle`), held in memory only (new each launch), never logged (its `Debug` is redacted), and
+   **New token** (`mcp_rotate_token`) replaces it and ends every session.
+4. **Background.** iOS suspends a backgrounded app (TN2277), so on iOS the listener closes on
+   `applicationWillResignActive` and reopens on return only while the lease is live; sessions are
+   kept in between. The Mac app keeps serving while another app is in front, because that is where
+   the agent runs.
+5. **No Bonjour**, no fork per remote turn, no background execution, no outbound relay (`ai-019`).
+
+**Agents.** Built for the agents known to work: an MCP client on the same Mac (the Mac app, at
+`http://127.0.0.1:5184/mcp`) and Claude Code on a computer on the same Wi-Fi as an iPhone or iPad.
+Whether an agent running on the iPhone itself can reach it is open until `build-018` item 10 records
+it on a device; `docs/mcp.md` says so and names no on-phone agent until then.
+
+**Health check at pull-in (2026-11-11; crates.io and GitHub reached, not from memory).**
+
+| Crate | Version | Licence | Health |
+|---|---|---|---|
+| `rmcp` (the official Rust MCP SDK, `modelcontextprotocol/rust-sdk`) | 3.9.0, released 2026-11-05 (recorded at selection: 3.6.0, 2026-10-20) | Apache-2.0 | 4.1k stars; 418 closed / 31 open issues; 100+ contributors; pushed 2026-11-10. Features `server` + `transport-streamable-http-server`, default features off. |
+| `axum` | 0.8.9 | MIT | tokio-rs project; the HTTP layer rmcp's tower service mounts on. `http1` + `tokio` features only. |
+| `tokio` | 1.54.1 | MIT | Already in the tree through Tauri; no new copy. |
+| `subtle` | 2.6.1 | BSD-3-Clause | dalek-cryptography; the constant-time compare. |
+| `getrandom` | 0.3.4 | MIT OR Apache-2.0 | Already in the tree; the token's random source. |
+
+Together they add **25 crates** to `Cargo.lock` (411 → 436), every one under a licence already on
+`warpcad-native/deny.toml`'s allow-list (15 MIT OR Apache-2.0, 6 MIT, 1 MIT AND BSD-3-Clause, 1
+Apache-2.0 OR MIT, 1 Apache-2.0, 1 BSD-3-Clause), so the deny config needed no change; `cargo deny check`
+passes advisories, bans, licences and sources. `cargo clippy --target aarch64-apple-ios` builds the
+Streamable HTTP server for the iPhone target.
+
+| Option | Verdict |
+|---|---|
+| `rmcp` Streamable HTTP server on `axum` | **Chosen.** The official SDK; session handling, SSE and protocol-version negotiation (including the session-less 2026-07-28 protocol) are its job, not ours. |
+| Hand-rolled JSON-RPC over `hyper` | Rejected: the protocol's session, SSE and version rules to own and keep current, for a few crates saved. |
+| Node inside the app, running `mcp/liveHttp.js` | Rejected: no Node runtime ships in an iOS app, and embedding one is far larger than these crates. |
+| A WebSocket out from the page to a relay | Rejected for this task: that is the outbound relay, `ai-019`, out of scope. |
 
 ### The standalone WebSocket server: **deferred; `ws` not added** (decided 2026-10-12)
 

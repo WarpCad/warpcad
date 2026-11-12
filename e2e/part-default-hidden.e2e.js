@@ -66,11 +66,22 @@ async function boundsOf(page, name) {
 /** The extent along each axis. @param {number[]} b */
 const extent = (b) => [b[3] - b[0], b[4] - b[1], b[5] - b[2]]
 
-/** Photograph the WebGL canvas alone into page memory (see `inspector-hidden-parts.e2e.js`). */
+/**
+ * Photograph the WebGL canvas alone into page memory (see `inspector-hidden-parts.e2e.js`).
+ *
+ * `filter` and `backdrop-filter` are switched off on the hidden overlays as well (`TODO/testing-016`,
+ * the same cause as `TODO/render-007`): Firefox keeps painting a `visibility:hidden` SVG element's
+ * CSS `drop-shadow`, so the selection gizmo's Z arm (`.tgizmo__arm`, `Gizmo.vue`) left two faint grey
+ * bars over the group in every Firefox snapshot, drawn a different length from one snapshot to the
+ * next. That was up to 57 "changed" pixels on firefox-tablet while the WebGL pixels were identical.
+ * Neither property affects layout, so nothing reflows between snapshots.
+ */
 async function snapshotCanvas(page, key) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
   const handle = await page.addStyleTag({
-    content: '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}',
+    content:
+      '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}' +
+      '[data-testid=viewport] > :not(canvas),[data-testid=viewport] > :not(canvas) *{filter:none !important;backdrop-filter:none !important}',
   })
   try {
     const png = await page.getByTestId('viewport-canvas').screenshot()

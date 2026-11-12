@@ -16,7 +16,7 @@ status: done
 > acceptance scenario 33 and scenario 8 step 7. Accepted gaps, recorded in the decision doc: a measuring formula that fails
 > only during the fold can still make a load refuse the file when other rows depend on it (matches `var.define`); and a
 > printed formula drops redundant parentheses. The `part-default-hidden` e2e flake that appeared with Part 1 is tracked in
-> `TODO/FIND-testing-016-part-default-hidden-canvas-same-flakes.md`, not here.
+> `TODO/done/testing-016-part-default-hidden-canvas-same-flakes.md`, not here.
 
 ## Goal
 

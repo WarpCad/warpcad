@@ -75,6 +75,14 @@ If you come back to the app after a while and the 3D view is blank, with a banne
 has no reload button, so the view restores itself, or restores when you tap that button,
 without losing your parts or your undo history.
 
+### Let an AI agent edit the open project
+
+The app can let an MCP agent, such as Claude Code on your computer, edit the project you have
+open, with nothing else to install. Open **Assistant → Live MCP access…**, choose how long, and
+tap **Enable access**. To reach it from a computer on the same Wi-Fi, turn on **Allow devices on
+this Wi-Fi** and copy the command the sheet shows. It works while WarpCad is open on screen.
+[From the iOS app](mcp.md#from-the-ios-app) gives the steps and says which agents can connect.
+
 ## Where your work is kept
 
 In the iPhone and iPad app, your open project and your My parts are kept in two places on the
@@ -106,6 +114,11 @@ The Mac app opens WarpCad in its own window, with the persistent side panels of 
 layout. Mouse, trackpad and keyboard shortcuts work as they do in a desktop browser. Follow
 the same steps as above with a mouse: drag **Cube** from the Library into the view and
 release. The Help version line ends in `macOS app` and the app's version.
+
+An MCP client on the same Mac, such as Claude Code, can edit the open project through the app's
+own endpoint, `http://127.0.0.1:5184/mcp`, once you enable **Assistant → Live MCP access…**. See
+[From the iOS app](mcp.md#from-the-ios-app); the Mac app works the same way, and keeps serving
+while another app is in front.
 
 ## Android
 

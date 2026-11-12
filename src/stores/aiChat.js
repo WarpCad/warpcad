@@ -100,15 +100,23 @@ export const useAiChatStore = defineStore('aiChat', () => {
   * `idle` — the initial host status is pending; `off` — access is off; `enabled` — a lease is active;
   * `connected` — one client and tab route;
   * `ambiguous` — the host refuses multiple possible clients or tabs;
-  * `expired` — a timed lease ended; `disconnected` — the dev-server socket dropped.
+  * `expired` — a timed lease ended; `disconnected` — the dev-server socket dropped;
+  * `paused` — `TODO/ai-026`: the native app just came back from the background with a client
+  * connected (shown a few seconds, then the host's state).
    *
-  * @type {import('vue').Ref<'unavailable' | 'idle' | 'off' | 'enabled' | 'connected' | 'ambiguous' | 'expired' | 'disconnected'>}
+  * @type {import('vue').Ref<'unavailable' | 'idle' | 'off' | 'enabled' | 'connected' | 'ambiguous' | 'expired' | 'disconnected' | 'paused'>}
    */
-  const bridge = ref(/** @type {'unavailable' | 'idle' | 'off' | 'enabled' | 'connected' | 'ambiguous' | 'expired' | 'disconnected'} */ ('idle'))
+  const bridge = ref(/** @type {'unavailable' | 'idle' | 'off' | 'enabled' | 'connected' | 'ambiguous' | 'expired' | 'disconnected' | 'paused'} */ ('idle'))
   /** The last thing the live MCP host said (off/expired/ambiguous), or ''. */
   const bridgeMessage = ref('')
   /** Host-clock expiry timestamp for a timed lease, or null for tab/unlimited. */
   const bridgeExpiresAt = ref(/** @type {number | null} */ (null))
+  /**
+   * `TODO/ai-026`: the native app's MCP host, for the Live MCP access sheet. `native` is true inside
+   * the app; the rest is what the host last said: its addresses, the Wi-Fi token while **Allow
+   * devices on this Wi-Fi** is on, and why that switch could not turn on. Not document state.
+   */
+  const nativeMcp = ref({ native: false, lan: false, url: '', lanUrl: '', token: '', lanError: '' })
   /** An MCP call is running in this tab (held briefly after, so it can be seen). */
   const bridgeWorking = ref(false)
   /** Landed MCP groups that **Undo AI turn** can still take back. */
@@ -240,6 +248,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
     bridge,
     bridgeMessage,
     bridgeExpiresAt,
+    nativeMcp,
     bridgeWorking,
     bridgeTurns,
     lastLanded,

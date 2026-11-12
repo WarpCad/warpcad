@@ -50,6 +50,7 @@ import { MODELLING_GUIDE } from '../src/ai/prompt.js'
 import { RECORD_PROMPT_LINE, sharedInstructionLines } from '../src/ai/mcpInstructions.js'
 import { listPrompts, promptMessages } from '../src/ai/mcpPrompts.js'
 import { createToolRegistry } from '../src/ai/tools/index.js'
+import { mcpToolDefinitions, splitRequest } from '../src/ai/bridge/mcpSurface.js'
 import { createProjectSession, writeToolNames } from './projectFile.js'
 
 /** What the server says about itself in `initialize` — ours, never file text. */
@@ -64,11 +65,6 @@ export const SERVER_INSTRUCTIONS = [
 ].join('\n')
 
 /** The `request` property the MCP transport adds to every write tool's schema. */
-const REQUEST_PROPERTY = Object.freeze({
-  type: 'string',
-  description:
-    'The user’s request that led to this change, in their words (one or two sentences). Saved with the new History rows as their design intent.',
-})
 
 /** The guide's URI and annotations, shared with `liveHttp.js`. */
 export const GUIDE_URI = 'warpcad://guide'
@@ -118,44 +114,8 @@ const RESOURCES = Object.freeze([
   },
 ])
 
-/**
- * The definitions this transport lists: the registry's, plus `request` on write tools.
- *
- * @param {import('../src/ai/tools/index.js').ToolRegistry} tools
- * @param {import('../src/ai/tools/index.js').ListOptions} [options] `{ live: true }` for the live
- *   bridge (`TODO/ai-012`, `mcp/liveHttp.js`): the browser tool set on top.
- * @returns {import('../src/ai/tools/index.js').ToolDefinition[]}
- */
-export function mcpToolDefinitions(tools, options) {
-  const writers = writeToolNames(tools)
-  return tools.definitions('mcp', options).map((definition) =>
-    // `record_prompt` (`TODO/ai-031`) is a writer with no rationale: its prompt is the request.
-    writers.has(definition.name) && Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale')
-      ? {
-          ...definition,
-          inputSchema: {
-            ...definition.inputSchema,
-            properties: { ...definition.inputSchema.properties, request: REQUEST_PROPERTY },
-          },
-        }
-      : definition
-  )
-}
-
-/**
- * Split the transport's `request` off a write tool's arguments.
- *
- * @param {unknown} args
- * @returns {{ input: unknown, request?: string, error?: string }}
- */
-export function splitRequest(args) {
-  if (args === null || typeof args !== 'object' || Array.isArray(args) || !Object.hasOwn(args, 'request')) {
-    return { input: args }
-  }
-  const { request, ...input } = /** @type {Record<string, unknown>} */ (args)
-  if (typeof request !== 'string') return { input, error: 'request must be a string' }
-  return { input, request }
-}
+/** `TODO/ai-026`: moved to the framework-free `src/ai/bridge/mcpSurface.js`, which the page also uses. */
+export { mcpToolDefinitions, splitRequest }
 
 /**
  * @param {Record<string, any>} result
