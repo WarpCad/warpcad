@@ -11,7 +11,7 @@
 // known to git (tracked or staged) are considered, so `git add` a new file to have it
 // checked.
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { extname } from 'node:path'
 
 const CODE = 'AGPL-3.0-or-later'
@@ -39,6 +39,9 @@ const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
   .split('\0')
   .filter(Boolean)
   .filter((f) => !SKIP.some((re) => re.test(f)))
+  // Tracked but deleted in the working tree (the index still lists it until the deletion is
+  // committed): there is nothing on disk to mark or read, so it is not checked.
+  .filter((f) => existsSync(f))
 
 const missing = []
 for (const file of files) {
