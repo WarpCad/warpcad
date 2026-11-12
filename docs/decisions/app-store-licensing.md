@@ -204,6 +204,8 @@ for the app copy (prose licence (b), decided the same day). **Not reviewed by an
 AI-assisted authorship question, the CLA's governing-law placeholder, and the VLC-style mechanism. Part 6
 therefore stays NOT DONE in substance. This task does not block on it; the store submission does.
 
+**Decided 2026-11-12:** keep the gate as written and let the owner self-attest at submission. `build-020` ends by writing a one-page checklist of the four items above, each with the facts it rests on, and the owner then records a dated, named self-review line here before pressing Submit. That line is an owner's own review, not an outside one, and must say so. Part 6 is not marked done by anyone else, and the gate is not reworded.
+
 ## Verification still outstanding
 
 These need a second GitHub account or the owner's hand. This record does not claim them.
