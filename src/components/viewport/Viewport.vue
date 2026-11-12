@@ -82,7 +82,6 @@ import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import { formatMmValue } from '../../core/units.js'
 import { isDegenerate } from '../../sketch/entity.js'
-import { SNAP_LABELS, createSnapResult, snapPoint, snapTargets } from '../../sketch/snap.js'
 import { circleFromDrag, isClosed, polygonFromDrag, profileAtPoint, rectFromDrag, segmentCountOf, toPointsMm } from '../../sketch/profile.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { unpackGeometry } from '../../core/kernel/transport.js'
@@ -93,6 +92,7 @@ import { createContextRecovery } from '../../render/contextRecovery.js'
 import { applyViewVisibility, BODY_COLORS, createGhostMaterial, drawnBoundsOf, geom3ToBufferGeometry } from '../../render/mesh.js'
 import { announcedColor, announcedPartColors, createBodyCounts, createBodyMeshes } from '../../render/bodyMeshes.js'
 import { createPlacementGhost } from '../../render/placementGhost.js'
+import { createSketchSnap } from '../../render/sketchSnap.js'
 import { PICK_OFFSETS_PX, firstDrawnHit, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
 import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
 import { toGeom3 } from '../../core/kernel/index.js'
@@ -151,19 +151,6 @@ const SKETCH_HANDLE_TARGET_PX = 44
 /** Midpoint dots show only on segments at least this long on screen — two targets. */
 const SKETCH_MIDPOINT_MIN_SEGMENT_PX = 2 * SKETCH_HANDLE_TARGET_PX
 
-/**
- * How close, in screen pixels, the pointer has to come to a snap target for the point being
- * placed to jump onto it (`TODO/sketch-007`). Its own constant, not
- * `SKETCH_PICK_TOLERANCE_PX`: that one is how forgiving a *pick* is, this is how strongly a
- * *placement* is pulled. Converted to millimetres at the moment of use, so it feels the same
- * at every zoom and on every viewport.
- */
-const SKETCH_SNAP_RADIUS_PX = 12
-/**
- * On touch, the snap marker is drawn this far above the snapped point (with a leader line
- * down to it), so the finger that is placing the point does not hide the marker.
- */
-const SKETCH_SNAP_TOUCH_LIFT_PX = 56
 
 /** How far clear of the solid a dimension line is drawn. */
 const DIMENSION_OFFSET_PX = 28
@@ -429,6 +416,19 @@ const scratchHandlePoint = createScreenPoint()
 // --- non-reactive render state -------------------------------------------
 
 const orbit = createOrbitCamera()
+/**
+ * The sketch snap (`TODO/ui-108`, extraction 4a): `src/render/sketchSnap.js`. It writes the
+ * reactive `sketchSnap` marker above, which the overlay reads.
+ */
+const sketchSnapper = createSketchSnap({
+  orbit,
+  editor: sketchEditor,
+  sliceZ: () => activeSliceZ(),
+  widthPx: () => widthPx,
+  heightPx: () => heightPx,
+  isEditing: () => vertexDrag.active,
+  marker: sketchSnap,
+})
 /** @type {import('../../render/scene.js').Viewport | null} */
 let viewport = null
 /** @type {ResizeObserver | null} */
@@ -603,26 +603,6 @@ const vertexDrag = {
 /** Scratch for the dragged point's new position, mm. */
 const scratchVertexMm = [0, 0]
 
-/**
- * The snap targets of the active slice (`TODO/sketch-007`), built by `src/sketch/snap.js` only
- * when the outlines they come from change — never per pointer move — and held here as plain,
- * non-reactive arrays. `profiles` is the identity of every outline they were built from, so the
- * check that they are still current is a walk with no allocation (a point drag replaces only
- * the outline being dragged, which is excluded, so its targets survive the whole drag).
- */
-const snapCache = {
-  /** @type {import('../../sketch/snap.js').SnapTargets | null} */
-  targets: null,
-  /** @type {object[]} */
-  profiles: [],
-  excludeId: '',
-  /** @type {readonly number[] | null} */
-  firstVertex: null,
-}
-/** The one snap result, written by every search. */
-const snapResult = createSnapResult()
-/** Where the shown marker is, sketch mm — re-projected when the camera moves. */
-const snapMarkerMm = { xMm: 0, yMm: 0 }
 /** The last pointer over the canvas, so pressing or releasing Shift can re-snap in place. */
 const snapPointer = { has: false, xPx: 0, yPx: 0 }
 
@@ -894,7 +874,7 @@ function syncSketchPaths(force = false) {
     sketchDraftPath.visible = false
     sketchChain.visible = false
     sketchLive.has = false
-    hideSnapMarker()
+    sketchSnapper.hide()
     sketchSyncedDraft = null
     return
   }
@@ -964,7 +944,7 @@ function syncSketchPaths(force = false) {
     sketchAxis.visible = false
   }
   drawChainLive()
-  drawSnapMarker()
+  sketchSnapper.draw()
   referenceImage.syncOverlay()
 }
 
@@ -1127,7 +1107,7 @@ function updateVertexDrag(clientXPx, clientYPx, shiftKey = false) {
   if (!point) return
   scratchVertexMm[0] = point[0] + vertexDrag.offsetXMm
   scratchVertexMm[1] = point[1] + vertexDrag.offsetYMm
-  snapSketchPoint(scratchVertexMm, shiftKey, pressPointerType === 'touch')
+  sketchSnapper.snap(scratchVertexMm, shiftKey, pressPointerType === 'touch')
   sketchEditor.moveVertex(vertexDrag.index, scratchVertexMm)
 }
 
@@ -1140,7 +1120,7 @@ function updateVertexDrag(clientXPx, clientYPx, shiftKey = false) {
 function endVertexDrag(cancelled) {
   if (!vertexDrag.active) return
   vertexDrag.active = false
-  hideSnapMarker()
+  sketchSnapper.hide()
   if (cancelled && vertexDrag.beforeDraft) {
     sketchEditor.setDraft(vertexDrag.beforeDraft)
     sketchEditor.selectVertex(vertexDrag.beforeVertex)
@@ -1179,111 +1159,6 @@ function sketchToleranceMm() {
   return SKETCH_PICK_TOLERANCE_PX * (orbit.getMmPerPixel(heightPx) || 1)
 }
 
-// --- snapping (TODO/sketch-007) ---------------------------------------------
-
-/** @type {readonly any[]} */
-const NO_PROFILES = Object.freeze([])
-
-/**
- * The active slice's snap targets, minus `excludeId` — rebuilt only when an outline they come
- * from changed (see {@link snapCache}).
- *
- * @param {string} excludeId The outline being drawn or edited, or `''`.
- * @param {boolean} keepFirst A live Line chain: its first point stays a target (close on it).
- */
-function currentSnapTargets(excludeId, keepFirst) {
-  const profiles = sketchEditor.slice?.profiles ?? NO_PROFILES
-  /** @type {readonly number[] | null} */
-  let first = null
-  if (keepFirst && excludeId) {
-    for (const profile of profiles) {
-      if (profile.id !== excludeId) continue
-      if (profile.kind === 'polyline' && !profile.closed && profile.pointsMm.length >= 3) first = profile.pointsMm[0]
-      break
-    }
-  }
-  const cached = snapCache.profiles
-  let current = snapCache.targets !== null && snapCache.excludeId === excludeId && snapCache.firstVertex === first
-  if (current) {
-    let at = 0
-    for (const profile of profiles) {
-      if (profile.id === excludeId) continue
-      if (cached[at] !== profile) {
-        current = false
-        break
-      }
-      at += 1
-    }
-    if (at !== cached.length) current = false
-  }
-  if (current && snapCache.targets) return snapCache.targets
-  cached.length = 0
-  for (const profile of profiles) if (profile.id !== excludeId) cached.push(profile)
-  snapCache.excludeId = excludeId
-  snapCache.firstVertex = first
-  snapCache.targets = snapTargets(profiles, excludeId, { keepFirstVertex: first !== null })
-  return snapCache.targets
-}
-
-/**
- * Snap a point being placed onto the outlines already on the slice, in place, and show the
- * marker for it — or hide the marker when snapping is off (the toolbar toggle, or Shift held)
- * or nothing is in range. Every point a draw gesture fixes goes through here first: the press
- * and the live end of a drag, a Line click, and a dragged point handle.
- *
- * @param {number[]} pointMm Sketch-local mm, overwritten with the snapped point. A scratch array.
- * @param {boolean} shiftKey Held: no snapping for this point.
- * @param {boolean} touch Lift the marker above the finger.
- * @returns {boolean} Whether the point moved onto a target.
- */
-function snapSketchPoint(pointMm, shiftKey, touch) {
-  if (!sketchEditor.snapEnabled || shiftKey) {
-    hideSnapMarker()
-    return false
-  }
-  // The outline being drawn or edited is never its own target: a dragged point's outline, or
-  // the live Line chain (which keeps only its first point, to close on).
-  const editing = vertexDrag.active
-  const excludeId = editing ? sketchEditor.selectedProfileId : sketchEditor.tool === 'line' ? sketchEditor.chainId : ''
-  const targets = currentSnapTargets(excludeId, !editing && sketchEditor.tool === 'line')
-  const radiusMm = SKETCH_SNAP_RADIUS_PX * (orbit.getMmPerPixel(heightPx) || 1)
-  const hit = snapPoint(pointMm, targets, radiusMm, snapResult)
-  if (!hit) {
-    hideSnapMarker()
-    return false
-  }
-  pointMm[0] = hit.pointMm[0]
-  pointMm[1] = hit.pointMm[1]
-  snapMarkerMm.xMm = hit.pointMm[0]
-  snapMarkerMm.yMm = hit.pointMm[1]
-  if (sketchSnap.kind !== hit.kind) {
-    sketchSnap.kind = hit.kind
-    sketchSnap.label = SNAP_LABELS[hit.kind]
-  }
-  sketchSnap.lifted = touch
-  drawSnapMarker()
-  return true
-}
-
-/** Project the snap marker for the current camera; called on every snap and every re-projection. */
-function drawSnapMarker() {
-  if (!sketchSnap.kind) {
-    if (sketchSnap.visible) sketchSnap.visible = false
-    return
-  }
-  const point = sketchPointToScreen(orbit, sketchEditor.frame, snapMarkerMm.xMm, snapMarkerMm.yMm, activeSliceZ(), widthPx, heightPx, scratchHandlePoint)
-  sketchSnap.xPx = point.x
-  sketchSnap.yPx = point.y
-  sketchSnap.markerXPx = point.x
-  sketchSnap.markerYPx = sketchSnap.lifted ? point.y - SKETCH_SNAP_TOUCH_LIFT_PX : point.y
-  sketchSnap.visible = point.visible
-}
-
-function hideSnapMarker() {
-  if (sketchSnap.kind) sketchSnap.kind = ''
-  if (sketchSnap.visible) sketchSnap.visible = false
-}
-
 /**
  * A mouse over the canvas with a drawing tool armed and nothing pressed: show where a press
  * would land, so the marker and its label appear *before* the click. The live Line chain's
@@ -1296,16 +1171,16 @@ function hideSnapMarker() {
 function hoverSketchSnap(clientXPx, clientYPx, shiftKey) {
   const tool = sketchEditor.tool
   if (tool === 'select') {
-    hideSnapMarker()
+    sketchSnapper.hide()
     return
   }
   if (tool === 'line' && sketchEditor.chainLive) return
   const point = projectToSketch(clientXPx, clientYPx)
   if (!point) {
-    hideSnapMarker()
+    sketchSnapper.hide()
     return
   }
-  snapSketchPoint(point, shiftKey, false)
+  sketchSnapper.snap(point, shiftKey, false)
 }
 
 /**
@@ -1346,7 +1221,7 @@ function beginSketchDrag() {
   const point = projectToSketch(pressStartClientX, pressStartClientY)
   if (!point) return false
   // The press point is the first point fixed — a circle's centre, a rectangle's corner.
-  snapSketchPoint(point, pressShiftKey, pressPointerType === 'touch')
+  sketchSnapper.snap(point, pressShiftKey, pressPointerType === 'touch')
   sketchDrag.active = true
   sketchDrag.startXMm = point[0]
   sketchDrag.startYMm = point[1]
@@ -1458,7 +1333,7 @@ function trackChainPointer(clientXPx, clientYPx, shiftKey = false) {
   if (!point) return
   // The rubber band ends where the click would fix the vertex — snapped, so what you see is
   // what you get.
-  snapSketchPoint(point, shiftKey, false)
+  sketchSnapper.snap(point, shiftKey, false)
   sketchLive.has = true
   sketchLive.xMm = point[0]
   sketchLive.yMm = point[1]
@@ -1501,9 +1376,9 @@ function fixSketchVertex(pointMm) {
 function lineTap(clientXPx, clientYPx, shiftKey = false, touch = false) {
   const point = projectToSketch(clientXPx, clientYPx)
   if (!point) return
-  snapSketchPoint(point, shiftKey, touch)
+  sketchSnapper.snap(point, shiftKey, touch)
   // A finger has lifted: nothing is in hand any more, so no marker either.
-  if (touch) hideSnapMarker()
+  if (touch) sketchSnapper.hide()
   const sincePrevious = performance.now() - sketchLastFixAt
   if (sincePrevious < SKETCH_DOUBLE_TAP_MS && sketchLastFixResult === 'closed') return
   const result = fixSketchVertex([point[0], point[1]])
@@ -1526,7 +1401,7 @@ function updateSketchDrag(clientXPx, clientYPx, shiftKey = false) {
   if (!point) return
   // The live end — a circle's or polygon's radius point, a rectangle's far corner, a Line
   // vertex — snaps too, and the draft preview is drawn from the snapped point.
-  snapSketchPoint(point, shiftKey, pressPointerType === 'touch')
+  sketchSnapper.snap(point, shiftKey, pressPointerType === 'touch')
   sketchDrag.endXMm = point[0]
   sketchDrag.endYMm = point[1]
   if (sketchEditor.tool === 'line') {
@@ -1555,7 +1430,7 @@ function endSketchDrag(cancelled) {
   const end = /** @type {[number, number]} */ ([sketchDrag.endXMm, sketchDrag.endYMm])
   sketchDrag.active = false
   sketchDraftPath.visible = false
-  hideSnapMarker()
+  sketchSnapper.hide()
   scheduleRender()
   if (sketchEditor.tool === 'line') {
     if (!cancelled) {
@@ -1625,7 +1500,7 @@ function hoverSketchProfile(clientXPx, clientYPx) {
 
 function clearSketchHover() {
   snapPointer.has = false
-  if (!sketchDrag.active && !vertexDrag.active) hideSnapMarker()
+  if (!sketchDrag.active && !vertexDrag.active) sketchSnapper.hide()
   if (sketchLive.has && !sketchDrag.active) {
     sketchLive.has = false
     drawChainLive()
@@ -2838,7 +2713,7 @@ onMounted(() => {
       },
     ),
     // A marker left over from the last tool, slice or snap state would point at nothing.
-    watch(() => [sketchEditor.tool, sketchEditor.activeSlice, sketchEditor.snapEnabled], hideSnapMarker),
+    watch(() => [sketchEditor.tool, sketchEditor.activeSlice, sketchEditor.snapEnabled], () => sketchSnapper.hide()),
     watch(() => documentStore.version, applySketchBodyVisibility),
     // The reference photo (`TODO/sketch-003`): which one, where, and how opaque all live in the
     // draft; a photo added this session lives in the editor until Done.
