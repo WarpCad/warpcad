@@ -51,6 +51,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-024 — Android icons and launch colours (2026-11-12 17:58)
+
+Built by `npm run icons` in `warpcad-native`; resources compile under aapt2 but no APK, emulator or device was run (`npm run tauri` is missing from the native `package.json`, so Gradle's Rust step fails).
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Android launcher and recents show the WarpCad cube under circle, squircle and square masks | Open | |
+| 2 | No white frame at launch, status and navigation bars are `#10131a` | Open | |
+
+
 ### ui-120 — Safe-area chrome on a real notched phone (2026-11-11 16:39 UTC)
 
 The CSS and viewport contract is done and tested with faked insets, but whether iOS really insets the web view, or lets the header sit under the status bar, is a device question no spec can answer.

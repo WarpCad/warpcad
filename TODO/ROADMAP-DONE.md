@@ -807,6 +807,7 @@ first five rows below.
 | ✅ `testing-012` | `e2e/help-deep-link.e2e.js`: cold `/#/help/<slug>` and topic ids open Help, Esc clears the hash, `#/gist/` keeps priority, unknown slug gets a readable line; 3 × 3 | Testing | — | 1 (from a cold help link) |
 | ✅ `build-022` | Home page live on `warpcad.com`: domain verified, HTTPS enforced, apex and `www` moved to GitHub, `app` untouched. Row 10 (next scheduled run) tracked in VERIFY | Build | `docs-027` | owner device checks (VERIFY row 9) |
 | ✅ `build-023` | Native iOS, macOS and Windows icons from one generator (`npm run icons`), `#10131a` launch background, `AccentColor` `#5aa9e6`, version `1.12.0`, window defaults. Android split to `build-024` | Build | `build-017` | owner device checks (iPhone and iPad home screen, Dock, taskbar) |
+| ✅ `build-024` | Native Android icons, `#10131a` window, status-bar and splash colours, adaptive icon, all from `npm run icons` after `cargo tauri android init` (Android SDK and NDK installed). Resources compile under aapt2; no APK or emulator run | Build | `build-017`, `build-023` | owner device check (Android launcher and recents) |
 
 ## M19 — Native iOS app
 
@@ -815,6 +816,8 @@ first five rows below.
 | ✅ `ui-120` | The header, tab bar, Library rail, Inspector and navigation chrome read the device safe-area insets (`viewport-fit=cover`, `--layout-safe-*` variables); the notch and home-indicator hypothesis still needs a simulator or device check | UI | `build-017` | 1 (phone chrome clears faked iPhone 15 insets; device check open) |
 | ✅ `render-006` | Restore the 3D view after a lost WebGL context: `webglcontextrestored` rebuilds the GPU state, and a **Restore view** fallback after 3 s rebuilds the renderer on the same canvas. Shipped in the web app (commit `a2f241b`); the real WKWebView loss check stays open under `testing-011` step 4 | Finding | `build-017` | 1 (force a loss, the view comes back, undo still works) |
 | ✅ `io-014` | Save, open and export real files in the iOS app: Save writes in place to Documents, Open lists the app's projects with Browse…, exports write to Documents/Exports, and Open in WarpCad copies an inbound file in. Partly driven: scenario 11 PASS and 10 (local half) PASS; 22, 23, 26, the hosted half of 10, and the simulator doc run are not driven, see the TODO's Shipped note | Operation | `build-017` | 10, 11, 26 (partly driven, see the TODO) |
+| ✅ `ai-026` | An MCP server inside the native app: an `rmcp` Streamable HTTP server on axum in `warpcad-native` that relays `tools/list` and `tools/call` to the page, so the web registry stays the one source. Loopback by default (Host/Origin checked), opt-in Wi-Fi with a bearer token; listens only while the app is on screen on iOS. Shipped in warpcad-native 15ce235 on 2026-11-11; the scenario 25 drive with a real Claude Code is owed to `testing-011`. [`done/ai-026`](../../warpcad-native/TODO/done/ai-026-mcp-server-in-the-native-app.md) | Control | `build-017` | 24, 25, 27 (drive owed to `testing-011`) |
+| ✅ `ai-025` | The iOS app keeps the Anthropic key and the GitHub token in the Keychain behind `createCredentialStore`: `keychain_get`/`keychain_set`/`keychain_delete` commands limited to two accounts, one Swift file over `SecItem*` (no crate), a one-time read-back-then-delete migration from IndexedDB, and the key sheet's storage line comes from the store. Shipped in warpcad-native 937634b on 2026-11-11. Not driven: a real Keychain on a device or simulator (`testing-011` step 7); scenario 24 only partly driven with a mocked endpoint. [`done/ai-025`](../../warpcad-native/TODO/done/ai-025-native-keychain-credentials.md) | Control | `build-017` | 24 (partly driven, Keychain drive owed to `testing-011`) |
 
 ## Findings
 
@@ -1293,5 +1296,8 @@ convention going forward.
 | `io-014` | 2026-11-11 18:14 | ~57m from the Step 3 start (17:17 UTC); most of it waiting on the Opus implementation and the e2e pair. Typecheck and unit green, rotating pair 1151 passed, native-files spec 54/54; scenario 11 PASS, 10 local half PASS |
 | `io-015` | 2026-11-11 18:43 | 26m |
 | `render-006` | 2026-11-11 12:17 | — |
+| `ai-026` | 2026-11-12 | — (bookkeeping close; the code landed 2026-11-11 in warpcad-native 15ce235, whose retirement missed the web roadmap) |
+| `ai-025` | 2026-11-12 | — (bookkeeping close; the code landed 2026-11-11 in warpcad-native 937634b, whose retirement missed the web roadmap) |
+| `build-024` | 2026-11-12 17:58 | 15m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

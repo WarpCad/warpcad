@@ -45,9 +45,6 @@ this repository still need a green full run before they are pushed.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 4 | ▶ Ready | `M19` | [`ai-025`](../../warpcad-native/TODO/M19-ai-025-native-keychain-credentials.md) API key and GitHub token in the Keychain | sonnet |
-| 5 | ▶ Ready | `M19` | [`ai-026`](../../warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app | opus |
-| 6 | Owner OK first | `M19` | [`build-024`](../../warpcad-native/TODO/M19-build-024-native-android-icons-and-defaults.md) Android launcher icons, splash and colours (installs the Android SDK and NDK, several GB) | sonnet |
 | 7 | Owner step | `M19` | **Signing setup:** Apple ID in Xcode with the paid team, team ID, Apple Distribution certificate, iPhone registered, App Store Connect record for `com.warpcad.app`, App Store Connect API key. Full list in [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md). Nothing installs on a device before this | — |
 | 8 | ⏳ Waits on 7 | `M19` | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build | sonnet |
 | 9 | ⏳ Waits on 8 | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the TestFlight build on the iPhone; settle the decision record's unknowns | sonnet |
@@ -159,11 +156,8 @@ with their dependencies and acceptance columns; keep the two in step when a row 
 |---|---|---|---|---|---|
 | M19 — Native iOS app | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the owner's iPhone; settle the decision record's unverified rows | feature | high | sonnet | ⏳ after `build-019` (first device run) |
 | M19 — Native iOS app | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Distribution signing and a TestFlight build | feature | high | sonnet | ⏳ after `build-017`; **owner signing setup first** (Next up row 8) |
-| M19 — Native iOS app | [`ai-025`](../../warpcad-native/TODO/M19-ai-025-native-keychain-credentials.md) API key and GitHub token in the iOS Keychain | feature | medium | sonnet | ▶ **ready** |
-| M19 — Native iOS app | [`ai-026`](../../warpcad-native/TODO/M19-ai-026-mcp-server-in-the-native-app.md) An MCP server inside the app (loopback, opt-in Wi-Fi with a token) | feature | high | opus | ▶ **ready** |
 | M19 — Native iOS app | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Acceptance scenario 28 on the iPhone, plus the free-form pass | feature | high | sonnet | ⏳ after `build-018`, `build-019`, `render-006`, `io-015`, `ai-025`, `ai-026` |
 | M19 — Native iOS app | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) App Store readiness; stops at the owner's Submit | feature | high | sonnet | ⏳ after `build-019`, `testing-011` |
-| M19 — Native iOS app | [`build-024`](../../warpcad-native/TODO/M19-build-024-native-android-icons-and-defaults.md) Android launcher icons, splash and colours (split from `build-023`) | feature | medium | sonnet | ⏳ needs the Android SDK; before `build-020` |
 | M19 — Native iOS app | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR camera and add it to My parts as a mesh part | feature | medium | opus | ⏳ after `build-017`, `build-018`, `render-006`; scheduled after `build-020` |
 | M19 — Native iOS app | [`build-028`](../../warpcad-native/TODO/M19-build-028-windows-https-scheme-before-first-release.md) Set `useHttpsScheme` before any Windows or Android build reaches a user (the origin cannot change after release) | finding | high | sonnet | ▶ **ready** |
 | M19 — Native iOS app | [`build-029`](../../warpcad-native/TODO/M19-build-029-external-links-and-navigation-guard.md) External links open in the system browser; the app's web view never navigates away (two repositories) | finding | high | sonnet | ▶ **ready** |
@@ -236,8 +230,6 @@ Scenario 28 (`testing-011`) is the one acceptance check only the device can pass
 |---|---|---|---|---|
 | `build-018` | On-device probe: size, cold start, memory, context loss, storage survival, `ws://`, file picker, Files visibility, **which agents can reach an in-app MCP server**. First device run, on the TestFlight build | Build | `build-019` | 1, 7, 10 |
 | `build-019` | Distribution signing and a TestFlight build, early, because Tauri's open iOS issues are in this step. Owner signing setup first; the first device install | Build | `build-017` | opens on device |
-| `ai-025` | Keychain behind `createCredentialStore`; one-time migration | Control | `build-017` | 24 |
-| `ai-026` | `rmcp` Streamable HTTP server in the app relaying to `TabEndpoint`; lease from the existing sheet; loopback by default, Wi-Fi opt-in with a token; works only while the app is on screen | Control | `build-017` | 24, 25, 27 |
 | `testing-011` | Acceptance scenario **28**, the iOS app end to end, driven on the iPhone; the M19 free-form pass | Testing | `build-018`, `build-019`, `render-006`, `io-015`, `ai-025`, `ai-026` | creates 28; 1, 7, 10, 25 |
 | `build-020` | Listing, privacy labels and manifest, icons, native and asset licence audits, owner decisions; **stops before Submit** (Part 6 legal gate) | Build | `build-019`, `testing-011` | 28, 1, 7, 10 |
 | `io-026` | LiDAR scan → My parts mesh part: a Swift Tauri plugin (Object Capture by default, scene reconstruction if the iPad can't), a `WCSCAN1` buffer parsed in `src/io/meshFormats/`, metres Y-up → mm Z-up at that boundary. Post-submit 1.1 | Operation | `build-017`, `build-018`, `render-006` | 26, 31, 10, 28 |
@@ -249,8 +241,7 @@ Scenario 28 (`testing-011`) is the one acceptance check only the device can pass
 
 **Order (reordered 2026-11-08: the owner cannot sign yet, so no device install is possible until the signing gate).**
 
-1. **On this Mac, no signing:** `build-017` → `render-006` → `io-015` → `ai-025` → `ai-026`, plus
-   `build-024` whenever the owner agrees to the Android SDK install. Each is checked on the macOS shell and the
+1. **On this Mac, no signing:** `build-017` → `render-006` → `io-015` → `ai-025` → `ai-026` (and `build-024`, done 2026-11-12). Each is checked on the macOS shell and the
    iOS simulator. `render-006` and `ai-025` do not depend on each other.
 2. **The signing gate (owner):** the setup listed in `build-019` and in Next up row 7.
 3. **On the iPhone:** `build-019` (first install, from TestFlight) → `build-018` (measure it; a contradicting
