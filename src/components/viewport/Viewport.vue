@@ -92,22 +92,13 @@ import { createViewport, rebuildGpuResources } from '../../render/scene.js'
 import { createContextRecovery } from '../../render/contextRecovery.js'
 import { applyViewVisibility, BODY_COLORS, createGhostMaterial, drawnBoundsOf, geom3ToBufferGeometry } from '../../render/mesh.js'
 import { announcedColor, announcedPartColors, createBodyCounts, createBodyMeshes } from '../../render/bodyMeshes.js'
-import { PICK_OFFSETS_PX, firstDrawnHit, nearestOnPlane, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
+import { createPlacementGhost } from '../../render/placementGhost.js'
+import { PICK_OFFSETS_PX, firstDrawnHit, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from '../../render/pick.js'
 import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
-import { drawnSolidOf, evaluateOp, policyFor, toGeom3 } from '../../core/kernel/index.js'
-import { boundsOf } from '../../core/kernel/group.js'
+import { toGeom3 } from '../../core/kernel/index.js'
 import {
-  boxAtPoint,
-  clearSnap,
-  createBoxMm,
-  createSnapState,
-  ghostBoxAtOrigin,
-  ghostOffsetMm,
   libraryRow,
-  paramsForDrop,
   recordsForDrop,
-  snapToleranceMm,
-  updateSnap,
   variantKey,
 } from '../../core/library.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -134,8 +125,6 @@ const ZOOM_STEP = 1.25
  * than a drag. A tap on a touch screen always wanders a pixel or two.
  */
 const CLICK_SLOP_PX = 5
-/** The ghost is built once per op at the origin, then moved by `mesh.position`. */
-const GHOST_ORIGIN = Object.freeze({ x: 0, y: 0 })
 
 /**
  * How close, in pixels, a tap has to land to an outline's stroke to pick it — and how
@@ -498,41 +487,6 @@ const {
   applyRepeatOutlines,
   paintBodies,
 } = bodyScene
-/**
- * Ghost geometry, cached per `variantKey` so a drag builds each shape at most
- * once. Keyed by variant rather than by op since `TODO/ui-031`, because one op can
- * now be several shapes — see `ghostGeometryFor`.
- */
-const ghostGeometry = new Map()
-/**
- * The ghost's *box*, cached per variant alongside its geometry (`TODO/ui-013`).
- *
- * The snap needs the dragged shape's bounding box on every `pointermove`, and
- * measuring one means evaluating the solid — far too expensive for the pointer
- * path. Measured once per variant at the working-plane origin instead, then
- * translated by `boxAtPoint`, which is pure arithmetic over six numbers.
- *
- * @type {Map<string, import('../../core/library.js').BoxMm>}
- */
-const ghostBoxes = new Map()
-/**
- * How far the ghost *mesh* has to sit from the drop point, cached per variant
- * (`TODO/ui-030`).
- *
- * Zero on all three axes for a primitive, whose geometry is built already resting
- * at the origin because its position is one of its own params. A composite recipe
- * has no position param, so its geometry comes out wherever the recipe builds it
- * and the mesh carries the difference — the same offset the drop's trailing
- * `transform.translate` will commit, so the preview cannot promise a position the
- * commit then ignores.
- *
- * @type {Map<string, [number, number, number]>}
- */
-const ghostOffsets = new Map()
-/** @type {Mesh | null} */
-let ghostMesh = null
-let ghostOp = ''
-let ghostMaterial = /** @type {any} */ (null)
 
 // Pointer bookkeeping. Entries are allocated on pointerdown and mutated in
 // place on move, so pointermove itself allocates nothing.
@@ -1799,7 +1753,7 @@ function measure() {
  */
 function applyMaterialTheme() {
   const palette = BODY_COLORS[theme.value] ?? BODY_COLORS.dark
-  ghostMaterial?.color.setHex(palette.ghost)
+  placementGhost.setColor(palette.ghost)
   sketchPreviewMaterial?.color.setHex(palette.ghost)
   bodyScene.applyMaterialTheme(theme.value)
 }
@@ -1858,188 +1812,27 @@ function projectPointer(clientXPx, clientYPx) {
 }
 
 /**
- * All three ghost caches below are keyed by `variantKey(op, overrides)` rather
- * than by `op` (`TODO/ui-031`), because a row can now carry a chosen variant and
- * `raspberrypi.bplus` is one op with five different shapes behind it. Keying on
- * the op alone would draw whichever model happened to be dragged first for every
- * model dragged after it — a preview quietly lying about what the drop commits.
- * Every key is computed once per gesture, in `preview`/`commit`, never per
- * `pointermove`.
- *
- * The ghost's geometry for a variant, built once and cached. It is built at the
- * origin through the *same* `paramsForDrop` the commit uses, so the preview is
- * the shape that will actually land — including resting on the working plane
- * rather than sunk half into it.
- *
- * @param {string} key From `variantKey`.
- * @param {string} op
- * @param {Record<string, any>} overrides
+ * The placement ghost and its drop point (`TODO/ui-108`, extraction 3): the controller lives in
+ * `src/render/placementGhost.js`. This component supplies the working-plane projection, the
+ * orbit's scale, the document's bodies and the overlay, and keeps the Library's drop-target
+ * handlers below.
  */
-function ghostGeometryFor(key, op, overrides) {
-  // At the design resolution (TODO/core-035) — otherwise the ghost of a cylinder would have
-  // the old 32 sides and the body that lands a different count. Part of the cache key, so
-  // changing the setting never serves a ghost faceted at the old one.
-  const resolution = documentStore.resolution
-  const cacheKey = `${key}@${resolution}`
-  let geometry = ghostGeometry.get(cacheKey)
-  if (!geometry) {
-    // `drawnSolidOf`, not `toGeom3`: a group's parts side by side, never a union in the pointer
-    // path (TODO/io-024 — a 29-part 3MF took half a second to union here).
-    geometry = geom3ToBufferGeometry(
-      drawnSolidOf(evaluateOp(op, paramsForDrop(op, GHOST_ORIGIN, overrides), { policy: policyFor(resolution) })),
-    )
-    ghostGeometry.set(cacheKey, geometry)
-  }
-  return geometry
-}
-
-/**
- * The ghost's box for a variant, built once and cached — see {@link ghostBoxes}.
- *
- * @param {string} key From `variantKey`.
- * @param {string} op
- * @param {Record<string, any>} overrides
- * @returns {import('../../core/library.js').BoxMm}
- */
-function ghostBoxFor(key, op, overrides) {
-  let box = ghostBoxes.get(key)
-  if (!box) {
-    box = ghostBoxAtOrigin(op, overrides)
-    ghostBoxes.set(key, box)
-  }
-  return box
-}
-
-/**
- * The ghost mesh's offset from the drop point for a variant — see
- * {@link ghostOffsets}. Cached for the same reason the box is: it is measured off
- * built geometry, which has no business in the pointer path.
- *
- * @param {string} key From `variantKey`.
- * @param {string} op
- * @param {Record<string, any>} overrides
- * @returns {[number, number, number]}
- */
-function ghostOffsetFor(key, op, overrides) {
-  let offset = ghostOffsets.get(key)
-  if (!offset) {
-    offset = ghostOffsetMm(op, overrides)
-    ghostOffsets.set(key, offset)
-  }
-  return offset
-}
-
-// --- snap-assisted placement (TODO/ui-013) --------------------------------
-
-/**
- * What the ghost can snap against: every body already in the document, with the
- * two measurements the snap needs.
- *
- * Rebuilt when the *document* changes, never per `pointermove`: nothing can
- * appear, move or vanish during a placement drag, and `boundsOf` walks a solid's
- * polygons — a cost that has no business inside the pointer path (CLAUDE.md's
- * Performance rule). One drag therefore measures each body at most once.
- *
- * @type {{ id: string, centroidMm: number[], box: import('../../core/library.js').BoxMm }[]}
- */
-const snapNeighbours = []
-let snapNeighboursVersion = -1
-
-/** The ghost's box at the raw pointer position — allocated once, mutated. */
-const ghostBox = createBoxMm()
-/** Which alignment (if any) the ghost is being held in, and its guides. */
-const snapState = createSnapState()
-/** The point the drop will commit at: the pointer's, plus the snap offset. */
-const dropPointMm = { x: 0, y: 0 }
-
-function refreshSnapNeighbours() {
-  if (snapNeighboursVersion === documentStore.version) return
-  snapNeighboursVersion = documentStore.version
-  snapNeighbours.length = 0
-  for (const body of documentStore.raw.bodies()) {
-    const [minMm, maxMm] = boundsOf(body.geometry)
-    snapNeighbours.push({
-      id: body.id,
-      centroidMm: [
-        (minMm[0] + maxMm[0]) / 2,
-        (minMm[1] + maxMm[1]) / 2,
-        (minMm[2] + maxMm[2]) / 2,
-      ],
-      box: { minMm, maxMm },
-    })
-  }
-}
-
-/** Push the current snap state out to the overlay and the DOM flag. */
-function syncSnapGuides() {
-  updateSnapGuideAnnotations(orbit, snapState.guides, widthPx, heightPx, snapGuides)
-  // Guarded, like `setGhostVisible`: this flips at most a handful of times per
-  // gesture rather than once per pointer event.
-  if (snapped.value !== snapState.snapped) snapped.value = snapState.snapped
-}
-
-/** Drop every trace of the last drag's snap. */
-function clearSnapFeedback() {
-  clearSnap(snapState)
-  syncSnapGuides()
-}
-
-/**
- * Where a drop actually lands: the projected pointer point, moved by whatever
- * alignment the nearest existing body pulls it into.
- *
- * **The single source of both the preview and the commit**, deliberately. The
- * ghost the user is watching and the record the release appends both come
- * through here, so the solid cannot land somewhere the preview never showed —
- * the same reasoning that made `paramsForDrop` shared in `ui-010`, and the exact
- * class of drift `ui-013`'s "on drop, the **snapped** position commits" line is
- * about.
- *
- * @param {string} key From `variantKey` — what the ghost box is cached under.
- * @param {string} op
- * @param {Record<string, any>} overrides
- * @param {number} clientXPx
- * @param {number} clientYPx
- * @returns {{ x: number, y: number } | null} `null` when the pointer does not
- *   meet the working plane at all — no valid drop position, snapped or not.
- */
-function resolveDropPoint(key, op, overrides, clientXPx, clientYPx) {
-  const point = projectPointer(clientXPx, clientYPx)
-  if (!point) {
-    clearSnapFeedback()
-    return null
-  }
-  dropPointMm.x = point.x
-  dropPointMm.y = point.y
-
-  refreshSnapNeighbours()
-  const nearest = nearestOnPlane(snapNeighbours, point.x, point.y)
-  if (nearest === -1) {
-    // `ui-013`'s precondition: an empty scene has nothing to align to, so the
-    // drag stays exactly the one `ui-010` built.
-    clearSnap(snapState)
-  } else {
-    boxAtPoint(ghostBoxFor(key, op, overrides), dropPointMm, ghostBox)
-    updateSnap(
-      ghostBox,
-      snapNeighbours[nearest].box,
-      snapToleranceMm(orbit.getMmPerPixel(heightPx)),
-      snapState,
-    )
-    dropPointMm.x += snapState.dxMm
-    dropPointMm.y += snapState.dyMm
-  }
-  syncSnapGuides()
-  return dropPointMm
-}
-
-/** @param {boolean} value */
-function setGhostVisible(value) {
-  // Guarded so a drag that stays inside the viewport writes no reactive state at
-  // all: this flips at most twice per gesture, not once per pointermove.
-  if (ghostVisible.value !== value) ghostVisible.value = value
-  if (ghostMesh) ghostMesh.visible = value
-}
+const placementGhost = createPlacementGhost({
+  scene: () => viewport?.graph.scene ?? null,
+  project: projectPointer,
+  mmPerPixel: () => orbit.getMmPerPixel(heightPx),
+  resolution: () => documentStore.resolution,
+  documentVersion: () => documentStore.version,
+  bodies: () => documentStore.raw.bodies(),
+  drawSnapGuides: (guides) => updateSnapGuideAnnotations(orbit, guides, widthPx, heightPx, snapGuides),
+  onSnapChange: (value) => {
+    snapped.value = value
+  },
+  onVisibleChange: (value) => {
+    ghostVisible.value = value
+  },
+  color: (BODY_COLORS[theme.value] ?? BODY_COLORS.dark).ghost,
+})
 
 /** @type {import('../../stores/placement.js').DropTarget} */
 const dropTarget = {
@@ -2068,45 +1861,19 @@ const dropTarget = {
 
   preview(op, clientXPx, clientYPx, overrides = {}) {
     if (!viewport || !op) return
-    // The variant, not the op: two models of one board are two different meshes,
-    // so `ghostOp` has to compare the thing that actually decides the geometry.
-    const key = variantKey(op, overrides)
-    if (!ghostMesh) {
-      ghostMesh = new Mesh(ghostGeometryFor(key, op, overrides), ghostMaterial)
-      ghostMesh.name = 'placement-ghost'
-      // Drawn after the solids so its translucency composites over them.
-      ghostMesh.renderOrder = 1
-      ghostOp = key
-      viewport.graph.scene.add(ghostMesh)
-    }
-    if (ghostOp !== key) {
-      ghostMesh.geometry = ghostGeometryFor(key, op, overrides)
-      ghostOp = key
-    }
-    const point = resolveDropPoint(key, op, overrides, clientXPx, clientYPx)
-    if (!point) {
-      setGhostVisible(false)
-      scheduleRender()
-      return
-    }
-    // The **snapped** point, so the preview shows where the drop will actually
-    // land rather than where the pointer happens to be (`TODO/ui-013`), plus the
-    // offset a composite's geometry needs to sit where its drop will commit it
-    // (`TODO/ui-030` — zero for every primitive).
-    const offset = ghostOffsetFor(key, op, overrides)
-    ghostMesh.position.set(point.x + offset[0], point.y + offset[1], offset[2])
-    setGhostVisible(true)
+    // The variant, not the op: two models of one board are two different meshes, so the
+    // ghost's caches are keyed by what actually decides the geometry (`TODO/ui-031`).
+    placementGhost.preview(op, variantKey(op, overrides), overrides, clientXPx, clientYPx)
     scheduleRender()
   },
 
   clearPreview() {
-    setGhostVisible(false)
-    clearSnapFeedback()
+    placementGhost.clear()
     scheduleRender()
   },
 
   commit(op, clientXPx, clientYPx, overrides = {}, place = undefined) {
-    const point = resolveDropPoint(variantKey(op, overrides), op, overrides, clientXPx, clientYPx)
+    const point = placementGhost.dropPoint(op, variantKey(op, overrides), overrides, clientXPx, clientYPx)
     if (!point) return null
     // `TODO/ui-107`: an import's armed session (or a dropped model file) commits through its own
     // `place` — the definition and the records in one transaction — at the same snapped point a
@@ -2976,7 +2743,6 @@ onMounted(() => {
   if (!canvas) return
   const palette = BODY_COLORS[theme.value] ?? BODY_COLORS.dark
   bodyScene.createMaterials(theme.value)
-  ghostMaterial = createGhostMaterial(palette.ghost)
   sketchPreviewMaterial = createGhostMaterial(palette.ghost)
 
   try {
@@ -3164,15 +2930,7 @@ onBeforeUnmount(() => {
   detachContextListeners(canvasEl.value)
   contextRecovery.dispose()
   bodyScene.dispose()
-  for (const geometry of ghostGeometry.values()) geometry.dispose()
-  ghostGeometry.clear()
-  ghostBoxes.clear()
-  snapNeighbours.length = 0
-  snapNeighboursVersion = -1
-  ghostMesh = null
-  ghostOp = ''
-  ghostMaterial?.dispose()
-  ghostMaterial = null
+  placementGhost.dispose()
   viewport?.dispose()
   viewport = null
 })
