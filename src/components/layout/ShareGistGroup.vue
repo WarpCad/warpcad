@@ -30,6 +30,7 @@ import { computed, nextTick, ref } from 'vue'
 import { useGistPublish } from '../../composables/useGistPublish.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
+import ExternalLink from '../controls/ExternalLink.vue'
 
 const props = defineProps({
   /** The long link is over its ceiling: the gist is the way to share this project. */
@@ -264,13 +265,11 @@ async function stop() {
         <button type="button" class="share-gist__button" data-testid="share-gist-update" :disabled="!publisher.canUpdate.value" @click="update()">
           {{ gist.publishState === 'updating' ? 'Updating…' : 'Update gist' }}
         </button>
-        <a
+        <ExternalLink
           class="share-gist__button share-gist__button--link"
           :href="publisher.pageUrl.value ?? undefined"
-          target="_blank"
-          rel="noopener noreferrer"
           data-testid="share-gist-page"
-        >Open on GitHub</a>
+        >Open on GitHub</ExternalLink>
       </div>
 
       <div v-if="confirmingStop" class="share-gist__confirm" role="alertdialog" aria-labelledby="share-gist-stop-question" data-testid="share-gist-stop-confirm">

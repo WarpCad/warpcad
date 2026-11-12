@@ -43,6 +43,10 @@ import { useSettingsStore } from '../../stores/settings.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ConnectButton from './ConnectButton.vue'
 import ModalShell from '../storage/ModalShell.vue'
+import ExternalLink from '../controls/ExternalLink.vue'
+
+/** Where an Anthropic API key is made. */
+const CONSOLE_URL = 'https://console.anthropic.com/settings/keys'
 
 const assistant = useAssistantStore()
 const settings = useSettingsStore()
@@ -161,9 +165,7 @@ function done() {
     <template v-if="mode === 'form'">
       <p class="key__help">
         Create a key in the
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
-          >Anthropic console</a
-        >, in a workspace with a monthly spend limit, then paste it here.
+        <ExternalLink :href="CONSOLE_URL" data-testid="ai-key-console-link">Anthropic console</ExternalLink>, in a workspace with a monthly spend limit, then paste it here.
       </p>
       <p class="key__note" data-testid="ai-key-note">
         Stored only in this browser. It is sent only to <code>api.anthropic.com</code>.

@@ -50,6 +50,26 @@ version behind or ahead. When the two differ, a line under the version line at t
 each page says so, for example `This help is for WarpCad 1.14.0; this app is 1.13.0.` A
 control described on the page may then look different, or not exist yet, in your app.
 
+## Links open in your browser
+
+A link in WarpCad that goes to another website opens in your **system browser**, not inside
+the app. The app itself never leaves WarpCad: it has no address bar or back button, so it
+would have nowhere to come back from.
+
+**Try it: set up the Assistant key.**
+
+1. Tap **Assistant** (the chat button) to open the **Assistant key** sheet.
+2. Tap **Anthropic console**. Safari (on iPhone and iPad), or your default browser on a Mac,
+   Windows or Android device, opens the page where keys are made.
+3. Create a key and copy it.
+4. Come back to WarpCad: on iPhone swipe back from the left edge, or tap **◀ WarpCad** at the
+   top left of the screen. The **Assistant key** sheet is still open.
+5. Paste the key into the field and tap **Save and test**.
+
+The same applies to **Open GitHub's token page** (Connect to GitHub), **Open on GitHub** (after
+you share a gist), and **Source code** and **Third-party notices** at the foot of a help
+page, and to any link inside a help page. Only `https://` pages open this way.
+
 ## iPhone and iPad
 
 One app runs on both. It opens straight into the 3D view, with the Library and Inspector as
@@ -129,6 +149,24 @@ same device. The Help version line ends in `Android app` and the app's version.
 
 The Windows app opens WarpCad in its own window, like the Mac app. The Help version line ends
 in `Windows app` and the app's version.
+
+## Installing a test build
+
+Before the app is in the App Store, test builds reach an iPhone or iPad through Apple's
+**TestFlight** app. You need an invitation from whoever builds the app.
+
+1. On the iPhone or iPad, install **TestFlight** from the App Store, if it is not there already.
+2. Open the invitation, in the TestFlight app or in the email or message it came with, and tap
+   **View in TestFlight**.
+3. Tap **Install**. WarpCad appears on the home screen, with a small orange dot beside its name
+   while it is a test build.
+4. Open WarpCad. The 3D view fills the screen. Open **File ▾ → Help and documentation** and
+   scroll to the bottom: the version line ends in `iOS app <version>`, for example `iOS app
+   1.17.0`. Tell whoever sent the invitation if it reads something else.
+
+A test build stops working after 90 days, and TestFlight tells you when a newer one is
+available. There are no pictures of these steps: TestFlight is Apple's app, and no test here
+can open it.
 
 ## Checking which build you have
 

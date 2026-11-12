@@ -94,7 +94,7 @@ describe.skipIf(!existsSync(NATIVE_CONF))('warpcad-native tauri.conf.json Conten
       [
         "'self'",
         'ipc:',
-        'http://ipc.localhost',
+        'https://ipc.localhost',
         'https://api.anthropic.com',
         'https://api.github.com',
         'https://gist.githubusercontent.com',

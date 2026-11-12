@@ -26,7 +26,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { helpUrl, loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/loader.js'
 import { sanitizeHelpHtml } from '../../help/sanitize.js'
 import { TOPICS } from '../../help/topics.js'
-import { isNativeShell, probeShell } from '../../native/shell.js'
+import { isNativeShell, openExternal, probeShell } from '../../native/shell.js'
+import ExternalLink from '../controls/ExternalLink.vue'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
 
@@ -40,7 +41,9 @@ const update = useAppUpdateStore()
  */
 const SOURCE_URL = 'https://github.com/WarpCad/warpcad'
 /** The licence notices of the bundled libraries, emitted by `scripts/vite-plugin-notices.mjs`. */
-const NOTICES_URL = `${import.meta.env.BASE_URL}THIRD-PARTY-NOTICES.txt`
+const NOTICES_URL = isNativeShell(probeShell())
+  ? 'https://app.warpcad.com/THIRD-PARTY-NOTICES.txt' // the shell opens https pages only, so it points at the hosted copy
+  : `${import.meta.env.BASE_URL}THIRD-PARTY-NOTICES.txt`
 
 /** @type {import('vue').Ref<import('../../help/loader.js').HelpIndex | null>} */
 const index = ref(null)
@@ -185,10 +188,18 @@ if (typeof window !== 'undefined') window.addEventListener('keydown', onKeydown,
 
 /** @param {MouseEvent} event */
 function onContentClick(event) {
-  const link = /** @type {HTMLElement | null} */ (event.target instanceof Element ? event.target.closest('a') : null)
+  const link = event.target instanceof Element ? event.target.closest('a') : null
   if (!link) return
   const page = link.getAttribute('data-help-page')
-  if (page === null) return // an external link opens in its own tab
+  if (page === null) {
+    // An external link opens in its own tab on the web. The shell has no tabs and must not navigate
+    // away, so it hands an https page to the system browser (`TODO/build-029`).
+    if (native && link.protocol === 'https:' && link.origin !== window.location.origin) {
+      event.preventDefault()
+      openExternal(link.href).catch(() => {})
+    }
+    return
+  }
   event.preventDefault()
   help.openPage(page, link.getAttribute('data-help-anchor') ?? undefined)
 }
@@ -323,8 +334,8 @@ onBeforeUnmount(() => {
             <footer v-if="state === 'ready'" class="help__footer" data-testid="help-source">
               WarpCad is free software under the
               <abbr title="GNU Affero General Public License, version 3 or later">AGPL-3.0</abbr>.
-              <a :href="SOURCE_URL" target="_blank" rel="noopener" data-testid="help-source-link">Source code</a>
-              <a :href="NOTICES_URL" target="_blank" rel="noopener" data-testid="help-notices-link">Third-party notices</a>
+              <ExternalLink :href="SOURCE_URL" data-testid="help-source-link">Source code</ExternalLink>
+              <ExternalLink :href="NOTICES_URL" data-testid="help-notices-link">Third-party notices</ExternalLink>
             </footer>
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">

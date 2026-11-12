@@ -171,3 +171,27 @@ export function invoke(cmd, args = {}, global = /** @type {BridgeGlobal} */ (/**
   }
   return options === undefined ? internals.invoke(cmd, args) : internals.invoke(cmd, args, options)
 }
+
+/** The opener plugin's command (`tauri-plugin-opener`, granted `https://` only in `capabilities/default.json`). */
+export const OPEN_URL_COMMAND = 'plugin:opener|open_url'
+
+/**
+ * Opens an `https:` page in the system browser (`TODO/build-029`). The shell's web view has no new
+ * windows and never leaves its own origin, so every link that leaves the app goes through here.
+ * Refuses anything but an absolute `https:` URL without calling the bridge; the shell's capability
+ * scope is the real gate, since page script can call `invoke` directly.
+ *
+ * @param {string} url
+ * @param {BridgeGlobal} [global] the global object to read the bridge from
+ * @returns {Promise<void>} rejects for a refused URL, or when there is no bridge
+ */
+export async function openExternal(url, global = /** @type {BridgeGlobal} */ (/** @type {unknown} */ (globalThis))) {
+  let parsed
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error(`cannot open "${url}": not an absolute URL`)
+  }
+  if (parsed.protocol !== 'https:') throw new Error(`cannot open "${url}": only https links leave the app`)
+  await invoke(OPEN_URL_COMMAND, { url: parsed.href }, global)
+}

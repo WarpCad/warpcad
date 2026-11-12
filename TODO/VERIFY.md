@@ -51,6 +51,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-029 — External links open in the system browser (2026-11-12 20:30)
+
+The fake-bridge e2e proves the page hands the URL to the opener and does not navigate; it cannot show what a real web view does. Nothing in this session launched a shell, so the "before" hypothesis in the finding is still unconfirmed.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | macOS shell and iOS simulator, on the build before this change if one exists: tap Anthropic console, GitHub token page, Open on GitHub, Source code and Third-party notices; record nothing happening or the window navigating | Open | |
+| 2 | Same five links after this change: each opens the system browser, WarpCad keeps its sheet and state, and iOS shows **◀ WarpCad** to return | Open | |
+| 3 | A link typed as `location.href = 'https://example.com'` from the web inspector does not leave the app (the `on_navigation` guard) | Open | |
+| 4 | Windows and Android: the same, when a machine or emulator is available | Open | |
+
 ### build-024 — Android icons and launch colours (2026-11-12 17:58)
 
 Built by `npm run icons` in `warpcad-native`; resources compile under aapt2 but no APK, emulator or device was run (`npm run tauri` is missing from the native `package.json`, so Gradle's Rust step fails).

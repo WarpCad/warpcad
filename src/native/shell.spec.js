@@ -7,6 +7,7 @@ import {
   isNativeShell,
   loadShellDetails,
   nativeVersionLine,
+  openExternal,
   platformName,
   platformOfTarget,
   probeShell,
@@ -170,5 +171,33 @@ describe('loadShellDetails', () => {
     await expect(loadShellDetails({ target: 'tauri-android' }, global)).resolves.toEqual({ platform: 'android', version: '' })
     const empty = bridge(() => Promise.resolve(null))
     await expect(loadShellDetails({ target: '' }, empty)).resolves.toEqual({ platform: '', version: '' })
+  })
+})
+
+describe('openExternal (TODO/build-029)', () => {
+  /** @returns {{ global: any, calls: any[] }} */
+  function bridge() {
+    /** @type {Array<{ cmd: string, args: unknown }>} */
+    const calls = []
+    return { calls, global: { __TAURI_INTERNALS__: { invoke: async (/** @type {string} */ cmd, /** @type {unknown} */ args) => void calls.push({ cmd, args }) } } }
+  }
+
+  it('hands an https URL to the opener plugin, once', async () => {
+    const { global, calls } = bridge()
+    await openExternal('https://console.anthropic.com/settings/keys', global)
+    expect(calls).toEqual([{ cmd: 'plugin:opener|open_url', args: { url: 'https://console.anthropic.com/settings/keys' } }])
+  })
+
+  it.each(['javascript:alert(1)', 'file:///etc/passwd', 'http://example.com/', 'data:text/html,x', 'tauri://localhost/', '/relative/path', 'notes.txt', ''])(
+    'refuses %j without calling the bridge',
+    async (url) => {
+      const { global, calls } = bridge()
+      await expect(openExternal(url, global)).rejects.toThrow(/cannot open/)
+      expect(calls).toEqual([])
+    },
+  )
+
+  it('rejects when there is no bridge', async () => {
+    await expect(openExternal('https://example.com/', {})).rejects.toThrow(/needs the native shell/)
   })
 })

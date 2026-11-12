@@ -36,6 +36,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { BROADER_THAN_NEEDED_MESSAGE } from '../../core/gistMessages.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
+import ExternalLink from '../controls/ExternalLink.vue'
 import ModalShell from './ModalShell.vue'
 
 /** GitHub's page for a new fine-grained token. */
@@ -177,13 +178,11 @@ function close() {
       </form>
 
       <div class="gist-connect__help" data-testid="gist-connect-help">
-        <a
+        <ExternalLink
           class="gist-connect__link"
           :href="TOKEN_PAGE"
-          target="_blank"
-          rel="noopener noreferrer"
           data-testid="gist-connect-github-link"
-        >Open GitHub's token page</a>
+        >Open GitHub's token page</ExternalLink>
         <p>
           Create a fine-grained token with no repository access and only
           <strong>Gists: Read and write</strong>. Copy it and paste it above.

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { test, expect } from '@playwright/test'
 
 import { installNativeShell, nativeCalls } from './fixtures/nativeShell.js'
+import { clickAssistant } from './support/assistantEntry.js'
 import { closeLibrary, openLibrary, pointer, sceneBodies, sleep, viewportPoint } from './support/humanInput.js'
 
 /**
@@ -195,5 +196,68 @@ test.describe('Help in the native app (ui-119)', () => {
       maxDiffPixelRatio: 0.03,
       mask: [page.getByTestId('help-version')],
     })
+  })
+})
+
+test.describe('links that leave the app (build-029)', () => {
+  test.skip(({ browserName }) => browserName === 'firefox', 'Chromium and WebKit; Firefox adds nothing here')
+
+  const OPENER = 'plugin:opener|open_url'
+  const CONSOLE = 'https://console.anthropic.com/settings/keys'
+  const DOC_LINK = 'https://example.com/guide'
+  const PAGE = `<h1>Stubbed help</h1><p>See <a href="${DOC_LINK}" target="_blank" rel="noopener noreferrer">the guide</a>.</p>`
+
+  /** The opener calls the fake bridge received. @param {import('@playwright/test').Page} page */
+  const openerCalls = (page) =>
+    page.evaluate((cmd) => /** @type {any} */ (window).__nativeShell.calls.filter((/** @type {{ cmd: string }} */ c) => c.cmd === cmd).map((/** @type {{ args: unknown }} */ c) => c.args), OPENER)
+
+  /** @param {import('@playwright/test').Page} page */
+  async function openKeySheet(page) {
+    await clickAssistant(page)
+    await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
+  }
+
+  test('in the shell, Anthropic console opens through the opener and the page stays put', async ({ page }) => {
+    await installNativeShell(page, { platform: 'ios', commands: { [OPENER]: null } })
+    await page.goto('/')
+    await expect(page.getByTestId('viewport')).toBeVisible()
+    const start = page.url()
+    await openKeySheet(page)
+    let popup = false
+    page.on('popup', () => (popup = true))
+    await page.getByTestId('ai-key-console-link').click()
+    await expect.poll(() => openerCalls(page)).toEqual([{ url: CONSOLE }])
+    expect(popup).toBe(false)
+    expect(page.url()).toBe(start)
+    await expect(page.getByTestId('ai-key-sheet')).toBeVisible()
+  })
+
+  test('in the shell, a link inside a Help page opens through the opener', async ({ page }) => {
+    await installNativeShell(page, { platform: 'ios', commands: { [OPENER]: null } })
+    await page.route('**/help/*.html', (route) => route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: PAGE }))
+    await page.goto('/')
+    await expect(page.getByTestId('viewport')).toBeVisible()
+    const start = page.url()
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('file-help').click()
+    await expect(page.getByTestId('help-content')).toContainText('the guide')
+    let popup = false
+    page.on('popup', () => (popup = true))
+    await page.getByTestId('help-content').getByRole('link', { name: 'the guide' }).click()
+    await expect.poll(() => openerCalls(page)).toEqual([{ url: DOC_LINK }])
+    expect(popup).toBe(false)
+    // Help mirrors its page into the hash (#/help/...); the page itself must not have changed.
+    expect(page.url().split('#')[0]).toBe(start.split('#')[0])
+    await expect(page.getByTestId('help-sheet')).toBeVisible()
+  })
+
+  test('on the web the same link is a plain new-tab anchor and the opener is never called', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByTestId('viewport')).toBeVisible()
+    await openKeySheet(page)
+    const link = page.getByTestId('ai-key-console-link')
+    await expect(link).toHaveAttribute('href', CONSOLE)
+    await expect(link).toHaveAttribute('target', '_blank')
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 })
