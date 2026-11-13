@@ -58,7 +58,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 7 | ▶ Ready | `FIND` | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with `src/` | sonnet |
 | 8 | ▶ Ready | `FIND` | [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset | sonnet |
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
@@ -156,7 +155,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
-| [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring CLAUDE.md's Project Structure in line with what src/ contains | finding | low | sonnet | ▶ Ready (Next up row 7) |
 | [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours — focus trap and restore, Escape, outside click, keyboard inset | finding | high | sonnet | ▶ Ready (Next up row 8) |
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
@@ -311,7 +309,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `docs-034` | Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains. Filed 2026-11-10 from the architecture audit | Finding | — | none |
 | `ui-110` | One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset (no dialog traps focus today). Filed 2026-11-10 from the architecture audit | Finding | — | 7, 10, 24 |
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |

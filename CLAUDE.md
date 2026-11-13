@@ -183,19 +183,29 @@ Settled structure, not a kickoff question:
 - `src/core/kernel/` — the geometry kernel adapter and its worker RPC. Everything else in
   `core/` talks to the kernel only through this interface.
 - `src/sketch/` — 2D sketch model, snapping, dimensions, profile detection.
+- `src/io/` — mesh import (STL and 3MF parsers in `meshFormats/`, `meshAsset.js`, and a worker).
+  Framework-free.
+- **Layering.** `core/`, `sketch/` and `io/` are one framework-free layer that may import each
+  other. `render/` may import them and three.js. Nothing in that layer imports Vue, Pinia or a
+  component. `core/` reaches the kernel only through `core/kernel/`.
 - `src/render/` — 3D scene, camera, picking, gizmos, the mesh bridge.
 - `src/storage/` — persistence and sync backends (IndexedDB, File System Access, and the
   hosted git-based backend once built).
 - `src/native/` — what the app knows about the native shell it runs in (`isNativeShell`,
   `invoke` over the Tauri bridge). Framework-free. The shell itself is the sibling repository
   `warpcad-native` (`docs/decisions/native-mobile-shell.md`).
+- `src/help/` — the in-app Help loader and topics. Framework-free.
+- `src/analytics/` — page-view analytics, inert unless the build carries a measurement ID. Framework-free.
+- `src/styles/` — global CSS, including the design tokens (`tokens.css`).
 - `src/ai/` — design-intent capture, the tool registry (`src/ai/tools/`), and the BYOK chat
   client.
 - `src/components/<category>/` — Vue components, by category (see Component Categories).
 - `src/views/` — top-level screens. Thin composition only.
 - `src/composables/` — reusable stateful logic.
-- `src/stores/` — UI state only: selection, active tool, panel layout. Document state never
-  mirrors into a store.
+- `src/stores/` — UI state and the application workflows that drive it (save, sync, import,
+  sheets), such as selection, active tool, panel layout, `persistence`, `hosted` and
+  `modelImport`. Never document state, and never geometry math. Document state never mirrors
+  into a store.
 - `e2e/` — Playwright specs. `*.e2e.js` drives the real app at `/`. `*.story.e2e.js` drives a
   Storybook iframe to prove a component in isolation, and does not count as a user-facing
   capability. `e2e/naming.spec.js` guards the distinction.

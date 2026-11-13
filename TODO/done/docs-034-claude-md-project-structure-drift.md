@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** items 1-3 as proposed; item 4 left to `ui-111`/`ui-116`. Correction: `ModalShell` has 14 importing components (4 `ai/`, 1 `layout/`, 9 `storage/`), not twelve; the wording work did not need that count. `analytics/` is described as page-view analytics inert without a build measurement ID.
 
 ## Problem
 

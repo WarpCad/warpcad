@@ -914,6 +914,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `docs-031` | Check the outside facts that VERIFY.md rows cite: trademark owners (all match), ISO 4032 nut rows (match; M14 across corners kept at 23.36), Sonnet 5.5 cache-hit price fixed to $0.10 in `bench/ai/score.js`, the Claude Code MCP description cap (no longer 2,048; 4,096 for server instructions and tool descriptions), and the WebMCP origin-trial row left Open because Chrome's own pages state neither a token rule nor an end date. Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | ✅ `docs-032` | Link the agent prompting guide from the warpcad.com home page. The list is generated from the app's help index, so the page already showed under More; it is now grouped under The AI partner in `warpcad.github.io` (commit 7219a05), with the offline fixture updated. Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | ✅ `docs-033` | Regenerate the `objects-hide-split-piece` still without rewriting every GIF. The still now shows the `ui-090` header; the magenta bar is confirmed to be the save-status mask. Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| ✅ `docs-034` | `CLAUDE.md` Project Structure now lists `src/io/`, `src/help/`, `src/analytics/` and `src/styles/`, states the real `core/`, `sketch/`, `io/` layering, and describes `src/stores/` as UI state plus application workflows. Component Categories left for `ui-111`. Filed 2026-11-10 from the architecture audit. [`done/docs-034`](done/docs-034-claude-md-project-structure-drift.md) | Finding | — | none |
 | ✅ `core-081` | Build operation records in one core module, not in the toolbar and the AI tools separately. Closed 2026-11-11: builders in `src/core/operationRecords.js`, UI and AI paths share them; e2e pair and 3×3 matrix green, acceptance 4/5/6/16/32 covered by e2e specs | Finding | — | 4, 5, 6, 16, 32 |
 | ✅ `testing-010` | The docs screenshot "ai-working-chip still" drifted on laptop. It no longer reproduces: the drift was the header version label changing with release bumps, which b81a99b pinned. No baseline or component change needed; the full docs-* screenshot suite is green under `CI=1` | Finding | — | none |
 
@@ -1319,5 +1320,6 @@ convention going forward.
 | `io-028` | 2026-11-13 16:49 | 23m |
 | `core-082` | 2026-11-13 17:20 | ~31m |
 | `ui-109` | 2026-11-13 17:13 | 17m |
+| `docs-034` | 2026-11-13 17:30 | 10m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
