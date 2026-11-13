@@ -5,8 +5,21 @@ kind: finding
 priority: low
 model: sonnet
 depends: [testing-005]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-13).** `e2e/webgl-depth-translucency.e2e.js`, test-only (no `src/` change), five scenes
+> (Bolt + Anchor, a Pi 5, camera modules v1 + v2, two overlapping Pis) at a top view and a tilted view, captured twice a
+> frame apart (A, B) and once after an orbit step (C), on all nine engine-viewport projects, 36/36 green on repeat runs.
+> It asserts zero A-to-B difference and a per-engine ceiling on isolated-speckle pixels (chromium 3e-4, firefox and webkit
+> 5e-5; the reason is written beside the numbers in the spec). Measured: flicker 0 everywhere; speckle peaks at 1.4e-4 on
+> chromium (grid lines seen through a translucent board, dotted by the software rasteriser), at most 1.3e-5 on firefox and
+> 7.3e-6 on webkit. Differences from the proposal: the capture hides DOM overlays and clears the selection first, because
+> **Firefox's selection move-handles flicker by a few pixels frame to frame** (a 10 x 30 px box beside the selected part,
+> 0.00001 to 0.0006 of the canvas, intermittent; seen only while a body was selected). That is not part of this finding's
+> question and is left unfiled here, for the owner to decide. "Double-darkening" of two translucent layers is not
+> separable from a correct blend by any stability measure, and the real iPhone/iPad GPU look stays manual
+> (`FIND-testing-030`, and `core-034` row 2).
 
 ## Problem
 

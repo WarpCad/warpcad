@@ -58,7 +58,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 3 | ▶ Ready | `FIND` | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and translucency checks on all three engines | sonnet |
 | 4 | ▶ Ready | `FIND` | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage; say so when saved data was cleared | sonnet |
 | 5 | ▶ Ready | `FIND` | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so Sentry can receive document text | sonnet |
 | 6 | ▶ Ready | `FIND` | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | sonnet |
@@ -159,7 +158,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
-| [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | finding | low | sonnet | ▶ Ready (Next up row 3) |
 | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage, so the autosave, My parts and stored keys are not evicted | finding | medium | sonnet | ▶ Ready (Next up row 4) |
 | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so an unhandled one sends document text to Sentry | finding | low | sonnet | ▶ Ready (Next up row 5) |
 | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | finding | low | sonnet | ▶ Ready (Next up row 6) |
@@ -317,7 +315,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `testing-015` | Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | Finding | `testing-005` | none |
 | `io-028` | Ask the browser for persistent storage, and say so when saved data was cleared. Filed 2026-11-10 from the architecture audit | Finding | — | 10 |
 | `core-082` | Error messages quote body and file names, so an unhandled one sends document text to Sentry. Filed 2026-11-10 from the architecture audit | Finding | — | none |
 | `ui-109` | Break the import cycle between the gist, file-menu and share stores. Filed 2026-11-10 from the architecture audit | Finding | — | 29, 30 |

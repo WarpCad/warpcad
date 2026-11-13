@@ -830,6 +830,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `testing-015` | `e2e/webgl-depth-translucency.e2e.js`: Bolt, Anchor, Pi 5, camera modules v1/v2 and two overlapping Pis captured twice a frame apart and once orbited, asserting zero frame-to-frame flicker and no isolated speckle (per-engine ceilings stated in the spec); 3 × 3, test-only | Finding | `testing-005` | none |
 | ✅ `testing-009` | WebKit viewport-scaffold flakes and the app-header screenshot drift were already fixed on `HEAD` by `b81a99b` (pinned version label, polled scale readout, retried WebGL read); verified 10 clean WebKit-set runs, closed with no code change. | Finding | — | none |
 | ✅ `testing-008` | The print-prep split-sheet docs shot differed by 2% under full-suite load but passed alone. Root cause: the `faceOn` helper read the zoom scale after a fixed 300 ms pause, so a slow animation frame let it read a stale value and zoom twice. It now waits for the viewport's `data-frames-rendered` counter to advance after each act. Filed 2026-10-18 | Finding | — | none |
 | ✅ `core-080` | Give the Cube a corner radius and a rounding axis (`roundRadius`, `roundAxis`) so a rounded box is one primitive. Filed 2026-11-07 at the owner's request. Closed 2026-11-07, with `testing-016` a known-failure at commit | Feature | — | 1, 10, 12, 33 |
@@ -1311,5 +1312,6 @@ convention going forward.
 | `ui-119` | 2026-11-11 18:17 | not measured (committed in 7faa7a8; roadmap closed 2026-11-12) |
 | `testing-010` | 2026-11-13 15:12 | ~10m |
 | `testing-009` | 2026-11-13 15:41 | ~35m (already fixed on HEAD; verification only) |
+| `testing-015` | 2026-11-13 16:36 | ~55m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

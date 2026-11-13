@@ -70,7 +70,7 @@ Rows (entry and row number in `TODO/VERIFY.md`; abridged, the full text is in VE
 ## Affected files
 
 - `TODO/VERIFY.md` (each row's Status and Notes, with the numbers and a screenshot path)
-- `TODO/FIND-testing-015-webgl-depth-and-translucency-specs.md` (note which of its rows the real-GPU look now covers)
+- `TODO/done/testing-015-webgl-depth-and-translucency-specs.md` (note which of its rows the real-GPU look now covers)
 
 ## Proposed fix
 
