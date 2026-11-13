@@ -5,8 +5,20 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Outcome (2026-11-13): already fixed on `HEAD`; closed with no code change.** Commit `b81a99b`
+> (`test(e2e): pin the header version label so release bumps stop breaking snapshots`) pins the
+> version label's text to a fixed-width stand-in in `app-header-version.e2e.js` (and the docs shot
+> helper), so the header snapshots no longer depend on the release's length, and it made the scale
+> readout check `expect.poll` and gave the WebGL pixel read a retry loop. The viewport already sets
+> `preserveDrawingBuffer: true` (`src/render/scene.js`), so the read-between-composites flat frame
+> was the load-related cause: a read on a slow frame returned one flat colour, and the retry waits
+> for a real painted frame. Verified on current `HEAD`: the four-spec WebKit set ran ten times in a
+> row on webkit-phone/tablet/laptop at default workers with no failure; `npm run docs:screenshots`
+> 310 passed; `app-header-version.e2e.js` 27/27 on all nine projects; typecheck, unit (9159) and the
+> firefox-phone + chromium-tablet pair (1124 passed) green. No regenerated baselines were needed.
 
 ## Problem
 
