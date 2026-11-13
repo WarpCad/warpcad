@@ -21,7 +21,7 @@
  * {@link begin} suspends autosave synchronously — before the boot restore runs — and it stays
  * suspended until the Shared view is left. Nothing here writes to IndexedDB; the link's project
  * reaches storage only when the user asks for their own copy, and then through the ordinary Open
- * path (`fileMenu.requestOpenShared`), whose load is the change that autosaves.
+ * path (`sharedOpen.ask`, taken by `fileMenu.requestOpenShared`), whose load is the change that autosaves.
  *
  * ## Hostile input
  *
@@ -43,8 +43,8 @@ import { createProjectId } from '../core/replica.js'
 import { projectIdOfRecords, shareFileName, withProjectId } from '../core/shareCopy.js'
 import { saveBytes } from '../storage/download.js'
 import { useDocumentStore } from './document.js'
-import { useFileMenuStore } from './fileMenu.js'
 import { usePersistenceStore } from './persistence.js'
+import { useSharedOpenStore } from './sharedOpen.js'
 import { useTimelineStore } from './timeline.js'
 
 /** @typedef {import('../core/shareLink.js').ShareDecoded} ShareDecoded */
@@ -218,7 +218,7 @@ export const useShareStore = defineStore('share', () => {
   function makeCopy() {
     if (phase.value !== 'ready' || shared === null) return
     const { records, text } = shared
-    useFileMenuStore().requestOpenShared({
+    useSharedOpenStore().ask({
       name: name.value,
       copyText: serializeNdjson(withProjectId(records, createProjectId())),
       theirText: text,

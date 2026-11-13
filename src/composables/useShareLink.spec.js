@@ -139,6 +139,9 @@ afterEach(() => {
  * @param {ReturnType<typeof fakeEnv>} env
  */
 async function boot(env) {
+  // The app's File menu exists from the first render; it is what takes a "make my own copy" request
+  // (`TODO/ui-109`: the stores reach it through `stores/sharedOpen.js`).
+  useFileMenuStore()
   const scope = effectScope()
   const route = scope.run(() => useShareLink({ env }))
   await usePersistenceStore().start()

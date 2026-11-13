@@ -42,9 +42,9 @@ import { withProjectId } from '../core/shareCopy.js'
 import * as gistClient from '../storage/gistBackend.js'
 import { isWellFormedToken } from '../storage/hostedBackend.js'
 import { GIST_CREDENTIAL_KEY, createCredentialStore } from '../storage/tokenStorage.js'
-import { useFileMenuStore } from './fileMenu.js'
 import { usePersistenceStore } from './persistence.js'
 import { useShareStore } from './share.js'
+import { useSharedOpenStore } from './sharedOpen.js'
 
 /** @typedef {import('../core/gistMessages.js').GistMessageKind} GistMessageKind */
 /** @typedef {import('../core/gistMessages.js').GistFailure} GistFailure */
@@ -435,7 +435,7 @@ export const useGistStore = defineStore('gist', () => {
   function makeOwnCopy() {
     if (linkPhase.value !== 'own-link' || linkProject === null) return
     const { records, text, name } = linkProject
-    useFileMenuStore().requestOpenShared({
+    useSharedOpenStore().ask({
       name,
       copyText: serializeNdjson(withProjectId(records, createProjectId())),
       theirText: text,

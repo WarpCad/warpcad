@@ -79,9 +79,8 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, toRaw } from 'vue'
+import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 
-import { useGistPublish } from '../composables/useGistPublish.js'
 import { parseNdjson } from '../core/ndjson.js'
 import { projectIdOfRecords } from '../core/shareCopy.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
@@ -90,11 +89,13 @@ import { useAlignReferenceStore } from './alignReference.js'
 import { useDocumentStore } from './document.js'
 import { useExportDialogStore } from './exportDialog.js'
 import { useGistStore } from './gist.js'
+import { createGistPublisher } from './gistPublish.js'
 import { useHostedStore } from './hosted.js'
 import { useMergeStore } from './merge.js'
 import { usePersistenceStore } from './persistence.js'
 import { useProjectSettingsStore } from './projectSettings.js'
 import { useResolutionDialogStore } from './resolutionDialog.js'
+import { useSharedOpenStore } from './sharedOpen.js'
 import { IMPORT_PREVIEW_REASON } from './modelImport.js'
 import { useTimelineStore } from './timeline.js'
 
@@ -110,20 +111,7 @@ const GIST_TOAST_MS = 6000
  * @typedef {'connect' | 'create' | 'update'} GistSaveStep
  */
 
-/**
- * A shared project waiting to be opened (`TODO/io-016`).
- *
- * @typedef {object} SharedOpenRequest
- * @property {string} name Its title, which the chip and the merge toast name it by.
- * @property {string} copyText The project with a **new** project id — the recipient's own copy.
- * @property {string} theirText The project as sent, its id unchanged — Merge and Open theirs.
- * @property {string | null} projectId The id it was sent with, `null` for a legacy project.
- * @property {() => void} leave Leave the Shared view (resume autosave) just before the load, so
- *   the load is the change that autosaves.
- * @property {string} [fileName] `TODO/io-014`: a project in the native app's Documents folder (one
- *   tapped in the Files app or Mail). Open, either answer, opens that file, so it becomes the Save
- *   target; Merge merges its text as for any shared copy.
- */
+/** @typedef {import('./sharedOpen.js').SharedOpenRequest} SharedOpenRequest */
 
 export const useFileMenuStore = defineStore('fileMenu', () => {
   const documentStore = useDocumentStore()
@@ -133,9 +121,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const resolutionDialog = useResolutionDialogStore()
   const projectSettings = useProjectSettingsStore()
   const alignReference = useAlignReferenceStore()
+  const sharedOpen = useSharedOpenStore()
   const merge = useMergeStore()
   const gist = useGistStore()
-  const publisher = useGistPublish()
+  const publisher = createGistPublisher()
   const timeline = useTimelineStore()
 
   /** `TODO/ui-107`: why Import model… and Import part file… are dimmed, or `''`. */
@@ -449,6 +438,18 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     openShared('copy')
   }
 
+  // `TODO/ui-109`: the Shared view and the gist link ask through `stores/sharedOpen.js` (they cannot
+  // import this store); take each request as it arrives, or the one waiting when this store is made.
+  watch(
+    () => sharedOpen.request,
+    (request) => {
+      if (request === null) return
+      sharedOpen.request = null
+      requestOpenShared(request)
+    },
+    { immediate: true, flush: 'sync' },
+  )
+
   /**
    * Land the pending shared project: as the recipient's own copy (a new project id), as theirs
    * (the id it came with), or merged into the open project.
@@ -574,7 +575,7 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
    * and writes nothing; success closes it and raises the toast.
    *
    * @param {{ name?: string, public?: boolean }} [choice] The dialog's answers; unused by an update.
-   * @returns {Promise<import('../composables/useGistPublish.js').GistPublishOk | import('../core/gistMessages.js').GistFailure>}
+   * @returns {Promise<import('./gistPublish.js').GistPublishOk | import('../core/gistMessages.js').GistFailure>}
    */
   async function saveAsGist(choice = {}) {
     gistSaveError.value = ''

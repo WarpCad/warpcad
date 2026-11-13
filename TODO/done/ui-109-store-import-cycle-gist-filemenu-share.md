@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-13).** Two changes, not the ones the file guessed at. `share` and `gist` asked `fileMenu` to open a shared copy; they now call `useSharedOpenStore().ask()` (`src/stores/sharedOpen.js`, which imports nothing of theirs) and `fileMenu` takes each request through a synchronous watch. `fileMenu` imported `useGistPublish`, so its body moved to `src/stores/gistPublish.js` as `createGistPublisher`; `composables/useGistPublish.js` stays as a thin wrapper for the components. `scripts/import-cycles.spec.js` fails on any import cycle under `src/` and on any store that imports a composable. `useShareLink.spec.js`'s `boot` now creates the File menu store, as the app root does.
 
 ## Problem
 
