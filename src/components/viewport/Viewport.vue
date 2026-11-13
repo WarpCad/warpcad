@@ -40,6 +40,7 @@ import SketchPanelSheet from '../sketch/SketchPanelSheet.vue'
 import ReferenceImageOverlay from '../sketch/ReferenceImageOverlay.vue'
 import ScaleTool from '../sketch/ScaleTool.vue'
 import TraceTool from '../sketch/TraceTool.vue'
+import { registerEscapeYield } from '../../composables/useOverlayStack.js'
 import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
 import { useImageDrop } from '../../composables/useImageDrop.js'
 import VertexHandles from '../sketch/VertexHandles.vue'
@@ -399,6 +400,8 @@ const sketchSnapper = createSketchSnap({
 let viewport = null
 /** @type {ResizeObserver | null} */
 let resizeObserver = null
+/** @type {(() => void) | null} */
+let unregisterChainYield = null
 /** @type {MediaQueryList | null} */
 let themeQuery = null
 let rafId = 0
@@ -2187,6 +2190,8 @@ onMounted(() => {
     resizeObserver.observe(rootEl.value)
   }
   window.addEventListener('keydown', onSketchChainKey)
+  // The Line chain's Escape stays ahead of the overlay stack (`TODO/ui-110`).
+  unregisterChainYield = registerEscapeYield(() => sketchMode.value && sketchEditor.tool === 'line' && sketchEditor.chainLive)
   window.addEventListener('keydown', onSnapShiftKey)
   window.addEventListener('keyup', onSnapShiftKey)
   window.addEventListener('keydown', gizmoDrag.shiftKey)
@@ -2225,6 +2230,7 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
   window.removeEventListener('keydown', onSketchChainKey)
+  unregisterChainYield?.()
   window.removeEventListener('keydown', onSnapShiftKey)
   window.removeEventListener('keyup', onSnapShiftKey)
   window.removeEventListener('keydown', gizmoDrag.shiftKey)

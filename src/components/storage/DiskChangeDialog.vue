@@ -21,8 +21,9 @@
  *
  * The file's name is shown as text; nothing from the file's *contents* is shown here.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import ModalShell from './ModalShell.vue'
 
@@ -58,15 +59,7 @@ watch(
   },
 )
 
-/** @param {KeyboardEvent} event */
-function onKeydown(event) {
-  if (event.key !== 'Escape' || !persistence.diskPromptOpen) return
-  event.preventDefault()
-  void choose('cancel')
-}
-
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
 </script>
 
 <template>

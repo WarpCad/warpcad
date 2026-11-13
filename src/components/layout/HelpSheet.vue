@@ -23,6 +23,8 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import { useFocusTrap } from '../../composables/useFocusTrap.js'
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { helpUrl, loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/loader.js'
 import { sanitizeHelpHtml } from '../../help/sanitize.js'
 import { TOPICS } from '../../help/topics.js'
@@ -170,21 +172,11 @@ watch(
   { flush: 'post' },
 )
 
-/**
- * Escape closes help, and only help. Registered during `setup`, not `onMounted`: every other
- * window-level Escape handler (the Operations toolbar's, the Save and Split sheets', a user-part
- * dialog's) registers in a mount hook, which runs after every `setup`, and same-phase listeners
- * run in registration order — so this one is guaranteed to see the key first and swallow it.
- *
- * @param {KeyboardEvent} event
- */
-function onKeydown(event) {
-  if (event.key !== 'Escape' || !help.isOpen) return
-  event.preventDefault()
-  event.stopImmediatePropagation()
-  help.close()
-}
-if (typeof window !== 'undefined') window.addEventListener('keydown', onKeydown, true)
+// Escape closes help, and only help, when it is the top overlay (`TODO/ui-110`). It is modal
+// (`aria-modal`), so it also traps Tab.
+const helpEl = ref(null)
+useOverlayStack(() => help.isOpen, () => help.close())
+useFocusTrap(helpEl, () => help.isOpen)
 
 /** @param {MouseEvent} event */
 function onContentClick(event) {
@@ -247,7 +239,6 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   window.removeEventListener('hashchange', openFromHash)
-  window.removeEventListener('keydown', onKeydown, true)
   clearTimeout(flashTimer)
 })
 </script>
@@ -256,7 +247,7 @@ onBeforeUnmount(() => {
   <Teleport to="body">
     <template v-if="help.isOpen">
       <div class="help__backdrop" data-testid="help-backdrop" @click="help.close()" />
-      <div class="help" role="dialog" aria-modal="true" aria-label="Help" data-testid="help-sheet" :data-page="help.page">
+      <div ref="helpEl" class="help" role="dialog" aria-modal="true" aria-label="Help" data-testid="help-sheet" :data-page="help.page">
         <header class="help__head">
           <button
             type="button"

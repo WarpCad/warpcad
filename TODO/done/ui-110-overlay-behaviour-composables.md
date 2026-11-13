@@ -6,8 +6,28 @@ priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-13).** The four composables, each with a `.spec.js`, and `e2e/overlay-focus.e2e.js`
+> (Key sheet Tab loop, Help over a pop-out, Help Tab loop, focus back to the opener; all nine projects).
+> `useEscapeToClose` is now a thin wrapper over `useOverlayStack`. `useFocusTrap` moves focus itself on
+> every Tab instead of wrapping only at the ends, because Safari and Firefox on macOS do not Tab to
+> buttons and the first, end-only version let focus leave on WebKit.
+> Migrated: Escape onto the stack in `HelpSheet`, `SaveToLibrarySheet`, `SplitSheet`, `UserPartMenu`,
+> `ConflictDialog`, `DiskChangeDialog`, `VariableUsageDialog`, `DependentRepairDialog`, `AiHeaderEntry`, and the
+> Operations toolbar's popover and group pop-out; focus trap on `ModalShell`, `HelpSheet`, `VariableUsageDialog`,
+> `DependentRepairDialog` (the four `aria-modal` surfaces); outside click in `OperationsToolbar`, `LibraryRail`,
+> `AiHeaderEntry`; keyboard inset in `ModalShell` and `ChatPanel`. Eight further components that already used
+> `useEscapeToClose` ride the wrapper unchanged.
+> **Kept on purpose:** the sketch Line chain (`Viewport.vue`) stays ahead of the stack through
+> `registerEscapeYield`; `TimelineStrips` still leaves preview only on an Escape nothing consumed; `FileMenu`
+> keeps `menu.dismissTopmost()`, which walks dialogs whose open flags live in a store, not in components;
+> `PlacementSession` (a mode, not an overlay); `RepeatSheet`'s capture listener shrinks the sheet on a press
+> INSIDE the canvas, which is the reverse of an outside click.
+> **Not done:** the iOS keyboard hypothesis is NOT verified and was not acted on. `useKeyboardInset` was not
+> applied to `SaveToLibrarySheet`, `ShareSheet`, `SplitSheet`, `RepeatSheet`, `UserPartMenu` or the phone
+> Inspector sheet. Split, Save to library and the phone Inspector are added to `testing-027`'s list.
 
 ## Problem
 

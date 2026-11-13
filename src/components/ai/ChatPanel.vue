@@ -31,12 +31,13 @@
  * **Browser agents · on / off** switch (`WebMcpChip`). A browser agent's changes land as `webmcp`
  * rows, and **Undo AI turn** takes them back the same way.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { nextStepAfter } from '../../ai/transcript.js'
 import { formatSteps } from '../../core/aiBudget.js'
 import { useAgent } from '../../composables/useAgent.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
+import { useKeyboardInset } from '../../composables/useKeyboardInset.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAiLimitStore } from '../../stores/aiLimit.js'
 import { useAssistantStore } from '../../stores/assistant.js'
@@ -155,21 +156,10 @@ watch(
 
 // The on-screen keyboard: lift the sheet by the part of the layout viewport the visual viewport
 // no longer covers. Zero everywhere the keyboard does not behave this way.
-const keyboardInset = ref(0)
-function measureKeyboard() {
-  const visual = window.visualViewport
-  if (!visual) return
-  keyboardInset.value = Math.max(0, Math.round(window.innerHeight - visual.height - visual.offsetTop))
-}
-onMounted(() => {
-  window.visualViewport?.addEventListener('resize', measureKeyboard)
-  window.visualViewport?.addEventListener('scroll', measureKeyboard)
-})
+const { keyboardInsetPx } = useKeyboardInset(() => open.value)
 onBeforeUnmount(() => {
   sizeWatch?.disconnect()
   chat.linkedHeight = 0
-  window.visualViewport?.removeEventListener('resize', measureKeyboard)
-  window.visualViewport?.removeEventListener('scroll', measureKeyboard)
 })
 
 const HEIGHTS = /** @type {const} */ ([
@@ -191,7 +181,7 @@ const HEIGHTS = /** @type {const} */ ([
     :data-sheet="chat.sheet"
     :data-linked="linked ? 'true' : 'false'"
     :data-running="chat.running ? 'true' : 'false'"
-    :style="{ '--kb-inset': `${keyboardInset}px` }"
+    :style="{ '--kb-inset': `${keyboardInsetPx}px` }"
   >
     <header class="chat__head">
       <ConnectionDot :state="assistant.dotState" testid="assistant-panel-dot" />

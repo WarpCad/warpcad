@@ -19,6 +19,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { useOutsideClick } from '../../composables/useOutsideClick.js'
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import AssistantButton from './AssistantButton.vue'
 import { useAiChatStore } from '../../stores/aiChat.js'
@@ -40,6 +42,9 @@ function onQuery(e) {
 const grouped = computed(() => phone.value && chat.bridge !== 'unavailable')
 const open = ref(false)
 const root = ref(/** @type {HTMLElement | null} */ (null))
+// A press outside the menu, or Escape, closes it (`TODO/ui-110`); the trigger lives inside `root`.
+useOutsideClick(root, () => open.value, () => (open.value = false))
+useOverlayStack(() => open.value, () => (open.value = false))
 
 const badge = computed(() => (chat.bridge === 'connected' ? 'connected' : chat.bridge === 'enabled' ? 'enabled' : 'none'))
 /** The trigger's one corner badge: live access when it is on, else the Assistant's key dot. */
@@ -57,27 +62,14 @@ function choose(which) {
   else assistant.openConnect()
 }
 
-/** @param {Event} e */
-function onOutside(e) {
-  if (open.value && root.value && !root.value.contains(/** @type {Node} */ (e.target))) open.value = false
-}
-/** @param {KeyboardEvent} e */
-function onKey(e) {
-  if (e.key === 'Escape' && open.value) open.value = false
-}
-
 onMounted(() => {
   if (typeof window === 'undefined' || !window.matchMedia) return
   query = window.matchMedia('(max-width: 640px)')
   phone.value = query.matches
   query.addEventListener('change', onQuery)
-  document.addEventListener('pointerdown', onOutside)
-  document.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   query?.removeEventListener('change', onQuery)
-  document.removeEventListener('pointerdown', onOutside)
-  document.removeEventListener('keydown', onKey)
 })
 </script>
 

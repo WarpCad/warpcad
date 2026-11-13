@@ -37,7 +37,8 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { LIBRARY_SECTIONS } from '../../core/library.js'
-import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
+import { useOutsideClick } from '../../composables/useOutsideClick.js'
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { useRepeatStore } from '../../stores/repeat.js'
@@ -178,7 +179,7 @@ watch(
 )
 
 // Escape closes whichever is open and hands focus back to what opened it.
-useEscapeToClose(
+useOverlayStack(
   () => (openOp.value !== null || openSectionId.value !== null) && !userPartUiOpen.value,
   () => {
     const op = openOp.value
@@ -195,29 +196,15 @@ useEscapeToClose(
   },
 )
 
-/**
- * A press anywhere outside the rail (its tiles, the pop-out, the menu) closes what is open. It is
- * only observed, never prevented, so a tap on the viewport still selects normally.
- *
- * @param {Event} event
- */
-function onDocumentPointerDown(event) {
-  if (userPartUiOpen.value) return
-  const target = /** @type {Node | null} */ (event.target)
-  if (target && railEl.value?.contains(target)) return
-  closePopout()
-}
-
-watch(
-  () => openOp.value !== null || openSectionId.value !== null,
-  (anything) => {
-    if (anything) document.addEventListener('pointerdown', onDocumentPointerDown, true)
-    else document.removeEventListener('pointerdown', onDocumentPointerDown, true)
-  },
+// A press anywhere outside the rail (its tiles, the pop-out, the menu) closes what is open. It is
+// only observed, never prevented, so a tap on the viewport still selects normally.
+useOutsideClick(
+  railEl,
+  () => (openOp.value !== null || openSectionId.value !== null) && !userPartUiOpen.value,
+  () => closePopout(),
 )
 
 onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocumentPointerDown, true)
   // The rail is going (a tier change, or phone width): its pop-out goes with it, at once.
   closePopout()
 })

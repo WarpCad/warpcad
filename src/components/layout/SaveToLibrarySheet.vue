@@ -18,8 +18,9 @@
  *
  * Layout and events only; every rule lives in `stores/library.js` and `core/userPartTools.js`.
  */
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import HelpButton from '../controls/HelpButton.vue'
 import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
@@ -40,14 +41,7 @@ watch(
 )
 onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 
-/** @param {KeyboardEvent} event */
-function onKeydown(event) {
-  if (event.key !== 'Escape' || !library.saveOpen) return
-  event.preventDefault()
-  library.closeSave()
-}
-onMounted(() => window.addEventListener('keydown', onKeydown, true))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
+useOverlayStack(() => library.saveOpen, () => library.closeSave())
 </script>
 
 <template>

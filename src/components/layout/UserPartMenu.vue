@@ -17,8 +17,9 @@
  *   listed; **Delete…** is enabled and opens a dialog that names what keeps it there (only
  *   Cancel), and **Duplicate** is how it is kept in My parts (`TODO/ui-096`).
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useLibraryStore } from '../../stores/library.js'
 
 const props = defineProps({
@@ -70,23 +71,17 @@ watch(deleting, async (open) => {
   deleteConfirm.value?.focus()
 })
 
-/** @param {KeyboardEvent} event */
-function onKeydown(event) {
-  if (event.key !== 'Escape') return
-  if (menuOpen.value) {
-    event.preventDefault()
-    library.closeMenu()
-    trigger.value?.focus()
-  } else if (renaming.value) {
-    event.preventDefault()
-    library.cancelRename()
-  } else if (deleting.value) {
-    event.preventDefault()
-    library.cancelDelete()
-  }
-}
-onMounted(() => window.addEventListener('keydown', onKeydown, true))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
+// One overlay with three states; Escape unwinds the innermost one open.
+useOverlayStack(
+  () => menuOpen.value || renaming.value || deleting.value,
+  () => {
+    if (menuOpen.value) {
+      library.closeMenu()
+      trigger.value?.focus()
+    } else if (renaming.value) library.cancelRename()
+    else if (deleting.value) library.cancelDelete()
+  },
+)
 </script>
 
 <template>

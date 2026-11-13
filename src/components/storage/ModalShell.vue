@@ -24,8 +24,10 @@
  *
  * It owns layout only. What each dialog says and does is its own component's.
  */
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
+import { useFocusTrap } from '../../composables/useFocusTrap.js'
+import { useKeyboardInset } from '../../composables/useKeyboardInset.js'
 import HelpButton from '../controls/HelpButton.vue'
 
 const props = defineProps({
@@ -40,35 +42,14 @@ const props = defineProps({
 })
 defineEmits(['backdrop'])
 
+/** The dialog element, the focus trap's root. */
+const dialogEl = ref(null)
+// `aria-modal` is a promise that the page behind is unavailable: keep Tab inside (`TODO/ui-110`).
+useFocusTrap(dialogEl, () => props.open)
 /** How much of the layout viewport the on-screen keyboard covers, in px; 0 where it does not. */
-const keyboardInset = ref(0)
-function measureKeyboard() {
-  const visual = window.visualViewport
-  if (!visual) return
-  keyboardInset.value = Math.max(0, Math.round(window.innerHeight - visual.height - visual.offsetTop))
-}
-function stopMeasuring() {
-  window.visualViewport?.removeEventListener('resize', measureKeyboard)
-  window.visualViewport?.removeEventListener('scroll', measureKeyboard)
-}
-watch(
-  () => props.sheet && props.open,
-  (measuring) => {
-    if (typeof window === 'undefined') return
-    stopMeasuring()
-    keyboardInset.value = 0
-    if (!measuring) return
-    window.visualViewport?.addEventListener('resize', measureKeyboard)
-    window.visualViewport?.addEventListener('scroll', measureKeyboard)
-    measureKeyboard()
-  },
-  { immediate: true },
-)
-onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') stopMeasuring()
-})
+const { keyboardInsetPx } = useKeyboardInset(() => props.sheet && props.open)
 
-const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboardInset.value}px` } : undefined))
+const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboardInsetPx.value}px` } : undefined))
 </script>
 
 <template>
@@ -76,6 +57,7 @@ const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboa
     <template v-if="open">
       <div class="modal__backdrop" :data-testid="`${testid}-backdrop`" @click="$emit('backdrop')" />
       <div
+        ref="dialogEl"
         class="modal"
         :class="{ 'modal--sheet': sheet }"
         role="dialog"

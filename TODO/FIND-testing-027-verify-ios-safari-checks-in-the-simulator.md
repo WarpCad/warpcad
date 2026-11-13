@@ -48,6 +48,9 @@ Rows moved here in full (entry and row number in `TODO/VERIFY.md`):
 | `ui-094` #2 | iPhone and iPad: with the name field open the 3D view and field stay visible, no page zoom, Done commits |
 | `core-076` #1 | Group two groups, tap **Prefix**: with the keyboard open the **Group** button is reachable, and the page stays unzoomed |
 | `ai-003` #1 | **File ▾ → Project settings…**: the keyboard comes up and the field, count and **Save** stay above it over several lines |
+| `ui-110` #1 | Hypothesis, not yet seen: **Split** (the lowest of its eleven number fields), then focus it: the field stays above the keyboard. `ui-110` moved the keyboard measure into `useKeyboardInset` but did not apply it to this sheet |
+| `ui-110` #2 | Hypothesis, as #1: **Save to library** with the keyboard up: the name field and Save stay visible |
+| `ui-110` #3 | Hypothesis, as #1: the phone **Inspector** sheet, lowest field focused: it stays visible |
 | `ai-006` #1 | `npm run dev` (Scripted provider, reachable from the simulator at the Mac's localhost), chat sheet at **Half**: the composer and **Send** stay above the keyboard |
 | `ai-004` #1 (native) | Long-press in **API key**, **Paste** (put a made-up key on the Mac pasteboard; the simulator shares it): Save and test enables, no sideways scroll |
 | `render-002` #2 | A label's Text field: the keyboard's Done key commits, not only Enter |

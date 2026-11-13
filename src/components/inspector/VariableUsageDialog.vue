@@ -5,7 +5,10 @@
  * actions — **Delete and keep current values** and **Cancel**. There is no plain destructive
  * delete. A centred modal at tablet/laptop width; a bottom sheet at phone width.
  */
-import { onBeforeUnmount, onMounted } from 'vue'
+import { ref } from 'vue'
+
+import { useFocusTrap } from '../../composables/useFocusTrap.js'
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 
 defineProps({
   name: { type: String, required: true },
@@ -19,21 +22,16 @@ defineProps({
 
 const emit = defineEmits(['keep', 'cancel'])
 
-/** @param {KeyboardEvent} event */
-function onKey(event) {
-  if (event.key !== 'Escape') return
-  event.stopPropagation()
-  emit('cancel')
-}
-
-onMounted(() => window.addEventListener('keydown', onKey, true))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
+// Mounted only while open (the parent `v-if`s it), so it is open for its whole life.
+const panel = ref(null)
+useOverlayStack(() => true, () => emit('cancel'))
+useFocusTrap(panel, () => true)
 </script>
 
 <template>
   <div class="usage">
     <div class="usage__backdrop" data-testid="variable-usage-backdrop" @click="emit('cancel')"></div>
-    <section class="usage__panel" role="dialog" aria-modal="true" aria-labelledby="usage-title" data-testid="variable-usage-dialog">
+    <section ref="panel" class="usage__panel" role="dialog" aria-modal="true" aria-labelledby="usage-title" data-testid="variable-usage-dialog">
       <h2 id="usage-title" class="usage__title">{{ name }} is still used</h2>
       <p class="usage__text">Deleting it turns each of these back into the value it has now.</p>
       <ul class="usage__list">

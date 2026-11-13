@@ -29,6 +29,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, toRaw } from 'vue'
 
+import { useFocusTrap } from '../../composables/useFocusTrap.js'
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { paramOptions } from '../../core/kernel/registry.js'
 import { fixKeyOf, offeredFixesOf } from '../../core/repair.js'
@@ -57,14 +59,10 @@ function onPhoneChange(event) {
   isPhone.value = event.matches
 }
 
-/** @param {KeyboardEvent} event */
-function onWindowKeydown(event) {
-  if (event.key !== 'Escape' || !dialog.open) return
-  // Capture phase, like the Operations popovers (`ui-053`): the dialog is on top, so
-  // Escape is its Cancel and nothing underneath hears it.
-  event.stopPropagation()
-  cancel()
-}
+// Escape is its Cancel and nothing underneath hears it: the stack hands the key to the top overlay.
+const panelEl = ref(null)
+useOverlayStack(() => dialog.open, () => cancel())
+useFocusTrap(panelEl, () => dialog.open)
 
 onMounted(() => {
   if (typeof window.matchMedia === 'function') {
@@ -72,11 +70,9 @@ onMounted(() => {
     isPhone.value = phoneQuery.matches
     phoneQuery.addEventListener?.('change', onPhoneChange)
   }
-  window.addEventListener('keydown', onWindowKeydown, true)
 })
 onBeforeUnmount(() => {
   phoneQuery?.removeEventListener?.('change', onPhoneChange)
-  window.removeEventListener('keydown', onWindowKeydown, true)
 })
 
 // --- what the dialog is about ---------------------------------------------------
@@ -295,6 +291,7 @@ function apply() {
   <div v-if="dialog.open" class="repair" :class="{ 'repair--sheet': isPhone }">
     <div class="repair__backdrop" data-testid="repair-backdrop" @click="cancel()"></div>
     <section
+      ref="panelEl"
       class="repair__panel"
       role="dialog"
       aria-modal="true"

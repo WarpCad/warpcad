@@ -21,8 +21,9 @@
  * The one line of detail under the sentence is the store's own message (typed and non-echoing:
  * it never quotes a server body, so it cannot carry the credential).
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import ModalShell from './ModalShell.vue'
 
@@ -67,15 +68,7 @@ watch(
   },
 )
 
-/** @param {KeyboardEvent} event */
-function onKeydown(event) {
-  if (event.key !== 'Escape' || !hosted.conflictOpen) return
-  event.preventDefault()
-  void choose('cancel')
-}
-
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+useOverlayStack(() => hosted.conflictOpen, () => void choose('cancel'))
 </script>
 
 <template>

@@ -27,8 +27,9 @@
  * - **Small screens**: a bottom sheet at phone width, every control a 44 px (`--tap`) target,
  *   16 px inputs so iOS does not zoom on focus.
  */
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import HelpButton from '../controls/HelpButton.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import {
@@ -52,14 +53,7 @@ watch(
 )
 onBeforeUnmount(() => overlays.setOpen('split-sheet', false))
 
-/** @param {KeyboardEvent} event */
-function onKeydown(event) {
-  if (event.key !== 'Escape' || !sheet.isOpen) return
-  event.preventDefault()
-  sheet.close()
-}
-onMounted(() => window.addEventListener('keydown', onKeydown, true))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
+useOverlayStack(() => sheet.isOpen, () => sheet.close())
 
 /**
  * The dowel diameter field: blank is the search's own size.

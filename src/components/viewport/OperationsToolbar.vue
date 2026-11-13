@@ -316,7 +316,8 @@ import PopoverGrip from './PopoverGrip.vue'
 import { operandsHaveParts } from '../../core/groupMerge.js'
 import { bisectParams, booleanRecord, groupRecord, inPlaceRecord, mirrorRecord, operandFromSelection } from '../../core/operationRecords.js'
 import { OPERATION_GROUPS, groupStates } from '../../core/operationGroups.js'
-import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
+import { useOutsideClick } from '../../composables/useOutsideClick.js'
+import { overlayStackDepth, useOverlayStack } from '../../composables/useOverlayStack.js'
 import { DEFAULT_ROTATE_AXIS } from '../../core/kernel/group.js'
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
 import { useDocumentStore } from '../../stores/document.js'
@@ -716,6 +717,7 @@ const openPopover = ref(
 // Dragging the popover's grip (`TODO/ui-087`): the frame is teleported, so the composable finds it
 // through the grip rather than through a ref.
 usePopoverDrag(openPopover)
+useOverlayStack(() => openPopover.value !== null, () => closePopover())
 
 // Tell the app an operation popover is open, so a background hosted-conflict dialog is deferred
 // rather than stacked over it (TODO/ui-033, data-002 §11 rule 5: "no other popover or dialog
@@ -748,14 +750,9 @@ onBeforeUnmount(() => overlays.setOpen('ops-popover', false))
  */
 function onWindowKeydown(event) {
   if (event.key !== 'Escape') return
-  if (openPopover.value !== null) {
-    event.preventDefault()
-    closePopover()
-    return
-  }
-  // `TODO/ui-082`: an open group pop-out is next; its own Escape handler closes it, so the
-  // Repeat session below is left alone by the same key press.
-  if (openGroupId.value !== null) return
+  // `TODO/ui-110`: an open popover or group pop-out is on the overlay stack, which closes the top
+  // overlay on this same key; the Repeat session below is left alone by that press.
+  if (overlayStackDepth() > 0) return
   // `TODO/ui-069`: then the Repeat session — after the Align popover (`ui-060`'s Escape order),
   // and never from inside another dialog, which owns its own Escape.
   const focused = /** @type {Element | null} */ (event.target instanceof Element ? event.target : null)
@@ -1545,7 +1542,7 @@ watch(groups, (states) => {
   if (id !== null && states.find((state) => state.id === id)?.disabled) closeGroup()
 })
 
-useEscapeToClose(
+useOverlayStack(
   () => openGroupId.value !== null,
   () => {
     const id = openGroupId.value
@@ -1554,30 +1551,15 @@ useEscapeToClose(
   },
 )
 
-/**
- * A press outside the open launcher and its pop-out closes it. Observed, never prevented, so a
- * tap on the viewport still selects and a tap on a Library launcher still opens its section.
- *
- * @param {Event} event
- */
-function onDocumentPointerDown(event) {
-  const id = openGroupId.value
-  if (id === null) return
-  const target = /** @type {Node | null} */ (event.target)
-  const slot = opsEl.value?.querySelector(`[data-group-slot="${id}"]`)
-  if (target && slot?.contains(target)) return
-  closeGroup()
-}
+// A press outside the open launcher and its pop-out closes it. Observed, never prevented, so a
+// tap on the viewport still selects and a tap on a Library launcher still opens its section.
+useOutsideClick(
+  () => (openGroupId.value === null ? null : (opsEl.value?.querySelector(`[data-group-slot="${openGroupId.value}"]`) ?? null)),
+  () => openGroupId.value !== null,
+  () => closeGroup(),
+)
 
-watch(openGroupId, (id) => {
-  if (id !== null) document.addEventListener('pointerdown', onDocumentPointerDown, true)
-  else document.removeEventListener('pointerdown', onDocumentPointerDown, true)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocumentPointerDown, true)
-  closeGroup()
-})
+onBeforeUnmount(() => closeGroup())
 </script>
 
 <template>

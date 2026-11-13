@@ -58,7 +58,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 8 | ▶ Ready | `FIND` | [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset | sonnet |
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 11 | ▶ Ready | `FIND` | [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers; add type, space, layer and motion scales | sonnet |
@@ -66,7 +65,7 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 | 13 | ⏳ Waits on 11 | `FIND` | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app (System, Dark, Light) from one source of truth | sonnet |
 | 14 | ⏳ Waits on 11 | `FIND` | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton; 68 components move off their own button rule | sonnet |
 | 15 | ⏳ Waits on 11 | `FIND` | [`ui-115`](FIND-ui-115-base-field-and-number-field.md) Base form fields; one unit-aware NumberField | sonnet |
-| 16 | ⏳ Waits on 8, 11 | `FIND` | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover on `ModalShell` | sonnet |
+| 16 | ⏳ Waits on 11 | `FIND` | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover on `ModalShell` | sonnet |
 | 17 | ⏳ Waits on 11, 14 | `FIND` | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading, ListRow | sonnet |
 | 18 | ⏳ Waits on 11, 13 | `FIND` | [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | opus |
 | 19 | ⏳ Waits on 11, 12, 14–18 | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep; empty the guard's allow-list (last in the chain) | sonnet |
@@ -155,7 +154,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
-| [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours — focus trap and restore, Escape, outside click, keyboard inset | finding | high | sonnet | ▶ Ready (Next up row 8) |
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
 | [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers and add the missing scales | finding | high | sonnet | ▶ Ready (Next up row 11) |
@@ -163,7 +161,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app — System, Dark or Light — from one source of truth | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 13) |
 | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton, and move every hand-styled button onto them | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 14) |
 | [`ui-115`](FIND-ui-115-base-field-and-number-field.md) Base form fields, with one unit-aware NumberField in place of two number-entry patterns | finding | high | sonnet | ⏳ Waits on 11 (Next up row 15) |
-| [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover frames, built on ModalShell | finding | medium | sonnet | ⏳ Waits on 8, 11 (Next up row 16) |
+| [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover frames, built on ModalShell | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 16) |
 | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading and ListRow | finding | low | sonnet | ⏳ Waits on 11, 14 (Next up row 17) |
 | [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | finding | high | opus | ⏳ Waits on 11, 13 (Next up row 18) |
 | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep — replace the remaining style literals and empty the guard's allow-list | finding | low | sonnet | ⏳ Waits on 11, 12, 14–18 (Next up row 19) |
@@ -309,7 +307,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `ui-110` | One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset (no dialog traps focus today). Filed 2026-11-10 from the architecture audit | Finding | — | 7, 10, 24 |
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
 | `ui-112` | Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change. Filed 2026-11-10 from the architecture audit | Finding | — | none (zero snapshot diffs) |

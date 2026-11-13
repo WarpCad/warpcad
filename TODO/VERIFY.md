@@ -51,6 +51,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-110 — One set of overlay behaviours (2026-11-13 17:40)
+
+The iOS keyboard hypothesis was not tested and nothing was changed for it; the three sheets are on `testing-027`'s simulator list. What a person should feel on a real device is below.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPad or iPhone with a hardware keyboard attached, open the Key sheet and press Tab: focus cycles inside it and never reaches the toolbar behind (the trap moves focus itself, because Safari does not Tab to buttons) | Open | |
+
 ### io-028 — Ask the browser for persistent storage (2026-11-13 16:49)
 
 Emulation proves the app calls `navigator.storage.persist()` once after the first save with content, and that a deleted database with the flag set shows the cleared-data notice. It cannot show a real browser honouring `persist()` or evicting data.
