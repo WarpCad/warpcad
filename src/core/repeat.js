@@ -66,6 +66,7 @@
 
 import { evaluate } from './kernel/index.js'
 import { add, combine, createGroup, isGroup } from './kernel/group.js'
+import { UserFacingError } from './userError.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').OperandRef} OperandRef */
@@ -825,7 +826,7 @@ function buildMember(record, lineage, target, context) {
         if (value === undefined) throw new Error(`it needs "${id}", which is not built`)
         local.set(id, value)
         if (piecesOf(ref).includes(target) && !partsOf(value).includes(target)) {
-          throw new Error(`${seedName} has no part named ${target}`)
+          throw new UserFacingError('repeat/has-no-part-named', `${seedName} has no part named ${target}`)
         }
       }
       if (context.passedThrough?.(/** @type {string} */ (original.id)) === true) {

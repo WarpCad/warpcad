@@ -51,6 +51,7 @@
 import modeling from '@jscad/modeling'
 
 import { assertRecordColor } from './colors.js'
+import { UserFacingError } from '../userError.js'
 
 // `@jscad/modeling@2.x` is CommonJS. A bundler resolves its named exports, but raw
 // Node ESM does not — and `CLAUDE.md` requires `src/core/` to be testable in plain
@@ -726,7 +727,7 @@ export function add(group, object, partName, options = {}) {
   // `parts` is a plain object: `parts['__proto__'] = solid` sets its prototype and the part is
   // gone while `names` still lists it. Refused by name, never lost (TODO/io-024; a 3MF's object
   // names arrive from the file).
-  if (REFUSED_PART_NAMES.has(partName)) throw new Error(`add: "${partName}" cannot be a part name`)
+  if (REFUSED_PART_NAMES.has(partName)) throw new UserFacingError('group/add-cannot-be-a-part-name', `add: "${partName}" cannot be a part name`)
   assertRecordColor(options.color, options.colorAlpha, `add: part "${partName}"`)
   const parts = copyParts(group.parts)
   const colors = { ...group.colors }
@@ -932,7 +933,7 @@ export function mergeInto(group, object, options = {}) {
     added.push(name)
     const own = Object.hasOwn(options.colors ?? {}, name) ? options.colors?.[name] : undefined
     if (own !== undefined) {
-      if (own?.color === undefined) throw new Error(`mergeInto: part "${name}" has a colour entry with no colour`)
+      if (own?.color === undefined) throw new UserFacingError('group/mergeinto-part-has-a-colour-entry-with-no-colour', `mergeInto: part "${name}" has a colour entry with no colour`)
       assertRecordColor(own.color, own.colorAlpha, `mergeInto: part "${name}"`)
       colors[merged] = Object.freeze({
         color: /** @type {number} */ (own.color),
@@ -1025,7 +1026,7 @@ export function removePart(value, partName) {
     throw new Error(`${op}: this body is a single solid and has no parts to remove — delete it instead`)
   }
   if (typeof partName !== 'string' || partName.length === 0) {
-    throw new Error(`${op}: a part name is required, got ${JSON.stringify(partName)}`)
+    throw new UserFacingError('group/a-part-name-is-required-got', `${op}: a part name is required, got ${JSON.stringify(partName)}`)
   }
   if (!Object.hasOwn(value.parts, partName)) {
     throw new Error(
@@ -1035,7 +1036,7 @@ export function removePart(value, partName) {
   }
   const names = value.names.filter((name) => name !== partName)
   if (value.names.includes(partName) && names.length === 0) {
-    throw new Error(`${op}: "${partName}" is the last visible part — delete the whole body instead`)
+    throw new UserFacingError('group/is-the-last-visible-part-delete-the-whole-body-i', `${op}: "${partName}" is the last visible part — delete the whole body instead`)
   }
   /** @type {Record<string, Geom3>} */
   const parts = {}
@@ -1081,7 +1082,7 @@ export function setPartHidden(value, partName, hidden) {
     throw new Error(`${op}: hidden must be a boolean, got ${JSON.stringify(hidden)}`)
   }
   if (typeof partName !== 'string' || partName.length === 0) {
-    throw new Error(`${op}: a part name is required, got ${JSON.stringify(partName)}`)
+    throw new UserFacingError('group/a-part-name-is-required-got', `${op}: a part name is required, got ${JSON.stringify(partName)}`)
   }
   if (!Object.hasOwn(value.parts, partName)) return value
   if (value.names.includes(partName) === !hidden) return value
@@ -1089,7 +1090,7 @@ export function setPartHidden(value, partName, hidden) {
     ? Object.keys(value.parts).filter((name) => name !== partName && value.names.includes(name))
     : Object.keys(value.parts).filter((name) => name === partName || value.names.includes(name))
   if (visible.length === 0) {
-    throw new Error(`${op}: "${partName}" is the last visible part — a group needs one shown part`)
+    throw new UserFacingError('group/is-the-last-visible-part-a-group-needs-one-shown', `${op}: "${partName}" is the last visible part — a group needs one shown part`)
   }
   return /** @type {T} */ (
     /** @type {unknown} */ (
@@ -1175,7 +1176,7 @@ export function renamePart(value, partName, to) {
     throw new Error(`${op}: this body is a single solid and has no parts to rename`)
   }
   if (typeof partName !== 'string' || partName.length === 0) {
-    throw new Error(`${op}: a part name is required, got ${JSON.stringify(partName)}`)
+    throw new UserFacingError('group/a-part-name-is-required-got', `${op}: a part name is required, got ${JSON.stringify(partName)}`)
   }
   const problem = renamedPartProblem(to)
   if (problem !== null) throw new Error(`${op}: ${problem}`)

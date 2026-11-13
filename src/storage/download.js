@@ -31,6 +31,7 @@
 
 import { writeExport } from '../native/files.js'
 import { isNativeShell, probeShell } from '../native/shell.js'
+import { UserFacingError } from '../core/userError.js'
 
 /** How long the object URL outlives the click — revoking at once can cancel the download. */
 export const REVOKE_AFTER_MS = 30_000
@@ -60,7 +61,7 @@ function reasonOf(error) {
  */
 export function downloadBytes(data, name, mimeType, env = globalThis) {
   if (isNativeShell(probeShell(env))) {
-    throw new Error(`A browser download of ${name} was started inside the native app; it must go through saveBytes`)
+    throw new UserFacingError('download/a-browser-download-of-was-started-inside-the-nat', `A browser download of ${name} was started inside the native app; it must go through saveBytes`)
   }
   try {
     const blob = new env.Blob([data], { type: mimeType })

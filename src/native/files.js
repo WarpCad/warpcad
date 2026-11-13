@@ -24,6 +24,7 @@
  */
 
 import { invoke, loadShellDetails, probeShell } from './shell.js'
+import { UserFacingError } from '../core/userError.js'
 
 /** `BaseDirectory.Document` in `@tauri-apps/api/path`: `$DOCUMENT`, the app's Documents folder on iOS. */
 export const DOCUMENT_BASE_DIR = 6
@@ -168,7 +169,7 @@ async function writeAtomic(command, path, bytes, global, tempId, baseDir = DOCUM
  * @returns {Promise<ProjectEntry>} the name and the file's modification time after the write
  */
 export async function writeProjectFile(name, text, global = /** @type {FilesGlobal} */ (globalThis), tempId = randomId()) {
-  if (!isPlainName(name)) throw new Error(`"${name}" is not a file name WarpCad can save under`)
+  if (!isPlainName(name)) throw new UserFacingError('files/is-not-a-file-name-warpcad-can-save-under', `"${name}" is not a file name WarpCad can save under`)
   await writeAtomic('plugin:fs|write_text_file', name, encoder.encode(text), global, tempId)
   return { name, ...(await statProjectFile(name, global)) }
 }
@@ -263,7 +264,7 @@ function isIPad(global) {
  * @returns {Promise<{ path: string, place: string }>} the Documents-relative path, and where to find it
  */
 export async function writeExport(name, data, global = /** @type {FilesGlobal} */ (globalThis), tempId = randomId()) {
-  if (!isPlainName(name)) throw new Error(`"${name}" is not a file name WarpCad can export under`)
+  if (!isPlainName(name)) throw new UserFacingError('files/is-not-a-file-name-warpcad-can-export-under', `"${name}" is not a file name WarpCad can export under`)
   await call('plugin:fs|mkdir', { path: EXPORTS_FOLDER, options: { baseDir: DOCUMENT_BASE_DIR, recursive: true } }, global)
   const path = `${EXPORTS_FOLDER}/${name}`
   await writeAtomic('plugin:fs|write_file', path, bytesOf(data), global, tempId)
@@ -361,7 +362,7 @@ export async function importOpenedFile(opened, global = /** @type {FilesGlobal} 
     await writeProjectFile(name, text, global)
     return name
   }
-  throw new Error(`no free name for ${opened.name} in WarpCad's folder`)
+  throw new UserFacingError('files/no-free-name-for-in-warpcad-s-folder', `no free name for ${opened.name} in WarpCad's folder`)
 }
 
 /**
@@ -386,7 +387,7 @@ function isAppDataPath(path) {
  * @returns {Promise<void>}
  */
 export async function writeAppData(path, text, global = /** @type {FilesGlobal} */ (globalThis), tempId = randomId()) {
-  if (!isAppDataPath(path)) throw new Error(`"${path}" is not a path WarpCad can keep a backup under`)
+  if (!isAppDataPath(path)) throw new UserFacingError('files/is-not-a-path-warpcad-can-keep-a-backup-under', `"${path}" is not a path WarpCad can keep a backup under`)
   const { dir } = split(path)
   await call('plugin:fs|mkdir', { path: dir.replace(/\/$/, ''), options: { baseDir: APPDATA_BASE_DIR, recursive: true } }, global)
   await writeAtomic('plugin:fs|write_text_file', path, encoder.encode(text), global, tempId, APPDATA_BASE_DIR)
@@ -400,7 +401,7 @@ export async function writeAppData(path, text, global = /** @type {FilesGlobal} 
  * @returns {Promise<string | null>}
  */
 export async function readAppData(path, global = /** @type {FilesGlobal} */ (globalThis)) {
-  if (!isAppDataPath(path)) throw new Error(`"${path}" is not a path WarpCad can read a backup from`)
+  if (!isAppDataPath(path)) throw new UserFacingError('files/is-not-a-path-warpcad-can-read-a-backup-from', `"${path}" is not a path WarpCad can read a backup from`)
   const options = { baseDir: APPDATA_BASE_DIR }
   if ((await call('plugin:fs|exists', { path, options }, global)) !== true) return null
   return decodeText(await call('plugin:fs|read_text_file', { path, options }, global))
@@ -414,7 +415,7 @@ export async function readAppData(path, global = /** @type {FilesGlobal} */ (glo
  * @returns {Promise<void>}
  */
 export async function removeAppData(path, global = /** @type {FilesGlobal} */ (globalThis)) {
-  if (!isAppDataPath(path)) throw new Error(`"${path}" is not a path WarpCad can remove a backup from`)
+  if (!isAppDataPath(path)) throw new UserFacingError('files/is-not-a-path-warpcad-can-remove-a-backup-from', `"${path}" is not a path WarpCad can remove a backup from`)
   const options = { baseDir: APPDATA_BASE_DIR }
   if ((await call('plugin:fs|exists', { path, options }, global)) !== true) return
   await call('plugin:fs|remove', { path, options }, global)

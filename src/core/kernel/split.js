@@ -136,6 +136,7 @@ import {
   profileJoint,
 } from './recipes/joint.profiles.js'
 import modeling from '@jscad/modeling'
+import { UserFacingError } from '../userError.js'
 
 const { booleans } = modeling
 
@@ -1139,7 +1140,7 @@ export function splitWithJoint(value, params) {
   const joins = /** @type {[string, string]} */ ([nameA, nameB])
   for (const name of [nameA, nameB]) {
     if (name !== crossed && Object.hasOwn(source.parts, name)) {
-      throw new Error(`${OP}: the body already has a part named "${name}" — choose another name for the new piece`)
+      throw new UserFacingError('split/the-body-already-has-a-part-named-choose-another', `${OP}: the body already has a part named "${name}" — choose another name for the new piece`)
     }
   }
   /** @param {string} name */

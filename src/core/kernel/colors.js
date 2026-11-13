@@ -35,6 +35,7 @@
  *
  * @module core/kernel/colors
  */
+import { UserFacingError } from '../userError.js'
 
 /**
  * The record fields a colour occupies, exactly as a recipe spreads them into an
@@ -225,7 +226,7 @@ export const V1_CSS_COLOR_HEX = Object.freeze({
 export function v1ColorToRecord(name, alpha) {
   const color = Object.hasOwn(V1_CSS_COLOR_HEX, name) ? V1_CSS_COLOR_HEX[name] : undefined
   if (color === undefined) {
-    throw new Error(`unknown V1 colour name "${name}" — not in jscad-utils' own name table`)
+    throw new UserFacingError('colors/unknown-v1-colour-name-not-in-jscad-utils-own-na', `unknown V1 colour name "${name}" — not in jscad-utils' own name table`)
   }
   if (alpha === undefined || alpha === 1) return { color }
   assertAlpha(alpha, `V1 colour "${name}" alpha`)
@@ -249,7 +250,7 @@ export function hexToUnitRgb(hex) {
  */
 function assertAlpha(alpha, label) {
   if (typeof alpha !== 'number' || !(alpha > 0 && alpha <= 1)) {
-    throw new Error(`${label} must be a number in (0, 1], got ${JSON.stringify(alpha)}`)
+    throw new UserFacingError('colors/must-be-a-number-in-0-1-got', `${label} must be a number in (0, 1], got ${JSON.stringify(alpha)}`)
   }
 }
 
@@ -264,7 +265,7 @@ function assertAlpha(alpha, label) {
 export function assertRecordColor(color, colorAlpha, label) {
   if (color === undefined) {
     if (colorAlpha !== undefined) {
-      throw new Error(`${label}: colorAlpha ${JSON.stringify(colorAlpha)} given without a color to apply it to`)
+      throw new UserFacingError('colors/coloralpha-given-without-a-color-to-apply-it-to', `${label}: colorAlpha ${JSON.stringify(colorAlpha)} given without a color to apply it to`)
     }
     return
   }

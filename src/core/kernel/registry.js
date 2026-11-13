@@ -133,6 +133,7 @@ import { SCREEN_MODELS, screen } from './recipes/raspberrypi.screen.js'
 import { spacer } from './recipes/raspberrypi.spacer.js'
 import { touchDisplay7inch } from './recipes/raspberrypi.touchDisplay7inch.js'
 import { touchScreen2 } from './recipes/raspberrypi.touchScreen2.js'
+import { UserFacingError } from '../userError.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('@jscad/modeling').geometries.geom2.Geom2} Geom2 */
@@ -529,9 +530,9 @@ function mergeMember(group, value, member) {
   const refusal = partNameProblem(name)
   if (refusal !== null) throw new Error(refusal)
   // `add` overwrites a name it already has, on purpose, for recipes. Never here.
-  if (Object.hasOwn(group.parts, name)) throw new Error(`"${name}" is already a part of this group`)
+  if (Object.hasOwn(group.parts, name)) throw new UserFacingError('registry/is-already-a-part-of-this-group', `"${name}" is already a part of this group`)
   const own = colors !== undefined && Object.hasOwn(colors, name) ? colors[name] : undefined
-  if (own !== undefined && own?.color === undefined) throw new Error(`part "${name}" has a colour entry with no colour`)
+  if (own !== undefined && own?.color === undefined) throw new UserFacingError('registry/part-has-a-colour-entry-with-no-colour', `part "${name}" has a colour entry with no colour`)
   return add(group, value, name, { hidden, color: own?.color, colorAlpha: own?.colorAlpha })
 }
 
@@ -1947,7 +1948,7 @@ export const registry = Object.freeze({
     // guarantees "Cube 1"/"Cube 2"), but this op should not *trust* that
     // invariant from outside its own module.
     if (new Set(names).size !== names.length) {
-      throw new Error(`${op}: operand names must be unique, got ${JSON.stringify(names)}`)
+      throw new UserFacingError('registry/operand-names-must-be-unique-got', `${op}: operand names must be unique, got ${JSON.stringify(names)}`)
     }
     // Optional recipe colours (`TODO/io-027`): one entry per operand, `{ color, colorAlpha? }` or
     // `null`. Absent, the op folds as it always did.

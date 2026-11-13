@@ -28,6 +28,7 @@
  */
 
 import { inflate } from './shareLink.js'
+import { UserFacingError } from './userError.js'
 
 /** CRC-32 (IEEE) lookup table, built once. */
 const CRC_TABLE = (() => {
@@ -67,7 +68,7 @@ export function createZip(files) {
   const encoder = new TextEncoder()
   const names = new Set()
   const entries = files.map((file) => {
-    if (names.has(file.name)) throw new Error(`createZip: duplicate file name "${file.name}"`)
+    if (names.has(file.name)) throw new UserFacingError('zip/createzip-duplicate-file-name', `createZip: duplicate file name "${file.name}"`)
     names.add(file.name)
     return { name: encoder.encode(file.name), bytes: file.bytes, crc: crc32(file.bytes) }
   })
@@ -147,7 +148,7 @@ export function readZip(zip) {
     const name = decoder.decode(zip.subarray(at + 30, at + 30 + nameLength))
     const start = at + 30 + nameLength + extraLength
     const bytes = zip.slice(start, start + size)
-    if (crc32(bytes) !== crc) throw new Error(`readZip: CRC mismatch for "${name}"`)
+    if (crc32(bytes) !== crc) throw new UserFacingError('zip/readzip-crc-mismatch-for', `readZip: CRC mismatch for "${name}"`)
     files.push({ name, bytes })
     at = start + size
   }

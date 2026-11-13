@@ -31,6 +31,7 @@
 import { MESH_ASSET_OP, decodeMeshAsset, meshBounds } from './meshAsset.js'
 import { emptyPlacedBounds, growPlacedBounds } from './meshMatrix.js'
 import { USER_PART_PREFIX, slugify } from '../core/userPart.js'
+import { UserFacingError } from '../core/userError.js'
 
 /** The op that builds a body from an `asset.mesh`. */
 export const IMPORT_MESH_OP = 'import.mesh'
@@ -234,9 +235,9 @@ export function meshPartInfo(definition) {
 export function withUnits(definition, units) {
   if (!Object.hasOwn(UNIT_SCALES, units)) throw new Error(`units must be one of ${Object.keys(UNIT_SCALES).join(', ')}`)
   const found = meshRecordsOf(definition)
-  if (found === null) throw new Error(`${definition.name} is not an imported model`)
+  if (found === null) throw new UserFacingError('meshPart/is-not-an-imported-model', `${definition.name} is not an imported model`)
   if (found.some((entry) => entry.model.params?.unitsStated === true)) {
-    throw new Error(`${definition.name}'s file states its units, so they are not chosen here`)
+    throw new UserFacingError('meshPart/s-file-states-its-units-so-they-are-not-chosen-h', `${definition.name}'s file states its units, so they are not chosen here`)
   }
   return {
     ...definition,

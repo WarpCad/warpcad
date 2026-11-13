@@ -8,6 +8,7 @@ vi.mock('@sentry/vue', () => ({
 }))
 
 import * as Sentry from '@sentry/vue'
+import { UserFacingError } from './userError.js'
 import { MAX_BUFFERED, containsSecret, errorReportingReady, initErrorReporting, scrubBreadcrumb, scrubEvent } from './errorReporting.js'
 
 // Shapes only, never a real credential.
@@ -278,5 +279,72 @@ describe('scrubBreadcrumb', () => {
     expect(scrubBreadcrumb({})).toEqual({})
     expect(scrubBreadcrumb({ message: 'ok' })).toEqual({ message: 'ok' })
     expect(scrubBreadcrumb(null)).toBeNull()
+  })
+})
+
+describe('scrubEvent: document text in exception messages (core-082)', () => {
+  /** @param {string} type @param {string} value */
+  const eventWith = (type, value) => ({ exception: { values: [{ type, value, stacktrace: { frames: [{ filename: 'app.js' }] } }] } })
+
+  it('reports the code, not the message, for a UserFacingError', () => {
+    const error = new UserFacingError('document.deleteBodies/already-deleted', 'document.deleteBodies: "Secret Lid" has already been deleted')
+    const out = scrubEvent(eventWith(error.name, error.message), { originalException: error })
+    expect(out?.exception.values[0].value).toBe('document.deleteBodies/already-deleted')
+    expect(JSON.stringify(out)).not.toContain('Secret Lid')
+    expect(out?.exception.values[0].stacktrace.frames).toHaveLength(1)
+  })
+
+  it('replaces a double-quoted span in a plain Error message with an ellipsis', () => {
+    const out = scrubEvent(eventWith('Error', 'readZip: CRC mismatch for "secret.model"'))
+    expect(out?.exception.values[0].value).toBe('readZip: CRC mismatch for "…"')
+  })
+
+  it('leaves a message with no quoted text unchanged', () => {
+    const out = scrubEvent(eventWith('TypeError', "Cannot read properties of undefined (reading 'x')"))
+    expect(out?.exception.values[0].value).toBe("Cannot read properties of undefined (reading 'x')")
+  })
+
+  it('also scrubs a top-level message', () => {
+    expect(scrubEvent({ message: 'no part named "Hinge"' })?.message).toBe('no part named "…"')
+  })
+
+  it('does not mutate its input', () => {
+    const event = eventWith('Error', 'x "y"')
+    scrubEvent(event)
+    expect(event.exception.values[0].value).toBe('x "y"')
+  })
+})
+
+describe('guard: no plain Error interpolates document text (core-082)', () => {
+  it('every throw that interpolates a name, label, title or path is a UserFacingError or allow-listed', async () => {
+    const { readdirSync, readFileSync, statSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const root = join(process.cwd(), 'src')
+    /** @type {string[]} */
+    const files = []
+    /** @param {string} dir */
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry)
+        if (statSync(full).isDirectory()) walk(full)
+        else if (/\.(js|vue)$/.test(entry) && !/\.(spec|e2e)\.js$/.test(entry)) files.push(full)
+      }
+    }
+    walk(root)
+    const pattern = /new (?:Error|RangeError|TypeError)\(`[^`]*\$\{[^}]*(?:name|Name|label|title|path)/
+    // Messages that interpolate a parameter label, an operation name or a fixed identifier, never document text.
+    const allowed = [
+      /\$\{label\} must be/, /\$\{op\}: \$\{label\}/, /\$\{OP\}: \$\{label\}/, /transform: \$\{label\}/,
+      /\$\{named\}/, /\$\{op\}: leadMm and \$\{name\}/, /\$\{op\}: give one name per operand/,
+      /__e2eImport: no module at/, /piScenes:/, /`name must be text/,
+    ]
+    /** @type {string[]} */
+    const offenders = []
+    for (const file of files) {
+      readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+        if (pattern.test(line) && !allowed.some((re) => re.test(line))) offenders.push(`${file.slice(root.length + 1)}:${index + 1}`)
+      })
+    }
+    expect(offenders).toEqual([])
   })
 })

@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped.** `UserFacingError` (`src/core/userError.js`), 43 throw sites converted (no message text changed), and `scrubEvent(event, hint)` reports the `code` for it (via Sentry's `hint.originalException`) and replaces double-quoted spans in every other exception message and the event message with `"…"`. The kernel recipes' parameter-label messages, `split.js`'s `${named}` messages (operand index and kind), `operationRecords.js`, `transform.js`, `e2eHooks.js` and the `piScenes` fixture stay plain `Error`, since they interpolate parameter labels, op names or ids, never document text; `errorReporting.spec.js` has the allow-list. `docs/privacy.md` covers only Google Analytics and makes no error-report claim, so it was left unchanged.
 
 ## Problem
 

@@ -33,6 +33,7 @@ import { lookupEntry, normalizedParams, paramOptions, registry as defaultRegistr
 import { currentParamsRecordOf, partRecordsOf } from './paramEdit.js'
 import { REPEAT_OP, moveRefusalText } from './repeat.js'
 import { bindabilityError, bindableParams, isBinding, isFormula, resolveParams, variablesOf } from './variables.js'
+import { UserFacingError } from './userError.js'
 
 /** @typedef {import('./document.js').Body} Body */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -613,7 +614,7 @@ export function describeBody(body, ops = defaultRegistry, variables = undefined,
 export function describeSubPart(body, partName, records, ops = defaultRegistry, variables = undefined) {
   const group = body.geometry
   if (!isGroup(group)) {
-    throw new Error(`describeSubPart: body "${body.id}" is not a group, it has no part "${partName}"`)
+    throw new UserFacingError('inspector/describesubpart-body-is-not-a-group-it-has-no-pa', `describeSubPart: body "${body.id}" is not a group, it has no part "${partName}"`)
   }
   const part = group.parts[partName]
   if (!part) {

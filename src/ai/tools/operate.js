@@ -40,6 +40,7 @@ import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
 import { checkInput, objectSchema, splitRationale, vectorSchema, withRationale } from './schema.js'
+import { UserFacingError } from '../../core/userError.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
@@ -144,9 +145,9 @@ function partHiddenSpec(label, description, params, recordParams) {
       const body = document.bodies().find((candidate) => candidate.recordId === operands[0].terminal)
       const geometry = /** @type {any} */ (body?.geometry)
       const names = isGroup(geometry) ? Object.keys(geometry.parts) : []
-      if (names.length === 0) throw new Error(`${op}: ${operands[0].name} has no parts to hide`)
+      if (names.length === 0) throw new UserFacingError('operate/has-no-parts-to-hide', `${op}: ${operands[0].name} has no parts to hide`)
       if (!names.includes(input.part)) {
-        throw new Error(`${op}: no part named ${JSON.stringify(input.part)} in ${operands[0].name} (parts: ${names.join(', ')})`)
+        throw new UserFacingError('operate/no-part-named-in-parts', `${op}: no part named ${JSON.stringify(input.part)} in ${operands[0].name} (parts: ${names.join(', ')})`)
       }
       const visible = geometry.names
       if (visible.includes(input.part) === !input.hidden) {
@@ -229,7 +230,7 @@ function mergePlanFor(document, operands, params) {
   }
   const target = planned.rows.findIndex((row) => row.isTarget)
   if (target >= 0 && (members[target].prefix !== undefined || members[target].hidden !== undefined)) {
-    throw new Error(`${op}: ${operands[target].name} is the first body that merges, so it keeps its names and visibility — it takes no prefix or hidden`)
+    throw new UserFacingError('operate/is-the-first-body-that-merges-so-it-keeps-its-na', `${op}: ${operands[target].name} is the first body that merges, so it keeps its names and visibility — it takes no prefix or hidden`)
   }
   return planned
 }

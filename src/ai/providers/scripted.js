@@ -40,6 +40,7 @@
  */
 
 import { createToolRegistry } from '../tools/index.js'
+import { UserFacingError } from '../../core/userError.js'
 
 /** How many characters of text one `text` event carries: small enough to cross word boundaries. */
 export const SCRIPTED_CHUNK_CHARS = 9
@@ -142,7 +143,7 @@ export function stampTranscript(transcript, registry = createToolRegistry()) {
   const tools = {}
   for (const name of calledTools(transcript)) {
     const definition = definitions.get(name)
-    if (definition === undefined) throw new Error(`"${transcript.name}" calls "${name}", which is not a tool`)
+    if (definition === undefined) throw new UserFacingError('scripted/calls-which-is-not-a-tool', `"${transcript.name}" calls "${name}", which is not a tool`)
     tools[name] = schemaHash(definition.inputSchema)
   }
   return { ...transcript, tools }

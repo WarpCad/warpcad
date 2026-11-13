@@ -139,8 +139,13 @@ production `connect-src` by a build-only Vite plugin. Consequences:
     SDK adds `location.href` automatically) is **kept with the fragment removed**, not dropped.
     Dropping it would discard every error raised while the Help overlay (`#/help/<page>`) is open.
 - What is still sent: the error message and stack, the browser and OS, the release, and the page
-  URL without its fragment. An error message that itself quotes document text would be sent; the
-  app does not build messages from document content on purpose, but that is the residual risk.
+  URL without its fragment. Messages written for the user that quote a body, part, variable or
+  file name are `UserFacingError`s (`src/core/userError.js`): an unhandled one reports its fixed `code`
+  (for example `document.deleteBodies/already-deleted`), never its message. As a backstop for a site that
+  still throws a plain `Error`, `scrubEvent` replaces every double-quoted span in an exception message
+  with `"…"`. The residual risk is a plain `Error` that quotes a name without double quotes, or an error
+  that crossed the kernel worker boundary as plain data; `errorReporting.spec.js` greps `src/` so a new
+  plain `Error` interpolating a name fails the suite. (`TODO/core-082`.)
 
 ### Bundle cost
 

@@ -830,6 +830,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `core-082` | Error messages quote body and file names, so an unhandled one sends document text to Sentry | Finding | — | ✅ done (no acceptance scenario) — `UserFacingError` (`src/core/userError.js`) carries a fixed `code`; 43 throw sites that quote document text converted without changing a message; `scrubEvent` reports the code for it and replaces any double-quoted span in other exception messages with `"…"`; a guard spec greps `src/` for new plain `Error`s that interpolate a name |
 | ✅ `io-028` | Ask the browser for persistent storage after the first save with content, and say so when saved data was cleared (`src/storage/persistentStorage.js`, `bootStorage`, the quota message with the estimate) | Finding | — | 10 |
 | ✅ `testing-015` | `e2e/webgl-depth-translucency.e2e.js`: Bolt, Anchor, Pi 5, camera modules v1/v2 and two overlapping Pis captured twice a frame apart and once orbited, asserting zero frame-to-frame flicker and no isolated speckle (per-engine ceilings stated in the spec); 3 × 3, test-only | Finding | `testing-005` | none |
 | ✅ `testing-009` | WebKit viewport-scaffold flakes and the app-header screenshot drift were already fixed on `HEAD` by `b81a99b` (pinned version label, polled scale readout, retried WebGL read); verified 10 clean WebKit-set runs, closed with no code change. | Finding | — | none |
@@ -1315,5 +1316,6 @@ convention going forward.
 | `testing-009` | 2026-11-13 15:41 | ~35m (already fixed on HEAD; verification only) |
 | `testing-015` | 2026-11-13 16:36 | ~55m |
 | `io-028` | 2026-11-13 16:49 | 23m |
+| `core-082` | 2026-11-13 17:20 | ~31m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

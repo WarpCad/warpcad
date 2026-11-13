@@ -9,6 +9,8 @@
  *
  * @module core/errorReporting
  */
+import { UserFacingError } from './userError.js'
+
 /** Key shapes the app stores: Anthropic `sk-ant-…`, GitHub `ghp_…` and `github_pat_…` tokens. */
 const KEY_PATTERN = /sk-ant-[A-Za-z0-9_-]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}/
 /** A URL carrying a fragment, a relative `/#/route`, or a bare `#/route` hash fragment. */
@@ -125,14 +127,50 @@ export function scrubBreadcrumb(breadcrumb) {
   return { ...breadcrumb, data }
 }
 
+/** A double-quoted span: the app's messages quote body, part, variable and file names this way. */
+const QUOTED_SPAN = /"[^"\n]*"/g
+
+/**
+ * @param {string} text
+ * @returns {string} `text` with every double-quoted span replaced by `"…"`.
+ */
+function redactQuoted(text) {
+  return text.replace(QUOTED_SPAN, '"…"')
+}
+
+/**
+ * Removes document text an exception message may quote (`TODO/core-082`). A {@link UserFacingError}
+ * reports its fixed `code` in place of its message; any other message loses its double-quoted spans.
+ *
+ * @param {Record<string, any>} event
+ * @param {unknown} original The thrown value Sentry hands `beforeSend` as `hint.originalException`.
+ * @returns {void} Edits `event.exception.values` in place; the caller passes a copy.
+ */
+function scrubExceptions(event, original) {
+  const values = event.exception?.values
+  if (Array.isArray(values)) {
+    event.exception = {
+      ...event.exception,
+      values: values.map((entry) => {
+        if (entry === null || typeof entry !== 'object' || typeof entry.value !== 'string') return entry
+        const reported = original instanceof UserFacingError && entry.value === original.message ? original.code : redactQuoted(entry.value)
+        return { ...entry, value: reported }
+      }),
+    }
+  }
+  if (typeof event.message === 'string') event.message = redactQuoted(event.message)
+}
+
 /**
  * The scrubber for every outgoing event (`beforeSend`) — the single place privacy is decided.
  * Returns a cleaned copy, or null to drop the event. Never mutates its input.
  *
  * @param {Record<string, any> | null | undefined} event
+ * @param {{ originalException?: unknown } | null} [hint] Sentry's hint; names the thrown value so a
+ *   {@link UserFacingError} reports its code.
  * @returns {Record<string, any> | null}
  */
-export function scrubEvent(event) {
+export function scrubEvent(event, hint) {
   if (event === null || event === undefined || typeof event !== 'object') return null
   const out = { ...event }
   delete out.extra
@@ -147,7 +185,9 @@ export function scrubEvent(event) {
   if (Array.isArray(out.breadcrumbs)) {
     out.breadcrumbs = out.breadcrumbs.map(scrubBreadcrumb).filter((crumb) => crumb !== null)
   }
-  return leaksPrivateText(out) ? null : out
+  if (leaksPrivateText(out)) return null
+  scrubExceptions(out, hint?.originalException)
+  return out
 }
 
 /** Errors kept while the SDK is still being fetched; the oldest is dropped past this. */

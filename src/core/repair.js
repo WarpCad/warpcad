@@ -25,6 +25,7 @@
 
 import { boundsOf } from './kernel/group.js'
 import { withRenamedTarget, withoutTarget } from './repeat.js'
+import { UserFacingError } from './userError.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./document.js').RecordRevision} RecordRevision */
@@ -247,7 +248,7 @@ export function repairChanges(document, edit, breakages, fixes) {
   for (const breakage of breakages) {
     const id = breakage.dependentRecordId
     const fix = fixes[fixKeyOf(breakage)]
-    if (fix === undefined) throw new Error(`repair: no fix chosen for "${fixKeyOf(breakage)}" (${breakage.dependentName})`)
+    if (fix === undefined) throw new UserFacingError('repair/repair-no-fix-chosen-for', `repair: no fix chosen for "${fixKeyOf(breakage)}" (${breakage.dependentName})`)
 
     // `TODO/core-061`: one member of a repeat. Every member fix edits the same row, in turn.
     if (breakage.member !== undefined) {
@@ -263,7 +264,7 @@ export function repairChanges(document, edit, breakages, fixes) {
         merge(id, { record: withRenamedTarget(record, target, to) })
       } else if (fix.kind === 'removeTarget') {
         if ((record.params?.targets ?? []).length <= 1) {
-          throw new Error(`repair: ${target} is this repeat's only target — delete ${breakage.dependentName} instead`)
+          throw new UserFacingError('repair/repair-is-this-repeat-s-only-target-delete-inste', `repair: ${target} is this repeat's only target — delete ${breakage.dependentName} instead`)
         }
         merge(id, { record: withoutTarget(record, target) })
       } else if (fix.kind === 'condition') {

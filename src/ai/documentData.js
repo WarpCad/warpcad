@@ -20,6 +20,7 @@
  *
  * @module ai/documentData
  */
+import { UserFacingError } from '../core/userError.js'
 
 const OPEN = (/** @type {string} */ label) => `<document_data source="project" label="${label}">`
 const CLOSE = '</document_data>'
@@ -35,7 +36,7 @@ const LABEL = /^[a-z][a-z0-9_-]{0,39}$/
  * @throws {Error} for a label that is not a plain identifier.
  */
 export function documentDataBlock(label, value) {
-  if (!LABEL.test(label)) throw new Error(`documentDataBlock: label ${JSON.stringify(label)} is not a plain identifier`)
+  if (!LABEL.test(label)) throw new UserFacingError('documentData/documentdatablock-label-is-not-a-plain-identifie', `documentDataBlock: label ${JSON.stringify(label)} is not a plain identifier`)
   const json = JSON.stringify(value) ?? 'null'
   return `${OPEN(label)}${json.replace(/</g, '\\u003c')}${CLOSE}`
 }

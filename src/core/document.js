@@ -514,6 +514,7 @@ import {
   repeatLabel,
   repeatReferencedIds,
 } from './repeat.js'
+import { UserFacingError } from './userError.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./kernel/registry.js').RegistryEntry} RegistryEntry */
@@ -6386,7 +6387,7 @@ export function createDocument(options = {}) {
       const root = typeof id === 'string' ? rootById.get(id) : undefined
       if (root === undefined) throw new Error(`document.renameBody: no such body "${id}" in this document`)
       if (isDeletedRoot(root)) {
-        throw new Error(`document.renameBody: ${currentNameOfRoot(root) ?? root} has been deleted`)
+        throw new UserFacingError('document/document-renamebody-has-been-deleted', `document.renameBody: ${currentNameOfRoot(root) ?? root} has been deleted`)
       }
       if (mergedInto.has(root)) {
         throw new Error(
@@ -6431,13 +6432,13 @@ export function createDocument(options = {}) {
         const root = typeof id === 'string' ? rootById.get(id) : undefined
         if (root === undefined) throw new Error(`document.deleteBodies: no such body "${id}" in this document`)
         const name = currentNameOfRoot(root) ?? root
-        if (isDeletedRoot(root)) throw new Error(`document.deleteBodies: ${name} has already been deleted`)
+        if (isDeletedRoot(root)) throw new UserFacingError('document/document-deletebodies-has-already-been-deleted', `document.deleteBodies: ${name} has already been deleted`)
         if (mergedInto.has(root)) {
           throw new Error(
             `document.deleteBodies: ${name} has been consumed into another body — delete that one instead`
           )
         }
-        if (roots.has(root)) throw new Error(`document.deleteBodies: ${name} is named twice`)
+        if (roots.has(root)) throw new UserFacingError('document/document-deletebodies-is-named-twice', `document.deleteBodies: ${name} is named twice`)
         roots.add(root)
         terminals.push(terminalByRoot.get(root) ?? root)
       }
@@ -6464,12 +6465,12 @@ export function createDocument(options = {}) {
      */
     removePart(id, partName, transaction) {
       if (typeof partName !== 'string' || partName.length === 0) {
-        throw new Error(`document.removePart: a part name is required, got ${JSON.stringify(partName)}`)
+        throw new UserFacingError('document/document-removepart-a-part-name-is-required-got', `document.removePart: a part name is required, got ${JSON.stringify(partName)}`)
       }
       const root = rootById.get(id)
       if (root === undefined) throw new Error(`document.removePart: no such body "${id}" in this document`)
       if (isDeletedRoot(root)) {
-        throw new Error(`document.removePart: ${currentNameOfRoot(root) ?? root} has been deleted`)
+        throw new UserFacingError('document/document-removepart-has-been-deleted', `document.removePart: ${currentNameOfRoot(root) ?? root} has been deleted`)
       }
       // `TODO/core-061` decision 7: removing one member of a repeat drops its target — a replace
       // of the repeat row, so the record and the BOM agree with what is drawn.
@@ -6505,7 +6506,7 @@ export function createDocument(options = {}) {
      */
     setPartHidden(id, partName, hidden, transaction) {
       if (typeof partName !== 'string' || partName.length === 0) {
-        throw new Error(`document.setPartHidden: a part name is required, got ${JSON.stringify(partName)}`)
+        throw new UserFacingError('document/document-setparthidden-a-part-name-is-required-g', `document.setPartHidden: a part name is required, got ${JSON.stringify(partName)}`)
       }
       if (typeof hidden !== 'boolean') {
         throw new Error(`document.setPartHidden: hidden must be a boolean, got ${JSON.stringify(hidden)}`)
@@ -6513,7 +6514,7 @@ export function createDocument(options = {}) {
       const root = rootById.get(id)
       if (root === undefined) throw new Error(`document.setPartHidden: no such body "${id}" in this document`)
       if (isDeletedRoot(root)) {
-        throw new Error(`document.setPartHidden: ${currentNameOfRoot(root) ?? root} has been deleted`)
+        throw new UserFacingError('document/document-setparthidden-has-been-deleted', `document.setPartHidden: ${currentNameOfRoot(root) ?? root} has been deleted`)
       }
       if (recordById.get(root)?.op === REPEAT_OP) {
         throw new Error('document.setPartHidden: a repeat has no parts of its own to mark')
@@ -6521,10 +6522,10 @@ export function createDocument(options = {}) {
       const currentId = /** @type {string} */ (document.currentIdOf(id))
       const value = scene.byId.get(currentId)
       if (!isGroup(value) || !Object.hasOwn(value.parts, partName)) {
-        throw new Error(`document.setPartHidden: no part named "${partName}" in ${currentNameOfRoot(root) ?? root}`)
+        throw new UserFacingError('document/document-setparthidden-no-part-named-in', `document.setPartHidden: no part named "${partName}" in ${currentNameOfRoot(root) ?? root}`)
       }
       if (value.names.includes(partName) === !hidden) {
-        throw new Error(`document.setPartHidden: "${partName}" is already ${hidden ? 'hidden' : 'shown'} by default`)
+        throw new UserFacingError('document/document-setparthidden-is-already-by-default', `document.setPartHidden: "${partName}" is already ${hidden ? 'hidden' : 'shown'} by default`)
       }
       return document.append(
         {
