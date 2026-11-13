@@ -102,7 +102,7 @@ rest need the iPad in hand. Details in [M19](#m19--native-ios-app-tauri-held).
 
 **Findings that need the owner first:**
 
-- [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop-Safari checks through safaridriver (6 rows; session start still times out). **Held:** `safaridriver` is enabled, but a session still times out connecting to Safari (re-probed 2026-11-13). Likely Safari › Settings › Developer › **Allow remote automation**; give it a Findings row once a session starts
+- [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop-Safari checks through safaridriver (6 rows; session start still times out). **Held:** `safaridriver` is enabled and **Allow remote automation** is on, but `POST /session` still times out connecting to Safari (probed 2026-11-13, inside and outside the sandbox). Not yet diagnosed: try with Safari quit and no profile picker or modal open. Give it a Findings row once a session starts
 - [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari behaviour checks in the iOS Simulator (34 rows). **Held:** each simulator needs Settings › Safari › Advanced › **Remote Automation** turned on first
 - [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Checks blocked on native OS dialogs and private windows, with computer use (6 rows). **Held:** needs computer use, which only the Claude desktop app has
 - [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md; ask in batches. **Held:** its whole job is asking the owner ~80 questions in batches; run it by hand with `/fix-todo testing-033`, never in the loop
