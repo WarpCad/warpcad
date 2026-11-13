@@ -162,13 +162,13 @@ onBeforeUnmount(() => {
   cursor: crosshair;
 }
 
-/* Bottom centre, above whatever the phone's sheets and tabs cover (`--viewport-bottom-inset`), in a
+/* Bottom centre, above whatever the phone's sheets and tabs cover (`--layout-viewport-bottom-inset`), in a
    row of its own: the viewport lifts the navigation chrome and the scale readout by
-   `--placement-chip-room` while a session is armed. */
+   `--layout-placement-chip-room` while a session is armed. */
 .session-chip {
   position: absolute;
   left: 50%;
-  bottom: calc(12px + var(--viewport-bottom-inset, 0px));
+  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px));
   z-index: 6;
   display: flex;
   align-items: center;

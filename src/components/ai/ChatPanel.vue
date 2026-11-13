@@ -11,7 +11,7 @@
  * sheet's height (`data-chat-sheet`).
  *
  * The composer stays above the on-screen keyboard: the sheet is lifted by the gap the
- * **visual viewport** reports (`--kb-inset`), because iOS Safari does not resize the layout
+ * **visual viewport** reports (`--layout-kb-inset`), because iOS Safari does not resize the layout
  * viewport for the keyboard and a plain `bottom: 0` sheet ends up behind it.
  *
  * Everything the model said is shown as plain text — assistant text and tool reasons can quote
@@ -181,7 +181,7 @@ const HEIGHTS = /** @type {const} */ ([
     :data-sheet="chat.sheet"
     :data-linked="linked ? 'true' : 'false'"
     :data-running="chat.running ? 'true' : 'false'"
-    :style="{ '--kb-inset': `${keyboardInsetPx}px` }"
+    :style="{ '--layout-kb-inset': `${keyboardInsetPx}px` }"
   >
     <header class="chat__head">
       <ConnectionDot :state="assistant.dotState" testid="assistant-panel-dot" />
@@ -324,15 +324,15 @@ const HEIGHTS = /** @type {const} */ ([
 <style scoped>
 /* Phone and tablet first: a bottom sheet over the viewport, translucent so the model shows through. */
 .chat {
-  --chat-sheet-height: 36dvh;
+  --layout-chat-sheet-height: 36dvh;
   position: fixed;
   left: 0;
   right: 0;
-  bottom: var(--kb-inset, 0px);
+  bottom: var(--layout-kb-inset, 0px);
   z-index: 25;
   box-sizing: border-box;
-  height: var(--chat-sheet-height);
-  max-height: calc(100dvh - var(--kb-inset, 0px) - 60px);
+  height: var(--layout-chat-sheet-height);
+  max-height: calc(100dvh - var(--layout-kb-inset, 0px) - 60px);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -345,18 +345,18 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 .chat[data-sheet='peek'] {
-  --chat-sheet-height: auto;
+  --layout-chat-sheet-height: auto;
 }
 
 /* `TODO/ui-071`: connected, the sheet is its header and one row, whatever height was chosen. */
 @media (max-width: 1099px) {
   .chat.chat--linked[data-sheet] {
-    --chat-sheet-height: auto;
+    --layout-chat-sheet-height: auto;
   }
 }
 
 .chat[data-sheet='full'] {
-  --chat-sheet-height: 60dvh;
+  --layout-chat-sheet-height: 60dvh;
 }
 
 .chat__help {
@@ -379,9 +379,9 @@ const HEIGHTS = /** @type {const} */ ([
 .chat__scripted {
   flex: none;
   padding: 2px 8px;
-  border: 1px dashed var(--warn, #b7791f);
+  border: 1px dashed var(--warn);
   border-radius: 999px;
-  color: var(--warn, #b7791f);
+  color: var(--warn);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;

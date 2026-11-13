@@ -6,10 +6,14 @@ priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
 
 > **2026-11-13:** the dependency on `ui-111` was dropped. That file is the umbrella and closes last, after this chain; its design decisions (answered 2026-11-10) are what this task builds on.
+
+> **What shipped (2026-11-13):** as proposed, with these differences. `src/styles/tokens.css` became `base.css`, `semantic.css`, `themes/dark.css`, `themes/light.css`, `reset.css` and `index.css` (`src/main.js` imports `index.css`). `light.css` states every themed colour, not only the ones that differ (`--axis-x` and `--axis-y` repeat the dark value), so a theme switch never falls through. `--z-*` tiers also have `-frame` twins (`--z-popover-frame`, `--z-modal-frame`, `--z-help-frame`) as `calc()`. `src/styles/breakpoints.js` exports 480, 640, 900 and 1100: `TraceTool.vue` read `(min-width: 900px)`, not one of the three the file named, so 900 was added; `AiHeaderEntry.vue` and `TraceTool.vue` import their queries from it. The `--tap-target` uses are `--tap` (5 places). 66 token fallbacks were removed; the ones on runtime layout variables stay, since those can be unset. 21 runtime variables became `--layout-*` (`--layout-kb-inset`, `--layout-viewport-bottom-inset`, `--layout-library-width`, ...). `index.html` has the light `--surface-0` twin and comments name the token on all four literals. New: `src/styles/tokens.spec.js` and its helper `src/styles/cssTokens.js`; `build/index-html.spec.js` now reads `--surface-0` through the helper. Zero snapshot diffs across `npm run test:e2e:full`.
+>
+> **Deliberately NOT migrated (left for `ui-118`):** components still write their own z-index literals (26 distinct values), font sizes (8px, 9px, 12.5px, 15px, 20px, 22px and the em/rem ones, plus every use of the 10-18px steps), radii, spacing, durations, the focus ring, scrim and popover shadow. Only the structure and names exist. `--marker-color` stays unprefixed: a per-element colour a component sets, not a layout measurement.
 
 ## Problem
 

@@ -127,7 +127,7 @@ const canSend = computed(() => {
   }
 })
 
-const popoverStyle = computed(() => ({ '--share-top': `${anchor.value.top}px`, '--share-right': `${anchor.value.right}px` }))
+const popoverStyle = computed(() => ({ '--layout-share-top': `${anchor.value.top}px`, '--layout-share-right': `${anchor.value.right}px` }))
 
 /** The project as records, at the moment the sheet opens. */
 function projectRecords() {
@@ -681,12 +681,12 @@ onBeforeUnmount(() => {
 /* Wider than a phone: a popover under the button. */
 @media (min-width: 641px) {
   .share-sheet {
-    top: var(--share-top, 56px);
-    right: var(--share-right, 8px);
+    top: var(--layout-share-top, 56px);
+    right: var(--layout-share-right, 8px);
     bottom: auto;
     left: auto;
     width: min(360px, calc(100vw - 16px));
-    max-height: calc(100dvh - var(--share-top, 56px) - 12px);
+    max-height: calc(100dvh - var(--layout-share-top, 56px) - 12px);
     border-radius: var(--radius-lg);
     padding-bottom: 12px;
   }

@@ -450,7 +450,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 .align-popover__drop {
   width: 100%;
   min-height: 44px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);

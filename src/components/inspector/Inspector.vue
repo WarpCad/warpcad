@@ -1108,7 +1108,7 @@ watch([() => body.value?.id, colorPart], () => {
   width: 44px;
   height: 44px;
   padding: 2px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   cursor: pointer;
@@ -1131,7 +1131,7 @@ watch([() => body.value?.id, colorPart], () => {
   flex: none;
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -1327,7 +1327,7 @@ watch([() => body.value?.id, colorPart], () => {
   padding: 4px 2px;
   border: none;
   background: none;
-  color: var(--accent, var(--text-2));
+  color: var(--accent);
   font: inherit;
   font-size: 11px;
   text-decoration: underline;
@@ -1435,7 +1435,7 @@ watch([() => body.value?.id, colorPart], () => {
 /* An editable field has to *look* editable, or a user will assume the whole
    panel is still the read-only display `ui-011` shipped and never try typing. */
 .inspector__input--editable {
-  border-color: var(--border-strong, var(--border));
+  border-color: var(--border-strong);
   color: var(--text-1);
 }
 
@@ -1504,7 +1504,7 @@ watch([() => body.value?.id, colorPart], () => {
     /* Stacked directly above the Library sheet's collapsed tab rather than on
        top of it — ui-010's hand-drive found exactly this class of overlap. While the Library
        sheet is open it docks on the bottom edge instead and the Library lifts (ui-070). */
-    bottom: var(--inspector-bottom, var(--library-tab-height, 52px));
+    bottom: var(--layout-inspector-bottom, var(--layout-library-tab-height, 52px));
     left: 0;
     z-index: 11;
     border-left: none;

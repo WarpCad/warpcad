@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* The page reset (`TODO/ui-112`): the only rules in the token layers' neighbourhood. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  /* The app is one screen with a full-bleed 3D viewport: the page itself never
+     scrolls, and touch drags must reach the canvas rather than scrolling or
+     rubber-banding the document. */
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font);
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  height: 100%;
+}

@@ -101,7 +101,7 @@ function save() {
 .vformula__text {
   min-height: 44px;
   padding: 6px 8px;
-  border: 1px dashed var(--border-strong, var(--border));
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-2);
@@ -122,7 +122,7 @@ function save() {
 .vformula__btn {
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -151,7 +151,7 @@ function save() {
 .vformula__error {
   margin: 0;
   font-size: 12px;
-  color: var(--danger, var(--text-1));
+  color: var(--danger);
   overflow-wrap: anywhere;
 }
 
@@ -159,7 +159,7 @@ function save() {
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--warn, var(--text-2));
+  color: var(--warn);
   overflow-wrap: anywhere;
 }
 </style>

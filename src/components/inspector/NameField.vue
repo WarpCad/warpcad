@@ -264,8 +264,8 @@ watch(
   font-size: 16px;
   font-family: inherit;
   color: var(--text-1);
-  background: var(--surface-2, transparent);
-  border: 1px solid var(--accent, currentColor);
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
   border-radius: 4px;
 }
 

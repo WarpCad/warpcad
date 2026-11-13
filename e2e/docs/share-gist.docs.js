@@ -152,7 +152,7 @@ test.describe('docs media: the Share sheet gist group', () => {
       pre.textContent = text
       pre.style.cssText =
         'position:fixed;inset:0;margin:0;padding:16px;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;' +
-        'font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--surface-1,#1b1d21);color:var(--text-1,#e8e8e8);z-index:2147483647'
+        'font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--surface-1);color:var(--text-1);z-index:2147483647'
       document.body.append(pre)
     }, readme)
     await shot(page, 'gist-readme-brief.png', { locator: page.getByTestId('docs-readme') })

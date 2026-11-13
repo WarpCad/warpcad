@@ -107,7 +107,7 @@ useOverlayStack(
         role="menu"
         :aria-label="`${row.label} actions`"
         data-testid="user-part-menu"
-        :style="{ '--umenu-top': `${place.top}px`, '--umenu-left': `${place.left}px` }"
+        :style="{ '--layout-umenu-top': `${place.top}px`, '--layout-umenu-left': `${place.left}px` }"
       >
         <p class="umenu__title">{{ row.label }}</p>
         <!-- TODO/ui-096: the reason a project-only part is listed, as text (a title never shows on touch). -->
@@ -361,13 +361,13 @@ useOverlayStack(
 .udialog__button--primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--accent-contrast, #fff);
+  color: var(--accent-contrast);
 }
 
 @media (min-width: 641px) {
   .umenu {
-    top: var(--umenu-top);
-    left: var(--umenu-left);
+    top: var(--layout-umenu-top);
+    left: var(--layout-umenu-left);
     right: auto;
     bottom: auto;
     width: 200px;

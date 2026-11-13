@@ -64,7 +64,7 @@ const placement = usePlacementStore()
   gap: 8px;
   width: 260px;
   /* Never wider than the space right of the rail, whatever the window (≥ 641px here). */
-  max-width: calc(100vw - var(--library-width, 72px) - 24px);
+  max-width: calc(100vw - var(--layout-library-width, 72px) - 24px);
   max-height: calc(100% - 16px);
   overflow-y: auto;
   padding: 10px 12px 12px;

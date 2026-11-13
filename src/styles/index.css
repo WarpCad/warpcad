@@ -1,0 +1,11 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Design tokens, in layers (`TODO/ui-112`). Dark mode is primary, light comes from
+ * `prefers-color-scheme`, and every colour is a custom property rather than a hardcoded literal
+ * (CLAUDE.md Conventions). Order matters: raw values, then roles, then each theme, then the reset.
+ */
+@import './base.css';
+@import './semantic.css';
+@import './themes/dark.css';
+@import './themes/light.css';
+@import './reset.css';

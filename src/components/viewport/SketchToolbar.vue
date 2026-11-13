@@ -424,7 +424,7 @@ function onSides(event) {
 }
 
 .sketch-toolbar__status--error {
-  color: var(--danger, var(--warn));
+  color: var(--danger);
 }
 
 /* A narrow viewport — the 390px phone, and the tablet, whose viewport column is also

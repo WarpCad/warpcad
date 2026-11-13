@@ -410,7 +410,7 @@ function apply() {
   width: min(560px, 100%);
   max-height: min(80vh, 720px);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
   background: var(--surface-1);
   color: var(--text-1);
   box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
@@ -543,7 +543,7 @@ function apply() {
 .repair__btn--primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--accent-contrast, #fff);
+  color: var(--accent-contrast);
 }
 
 .repair__btn:disabled {

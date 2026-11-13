@@ -500,7 +500,7 @@ onBeforeUnmount(() => {
     position: absolute;
     right: 0;
     /* Lifted above the Inspector's docked tab while the sheet is open (AppView, ui-070). */
-    bottom: var(--library-bottom, 0px);
+    bottom: var(--layout-library-bottom, 0px);
     left: 0;
     z-index: 10;
     border-right: none;

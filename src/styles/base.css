@@ -1,0 +1,88 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Base values (`TODO/ui-112`): every raw value in the design system, named by what it is, never by
+ * where it is used. Nothing here knows about a theme or a component. `semantic.css` and the two
+ * theme files give these values their roles; a component never reads a base name directly.
+ */
+
+:root {
+  /* Palette, dark neutrals */
+  --slate-950: #10131a;
+  --slate-900: #171b24;
+  --slate-850: #1f2530;
+  --slate-800: #2c333f;
+  --slate-700: #3d4756;
+  --slate-500: #78838f;
+  --slate-300: #a3aebd;
+  --slate-100: #e7ecf3;
+  --slate-900-glass: rgba(23, 27, 36, 0.82);
+
+  /* Palette, light neutrals */
+  --cloud-100: #eef1f6;
+  --cloud-50: #f7f9fc;
+  --white: #ffffff;
+  --cloud-300: #d3dae4;
+  --cloud-400: #b6c0ce;
+  --cloud-50-glass: rgba(247, 249, 252, 0.88);
+  --ink-950: #131820;
+  --ink-700: #47525f;
+  --ink-500: #6c7786;
+
+  /* Palette, hues */
+  --navy-950: #06121d;
+  --blue-400: #5aa9e6;
+  --blue-700: #1f6fb2;
+  --sky-400: #38bdf8;
+  --sky-700: #0369a1;
+  --teal-300: #66d9c0;
+  --teal-600: #0f8a72;
+  --red-400: #e06c75;
+  --red-700: #b3261e;
+  --rust-500: #c75c5c;
+  --green-500: #6aa84f;
+  --fuchsia-400: #e879f9;
+  --fuchsia-700: #a21caf;
+  --violet-300: #b69cff;
+  --violet-600: #6d3fd6;
+  --amber-300: #ffc46b;
+  --amber-600: #d4802a;
+  --gold-300: #e5b567;
+  --gold-700: #9a6a12;
+
+  /* Shadow and scrim colours */
+  --black-35: rgba(0, 0, 0, 0.35);
+  --black-45: rgba(0, 0, 0, 0.45);
+  --black-50: rgba(0, 0, 0, 0.5);
+  --ink-18: rgba(20, 30, 45, 0.18);
+  --ink-35: rgba(20, 30, 45, 0.35);
+
+  /* Spacing scale. Declared for the migration (`TODO/ui-118`); components still write px. */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 24px;
+  --space-8: 32px;
+
+  /* Type scale */
+  --font-size-1: 10px;
+  --font-size-2: 11px;
+  --font-size-3: 12px;
+  --font-size-4: 13px;
+  --font-size-5: 14px;
+  --font-size-6: 16px;
+  --font-size-7: 18px;
+  --font-weight-1: 600;
+  --font-weight-2: 650;
+
+  /* Corner radii */
+  --radius-1: 6px;
+  --radius-2: 10px;
+  --radius-3: 14px;
+
+  /* Durations, the two the code uses (0.12s and 120ms are the same step) */
+  --duration-1: 120ms;
+  --duration-2: 180ms;
+}

@@ -6,7 +6,7 @@
  *
  * Deliberately outside the viewport, not floating in it: the top-left corner is
  * the Operations toolbar, the top-right is the orientation gizmo, and the bottom
- * band is arbitrated by `--viewport-bottom-inset`. §14 puts the preview strip
+ * band is arbitrated by `--layout-viewport-bottom-inset`. §14 puts the preview strip
  * here for exactly that reason, and `ui-015`'s own retirement note is the
  * cautionary tale — a control that grew into the gizmo's corner and produced a
  * real, engine-specific click-interception failure.

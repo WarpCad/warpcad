@@ -178,7 +178,7 @@ function cancel() {
 
 .scale-tool__length {
   width: 72px;
-  min-height: var(--tap-target, 44px);
+  min-height: var(--tap);
   padding: 0 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -188,7 +188,7 @@ function cancel() {
 }
 
 .scale-tool__unit {
-  min-height: var(--tap-target, 44px);
+  min-height: var(--tap);
   padding: 0 6px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -199,7 +199,7 @@ function cancel() {
 
 .scale-tool__btn {
   min-width: 44px;
-  min-height: var(--tap-target, 44px);
+  min-height: var(--tap);
   padding: 0 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);

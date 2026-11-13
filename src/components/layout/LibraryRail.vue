@@ -521,7 +521,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 6px;
   width: 220px;
-  max-width: calc(100vw - var(--library-width, 72px) - 24px);
+  max-width: calc(100vw - var(--layout-library-width, 72px) - 24px);
   /* Informational: never in the way of the Operations toolbar underneath. */
   pointer-events: none;
 }

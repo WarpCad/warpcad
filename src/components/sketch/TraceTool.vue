@@ -23,12 +23,12 @@ import { computed, ref } from 'vue'
 import { formatMmValue } from '../../core/units.js'
 import HelpButton from '../controls/HelpButton.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
+import { WIDE_BANNER_QUERY } from '../../styles/breakpoints.js'
 
 const editor = useSketchEditorStore()
 
 /** The sliders are open by default only where the banner has room for them. */
-const WIDE = '(min-width: 900px)'
-const adjustOpen = ref(typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(WIDE).matches : true)
+const adjustOpen = ref(typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(WIDE_BANNER_QUERY).matches : true)
 
 const calibrated = computed(() => Boolean(editor.activeImage.placement?.calibration))
 const autoThreshold = computed(() => editor.traceThreshold === null)
@@ -203,7 +203,7 @@ function toggleAuto() {
 
 .trace-tool__field input[type='range'] {
   width: 110px;
-  min-height: var(--tap-target, 44px);
+  min-height: var(--tap);
 }
 
 .trace-tool__value {
@@ -216,7 +216,7 @@ function toggleAuto() {
 .trace-tool__btn {
   flex: none;
   min-width: 44px;
-  min-height: var(--tap-target, 44px);
+  min-height: var(--tap);
   padding: 0 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);

@@ -218,7 +218,7 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 }
 
 .curve__field input[aria-invalid='true'] {
-  border-color: var(--danger, var(--warn));
+  border-color: var(--danger);
 }
 
 .curve__unit {
@@ -251,6 +251,6 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 .curve__error {
   margin: 0;
   font-size: 12px;
-  color: var(--danger, var(--warn));
+  color: var(--danger);
 }
 </style>

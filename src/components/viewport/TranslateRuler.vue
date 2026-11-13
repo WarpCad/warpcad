@@ -213,7 +213,7 @@ const STEP_FONT_PX = 14
 }
 
 .truler__pill {
-  fill: var(--surface-glass, var(--surface-1));
+  fill: var(--surface-glass);
   stroke-width: 1.5;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }

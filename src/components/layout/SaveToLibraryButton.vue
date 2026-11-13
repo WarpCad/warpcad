@@ -38,7 +38,7 @@ const library = useLibraryStore()
 }
 
 .save-library__button {
-  min-height: var(--tap, 44px);
+  min-height: var(--tap);
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);

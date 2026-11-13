@@ -49,7 +49,7 @@ useFocusTrap(dialogEl, () => props.open)
 /** How much of the layout viewport the on-screen keyboard covers, in px; 0 where it does not. */
 const { keyboardInsetPx } = useKeyboardInset(() => props.sheet && props.open)
 
-const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboardInsetPx.value}px` } : undefined))
+const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `${keyboardInsetPx.value}px` } : undefined))
 </script>
 
 <template>
@@ -133,11 +133,11 @@ const frameStyle = computed(() => (props.sheet ? { '--modal-keyboard': `${keyboa
   .modal--sheet {
     top: auto;
     right: 0;
-    bottom: var(--modal-keyboard, 0px);
+    bottom: var(--layout-modal-keyboard, 0px);
     left: 0;
     transform: none;
     width: 100%;
-    max-height: calc(100dvh - 24px - var(--modal-keyboard, 0px));
+    max-height: calc(100dvh - 24px - var(--layout-modal-keyboard, 0px));
     padding: 14px 16px calc(14px + var(--layout-safe-bottom));
     border-width: 1px 0 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;

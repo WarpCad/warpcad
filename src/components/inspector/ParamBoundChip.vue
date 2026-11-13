@@ -97,14 +97,14 @@ const menu = ref(false)
 
 .chip[data-broken='true'] .chip__name {
   border-style: dashed;
-  border-color: var(--danger, var(--border-strong));
+  border-color: var(--danger);
 }
 
 .chip__error {
   flex-basis: 100%;
   margin: 0;
   font-size: 12px;
-  color: var(--danger, var(--text-1));
+  color: var(--danger);
 }
 
 .chip__note {
@@ -112,7 +112,7 @@ const menu = ref(false)
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--warn, var(--text-2));
+  color: var(--warn);
   overflow-wrap: anywhere;
 }
 
@@ -122,7 +122,7 @@ const menu = ref(false)
   flex-direction: column;
   gap: 4px;
   padding: 6px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
 }

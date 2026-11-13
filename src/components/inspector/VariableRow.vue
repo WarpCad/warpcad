@@ -205,7 +205,7 @@ function commitRename() {
   min-width: 0;
   min-height: 44px;
   padding: 4px 8px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -244,7 +244,7 @@ function commitRename() {
 
 .vrow[data-pending='true'] .vrow__input {
   border-style: dashed;
-  border-color: var(--warn, var(--accent));
+  border-color: var(--warn);
 }
 
 .vrow__more:focus-visible,

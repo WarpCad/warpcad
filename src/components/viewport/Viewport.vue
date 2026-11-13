@@ -2458,7 +2458,7 @@ onBeforeUnmount(() => {
    the navigation chrome and the scale readout move up by its height (they read this variable),
    so the chip never covers the zoom buttons or the readout at any width. */
 .viewport[data-placement-armed='true'] {
-  --placement-chip-room: 60px;
+  --layout-placement-chip-room: 60px;
 }
 
 .viewport {

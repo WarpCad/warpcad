@@ -811,7 +811,7 @@ watch(
   padding: 0 0 0 16px;
   list-style: none;
   border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2, var(--surface-1)) 60%, var(--surface-1));
+  background: color-mix(in srgb, var(--surface-2) 60%, var(--surface-1));
 }
 
 /* The Parts section: one body's parts, so nothing to indent under. */

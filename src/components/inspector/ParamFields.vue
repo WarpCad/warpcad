@@ -739,7 +739,7 @@ function onEnumChange(event, field) {
 }
 
 .params__input--editable {
-  border-color: var(--border-strong, var(--border));
+  border-color: var(--border-strong);
   color: var(--text-1);
 }
 
@@ -766,7 +766,7 @@ function onEnumChange(event, field) {
   height: 44px;
   min-height: 44px;
   padding: 4px 8px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -782,7 +782,7 @@ function onEnumChange(event, field) {
 /* Held while the repair dialog decides — visibly not yet the body's value. */
 .params__select--pending {
   border-style: dashed;
-  border-color: var(--warn, var(--accent));
+  border-color: var(--warn);
 }
 
 .params__bindrow {

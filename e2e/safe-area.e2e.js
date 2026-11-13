@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test'
  *
  * Playwright's engines report zero `env(safe-area-inset-*)`, so the device itself cannot be
  * driven here. What is testable is the contract: the four `--layout-safe-*` custom properties
- * (`src/styles/tokens.css`) are the only place `env()` is read, and the chrome reads them. The
+ * (`src/styles/semantic.css`) are the only place `env()` is read, and the chrome reads them. The
  * spec sets them on `<html>` to iPhone 15 values and asserts, by bounding box, that each piece
  * of chrome lies wholly inside the safe rectangle. A bar that paints its background under the
  * notch is fine; what must clear the inset is its content, so a bar is measured by its content

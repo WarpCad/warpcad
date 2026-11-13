@@ -121,7 +121,7 @@ function submit() {
 .vadd__input {
   min-height: 44px;
   padding: 4px 8px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -137,7 +137,7 @@ function submit() {
 .vadd__btn {
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);

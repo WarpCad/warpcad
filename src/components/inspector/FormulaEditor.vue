@@ -96,7 +96,7 @@ async function onInsert(reference) {
   width: 100%;
   min-height: 44px;
   padding: 8px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -127,7 +127,7 @@ async function onInsert(reference) {
 .feditor__preview[data-ok='false'] {
   font-family: inherit;
   font-size: 12px;
-  color: var(--danger, var(--text-1));
+  color: var(--danger);
 }
 
 .feditor__insert {
@@ -135,7 +135,7 @@ async function onInsert(reference) {
   min-width: 44px;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);

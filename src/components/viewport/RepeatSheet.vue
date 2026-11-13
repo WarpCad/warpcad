@@ -363,7 +363,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
   .repeat {
     top: auto;
     right: 0;
-    /* Above the Library's tab (AppView's `--library-tab-height`, 52px), never over it: the user
+    /* Above the Library's tab (AppView's `--layout-library-tab-height`, 52px), never over it: the user
        has to open the Library from here to drag the first part in (found driving the phone flow). */
     bottom: 52px;
     left: 0;
@@ -384,7 +384,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
     padding: 0;
   }
 
-  /* Exactly AppView's `--repeat-bar-height`: the Inspector sheet lifts by this much while the
+  /* Exactly AppView's `--layout-repeat-bar-height`: the Inspector sheet lifts by this much while the
      bar is up, so the bar never sits on the sheet's sticky Delete row. */
   .repeat--minimized {
     box-sizing: border-box;

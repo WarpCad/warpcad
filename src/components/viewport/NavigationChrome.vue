@@ -303,7 +303,7 @@ const STEPS = Object.freeze([
 .chrome {
   position: absolute;
   left: calc(12px + var(--layout-safe-left));
-  bottom: calc(12px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
+  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -486,7 +486,7 @@ const STEPS = Object.freeze([
    `ui-046` fold stays phone-only. Keep this block and the media block in step. */
 .chrome[data-chrome-tier='compact'] {
   left: calc(8px + var(--layout-safe-left));
-  bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
+  bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
   padding: 4px;
 }
 
@@ -518,7 +518,7 @@ const STEPS = Object.freeze([
 @media (max-width: 480px) {
   .chrome {
     left: calc(8px + var(--layout-safe-left));
-    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px));
+    bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
     padding: 4px;
   }
 
@@ -552,7 +552,7 @@ const STEPS = Object.freeze([
 }
 
 /* TODO/ui-046. 640px, not the 480px above: this follows `AppView.vue`'s own
-   `--viewport-bottom-inset` breakpoint, which is where the raise itself happens.
+   `--layout-viewport-bottom-inset` breakpoint, which is where the raise itself happens.
    Collapsed, the cluster is one 38px toggle plus its padding (~48px square)
    instead of ~194×200px sitting over whatever body the user placed there. */
 /* TODO/sketch-001: while the sketch editor is open on a narrow viewport the cluster folds
@@ -572,7 +572,7 @@ const STEPS = Object.freeze([
   }
 
   .chrome--sketch-sheet {
-    bottom: calc(8px + var(--viewport-bottom-inset, 0px) + var(--placement-chip-room, 0px) + 24%);
+    bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px) + 24%);
   }
 }
 

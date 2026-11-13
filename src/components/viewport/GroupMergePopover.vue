@@ -242,7 +242,7 @@ function commit() {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: var(--tap, 44px);
+  min-height: var(--tap);
   font-size: 12px;
   color: var(--text-1);
   cursor: pointer;
@@ -264,7 +264,7 @@ function commit() {
 
 /* 16 px: anything smaller makes iOS zoom the page when the field takes focus. */
 .group-merge__field input {
-  min-height: var(--tap, 44px);
+  min-height: var(--tap);
   padding: 0 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -302,7 +302,7 @@ function commit() {
 .group-merge__cancel,
 .group-merge__commit {
   flex: 1;
-  min-height: var(--tap, 44px);
+  min-height: var(--tap);
   border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;

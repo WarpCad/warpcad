@@ -166,7 +166,7 @@ function onKeep() {
 .variables__add {
   min-width: 44px;
   min-height: 44px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -198,6 +198,6 @@ function onKeep() {
 .variables__error {
   margin: 6px 0 0;
   font-size: 12px;
-  color: var(--danger, var(--text-1));
+  color: var(--danger);
 }
 </style>

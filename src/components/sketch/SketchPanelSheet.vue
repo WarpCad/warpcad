@@ -62,7 +62,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
 .sketch-sheet {
   position: absolute;
   right: 12px;
-  bottom: calc(12px + var(--viewport-bottom-inset, 0px));
+  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px));
   width: min(320px, calc(100% - 24px));
   max-height: 45%;
   display: flex;
@@ -117,7 +117,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   .sketch-sheet {
     left: 0;
     right: 0;
-    bottom: var(--viewport-bottom-inset, 0px);
+    bottom: var(--layout-viewport-bottom-inset, 0px);
     width: auto;
     max-height: 24%;
     /* Opaque at this size: the grid readout and the chrome sit right behind it, and a

@@ -175,7 +175,7 @@ const sheetSlotClaimed = computed(() => libraryOpen.value || timeline.open)
 
 /**
  * Whether an open sheet is pushing the viewport's nav chrome up off the bottom edge
- * (`TODO/ui-046`) — exactly the three states the `--viewport-bottom-inset` rules
+ * (`TODO/ui-046`) — exactly the three states the `--layout-viewport-bottom-inset` rules
  * below raise it for, and no others.
  *
  * Raised, the full chrome sat over ~194×200px of live canvas at 390px, and a real tap
@@ -251,7 +251,7 @@ watch(
  * The tiered panel layout between laptop and phone width (`TODO/ui-079`): one `ResizeObserver` on
  * `.app__body` writes one number to the layout store and nothing else; Vue batches the re-render
  * and no component reads layout in response. The grid's side tracks come from the store as
- * `--library-width` / `--inspector-width`, so they ease continuously as a window edge is dragged
+ * `--layout-library-width` / `--layout-inspector-width`, so they ease continuously as a window edge is dragged
  * instead of jumping at 1100px. The chat's open state is the store's other input: from 1100px an
  * open chat is a grid column, which takes 340px away from the three panels.
  */
@@ -304,12 +304,12 @@ const bodyStyle = computed(() => {
     // The store's target track, applied as-is in every tier (`TODO/ui-084` removed the 200px hold
     // that stood in for the icon rail until it existed).
     // The rail / column grows by the left inset, whose padding it then spends (`TODO/ui-120`).
-    '--library-width': `calc(${panelLayout.layout.libraryWidthPx}px + var(--layout-safe-left))`,
-    '--inspector-width': `calc(${panelLayout.layout.inspectorWidthPx}px + var(--layout-safe-right))`,
+    '--layout-library-width': `calc(${panelLayout.layout.libraryWidthPx}px + var(--layout-safe-left))`,
+    '--layout-inspector-width': `calc(${panelLayout.layout.inspectorWidthPx}px + var(--layout-safe-right))`,
     // How much width the Operations toolbar leaves for the orientation gizmo (`TODO/ui-084`).
-    '--gizmo-reserve': `${panelLayout.layout.gizmoReservePx}px`,
+    '--layout-gizmo-reserve': `${panelLayout.layout.gizmoReservePx}px`,
   }
-  if (chatSheet.value === 'linked' && aiChat.linkedHeight > 0) style['--chat-linked-height'] = `${aiChat.linkedHeight}px`
+  if (chatSheet.value === 'linked' && aiChat.linkedHeight > 0) style['--layout-chat-linked-height'] = `${aiChat.linkedHeight}px`
   return style
 })
 
@@ -564,7 +564,7 @@ function onInspectorClaim() {
  * `TODO/ui-084` stage 1 added the viewport chrome's compact tier (Chromium / WebKit / Firefox):
  *   Navigation pad, compact (the ≤ 480px form) ..... 190 / 194 / 194 × 164px, 8px in from the bottom left
  *   Orientation gizmo, compact ..................... 106 × 138px in all three, 8px in from the top right
- *   Gizmo reserve (`--gizmo-reserve`, below) ....... 184px full (130 + 12 + 42); 150px compact (106 + 8 + 36)
+ *   Gizmo reserve (`--layout-gizmo-reserve`, below) ....... 184px full (130 + 12 + 42); 150px compact (106 + 8 + 36)
  *   → chrome compact while P < 554: the full reserve leaves the 14-button icon row two lines only from
  *     P − 24 − 184 − 14 ≥ 7 × 44 + 6 × 4 = 332. The compact reserve keeps the tablet (P = 523) on two lines.
  *
@@ -604,16 +604,16 @@ function onInspectorClaim() {
      phone-width screenshot during ui-010's acceptance drive, which is exactly
      the class of bug a passing spec cannot see. Zero at widths where the
      Library is a column instead of a sheet. */
-  --viewport-bottom-inset: var(--layout-safe-bottom);
+  --layout-viewport-bottom-inset: var(--layout-safe-bottom);
   /* Height of the Library sheet's collapsed tab. The Inspector sheet stacks
      directly on top of it rather than over it, so it reads the same number. */
-  --library-tab-height: calc(52px + var(--layout-safe-bottom));
+  --layout-library-tab-height: calc(52px + var(--layout-safe-bottom));
   /* How tall the Inspector sheet is allowed to get at phone width, and how tall
      its collapsed tab is — both kept in step with the panel's own values. */
-  --inspector-sheet-height: 38vh;
-  --inspector-tab-height: 44px;
+  --layout-inspector-sheet-height: 38vh;
+  --layout-inspector-tab-height: 44px;
   /* The Repeat panel's shrunk bar at phone width (`RepeatSheet.vue`, `TODO/ui-069`). */
-  --repeat-bar-height: 54px;
+  --layout-repeat-bar-height: 54px;
   /* How tall the History sheet is at phone width, and how far up from the
      bottom edge it has to start so the Library and Inspector tabs are not
      sitting on top of its last rows. Zero offset at widths where History is a
@@ -630,8 +630,8 @@ function onInspectorClaim() {
      *inside* the toolbar, which is `CLAUDE.md`'s "a panel that only works by
      covering a control" failure outright. Found by hand-driving scenario 12 at
      phone width, not by a spec. */
-  --bottom-panel-height: 34vh;
-  --bottom-panel-bottom: 0px;
+  --layout-bottom-panel-height: 34vh;
+  --layout-bottom-panel-bottom: 0px;
   /* Phone first (CLAUDE.md Responsive Layout): one column, the viewport, with
      the Library panel and the Inspector overlaying it as bottom sheets. The
      persistent columns below are the wide-screen case, not the default. */
@@ -643,7 +643,7 @@ function onInspectorClaim() {
 @media (max-width: 640px) {
   .app__body {
     /* The collapsed tab's 44px tap target plus its border and breathing room. */
-    --viewport-bottom-inset: var(--library-tab-height);
+    --layout-viewport-bottom-inset: var(--layout-library-tab-height);
   }
 
   /* The viewport's own controls sit above whatever the Inspector is currently
@@ -651,12 +651,12 @@ function onInspectorClaim() {
      puts its 44px tab over the 3D view, and treating that as "nothing" is what
      left the scale readout half-hidden in ui-011's acceptance drive. */
   .app__body[data-inspector-sheet='tab'] {
-    --viewport-bottom-inset: calc(var(--library-tab-height) + var(--inspector-tab-height));
+    --layout-viewport-bottom-inset: calc(var(--layout-library-tab-height) + var(--layout-inspector-tab-height));
   }
 
   .app__body[data-inspector-sheet='open'] {
-    --viewport-bottom-inset: calc(
-      var(--library-tab-height) + var(--inspector-tab-height) + var(--inspector-sheet-height) + 12px
+    --layout-viewport-bottom-inset: calc(
+      var(--layout-library-tab-height) + var(--layout-inspector-tab-height) + var(--layout-inspector-sheet-height) + 12px
     );
   }
 
@@ -674,46 +674,46 @@ function onInspectorClaim() {
      Library tab and the nav chrome, and equally invisible to a passing spec
      that happened to tap a row higher up the list. */
   .app__body {
-    --bottom-panel-bottom: var(--library-tab-height);
+    --layout-bottom-panel-bottom: var(--layout-library-tab-height);
   }
 
   .app__body[data-inspector-sheet='tab'],
   .app__body[data-inspector-sheet='open'] {
-    --bottom-panel-bottom: calc(var(--library-tab-height) + var(--inspector-tab-height));
+    --layout-bottom-panel-bottom: calc(var(--layout-library-tab-height) + var(--layout-inspector-tab-height));
   }
 
   /* An open Library sheet with the Inspector as a tab (`TODO/ui-070`): stack, don't overlap.
      The Inspector's tab docks on the bottom edge and the whole Library panel lifts above it,
-     the same move `--bottom-panel-bottom` makes for History. Otherwise the tab (z 11) is drawn
+     the same move `--layout-bottom-panel-bottom` makes for History. Otherwise the tab (z 11) is drawn
      across the sheet's rows, which the Library grows upward from the bottom edge. */
   .app__body[data-library-sheet='open'][data-inspector-sheet='tab'] {
-    --inspector-bottom: 0px;
-    --library-bottom: var(--inspector-tab-height);
+    --layout-inspector-bottom: 0px;
+    --layout-library-bottom: var(--layout-inspector-tab-height);
   }
 
   /* The Repeat bar sits on the Library tab; the Inspector sheet lifts over it so the bar never
      covers the sheet's sticky Delete row. An open Library sheet (the rule above) still wins. */
   .app__body[data-repeat-bar='true'] {
-    --inspector-bottom: calc(var(--library-tab-height) + var(--repeat-bar-height));
-    --viewport-bottom-inset: calc(var(--library-tab-height) + var(--repeat-bar-height));
+    --layout-inspector-bottom: calc(var(--layout-library-tab-height) + var(--layout-repeat-bar-height));
+    --layout-viewport-bottom-inset: calc(var(--layout-library-tab-height) + var(--layout-repeat-bar-height));
   }
 
   .app__body[data-repeat-bar='true'][data-inspector-sheet='tab'] {
-    --viewport-bottom-inset: calc(
-      var(--library-tab-height) + var(--repeat-bar-height) + var(--inspector-tab-height)
+    --layout-viewport-bottom-inset: calc(
+      var(--layout-library-tab-height) + var(--layout-repeat-bar-height) + var(--layout-inspector-tab-height)
     );
   }
 
   .app__body[data-repeat-bar='true'][data-inspector-sheet='open'] {
-    --viewport-bottom-inset: calc(
-      var(--library-tab-height) + var(--repeat-bar-height) + var(--inspector-tab-height) +
-        var(--inspector-sheet-height) + 12px
+    --layout-viewport-bottom-inset: calc(
+      var(--layout-library-tab-height) + var(--layout-repeat-bar-height) + var(--layout-inspector-tab-height) +
+        var(--layout-inspector-sheet-height) + 12px
     );
   }
 
   .app__body[data-timeline-sheet='open'] {
-    --viewport-bottom-inset: calc(
-      var(--bottom-panel-bottom) + var(--bottom-panel-height) + 12px
+    --layout-viewport-bottom-inset: calc(
+      var(--layout-bottom-panel-bottom) + var(--layout-bottom-panel-height) + 12px
     );
   }
 }
@@ -724,7 +724,7 @@ function onInspectorClaim() {
    History, chat) is a `max-width: 640px` media query, and the grid has to agree with them exactly. */
 @media (min-width: 641px) {
   .app__body {
-    grid-template-columns: var(--library-width, 200px) 1fr var(--inspector-width, 220px);
+    grid-template-columns: var(--layout-library-width, 200px) 1fr var(--layout-inspector-width, 220px);
   }
 
   /* `TODO/ui-079` stage 7: only a *tier* change animates the tracks. The store sets this flag for
@@ -810,20 +810,20 @@ function onInspectorClaim() {
    so it wins over the Inspector/History insets above: the chat sheet is on top of both. */
 @media (max-width: 1099px) {
   .app__body[data-chat-sheet='peek'] {
-    --viewport-bottom-inset: 96px;
+    --layout-viewport-bottom-inset: 96px;
   }
 
   .app__body[data-chat-sheet='half'] {
-    --viewport-bottom-inset: calc(36dvh + 12px);
+    --layout-viewport-bottom-inset: calc(36dvh + 12px);
   }
 
   .app__body[data-chat-sheet='full'] {
-    --viewport-bottom-inset: calc(60dvh + 12px);
+    --layout-viewport-bottom-inset: calc(60dvh + 12px);
   }
 
   /* `TODO/ui-071`: an MCP agent is connected, so the sheet is its measured compact height. */
   .app__body[data-chat-sheet='linked'] {
-    --viewport-bottom-inset: calc(var(--chat-linked-height, 160px) + 12px);
+    --layout-viewport-bottom-inset: calc(var(--layout-chat-linked-height, 160px) + 12px);
   }
 }
 
@@ -832,7 +832,7 @@ function onInspectorClaim() {
   /* The fourth track stays on this media query so it always agrees with `ChatPanel.vue`'s own
      sheet-or-column switch (`max-width: 1099px`); the store takes the same 340px off `E`. */
   .app__body:not([data-chat-sheet='none']) {
-    grid-template-columns: var(--library-width, 200px) 1fr var(--inspector-width, 280px) 340px;
+    grid-template-columns: var(--layout-library-width, 200px) 1fr var(--layout-inspector-width, 280px) 340px;
   }
 
   .app__body > :deep(.chat) {

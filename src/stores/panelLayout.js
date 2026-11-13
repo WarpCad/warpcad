@@ -89,7 +89,7 @@ export const CHROME_FULL_MIN_PANE_PX = 554
 
 /**
  * The width the Operations toolbar leaves for the orientation gizmo at the top right, per chrome
- * tier (`.ops`'s `max-width: calc(100% − 24px − var(--gizmo-reserve))`). Full: the 130px gizmo,
+ * tier (`.ops`'s `max-width: calc(100% − 24px − var(--layout-gizmo-reserve))`). Full: the 130px gizmo,
  * its 12px inset and `ui-015`'s 42px margin. Compact: the 106px gizmo and its 8px inset, plus a
  * 36px margin, which still leaves the toolbar 48px clear of the gizmo and keeps the tablet
  * reference's icon toolbar on two lines instead of three (P = 523.2 at 820).

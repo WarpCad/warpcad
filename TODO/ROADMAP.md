@@ -60,7 +60,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 11 | ▶ Ready | `FIND` | [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers; add type, space, layer and motion scales | sonnet |
 | 12 | ⏳ Waits on 11 | `FIND` | [`testing-036`](FIND-testing-036-style-token-guard.md) A guard spec that fails on styling written outside the token files | sonnet |
 | 13 | ⏳ Waits on 11 | `FIND` | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app (System, Dark, Light) from one source of truth | sonnet |
 | 14 | ⏳ Waits on 11 | `FIND` | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton; 68 components move off their own button rule | sonnet |
@@ -156,7 +155,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers and add the missing scales | finding | high | sonnet | ▶ Ready (Next up row 11) |
 | [`testing-036`](FIND-testing-036-style-token-guard.md) A guard spec that fails on styling written outside the token files | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 12) |
 | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app — System, Dark or Light — from one source of truth | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 13) |
 | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton, and move every hand-styled button onto them | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 14) |
@@ -309,7 +307,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-112` | Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change. Filed 2026-11-10 from the architecture audit | Finding | — | none (zero snapshot diffs) |
 | `testing-036` | A guard spec that fails on styling written outside the token files. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | none |
 | `ui-113` | Choose the theme in the app (System, Dark, Light) from one source of truth. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | 1, 13 |
 | `ui-114` | Base Button and IconButton; 68 components move off their own button rule. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | 1, 4, 7, 10, 24 |
@@ -429,7 +426,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 35 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the theme chain (`ui-112`–`ui-118`, `testing-036`, `render-008`, closed by `ui-111`), then the VERIFY.md drives. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 34 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the theme chain (`ui-112`–`ui-118`, `testing-036`, `render-008`, closed by `ui-111`), then the VERIFY.md drives. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 7 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`. Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

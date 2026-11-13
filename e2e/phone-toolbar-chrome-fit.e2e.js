@@ -23,7 +23,7 @@ import { test, expect } from '@playwright/test'
  * so it stops wrapping to a second line, and trims the toolbar's own internal
  * spacing (container gap/padding, the gap between wrapped button rows) within the
  * same `@media (max-width: 640px)` block that already governs this toolbar's other
- * phone-only compaction — never `--inspector-sheet-height`/`--bottom-panel-height`
+ * phone-only compaction — never `--layout-inspector-sheet-height`/`--layout-bottom-panel-height`
  * (CLAUDE.md's explicit "do not shrink a bottom sheet's height" rule) and never
  * `--tap-compact` (the shared 38px touch-target token `NavigationChrome.vue` and
  * `SketchToolbar.vue` also read).

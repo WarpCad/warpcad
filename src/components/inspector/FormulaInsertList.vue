@@ -93,7 +93,7 @@ function choose(quantity) {
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
 }
@@ -135,7 +135,7 @@ function choose(quantity) {
   width: 100%;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
@@ -180,7 +180,7 @@ function choose(quantity) {
     max-height: 60vh;
     overflow-y: auto;
     padding-bottom: max(8px, var(--layout-safe-bottom));
-    border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     box-shadow: var(--shadow-overlay);
   }
 }

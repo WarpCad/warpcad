@@ -221,10 +221,10 @@ export default defineConfig(({ command, mode }) => ({
         name: 'WarpCad',
         short_name: 'WarpCad',
         display: 'standalone',
-        // `--surface-0` from src/styles/tokens.css, the same value index.html paints before any
+        // `--surface-0` (dark) from src/styles/themes/dark.css, the same value index.html paints before any
         // CSS loads, so the install splash and title bar match the app's first frame.
-        background_color: '#10131a',
-        theme_color: '#10131a',
+        background_color: '#10131a', // --surface-0, dark
+        theme_color: '#10131a', // --surface-0, dark
         // Rendered from public/favicon.svg by `npm run icons` (scripts/app-icons.mjs), which
         // owns this list so the manifest and the files on disk cannot drift apart.
         icons: manifestIcons(),

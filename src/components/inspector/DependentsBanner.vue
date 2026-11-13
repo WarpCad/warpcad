@@ -96,9 +96,9 @@ function resolve(bodyId) {
   gap: 8px;
   margin: 8px 0 0;
   padding: 6px 8px;
-  border: 1px solid var(--warn, var(--danger));
+  border: 1px solid var(--warn);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--warn, var(--danger)) 12%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
 }
 
 .banner__text {

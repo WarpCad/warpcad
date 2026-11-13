@@ -2129,7 +2129,7 @@ onBeforeUnmount(() => closeGroup())
  * is the gizmo's own container width (130px) plus its `right: 12px` inset plus
  * a margin, so the row wraps to a second line before it ever reaches that
  * corner, regardless of how a narrower pane's width ends up divided around it.
- * Since `TODO/ui-084` that number is `--gizmo-reserve`, which is 150px while the
+ * Since `TODO/ui-084` that number is `--layout-gizmo-reserve`, which is 150px while the
  * gizmo is in its compact form (106px plus an 8px inset plus a margin).
  */
 .ops {
@@ -2140,9 +2140,9 @@ onBeforeUnmount(() => closeGroup())
   flex-direction: column;
   gap: 6px;
   padding: 6px;
-  /* `TODO/ui-084`: the reserve follows the chrome tier (`--gizmo-reserve`, set on `.app__body` from
+  /* `TODO/ui-084`: the reserve follows the chrome tier (`--layout-gizmo-reserve`, set on `.app__body` from
      the layout store: 184px full, 150px compact), so a compact gizmo gives the width back. */
-  max-width: calc(100% - 24px - var(--gizmo-reserve, 184px));
+  max-width: calc(100% - 24px - var(--layout-gizmo-reserve, 184px));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -2435,7 +2435,7 @@ onBeforeUnmount(() => closeGroup())
  *    width, this popover's own precondition (exactly 2 solids selected) is
  *    exactly the state that auto-opens the Inspector's bottom sheet, which
  *    pushes `NavigationChrome` upward by up to ~430px (`AppView.vue`'s
- *    `--viewport-bottom-inset`, the same custom property `Grid.vue`/
+ *    `--layout-viewport-bottom-inset`, the same custom property `Grid.vue`/
  *    `NavigationChrome.vue` read for their own bottom clearance) — squarely
  *    into the band a row-anchored, six-field popover would occupy. An
  *    `axis-z` checkbox and `nav-step-right` measured at nearly the same
@@ -2493,7 +2493,7 @@ onBeforeUnmount(() => closeGroup())
   transform: translateX(-50%);
   width: min(260px, calc(100vw - 32px));
   /* A generic short-viewport guard, not a precise nav-chrome-avoidance
-     calculation — `--viewport-bottom-inset` (used above by `.ops`'s siblings)
+     calculation — `--layout-viewport-bottom-inset` (used above by `.ops`'s siblings)
      does not inherit here, since the teleported popover is no longer a
      descendant of the element that sets it. That precision is unnecessary
      now: the backdrop above is what keeps this popover's on-screen position
@@ -2759,7 +2759,7 @@ onBeforeUnmount(() => closeGroup())
    * Fillet/Chamfer added by this task) reached ~242px tall with a body
    * selected — and selecting a body is `TODO/ui-011`'s own trigger for the
    * phone-width Inspector bottom sheet, which pushes `NavigationChrome`
-   * upward by up to ~430px (the same `--viewport-bottom-inset` cited by the
+   * upward by up to ~430px (the same `--layout-viewport-bottom-inset` cited by the
    * Snap/Align popover's own CSS comment above). Measured, not assumed: with
    * a body selected at 390×844, `nav-mode-orbit` sat at `y≈207` while this
    * toolbar's fourth (Fillet/Chamfer) row ended at `y≈242` — a ~35px real

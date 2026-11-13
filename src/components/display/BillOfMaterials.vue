@@ -56,7 +56,7 @@ const open = ref(true)
   align-items: center;
   gap: 6px;
   width: 100%;
-  min-height: var(--tap, 44px);
+  min-height: var(--tap);
   padding: 0;
   border: none;
   border-bottom: 1px solid var(--border);

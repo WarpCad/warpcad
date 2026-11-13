@@ -146,7 +146,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
 .align-grid__rule-line {
   flex: 1;
   height: 1px;
-  background: var(--border-strong, var(--border));
+  background: var(--border-strong);
 }
 
 .align-grid__button {
@@ -156,7 +156,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
   min-width: 44px;
   min-height: 44px;
   padding: 0 0.15rem;
-  border: 1px solid var(--border-strong, var(--border));
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);

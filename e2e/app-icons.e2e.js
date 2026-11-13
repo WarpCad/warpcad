@@ -56,7 +56,7 @@ test('the install manifest lists 192 px, 512 px and maskable icons at their real
   const manifestUrl = await page.locator('link[rel="manifest"]').evaluate((el) => /** @type {HTMLLinkElement} */ (el).href)
   const manifest = await (await request.get(manifestUrl)).json()
   // The install splash and title bar paint the colour index.html paints before any CSS loads
-  // (dark `--surface-0`). Read from that inline style, not computed: once tokens.css loads, a
+  // (dark `--surface-0`). Read from that inline style, not computed: once the token CSS loads, a
   // light-scheme browser repaints the page light, but the splash is fixed at install time.
   const firstPaint = await page.locator('head style').first().textContent()
   expect(firstPaint).toMatch(/background:\s*#10131a/) // the build minifies away the space

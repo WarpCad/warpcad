@@ -25,12 +25,13 @@ import ConnectionDot from '../display/ConnectionDot.vue'
 import AssistantButton from './AssistantButton.vue'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
+import { PHONE_QUERY } from '../../styles/breakpoints.js'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
 
 /** Phone width: the same `640px` switch every sheet in the app uses. */
-const phone = ref(typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 640px)').matches)
+const phone = ref(typeof window !== 'undefined' && !!window.matchMedia?.(PHONE_QUERY).matches)
 /** @type {MediaQueryList | null} */
 let query = null
 /** @param {{ matches: boolean }} e */
@@ -64,7 +65,7 @@ function choose(which) {
 
 onMounted(() => {
   if (typeof window === 'undefined' || !window.matchMedia) return
-  query = window.matchMedia('(max-width: 640px)')
+  query = window.matchMedia(PHONE_QUERY)
   phone.value = query.matches
   query.addEventListener('change', onQuery)
 })
@@ -189,7 +190,7 @@ onBeforeUnmount(() => {
 }
 
 .ai-entry__row:hover {
-  background: var(--surface-2, var(--border));
+  background: var(--surface-2);
 }
 
 .ai-entry__row-label {

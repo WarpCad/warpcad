@@ -18,14 +18,21 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' https://api.anthropic.com https://api.github.com https://gist.githubusercontent.com; img-src 'self' blob: data:; font-src 'self' data:; manifest-src 'self'; worker-src 'self' blob:"
     />
-    <!-- Duplicates src/styles/tokens.css's --surface-0 on purpose (TODO/build-002):
-         this value must paint correctly before any CSS file has loaded, since
-         tokens.css only reaches the page as a JS-module side-effect import, which
-         is too late to prevent a white flash on first paint. -->
+    <!-- Duplicates `--surface-0` (src/styles/themes/dark.css, and themes/light.css under
+         prefers-color-scheme: light) on purpose (TODO/build-002, TODO/ui-112): this value must paint
+         correctly before any CSS file has loaded, since the token files only reach the page as a
+         JS-module side-effect import, which is too late to prevent a white flash on first paint.
+         src/styles/tokens.spec.js fails if either literal drifts from the token. -->
     <style>
       html,
       body {
-        background: #10131a;
+        background: #10131a; /* --surface-0, dark */
+      }
+      @media (prefers-color-scheme: light) {
+        html,
+        body {
+          background: #eef1f6; /* --surface-0, light */
+        }
       }
     </style>
     <!-- Tab and home-screen icons, all from public/favicon.svg (`npm run icons`). The .ico is

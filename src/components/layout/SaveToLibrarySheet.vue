@@ -183,7 +183,7 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
 
 .save-sheet__input {
   box-sizing: border-box;
-  min-height: var(--tap, 44px);
+  min-height: var(--tap);
   padding: 0 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -232,7 +232,7 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
 .save-sheet__button--primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--accent-contrast, #fff);
+  color: var(--accent-contrast);
 }
 
 .library-toast {

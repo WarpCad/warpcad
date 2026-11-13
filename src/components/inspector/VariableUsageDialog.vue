@@ -74,7 +74,7 @@ useFocusTrap(panel, () => true)
   max-height: min(80vh, 640px);
   padding: 14px 16px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
   background: var(--surface-1);
   color: var(--text-1);
   box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
@@ -114,7 +114,7 @@ useFocusTrap(panel, () => true)
 .usage__error {
   margin: 0;
   font-size: 12px;
-  color: var(--danger, var(--text-1));
+  color: var(--danger);
 }
 
 .usage__footer {
@@ -154,7 +154,7 @@ useFocusTrap(panel, () => true)
   .usage__panel {
     width: 100%;
     max-height: 80vh;
-    border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     padding-bottom: max(14px, var(--layout-safe-bottom));
   }
 
