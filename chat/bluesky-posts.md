@@ -2811,3 +2811,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** persist() not called at boot, called once after the save (drive, this session); cleared-data notice shown with DB deleted and flag set (drive and e2e on chromium, firefox, webkit, this session)
 **To Add:** none
+
+## 2026-11-13T23:10:00Z — ui-113: choose System, Dark or Light in Help
+
+**Post:** WarpCad now has a Theme control in the Help sheet: System, Dark or Light. One module decides the theme, so the panels, the 3D view and the Help pictures change together, and the choice is remembered. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** theme-switch e2e and Help picture specs: 373 passed, 0 failed on all nine engine-viewport projects (this session); cube and cylinder drive in both forced themes against the opposite system scheme (this session)
+**To Add:** docs/screenshots/help-theme-control.png

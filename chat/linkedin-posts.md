@@ -4068,3 +4068,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** new spec passes on chromium, firefox, webkit laptop (this session); real Safari behaviour unverified, TODO/VERIFY.md io-028 entry
 **To Add:** none
+
+## 2026-11-13T23:10:00Z — ui-113: choose System, Dark or Light in Help
+
+**Post:** WarpCad's theme used to follow the operating system and nothing else, and two places decided it on their own: a CSS media query and a matchMedia call inside the viewport component.
+
+Help now has a Theme control with System, Dark and Light. One composable reads the system scheme, resolves the stored choice and sets the theme attribute on the root element. The CSS answers to that attribute, the 3D view reads the same value, and the Help pictures switch with it instead of with the device. The choice is stored on the device.
+
+One cost, accepted on purpose: the stored choice sits in localStorage and the page's content security policy forbids an inline script that could read it before the styles load. Someone who forces Light on a dark device can see one frame of the device's theme at start. Loosening the policy for one frame was not worth it.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** theme-switch e2e and Help picture specs: 373 passed, 0 failed on all nine engine-viewport projects (this session); pair run 1159 passed, 0 failed; real-device first-paint judgment logged in TODO/VERIFY.md ui-113
+**To Add:** docs/screenshots/help-theme-control.png
