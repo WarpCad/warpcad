@@ -5,8 +5,13 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** nothing in the app or the baseline. The failure no longer reproduces on `HEAD`: the
+> chip never moved. The header's release-version label (`ui-077`) changed with each release bump and the
+> header-wide screenshot drifted with it. `b81a99b` (2026-10-26) pinned that label for e2e. Verified 2026-11-13:
+> the single test passes on `docs-laptop`, and the full `docs-*` suite is green under `CI=1`.
 
 ## Problem
 

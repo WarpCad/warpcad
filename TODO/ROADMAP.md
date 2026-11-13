@@ -58,7 +58,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 1 | ▶ Ready | `FIND` | [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop; decide intended change or regression | sonnet |
 | 2 | ▶ Ready | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load; two app-header screenshots drifted | sonnet |
 | 3 | ▶ Ready | `FIND` | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and translucency checks on all three engines | sonnet |
 | 4 | ▶ Ready | `FIND` | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage; say so when saved data was cleared | sonnet |
@@ -161,7 +160,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
-| [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) The docs screenshot "ai-working-chip still" fails on laptop and its baseline needs review | finding | medium | sonnet | ▶ Ready (Next up row 1) |
 | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | finding | medium | sonnet | ▶ Ready (Next up row 2) |
 | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | finding | low | sonnet | ▶ Ready (Next up row 3) |
 | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage, so the autosave, My parts and stored keys are not evicted | finding | medium | sonnet | ▶ Ready (Next up row 4) |
@@ -321,7 +319,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
 | `testing-015` | Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | Finding | `testing-005` | none |
 | `io-028` | Ask the browser for persistent storage, and say so when saved data was cleared. Filed 2026-11-10 from the architecture audit | Finding | — | 10 |

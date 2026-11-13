@@ -910,6 +910,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `docs-032` | Link the agent prompting guide from the warpcad.com home page. The list is generated from the app's help index, so the page already showed under More; it is now grouped under The AI partner in `warpcad.github.io` (commit 7219a05), with the offline fixture updated. Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | ✅ `docs-033` | Regenerate the `objects-hide-split-piece` still without rewriting every GIF. The still now shows the `ui-090` header; the magenta bar is confirmed to be the save-status mask. Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | ✅ `core-081` | Build operation records in one core module, not in the toolbar and the AI tools separately. Closed 2026-11-11: builders in `src/core/operationRecords.js`, UI and AI paths share them; e2e pair and 3×3 matrix green, acceptance 4/5/6/16/32 covered by e2e specs | Finding | — | 4, 5, 6, 16, 32 |
+| ✅ `testing-010` | The docs screenshot "ai-working-chip still" drifted on laptop. It no longer reproduces: the drift was the header version label changing with release bumps, which b81a99b pinned. No baseline or component change needed; the full docs-* screenshot suite is green under `CI=1` | Finding | — | none |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1307,5 +1308,6 @@ convention going forward.
 | `build-029` | 2026-11-12 20:31 | 16m |
 | `build-027` | 2026-11-12 20:34 | 12m |
 | `ui-119` | 2026-11-11 18:17 | not measured (committed in 7faa7a8; roadmap closed 2026-11-12) |
+| `testing-010` | 2026-11-13 15:12 | ~10m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
