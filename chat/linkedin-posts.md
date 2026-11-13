@@ -4053,3 +4053,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** native build with both flags exported: zero hits (this session); bundle check exit 0 (this session); pwa-update 36/36 and pair run 1080 passed, 0 failed (this session)
 **To Add:** none
+
+## 2026-11-13T16:49:00Z — io-028: ask the browser to keep WarpCad's saved data
+
+**Post:** Everything WarpCad keeps for a visitor lives in IndexedDB, which a browser may clear under pressure. An evicted database reads as an empty one, so a lost project looked like a new visit.
+
+WarpCad now calls navigator.storage.persist() once, after the first save of a session that has content, never at boot. It also remembers that the browser has saved before. If the database later opens empty, the status chip says the browser cleared the saved data and points to File, Open. A refused quota write now includes the browser's usage estimate when it has one.
+
+The new Playwright spec places a box, checks the request, deletes the database and reloads, on Chromium, Firefox and WebKit. Whether a real Safari honours persist() or evicts after seven days is logged for an iPhone check.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** new spec passes on chromium, firefox, webkit laptop (this session); real Safari behaviour unverified, TODO/VERIFY.md io-028 entry
+**To Add:** none

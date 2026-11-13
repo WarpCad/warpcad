@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-028 — Ask the browser for persistent storage (2026-11-13 16:49)
+
+Emulation proves the app calls `navigator.storage.persist()` once after the first save with content, and that a deleted database with the flag set shows the cleared-data notice. It cannot show a real browser honouring `persist()` or evicting data.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Owner's iPhone, Safari (not installed to the home screen): make a project, wait for Saved, leave WarpCad unused for seven days, reopen. Expect either the project back (persist honoured) or **Your browser cleared WarpCad's saved data. Open a project file to carry on.** in the top bar, never a silent empty scene. | Open | |
+| 2 | Desktop Firefox: first save of a session shows (or does not show) a storage-permission prompt, and WarpCad works either way. | Open | |
+
 ### build-029 — External links open in the system browser (2026-11-12 20:30)
 
 The fake-bridge e2e proves the page hands the URL to the opener and does not navigate; it cannot show what a real web view does. Nothing in this session launched a shell, so the "before" hypothesis in the finding is still unconfirmed.

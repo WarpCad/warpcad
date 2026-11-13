@@ -94,6 +94,7 @@ import { createFileStorage, projectFileName } from '../storage/fileSystem.js'
 import { createIndexedDbBackend } from '../storage/indexeddb.js'
 import { createLocalStorageMirror } from '../storage/localMirror.js'
 import { createNativeAutosaveMirror } from '../storage/nativeMirror.js'
+import { storageEstimate } from '../storage/persistentStorage.js'
 import { NATIVE_PAUSE_EVENT, isNativeShell, probeShell } from '../native/shell.js'
 import { useDocumentStore } from './document.js'
 import { differentProjectText, mergeStateOfProject, useMergeStore } from './merge.js'
@@ -287,6 +288,13 @@ export const usePersistenceStore = defineStore('persistence', () => {
    * copy." shows. Set only by a restore that came from the app copy; the toast clears it.
    */
   const nativeRestoreNotice = ref(false)
+  /**
+   * `TODO/io-028`: what the start-up restore found — `''` until it has run, then `'empty'` (nothing
+   * was ever stored, or the browser cleared it), `'found'`, or `'failed'`. Read by `bootStorage`.
+   *
+   * @type {import('vue').Ref<'' | 'empty' | 'found' | 'failed'>}
+   */
+  const restoreKind = ref('')
   /** `TODO/io-016`: whether autosave is suspended (the Shared view is showing). */
   const autosaveSuspended = ref(false)
   /** `TODO/io-021`: when this session last wrote the project to its gist (epoch ms), or 0. */
@@ -388,6 +396,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
   const autosaver = createAutosaver({
     backend: deps.backend,
+    estimate: () => storageEstimate(),
     mirror: deps.mirror,
     nativeMirror: deps.nativeMirror,
     // A copy that does not parse is no copy; a copy that parses but would not load is refused like any autosave.
@@ -519,6 +528,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   async function run() {
     const versionAtStart = documentStore.raw.version
     const restored = await autosaver.restore()
+    restoreKind.value = restored.kind
     let editedDuringRestore = documentStore.raw.version !== versionAtStart
     let needsWrite = false
 
@@ -1153,6 +1163,28 @@ export const usePersistenceStore = defineStore('persistence', () => {
     autosaver.setSuspended(suspended)
   }
 
+  /**
+   * `TODO/io-028`: whether the document holds anything worth keeping — the gate for asking the
+   * browser to persist storage (asking before anything is made gets denied).
+   *
+   * @returns {boolean}
+   */
+  function hasContent() {
+    return documentStore.raw.entries.length > 0
+  }
+
+  /**
+   * `TODO/io-028`: tell the user the browser cleared the saved data. Persistent and dismissible,
+   * through the same chip slot as {@link loadWarning}: it outlives the autosave that follows,
+   * and the File menu's dismissal clears it.
+   *
+   * @param {string} text
+   * @returns {void}
+   */
+  function reportStorageCleared(text) {
+    loadWarning.value = text
+  }
+
   function dismissError() {
     mayHaveChanged.value = false
     errorMessage.value = ''
@@ -1221,6 +1253,9 @@ export const usePersistenceStore = defineStore('persistence', () => {
     mergeText,
     newProject,
     dismissError,
+    restoreKind,
+    hasContent,
+    reportStorageCleared,
     announce,
     noteGistSaved,
     projectName,

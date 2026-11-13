@@ -216,6 +216,26 @@ describe('createAutosaver', () => {
     expect(last().message).toMatch(/full/i)
   })
 
+  it('adds the browser estimate to the full message when it is available (io-028)', async () => {
+    const full = () =>
+      memoryBackend({
+        save: async () => {
+          throw new DOMException('full', 'QuotaExceededError')
+        },
+      })
+    const withEstimate = autosaver({ backend: full(), estimate: async () => ({ usageBytes: 480 * 1024 * 1024, quotaBytes: 500 * 1024 * 1024 }) })
+    withEstimate.saver.notifyChange()
+    await withEstimate.saver.flush()
+    expect(withEstimate.last().message).toBe('Not saved — browser storage is full (using 480 MB of 500 MB)')
+
+    for (const estimate of [async () => null, async () => { throw new Error('x') }]) {
+      const without = autosaver({ backend: full(), estimate })
+      without.saver.notifyChange()
+      await without.saver.flush()
+      expect(without.last().message).toBe('Not saved — browser storage is full')
+    }
+  })
+
   it('a hung store times out into the same error rather than sitting on Saving… forever', async () => {
     const backend = memoryBackend({ save: () => new Promise(() => {}) })
     const { saver, last } = autosaver({ backend })

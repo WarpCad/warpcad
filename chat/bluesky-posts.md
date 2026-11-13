@@ -2802,3 +2802,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** native build with both flags exported: zero __e2eImport and zero preview-marker hits (this session); bundle check exits 0 on dist-native (this session); pwa-update 36/36 and pair run 1080 passed, 0 failed (this session)
 **To Add:** none
+
+## 2026-11-13T16:49:00Z — io-028: ask the browser to keep WarpCad's saved data
+
+**Post:** WarpCad now asks the browser to keep its storage, after your first save with something in it. If a browser that saved before later finds nothing, the top bar says so instead of showing a silent empty scene. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** persist() not called at boot, called once after the save (drive, this session); cleared-data notice shown with DB deleted and flag set (drive and e2e on chromium, firefox, webkit, this session)
+**To Add:** none

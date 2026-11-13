@@ -58,7 +58,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 4 | ▶ Ready | `FIND` | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage; say so when saved data was cleared | sonnet |
 | 5 | ▶ Ready | `FIND` | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so Sentry can receive document text | sonnet |
 | 6 | ▶ Ready | `FIND` | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | sonnet |
 | 7 | ▶ Ready | `FIND` | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with `src/` | sonnet |
@@ -158,7 +157,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
-| [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage, so the autosave, My parts and stored keys are not evicted | finding | medium | sonnet | ▶ Ready (Next up row 4) |
 | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so an unhandled one sends document text to Sentry | finding | low | sonnet | ▶ Ready (Next up row 5) |
 | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | finding | low | sonnet | ▶ Ready (Next up row 6) |
 | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring CLAUDE.md's Project Structure in line with what src/ contains | finding | low | sonnet | ▶ Ready (Next up row 7) |
@@ -315,7 +313,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `io-028` | Ask the browser for persistent storage, and say so when saved data was cleared. Filed 2026-11-10 from the architecture audit | Finding | — | 10 |
 | `core-082` | Error messages quote body and file names, so an unhandled one sends document text to Sentry. Filed 2026-11-10 from the architecture audit | Finding | — | none |
 | `ui-109` | Break the import cycle between the gist, file-menu and share stores. Filed 2026-11-10 from the architecture audit | Finding | — | 29, 30 |
 | `docs-034` | Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains. Filed 2026-11-10 from the architecture audit | Finding | — | none |
@@ -377,6 +374,9 @@ The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`
 - The JSCAD V3 family: [`core-066`](DEFER-core-066-switch-kernel-to-jscad-v3.md) through
   [`core-073`](DEFER-core-073-jscad-v3-land-the-switch.md). Each file says deferred until the owner chooses the switch.
   See decision 2 above.
+- [`ai-035`](DEFER-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills (add clearances to a group, create an enclosure) from
+  the MCP server using the Skills extension, SEP-2640. Filed 2026-11-13 at the owner's request; opens with a check of what
+  `@modelcontextprotocol/server` 2.3.1 supports.
 - [`io-025`](DEFER-io-025-read-step-directly.md) Read STEP files directly, after `io-024`. Parked 2026-11-02 at the owner's
   choice: every ready-made reader is LGPL, so it starts with an owner decision on the licence.
 - [`testing-006`](DEFER-testing-006-redrive-connected-scenarios-with-phone-header-entry.md) Hand-drive scenarios 24, 25 and the `ui-071` repro on the phone header entry. Parked 2026-11-07 due to cost: scenario 24 needs a real Anthropic API key, which bills against purchased tokens.
@@ -445,7 +445,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 7 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`. Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |
+| Deferred | 10 + JSCAD V3 + 3 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `ai-035` (skills over MCP); `io-025`; `testing-006`. |
 | Outside milestones | owed only | `build-016` owner steps. |
 
 ---

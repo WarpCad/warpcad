@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-13.** As proposed. Two additions: the persistence store exposes `restoreKind`, `hasContent()` and `reportStorageCleared()` (the notice reuses the dismissible `loadWarning` slot, dismissed from File ▾), and a restored session counts as a save with content. The quota message gains `(using X of Y)` through an injected `estimate`.
 
 ## Problem
 

@@ -42,6 +42,7 @@
  */
 
 import { counterOfId, isReplicaId } from '../core/replica.js'
+import { formatEstimate } from './persistentStorage.js'
 
 /**
  * @typedef {object} StoredProject
@@ -153,6 +154,8 @@ function describeFailure(error) {
  * @param {number} [options.timeoutMs] A store that never answers (some private
  *   windows hang rather than throw) becomes an error instead of an eternal "Saving…".
  * @param {() => number} [options.now]
+ * @param {() => Promise<import('./persistentStorage.js').StorageEstimate | null>} [options.estimate]
+ *   `TODO/io-028`: asked only when a write fails with a full store, to say how full in the message.
  * @param {import('./localMirror.js').SyncMirror} [options.mirror] A synchronous
  *   safety copy — see `localMirror.js` for why an unload-time IndexedDB write is not enough.
  * @param {NativeMirror} [options.nativeMirror] `TODO/io-015`: the iOS app's copy in *Application
@@ -172,6 +175,7 @@ export function createAutosaver({
   maxWaitMs = 5000,
   timeoutMs = 8000,
   now = () => Date.now(),
+  estimate,
   mirror,
   nativeMirror,
   validateNative = () => true,
@@ -280,7 +284,17 @@ export function createAutosaver({
     } catch (error) {
       // `savedCount` stays behind `changeCount`, so the next change (or flush)
       // retries. The error is a persistent status until a write succeeds.
-      onStatus({ state: 'error', ...describeFailure(error) })
+      const failure = describeFailure(error)
+      if (failure.message === STORAGE_FULL_MESSAGE && estimate) {
+        // `TODO/io-028`: say how full, when the browser will tell us. Never lets this throw.
+        try {
+          const known = await estimate()
+          if (known) failure.message = `${STORAGE_FULL_MESSAGE} (${formatEstimate(known)})`
+        } catch {
+          /* the plain message is still true */
+        }
+      }
+      onStatus({ state: 'error', ...failure })
     }
     // After the IndexedDB write, whichever way it went: the app copy is the one that survives
     // when that store is reclaimed. Not awaited, so it can never slow or fail the path above.

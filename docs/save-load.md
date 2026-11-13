@@ -120,6 +120,29 @@ followed by the reason — and keeps the unreadable copy aside rather than writi
   change wins.** If you keep two tabs open on different models, whichever changed last is
   the one that reopens. Work in one tab at a time.
 
+## Where your work is kept, and when a browser may clear it
+
+Your model, your **My parts** and your saved keys all live in your browser's own storage for
+WarpCad. Browsers treat that storage as "best effort": under pressure a browser may clear it, and
+Safari clears a site's data when you have not used it for seven days, unless WarpCad is installed
+to your home screen. A cleared store would otherwise look exactly like a new one.
+
+To lower the risk, WarpCad asks your browser to keep its storage. It asks once, after the first
+time it has saved something you made, never when it first opens. A browser may show a small
+permission prompt, or decide on its own, and may say no.
+
+If your browser has saved a project before and later finds nothing, WarpCad says so in the top bar:
+**Your browser cleared WarpCad's saved data. Open a project file to carry on.** To dismiss it,
+open **File ▾**, which clears the message.
+
+1. Make something: drag a **Cube** into the 3D view and wait for **Saved · 14:02** in the top bar.
+2. Open **File ▾** and choose **Save**, so the project is also a file you control (see
+   [The File menu](#the-file-menu)).
+3. If the top bar ever shows the cleared-data message, use **File ▾ → Open** and pick that file.
+
+Use **File ▾ → Save** to keep a file you control. Autosave is a convenience; a file is the copy
+no browser can clear.
+
 ## The File menu
 
 Everything on this page beyond autosave starts at **File ▾**, in the top bar, between
