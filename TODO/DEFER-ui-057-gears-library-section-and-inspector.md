@@ -4,9 +4,9 @@ category: ui
 kind: feature
 priority: high
 model: sonnet
-milestone: M11
+milestone: deferred 2026-11-07 (all screw, thread and gear work), was M11
 depends: [core-041, core-048, ui-052]
-status: open
+status: deferred
 ---
 
 ## Goal

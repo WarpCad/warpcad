@@ -26,12 +26,30 @@ don't rebuild the estimation math without one.
 
 ## Config
 
-- **Batch size**: 3 tasks per unattended run, before stopping for a check-in.
-  Start conservative; raise this number once a few batches have actually run and the
-  user is comfortable with how much unattended work that represents — but raise it
+- **Batch size**: 40 tasks per unattended run, before stopping for a check-in.
+  Raised from 3 by the owner on 2026-11-13 so the 34-task queue in `TODO/ROADMAP.md` runs as one
+  batch. Lower it back to 3 when that run ends, unless the owner says otherwise. Raise or lower it
   because the user said so, not because the loop estimated it had headroom.
-- **Hard wall-clock cap per batch**: 3 hours. Whichever limit — task count or
-  wall-clock — is hit first ends the batch and triggers the check-in.
+- **Hard wall-clock cap per batch**: 24 hours (was 3, raised with the batch size on 2026-11-13).
+  Whichever limit — task count or wall-clock — is hit first ends the batch and triggers the check-in.
+- **On failure: stash and skip** (owner, 2026-11-13; overrides `run-todos.md` Step 4's and Step 6's
+  "stop the loop" for this rule's cases). When a `/fix-todo` agent stops on a failure it could not
+  resolve (a test failure through `/test`'s whole escalation ladder, a pre-existing failure, or a
+  Step 6 acceptance-scenario FAIL), the loop does not stop. It:
+  1. stashes everything the task left in the working tree: `git stash push -u -m "run-todos <id> failed: <one-line why>"`,
+     and confirms `git status --short` is empty afterwards;
+  2. marks the task's Next up row `⚠ Failed <date>, stash "<message>"` in `TODO/ROADMAP.md` and its
+     Findings row's Task cell with a leading `⚠`, commits only that roadmap edit
+     (`chore(todo): park <id> after a failed run`), and records the failure and the agent's report in
+     this batch's Runner Log row;
+  3. treats the id as not done, so anything that depends on it stays blocked, and goes on to the next
+     eligible id.
+
+  **Two failures in a row stop the loop** (a sign the baseline is broken, not the tasks): ask with
+  `AskUserQuestion` as Step 6 describes. A task the agent stopped for a *question* (not a failure) is
+  handled the same way, with the question copied into the Runner Log row, so the owner can answer it
+  at the end. A rotating-pair e2e failure that passes when its spec re-runs alone is a flake, not a
+  failure: log it and carry on.
 - **Milestone boundary**: if a batch's last task also happens to complete the current
   `TODO/ROADMAP.md` milestone, the check-in additionally names the milestone and asks
   for the five-minute free-form human pass from `CLAUDE.md`'s Verification section

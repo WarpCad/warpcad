@@ -5,8 +5,13 @@ kind: finding
 priority: medium
 model: sonnet
 depends: []
-status: open
+status: done
 ---
+
+> **Closed 2026-11-13 as a duplicate.** The same timeout was root-caused and fixed under the same id on
+> 2026-10-30 (`TODO/done/testing-013-docs-movies-time-out-under-full-suite-load.md`): the docs-media
+> projects got a 120 s project timeout, because the getting-started tour is over 30 s on its own. This
+> file was filed separately on 2026-10-27 and never retired. Nothing further to do.
 
 ## Problem
 

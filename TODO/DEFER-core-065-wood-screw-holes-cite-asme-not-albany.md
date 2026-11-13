@@ -4,9 +4,9 @@ category: core
 kind: finding
 priority: high
 model: sonnet
-milestone: M18 — Launch: publish, app.warpcad.com, Sentry and GA
+milestone: deferred 2026-11-07 (all screw, thread and gear work), was M18 — Launch: publish, app.warpcad.com, Sentry and GA
 depends: []
-status: open
+status: deferred
 ---
 
 ## Problem

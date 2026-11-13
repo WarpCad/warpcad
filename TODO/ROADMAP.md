@@ -3,28 +3,26 @@
 Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMAP-DONE.md). This file is the source
 `/run-todos` reads for order, and the table `/fix-todo` edits when a task opens, closes or changes priority.
 
-**Snapshot:** 2026-10-26. Counts are in the [Status summary](#status-summary) at the foot of this file.
+**Snapshot:** 2026-11-13. Counts are in the [Status summary](#status-summary) at the foot of this file.
 
-> **What do I run next?** Read the **State** column of [Next up](#next-up--recommended-todos) from the top. The first
-> ▶ **Ready** row is next. `⏳ Waits on N` means row N has to land first. `Owner step`, `Owner OK first` and `Owner setup first`
-> rows need you, so `/run-todos` skips them. Run `/fix-todo <id>` (or `/loop /run-todos` to work down the table).
-> **Filenames name the milestone, not the order.** `ls TODO` groups the backlog as `M19-…`, `M20-…`, `M18-…`,
-> `M05-…`, `M11-…`, `FIND-…` (the Findings table) and `DEFER-…` (parked). The ranked order lives only in Next up.
-> The row number is the queue order, and each "Waits on" number points at an earlier row.
+> **What do I run next?** `/run-todos` runs **only the [Findings](#findings-open-rows) table**, top to bottom. That table
+> is in the same order as [Next up](#next-up--recommended-todos). Everything else here is held, deferred or reserved, and
+> held or deferred work is written as a list, not a table, so the runner cannot pick it up. `⏳ Waits on N` means row N
+> has to land first. Run `/fix-todo <id>` for one task, or `/loop /run-todos` to work down the table.
+> **Filenames name the milestone, not the order.** `ls TODO` groups the backlog as `FIND-…` (the Findings table) and
+> `DEFER-…` (parked); the native `M19-…` files are in `warpcad-native/TODO/`. The ranked order lives only in Next up.
 
 ## Contents
 
 - [Next up — recommended TODOs](#next-up--recommended-todos)
+- [Held — not run by /run-todos](#held--not-run-by-run-todos)
 - [Decided 2026-10-24 and still waiting on you](#decided-2026-10-24-and-still-waiting-on-you)
 - [All open work](#all-open-work)
 - [Open milestones](#open-milestones)
-  - [M19 — Native iOS app (Tauri)](#m19--native-ios-app-tauri)
-  - [M20 — Home page at warpcad.com](#m20--home-page-at-warpcadcom)
-  - [M18 — Launch (open rows)](#m18--launch-open-rows)
-  - [M5 — Hardware Library (open rows)](#m5--hardware-library-open-rows)
+  - [M19 — Native iOS app (Tauri), held](#m19--native-ios-app-tauri-held)
+  - [M18 — Launch (owner steps only)](#m18--launch-owner-steps-only)
   - [M15 — A mergeable project file (reserved rows)](#m15--a-mergeable-project-file-reserved-rows)
   - [Findings (open rows)](#findings-open-rows)
-  - [M11 — Gears (open rows)](#m11--gears-open-rows)
 - [Open work outside any milestone](#open-work-outside-any-milestone)
 - [Keeping this file up to date](#keeping-this-file-up-to-date)
 - [Status summary](#status-summary)
@@ -34,75 +32,80 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 
 ## Next up — recommended TODOs
 
-*Renumbered 2026-11-11 as one queue of 58 rows (build-017 closed and removed, 2026-11-11), same order. Ids such as `11a`–`11h` and `22a`–`22zt` are now plain numbers. Closed task files were dropped from the queue (`testing-013`, `build-025`, `core-081`, `build-026`), and the deferred threads and gears rows left it. Last reviewed 2026-11-12 (row 7, the signing setup, cleared; row 8 `build-019` is ready). Before that 2026-11-10 (25 rows added from the architecture audit, `.claude/prompts/architecture-audit.md`: rows 11c–11h in M19 and 22zb–22zt in Findings; nothing existing was re-ranked. Before that 2026-11-08 (M19 reordered so it can actually be done: the owner cannot sign yet, so rows 1–7 are Mac-only work, row 8 is the signing gate, and every device run comes after it. Before that 2026-11-07 (rows 22w–22za added from the VERIFY.md third pass: cold reads, real-GPU looks, measured taps, model behaviour over MCP, and the owner-decision batch. Before that, rows 22t–22v added from the VERIFY.md Safari pass: desktop Safari, the iOS Simulator and native dialogs, each waiting on one owner setup step. Before that, 13 rows 22g–22s added from the VERIFY.md AI-drivable pass: rows an AI drive can settle, handed to TODO files. Before that, six ready findings added as rows 22a–22f, per the owner's decision that day; `core-065`, the gear tasks and the threads tasks are deferred, so they are not in the table. `core-080` rounded Cube closed, with `ui-100`–`ui-103` filed from its acceptance drive). Before that 2026-11-06 (`ui-099` a coloured part goes back to its recipe colour once ticked Hidden by default, added as row 11 from the owner's report). Before that 2026-11-06 (`ui-097` closed: second tick on a part check now deselects the body, Measure to added for the target; was row 11). Before that 2026-11-06 (`ui-096` closed). Before that 2026-11-06 (`ui-096` project-only My parts row added as row 11 from the owner's report). Before that 2026-11-06 (`ui-095` closed). Before that 2026-11-05 (`ui-095` broken My parts entry added as row 11 from the owner's report). Before that 2026-11-05 (`ui-094` rename a part of a group added as row 12, at the owner's request). Before that 2026-11-01 (`testing-014` added as row 0; files renamed with a milestone prefix; Milestone column added).*
+*Reordered 2026-11-13 for one unattended `/loop /run-todos` run of 34 tasks, with the owner's answers given beforehand (below).
+Before that 2026-11-12 (signing setup cleared), 2026-11-11 (renumbered as one queue), 2026-11-10 (architecture-audit rows added);
+the full history is in git.*
 
-**Goal:** this weekend, a native app built with **Tauri 2** (owner decision 2026-10-24, not Capacitor) for **iOS, iPadOS, macOS, Android and Windows**
-(widened 2026-10-26; iOS first) that
-bundles the full WarpCad build, saves real files the Files app can see, hosts an MCP server for agents, and is
-ready for the owner to submit to the App Store. It lives in the sibling repository `~/src/@WarpCad/warpcad-native`.
-See [M19](#m19--native-ios-app-tauri). The web push is no longer held on `testing-007` (closed 2026-10-26); M19 rows that change
-this repository still need a green full run before they are pushed.
+**Decided 2026-11-13 (owner, asked before the run):**
 
-**Decided 2026-11-12:** no TestFlight yet. The owner runs the app from Xcode on their iPad (Socrates, iPad Pro 11" 4th generation), so `build-019` is parked and `build-018` and `io-026` step 1 are driven by throwaway probe branches (`probe/build-018`, `probe/io-026` in `warpcad-native`, runbooks `PROBE-build-018.md` and `PROBE-io-026.md`) instead of waiting on a TestFlight build. `build-020` (the App Store submit) still needs `build-019` first. Nothing has been merged.
+1. **One batch for the whole run.** `TODO/BUDGET.md` Config: batch size 40, 24 h cap. The loop stops only on a failure.
+2. **A failed task is stashed and skipped**, not a stop: its work goes to a named `git stash`, its row here gets ⚠, and the run
+   continues with tasks that don't depend on it. Two failures in a row stop the loop. Rule in `TODO/BUDGET.md` Config.
+3. **Screws, threads and gears stay deferred**: `core-065`, `core-074`, `ui-080` and the seven M11 rows are renamed `DEFER-…`
+   and listed under [Deferred](#open-work-outside-any-milestone), out of every table the runner reads.
+4. **`testing-022` and `testing-032` run in the loop**, with `claude -p` on the owner's subscription. Consent for `testing-022`'s
+   `ai-028` #1 row and its temporary MCP-config edit is recorded in its file.
+5. **`testing-026` and `testing-027` are held** (setup still missing; see [Held](#held--not-run-by-run-todos)).
+6. **`testing-033` is held** and run by hand, because its job is to ask questions.
+7. **Nothing native is pushed**, to GitHub or the App Store. Every M19 row is held.
+
+**Order, and why.** Rows 1–3 fix flaky and drifted tests first, so later tasks' full runs start green. Rows 4–10 are independent
+fixes, ending with the two big Opus refactors; `ui-108` splits `Viewport.vue` before the theme chain touches the renderer.
+Rows 11–20 are the theme chain; the guard (`testing-036`) lands right after the token split so the migrations can't regress it,
+and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md checks against the finished UI.
+**Opus tasks** (each splits into an Opus half and a Sonnet half): `perf-004`, `ui-108`, `render-008`.
+**New findings a task files** get a Findings row at the bottom of the table and run after row 34, unless the owner re-ranks them.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 7 | ✅ Done 2026-11-12 (distribution certificate left to automatic signing in `build-019`) | `M19` | **Signing setup:** Apple ID in Xcode with the paid team, team ID, Apple Distribution certificate, iPhone registered, App Store Connect record for `com.warpcad.app`, App Store Connect API key. Full list in [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md). Nothing installs on a device before this | — |
-| 8 | ▶ Ready | `M19` | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build | sonnet |
-| 9 | ⏳ Waits on 8 | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the TestFlight build on the iPhone; settle the decision record's unknowns | sonnet |
-| 10 | ⏳ Waits on 1–5, 8, 9 | `M19` | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the iPhone, then the free-form pass (stop for it) | sonnet |
-| 11 | ⏳ Waits on 8, 10 | `M19` | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) Listing, privacy, licence audits; stops before the owner's Submit (Part 6 legal gate) | sonnet |
-| 12 | ⏳ Waits on 1, 9, 11 | `M19` | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts. A 1.1 feature, after `build-020` | opus |
-| 18 | ▶ Ready | `M19` | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views | sonnet |
-| 18a | ⏳ Waits on 8 | `M19` | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed native app (universal links). Filed 2026-11-12; a 1.1 row unless you move it up | sonnet |
-| 19 | ▶ Ready | `FIND` | [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop; decide intended change or regression | sonnet |
-| 20 | ▶ Ready | `FIND` | [`testing-016`](FIND-testing-016-part-default-hidden-canvas-same-flakes.md) Canvas "same" checks in `part-default-hidden.e2e.js` flake | sonnet |
-| 21 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
-| 22 | Owner step | `M18` | M18 owner checks: GA rows and the close check (see [M18](#m18--launch-open-rows)) | — |
-| 23 | ▶ Ready | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load; two app-header screenshots drifted | sonnet |
-| 24 | ▶ Ready | `FIND` | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and translucency checks on all three engines | sonnet |
-| 25 | ▶ Ready | `FIND` | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks (11 rows) | sonnet |
-| 26 | ▶ Ready | `FIND` | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks on the owner's files, against copies (7 rows) | sonnet |
-| 27 | ▶ Ready | `FIND` | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks at laptop width (13 rows) | sonnet |
-| 28 | ▶ Ready | `FIND` | [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks (8 rows) | sonnet |
-| 29 | ▶ Ready | `FIND` | [`testing-021`](FIND-testing-021-verify-rows-overtaken-by-later-work.md) Re-check VERIFY.md rows later work appears to have answered (7 rows) | sonnet |
-| 30 | ▶ Ready | `FIND` | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with Claude Code as client (12 rows) | sonnet |
-| 31 | ▶ Ready | `FIND` | [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open exported STL, OBJ and glTF files in real tools (6 rows) | sonnet |
-| 32 | ▶ Ready | `FIND` | [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and gh history (10 rows) | sonnet |
-| 33 | ▶ Ready | `FIND` | [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the pre-push hook, dev-only specs and build notices (6 rows) | sonnet |
+| 1 | ▶ Ready | `FIND` | [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) Docs screenshot `ai-working-chip` drifts on laptop; decide intended change or regression | sonnet |
+| 2 | ▶ Ready | `FIND` | [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) WebKit viewport-scaffold specs fail under load; two app-header screenshots drifted | sonnet |
+| 3 | ▶ Ready | `FIND` | [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and translucency checks on all three engines | sonnet |
+| 4 | ▶ Ready | `FIND` | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage; say so when saved data was cleared | sonnet |
+| 5 | ▶ Ready | `FIND` | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so Sentry can receive document text | sonnet |
+| 6 | ▶ Ready | `FIND` | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | sonnet |
+| 7 | ▶ Ready | `FIND` | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with `src/` | sonnet |
+| 8 | ▶ Ready | `FIND` | [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset | sonnet |
+| 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
+| 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
+| 11 | ▶ Ready | `FIND` | [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers; add type, space, layer and motion scales | sonnet |
+| 12 | ⏳ Waits on 11 | `FIND` | [`testing-036`](FIND-testing-036-style-token-guard.md) A guard spec that fails on styling written outside the token files | sonnet |
+| 13 | ⏳ Waits on 11 | `FIND` | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app (System, Dark, Light) from one source of truth | sonnet |
+| 14 | ⏳ Waits on 11 | `FIND` | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton; 68 components move off their own button rule | sonnet |
+| 15 | ⏳ Waits on 11 | `FIND` | [`ui-115`](FIND-ui-115-base-field-and-number-field.md) Base form fields; one unit-aware NumberField | sonnet |
+| 16 | ⏳ Waits on 8, 11 | `FIND` | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover on `ModalShell` | sonnet |
+| 17 | ⏳ Waits on 11, 14 | `FIND` | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading, ListRow | sonnet |
+| 18 | ⏳ Waits on 11, 13 | `FIND` | [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | opus |
+| 19 | ⏳ Waits on 11, 12, 14–18 | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep; empty the guard's allow-list (last in the chain) | sonnet |
+| 20 | ⏳ Waits on 11–19 | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Close the theme umbrella: check every step is in `TODO/done/` and the guard's allow-list is empty (no code) | sonnet |
+| 21 | ▶ Ready | `FIND` | [`testing-021`](FIND-testing-021-verify-rows-overtaken-by-later-work.md) Re-check VERIFY.md rows later work appears to have answered (7 rows) | sonnet |
+| 22 | ▶ Ready | `FIND` | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks (11 rows) | sonnet |
+| 23 | ▶ Ready | `FIND` | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks on the owner's files, against copies (7 rows) | sonnet |
+| 24 | ▶ Ready | `FIND` | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks at laptop width (13 rows) | sonnet |
+| 25 | ▶ Ready | `FIND` | [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks (8 rows) | sonnet |
+| 26 | ▶ Ready | `FIND` | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with Claude Code as client (12 rows) | sonnet |
+| 27 | ▶ Ready | `FIND` | [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open exported STL, OBJ and glTF files in real tools (6 rows) | sonnet |
+| 28 | ▶ Ready | `FIND` | [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and gh history (10 rows) | sonnet |
+| 29 | ▶ Ready | `FIND` | [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the pre-push hook, dev-only specs and build notices (6 rows) | sonnet |
+| 30 | ▶ Ready | `FIND` | [`testing-029`](FIND-testing-029-verify-cold-read-panel.md) Cold-read panel: fresh agents answer the "does a stranger understand this" rows | sonnet |
+| 31 | ▶ Ready | `FIND` | [`testing-030`](FIND-testing-030-verify-look-and-legibility-on-real-gpu.md) Look-and-legibility rows on the Mac's real GPU, with contrast, ΔE and flicker measurements | sonnet |
+| 32 | ▶ Ready | `FIND` | [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Tap accuracy, timing, reach and step counts for the VERIFY.md phone rows | sonnet |
+| 33 | ▶ Ready | `FIND` | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP, not an API key | sonnet |
 | 34 | ▶ Ready | `FIND` | [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed Pages build | sonnet |
-| 35 | Owner setup first | `FIND` | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop-Safari checks through safaridriver (6 rows; session start still times out) | sonnet |
-| 36 | Owner setup first | `FIND` | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari behaviour checks in the iOS Simulator (34 rows) | sonnet |
-| 37 | Owner setup first | `FIND` | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Checks blocked on native OS dialogs and private windows, with computer use (6 rows) | sonnet |
-| 38 | ▶ Ready | `FIND` | [`testing-029`](FIND-testing-029-verify-cold-read-panel.md) Cold-read panel: fresh agents answer the "does a stranger understand this" rows | sonnet |
-| 39 | ▶ Ready | `FIND` | [`testing-030`](FIND-testing-030-verify-look-and-legibility-on-real-gpu.md) Look-and-legibility rows on the Mac's real GPU, with contrast, ΔE and flicker measurements | sonnet |
-| 40 | ▶ Ready | `FIND` | [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Tap accuracy, timing, reach and step counts for the VERIFY.md phone rows | sonnet |
-| 41 | ▶ Ready | `FIND` | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP, not an API key | sonnet |
-| 42 | ▶ Ready | `FIND` | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md; ask in batches | sonnet |
-| 43 | ▶ Ready | `FIND` | [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset | sonnet |
-| 44 | ▶ Ready | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture umbrella (design; closes when its chain does) | opus |
-| 45 | ⏳ Waits on 44 | `FIND` | [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers; add type, space, layer and motion scales | sonnet |
-| 46 | ⏳ Waits on 45 | `FIND` | [`ui-115`](FIND-ui-115-base-field-and-number-field.md) Base form fields; one unit-aware NumberField | sonnet |
-| 47 | ⏳ Waits on 45, 51 | `FIND` | [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | opus |
-| 48 | ▶ Ready | `FIND` | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage; say so when saved data was cleared | sonnet |
-| 49 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 50 | ⏳ Waits on 45 | `FIND` | [`testing-036`](FIND-testing-036-style-token-guard.md) A guard spec that fails on styling written outside the token files | sonnet |
-| 51 | ⏳ Waits on 45 | `FIND` | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app (System, Dark, Light) from one source of truth | sonnet |
-| 52 | ⏳ Waits on 45 | `FIND` | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton; 68 components move off their own button rule | sonnet |
-| 53 | ⏳ Waits on 43, 45 | `FIND` | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover on `ModalShell` | sonnet |
-| 54 | ⏳ Waits on 45, 52 | `FIND` | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading, ListRow | sonnet |
-| 55 | ⏳ Waits on 45, 46, 51–54 | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep; empty the guard's allow-list (last in the chain) | sonnet |
-| 56 | ▶ Ready | `FIND` | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so Sentry can receive document text | sonnet |
-| 57 | ▶ Ready | `FIND` | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | sonnet |
-| 58 | ▶ Ready | `FIND` | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with `src/` | sonnet |
 
-`core-065` stays parked (decided 2026-10-17: keep the Albany table for now) and is not ranked. **Decided 2026-11-07:** switch the table's citation to ASME B18.6.1, as the task file already records for 2026-10-17. This supersedes the "keep Albany" note. Its Step 1 check still applies first: if the standard does not print pilot or clearance sizes, the task stops and asks.
+---
 
-**Deferred 2026-11-07:** all gear work (the M11 milestone: core-048, core-049, core-062, ui-057, ui-058, testing-002, docs-021) and all screw and thread work (core-074, ui-080 for threads; core-065 for the wood-screw table). Parked, no decision yet on when they resume. They are no longer numbered in the queue; rows 1–59 are the whole of Next up.
+## Held — not run by /run-todos
 
-**Runner order** (`/run-todos` follows table order): [M19](#m19--native-ios-app-tauri) first, then
-[M20](#m20--home-page-at-warpcadcom), then [M18](#m18--launch-open-rows), then the open milestone tables in this file's order, then
-[M11](#m11--gears-open-rows) last.
+**Native app (M19), all rows.** Owner rule 2026-11-13: nothing for the native app is pushed yet, to GitHub or to the App Store. The
+rest need the iPad in hand. Details in [M19](#m19--native-ios-app-tauri-held).
+
+**Findings that need the owner first:**
+
+- [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop-Safari checks through safaridriver (6 rows; session start still times out). **Held:** `safaridriver` is enabled, but a session still times out connecting to Safari (re-probed 2026-11-13). Likely Safari › Settings › Developer › **Allow remote automation**; give it a Findings row once a session starts
+- [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari behaviour checks in the iOS Simulator (34 rows). **Held:** each simulator needs Settings › Safari › Advanced › **Remote Automation** turned on first
+- [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Checks blocked on native OS dialogs and private windows, with computer use (6 rows). **Held:** needs computer use, which only the Claude desktop app has
+- [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md; ask in batches. **Held:** its whole job is asking the owner ~80 questions in batches; run it by hand with `/fix-todo testing-033`, never in the loop
 
 ---
 
@@ -124,6 +127,7 @@ this repository still need a green full run before they are pushed.
 
 - **For M19 to start `build-019`:** membership and bundle identifier `com.warpcad.app` were cleared 2026-10-31, but **as of 2026-11-08 the owner cannot sign anything yet**. Next up row 7 lists the signing setup. Every device install waits on it; Next up rows 1–7 do not.
   - **Decided 2026-11-12:** the signing setup is done except the Apple Distribution certificate. Done: paid team signed in under Xcode's Apple Accounts, App ID `com.warpcad.app` registered, App Store Connect app record created, iPhone "Socrates" visible to Xcode, Developer Mode on for the iPad (the iPhone's was not confirmed), App Store Connect API key (App Manager) in `~/.private_keys/` (mode 600; key ID kept out of the repo). Not done: the distribution certificate, because Xcode 27's Apple Accounts pane has no Manage Certificates button; `build-019` lets automatic signing create it on the first build and stops with the error if it can't. Row 7 is cleared, so `build-019` is ready.
+  - **Superseded 2026-11-13:** `build-019` is held with the rest of M19. Nothing for the native app is pushed yet, to GitHub or the App Store.
 - **For M19 to finish `build-020`:** the price amount and countries, and the Part 6 review in `docs/decisions/app-store-licensing.md`. **Decided 2026-11-07:** the owner will not contact a lawyer, so Part 6 has no outside reviewer and stays not done in substance; the store submission is still gated on it as written. Help-content and prose licence are decided (see below). iPad scope and Sentry were decided 2026-11-07 (see `build-020`). The
   submission itself is yours.
   - **Decided 2026-11-07 (in `build-020`):** paid app at one price, age rating 4+. Help GIFs fetched from the web, not bundled. **Decided 2026-11-07:** the app loads all Help from the web and ships none of it (prose licence option (b)). Still open: the price amount and countries, and the Part 6 legal review.
@@ -153,57 +157,81 @@ this repository still need a green full run before they are pushed.
 
 ## All open work
 
-Every open row in the milestone tables, plus the reserved rows. The milestone sections below repeat these rows
-with their dependencies and acceptance columns; keep the two in step when a row changes.
+Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in the runner's queue (the Findings table).
 
-| Milestone | Task | Kind | Priority | Model | State |
-|---|---|---|---|---|---|
-| M19 — Native iOS app | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the owner's iPhone; settle the decision record's unverified rows | feature | high | sonnet | ⏳ after `build-019` (first device run) |
-| M19 — Native iOS app | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Distribution signing and a TestFlight build | feature | high | sonnet | ▶ **ready**; owner signing setup done 2026-11-12 except the distribution certificate (Next up row 8) |
-| M19 — Native iOS app | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Acceptance scenario 28 on the iPhone, plus the free-form pass | feature | high | sonnet | ⏳ after `build-018`, `build-019`, `render-006`, `io-015`, `ai-025`, `ai-026` |
-| M19 — Native iOS app | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) App Store readiness; stops at the owner's Submit | feature | high | sonnet | ⏳ after `build-019`, `testing-011` |
-| M19 — Native iOS app | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR camera and add it to My parts as a mesh part | feature | medium | opus | ⏳ after `build-017`, `build-018`, `render-006`; scheduled after `build-020` |
-| M19 — Native iOS app | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check on real web views the browser assumptions the architecture audit could not confirm (9 rows) | finding | medium | sonnet | ▶ **ready** |
-| M19 — Native iOS app | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed native app: universal links for iOS, iPadOS and macOS (two repositories; publishes the team ID in a hosted file, owner asked first) | feature | medium | sonnet | ⏳ after `build-019`; 1.1 by default |
-| M18 — Launch | [`core-065`](M18-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (stops to ask if the pilot columns are not in the standard) | finding | high | sonnet | ▶ **ready** (unparked 2026-11-07: switch to ASME B18.6.1, see the note under "Decided 2026-11-07" above the open-work tables) |
-| M5 — Hardware Library | [`core-074`](M05-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator | feature | medium | opus | ▶ **ready** (dependency on `core-073` dropped 2026-10-24) |
-| M5 — Hardware Library | [`ui-080`](M05-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields | feature | medium | sonnet | ⏳ after `core-074`, `ui-052` |
-| Findings | [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset (no dialog traps focus today) | finding | high | sonnet | ▶ **ready** |
-| Findings | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture umbrella: token layers, base components, theme switch, renderer bridge, guard. Its three owner decisions were answered 2026-11-10 | finding | high | opus | ▶ **ready** (design; closes when its chain does) |
-| Findings | [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change | finding | high | sonnet | ⏳ after `ui-111` |
-| Findings | [`testing-036`](FIND-testing-036-style-token-guard.md) A guard spec that fails on styling written outside the token files | finding | medium | sonnet | ⏳ after `ui-112` |
-| Findings | [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app (System, Dark, Light) from one source of truth | finding | medium | sonnet | ⏳ after `ui-112` |
-| Findings | [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens (one read per theme change, never per frame) | finding | high | opus | ⏳ after `ui-112`, `ui-113` |
-| Findings | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton; 68 components move off their own button rule | finding | medium | sonnet | ⏳ after `ui-112` |
-| Findings | [`ui-115`](FIND-ui-115-base-field-and-number-field.md) Base form fields; one unit-aware NumberField replaces two number-entry patterns that disagree on `12,5` and `12.5 mm` | finding | high | sonnet | ⏳ after `ui-112` |
-| Findings | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover on `ModalShell`; ten hand-rolled overlays move on | finding | medium | sonnet | ⏳ after `ui-110`, `ui-112` |
-| Findings | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast (queued), Banner, Chip, SectionHeading, ListRow | finding | low | sonnet | ⏳ after `ui-112`, `ui-114` |
-| Findings | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep: replace the remaining style literals and empty the guard's allow-list | finding | low | sonnet | ⏳ after the rest of the theme chain |
-| Findings | [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage, and say so when saved data was cleared | finding | medium | sonnet | ▶ **ready** |
-| Findings | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables | finding | medium | opus | ▶ **ready** |
-| Findings | [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so an unhandled one sends document text to Sentry | finding | low | sonnet | ▶ **ready** |
-| Findings | [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | finding | low | sonnet | ▶ **ready** |
-| Findings | [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains | finding | low | sonnet | ▶ **ready** |
-|  | `data-012` Tombstone and position-key compaction — `data-011` measured the section at 34-43% of an edited file (`bench/results/2026-10-12-data-011.md`), so the encoding proposals there are this task's starting point | reserved | — | — | 📝 no file yet; ▶ measured, ready to write up |
-|  | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet; waits on `ui-062` |
-|  | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet; waits on `ui-062` |
-|  | `ai-018` Relax `ai-012`'s one-writer refusals now that a merge exists | reserved | — | — | 📝 no file yet; waits on `ai-012`, `ai-017` |
-|  | [`ui-057`](M11-ui-057-gears-library-section-and-inspector.md) Gears section in the Library, drag-to-place, and a parametric Inspector with derived readouts | feature | high | sonnet | ⏳ waits on `core-041`, `core-048` |
-|  | [`ui-058`](M11-ui-058-gear-mesh-operation.md) Mesh operation — select two gears, click Mesh, and the second moves to the correct centre dista… | feature | high | opus | ⏳ waits on `ui-057` (`core-044` done) |
-|  | [`core-048`](M11-core-048-gear-hub-bore-keyway-and-set-screw.md) Gear hubs, bores, D-flats, keyways and set-screw holes — what every V1 gear project bolted on b… | feature | medium | sonnet | ▶ **ready** (`core-041` done) |
-|  | [`testing-002`](M11-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19 — place two gears, mesh them, and confirm they turn without interpenetra… | feature | medium | sonnet | ⏳ waits on `ui-057`, `ui-058` |
-|  | [`core-049`](M11-core-049-planetary-gear-set.md) Planetary gear set — sun, planets, ring and carrier from one parameter record | feature | low | opus | ▶ **ready** (`core-043` and `core-044` done) |
-|  | [`core-062`](M11-core-062-herringbone-relief-groove.md) Herringbone relief groove — an optional gap at mid-thickness (`grooveMm`), split out of `core-042` | feature | low | sonnet | ▶ **ready** (`core-042` done) |
-|  | [`docs-021`](M11-docs-021-media-gears-and-porting-guide.md) Docs media for gears, and a "porting a jscad-gears script" guide | feature | low | sonnet | ⏳ waits on `ui-057`, `ui-058`, `testing-002` |
+| Task | Kind | Priority | Model | State |
+|---|---|---|---|---|
+| [`testing-010`](FIND-testing-010-ai-working-chip-docs-screenshot-drifts.md) The docs screenshot "ai-working-chip still" fails on laptop and its baseline needs review | finding | medium | sonnet | ▶ Ready (Next up row 1) |
+| [`testing-009`](FIND-testing-009-webkit-scaffold-flakes-and-app-header-drift.md) Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | finding | medium | sonnet | ▶ Ready (Next up row 2) |
+| [`testing-015`](FIND-testing-015-webgl-depth-and-translucency-specs.md) Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | finding | low | sonnet | ▶ Ready (Next up row 3) |
+| [`io-028`](FIND-io-028-request-persistent-storage.md) Ask the browser for persistent storage, so the autosave, My parts and stored keys are not evicted | finding | medium | sonnet | ▶ Ready (Next up row 4) |
+| [`core-082`](FIND-core-082-error-messages-quote-document-names.md) Error messages quote body and file names, so an unhandled one sends document text to Sentry | finding | low | sonnet | ▶ Ready (Next up row 5) |
+| [`ui-109`](FIND-ui-109-store-import-cycle-gist-filemenu-share.md) Break the import cycle between the gist, file-menu and share stores | finding | low | sonnet | ▶ Ready (Next up row 6) |
+| [`docs-034`](FIND-docs-034-claude-md-project-structure-drift.md) Bring CLAUDE.md's Project Structure in line with what src/ contains | finding | low | sonnet | ▶ Ready (Next up row 7) |
+| [`ui-110`](FIND-ui-110-overlay-behaviour-composables.md) One set of overlay behaviours — focus trap and restore, Escape, outside click, keyboard inset | finding | high | sonnet | ▶ Ready (Next up row 8) |
+| [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
+| [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
+| [`ui-112`](FIND-ui-112-token-layers-and-scales.md) Split the tokens into base and semantic layers and add the missing scales | finding | high | sonnet | ▶ Ready (Next up row 11) |
+| [`testing-036`](FIND-testing-036-style-token-guard.md) A guard spec that fails on styling written outside the token files | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 12) |
+| [`ui-113`](FIND-ui-113-theme-switch-setting.md) Choose the theme in the app — System, Dark or Light — from one source of truth | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 13) |
+| [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton, and move every hand-styled button onto them | finding | medium | sonnet | ⏳ Waits on 11 (Next up row 14) |
+| [`ui-115`](FIND-ui-115-base-field-and-number-field.md) Base form fields, with one unit-aware NumberField in place of two number-entry patterns | finding | high | sonnet | ⏳ Waits on 11 (Next up row 15) |
+| [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover frames, built on ModalShell | finding | medium | sonnet | ⏳ Waits on 8, 11 (Next up row 16) |
+| [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading and ListRow | finding | low | sonnet | ⏳ Waits on 11, 14 (Next up row 17) |
+| [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | finding | high | opus | ⏳ Waits on 11, 13 (Next up row 18) |
+| [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep — replace the remaining style literals and empty the guard's allow-list | finding | low | sonnet | ⏳ Waits on 11, 12, 14–18 (Next up row 19) |
+| [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture — restyle the whole UI from a small, known set of files (umbrella) | finding | high | sonnet | ⏳ Waits on 11–19 (Next up row 20) |
+| [`testing-021`](FIND-testing-021-verify-rows-overtaken-by-later-work.md) Re-check the VERIFY.md rows that later work appears to have answered, then close or reword them | finding | low | sonnet | ▶ Ready (Next up row 21) |
+| [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks that emulated viewports and the three Playwright engines can settle | finding | medium | sonnet | ▶ Ready (Next up row 22) |
+| [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks that name the owner's own project files, against copies | finding | medium | sonnet | ▶ Ready (Next up row 23) |
+| [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks that only need the built app at laptop width | finding | medium | sonnet | ▶ Ready (Next up row 24) |
+| [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks that emulation and real timers can settle | finding | medium | sonnet | ▶ Ready (Next up row 25) |
+| [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as the client | finding | medium | sonnet | ▶ Ready (Next up row 26) |
+| [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open WarpCad's exported STL, OBJ and glTF files in real tools on this Mac | finding | medium | sonnet | ▶ Ready (Next up row 27) |
+| [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and the GitHub run history | finding | medium | sonnet | ▶ Ready (Next up row 28) |
+| [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the VERIFY.md pre-push hook, dev-only spec and build-output checks locally | finding | low | sonnet | ▶ Ready (Next up row 29) |
+| [`testing-029`](FIND-testing-029-verify-cold-read-panel.md) Run a cold-read panel on the VERIFY.md "does a stranger understand this" rows | finding | medium | sonnet | ▶ Ready (Next up row 30) |
+| [`testing-030`](FIND-testing-030-verify-look-and-legibility-on-real-gpu.md) Drive the VERIFY.md look-and-legibility rows on this Mac's real GPU and screen, with measurements | finding | medium | sonnet | ▶ Ready (Next up row 31) |
+| [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Measure the VERIFY.md tap-accuracy, timing, reach and step-count rows in emulation | finding | medium | sonnet | ▶ Ready (Next up row 32) |
+| [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Drive the VERIFY.md model-behaviour rows through Claude Code over MCP instead of an API key | finding | medium | sonnet | ▶ Ready (Next up row 33) |
+| [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed GitHub Pages build | finding | low | sonnet | ▶ Ready (Next up row 34) |
+| [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
+| [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
+| [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
+| [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the owner decisions parked in VERIFY.md, draft a recommendation for each, and ask in batches | finding | medium | sonnet | Held (owner first) |
+| [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
+| [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
+| [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
+| [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) Listing, privacy, licence audits; stops before Submit (M19) | feature | high | sonnet | Held (native) |
+| [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
+| [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
+| [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
+| [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
+| [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
+| [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5) | feature | medium | sonnet | Deferred 2026-11-07 |
+| [`core-048`](DEFER-core-048-gear-hub-bore-keyway-and-set-screw.md) Gear hubs, bores, D-flats, keyways and set-screw holes (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
+| [`core-049`](DEFER-core-049-planetary-gear-set.md) Planetary gear set (was M11) | feature | low | opus | Deferred 2026-11-07 |
+| [`core-062`](DEFER-core-062-herringbone-relief-groove.md) Herringbone relief groove (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
+| [`ui-057`](DEFER-ui-057-gears-library-section-and-inspector.md) Gears section in the Library, drag-to-place, parametric Inspector (was M11) | feature | high | sonnet | Deferred 2026-11-07 |
+| [`ui-058`](DEFER-ui-058-gear-mesh-operation.md) Mesh operation for two gears (was M11) | feature | high | opus | Deferred 2026-11-07 |
+| [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
+| [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
+| `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
+| `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
+| `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
+| `ai-018` Relax `ai-012`'s one-writer refusals now that a merge exists | reserved | — | — | 📝 no file yet |
 
 ---
 
 ## Open milestones
 
-Milestones appear in runner order: M19, then M18, M5, M15, Findings, and M11 last. A milestone whose rows are all
-done is not listed here; its owed human passes are in [Owed](#open-work-outside-any-milestone).
+[↑ Contents](#contents)
 
-### M19 — Native iOS app (Tauri)
+M19 is held, M18 has only owner steps, M15 has only reserved ids, so the Findings table is the only one `/run-todos` works from.
+M20 is done ([ROADMAP-DONE.md](ROADMAP-DONE.md#m20--home-page-at-warpcadcom)). The open rows of M5, M11 and M18 were deferred on 2026-11-07 and are listed
+under [Deferred](#open-work-outside-any-milestone).
+
+### M19 — Native iOS app (Tauri), held
 
 [↑ Contents](#contents)
 
@@ -227,15 +255,17 @@ Playwright cannot drive a WKWebView inside an app. Each row's `*.e2e.js` runs at
 rows close without a device.
 Scenario 28 (`testing-011`) is the one acceptance check only the device can pass.
 
-| id | Task | Kind | Depends | Acceptance |
-|---|---|---|---|---|
-| `build-018` | On-device probe: size, cold start, memory, context loss, storage survival, `ws://`, file picker, Files visibility, **which agents can reach an in-app MCP server**. First device run, on the TestFlight build | Build | `build-019` | 1, 7, 10 |
-| `build-019` | Distribution signing and a TestFlight build, early, because Tauri's open iOS issues are in this step. Owner signing setup first; the first device install | Build | `build-017` | opens on device |
-| `testing-011` | Acceptance scenario **28**, the iOS app end to end, driven on the iPhone; the M19 free-form pass | Testing | `build-018`, `build-019`, `render-006`, `io-015`, `ai-025`, `ai-026` | creates 28; 1, 7, 10, 25 |
-| `build-020` | Listing, privacy labels and manifest, icons, native and asset licence audits, owner decisions; **stops before Submit** (Part 6 legal gate) | Build | `build-019`, `testing-011` | 28, 1, 7, 10 |
-| `io-026` | LiDAR scan → My parts mesh part: a Swift Tauri plugin (Object Capture by default, scene reconstruction if the iPad can't), a `WCSCAN1` buffer parsed in `src/io/meshFormats/`, metres Y-up → mm Z-up at that boundary. Post-submit 1.1 | Operation | `build-017`, `build-018`, `render-006` | 26, 31, 10, 28 |
-| `testing-035` | Check on real web views the browser assumptions the architecture audit could not confirm (9 rows). Filed 2026-11-10 from the architecture audit | Testing | `build-017` | 28, 29 |
-| `build-030` | Share links open in the installed native app (universal links, iOS, iPadOS, macOS): the associated-domains entitlement, a hosted `apple-app-site-association` matching only `#/share/*`, and a shell handoff to the existing share route. Filed 2026-11-12 from `testing-035` row 8 at the owner's request; 1.1 by default | Build | `build-017`, `build-019` | 24, 28 |
+> **Held 2026-11-13 (owner):** nothing for the native app is pushed yet, to GitHub or to the App Store, so `/run-todos`
+> runs none of these. They are a list, not a table, so the runner cannot pick them up. Each is run by hand when the owner
+> has the device and wants it.
+
+- [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build. **Held:** uploads to App Store Connect.
+- [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns. **Held:** needs the device in hand (probe branch `probe/build-018`, runbook `PROBE-build-018.md`).
+- [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass. **Held:** needs the device and a human.
+- [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) Listing, privacy, licence audits; stops before Submit. **Held:** App Store work; waits on `build-019`, `testing-011` and the Part 6 legal gate.
+- [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1). **Held:** needs the device (probe branch `probe/io-026`, runbook `PROBE-io-026.md`).
+- [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views. **Held:** needs a person driving the macOS shell's web view (Playwright cannot) and publishes a real gist.
+- [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1). **Held:** waits on `build-019` and publishes a hosted file with the team ID.
 
 **Order (reordered 2026-11-08: the owner cannot sign yet, so no device install is possible until the signing gate).**
 
@@ -250,34 +280,13 @@ Scenario 28 (`testing-011`) is the one acceptance check only the device can pass
 then the signing gate, `build-019`, `build-018`, `testing-011` (with steps 7 and 8 marked not driven) and
 `build-020`. `io-015`, `ai-025` and `ai-026` can follow in a 1.1 update.
 
-### M20 — Home page at warpcad.com
-
-[↑ Contents](#contents)
-
-Added 2026-10-24 at the owner's request: a WarpCad home page with links to the documentation, in the new
-**sibling repository `~/src/@WarpCad/warpcad.github.io`** (the WarpCad org's Pages site). `docs/decisions/hosting.md`
-kept the bare domain free for exactly this; today `warpcad.com` and `www` still resolve to a Squarespace parking page.
-The docs stay where they are, rendered in the app's Help. The home page links each one as
-`https://app.warpcad.com/#/help/<slug>`, built from the app's published `help/index.json`, so a new docs page shows up
-at the next daily rebuild. `testing-012` is the one row in this repository: it turns that URL into a tested contract
-before another site depends on it, and `perf-003` must keep it green. The home repository runs its own gates
-(`build-021`, now scaffolded locally); it has no LFS and no pre-push hook.
-
-| id | Task | Kind | Depends | Acceptance |
-|---|---|---|---|---|
-
-The App Store support URL is GitHub Issues (`docs-026`), so `build-020` does not depend on `build-022`.
-
-### M18 — Launch (open rows)
+### M18 — Launch (owner steps only)
 
 [↑ Contents](#contents)
 
 The launch is live at `app.warpcad.com`. Seven of the eight rows are done (see
-[ROADMAP-DONE.md](ROADMAP-DONE.md#m18--launch-publish-appwarpcadcom-sentry-and-ga)). The one open row:
-
-| id | Task | Kind | Depends | Acceptance |
-|---|---|---|---|---|
-| `core-065` | Wood-screw hole table: cite ASME B18.6.1 instead of Albany County Fasteners' © 2025 chart. Step 1 finds out what the standard prints; **stops to ask the user** if it lacks the pilot-hole columns | Finding | — | 2, 3, 5, 10, 15; `core-050`, `ui-052` repros |
+[ROADMAP-DONE.md](ROADMAP-DONE.md#m18--launch-publish-appwarpcadcom-sentry-and-ga)). Its last task row, `core-065`, was deferred with the other screw work on 2026-11-07 (see [Deferred](#open-work-outside-any-milestone)).
+What remains is yours:
 
 **Owner steps still open**
 
@@ -288,18 +297,6 @@ The launch is live at `app.warpcad.com`. Seven of the eight rows are done (see
   check the console has no CSP error naming a Sentry or Google host. Then M18 is complete.
 
 No free-form pass is owed for M18: the 2026-10-17 decision records the owed passes as done.
-
-### M5 — Hardware Library (open rows)
-
-[↑ Contents](#contents)
-
-Seven rows of this milestone are done (see [ROADMAP-DONE.md](ROADMAP-DONE.md#m5--hardware-library-surface-closing-the-fastener-reachability-gap)).
-The two open rows are the threads pair the owner requested on 2026-10-20. `core-074` no longer depends on `core-073` (dropped 2026-10-24; see [Decided](#decided-2026-10-24-and-still-waiting-on-you)).
-
-| id | Task | Kind | Depends | Acceptance |
-|---|---|---|---|---|
-| `core-074` | Real helical threads: external and internal thread generator (rod, hole cutter, nut). Requested by the user 2026-10-20 | Feature | — | 2, 10 |
-| `ui-080` | Threads section in the Library, drag-to-place, Inspector fields. Requested by the user 2026-10-20 | Feature | `core-074`, `ui-052` | 1, 2, 3, 7, 10 |
 
 ### M15 — A mergeable project file (reserved rows)
 
@@ -319,78 +316,45 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 [↑ Contents](#contents)
 
-Open findings that belong to no single milestone. Closed findings are in
+**This is the runner's queue.** Rows are in run order, the same order as Next up. Open findings that belong to no single milestone. Closed findings are in
 [ROADMAP-DONE.md](ROADMAP-DONE.md#findings). `/fix-todo` Step 8 marks rows here the same way as a milestone table.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-010` | The docs screenshot "ai-working-chip still" fails on laptop; decide whether the chip changed on purpose or regressed | Finding | — | none |
 | `testing-009` | Two WebKit viewport-scaffold specs fail under parallel load, and two app-header screenshots have drifted | Finding | — | none |
-| `testing-013` | The getting-started docs tour times out at 30 s in the full e2e matrix, and passes alone | Finding | — | none |
 | `testing-015` | Automate the z-fight, coplanar-hole and overlapping-translucency checks on all three engines | Finding | `testing-005` | none |
-| `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
-| `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none (part of 6) |
-| `testing-018` | Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 31, 10 |
-| `testing-019` | Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 6, 10, 11, 16 |
-| `testing-020` | Drive the VERIFY.md touch, timing and offline checks emulation can settle (8 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 7 (if `ui-062` #4 reproduces) |
-| `testing-021` | Re-check VERIFY.md rows later work appears to have answered; close or reword (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
-| `testing-022` | Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 23, 25 |
-| `testing-023` | Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 11, 26 |
-| `testing-024` | Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
-| `testing-025` | Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 24, 25 (scripted only) |
-| `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
-| `testing-026` | Drive the desktop-Safari checks in real Safari through safaridriver (6 rows; session start still times out). Filed 2026-11-07 from the VERIFY.md Safari pass | Finding | — | 22 |
-| `testing-027` | Drive the iOS Safari behaviour checks (keyboard, zoom, pickers, safe areas, fonts) in the iOS Simulator (34 rows; Remote Automation off in the simulator). Filed 2026-11-07 from the VERIFY.md Safari pass | Finding | — | 10, 13, 15 |
-| `testing-028` | Drive the checks blocked on native OS dialogs and private windows, with computer use (6 rows; needs the desktop app). Filed 2026-11-07 from the VERIFY.md Safari pass | Finding | — | 10, 23 |
-| `testing-029` | Cold-read panel: fresh agents answer the VERIFY.md “does a stranger understand this” rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
-| `testing-030` | Look-and-legibility rows on the Mac’s real GPU and screen, with contrast, ΔE and flicker measurements. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 5, 13 |
-| `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
-| `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
-| `testing-033` | Gather the ~80 owner decisions parked in VERIFY.md, draft a recommendation each, ask in batches. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
+| `io-028` | Ask the browser for persistent storage, and say so when saved data was cleared. Filed 2026-11-10 from the architecture audit | Finding | — | 10 |
+| `core-082` | Error messages quote body and file names, so an unhandled one sends document text to Sentry. Filed 2026-11-10 from the architecture audit | Finding | — | none |
+| `ui-109` | Break the import cycle between the gist, file-menu and share stores. Filed 2026-11-10 from the architecture audit | Finding | — | 29, 30 |
+| `docs-034` | Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains. Filed 2026-11-10 from the architecture audit | Finding | — | none |
 | `ui-110` | One set of overlay behaviours: focus trap and restore, Escape order, outside click, keyboard inset (no dialog traps focus today). Filed 2026-11-10 from the architecture audit | Finding | — | 7, 10, 24 |
-| `ui-111` | Theme architecture umbrella: token layers, base components, theme switch, renderer bridge, guard. Its three owner decisions were answered 2026-11-10. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 7, 9, 10, 13 |
-| `ui-112` | Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change. Filed 2026-11-10 from the architecture audit | Finding | `ui-111` | none (zero snapshot diffs) |
+| `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
+| `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
+| `ui-112` | Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change. Filed 2026-11-10 from the architecture audit | Finding | — | none (zero snapshot diffs) |
 | `testing-036` | A guard spec that fails on styling written outside the token files. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | none |
 | `ui-113` | Choose the theme in the app (System, Dark, Light) from one source of truth. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | 1, 13 |
-| `render-008` | The 3D view reads its colours from the theme tokens (one read per theme change, never per frame). Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `ui-113` | 1, 4, 13 |
 | `ui-114` | Base Button and IconButton; 68 components move off their own button rule. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | 1, 4, 7, 10, 24 |
 | `ui-115` | Base form fields; one unit-aware NumberField replaces two number-entry patterns that disagree on `12,5` and `12.5 mm`. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | 2, 12, 21 |
 | `ui-116` | Base Dialog, Sheet and Popover on `ModalShell`; ten hand-rolled overlays move on. Filed 2026-11-10 from the architecture audit | Finding | `ui-110`, `ui-112` | 7, 10, 11, 17, 21, 24, 29 |
 | `ui-117` | Base Toast (queued), Banner, Chip, SectionHeading, ListRow. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `ui-114` | 6, 18, 22, 29 |
+| `render-008` | The 3D view reads its colours from the theme tokens (one read per theme change, never per frame). Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `ui-113` | 1, 4, 13 |
 | `ui-118` | Theme migration sweep: replace the remaining style literals and empty the guard's allow-list. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `testing-036`, `ui-114`–`ui-117`, `render-008` | 1, 4, 7, 9, 10, 13 |
-| `io-028` | Ask the browser for persistent storage, and say so when saved data was cleared. Filed 2026-11-10 from the architecture audit | Finding | — | 10 |
-| `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `core-082` | Error messages quote body and file names, so an unhandled one sends document text to Sentry. Filed 2026-11-10 from the architecture audit | Finding | — | none |
-| `ui-109` | Break the import cycle between the gist, file-menu and share stores. Filed 2026-11-10 from the architecture audit | Finding | — | 29, 30 |
-| `docs-034` | Bring `CLAUDE.md`'s Project Structure in line with what `src/` contains. Filed 2026-11-10 from the architecture audit | Finding | — | none |
-
----
-
-### M11 — Gears (open rows)
-
-[↑ Contents](#contents)
-
-**Runs last** (moved 2026-10-16 at the user's request): this section sits after Findings, so `/run-todos` only
-reaches the gear rows once nothing else is open. The rest of the gears milestone is done (see
-[ROADMAP-DONE.md](ROADMAP-DONE.md#m11--gears-the-jscad-gears-library-ported-and-extended)).
-
-| id | Task | Kind | Depends | Acceptance |
-|---|---|---|---|---|
-| `core-048` | Hub, bore, D-flat, keyway, nut trap, set screw, lightening holes — named parts | Creation | `core-041` | 3, 6 |
-| `core-049` | Planetary set (`R = S + 2P`, equal-spacing constraint, ratios, carrier) | Creation | `core-043`, `core-044` | 1, 3, 10 |
-| `core-062` | Herringbone relief groove (`grooveMm`), filed from `core-042`'s decision to refuse it | Creation | `core-042` | 1, 3, 10 |
-| `ui-057` | **Gears** Library section, drag-to-place, parametric Inspector with derived readouts, `docs/gears.md` | Creation | `core-041`, `core-048`, `ui-052` | 1, 3, 6, 7, 10; `ui-053` repro |
-| `ui-058` | **Mesh** operation — exactly two gears selected, centre distance + phase, compatibility messages | Operation | `ui-057`, `core-044` | 1, 3, 6, 7, 10, 16, 19; `ui-035/036/053` repros |
-| `testing-002` | Acceptance scenario **19** (place two gears, mesh, union, save, export), driven live once | Testing | `ui-057`, `ui-058` | creates 19 |
-| `docs-021` | Gear media and a "porting a jscad-gears script" page | Docs | `ui-057`, `ui-058`, `docs-006/007`, `testing-002` | — |
-
-**Suggested order** (the user can hand-use something after each step): `core-039` →
-`core-040` → `core-041` → `core-044` → `ui-057` → `ui-058` (**two meshed spur gears, the
-`window-motor` and `bf-gear` cases, are now reachable — stop and do the five-minute
-free-form pass here, and run scenario 19's steps 1-4 by hand**) → `core-048` → `core-043` →
-`core-042` → `core-045` → `core-046` (the `drive-wheel` case) → `core-047` → `core-049` →
-`testing-002` → `docs-021`. `core-048` can land any time after `core-041` and should before
-anyone prints a gear.
+| `ui-111` | Theme architecture umbrella, closed last (re-wired 2026-11-13: it depends on its chain, not the other way round): token layers, base components, theme switch, renderer bridge, guard. Its three owner decisions were answered 2026-11-10. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`–`ui-118`, `testing-036`, `render-008` | 1, 4, 7, 9, 10, 13 |
+| `testing-021` | Re-check VERIFY.md rows later work appears to have answered; close or reword (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none (part of 6) |
+| `testing-018` | Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 31, 10 |
+| `testing-019` | Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 6, 10, 11, 16 |
+| `testing-020` | Drive the VERIFY.md touch, timing and offline checks emulation can settle (8 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 7 (if `ui-062` #4 reproduces) |
+| `testing-022` | Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 23, 25 |
+| `testing-023` | Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 11, 26 |
+| `testing-024` | Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
+| `testing-025` | Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 24, 25 (scripted only) |
+| `testing-029` | Cold-read panel: fresh agents answer the VERIFY.md “does a stranger understand this” rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
+| `testing-030` | Look-and-legibility rows on the Mac’s real GPU and screen, with contrast, ΔE and flicker measurements. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 5, 13 |
+| `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
+| `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
+| `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 
 ---
 
@@ -405,6 +369,20 @@ The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`
 
 **Deferred, not scheduled**
 
+- **Screws, threads and gears** (deferred 2026-11-07, confirmed 2026-11-13). Parked, no decision yet on when they resume. Gear
+  work was the M11 milestone; `core-065` was M18's last row. `core-065` stops to ask if ASME B18.6.1 lacks a column, so answer that
+  first when it is unparked.
+  - [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18)
+  - [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5)
+  - [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5)
+  - [`core-048`](DEFER-core-048-gear-hub-bore-keyway-and-set-screw.md) Gear hubs, bores, D-flats, keyways and set-screw holes (was M11)
+  - [`core-049`](DEFER-core-049-planetary-gear-set.md) Planetary gear set (was M11)
+  - [`core-062`](DEFER-core-062-herringbone-relief-groove.md) Herringbone relief groove (was M11)
+  - [`ui-057`](DEFER-ui-057-gears-library-section-and-inspector.md) Gears section in the Library, drag-to-place, parametric Inspector (was M11)
+  - [`ui-058`](DEFER-ui-058-gear-mesh-operation.md) Mesh operation for two gears (was M11)
+  - [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11)
+  - [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11)
+
 - The JSCAD V3 family: [`core-066`](DEFER-core-066-switch-kernel-to-jscad-v3.md) through
   [`core-073`](DEFER-core-073-jscad-v3-land-the-switch.md). Each file says deferred until the owner chooses the switch.
   See decision 2 above.
@@ -416,6 +394,7 @@ The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`
 
 - Owner steps for `build-016` (Parts 4 and 6), in `TODO/VERIFY.md`.
 - Owner checks for `build-007` (GA) and the M18 close, above.
+- Held rows: every M19 native row and four findings, in [Held](#held--not-run-by-run-todos).
 - **Free-form passes:** none owed. The 2026-10-17 decision records the M5–M10, M12, M16 and M17 passes as done.
   The next one falls due when the next milestone completes. M19's is taken inside `testing-011`, on the iPhone.
 
@@ -442,11 +421,11 @@ This file holds only open work, so a row moves out of it when it closes:
 **When a task is added or re-prioritised**
 
 1. Write `TODO/<MILESTONE>-<id>-<slug>.md` with the usual front matter (`priority`, `milestone`, `depends`, `status`,
-   `model`). `<MILESTONE>` is `M05`, `M11`, `M18`, `M19`, `M20`, `FIND` (Findings table) or `DEFER`
+   `model`). `<MILESTONE>` is `M19` (in `warpcad-native`), `FIND` (Findings table) or `DEFER`; older prefixes (`M05`, `M11`, `M18`, `M20`) apply if those milestones reopen
    (see [TODO/README.md](README.md#naming-convention)). If a task changes milestone, `git mv` it to the new prefix and fix
    every link to it in the same commit.
 2. Add a row to its milestone table here, or to **Findings** if it has none. A file with no row is invisible to
-   `/run-todos`.
+   `/run-todos`. A held or deferred task is written as a list item, never a table row, so the runner cannot reach it.
 3. Add or edit its row in **All open work**, and re-rank Next up if the priority changed.
 
 **Rules for the summary rows**
@@ -471,14 +450,12 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 16 | Runs first. `build-017` ready; the rest wait on it. Tauri 2 in `warpcad-native`; ends at the owner's App Store submit. `io-026` (LiDAR scan) follows the submit as a 1.1 row. Five rows from the 2026-11-10 architecture audit: `build-027`–`build-029` (`build-029` closed), `ui-119` (closed), `testing-035`. |
-| [M20 — Home page](#m20--home-page-at-warpcadcom) | 6 | New repo `warpcad.github.io`; ends at the owner's DNS steps for `warpcad.com`. |
-| [M18 — Launch](#m18--launch-open-rows) | 1 | `core-065` (ready, unparked 2026-11-07); GA checks and the close check. Publish, domain, Sentry and the clean-up rows are done. |
-| [M5 — Hardware Library](#m5--hardware-library-open-rows) | 2 | `core-074` and `ui-080`, the threads pair. Ready; `core-074` no longer depends on the deferred `core-073`. |
+| [Findings](#findings-open-rows) | 34 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the theme chain (`ui-112`–`ui-118`, `testing-036`, `render-008`, closed by `ui-111`), then the VERIFY.md drives. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 7 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`. Nothing native is pushed yet (owner, 2026-11-13). |
+| [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
-| [Findings](#findings-open-rows) | 40 | `testing-010`, `testing-009`, `testing-013`, `testing-015`, `testing-016`, `perf-004`, and from the 2026-11-07 VERIFY.md pass `testing-017` to `testing-025`, `perf-005`, and from the Safari pass `testing-026`, `testing-027`, `testing-028`, and from the third pass `testing-029` to `testing-033`, and from the 2026-11-10 architecture audit 19 rows: the theme chain (`ui-111`–`ui-118`, `render-008`, `testing-036`), `ui-108`–`ui-110`, `core-082`, `io-028`, `docs-034`. |
-| [M11 — Gears](#m11--gears-open-rows) | 7 | Runs last. `core-048`, `core-049`, `core-062`, `ui-057`, `ui-058`, `testing-002`, `docs-021`. |
-| Outside milestones | owed only | `build-016` owner steps; the deferred JSCAD V3 family; the deferred `io-025`. |
+| Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |
+| Outside milestones | owed only | `build-016` owner steps. |
 
 ---
 

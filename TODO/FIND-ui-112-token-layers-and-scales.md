@@ -5,9 +5,11 @@ kind: finding
 priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
-depends: [ui-111]
+depends: []
 status: open
 ---
+
+> **2026-11-13:** the dependency on `ui-111` was dropped. That file is the umbrella and closes last, after this chain; its design decisions (answered 2026-11-10) are what this task builds on.
 
 ## Problem
 

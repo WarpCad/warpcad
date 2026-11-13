@@ -35,6 +35,8 @@ Rows (entry and row number in `TODO/VERIFY.md`):
 | `ai-033` #2 | Scenario 25: raise the AI step limit mid-burst; the next call lands in the same group |
 | `ai-023` #2 | `kill -9` a connected client while access is enabled, connect a second immediately and again after five minutes: first refused as ambiguous, then accepted |
 
+**Decided 2026-11-13 (owner):** consent given for this task to run unattended under `/loop /run-todos`. That covers `ai-028` #1 (the owner starting the loop counts as starting this task) and `ai-016` #1 (edit the owner's Claude Code MCP config: save a copy first and restore it afterwards, and say in Notes that it was restored). The runs use `claude -p` on the owner's subscription; no API key.
+
 ## Affected files
 
 - `TODO/VERIFY.md` (each row's Status and Notes)

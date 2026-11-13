@@ -3,11 +3,13 @@ title: Theme architecture — restyle the whole UI from a small, known set of fi
 category: ui
 kind: finding
 priority: high
-model: opus
+model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
-depends: []
+depends: [ui-112, testing-036, ui-113, ui-114, ui-115, ui-116, ui-117, render-008, ui-118]
 status: open
 ---
+
+> **Re-wired 2026-11-13:** this umbrella now *depends on* its chain instead of the chain depending on it. It has no code of its own and is done when steps 1–8 are, so `ui-112` waiting on it was a deadlock for `/run-todos`. Its owner decisions were answered 2026-11-10 (below), which is all `ui-112` needed from it. Running this task means checking every step's file is in `TODO/done/` and the guard's allow-list is empty, then closing it. Model lowered to `sonnet` for that reason.
 
 ## Problem
 

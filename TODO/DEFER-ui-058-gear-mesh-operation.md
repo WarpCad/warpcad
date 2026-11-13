@@ -4,9 +4,9 @@ category: ui
 kind: feature
 priority: high
 model: opus
-milestone: M11
+milestone: deferred 2026-11-07 (all screw, thread and gear work), was M11
 depends: [ui-057, core-044]
-status: open
+status: deferred
 ---
 
 ## Goal

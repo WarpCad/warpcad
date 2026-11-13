@@ -143,7 +143,10 @@ batch), if any.
 Find the earliest not-`✅` id in `TODO/ROADMAP.md`'s milestone tables whose `depends`
 (from the corresponding `TODO/*-<id>-*.md` file's frontmatter) are all `status: done`.
 Skip and continue past any id that's blocked on an open dependency — don't stop the
-scan at the first blocked one.
+scan at the first blocked one. Only rows of a milestone table count: the summary tables
+(Next up, All open work, Status summary) are never scanned, and held or deferred work
+is written as list items so it is never a candidate. Skip any row marked `⚠` (parked
+after a failed run) and any id whose file has `status: deferred`.
 
 - **If an eligible id is found**, continue to Step 3.
 - **If every remaining id is blocked** (backlog non-empty but nothing is currently
@@ -267,10 +270,12 @@ done in the right order, because this loop's context is the one that accumulates
 
 Note the outcome — this feeds the Runner Log row in Step 5. If `/fix-todo` stopped on
 a pre-existing test failure, or on a Step 6 acceptance-scenario FAIL it couldn't
-resolve, **do not** try to fix that yourself in this tick and do not treat it as
-license to skip ahead to the next id automatically — report it to the user and stop
-the loop (`ScheduleWakeup stop: true`) rather than ticking forward on a broken
-baseline.
+resolve, **do not** try to fix that yourself in this tick. What happens next is set by
+`TODO/BUDGET.md` Config, **On failure**: when it says *stash and skip*, follow its steps
+and carry on (it stops the loop only on a second failure in a row). Without that
+setting, do not treat a failure as license to skip ahead to the next id automatically
+— report it to the user and stop the loop (`ScheduleWakeup stop: true`) rather than
+ticking forward on a broken baseline.
 
 ---
 

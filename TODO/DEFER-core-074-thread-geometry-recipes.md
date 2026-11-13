@@ -4,9 +4,9 @@ category: core
 kind: feature
 priority: medium
 model: opus
-milestone: M5
+milestone: deferred 2026-11-07 (all screw, thread and gear work), was M5
 depends: []
-status: open
+status: deferred
 ---
 
 ## Goal
