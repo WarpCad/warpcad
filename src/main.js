@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import './styles/index.css'
 import AppView from './views/AppView.vue'
 import { startPwa } from './pwa.js'
+import { useTheme } from './composables/useTheme.js'
 import { initErrorReporting } from './core/errorReporting.js'
 import { initAnalytics } from './analytics/analytics.js'
 
@@ -16,7 +17,10 @@ const pinia = createPinia()
 const app = createApp(AppView)
 // `TODO/build-004`: inert without VITE_SENTRY_DSN; must run before mount so Vue errors are caught.
 initErrorReporting({ app })
-app.use(pinia).mount('#app')
+app.use(pinia)
+// `TODO/ui-113`: the one module that decides the theme starts before the first mount paints.
+useTheme()
+app.mount('#app')
 
 // `TODO/build-005`: register the service worker (production build only) and look for new builds.
 startPwa(pinia)

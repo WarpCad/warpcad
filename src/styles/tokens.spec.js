@@ -121,6 +121,17 @@ describe('themes', () => {
     }
   })
 
+  it("light.css states the same set under [data-theme='light'] as under the media query", () => {
+    const css = readTokenFile('themes/light.css')
+    const forced = css.slice(css.indexOf(":root[data-theme='light']"))
+    expect(css).toContain(':root:not([data-theme])')
+    expect([...declarationsOf(forced)]).toEqual([...light])
+  })
+
+  it("dark.css answers to [data-theme='dark'] as well as the default", () => {
+    expect(readTokenFile('themes/dark.css')).toMatch(/:root,\s*:root\[data-theme='dark'\]\s*\{/)
+  })
+
   it('--scrim is a dimming colour in both themes', () => {
     expect(resolveToken('--scrim', new Map([...all, ...dark]))).toMatch(/rgba\(0,\s*0,\s*0,\s*0?\.5\)/)
     expect(resolveToken('--scrim', new Map([...all, ...light]))).toBeDefined()

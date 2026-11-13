@@ -274,7 +274,9 @@ test.describe('Help from the main UI', () => {
     await link.scrollIntoViewIfNeeded()
     await expect(link).toBeVisible()
     await expect(link).toHaveAttribute('target', '_blank')
-    expect((await link.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44)
+    // The link is `min-height: 44px`; a bounding box measured at a fractional scroll offset can read
+    // 43.9999 in Firefox (`ui-113` put the Theme row below the link), so compare to the pixel.
+    expect(Math.round((await link.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44)
     const href = (await link.getAttribute('href')) ?? ''
     expect(href).toMatch(/THIRD-PARTY-NOTICES\.txt$/)
     // The footer must not push the sheet sideways at any width.

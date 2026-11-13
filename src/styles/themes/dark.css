@@ -1,10 +1,12 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /*
  * The dark theme (`TODO/ui-112`), the default: every themed colour, defined from base values.
- * `themes/light.css` defines the same set under `prefers-color-scheme: light`.
+ * `themes/light.css` defines the same set under `[data-theme='light']`
+ * (and under `prefers-color-scheme: light` until `useTheme` has set the attribute).
  */
 
-:root {
+:root,
+:root[data-theme='dark'] {
   --surface-0: var(--slate-950);
   --surface-1: var(--slate-900);
   --surface-2: var(--slate-850);

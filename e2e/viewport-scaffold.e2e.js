@@ -321,12 +321,12 @@ test('the rendered scene follows the browser colour scheme', async ({ page }) =>
     })
 
   await page.emulateMedia({ colorScheme: 'dark' })
-  await expect(page.getByTestId('viewport')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.waitForTimeout(120)
   const dark = await canvasLuma()
 
   await page.emulateMedia({ colorScheme: 'light' })
-  await expect(page.getByTestId('viewport')).toHaveAttribute('data-theme', 'light')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.waitForTimeout(120)
   const light = await canvasLuma()
 

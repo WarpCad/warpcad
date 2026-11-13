@@ -51,6 +51,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-113 — Theme switch: System, Dark, Light (2026-11-13 23:10)
+
+The one frame of the device's theme before a forced theme applies is accepted by the task (the CSP forbids an inline script that could read the stored choice), but how visible it is on real hardware is a feel judgment no spec makes.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real iPhone or iPad set to Dark, choose Light in Help, then reload and cold-start the installed app: the dark frame before the light theme applies is brief enough not to read as a flash | Open | |
+
 ### ui-110 — One set of overlay behaviours (2026-11-13 17:40)
 
 The iOS keyboard hypothesis was not tested and nothing was changed for it; the three sheets are on `testing-027`'s simulator list. What a person should feel on a real device is below.

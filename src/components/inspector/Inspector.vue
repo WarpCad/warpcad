@@ -152,6 +152,7 @@ import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { parseNumeric } from '../../composables/numericEntry.js'
 import { useColorCommands } from '../../composables/useColorCommands.js'
+import { useTheme } from '../../composables/useTheme.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import {
   colorIntToCssHex,
@@ -186,6 +187,7 @@ const emit = defineEmits(['sheet-change', 'claim-sheet'])
 const SWIPE_DISMISS_PX = 36
 
 const selection = useSelectionStore()
+const { resolved: theme } = useTheme()
 const described = useSelectedBody()
 const documentStore = useDocumentStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
@@ -627,9 +629,7 @@ const recipeColor = computed(() => body.value?.recipeColor)
  * arbitrary grey.
  */
 function defaultBodyColor() {
-  const light =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: light)').matches
-  return (light ? BODY_COLORS.light : BODY_COLORS.dark).body
+  return (theme.value === 'light' ? BODY_COLORS.light : BODY_COLORS.dark).body
 }
 
 /** The swatch's `#rrggbb`: the live pick while the picker is open, else the truth. */

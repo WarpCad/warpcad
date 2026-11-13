@@ -80,6 +80,20 @@ test.describe('docs media: in-app help', () => {
     await shot(page, 'help-contents-phone.png', { maxDiffPixelRatio: 0.02 })
   })
 
+  test('help-theme-control still', async ({ page, viewport: size }) => {
+    test.skip(size?.width !== 1440, 'laptop-only')
+    await openApp(page)
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('file-help').click()
+    await expect(page.getByTestId('help-sheet')).toBeVisible()
+    const control = page.getByTestId('help-theme')
+    await control.scrollIntoViewIfNeeded()
+    // System is the default and follows this project's colour scheme, so the light and dark
+    // pictures differ the way a reader's would; a forced theme would fight the project.
+    await expect(page.getByTestId('help-theme-system')).toHaveAttribute('aria-pressed', 'true')
+    await shot(page, 'help-theme-control.png', { locator: control, maxDiffPixelRatio: 0.02 })
+  })
+
   test('help-open-close', { tag: '@movie' }, async ({ page, viewport: size }) => {
     test.skip(size?.width !== 1440, 'laptop-only')
     await openApp(page)

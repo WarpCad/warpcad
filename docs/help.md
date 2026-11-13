@@ -71,6 +71,24 @@ To see the full build string:
    In an installed app it also names the platform and the app's own version, for example
    `WarpCad 1.13.0 (a1b2c3d) · iOS app 1.13.0` (see [The native apps](native-apps.md)).
 
+## Light and dark
+
+WarpCad follows your device's light or dark setting until you tell it otherwise.
+
+1. Open **Help** (the **?** in the header).
+2. Scroll to the bottom of the sheet. Under **Theme**, tap **Light**.
+3. The panels and the 3D view turn light at once, and the choice is remembered the next time you
+   open WarpCad on this device.
+4. Tap **System** to follow your device again, or **Dark** to keep the dark look whatever your
+   device says.
+
+Pictures in Help follow the theme you chose, not the device's setting.
+
+When you start WarpCad with a theme that differs from your device's, the first frame can show the
+device's look for an instant before your choice is applied.
+
+![The Theme control at the bottom of the Help sheet: System, Dark and Light, with System selected](./screenshots/help-theme-control.png)
+
 ## Offline
 
 The text of every page and its still pictures are saved on your device the first time WarpCad

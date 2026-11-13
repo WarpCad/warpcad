@@ -96,8 +96,9 @@ function renderInline(source, context, line) {
     const img = `<img src="${escapeHtml(bundled)}" alt="${escapeHtml(alt)}" loading="lazy">`
     const dark = context.resolveDark ? context.resolveDark(bundled) : null
     if (dark === null) return keep(img)
-    // The browser picks the source from the reader's colour scheme; no script is involved.
-    return keep(`<picture><source srcset="${escapeHtml(dark)}" media="(prefers-color-scheme: dark)">${img}</picture>`)
+    // The browser picks the source from the reader's colour scheme; no script is involved. The
+    // in-app Help overrides `media` on `.help-pic-dark` from the chosen theme (`TODO/ui-113`).
+    return keep(`<picture><source class="help-pic-dark" srcset="${escapeHtml(dark)}" media="(prefers-color-scheme: dark)">${img}</picture>`)
   })
   text = text.replace(/\[((?:[^\]\\]|\\.)*)\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g, (_, label, href) => {
     const inner = renderInline(label, context, line)

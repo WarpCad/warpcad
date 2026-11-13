@@ -6,8 +6,35 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-13).** `src/composables/useTheme.js` is the one module that reads
+> `matchMedia('(prefers-color-scheme: light)')`. It resolves the `theme` preference
+> (`'system' | 'dark' | 'light'`, `settings.js`, key `warpcad.theme`) to `'dark' | 'light'`, writes
+> `<html data-theme>` in the same frame (sync watcher) and calls `onChange` listeners. `main.js`
+> starts it before mount. `Viewport.vue` lost its own `preferredTheme()`, listener and `data-theme`
+> attribute; `Inspector.vue` had a second `matchMedia` read (its default swatch) and now uses the
+> resolved theme too. `themes/light.css` states the light set twice (CSS cannot share it between a
+> media query and an attribute selector): under `@media (prefers-color-scheme: light)` scoped to
+> `:root:not([data-theme])`, and under `:root[data-theme='light']`; `tokens.spec.js` fails if the two
+> drift. `dark.css` answers to `:root[data-theme='dark']` as well as bare `:root`.
+> The control is three `aria-pressed` buttons (`ui-115`'s `SegmentedToggle` does not exist yet) in the
+> Help sheet, above the version row: `help-theme-system|dark|light`.
+> Help pictures: `help-build.mjs` marks the dark `<source>` with `class="help-pic-dark"` (its
+> `media` stays as the no-JavaScript fallback); `HelpSheet.vue` sets that `media` to `all` or
+> `not all` from the resolved theme.
+>
+> **First-paint trade-off, accepted as the file asked.** The stored preference is in `localStorage`
+> and the CSP's `script-src 'self'` forbids an inline script to read it before CSS loads, so a user
+> who forces Light on a dark system sees one frame in the system's theme before `useTheme` runs.
+> `script-src` is not weakened. `index.html`'s `--surface-0` first-paint copy still follows the
+> system scheme for the same reason.
+>
+> Tests: `useTheme.spec.js` (10), `e2e/theme-switch.e2e.js` (new, 3 viewports x 3 engines, panel pixel
+> from a real screenshot and canvas pixel), `e2e/help-picture-theme.e2e.js` extended for a forced
+> theme that disagrees with the system. Docs: `docs/help.md` "Light and dark" and the
+> `help-theme-control` still (`e2e/docs/help.docs.js`, generated).
 
 > **Decided 2026-11-10** (`ui-111`, decision 2): the user chooses between **System, Dark and
 > Light**, with System the default. The text below is written for that answer.

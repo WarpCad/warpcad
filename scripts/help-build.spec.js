@@ -168,7 +168,7 @@ describe('buildHelp', () => {
     const out = buildHelp({ docsDir: dir })
     expect(out.errors).toEqual([])
     expect(out.pages.readme.html).toContain(
-      '<picture><source srcset="img/screenshots/a.dark.png" media="(prefers-color-scheme: dark)"><img src="img/screenshots/a.png" alt="a" loading="lazy"></picture>',
+      '<picture><source class="help-pic-dark" srcset="img/screenshots/a.dark.png" media="(prefers-color-scheme: dark)"><img src="img/screenshots/a.png" alt="a" loading="lazy"></picture>',
     )
     expect(out.pages.readme.html).toContain('srcset="img/media/m.dark.gif"')
     expect(out.assets.map((a) => a.to).sort()).toEqual([

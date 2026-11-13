@@ -830,6 +830,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-113` | Choose System, Dark or Light in the Help footer: one module (`useTheme`) decides the theme and writes `<html data-theme>`, the 3D view and Help pictures follow it, the choice is remembered. First paint can show the device's theme for one frame (CSP forbids an inline script). Filed 2026-11-10 from the architecture audit. [`done/ui-113`](done/ui-113-theme-switch-setting.md) | Finding | `ui-112` | 1, 13 (re-driven by hand in each forced theme; the docs-030 repro re-run, see Completion Log) |
 | ✅ `testing-036` | A guard spec that fails on styling written outside the token files. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | ✅ done: none re-driven (unit-only guard spec) |
 | ✅ `ui-112` | Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change. Filed 2026-11-10 from the architecture audit | Finding | — | ✅ done — none re-driven (zero snapshot diffs across `test:e2e:full`) |
 | ✅ `ui-110` | One set of overlay behaviours: `useOverlayStack` (Escape closes the top overlay only), `useFocusTrap` (the four `aria-modal` dialogs trap Tab and restore focus), `useOutsideClick` and `useKeyboardInset`; twelve components moved onto them. Filed 2026-11-10 from the architecture audit. [`done/ui-110`](done/ui-110-overlay-behaviour-composables.md) | Finding | — | 7, 10, 24 (7 and 10 driven by hand, 24 driven up to the stubbed key sheet and chat panel; ai-004, ui-070 and ui-087 repros re-run; the iOS keyboard hypothesis is NOT verified, see Completion Log) |
@@ -1327,5 +1328,6 @@ convention going forward.
 | `ui-110` | 2026-11-13 18:15 | ~1h |
 | `ui-112` | 2026-11-13 18:57 | 42m |
 | `testing-036` | 2026-11-13 19:20 | 1h5m |
+| `ui-113` | 2026-11-13 23:10 | 4h03m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

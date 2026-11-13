@@ -25,6 +25,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useFocusTrap } from '../../composables/useFocusTrap.js'
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
+import { useTheme } from '../../composables/useTheme.js'
 import { helpUrl, loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/loader.js'
 import { sanitizeHelpHtml } from '../../help/sanitize.js'
 import { TOPICS } from '../../help/topics.js'
@@ -32,9 +33,12 @@ import { isNativeShell, openExternal, probeShell } from '../../native/shell.js'
 import ExternalLink from '../controls/ExternalLink.vue'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
+import { THEME_PREFERENCES } from '../../stores/settings.js'
 
 const help = useHelpStore()
 const update = useAppUpdateStore()
+const theme = useTheme()
+
 
 /**
  * Where this app's source lives. AGPL-3.0 §13: a hosted copy must offer its users the
@@ -56,6 +60,23 @@ const state = ref('loading')
 const content = ref(null)
 /** @type {import('vue').Ref<HTMLElement | null>} */
 const closeButton = ref(null)
+
+/** The visible words of the three theme segments. */
+const THEME_LABELS = { system: 'System', dark: 'Dark', light: 'Light' }
+
+/**
+ * A picture's dark twin is a `<source class="help-pic-dark">`, keyed to the system scheme in the
+ * built page. The reader's chosen theme can disagree with the system, so here the source is
+ * switched on the resolved theme instead (`TODO/ui-113`): `all` under Dark, `not all` under Light.
+ */
+watch(
+  [() => theme.resolved.value, html],
+  () => {
+    const dark = theme.resolved.value === 'dark'
+    content.value?.querySelectorAll('source.help-pic-dark').forEach((el) => el.setAttribute('media', dark ? 'all' : 'not all'))
+  },
+  { flush: 'post', immediate: true },
+)
 
 /**
  * Inside the native shell Help comes from app.warpcad.com (`TODO/ui-119`), so a failed load means
@@ -328,6 +349,21 @@ onBeforeUnmount(() => {
               <ExternalLink :href="SOURCE_URL" data-testid="help-source-link">Source code</ExternalLink>
               <ExternalLink :href="NOTICES_URL" data-testid="help-notices-link">Third-party notices</ExternalLink>
             </footer>
+            <!-- The theme (`TODO/ui-113`): System follows the device, Dark and Light override it. -->
+            <div v-if="state === 'ready'" class="help__theme" role="group" aria-labelledby="help-theme-label" data-testid="help-theme">
+              <span id="help-theme-label" class="help__theme-label">Theme</span>
+              <button
+                v-for="choice in THEME_PREFERENCES"
+                :key="choice"
+                type="button"
+                class="help__theme-btn"
+                :aria-pressed="theme.preference.value === choice ? 'true' : 'false'"
+                :data-testid="`help-theme-${choice}`"
+                @click="theme.setPreference(choice)"
+              >
+                {{ THEME_LABELS[choice] }}
+              </button>
+            </div>
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
               <span data-testid="help-version">{{ update.helpVersionLine }}</span>
@@ -355,6 +391,54 @@ onBeforeUnmount(() => {
   margin: 4px 0 0;
   color: var(--text-2);
   font-size: 13px;
+}
+
+.help__theme {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 10px;
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: var(--text-size-md);
+}
+
+.help__theme-btn {
+  flex: 1 1 0;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  max-width: 120px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: var(--text-size-md);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.help__theme-btn:first-of-type {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.help__theme-btn:last-of-type {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.help__theme-btn + .help__theme-btn {
+  margin-left: -1px;
+}
+
+.help__theme-btn[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.help__theme-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .help__version {

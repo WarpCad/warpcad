@@ -2,10 +2,15 @@
 /*
  * The light theme (`TODO/ui-112`): the same set of colours as `themes/dark.css`, every one stated,
  * so a theme switch (`TODO/ui-113`) never falls through to the other theme by accident.
+ *
+ * The set is written twice, because CSS cannot share a rule between a media query and an
+ * attribute selector: once under the media query for a page the script has not themed yet (no
+ * JavaScript, first paint), once for `<html data-theme="light">`, which `composables/useTheme.js`
+ * sets. `tokens.spec.js` fails if the two drift apart.
  */
 
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme]) {
     --surface-0: var(--cloud-100);
     --surface-1: var(--cloud-50);
     --surface-2: var(--white);
@@ -46,4 +51,46 @@
 
     --shadow-overlay: 0 6px 24px var(--ink-18);
   }
+}
+
+:root[data-theme='light'] {
+  --surface-0: var(--cloud-100);
+  --surface-1: var(--cloud-50);
+  --surface-2: var(--white);
+  --surface-glass: var(--cloud-50-glass);
+  --border: var(--cloud-300);
+  --border-strong: var(--cloud-400);
+
+  --text-1: var(--ink-950);
+  --text-2: var(--ink-700);
+  --text-3: var(--ink-500);
+
+  --accent: var(--blue-700);
+  --accent-contrast: var(--white);
+  /* The axis colours read on both grounds, so they are the same in both themes. */
+  --axis-x: var(--rust-500);
+  --axis-y: var(--green-500);
+  /* Darkened for the light scheme: the dark theme's fuchsia is unreadable on
+     a near-white grid. */
+  --snap-guide: var(--fuchsia-700);
+  /* Darkened for the same reason as the guide colour above: the dark theme's
+     teal has no contrast against a near-white panel. */
+  --accent-secondary: var(--teal-600);
+  /* Darkened for the same reason: a pale lilac marker is invisible on a white panel. */
+  --hover-highlight: var(--violet-600);
+  --role-moving: var(--amber-600);
+  --role-target: var(--teal-600);
+  /* Darkened for the same reason as the three above: the dark theme's sky blue
+     washes out against a near-white grid, and a sketch line a user cannot see
+     is the exact failure this token exists to prevent. */
+  --sketch-stroke: var(--sky-700);
+  /* Darkened for the same reason as the three above — a warning nobody can
+     read against a near-white panel is a warning that was not given. */
+  --danger: var(--red-700);
+  --warn: var(--gold-700);
+
+  /* Lighter than the dark theme's scrim, so a dialog over a light page does not turn it grey-black. */
+  --scrim: var(--ink-35);
+
+  --shadow-overlay: 0 6px 24px var(--ink-18);
 }

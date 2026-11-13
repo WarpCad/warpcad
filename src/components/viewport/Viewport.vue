@@ -43,6 +43,7 @@ import TraceTool from '../sketch/TraceTool.vue'
 import { registerEscapeYield } from '../../composables/useOverlayStack.js'
 import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
 import { useImageDrop } from '../../composables/useImageDrop.js'
+import { useTheme } from '../../composables/useTheme.js'
 import VertexHandles from '../sketch/VertexHandles.vue'
 import SnapGuides from './SnapGuides.vue'
 import CutPlaneOverlay from './CutPlaneOverlay.vue'
@@ -201,19 +202,6 @@ const imageDrop = useImageDrop()
  */
 const selected = useSelectedBody()
 
-/**
- * Resolve the viewport palette from the OS/browser colour scheme. Dark is
- * primary; light follows `prefers-color-scheme` (CLAUDE.md's UI convention),
- * and the *canvas* has to follow it too — light chrome around a hardcoded dark
- * scene reads as a rendering bug.
- *
- * @returns {'dark' | 'light'}
- */
-function preferredTheme() {
-  if (typeof window === 'undefined' || !window.matchMedia) return 'dark'
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-}
-
 const rootEl = ref(/** @type {HTMLElement | null} */ (null))
 const canvasEl = ref(/** @type {HTMLCanvasElement | null} */ (null))
 
@@ -224,7 +212,8 @@ const canvasEl = ref(/** @type {HTMLCanvasElement | null} */ (null))
  * for the desktop Ctrl/Cmd-drag path below.
  */
 const dragMode = ref('orbit')
-const theme = ref(preferredTheme())
+/** The resolved theme, from the one module that decides it (`TODO/ui-113`). */
+const { resolved: theme } = useTheme()
 const webglError = ref('')
 /**
  * `TODO/render-006`: where the view stands after the browser released its WebGL context, and how
@@ -402,8 +391,8 @@ let viewport = null
 let resizeObserver = null
 /** @type {(() => void) | null} */
 let unregisterChainYield = null
-/** @type {MediaQueryList | null} */
-let themeQuery = null
+/** @type {(() => void) | null} */
+let stopThemeWatch = null
 let rafId = 0
 let widthPx = 0
 let heightPx = 0
@@ -1994,7 +1983,6 @@ async function onRestoreView() {
 }
 
 function onThemeChange() {
-  theme.value = preferredTheme()
   applyMaterialTheme()
   if (viewport?.graph.setTheme(theme.value)) scheduleRender()
 }
@@ -2199,12 +2187,8 @@ onMounted(() => {
   window.addEventListener('resize', measure)
   window.addEventListener('scroll', measure, { passive: true })
 
-  // Follow a live colour-scheme change, not just the one at load: the user can
-  // flip their OS theme with the app open.
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    themeQuery = window.matchMedia('(prefers-color-scheme: light)')
-    themeQuery.addEventListener('change', onThemeChange)
-  }
+  // Follow a theme change, whether the user picked it in Help or the OS flipped it.
+  stopThemeWatch = useTheme().onChange(onThemeChange)
 
   measure()
   // A document that already has content (a reload, a loaded file) renders on
@@ -2238,8 +2222,8 @@ onBeforeUnmount(() => {
   gizmoDrag.clearStall()
   window.removeEventListener('resize', measure)
   window.removeEventListener('scroll', measure)
-  themeQuery?.removeEventListener('change', onThemeChange)
-  themeQuery = null
+  stopThemeWatch?.()
+  stopThemeWatch = null
   detachContextListeners(canvasEl.value)
   contextRecovery.dispose()
   bodyScene.dispose()
@@ -2266,7 +2250,6 @@ onBeforeUnmount(() => {
     :data-camera-target="overlay.target"
     :data-frames-rendered="framesRendered"
     :data-webgl="webglError ? 'unavailable' : contextState === 'ready' ? 'ready' : 'lost'"
-    :data-theme="theme"
     :data-body-count="announcedBodies.length"
     :data-selected-id="selection.onlyId ?? ''"
     :data-selected-count="selection.count"

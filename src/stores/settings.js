@@ -46,6 +46,38 @@ const EXPORT_FORMAT_KEY = 'warpcad.exportFormat'
 /** The one `ai.model` setting (`TODO/ai-004`); the id list and default live in `ai/models.js`. */
 const AI_MODEL_KEY = 'warpcad.ai.model'
 
+/** The theme preference (`TODO/ui-113`): `'system' | 'dark' | 'light'`. */
+const THEME_KEY = 'warpcad.theme'
+
+/** @typedef {'system' | 'dark' | 'light'} ThemePreference */
+
+/** The preferences the Help sheet offers, in display order. System is the default. */
+export const THEME_PREFERENCES = Object.freeze(/** @type {ThemePreference[]} */ (['system', 'dark', 'light']))
+
+/** @param {unknown} value @returns {value is ThemePreference} */
+function isThemePreference(value) {
+  return typeof value === 'string' && /** @type {string[]} */ (THEME_PREFERENCES).includes(value)
+}
+
+/** @returns {ThemePreference} The stored preference, or System for anything missing, unknown or unreadable. */
+function readStoredTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY)
+    return isThemePreference(stored) ? stored : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
+/** @param {ThemePreference} value */
+function writeStoredTheme(value) {
+  try {
+    localStorage.setItem(THEME_KEY, value)
+  } catch {
+    // Remembered for this session in memory; just not across reloads.
+  }
+}
+
 /** STL is the v1 priority (`interaction-model-qa.md` §12): scenario 11's consumer is a slicer. */
 export const DEFAULT_EXPORT_FORMAT = /** @type {import('../core/export.js').ExportFormat} */ ('stl')
 
@@ -193,7 +225,25 @@ export const useSettingsStore = defineStore('settings', () => {
     writeStoredAiModel(id)
   }
 
+  /** @type {import('vue').Ref<ThemePreference>} */
+  const theme = ref(readStoredTheme())
+
+  /**
+   * Remember the theme preference (`TODO/ui-113`). `composables/useTheme.js` turns it into the
+   * resolved theme; an unknown value is ignored, not stored.
+   *
+   * @param {string} value `'system'`, `'dark'` or `'light'`.
+   * @returns {void}
+   */
+  function setTheme(value) {
+    if (!isThemePreference(value)) return
+    theme.value = value
+    writeStoredTheme(value)
+  }
+
   return {
+    theme,
+    setTheme,
     aiModel,
     setAiModel,
     mouseNavPreset,
