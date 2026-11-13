@@ -6,8 +6,20 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-13).** `src/styles/guard.spec.js` (Vitest, unit only), the scanner it calls in
+> `src/styles/guardScan.js` (pure functions over text, so the spec proves each rule with a fixture string),
+> and `src/styles/guard-allowlist.json`. Seven rules: `style-color`, `style-z-index`, `style-font`,
+> `style-var-fallback`, `style-var-undefined`, `inline-style-color`, `js-color`. The allow-list is seeded from
+> the tree and the spec fails when a file is over OR under its count. `index.html` and the manifest copies of
+> `--surface-0` are checked, and `../warpcad-native/src-tauri/tauri.conf.json` when that sibling is checked out
+> (a skip note prints otherwise). Deviations: `guardScan.js` is a third file, so the fixtures never need a
+> deliberate violation in the tree; `src/render/theme.js` does not exist yet, so its exemption is inert until
+> `render-008`; named colours are matched only in colour-bearing properties (colour, background, border, outline,
+> fill, stroke, shadow, text-decoration, caret, accent) to avoid false hits on font names and keywords;
+> `<script>` blocks of `.vue` files under `src/components/` count toward `js-color`. Spacing and radius stay unguarded.
 
 > **Decided 2026-11-10** (`ui-111`, decision 3): the guard is a **Vitest spec** with no new
 > dependency, which is what this file describes. `stylelint` was the option not taken.

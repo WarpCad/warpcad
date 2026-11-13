@@ -830,6 +830,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `testing-036` | A guard spec that fails on styling written outside the token files. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | ✅ done: none re-driven (unit-only guard spec) |
 | ✅ `ui-112` | Split the tokens into base and semantic layers; add type, space, layer and motion scales. No visual change. Filed 2026-11-10 from the architecture audit | Finding | — | ✅ done — none re-driven (zero snapshot diffs across `test:e2e:full`) |
 | ✅ `ui-110` | One set of overlay behaviours: `useOverlayStack` (Escape closes the top overlay only), `useFocusTrap` (the four `aria-modal` dialogs trap Tab and restore focus), `useOutsideClick` and `useKeyboardInset`; twelve components moved onto them. Filed 2026-11-10 from the architecture audit. [`done/ui-110`](done/ui-110-overlay-behaviour-composables.md) | Finding | — | 7, 10, 24 (7 and 10 driven by hand, 24 driven up to the stubbed key sheet and chat panel; ai-004, ui-070 and ui-087 repros re-run; the iOS keyboard hypothesis is NOT verified, see Completion Log) |
 | ✅ `ui-109` | Break the import cycle between the gist, file-menu and share stores. Filed 2026-11-10 from the architecture audit | Finding | — | ✅ done — scenarios 29 and 30 covered by `share-link.e2e.js` and `gist-share.e2e.js` on all nine projects; `stores/sharedOpen.js` carries the make-a-copy request, `stores/gistPublish.js` holds the publish orchestration, `scripts/import-cycles.spec.js` guards the graph |
@@ -1325,5 +1326,6 @@ convention going forward.
 | `docs-034` | 2026-11-13 17:30 | 10m |
 | `ui-110` | 2026-11-13 18:15 | ~1h |
 | `ui-112` | 2026-11-13 18:57 | 42m |
+| `testing-036` | 2026-11-13 19:20 | 1h5m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
