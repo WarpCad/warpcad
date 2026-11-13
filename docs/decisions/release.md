@@ -68,6 +68,22 @@ The `licenses` scripts used `--excludePackages "warpcad@0.0.0"` to skip the app 
 bump would have made that pattern stale and failed CI on the release commit, so both scripts now use
 `--excludePrivatePackages` (the app and `mcp/` are `private`).
 
+## The iOS build number
+
+`CFBundleShortVersionString` is this repository's `package.json` version. `CFBundleVersion` is a
+separate counter kept in `warpcad-native/ios-build-number`, one integer, raised by one only after
+`xcrun altool --upload-app` succeeds. App Store Connect refuses a build number it has seen, and
+needs it to rise for each upload of the same version; tying it to the web version would force a
+version bump to retry a failed upload, and tying it to the commit count would make it huge and
+uneven. The release-it version bump therefore never touches the build number, and a release that
+needs a second upload of the same version just uses the next integer.
+
+Two details of the Tauri CLI that decide how the number is set (`TROUBLESHOOTING.md`, 2026-11-12):
+the `--build-number` flag writes `CFBundleVersion` as `<version>.<n>` (`1.17.0.1`), which has four
+numbers where App Store Connect allows three, so the script sets `bundle.iOS.bundleVersion` through
+`--config` instead; and the team ID is read from `APPLE_DEVELOPMENT_TEAM`, so it is in no tracked
+file.
+
 ## Revisit when
 
 - release-it loses its maintainer (last push is 2026-10-07 at the time of writing; re-check before a

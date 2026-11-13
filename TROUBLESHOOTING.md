@@ -449,6 +449,36 @@ Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). 
 
 **Steps taken to resolve:** Measured each line, trimmed the lease and refusal lines, and added the length guard.
 
+### 2026-11-12 — `cargo tauri ios build --build-number 1` writes a four-part CFBundleVersion
+
+**What happened:** The first release build of the iOS app (`TODO/build-019`) logged `Updated CFBundleVersion … to 1.17.0.1`. `xcrun altool --validate-app` still passed.
+
+**Why it happened:** The Tauri CLI joins the app version and the number it is given with a dot. Apple's rule for `CFBundleVersion` is at most three period-separated integers, so a four-part value is a risk that surfaces at upload processing, not at validation.
+
+**Fix / Prevention:** `warpcad-native/scripts/ios-release.sh` does not pass `--build-number`. It passes `--config '{"bundle":{"iOS":{"bundleVersion":"<n>"}}}'`, which writes `<n>` alone. The built IPA's `CFBundleVersion` is read back to confirm (`1`).
+
+**Steps taken to resolve:** Built twice, unzipped the IPA's `Info.plist` and compared the two values.
+
+### 2026-11-12 — Xcode's "Build Rust Code" step fails with `cargo: command not found`
+
+**What happened:** Building `warpcad-native` from Xcode ended in `Command PhaseScriptExecution failed with a nonzero exit code`. The same build from a terminal worked.
+
+**Why it happened:** Xcode runs script phases with the system PATH, which has no `~/.cargo/bin`. The first line of the build log's script output said `cargo: command not found`; the generic failure message hides it.
+
+**Fix / Prevention:** `src-tauri/gen/apple/project.yml` and the committed Xcode project put `export PATH="$HOME/.cargo/bin:$PATH"` before `cargo tauri ios xcode-script`. Read the activity log (`~/Library/Developer/Xcode/DerivedData/warpcad-native-*/Logs/Build/*.xcactivitylog`, `gunzip -c | strings`) for the real error whenever a script phase fails.
+
+**Steps taken to resolve:** Ran `gunzip -c <log> | strings | grep -i "not found"`.
+
+### 2026-11-12 — `cargo tauri ios dev` on a physical iPad shows "Failed to request http://127.0.0.1:1430/"
+
+**What happened:** The app installed and launched on the iPad but showed a plain-text error naming a localhost URL.
+
+**Why it happened:** `ios dev` builds a development app that loads its web content from a server on the Mac. On a physical device `127.0.0.1` is the device itself. Only a simulator shares the Mac's network. This shell is meant to load only its bundled copy, so `--host` (which exposes the server) is the wrong answer.
+
+**Fix / Prevention:** A device runs a release-style build: `npm run ios:install -- "<device name>"` builds with the `debugging` export method, installs with `xcrun devicectl` and launches. The device must be in the Apple developer account's device list, or signing fails with "Device … isn't registered"; running it once from Xcode registers it.
+
+**Steps taken to resolve:** Read the on-screen error, then built and installed a bundled build and confirmed the viewport rendered.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

@@ -43,6 +43,8 @@ ready for the owner to submit to the App Store. It lives in the sibling reposito
 See [M19](#m19--native-ios-app-tauri). The web push is no longer held on `testing-007` (closed 2026-10-26); M19 rows that change
 this repository still need a green full run before they are pushed.
 
+**Decided 2026-11-12:** no TestFlight yet. The owner runs the app from Xcode on their iPad (Socrates, iPad Pro 11" 4th generation), so `build-019` is parked and `build-018` and `io-026` step 1 are driven by throwaway probe branches (`probe/build-018`, `probe/io-026` in `warpcad-native`, runbooks `PROBE-build-018.md` and `PROBE-io-026.md`) instead of waiting on a TestFlight build. `build-020` (the App Store submit) still needs `build-019` first. Nothing has been merged.
+
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | 7 | ✅ Done 2026-11-12 (distribution certificate left to automatic signing in `build-019`) | `M19` | **Signing setup:** Apple ID in Xcode with the paid team, team ID, Apple Distribution certificate, iPhone registered, App Store Connect record for `com.warpcad.app`, App Store Connect API key. Full list in [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md). Nothing installs on a device before this | — |
