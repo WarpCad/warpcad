@@ -6,8 +6,22 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14):** the seven rows were driven on a production build (`npm run build`, `vite preview`) against copies of the
+> owner's files in the session scratchpad (no original in `~/Documents` or `~/Downloads` was opened for writing, moved or deleted), and written into
+> `TODO/VERIFY.md`. **OK:** `ui-097` #1 (the cutter's low-Y face goes from 14.34 to **14.09** after Align to Battery-Connector, Y outside +; the
+> Undo step cannot run because Undo is disabled on a fresh open), `ui-096` #2 (390x844, Chromium and WebKit: the `Only in this project` line and
+> the ⋯ note wrap with no sideways scroll, and scenario 31 steps 1 to 4 on the 3MF stay at scroll width 390), `ui-092` #1 (hover-to-painted p50
+> 15.0 to 15.2 ms and p95 15.6 to 16.2 ms at 1x on all five targets, twins-heavy rows included; at 4x p50 is still 15.2 to 15.4 ms with a two-frame
+> tail; `bench/results/2026-11-14-testing-018.md`, new script `bench/prompts-hover.mjs`) and `ui-092` #2 (two rows, Combine with next gives one
+> row equal to `fan-duct.prompt.txt`, one Add reply…, 3 parts, Undo restores two, `fan-duct.response.txt` pasted as the reply). **N/A, with the drive
+> recorded:** `data-010` #1 and `data-008` #1, because no owner file predates those tasks (all nine `.ndjson` files are version 2 with a `merge`
+> section and replica-scoped ids; the behaviour was driven on the oldest files in Chromium and WebKit and a Download copy keeps every old record line
+> byte-identical). **Left `Open` on purpose:** `data-011` #2, the measurement half is answered (`merge` is 14 to 15% of the two big projects and 18 to
+> 23% of the small ones, 1.8 to 2.6% where a `parts` section dominates, and a re-save is byte-identical), and the `data-012` decision stays the
+> owner's (`FIND-testing-033`). No product code changed and no defect was found, so no finding was filed.
 
 ## Problem
 

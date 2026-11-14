@@ -60,7 +60,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 23 | ▶ Ready | `FIND` | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks on the owner's files, against copies (7 rows) | sonnet |
 | 24 | ▶ Ready | `FIND` | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks at laptop width (13 rows) | sonnet |
 | 25 | ▶ Ready | `FIND` | [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks (8 rows) | sonnet |
 | 26 | ▶ Ready | `FIND` | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with Claude Code as client (12 rows) | sonnet |
@@ -151,7 +150,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks that name the owner's own project files, against copies | finding | medium | sonnet | ▶ Ready (Next up row 23) |
 | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks that only need the built app at laptop width | finding | medium | sonnet | ▶ Ready (Next up row 24) |
 | [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks that emulation and real timers can settle | finding | medium | sonnet | ▶ Ready (Next up row 25) |
 | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as the client | finding | medium | sonnet | ▶ Ready (Next up row 26) |
@@ -331,7 +329,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `testing-018` | Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 31, 10 |
 | `testing-019` | Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 6, 10, 11, 16 |
 | `testing-020` | Drive the VERIFY.md touch, timing and offline checks emulation can settle (8 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 7 (if `ui-062` #4 reproduces) |
 | `testing-022` | Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 23, 25 |
