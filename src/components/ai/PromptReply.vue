@@ -170,13 +170,13 @@ watch(
   min-width: 0;
   padding: 0 0 6px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
 }
 
 .reply__label {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -223,7 +223,7 @@ watch(
   background: var(--surface-0);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 16px; /* 16px: iOS Safari does not zoom the page on focus. */
+  font-size: var(--text-size-xl); /* 16px: iOS Safari does not zoom the page on focus. */
   resize: vertical;
 }
 

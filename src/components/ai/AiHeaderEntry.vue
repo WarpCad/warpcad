@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
   background: var(--surface-1);
   color: var(--text-2);
   font-family: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  z-index: 40;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+  box-shadow: var(--shadow-overlay);
 }
 
 .ai-entry__row {
@@ -183,7 +183,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--text-1);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;

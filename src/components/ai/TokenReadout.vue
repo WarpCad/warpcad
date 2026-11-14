@@ -26,7 +26,7 @@ const text = computed(() => formatReadout(props.usage, props.cost, props.session
 
 <style scoped>
 .usage {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }

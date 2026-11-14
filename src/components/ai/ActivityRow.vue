@@ -103,7 +103,7 @@ const result = computed(() => {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
@@ -133,7 +133,7 @@ const result = computed(() => {
 .row__result,
 .row__summary,
 .row__next {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 

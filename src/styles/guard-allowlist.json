@@ -2,7 +2,6 @@
   "$comment": "Seeded by TODO/testing-036 from the tree as it was. Each entry is the number of violations a file may still carry. An entry can only go DOWN (the spec fails when a file is under its count, too), and ui-118 empties the list.",
   "rules": {
     "style-color": {
-      "src/components/ai/AiHeaderEntry.vue": 1,
       "src/components/layout/HelpSheet.vue": 1,
       "src/components/layout/UserPartMenu.vue": 1,
       "src/components/viewport/Gizmo.vue": 4,
@@ -10,8 +9,6 @@
       "src/components/viewport/TranslateRuler.vue": 2
     },
     "style-z-index": {
-      "src/components/ai/AiHeaderEntry.vue": 1,
-      "src/components/ai/ChatPanel.vue": 1,
       "src/components/inspector/DeleteButton.vue": 1,
       "src/components/inspector/Inspector.vue": 1,
       "src/components/layout/HelpSheet.vue": 3,
@@ -37,21 +34,6 @@
       "src/components/viewport/ViewportContextBanner.vue": 1
     },
     "style-font": {
-      "src/components/ai/ActivityRow.vue": 2,
-      "src/components/ai/AiHeaderEntry.vue": 2,
-      "src/components/ai/AssistantButton.vue": 2,
-      "src/components/ai/ChatPanel.vue": 9,
-      "src/components/ai/Composer.vue": 4,
-      "src/components/ai/ConnectButton.vue": 1,
-      "src/components/ai/ConnectClaudeCode.vue": 5,
-      "src/components/ai/KeySheet.vue": 5,
-      "src/components/ai/NativeMcpAccess.vue": 4,
-      "src/components/ai/PromptReply.vue": 3,
-      "src/components/ai/SaveProposal.vue": 2,
-      "src/components/ai/StarterCopy.vue": 1,
-      "src/components/ai/StepLimitSheet.vue": 5,
-      "src/components/ai/SubscriptionRoute.vue": 4,
-      "src/components/ai/TokenReadout.vue": 1,
       "src/components/controls/HelpButton.vue": 2,
       "src/components/display/BillOfMaterials.vue": 4,
       "src/components/display/ConnectionDot.vue": 2,
@@ -82,9 +64,10 @@
       "src/components/inspector/VariableAddForm.vue": 2,
       "src/components/inspector/VariableFormulaView.vue": 5,
       "src/components/inspector/VariableRow.vue": 6,
-      "src/components/inspector/VariablesPanel.vue": 6,
       "src/components/inspector/VariableUsageDialog.vue": 3,
+      "src/components/inspector/VariablesPanel.vue": 6,
       "src/components/inspector/ViewHiddenNote.vue": 1,
+      "src/components/layout/BaseDialog.vue": 2,
       "src/components/layout/DescriptionHint.vue": 1,
       "src/components/layout/HelpEntryButton.vue": 2,
       "src/components/layout/HelpSheet.vue": 15,
@@ -96,9 +79,9 @@
       "src/components/layout/LibrarySectionPopout.vue": 1,
       "src/components/layout/SaveToLibraryButton.vue": 1,
       "src/components/layout/SaveToLibrarySheet.vue": 4,
-      "src/components/layout/SharedView.vue": 10,
       "src/components/layout/ShareGistGroup.vue": 8,
       "src/components/layout/ShareSheet.vue": 10,
+      "src/components/layout/SharedView.vue": 10,
       "src/components/layout/UserPartMenu.vue": 7,
       "src/components/sketch/CurveSheet.vue": 8,
       "src/components/sketch/ExtrudePanel.vue": 6,
@@ -144,11 +127,9 @@
       "src/components/viewport/TranslateRuler.vue": 2,
       "src/components/viewport/Viewport.vue": 1,
       "src/components/viewport/ViewportContextBanner.vue": 2,
-      "src/views/AppView.vue": 7,
-      "src/components/layout/BaseDialog.vue": 2
+      "src/views/AppView.vue": 7
     },
     "style-var-fallback": {
-      "src/components/ai/ChatPanel.vue": 2,
       "src/components/inspector/Inspector.vue": 1,
       "src/components/layout/LibraryPanel.vue": 1,
       "src/components/layout/LibraryRail.vue": 1,

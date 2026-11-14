@@ -76,7 +76,7 @@ function toggle(event) {
   align-items: center;
   gap: 10px;
   min-height: var(--tap);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -90,7 +90,7 @@ function toggle(event) {
 
 .lan__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--text-2);
 }
@@ -100,7 +100,7 @@ function toggle(event) {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 4px 10px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -136,7 +136,7 @@ function toggle(event) {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   cursor: pointer;
   touch-action: manipulation;
 }

@@ -129,7 +129,7 @@ async function onPicked(event) {
 
 .composer__pending {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -162,7 +162,7 @@ async function onPicked(event) {
   color: var(--text-1);
   font-family: inherit;
   /* 16px stops iOS Safari zooming the page when the box is focused. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   resize: none;
 }
 
@@ -228,12 +228,12 @@ async function onPicked(event) {
   border: 1px solid var(--border-strong);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .composer__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 </style>

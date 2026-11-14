@@ -53,7 +53,7 @@ const assistant = useAssistantStore()
   background: var(--surface-1);
   color: var(--text-2);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
@@ -65,7 +65,7 @@ const assistant = useAssistantStore()
 }
 
 .assistant-button__glyph {
-  font-size: 15px;
+  font-size: var(--text-size-title);
 }
 
 .assistant-button__badge {

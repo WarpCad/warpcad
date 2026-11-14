@@ -62,7 +62,7 @@ async function copy() {
 
 .starter__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 </style>

@@ -75,7 +75,7 @@ const title = computed(() =>
   height: 12px;
   border-radius: var(--radius-pill);
   background: var(--border-strong);
-  transition: background 120ms ease;
+  transition: background var(--duration-fast) ease;
 }
 
 .webmcp-chip__thumb {
@@ -86,7 +86,7 @@ const title = computed(() =>
   height: 8px;
   border-radius: var(--radius-round);
   background: var(--surface-1);
-  transition: transform 120ms ease;
+  transition: transform var(--duration-fast) ease;
 }
 
 .webmcp-chip[aria-checked='true'] .webmcp-chip__track {

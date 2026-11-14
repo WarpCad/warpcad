@@ -190,7 +190,7 @@ function close() {
 .connect__ok,
 .connect__status {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.5;
   color: var(--text-1);
   overflow-wrap: anywhere;
@@ -198,7 +198,7 @@ function close() {
 
 .connect__note,
 .connect__status {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -229,7 +229,7 @@ function close() {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -264,7 +264,7 @@ function close() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-2);
 }
 
@@ -278,7 +278,7 @@ function close() {
   background: var(--surface-0);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .connect__actions {

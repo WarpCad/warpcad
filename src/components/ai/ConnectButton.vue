@@ -54,7 +54,7 @@ const assistant = useAssistantStore()
 }
 
 .connect-entry__reason {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 </style>

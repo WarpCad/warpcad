@@ -265,7 +265,7 @@ function done() {
 .key__help,
 .key__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -280,7 +280,7 @@ function done() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.4;
   color: var(--text-1);
   overflow-wrap: anywhere;
@@ -292,7 +292,7 @@ function done() {
 
 .key__warn {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--warn);
   overflow-wrap: anywhere;
@@ -308,7 +308,7 @@ function done() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -323,7 +323,7 @@ function done() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px, deliberately: iOS Safari zooms the whole page on focus of any input below it. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 /* WebKit's native select ignores `min-height` (it measured ~30px), so the 44px target is made

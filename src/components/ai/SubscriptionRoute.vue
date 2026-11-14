@@ -87,14 +87,14 @@ function back() {
 .route__text,
 .route__note {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.5;
   color: var(--text-1);
   overflow-wrap: anywhere;
 }
 
 .route__note {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -105,7 +105,7 @@ function back() {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   /* Wraps rather than scrolls sideways, at any width. */
   white-space: pre-wrap;
@@ -116,7 +116,7 @@ function back() {
 .route__status {
   margin: 0;
   min-height: 1.4em;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 

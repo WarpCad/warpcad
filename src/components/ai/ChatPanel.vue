@@ -329,11 +329,11 @@ const HEIGHTS = /** @type {const} */ ([
   position: fixed;
   left: 0;
   right: 0;
-  bottom: var(--layout-kb-inset, 0px);
-  z-index: 25;
+  bottom: var(--layout-kb-inset);
+  z-index: var(--z-chat);
   box-sizing: border-box;
   height: var(--layout-chat-sheet-height);
-  max-height: calc(100dvh - var(--layout-kb-inset, 0px) - 60px);
+  max-height: calc(100dvh - var(--layout-kb-inset) - 60px);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -383,14 +383,14 @@ const HEIGHTS = /** @type {const} */ ([
   border: 1px dashed var(--warn);
   border-radius: 999px;
   color: var(--warn);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-medium);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .chat__title {
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 .chat__status {
@@ -399,7 +399,7 @@ const HEIGHTS = /** @type {const} */ ([
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -431,7 +431,7 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 .chat__connection {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   overflow-wrap: anywhere;
 }
@@ -445,7 +445,7 @@ const HEIGHTS = /** @type {const} */ ([
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -454,7 +454,7 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 .chat__warn {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--warn);
 }
 
@@ -472,7 +472,7 @@ const HEIGHTS = /** @type {const} */ ([
 
 .chat__empty,
 .chat__notice {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--text-2);
 }
@@ -487,7 +487,7 @@ const HEIGHTS = /** @type {const} */ ([
   padding: 6px 10px;
   border-radius: 10px;
   background: var(--surface-2);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -70,7 +70,7 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   overflow-wrap: anywhere;
 }
 
@@ -84,7 +84,7 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
 }
 
 .save__status {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 

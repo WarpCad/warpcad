@@ -88,7 +88,7 @@ function save() {
 .limit__help,
 .limit__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--text-2);
 }
@@ -99,7 +99,7 @@ function save() {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--warn);
 }
@@ -114,7 +114,7 @@ function save() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
 }
 
@@ -127,7 +127,7 @@ function save() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px so iOS Safari does not zoom the page when the field takes focus. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .limit__input[aria-invalid='true'] {
@@ -136,7 +136,7 @@ function save() {
 
 .limit__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 
