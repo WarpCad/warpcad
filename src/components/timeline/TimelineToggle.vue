@@ -52,14 +52,14 @@ const timeline = useTimelineStore()
   background: var(--surface-1);
   color: var(--text-2);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .timeline-toggle__glyph {
-  font-size: 15px;
+  font-size: var(--text-size-title);
 }
 
 .timeline-toggle:hover {

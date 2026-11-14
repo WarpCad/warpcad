@@ -119,7 +119,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   align-items: center;
   gap: 10px;
   padding: 5px 14px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .strip--preview {
@@ -154,12 +154,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .strip__text {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .strip__detail {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
@@ -168,7 +168,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   margin-left: auto;
   min-height: 28px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 @media (max-width: 640px) {

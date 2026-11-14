@@ -114,29 +114,29 @@ const relatedIds = computed(() => {
 
 .panel__title {
   margin: 0;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-2);
 }
 
 .panel__count {
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .panel .panel__close {
   margin-left: auto;
   height: 32px;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 .panel__empty {
   margin: 0;
   padding: 16px 12px;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .panel__list {
@@ -157,7 +157,7 @@ const relatedIds = computed(() => {
   gap: 8px;
   padding: 2px 10px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -187,13 +187,13 @@ const relatedIds = computed(() => {
     /* The Inspector's tier (z-index 11) — the two are mutually exclusive by
        AppView's arbitration, so they never need to stack against each other. */
     position: absolute;
-    z-index: 11;
+    z-index: calc(var(--z-panel) + 1);
     left: 0;
     right: 0;
     /* Set by `AppView.vue`, which is the only thing that can see the Library
        tab and the Inspector tab at the same time as this sheet. */
-    bottom: var(--layout-bottom-panel-bottom, 0px);
-    height: var(--layout-bottom-panel-height, 46vh);
+    bottom: var(--layout-bottom-panel-bottom);
+    height: var(--layout-bottom-panel-height);
     border-top: 1px solid var(--border-strong);
     box-shadow: var(--shadow-overlay);
   }

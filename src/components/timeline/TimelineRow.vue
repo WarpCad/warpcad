@@ -406,7 +406,7 @@ function cancel() {
   background: transparent;
   color: var(--text-1);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
@@ -453,7 +453,7 @@ function cancel() {
   min-width: 18px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 .row__text {
@@ -491,7 +491,7 @@ function cancel() {
 .row__broken-reason {
   margin: 0;
   padding: 0 10px 6px 13px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--danger);
   overflow-wrap: anywhere;
@@ -508,7 +508,7 @@ function cancel() {
 .intent__text {
   margin: 0;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   /* Untrusted text: keep its own line breaks, and never let a long token widen the sheet. */
   white-space: pre-wrap;
@@ -539,7 +539,7 @@ function cancel() {
 .edit__label {
   min-width: 72px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .edit__vector {
@@ -561,7 +561,7 @@ function cancel() {
   /* 16px, not smaller: anything below it makes iOS Safari zoom the page on
      focus, which on a bottom sheet scrolls the form out from under the thumb.
      §15's phone rule names this explicitly. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .edit__input--axis {
