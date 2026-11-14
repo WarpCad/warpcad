@@ -6,7 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { h, nextTick } from 'vue'
 
-import { resetOverlayStack } from '../../composables/useOverlayStack.js'
+import { overlayStackDepth, resetOverlayStack } from '../../composables/useOverlayStack.js'
 import BaseSheet from './BaseSheet.vue'
 
 enableAutoUnmount(afterEach)
@@ -68,6 +68,36 @@ describe('BaseSheet', () => {
     expect(frame.classList.contains('sheet--right')).toBe(true)
     expect(frame.classList.contains('sheet--card')).toBe(true)
     expect(frame.style.getPropertyValue('--layout-sheet-z-frame')).toBe('var(--z-help-frame)')
+  })
+
+
+  it('a modal sheet takes a clear scrim: it still catches the click but does not dim', async () => {
+    const wrapper = await open({ modal: true, scrim: 'clear' })
+    const backdrop = q('sh-backdrop')
+    expect(backdrop.classList.contains('sheet__backdrop--clear')).toBe(true)
+    backdrop.click()
+    expect(wrapper.emitted('backdrop')).toHaveLength(1)
+    await wrapper.setProps({ scrim: 'dim' })
+    expect(q('sh-backdrop').classList.contains('sheet__backdrop--clear')).toBe(false)
+  })
+
+  it('opts out of the overlay stack when told not to: Escape never reaches it', async () => {
+    const wrapper = await open({ stack: false })
+    escape()
+    expect(wrapper.emitted('escape')).toBeUndefined()
+    expect(overlayStackDepth()).toBe(0)
+  })
+
+  it('the dock tier is the --z-dock layer, for both the frame and the backdrop', async () => {
+    await open({ tier: 'dock' })
+    expect(q('sh').style.getPropertyValue('--layout-sheet-z-frame')).toBe('var(--z-dock)')
+    expect(q('sh').style.getPropertyValue('--layout-sheet-z')).toBe('var(--z-dock)')
+  })
+
+  it('anchors a card where the caller says, and defaults to the top-right corner', async () => {
+    await open({ card: true, top: '90px', right: '20px' })
+    expect(q('sh').style.getPropertyValue('--layout-sheet-top')).toBe('90px')
+    expect(q('sh').style.getPropertyValue('--layout-sheet-right')).toBe('20px')
   })
 
   it('draws a header with the ? only when it has a help topic', async () => {

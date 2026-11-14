@@ -11,11 +11,15 @@
  *   catches clicks, keeps Tab inside, and says `aria-modal`. A non-modal sheet (the Split and
  *   Repeat sheets: the user keeps working in the viewport while they are open) has no backdrop and
  *   no focus trap. Both join the overlay stack, so Escape closes the top overlay only.
- * - **`card`**: from 641px a `bottom` sheet becomes a card (top-right, `width` wide) instead of
+ * - **`card`**: from 641px a `bottom` sheet becomes a card (top-right, `width` wide; `top` and `right`
+ *   anchor it under a button) instead of
  *   staying a bottom edge; the Library and Share sheets want that.
  * - **`teleport`** (default `true`): to `<body>`; a docked sheet that lives inside its panel
  *   passes `false`.
- * - **`tier`**: `popover`, `modal` or `help`, the `--z-*` tier the sheet sits in; the frame is
+ * - **`scrim`**: `dim` (default) or `clear`, the backdrop of a modal sheet.
+ * - **`stack`** (default `true`): whether Escape reaches the sheet through the overlay stack. The
+ *   Repeat sheet opts out: its Escape belongs to the Operations toolbar.
+ * - **`tier`**: `popover`, `modal`, `help` or `dock` (a docked sheet's one layer, `--z-dock`), the `--z-*` tier the sheet sits in; the frame is
  *   the tier plus one, the backdrop the tier.
  * - **`as`**: the frame's element, `div` or `form`.
  * - **`title`** labels the dialog; **`helpTopic`** adds the header's **?** (`HelpButton`) next to a
@@ -45,15 +49,22 @@ const props = defineProps({
   card: { type: Boolean, default: false },
   /** The card's width, a CSS length. */
   width: { type: String, default: '340px' },
+  /** The card's offset from the top and right edge, CSS lengths; a Share sheet anchors under its button with them. */
+  top: { type: String, default: '64px' },
+  right: { type: String, default: '16px' },
   teleport: { type: Boolean, default: true },
-  tier: { type: String, default: 'popover', validator: (/** @type {string} */ v) => ['popover', 'modal', 'help'].includes(v) },
+  tier: { type: String, default: 'popover', validator: (/** @type {string} */ v) => ['popover', 'modal', 'help', 'dock'].includes(v) },
+  /** `dim` (the scrim) or `clear`: a modal sheet whose backdrop catches the click but does not dim. */
+  scrim: { type: String, default: 'dim', validator: (/** @type {string} */ v) => v === 'dim' || v === 'clear' },
+  /** Whether Escape reaches this sheet through the overlay stack; a docked sheet whose Escape belongs elsewhere says `false`. */
+  stack: { type: Boolean, default: true },
   as: { type: String, default: 'div', validator: (/** @type {string} */ v) => v === 'div' || v === 'form' },
 })
 const emit = defineEmits(['backdrop', 'escape'])
 
 const frameEl = ref(null)
 useFocusTrap(frameEl, () => props.modal && props.open)
-useOverlayStack(() => props.open, () => emit('escape'))
+useOverlayStack(() => props.open && props.stack, () => emit('escape'))
 const { keyboardInsetPx } = useKeyboardInset(() => props.side === 'bottom' && props.open)
 
 /** Each tier's backdrop and frame layers, spelled out so the token names stay greppable. */
@@ -62,10 +73,13 @@ const TIER_LAYERS = {
   popover: ['var(--z-popover)', 'var(--z-popover-frame)'],
   modal: ['var(--z-modal)', 'var(--z-modal-frame)'],
   help: ['var(--z-help)', 'var(--z-help-frame)'],
+  dock: ['var(--z-dock)', 'var(--z-dock)'],
 }
 
 const frameStyle = computed(() => ({
   '--layout-sheet-width': props.width,
+  '--layout-sheet-top': props.top,
+  '--layout-sheet-right': props.right,
   '--layout-sheet-keyboard': `${keyboardInsetPx.value}px`,
   '--layout-sheet-z': TIER_LAYERS[props.tier][0],
   '--layout-sheet-z-frame': TIER_LAYERS[props.tier][1],
@@ -75,7 +89,7 @@ const frameStyle = computed(() => ({
 <template>
   <Teleport to="body" :disabled="!teleport">
     <template v-if="open">
-      <div v-if="modal" class="sheet__backdrop" :style="frameStyle" :data-testid="backdropTestid || `${testid}-backdrop`" @click="emit('backdrop')" />
+      <div v-if="modal" class="sheet__backdrop" :class="{ 'sheet__backdrop--clear': scrim === 'clear' }" :style="frameStyle" :data-testid="backdropTestid || `${testid}-backdrop`" @click="emit('backdrop')" />
       <component
         :is="as"
         ref="frameEl"
@@ -105,6 +119,10 @@ const frameStyle = computed(() => ({
   inset: 0;
   background: var(--scrim);
   z-index: var(--layout-sheet-z);
+}
+
+.sheet__backdrop--clear {
+  background: transparent;
 }
 
 .sheet {
@@ -161,12 +179,12 @@ const frameStyle = computed(() => ({
 
 @media (min-width: 641px) {
   .sheet--card.sheet--bottom {
-    top: 64px;
-    right: 16px;
+    top: var(--layout-sheet-top);
+    right: var(--layout-sheet-right);
     bottom: auto;
     left: auto;
     width: min(var(--layout-sheet-width), calc(100vw - 32px));
-    max-height: calc(100dvh - 96px);
+    max-height: calc(100dvh - var(--layout-sheet-top) - 32px);
     padding-bottom: 12px;
     border-radius: var(--radius-lg);
   }
