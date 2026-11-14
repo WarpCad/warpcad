@@ -18,6 +18,7 @@
  * merge or Open, and a toast that timed out would take the only way to it with it.
  */
 import { useMergeStore } from '../../stores/merge.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const merge = useMergeStore()
 </script>
@@ -32,25 +33,24 @@ const merge = useMergeStore()
     >
       <p class="merge-strip__text" data-testid="merge-toast-text">{{ merge.notice.text }}</p>
       <div class="merge-strip__actions">
-        <button
+        <BaseButton
           v-if="merge.notice.undoable && merge.canUndo"
-          type="button"
-          class="merge-strip__button"
+          narrow
           data-testid="merge-undo"
           @click="merge.undoMerge()"
         >
           Undo merge
-        </button>
-        <button
-          type="button"
-          class="merge-strip__button merge-strip__button--quiet"
+        </BaseButton>
+        <BaseButton
+          variant="quiet"
+          narrow
           data-testid="merge-toast-dismiss"
           aria-label="Dismiss"
           title="Dismiss"
           @click="merge.dismiss()"
         >
           ✕
-        </button>
+        </BaseButton>
       </div>
       <p v-if="merge.undoRefusal" class="merge-strip__refusal" role="alert" data-testid="merge-undo-refusal">
         {{ merge.undoRefusal }}
@@ -89,34 +89,6 @@ const merge = useMergeStore()
   align-items: center;
   gap: 4px;
   margin-left: auto;
-}
-
-.merge-strip__button {
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.merge-strip__button:hover,
-.merge-strip__button:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-  outline: none;
-}
-
-.merge-strip__button--quiet {
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-2);
 }
 
 .merge-strip__refusal {

@@ -7,7 +7,7 @@
  * - **Variants**: `default`, `primary` (the filled accent action), `danger`, `quiet` (no border, text only).
  * - **Sizes**: `tap` (the 44 px `--tap` target, the default), `compact` (`--tap-compact`, for dense panels) and
  *   `large` (48 px with the larger `--radius-md`, for the sheets and menus that were drawn that way).
- * - **`align="start"`** left-aligns the label (option-style buttons). **`fill`** makes the button take an equal share of
+ * - **`align="start"`** left-aligns the label (option-style buttons). **`narrow`** drops the 80 px minimum to a `--tap` square-ish target (strip and toast buttons). **`fill`** makes the button take an equal share of
  *   its flex row. **`variant="link"`** is the underlined accent text link with a full tap-height target.
  * - **`pressed`**: `true` or `false` sets `aria-pressed` and the active look; leave it unset for a plain button.
  * - Everything else (`data-testid`, `type="submit"`, `aria-*`, listeners) falls through to the `<button>`.
@@ -26,6 +26,8 @@ defineProps({
   size: { type: String, default: 'tap', validator: (/** @type {string} */ v) => ['tap', 'compact', 'large'].includes(v) },
   /** `center | start`: where the label sits. */
   align: { type: String, default: 'center', validator: (/** @type {string} */ v) => ['center', 'start'].includes(v) },
+  /** Shrink to a `--tap` wide target instead of 80 px (a toast's `Undo`, a banner's `✕`). */
+  narrow: { type: Boolean, default: false },
   /** Take an equal share of the flex row. */
   fill: { type: Boolean, default: false },
   /** Sets `aria-pressed` and the active look. Unset leaves `aria-pressed` off. */
@@ -44,7 +46,7 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
     ref="button"
     type="button"
     class="base-button"
-    :class="[`base-button--${variant}`, `base-button--${size}`, { 'base-button--active': pressed, 'base-button--start': align === 'start', 'base-button--fill': fill }]"
+    :class="[`base-button--${variant}`, `base-button--${size}`, { 'base-button--active': pressed, 'base-button--start': align === 'start', 'base-button--fill': fill, 'base-button--narrow': narrow }]"
     :aria-pressed="pressed"
     :disabled="disabled"
   >
@@ -72,6 +74,8 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
 
 .base-button--compact {
   min-height: var(--tap-compact);
+  padding: 0 10px;
+  font-size: var(--text-size-sm);
 }
 
 .base-button--large {
@@ -82,6 +86,10 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
 
 .base-button--start {
   text-align: left;
+}
+
+.base-button--narrow {
+  min-width: var(--tap);
 }
 
 .base-button--fill {
@@ -129,6 +137,10 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
 
 .base-button--link-danger {
   color: var(--danger);
+}
+
+.base-button--quiet.base-button--narrow {
+  min-width: var(--tap);
 }
 
 .base-button--active {

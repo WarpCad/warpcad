@@ -18,6 +18,7 @@ import { computed } from 'vue'
 
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   body: {
@@ -73,7 +74,7 @@ function resolve(bodyId) {
 <template>
   <div v-if="dependents.length > 0" class="banner" role="status" data-testid="dependents-banner">
     <p class="banner__text">{{ dependentsText }}</p>
-    <button type="button" class="banner__btn" data-testid="dependents-resolve" @click="resolve(body.id)">Resolve…</button>
+    <BaseButton class="banner__btn" narrow data-testid="dependents-resolve" @click="resolve(body.id)">Resolve…</BaseButton>
   </div>
   <div
     v-for="reference in references"
@@ -83,9 +84,9 @@ function resolve(bodyId) {
     data-testid="references-banner"
   >
     <p class="banner__text">{{ referenceText(reference) }}</p>
-    <button type="button" class="banner__btn" data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">
+    <BaseButton class="banner__btn" narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">
       Resolve…
-    </button>
+    </BaseButton>
   </div>
 </template>
 
@@ -113,21 +114,6 @@ function resolve(bodyId) {
 
 .banner__btn {
   flex-shrink: 0;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.banner__btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 
 /* Phone: one line plus Resolve…, so the Parameters section's first field stays within

@@ -11,6 +11,7 @@
 import { onBeforeUnmount, watch } from 'vue'
 
 import { useRepeatStore } from '../../stores/repeat.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 /** How long the toast stays, ms. */
 const LINGER_MS = 10_000
@@ -38,25 +39,24 @@ onBeforeUnmount(() => {
     <div v-if="repeat.notice" class="repeat-toast" data-testid="repeat-toast">
       <p class="repeat-toast__text" data-testid="repeat-toast-text">{{ repeat.notice.text }}</p>
       <div class="repeat-toast__actions">
-        <button
+        <BaseButton
           v-if="repeat.canUndoNotice"
-          type="button"
-          class="repeat-toast__button"
+          narrow
           data-testid="repeat-toast-undo"
           @click="repeat.undoNotice()"
         >
           Undo
-        </button>
-        <button
-          type="button"
-          class="repeat-toast__button repeat-toast__button--quiet"
+        </BaseButton>
+        <BaseButton
+          variant="quiet"
+          narrow
           data-testid="repeat-toast-dismiss"
           aria-label="Dismiss"
           title="Dismiss"
           @click="repeat.dismissNotice()"
         >
           ✕
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>
@@ -88,34 +88,6 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   margin-left: auto;
-}
-
-.repeat-toast__button {
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.repeat-toast__button:hover,
-.repeat-toast__button:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-  outline: none;
-}
-
-.repeat-toast__button--quiet {
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-2);
 }
 
 @media (max-width: 480px) {

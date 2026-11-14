@@ -25,6 +25,7 @@ import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const update = useAppUpdateStore()
 const persistence = usePersistenceStore()
@@ -54,46 +55,44 @@ const safe = computed(() =>
         </template>
       </p>
       <div class="update-strip__actions">
-        <button
+        <BaseButton
           v-if="!update.confirming"
-          type="button"
-          class="update-strip__button update-strip__button--primary"
+          variant="primary"
+          narrow
           data-testid="pwa-update-reload"
           @click="update.reload(safe)"
         >
           Reload
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-else
-          type="button"
-          class="update-strip__button update-strip__button--primary"
+          variant="primary"
+          narrow
           data-testid="pwa-update-reload-anyway"
           @click="update.confirmReload()"
         >
           Reload anyway
-        </button>
-        <button
-          type="button"
-          class="update-strip__button"
+        </BaseButton>
+        <BaseButton
+          narrow
           data-testid="pwa-update-later"
           @click="update.later()"
         >
           Later
-        </button>
+        </BaseButton>
       </div>
     </div>
     <div v-else-if="update.offlineReady" class="update-strip" data-testid="pwa-offline-ready">
       <p class="update-strip__text">WarpCad is ready to work offline.</p>
       <div class="update-strip__actions">
-        <button
-          type="button"
-          class="update-strip__button"
+        <BaseButton
+          narrow
           data-testid="pwa-offline-ready-dismiss"
           aria-label="Dismiss"
           @click="update.dismissOfflineReady()"
         >
           OK
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>
@@ -128,28 +127,4 @@ const safe = computed(() =>
   gap: 6px;
 }
 
-.update-strip__button {
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.update-strip__button--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.update-strip__button:hover,
-.update-strip__button:focus-visible {
-  border-color: var(--accent);
-}
 </style>

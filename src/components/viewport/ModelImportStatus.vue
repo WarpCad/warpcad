@@ -21,6 +21,7 @@
  * width, and at phone width a lower position caught the click meant for the model).
  */
 import { useModelImportStore } from '../../stores/modelImport.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const modelImport = useModelImportStore()
 </script>
@@ -34,21 +35,21 @@ const modelImport = useModelImportStore()
     <p v-if="modelImport.reading" class="import-status__line" role="status" data-testid="model-import-reading">
       <span class="import-status__spinner" aria-hidden="true" />
       <span class="import-status__text">Reading {{ modelImport.reading }}…</span>
-      <button type="button" class="import-status__button" data-testid="model-import-cancel" @click="modelImport.cancelReading()">
+      <BaseButton class="import-status__button" narrow data-testid="model-import-cancel" @click="modelImport.cancelReading()">
         Cancel
-      </button>
+      </BaseButton>
     </p>
     <p v-else-if="modelImport.error" class="import-status__line import-status__line--error" role="alert" data-testid="model-import-error-line">
       <span class="import-status__text" data-testid="model-import-error">{{ modelImport.error }}</span>
-      <button
-        type="button"
+      <BaseButton
         class="import-status__button"
+        narrow
         data-testid="model-import-error-dismiss"
         aria-label="Dismiss"
         @click="modelImport.dismissError()"
       >
         ✕
-      </button>
+      </BaseButton>
     </p>
     <p v-else class="import-status__line" role="status" data-testid="model-import-notice">
       <span class="import-status__text">{{ modelImport.notice }}</span>
@@ -127,21 +128,7 @@ const modelImport = useModelImportStore()
 
 .import-status__button {
   flex: none;
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  cursor: pointer;
   pointer-events: auto;
-}
-
-.import-status__button:hover,
-.import-status__button:focus-visible {
-  border-color: var(--border-strong);
 }
 
 </style>

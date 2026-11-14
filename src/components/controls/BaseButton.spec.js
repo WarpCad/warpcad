@@ -32,9 +32,10 @@ describe('BaseButton (TODO/ui-114)', () => {
   })
 
   it('align="start" and fill add their classes', () => {
-    const classes = mount(BaseButton, { props: { align: 'start', fill: true } }).classes()
+    const classes = mount(BaseButton, { props: { align: 'start', fill: true, narrow: true } }).classes()
     expect(classes).toContain('base-button--start')
     expect(classes).toContain('base-button--fill')
+    expect(classes).toContain('base-button--narrow')
   })
 
   it('passes data-testid and listeners through, and a click fires', async () => {
