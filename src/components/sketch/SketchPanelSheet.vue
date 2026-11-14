@@ -64,7 +64,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
 .sketch-sheet {
   position: absolute;
   right: 12px;
-  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px));
+  bottom: calc(12px + var(--layout-viewport-bottom-inset));
   width: min(320px, calc(100% - 24px));
   max-height: 45%;
   display: flex;
@@ -74,7 +74,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
-  z-index: 13;
+  z-index: calc(var(--z-panel) + 3);
 }
 
 .sketch-sheet__head {
@@ -90,8 +90,8 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
 
 .sketch-sheet__title {
   margin: 0;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent);
@@ -99,7 +99,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
 
 /* Layout only: the cross is a typeset glyph, larger than the icon default. */
 .sketch-sheet__close {
-  font-size: 20px;
+  font-size: var(--text-size-display);
 }
 
 .sketch-sheet__body {
@@ -114,7 +114,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   .sketch-sheet {
     left: 0;
     right: 0;
-    bottom: var(--layout-viewport-bottom-inset, 0px);
+    bottom: var(--layout-viewport-bottom-inset);
     width: auto;
     max-height: 24%;
     /* Opaque at this size: the grid readout and the chrome sit right behind it, and a

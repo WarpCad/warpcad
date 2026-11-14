@@ -208,7 +208,7 @@ function remove() {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   text-align: left;
   white-space: nowrap;
   min-width: 0;
@@ -221,7 +221,7 @@ function remove() {
 
 .slices__count {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   white-space: nowrap;
 }
 
@@ -233,7 +233,7 @@ function remove() {
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--text-2);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -246,7 +246,7 @@ function remove() {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -258,7 +258,7 @@ function remove() {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .slices__transform {
@@ -275,7 +275,7 @@ function remove() {
 
 .slices__unit {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 .slices__actions {

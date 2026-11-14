@@ -331,8 +331,8 @@ function blurTarget(event) {
 
 .profile__heading {
   margin: 0;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent);
@@ -340,8 +340,8 @@ function blurTarget(event) {
 
 .profile__kind {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-size-lg);
+  font-weight: var(--weight-medium);
   color: var(--text-1);
 }
 
@@ -357,7 +357,7 @@ function blurTarget(event) {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   cursor: pointer;
 }
 
@@ -365,7 +365,7 @@ function blurTarget(event) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .profile__fields {
@@ -374,7 +374,7 @@ function blurTarget(event) {
   align-items: center;
   gap: 4px 8px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -391,18 +391,18 @@ function blurTarget(event) {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .profile__unit {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .profile__note {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.45;
   color: var(--text-3);
 }
@@ -417,7 +417,7 @@ function blurTarget(event) {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 

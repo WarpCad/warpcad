@@ -175,14 +175,14 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   cursor: pointer;
 }
 
 .curve__kind--on {
   border-color: var(--accent);
   color: var(--accent);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .curve__fields {
@@ -197,7 +197,7 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
@@ -209,7 +209,7 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 .curve__field input[aria-invalid='true'] {
@@ -227,8 +227,8 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-medium);
   cursor: pointer;
 }
 
@@ -239,13 +239,13 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 
 .curve__note {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .curve__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 </style>

@@ -168,7 +168,7 @@ function toggleAuto() {
   border-radius: var(--radius-lg);
   background: var(--surface-1);
   box-shadow: var(--shadow-overlay);
-  z-index: 14;
+  z-index: calc(var(--z-panel) + 4);
 }
 
 .trace-tool__row {
@@ -191,7 +191,7 @@ function toggleAuto() {
   flex: 1 1 auto;
   min-width: 0;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
 }
 
@@ -199,7 +199,7 @@ function toggleAuto() {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -211,7 +211,7 @@ function toggleAuto() {
 .trace-tool__value {
   min-width: 52px;
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   font-variant-numeric: tabular-nums;
 }
 
@@ -226,7 +226,7 @@ function toggleAuto() {
 
 .trace-tool__status {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-1);
 }
 
@@ -236,7 +236,7 @@ function toggleAuto() {
 
 .trace-tool__status--error {
   color: var(--warn);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .trace-tool__spinner {

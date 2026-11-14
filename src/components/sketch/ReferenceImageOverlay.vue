@@ -49,7 +49,7 @@ defineProps({
   height: 100%;
   pointer-events: none;
   overflow: visible;
-  z-index: 4;
+  z-index: calc(var(--z-canvas-overlay) + 4);
 }
 
 .ref-overlay__halo {
@@ -76,8 +76,8 @@ defineProps({
 
 .ref-overlay__label {
   fill: var(--text-1);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-medium);
   paint-order: stroke;
   stroke: var(--surface-0);
   stroke-width: 3px;
@@ -90,10 +90,10 @@ defineProps({
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 30%, var(--surface-1));
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   white-space: nowrap;
   pointer-events: none;
-  z-index: 4;
+  z-index: calc(var(--z-canvas-overlay) + 4);
 }
 
 .ref-overlay__badge--warn {

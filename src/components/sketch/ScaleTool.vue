@@ -150,7 +150,7 @@ function cancel() {
   border-radius: var(--radius-lg);
   background: var(--surface-1);
   box-shadow: var(--shadow-overlay);
-  z-index: 14;
+  z-index: calc(var(--z-panel) + 4);
 }
 
 .scale-tool__lead {
@@ -167,7 +167,7 @@ function cancel() {
 .scale-tool__text {
   flex: 1 1 auto;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
 }
 
@@ -186,7 +186,7 @@ function cancel() {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 15px;
+  font-size: var(--text-size-title);
 }
 
 .scale-tool__unit {
@@ -196,13 +196,13 @@ function cancel() {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 .scale-tool__error {
   flex: 1 1 100%;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--warn);
 }
 </style>

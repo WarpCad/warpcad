@@ -137,7 +137,7 @@ function valueOf(key) {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   cursor: pointer;
 }
 
@@ -145,7 +145,7 @@ function valueOf(key) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .extrude__method:disabled {
@@ -157,7 +157,7 @@ function valueOf(key) {
 .extrude__note,
 .extrude__reason {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.35;
   color: var(--text-3);
 }
@@ -175,7 +175,7 @@ function valueOf(key) {
 }
 
 .extrude__fields dt {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -192,12 +192,12 @@ function valueOf(key) {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .extrude__unit {
   margin-left: 4px;
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 </style>

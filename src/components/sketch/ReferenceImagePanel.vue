@@ -238,8 +238,8 @@ function commitRotation(value) {
 
 .ref-image__title {
   margin: 0;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-2);
@@ -250,7 +250,7 @@ function commitRotation(value) {
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   white-space: nowrap;
 }
 
@@ -261,7 +261,7 @@ function commitRotation(value) {
 .ref-image__removed,
 .ref-image__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--warn);
 }
 
@@ -290,7 +290,7 @@ function commitRotation(value) {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -307,11 +307,11 @@ function commitRotation(value) {
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .ref-image__unit {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 </style>
