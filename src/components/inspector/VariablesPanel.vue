@@ -149,8 +149,8 @@ function onKeep() {
   background: transparent;
   color: var(--text-3);
   font: inherit;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.05em;
   text-align: left;
   text-transform: uppercase;
@@ -159,7 +159,7 @@ function onKeep() {
 }
 
 .variables__count {
-  font-weight: 500;
+  font-weight: var(--weight-regular);
   letter-spacing: 0;
 }
 
@@ -171,7 +171,7 @@ function onKeep() {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 20px;
+  font-size: var(--text-size-display);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -190,14 +190,14 @@ function onKeep() {
 .variables__note,
 .variables__empty {
   margin: 6px 0 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   color: var(--text-2);
 }
 
 .variables__error {
   margin: 6px 0 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 </style>

@@ -54,7 +54,7 @@ const emit = defineEmits(['keep', 'cancel'])
 <style scoped>
 .usage__text {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -70,7 +70,7 @@ const emit = defineEmits(['keep', 'cancel'])
 .usage__row {
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .usage__what {
@@ -79,7 +79,7 @@ const emit = defineEmits(['keep', 'cancel'])
 
 .usage__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 

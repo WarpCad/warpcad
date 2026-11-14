@@ -86,7 +86,7 @@ function onChange(/** @type {Event} */ event) {
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -100,7 +100,7 @@ function onChange(/** @type {Event} */ event) {
 
 .default-hidden__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   overflow-wrap: anywhere;
 }

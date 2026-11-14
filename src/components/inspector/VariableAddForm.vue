@@ -109,7 +109,7 @@ function submit() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -127,7 +127,7 @@ function submit() {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .vadd__actions {

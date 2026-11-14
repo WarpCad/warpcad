@@ -80,7 +80,7 @@ const repeat = useRepeatStore()
 
 .delete__question {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-1);
 }
@@ -102,7 +102,7 @@ const repeat = useRepeatStore()
 .delete {
   position: sticky;
   bottom: -14px;
-  z-index: 1;
+  z-index: calc(var(--z-canvas-overlay) + 1);
   margin: 16px 0 -14px;
   padding: 8px 0 14px;
   border-top: 1px solid var(--border);
@@ -115,7 +115,7 @@ const repeat = useRepeatStore()
   justify-content: center;
   gap: 8px;
   padding: 0 16px;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .delete__btn:hover:not(:disabled),
@@ -138,6 +138,6 @@ const repeat = useRepeatStore()
 .delete__reason {
   margin: 6px 0 0;
   color: var(--text-2);
-  font-size: 0.85em;
+  font-size: var(--text-size-sm);
 }
 </style>

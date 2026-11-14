@@ -70,7 +70,7 @@ const volumeText = computed(() => {
 .fit__bounds,
 .fit__row {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -89,7 +89,7 @@ const volumeText = computed(() => {
   padding: 2px 8px;
   border: 1px solid currentColor;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   white-space: nowrap;
 }
 

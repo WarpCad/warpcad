@@ -70,7 +70,7 @@ const menu = ref(false)
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -90,7 +90,7 @@ const menu = ref(false)
 
 .chip__value {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   overflow-wrap: anywhere;
 }
@@ -103,14 +103,14 @@ const menu = ref(false)
 .chip__error {
   flex-basis: 100%;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 
 .chip__note {
   flex-basis: 100%;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--warn);
   overflow-wrap: anywhere;
@@ -129,7 +129,7 @@ const menu = ref(false)
 
 .chip__full {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
   overflow-wrap: anywhere;
 }
@@ -142,7 +142,7 @@ const menu = ref(false)
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   cursor: pointer;
 }

@@ -125,7 +125,7 @@ function choose(quantity) {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   overflow-wrap: anywhere;
 }
@@ -162,12 +162,12 @@ function choose(quantity) {
 .finsert__code {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .finsert__empty {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
 }
 </style>

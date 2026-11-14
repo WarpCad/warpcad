@@ -101,7 +101,7 @@ async function onInsert(reference) {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   line-height: 1.35;
   resize: vertical;
   overflow-wrap: anywhere;
@@ -119,14 +119,14 @@ async function onInsert(reference) {
   min-width: 0;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
   overflow-wrap: anywhere;
 }
 
 .feditor__preview[data-ok='false'] {
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 
@@ -140,7 +140,7 @@ async function onInsert(reference) {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   cursor: pointer;
   touch-action: manipulation;
 }

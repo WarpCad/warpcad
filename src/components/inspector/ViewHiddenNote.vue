@@ -62,7 +62,7 @@ function onShow() {
   background: transparent;
   color: var(--accent);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   touch-action: manipulation;
 }

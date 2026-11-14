@@ -137,7 +137,7 @@ function onLinkLeave(event) {
   background: transparent;
   color: var(--text-2);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
@@ -169,6 +169,6 @@ function onLinkLeave(event) {
 .prompt-link__chevron {
   margin-left: auto;
   color: var(--accent);
-  font-size: 15px;
+  font-size: var(--text-size-title);
 }
 </style>

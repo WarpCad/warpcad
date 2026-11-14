@@ -68,7 +68,7 @@ watch(
   background: transparent;
   color: var(--text-2);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   text-align: left;
   cursor: pointer;
@@ -78,7 +78,7 @@ watch(
 .intent__label {
   flex: 0 0 auto;
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

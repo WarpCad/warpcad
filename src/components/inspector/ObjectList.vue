@@ -591,14 +591,14 @@ watch(
 .list__count {
   margin: 0;
   padding: 2px 0 4px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .list__note {
   margin: 0;
   padding: 0 0 6px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
 }
@@ -611,7 +611,7 @@ watch(
   margin: 0;
   padding: 8px 0;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 /* No scroller of its own: the Inspector's sheet/column scrolls, so a fully expanded Pi
@@ -662,8 +662,8 @@ watch(
   justify-content: center;
   border: 1.5px solid var(--border-strong);
   border-radius: 5px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-bold);
   color: var(--accent-contrast);
 }
 
@@ -694,7 +694,7 @@ watch(
   background: transparent;
   color: var(--text-1);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
@@ -734,8 +734,8 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-medium);
   color: var(--accent);
 }
 
@@ -743,7 +743,7 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 /* Hidden in the view (TODO/ui-089): the name and size dim, the check and the eye do not — the
@@ -770,7 +770,7 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -778,7 +778,7 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -798,14 +798,14 @@ watch(
   border: none;
   background: transparent;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .row__chevron span {
   display: inline-block;
-  transition: transform 0.12s ease;
+  transition: transform var(--duration-fast) ease;
 }
 
 .row__chevron--open span {
@@ -858,7 +858,7 @@ watch(
   background: transparent;
   color: var(--text-1);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
@@ -882,7 +882,7 @@ watch(
   padding: 1px 6px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-3);

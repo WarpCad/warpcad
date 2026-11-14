@@ -141,8 +141,8 @@ function commit(field, value) {
 
 .sketch-body__title {
   margin: 0;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -154,7 +154,7 @@ function commit(field, value) {
   align-items: center;
   gap: 4px 8px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -165,7 +165,7 @@ function commit(field, value) {
 
 .sketch-body__unit {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -178,7 +178,7 @@ function commit(field, value) {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .sketch-body__edit {
@@ -187,8 +187,8 @@ function commit(field, value) {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-medium);
   cursor: pointer;
 }
 
@@ -201,7 +201,7 @@ function commit(field, value) {
 .sketch-body__note,
 .sketch-body__error {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
 }

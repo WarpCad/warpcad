@@ -138,7 +138,7 @@ function detach() {
 
 .repeat-info__line {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   color: var(--text-1);
 }
@@ -150,7 +150,7 @@ function detach() {
 .repeat-info__broken {
   margin: 0;
   padding-left: 18px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   color: var(--danger);
 }
@@ -163,7 +163,7 @@ function detach() {
 
 .repeat-info__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 </style>

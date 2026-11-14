@@ -46,7 +46,7 @@ const hasPrompts = computed(() => documentStore.promptIndex.byPrompt.size > 0)
     background: var(--surface-2);
     color: var(--text-2);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--text-size-md);
     cursor: pointer;
     touch-action: manipulation;
   }

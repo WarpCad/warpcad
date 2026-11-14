@@ -696,7 +696,7 @@ function onEnumChange(event, field) {
 }
 
 .params__label {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -722,7 +722,7 @@ function onEnumChange(event, field) {
 
 .params__component-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   color: var(--text-3);
 }
 
@@ -736,7 +736,7 @@ function onEnumChange(event, field) {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .params__input:read-only {
@@ -777,7 +777,7 @@ function onEnumChange(event, field) {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .params__select:disabled {
@@ -804,7 +804,7 @@ function onEnumChange(event, field) {
 
 .params__unit {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -826,12 +826,12 @@ function onEnumChange(event, field) {
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 .params__note {
   margin: 10px 0 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.45;
   color: var(--text-3);
 }
@@ -859,7 +859,7 @@ function onEnumChange(event, field) {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
 }
 </style>

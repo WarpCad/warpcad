@@ -232,8 +232,8 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--text-size-lg);
+  font-weight: var(--weight-bold);
   color: var(--text-1);
   cursor: text;
 }
@@ -245,7 +245,7 @@ watch(
   border: 0;
   background: transparent;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -261,7 +261,7 @@ watch(
   min-height: var(--tap);
   padding: 0 8px;
   /* 16px: below it iOS zooms the page on focus and pushes the viewport off-screen. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   font-family: inherit;
   color: var(--text-1);
   background: var(--surface-2);
@@ -271,7 +271,7 @@ watch(
 
 .name__note {
   margin: 2px 0 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 

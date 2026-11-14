@@ -1064,7 +1064,7 @@ watch([() => body.value?.id, colorPart], () => {
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -1092,8 +1092,8 @@ watch([() => body.value?.id, colorPart], () => {
   min-height: 44px;
   margin: 0;
   padding: 0;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -1120,14 +1120,14 @@ watch([() => body.value?.id, colorPart], () => {
 }
 
 .inspector__objects-count {
-  font-weight: 500;
+  font-weight: var(--weight-regular);
   letter-spacing: 0;
 }
 
 .inspector__objects-hidden {
   margin: 0;
   padding: 0 0 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -1138,7 +1138,7 @@ watch([() => body.value?.id, colorPart], () => {
   background: transparent;
   color: var(--accent);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -1156,8 +1156,8 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__objects-chevron {
   margin-left: auto;
   padding-right: 8px;
-  font-size: 13px;
-  transition: transform 0.12s ease;
+  font-size: var(--text-size-md);
+  transition: transform var(--duration-fast) ease;
 }
 
 .inspector__objects-chevron--open {
@@ -1191,12 +1191,12 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__count {
   margin: 6px 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-3);
 }
 
 .inspector__count {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   color: var(--text-1);
 }
 
@@ -1209,14 +1209,14 @@ watch([() => body.value?.id, colorPart], () => {
   align-items: center;
   gap: 4px;
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .inspector__crumb {
   min-width: 0;
   padding: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 .inspector__crumb--link {
@@ -1228,7 +1228,7 @@ watch([() => body.value?.id, colorPart], () => {
   background: none;
   color: var(--accent);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -1244,14 +1244,14 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__name {
   margin: 0;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--text-size-lg);
+  font-weight: var(--weight-bold);
   color: var(--text-1);
 }
 
 .inspector__op {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -1269,7 +1269,7 @@ watch([() => body.value?.id, colorPart], () => {
 }
 
 .inspector__label {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -1299,7 +1299,7 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__component-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   color: var(--text-3);
 }
 
@@ -1315,7 +1315,7 @@ watch([() => body.value?.id, colorPart], () => {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .inspector__input:read-only {
@@ -1337,13 +1337,13 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__unit {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .inspector__note {
   margin: 10px 0 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.45;
   color: var(--text-3);
 }
@@ -1366,7 +1366,7 @@ watch([() => body.value?.id, colorPart], () => {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
 }
 
@@ -1379,7 +1379,7 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__prompts-chevron {
   margin-left: auto;
   padding-right: 8px;
-  font-size: 15px;
+  font-size: var(--text-size-title);
 }
 
 /* --- phone: an auto-opening bottom sheet (interaction-model-qa control 3, Q16) */
@@ -1395,9 +1395,9 @@ watch([() => body.value?.id, colorPart], () => {
     /* Stacked directly above the Library sheet's collapsed tab rather than on
        top of it — ui-010's hand-drive found exactly this class of overlap. While the Library
        sheet is open it docks on the bottom edge instead and the Library lifts (ui-070). */
-    bottom: var(--layout-inspector-bottom, var(--layout-library-tab-height, 52px));
+    bottom: var(--layout-inspector-bottom);
     left: 0;
-    z-index: 11;
+    z-index: calc(var(--z-panel) + 1);
     border-left: none;
     border-top: 1px solid var(--border);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
@@ -1420,8 +1420,8 @@ watch([() => body.value?.id, colorPart], () => {
     background: transparent;
     color: var(--text-1);
     font: inherit;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--text-size-md);
+    font-weight: var(--weight-medium);
     cursor: pointer;
     touch-action: none;
   }

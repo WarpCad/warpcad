@@ -189,7 +189,7 @@ function remove() {
 
 .condition__text {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
 }
 
@@ -198,7 +198,7 @@ function remove() {
   flex-direction: column;
   gap: 4px;
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -210,7 +210,7 @@ function remove() {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .condition__text--none {
@@ -228,7 +228,7 @@ function remove() {
 
 .condition__legend {
   padding: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -237,7 +237,7 @@ function remove() {
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .condition__actions {
@@ -247,7 +247,7 @@ function remove() {
 
 .condition__error {
   margin: 6px 0 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 </style>

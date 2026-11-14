@@ -166,7 +166,7 @@ function create() {
 
 .bind__title {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -192,7 +192,7 @@ function create() {
 .bind__formula {
   display: block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
   overflow-wrap: anywhere;
 }
@@ -210,7 +210,7 @@ function create() {
 }
 
 .bind__label {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -222,7 +222,7 @@ function create() {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .bind__actions {
@@ -231,13 +231,13 @@ function create() {
 }
 
 .bind__empty {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
 }
 
 .bind__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 </style>

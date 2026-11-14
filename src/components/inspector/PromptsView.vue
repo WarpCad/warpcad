@@ -229,7 +229,7 @@ watch(
   background: transparent;
   color: var(--accent);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -237,8 +237,8 @@ watch(
 .prompts-view__title {
   margin: 0;
   color: var(--text-3);
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -250,7 +250,7 @@ watch(
   margin: 0;
   min-width: 0;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .prompts-view__filter > span:first-child {
@@ -268,7 +268,7 @@ watch(
   background: transparent;
   color: var(--accent);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   cursor: pointer;
   touch-action: manipulation;
 }

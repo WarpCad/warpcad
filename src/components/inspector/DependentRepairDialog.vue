@@ -398,7 +398,7 @@ function apply() {
 .repair__intro {
   margin: 0;
   padding: 0 0 8px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -433,7 +433,7 @@ function apply() {
   background: none;
   color: var(--text-1);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: default;
 }
 
@@ -445,13 +445,13 @@ function apply() {
 
 .repair__relationship {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
 .repair__reason {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   overflow-wrap: anywhere;
 }
@@ -464,7 +464,7 @@ function apply() {
 }
 
 .repair__field-label {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
   overflow-wrap: anywhere;
 }
@@ -480,12 +480,12 @@ function apply() {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .repair__error {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 

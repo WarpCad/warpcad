@@ -166,14 +166,14 @@ function commitRename() {
 .vrow__name {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-medium);
   color: var(--text-1);
   overflow-wrap: anywhere;
 }
 
 .vrow__used {
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
   white-space: nowrap;
 }
@@ -190,7 +190,7 @@ function commitRename() {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .vrow__input--select {
@@ -202,7 +202,7 @@ function commitRename() {
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .vrow__check input {
@@ -213,7 +213,7 @@ function commitRename() {
 
 .vrow__unit {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 

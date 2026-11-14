@@ -90,12 +90,12 @@ function save() {
 
 .vformula__number {
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   color: var(--text-1);
 }
 
 .vformula__kind {
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -107,7 +107,7 @@ function save() {
   background: transparent;
   color: var(--text-2);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -127,14 +127,14 @@ function save() {
 
 .vformula__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
   overflow-wrap: anywhere;
 }
 
 .vformula__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--warn);
   overflow-wrap: anywhere;
