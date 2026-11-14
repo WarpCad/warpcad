@@ -16,6 +16,7 @@
  */
 import { computed, ref, watch } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import NumberField from '../controls/NumberField.vue'
 import { isClosed } from '../../sketch/profile.js'
 import { describeCurve } from '../../sketch/curves.js'
@@ -244,16 +245,16 @@ function blurTarget(event) {
           </template>
         </dl>
         <p v-if="curveError" class="profile__note profile__note--warn" data-testid="inspector-sketch-curve-error" role="alert">{{ curveError }}</p>
-        <button type="button" class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
+        <BaseButton class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
           Convert to outline
-        </button>
+        </BaseButton>
         <p class="profile__note">Its points follow the curve. Convert to outline to drag them one by one — the curve's numbers are then dropped.</p>
       </template>
       <!-- Points (TODO/sketch-002). -->
       <template v-else-if="profile.kind !== 'polyline'">
-        <button type="button" class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
+        <BaseButton class="profile__action" data-testid="inspector-sketch-convert" @click="editor.convertSelectedToOutline()">
           Convert to outline
-        </button>
+        </BaseButton>
         <p class="profile__note">Turns this shape into an outline whose points you can drag, add and delete.</p>
       </template>
       <template v-else>
@@ -283,8 +284,7 @@ function blurTarget(event) {
           </dd>
         </dl>
         <template v-if="vertexMm">
-          <button
-            type="button"
+          <BaseButton
             class="profile__action"
             data-testid="inspector-sketch-delete-vertex"
             :disabled="Boolean(editor.deleteProblem)"
@@ -292,7 +292,7 @@ function blurTarget(event) {
             @click="editor.deleteSelectedVertex()"
           >
             Delete vertex
-          </button>
+          </BaseButton>
           <p v-if="editor.deleteProblem" class="profile__note" data-testid="inspector-sketch-delete-vertex-reason">{{ editor.deleteProblem }}</p>
         </template>
         <div class="profile__simplify">
@@ -306,15 +306,15 @@ function blurTarget(event) {
             live
             data-testid="inspector-sketch-simplify-tolerance"
           />
-          <button type="button" class="profile__action" data-testid="inspector-sketch-simplify" @click="applySimplify">Apply</button>
+          <BaseButton class="profile__action" data-testid="inspector-sketch-simplify" @click="applySimplify">Apply</BaseButton>
         </div>
         <p v-if="simplifyError" class="profile__note profile__note--warn" data-testid="inspector-sketch-simplify-error" role="status">
           {{ simplifyError }}
         </p>
       </template>
-      <button type="button" class="profile__delete" data-testid="inspector-sketch-delete" @click="editor.deleteSelected()">
+      <BaseButton size="compact" class="profile__delete" data-testid="inspector-sketch-delete" @click="editor.deleteSelected()">
         Delete outline
-      </button>
+      </BaseButton>
     </template>
     <p v-else class="profile__note" data-testid="inspector-sketch-empty">
       Tap an outline in the view to select it. Drag on the grid with a tool to draw one.
@@ -350,9 +350,7 @@ function blurTarget(event) {
   gap: 4px;
 }
 
-.profile__role,
-.profile__action,
-.profile__delete {
+.profile__role {
   min-height: var(--tap-compact);
   padding: 0 12px;
   border: 1px solid var(--border-strong);
@@ -412,15 +410,6 @@ function blurTarget(event) {
 .profile__delete,
 .profile__action {
   align-self: flex-start;
-}
-
-.profile__action {
-  min-height: var(--tap);
-}
-
-.profile__action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .profile__simplify {

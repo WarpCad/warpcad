@@ -14,6 +14,7 @@
  * its header — and on a narrow viewport steps aside entirely (`TODO/sketch-003`).
  */
 import HelpButton from '../controls/HelpButton.vue'
+import IconButton from '../controls/IconButton.vue'
 import CurveSheet from './CurveSheet.vue'
 import ExtrudePanel from './ExtrudePanel.vue'
 import SlicePanel from './SlicePanel.vue'
@@ -38,15 +39,16 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
     <header class="sketch-sheet__head">
       <h3 class="sketch-sheet__title">{{ TITLES[editor.panel] }}</h3>
       <HelpButton :topic="editor.panel" class="sketch-sheet__help" />
-      <button
-        type="button"
+      <IconButton
+        label="Close panel"
+        variant="quiet"
+        size="compact"
         class="sketch-sheet__close"
-        aria-label="Close panel"
         data-testid="sketch-panel-close"
         @click="editor.togglePanel(editor.panel)"
       >
         ×
-      </button>
+      </IconButton>
     </header>
     <!-- While Set scale is armed the sheet collapses to its header (`TODO/sketch-003`), so the
          photo under it stays tappable — the reachable-canvas rule on a phone. -->
@@ -95,14 +97,9 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   color: var(--accent);
 }
 
+/* Layout only: the cross is a typeset glyph, larger than the icon default. */
 .sketch-sheet__close {
-  min-width: var(--tap-compact);
-  min-height: var(--tap-compact);
-  border: none;
-  background: transparent;
-  color: var(--text-2);
   font-size: 20px;
-  cursor: pointer;
 }
 
 .sketch-sheet__body {

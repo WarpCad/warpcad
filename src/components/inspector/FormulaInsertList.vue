@@ -13,6 +13,7 @@
 import { computed, ref } from 'vue'
 
 import { FORMULA_QUANTITY_CHOICES, formulaInsertBodies, formulaReferenceText } from '../../composables/formulaInsert.js'
+import BaseButton from '../controls/BaseButton.vue'
 import { useDocumentStore } from '../../stores/document.js'
 
 const emit = defineEmits(['insert', 'close'])
@@ -57,31 +58,31 @@ function choose(quantity) {
 <template>
   <div class="finsert" role="group" :aria-label="title" data-testid="formula-insert-list" :data-stage="stage">
     <div class="finsert__head">
-      <button v-if="stage !== 'body'" type="button" class="finsert__btn finsert__btn--small" data-testid="formula-insert-back" @click="back">‹ Back</button>
+      <BaseButton v-if="stage !== 'body'" size="compact" class="finsert__small" data-testid="formula-insert-back" @click="back">‹ Back</BaseButton>
       <p class="finsert__title">{{ title }}</p>
-      <button type="button" class="finsert__btn finsert__btn--small" data-testid="formula-insert-close" @click="emit('close')">Close</button>
+      <BaseButton size="compact" class="finsert__small" data-testid="formula-insert-close" @click="emit('close')">Close</BaseButton>
     </div>
     <ul v-if="stage === 'body'" class="finsert__list">
       <li v-for="entry in bodies" :key="entry.id">
-        <button type="button" class="finsert__btn" :data-testid="`formula-insert-body-${entry.id}`" @click="chooseBody(entry.id)">
+        <BaseButton align="start" class="finsert__btn" :data-testid="`formula-insert-body-${entry.id}`" @click="chooseBody(entry.id)">
           {{ entry.name }}<span v-if="entry.shared" class="finsert__hint">#{{ entry.id }}</span>
-        </button>
+        </BaseButton>
       </li>
       <li v-if="bodies.length === 0" class="finsert__empty" data-testid="formula-insert-empty">No bodies yet. Place one first, then measure it here.</li>
     </ul>
     <ul v-else-if="stage === 'part'" class="finsert__list">
-      <li><button type="button" class="finsert__btn" data-testid="formula-insert-part-whole" @click="part = null">The whole {{ body?.name }}</button></li>
+      <li><BaseButton align="start" class="finsert__btn" data-testid="formula-insert-part-whole" @click="part = null">The whole {{ body?.name }}</BaseButton></li>
       <li v-for="entry in body?.parts" :key="entry.name">
-        <button type="button" class="finsert__btn" :data-testid="`formula-insert-part-${entry.name}`" @click="part = entry.name">
+        <BaseButton align="start" class="finsert__btn" :data-testid="`formula-insert-part-${entry.name}`" @click="part = entry.name">
           {{ entry.name }}<span v-if="entry.hidden" class="finsert__hint">hidden</span>
-        </button>
+        </BaseButton>
       </li>
     </ul>
     <ul v-else class="finsert__list finsert__list--grid">
       <li v-for="choice in FORMULA_QUANTITY_CHOICES" :key="choice.key">
-        <button type="button" class="finsert__btn" :data-testid="`formula-insert-quantity-${choice.key}`" @click="choose(choice.quantity)">
+        <BaseButton align="start" class="finsert__btn" :data-testid="`formula-insert-quantity-${choice.key}`" @click="choose(choice.quantity)">
           {{ choice.label }}<span class="finsert__code">.{{ choice.quantity }}</span>
-        </button>
+        </BaseButton>
       </li>
     </ul>
   </div>
@@ -127,34 +128,18 @@ function choose(quantity) {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
+/* Layout only: an option row spaces its label and hint apart and fills the list's width. */
 .finsert__btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
   overflow-wrap: anywhere;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-.finsert__btn--small {
-  width: auto;
+.finsert__small {
   flex: none;
-}
-
-.finsert__btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .finsert__hint,

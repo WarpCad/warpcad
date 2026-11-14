@@ -21,6 +21,7 @@ import { formulaPreviewLine, seedDefinition, seedFormulaText, suggestVariableNam
 import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
+import BaseButton from '../controls/BaseButton.vue'
 import FormulaEditor from './FormulaEditor.vue'
 
 const props = defineProps({
@@ -107,8 +108,8 @@ function create() {
       <label class="bind__label" for="bind-new-name">Name</label>
       <input id="bind-new-name" v-model="name" class="bind__input" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" data-testid="param-bind-new-name" @keydown.enter.prevent="create" />
       <div class="bind__actions">
-        <button type="button" class="bind__btn bind__btn--primary" data-testid="param-bind-new-create" @click="create">Create and bind</button>
-        <button type="button" class="bind__btn" data-testid="param-bind-new-cancel" @click="naming = false">Back</button>
+        <BaseButton variant="primary" align="start" class="bind__btn" data-testid="param-bind-new-create" @click="create">Create and bind</BaseButton>
+        <BaseButton align="start" class="bind__btn" data-testid="param-bind-new-cancel" @click="naming = false">Back</BaseButton>
       </div>
     </div>
     <div v-else-if="formulaMode" class="bind__new" data-testid="param-bind-formula-form">
@@ -117,23 +118,23 @@ function create() {
       <span class="bind__label">Formula</span>
       <FormulaEditor v-model="formulaText" :preview="formulaPreview" :label="`Formula for ${label}`" @enter="createFormula" />
       <div class="bind__actions">
-        <button type="button" class="bind__btn bind__btn--primary" :disabled="!formulaPreview.ok" data-testid="param-bind-new-formula-create" @click="createFormula">Create and bind</button>
-        <button type="button" class="bind__btn" data-testid="param-bind-new-formula-cancel" @click="formulaMode = false">Back</button>
+        <BaseButton variant="primary" align="start" class="bind__btn" :disabled="!formulaPreview.ok" data-testid="param-bind-new-formula-create" @click="createFormula">Create and bind</BaseButton>
+        <BaseButton align="start" class="bind__btn" data-testid="param-bind-new-formula-cancel" @click="formulaMode = false">Back</BaseButton>
       </div>
     </div>
     <ul v-else class="bind__list">
-      <li><button type="button" class="bind__btn bind__btn--primary" data-testid="param-bind-new" @click="startNew">New variable from this value…</button></li>
-      <li v-if="bindSlot.kind === 'number'"><button type="button" class="bind__btn bind__btn--primary" data-testid="param-bind-new-formula" @click="startNewFormula">New formula from this value…</button></li>
+      <li><BaseButton variant="primary" align="start" class="bind__btn" data-testid="param-bind-new" @click="startNew">New variable from this value…</BaseButton></li>
+      <li v-if="bindSlot.kind === 'number'"><BaseButton variant="primary" align="start" class="bind__btn" data-testid="param-bind-new-formula" @click="startNewFormula">New formula from this value…</BaseButton></li>
       <li v-for="row in compatible" :key="row.variable.name">
-        <button type="button" class="bind__btn" :data-testid="`param-bind-option-${row.variable.name}`" @click="attempt(() => commands.bind(recordId, path, row.variable.name))">
+        <BaseButton align="start" class="bind__btn" :data-testid="`param-bind-option-${row.variable.name}`" @click="attempt(() => commands.bind(recordId, path, row.variable.name))">
           {{ row.variable.name }} <span class="bind__value">{{ row.valueLabel }}</span>
           <span v-if="row.formula !== undefined" class="bind__formula">= {{ row.formula }}</span>
-        </button>
+        </BaseButton>
       </li>
       <li v-if="compatible.length === 0" class="bind__empty" data-testid="param-bind-empty">No variable of this kind yet.</li>
     </ul>
     <p v-if="error" class="bind__error" role="alert" data-testid="param-bind-error">{{ error }}</p>
-    <button type="button" class="bind__btn bind__close" data-testid="param-bind-close" @click="ui.popoverKey = ''">Close</button>
+    <BaseButton align="start" class="bind__btn" data-testid="param-bind-close" @click="ui.popoverKey = ''">Close</BaseButton>
   </div>
 </template>
 
@@ -163,35 +164,14 @@ function create() {
   list-style: none;
 }
 
+/* Layout only: the option rows and the action pairs fill the popover's width. The look is `BaseButton`'s. */
 .bind__btn {
   width: 100%;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-.bind__btn--primary {
-  border-color: var(--accent);
-}
-
-.bind__btn:focus-visible,
 .bind__input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-}
-
-.bind__btn:disabled {
-  border-color: var(--border);
-  color: var(--text-3);
-  cursor: not-allowed;
 }
 
 .bind__formula {

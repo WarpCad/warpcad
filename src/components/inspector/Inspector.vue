@@ -123,6 +123,7 @@ import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
+import BaseButton from '../controls/BaseButton.vue'
 import NumberField from '../controls/NumberField.vue'
 import ObjectList from './ObjectList.vue'
 import ViewHiddenNote from './ViewHiddenNote.vue'
@@ -882,15 +883,7 @@ watch([() => body.value?.id, colorPart], () => {
               @change="onColorChange"
             />
             <span class="inspector__color-value" data-testid="inspector-color-value">{{ colorReadout }}</span>
-            <button
-              type="button"
-              class="inspector__color-reset"
-              data-testid="inspector-color-reset"
-              :disabled="!ownColor"
-              @click="onColorReset"
-            >
-              Reset
-            </button>
+            <BaseButton data-testid="inspector-color-reset" :disabled="!ownColor" @click="onColorReset">Reset</BaseButton>
           </div>
           <p v-if="colorPart" class="inspector__note" data-testid="inspector-color-note">
             This colours only {{ colorPart }}. Step back up to {{ body.subPart?.groupName }} to
@@ -1059,27 +1052,6 @@ watch([() => body.value?.id, colorPart], () => {
   font-family: var(--font-mono);
   color: var(--text-2);
   overflow-wrap: anywhere;
-}
-
-.inspector__color-reset {
-  flex: none;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  cursor: pointer;
-}
-
-.inspector__color-reset:disabled {
-  color: var(--text-3);
-  cursor: default;
-}
-
-.inspector__color-reset:focus-visible {
-  outline: 2px solid var(--accent);
 }
 
 /* The Hidden parts section (TODO/ui-047). The toggle's whole label is the tap
