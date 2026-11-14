@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Guards the rule in CLAUDE.md that colours (and z-index, font size and weight) are tokens, never literals
 // (`TODO/testing-036`). Rules live in `guardScan.js`. Violations are phased in by an allow-list of
-// `file: count` per rule (`guard-allowlist.json`): a file over its count fails, and a file UNDER its count
-// fails too, so the list shrinks as `ui-118` migrates files and can never grow. Spacing and radius are
+// nothing: the allow-list `ui-118` emptied is gone, so any violation fails. Spacing and radius are
 // deliberately not guarded yet.
 import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
 import { REPO_ROOT, rel, sourceFiles, surface0 } from './cssTokens.js'
-import { RULES, compareToAllowlist, definedVariables, scanFile, scanScriptColours, scanStyleBlocks } from './guardScan.js'
+import { compareToAllowlist, definedVariables, scanFile, scanScriptColours, scanStyleBlocks } from './guardScan.js'
 
 const srcRoot = `${REPO_ROOT}src`
 const files = sourceFiles(srcRoot, ['.vue', '.js', '.css']).filter((f) => !f.includes('/__fixtures__/'))
 const texts = new Map(files.map((f) => [rel(f), readFileSync(f, 'utf-8')]))
 const defined = new Set([...texts.values()].flatMap((t) => [...definedVariables(t)]))
-const allow = JSON.parse(readFileSync(new URL('./guard-allowlist.json', import.meta.url), 'utf-8')).rules
 
 /** Wrap a style body in a minimal component. */
 /** @param {string} css @returns {string} */
@@ -21,21 +19,11 @@ const vue = (css) => `<template><div /></template>\n<style scoped>\n${css}\n</st
 /** @param {{ rule: string }[]} vs @returns {string[]} */
 const names = (vs) => vs.map((v) => v.rule)
 
-describe('the tree against the allow-list', () => {
-  it('matches the allow-list exactly: no file over it, none under it', () => {
+describe('the tree is strict', () => {
+  it('has no violation of any rule', () => {
     const scanned = [...texts].map(([file, text]) => ({ file, violations: scanFile(file, text, defined) }))
-    const errors = compareToAllowlist(allow, scanned)
+    const errors = compareToAllowlist({}, scanned)
     expect(errors, errors.join('\n')).toEqual([])
-  })
-
-  it('only names rules and files that exist', () => {
-    for (const [rule, entries] of Object.entries(allow)) {
-      expect(RULES, rule).toContain(rule)
-      for (const [file, n] of Object.entries(entries)) {
-        expect(texts.has(file), `${rule}: ${file} no longer exists, delete its entry`).toBe(true)
-        expect(Number.isInteger(n) && n > 0, `${rule}: ${file} count must be a positive integer`).toBe(true)
-      }
-    }
   })
 })
 
