@@ -180,7 +180,7 @@ const STEP_FONT_PX = 14
 }
 
 .rdial__label {
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   font-variant-numeric: tabular-nums;
   text-anchor: middle;
   dominant-baseline: central;
@@ -199,13 +199,13 @@ const STEP_FONT_PX = 14
 
 .rdial__hand--live {
   stroke-width: 2.5;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 1px 1px var(--overlay-drop));
 }
 
 .rdial__pill {
   fill: var(--surface-glass);
   stroke-width: 1.5;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 1px 2px var(--overlay-drop));
 }
 
 .rdial__value,
@@ -217,7 +217,7 @@ const STEP_FONT_PX = 14
 }
 
 .rdial__value {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .rdial__step {

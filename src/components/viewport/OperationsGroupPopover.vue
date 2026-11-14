@@ -86,7 +86,7 @@ const emit = defineEmits({
   top: calc(100% + 4px);
   left: 0;
   /* Above the launcher row's siblings inside `.ops`; `.ops` itself is lifted while this is open. */
-  z-index: 1;
+  z-index: calc(var(--z-canvas-overlay) + 1);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -101,7 +101,7 @@ const emit = defineEmits({
      inconsistently across engines. */
   background: var(--surface-1);
   box-shadow: var(--shadow-overlay);
-  animation: ops-group-in 120ms ease-out;
+  animation: ops-group-in var(--duration-fast) ease-out;
 }
 
 @keyframes ops-group-in {
@@ -125,8 +125,8 @@ const emit = defineEmits({
 .ops-group__heading {
   margin: 0;
   padding: 0 4px;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -152,7 +152,7 @@ const emit = defineEmits({
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
@@ -161,7 +161,7 @@ const emit = defineEmits({
 .ops-group__glyph {
   flex: none;
   width: 16px;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1;
   text-align: center;
 }
@@ -174,7 +174,7 @@ const emit = defineEmits({
 }
 
 .ops-group__reason {
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 1.3;
   color: var(--text-3);
   overflow-wrap: anywhere;

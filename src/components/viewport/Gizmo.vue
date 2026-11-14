@@ -649,7 +649,7 @@ function onHandleUp(event) {
   stroke-opacity: 0.5;
   /* Keeps the stroke a real width even where a ring is seen almost edge-on. */
   vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
+  filter: drop-shadow(0 1px 1.5px var(--overlay-drop));
 }
 
 .tgizmo__ring-core {
@@ -673,20 +673,20 @@ function onHandleUp(event) {
   /* Width comes from `GIZMO_SHAFT_WIDTH_PX`, bound on the element, because the
      shaft's gradient line has to span exactly that width (TODO/ui-048). */
   stroke-linecap: butt;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 1px 1px var(--overlay-drop));
 }
 
 /* Smaller heads (TODO/ui-048) get a tighter shadow than ui-021's 1.5px blur,
    which smudged a 15px cone into a blob. */
 .tgizmo__head,
 .tgizmo__cone-base {
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 1px 1px var(--overlay-drop));
 }
 
 .tgizmo__hub {
   fill: var(--text-1);
   stroke: var(--surface-0);
   stroke-width: 1.5;
-  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.32));
+  filter: drop-shadow(0 1px 1.5px var(--overlay-drop));
 }
 </style>

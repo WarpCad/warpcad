@@ -2493,7 +2493,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
   outline: 3px solid var(--warn);
   outline-offset: -3px;
-  z-index: 5;
+  z-index: calc(var(--z-canvas-overlay) + 5);
 }
 
 .viewport__canvas {
@@ -2548,7 +2548,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: center;
 }
 </style>

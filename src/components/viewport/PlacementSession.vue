@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   /* Over the canvas, under every later overlay (they come after it in the viewport). */
-  z-index: 0;
+  z-index: var(--z-canvas-overlay);
   touch-action: none;
   cursor: crosshair;
 }
@@ -169,8 +169,8 @@ onBeforeUnmount(() => {
 .session-chip {
   position: absolute;
   left: 50%;
-  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px));
-  z-index: 6;
+  bottom: calc(12px + var(--layout-viewport-bottom-inset));
+  z-index: calc(var(--z-canvas-overlay) + 6);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -182,7 +182,7 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   transform: translateX(-50%);
 }
 

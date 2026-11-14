@@ -57,7 +57,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
 .readout {
   position: absolute;
   right: 12px;
-  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
+  bottom: calc(12px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -83,31 +83,31 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
 
 .readout__bar-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-1);
 }
 
 .readout__legend {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
 .readout__legend strong {
   color: var(--text-1);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 
 @media (max-width: 480px) {
   .readout {
     right: 8px;
-    bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
+    bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
     padding: 6px 8px;
   }
 
   .readout__legend {
-    font-size: 10px;
+    font-size: var(--text-size-2xs);
   }
 }
 </style>

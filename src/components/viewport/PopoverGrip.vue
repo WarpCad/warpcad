@@ -32,7 +32,7 @@
   height: 22px;
   margin: -6px -6px 0;
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1;
   cursor: grab;
   touch-action: none;

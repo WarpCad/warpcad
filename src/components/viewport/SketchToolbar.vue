@@ -294,7 +294,7 @@ function onSides(value) {
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
-  z-index: 12;
+  z-index: calc(var(--z-panel) + 2);
 }
 
 .sketch-toolbar__row {
@@ -315,12 +315,12 @@ function onSides(value) {
    prop for (`aria-expanded`: a panel is open, so the button takes the accent), and the Done accent. */
 .sketch-toolbar .sketch-toolbar__btn {
   padding: 0 10px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .sketch-toolbar .sketch-toolbar__btn--tool {
   padding: 0;
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   line-height: 1;
 }
 
@@ -358,7 +358,7 @@ function onSides(value) {
 .sketch-toolbar .sketch-toolbar__btn--done:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .sketch-toolbar__sides {
@@ -369,13 +369,13 @@ function onSides(value) {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .sketch-toolbar__status {
   margin: 0;
   padding: 0 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.35;
   color: var(--text-3);
 }
@@ -383,9 +383,9 @@ function onSides(value) {
 .sketch-toolbar__selection {
   margin: 0;
   padding: 0 2px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   color: var(--accent);
 }
 
@@ -419,7 +419,7 @@ function onSides(value) {
     min-height: var(--tap-compact);
     min-width: var(--tap-compact);
     padding: 0 7px;
-    font-size: 11px;
+    font-size: var(--text-size-xs);
   }
 
   .sketch-toolbar .sketch-toolbar__btn--tool,
@@ -430,7 +430,7 @@ function onSides(value) {
   }
 
   .sketch-toolbar .sketch-toolbar__btn--tool {
-    font-size: 16px;
+    font-size: var(--text-size-xl);
   }
 
   /* Select, Delete and Snap are the controls a finger needs most and a keyboard cannot

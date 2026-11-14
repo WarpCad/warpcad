@@ -181,7 +181,7 @@ const visibleCount = () => dimensions.value.filter((annotation) => annotation.vi
 
 .dims__label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   text-anchor: middle;
   dominant-baseline: middle;
   /* A halo in the viewport's own ground colour, so the number stays readable
@@ -193,7 +193,7 @@ const visibleCount = () => dimensions.value.filter((annotation) => annotation.vi
 
 @media (max-width: 480px) {
   .dims__label {
-    font-size: 10px;
+    font-size: var(--text-size-2xs);
   }
 }
 </style>

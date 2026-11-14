@@ -264,7 +264,7 @@ const orientationLabel = computed(
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -279,7 +279,7 @@ const orientationLabel = computed(
 .gizmo__caption {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   color: var(--text-3);
 }
 
@@ -299,7 +299,7 @@ const orientationLabel = computed(
 .gizmo[data-chrome-tier='compact'] .gizmo__cap {
   width: 30px;
   height: 30px;
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
 }
 
 .gizmo[data-chrome-tier='compact'] .gizmo__caption {
@@ -321,7 +321,7 @@ const orientationLabel = computed(
   .gizmo__cap {
     width: 30px;
     height: 30px;
-    font-size: 10px;
+    font-size: var(--text-size-2xs);
   }
 
   .gizmo__caption {

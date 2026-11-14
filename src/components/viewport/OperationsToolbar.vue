@@ -2133,7 +2133,7 @@ onBeforeUnmount(() => closeGroup())
   padding: 6px;
   /* `TODO/ui-084`: the reserve follows the chrome tier (`--layout-gizmo-reserve`, set on `.app__body` from
      the layout store: 184px full, 150px compact), so a compact gizmo gives the width back. */
-  max-width: calc(100% - 24px - var(--layout-gizmo-reserve, 184px));
+  max-width: calc(100% - 24px - var(--layout-gizmo-reserve));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -2172,7 +2172,7 @@ onBeforeUnmount(() => closeGroup())
   gap: 6px;
   margin: 0;
   padding: 0 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.3;
   color: var(--text-3);
 }
@@ -2191,7 +2191,7 @@ onBeforeUnmount(() => closeGroup())
 }
 
 .ops__count {
-  font-weight: 650;
+  font-weight: var(--weight-bold);
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
@@ -2257,7 +2257,7 @@ onBeforeUnmount(() => closeGroup())
 }
 
 .ops[data-group-open='true'] {
-  z-index: 3;
+  z-index: calc(var(--z-canvas-overlay) + 3);
 }
 
 .ops__group {
@@ -2270,7 +2270,7 @@ onBeforeUnmount(() => closeGroup())
 }
 
 .ops__caret {
-  font-size: 9px;
+  font-size: var(--text-size-2xs);
   line-height: 1;
   color: var(--text-3);
 }
@@ -2292,7 +2292,7 @@ onBeforeUnmount(() => closeGroup())
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-contrast);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 16px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -2308,7 +2308,7 @@ onBeforeUnmount(() => closeGroup())
 .ops__operands {
   margin: 0;
   padding: 0 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
   overflow-wrap: anywhere;
@@ -2316,7 +2316,7 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__operands strong {
   color: var(--text-2);
-  font-weight: 650;
+  font-weight: var(--weight-bold);
 }
 
 .ops__operands-note {
@@ -2335,7 +2335,7 @@ onBeforeUnmount(() => closeGroup())
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-2);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
 }
 
@@ -2346,7 +2346,7 @@ onBeforeUnmount(() => closeGroup())
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -2385,13 +2385,13 @@ onBeforeUnmount(() => closeGroup())
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .ops__glyph {
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1;
 }
 
@@ -2524,14 +2524,14 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__popover-note {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
 }
 
 .ops__popover-hint {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 1.3;
   color: var(--text-3);
 }
@@ -2548,7 +2548,7 @@ onBeforeUnmount(() => closeGroup())
  */
 .ops__popover-operands {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -2556,7 +2556,7 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__popover-operands strong {
   color: var(--text-1);
-  font-weight: 650;
+  font-weight: var(--weight-bold);
 }
 
 /*
@@ -2573,7 +2573,7 @@ onBeforeUnmount(() => closeGroup())
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
 }
 
@@ -2581,7 +2581,7 @@ onBeforeUnmount(() => closeGroup())
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-1);
   cursor: pointer;
   touch-action: manipulation;
@@ -2598,7 +2598,7 @@ onBeforeUnmount(() => closeGroup())
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
@@ -2610,7 +2610,7 @@ onBeforeUnmount(() => closeGroup())
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .ops__popover-actions {
@@ -2630,7 +2630,7 @@ onBeforeUnmount(() => closeGroup())
  * toolbar permanently over controls it has no business covering.
  */
 .ops[data-error='true'] {
-  z-index: 2;
+  z-index: calc(var(--z-canvas-overlay) + 2);
 }
 
 @media (max-width: 640px) {
@@ -2713,7 +2713,7 @@ onBeforeUnmount(() => closeGroup())
     min-height: var(--tap-compact);
     min-width: var(--tap-compact);
     padding: 0 6px;
-    font-size: 11px;
+    font-size: var(--text-size-xs);
   }
 
   /*

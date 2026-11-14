@@ -200,8 +200,8 @@ function commit() {
 .group-merge__title {
   margin: 0;
   padding-right: 34px;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-bold);
   color: var(--text-1);
 }
 
@@ -233,8 +233,8 @@ function commit() {
 
 .group-merge__summary {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-medium);
   color: var(--text-1);
   overflow-wrap: anywhere;
 }
@@ -244,7 +244,7 @@ function commit() {
   align-items: center;
   gap: 8px;
   min-height: var(--tap);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -259,7 +259,7 @@ function commit() {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
@@ -271,13 +271,13 @@ function commit() {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .group-merge__preview,
 .group-merge__note {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -290,7 +290,7 @@ function commit() {
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

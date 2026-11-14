@@ -295,7 +295,7 @@ function onUp(event) {
   pointer-events: none;
   /* The handle is dragged with a finger: the browser must not claim the touch for a scroll or zoom. */
   touch-action: none;
-  z-index: 3;
+  z-index: calc(var(--z-canvas-overlay) + 3);
 }
 
 .cut-plane__fill {

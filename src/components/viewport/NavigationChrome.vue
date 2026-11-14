@@ -291,7 +291,7 @@ const STEPS = Object.freeze([
 .chrome {
   position: absolute;
   left: calc(12px + var(--layout-safe-left));
-  bottom: calc(12px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
+  bottom: calc(12px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -315,7 +315,7 @@ const STEPS = Object.freeze([
 /* Hidden everywhere except a raised phone cluster — see the media block below. */
 .chrome .chrome__expand {
   display: none;
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   align-self: flex-end;
 }
 
@@ -336,7 +336,7 @@ const STEPS = Object.freeze([
   min-width: 0;
   min-height: 32px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .chrome .chrome__gear {
@@ -344,7 +344,7 @@ const STEPS = Object.freeze([
   width: 30px;
   height: auto;
   min-height: 32px;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 /* Opens upward from the modes row so it never reaches toward the orientation
@@ -370,7 +370,7 @@ const STEPS = Object.freeze([
 .chrome .chrome__preset {
   min-height: var(--tap);
   padding: 0 10px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .chrome__row {
@@ -395,12 +395,12 @@ const STEPS = Object.freeze([
 }
 
 .chrome .chrome__btn {
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1;
 }
 
 .chrome .chrome__btn--reset {
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 /* The compact form (`TODO/ui-084`): the ≤ 480px rules below, keyed on the chrome tier as well, so
@@ -408,7 +408,7 @@ const STEPS = Object.freeze([
    `ui-046` fold stays phone-only. Keep this block and the media block in step. */
 .chrome[data-chrome-tier='compact'] {
   left: calc(8px + var(--layout-safe-left));
-  bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
+  bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
   padding: 4px;
 }
 
@@ -419,13 +419,13 @@ const STEPS = Object.freeze([
 
 .chrome[data-chrome-tier='compact'] .chrome__mode {
   min-height: 30px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 .chrome[data-chrome-tier='compact'] .chrome__gear {
   min-height: 30px;
   width: 26px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .chrome[data-chrome-tier='compact'] .chrome__presets {
@@ -434,13 +434,13 @@ const STEPS = Object.freeze([
 
 .chrome[data-chrome-tier='compact'] .chrome__preset {
   min-height: 30px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 @media (max-width: 480px) {
   .chrome {
     left: calc(8px + var(--layout-safe-left));
-    bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px));
+    bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
     padding: 4px;
   }
 
@@ -454,13 +454,13 @@ const STEPS = Object.freeze([
 
   .chrome .chrome__mode {
     min-height: 30px;
-    font-size: 11px;
+    font-size: var(--text-size-xs);
   }
 
   .chrome .chrome__gear {
     min-height: 30px;
     width: 26px;
-    font-size: 13px;
+    font-size: var(--text-size-md);
   }
 
   .chrome__presets {
@@ -469,7 +469,7 @@ const STEPS = Object.freeze([
 
   .chrome .chrome__preset {
     min-height: 30px;
-    font-size: 11px;
+    font-size: var(--text-size-xs);
   }
 }
 
@@ -494,7 +494,7 @@ const STEPS = Object.freeze([
   }
 
   .chrome--sketch-sheet {
-    bottom: calc(8px + var(--layout-viewport-bottom-inset, 0px) + var(--layout-placement-chip-room, 0px) + 24%);
+    bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room) + 24%);
   }
 }
 

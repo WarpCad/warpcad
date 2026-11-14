@@ -113,7 +113,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
 .align-grid__axis {
   min-width: 1.25rem;
   color: var(--text-2);
-  font-size: 0.8rem;
+  font-size: var(--text-size-md);
   text-align: center;
 }
 
@@ -131,7 +131,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
 
 .align-grid__header {
   color: var(--text-2);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 1;
   text-align: center;
 }
@@ -141,7 +141,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
   align-items: center;
   gap: 4px;
   color: var(--text-2);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 1;
 }
 
@@ -158,7 +158,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
   align-items: center;
   justify-content: center;
   padding: 0 0.15rem;
-  font-size: 0.72rem;
+  font-size: var(--text-size-sm);
 }
 
 .align-grid--segmented .align-grid__button {

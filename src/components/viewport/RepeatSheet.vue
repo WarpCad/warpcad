@@ -197,8 +197,8 @@ body :global(.sheet.repeat) {
 .repeat__title {
   flex: 1 1 auto;
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-size-lg);
+  font-weight: var(--weight-medium);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -222,7 +222,7 @@ body :global(.sheet.repeat) {
 
 .repeat__legend {
   padding: 0 4px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
@@ -231,7 +231,7 @@ body :global(.sheet.repeat) {
   align-items: center;
   gap: 6px;
   min-height: var(--tap-compact);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   overflow-wrap: anywhere;
 }
 
@@ -242,26 +242,26 @@ body :global(.sheet.repeat) {
 }
 
 .repeat__seed-tag {
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   color: var(--text-3);
 }
 
 .repeat__status,
 .repeat__outside-title {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
 }
 
 .repeat__outside-title {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .repeat__steps {
   margin: 0;
   padding-left: 18px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
 }
 
@@ -271,18 +271,18 @@ body :global(.sheet.repeat) {
 
 .repeat__why {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .repeat__reaim {
   color: var(--accent);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .repeat__reason {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--danger);
 }

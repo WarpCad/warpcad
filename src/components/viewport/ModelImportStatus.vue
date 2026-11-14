@@ -62,7 +62,7 @@ const modelImport = useModelImportStore()
   position: absolute;
   top: 8px;
   left: 50%;
-  z-index: 6;
+  z-index: calc(var(--z-canvas-overlay) + 6);
   width: max-content;
   max-width: min(440px, calc(100% - 32px));
   transform: translateX(-50%);
@@ -85,7 +85,7 @@ const modelImport = useModelImportStore()
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
 }
 

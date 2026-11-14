@@ -410,7 +410,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 .align-popover__operands {
   margin: 0;
   padding-right: 34px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -418,14 +418,14 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 
 .align-popover__operands strong {
   color: var(--text-1);
-  font-weight: 650;
+  font-weight: var(--weight-bold);
 }
 
 .align-popover__field {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-2);
 }
 
@@ -437,13 +437,13 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .align-popover__caption {
   margin: 0;
   min-height: 2.8em;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
 }
@@ -455,7 +455,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-1);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -479,7 +479,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
   border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
 }
 </style>

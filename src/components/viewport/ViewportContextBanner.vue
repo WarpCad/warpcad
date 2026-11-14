@@ -73,7 +73,7 @@ function saveCopy() {
      sits at the very top, so this band is clear of both at every reference size. */
   top: 28%;
   left: 50%;
-  z-index: 13;
+  z-index: calc(var(--z-panel) + 3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -89,7 +89,7 @@ function saveCopy() {
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   text-align: center;
   pointer-events: none;
@@ -123,7 +123,7 @@ function saveCopy() {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   pointer-events: auto;
 }

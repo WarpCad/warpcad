@@ -247,8 +247,8 @@ const list = computed(() => /** @type {any[]} */ (props.paths))
 
 .sketch__badge {
   fill: var(--accent);
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   paint-order: stroke;
   stroke: var(--surface-0);
   stroke-width: 3;
