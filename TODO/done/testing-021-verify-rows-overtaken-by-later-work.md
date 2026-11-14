@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14):** all seven rows were driven on a fresh production build and closed `N/A` with evidence in `TODO/VERIFY.md`, except `ui-039` #1, whose toolbar-fit half is answered and whose glyph half stays with `testing-029`. No `docs/` sentence was untrue, so no page changed.
 
 ## Problem
 

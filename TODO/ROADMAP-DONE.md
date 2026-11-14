@@ -923,6 +923,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `docs-034` | `CLAUDE.md` Project Structure now lists `src/io/`, `src/help/`, `src/analytics/` and `src/styles/`, states the real `core/`, `sketch/`, `io/` layering, and describes `src/stores/` as UI state plus application workflows. Component Categories left for `ui-111`. Filed 2026-11-10 from the architecture audit. [`done/docs-034`](done/docs-034-claude-md-project-structure-drift.md) | Finding | — | none |
 | ✅ `core-081` | Build operation records in one core module, not in the toolbar and the AI tools separately. Closed 2026-11-11: builders in `src/core/operationRecords.js`, UI and AI paths share them; e2e pair and 3×3 matrix green, acceptance 4/5/6/16/32 covered by e2e specs | Finding | — | 4, 5, 6, 16, 32 |
 | ✅ `testing-010` | The docs screenshot "ai-working-chip still" drifted on laptop. It no longer reproduces: the drift was the header version label changing with release bumps, which b81a99b pinned. No baseline or component change needed; the full docs-* screenshot suite is green under `CI=1` | Finding | — | none |
+| ✅ `testing-021` | Re-check the VERIFY.md rows later work appears to have answered. All seven were overtaken or half-answered; six closed `N/A` with evidence, `ui-039` #1's toolbar-fit half answered. No docs page was untrue. Filed 2026-11-07, closed 2026-11-14 | Finding | — | none |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1333,5 +1334,6 @@ convention going forward.
 | `ui-113` | 2026-11-13 23:10 | 4h03m |
 | `ui-115` | 2026-11-14 00:21 | 1h15m |
 | `render-008` | 2026-11-14 05:20 | 4h43m (sonnet half only, from Step 3 at 00:37 UTC, including two oversubscribed e2e reruns; the Opus half is not counted) |
+| `testing-021` | 2026-11-14 05:30 | 18m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
