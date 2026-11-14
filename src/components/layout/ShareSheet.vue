@@ -407,7 +407,7 @@ onBeforeUnmount(() => {
   background: var(--surface-1);
   color: var(--text-2);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
@@ -430,7 +430,7 @@ onBeforeUnmount(() => {
 }
 
 .share-reason {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
   white-space: nowrap;
 }
@@ -443,13 +443,13 @@ body :global(.sheet.share-sheet) {
 }
 
 body :global(.sheet.share-sheet .sheet__title) {
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--text-size-title);
+  font-weight: var(--weight-bold);
 }
 
 .share-sheet__empty {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.45;
   color: var(--text-2);
 }
@@ -458,7 +458,7 @@ body :global(.sheet.share-sheet .sheet__title) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -472,7 +472,7 @@ body :global(.sheet.share-sheet .sheet__title) {
   color: var(--text-1);
   font-family: inherit;
   /* 16px: iOS Safari zooms the page on focus of anything smaller. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .share-sheet__actions {
@@ -487,7 +487,7 @@ body :global(.sheet.share-sheet .sheet__title) {
 .share-sheet__too-big,
 .share-sheet__problem {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   color: var(--warn);
   overflow-wrap: anywhere;
@@ -506,13 +506,13 @@ body :global(.sheet.share-sheet .sheet__title) {
   background: var(--surface-0);
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   resize: none;
 }
 
 .share-sheet__disclosure {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
 }

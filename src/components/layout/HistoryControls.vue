@@ -157,14 +157,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 /* The 44 px target at every width is `IconButton`'s default: a header control that shrinks below it on
    the one device with no keyboard shortcut would fail CLAUDE.md's Responsive Layout rule. */
 .history .history__button {
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   line-height: 1;
 }
 
 .history__refusal {
   margin: 0;
   max-width: 240px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--danger);
 }
 </style>

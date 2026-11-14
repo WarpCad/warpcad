@@ -114,7 +114,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 <style scoped>
 .save-sheet__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
 }
@@ -123,7 +123,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -137,7 +137,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
   color: var(--text-1);
   font-family: inherit;
   /* 16 px: iOS Safari zooms the page on focus of anything smaller. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .save-sheet__input[aria-invalid='true'] {
@@ -146,7 +146,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 
 .save-sheet__problem {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--danger);
   overflow-wrap: anywhere;

@@ -494,7 +494,7 @@ onBeforeUnmount(() => {
 }
 
 .library__choice-label {
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -515,7 +515,7 @@ onBeforeUnmount(() => {
   background: var(--surface-1);
   color: var(--text-1);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 /* WebKit's native select ignores `min-height` and draws 20px; an explicit height is honoured. */
@@ -550,7 +550,7 @@ onBeforeUnmount(() => {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -568,7 +568,7 @@ onBeforeUnmount(() => {
 .library__remembered {
   margin: 0;
   padding-left: 28px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -583,7 +583,7 @@ onBeforeUnmount(() => {
   grid-column: 1 / -1;
   margin: 0;
   padding-left: 28px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--warn);
   overflow-wrap: anywhere;
@@ -597,7 +597,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: var(--surface-1);
   border: 1px solid var(--border-strong);
-  font-size: 8px;
+  font-size: var(--text-size-2xs);
   line-height: 11px;
   color: var(--text-2);
   pointer-events: none;
@@ -616,7 +616,7 @@ onBeforeUnmount(() => {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: left;
   cursor: grab;
   /* Without this, a touch-drag on a row is claimed by the browser for page
@@ -713,7 +713,7 @@ onBeforeUnmount(() => {
    tile's right edge (set from its rect when shown), so the rail's scroller never clips it. */
 .library__tile-callout {
   position: fixed;
-  z-index: 16;
+  z-index: calc(var(--z-panel) + 6);
   transform: translateY(-50%);
   padding: 4px 8px;
   border: 1px solid var(--border-strong);
@@ -721,7 +721,7 @@ onBeforeUnmount(() => {
   background: var(--surface-2);
   box-shadow: var(--shadow-overlay);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -979,7 +979,7 @@ onBeforeUnmount(() => {
   border-radius: 3px;
   background: var(--surface-1);
   color: var(--warn);
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   line-height: 1;
 }
 
@@ -992,7 +992,7 @@ onBeforeUnmount(() => {
 .library__broken-reason {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--warn);
   overflow-wrap: anywhere;
@@ -1017,7 +1017,7 @@ onBeforeUnmount(() => {
   padding: 0 6px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 16px;
   color: var(--text-2);
 }
@@ -1030,7 +1030,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px 8px;
   padding-left: 28px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
@@ -1043,7 +1043,7 @@ onBeforeUnmount(() => {
   padding: 0 6px;
   border-radius: 999px;
   background: var(--surface-2);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 16px;
 }
 

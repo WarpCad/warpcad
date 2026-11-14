@@ -53,7 +53,7 @@ function edit() {
   flex: 1 1 200px;
   min-width: 0;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;

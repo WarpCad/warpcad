@@ -39,7 +39,7 @@ const library = useLibraryStore()
 
 .save-library__reason {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-3);
 }

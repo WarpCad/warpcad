@@ -79,7 +79,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
   left: calc(100% + 6px);
   /* Over the viewport's own chrome (the toolbar, the pad), under the drag icon (20) and every
      modal tier — the row pop-out's tier. */
-  z-index: 15;
+  z-index: calc(var(--z-panel) + 5);
   display: flex;
   flex-direction: column;
   padding: 10px 12px 12px;
@@ -90,7 +90,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
   background: var(--surface-glass);
   backdrop-filter: blur(8px);
   box-shadow: var(--shadow-overlay);
-  animation: library-section-popout-in 120ms ease-out;
+  animation: library-section-popout-in var(--duration-fast) ease-out;
 }
 
 @keyframes library-section-popout-in {
@@ -121,7 +121,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
 
 .library-section-popout__hint {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
 }

@@ -58,13 +58,13 @@ const placement = usePlacementStore()
   left: calc(100% + 6px);
   /* Over the viewport's own chrome (the toolbar, the pad), under the drag icon (20) and every
      modal tier. */
-  z-index: 15;
+  z-index: calc(var(--z-panel) + 5);
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 260px;
   /* Never wider than the space right of the rail, whatever the window (≥ 641px here). */
-  max-width: calc(100vw - var(--layout-library-width, 72px) - 24px);
+  max-width: calc(100vw - var(--layout-library-width) - 24px);
   max-height: calc(100% - 16px);
   overflow-y: auto;
   padding: 10px 12px 12px;
@@ -84,8 +84,8 @@ const placement = usePlacementStore()
 
 .library-popout__title {
   margin: 0;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);

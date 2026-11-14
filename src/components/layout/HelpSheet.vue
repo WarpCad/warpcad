@@ -392,7 +392,7 @@ onBeforeUnmount(() => {
 .help__version-skew {
   margin: 4px 0 0;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .help__theme {
@@ -450,14 +450,14 @@ onBeforeUnmount(() => {
   gap: 4px 10px;
   margin-top: 8px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .help__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 50;
+  background: var(--scrim);
+  z-index: var(--z-help);
 }
 
 .help {
@@ -475,7 +475,7 @@ onBeforeUnmount(() => {
   background: var(--surface-1);
   color: var(--text-1);
   box-shadow: var(--shadow-overlay);
-  z-index: 51;
+  z-index: var(--z-help-frame);
 }
 
 .help__head {
@@ -491,8 +491,8 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--text-size-title);
+  font-weight: var(--weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -502,11 +502,11 @@ onBeforeUnmount(() => {
    screenshots are taken with it); the look is `BaseButton`'s. */
 .help__nav {
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .help__close {
-  font-size: 22px;
+  font-size: var(--text-size-display);
   line-height: 1;
 }
 
@@ -537,7 +537,7 @@ onBeforeUnmount(() => {
   padding: 8px 8px;
   border-radius: var(--radius-sm);
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.3;
   text-decoration: none;
 }
@@ -558,7 +558,7 @@ onBeforeUnmount(() => {
 
 .help__status {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 .help__contents-toggle {
@@ -570,7 +570,7 @@ onBeforeUnmount(() => {
   padding-top: 10px;
   border-top: 1px solid var(--border);
   color: var(--text-2);
-  font-size: 12.5px;
+  font-size: var(--text-size-sm);
 }
 
 .help__footer a {
@@ -588,18 +588,18 @@ onBeforeUnmount(() => {
 
 /* Prose. The fragment is plain HTML from the build, so it is styled from here. */
 .help__content {
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
 .help__content :deep(h1) {
-  font-size: 20px;
+  font-size: var(--text-size-display);
   margin: 12px 0;
 }
 
 .help__content :deep(h2) {
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   margin: 24px 0 8px;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
@@ -609,7 +609,7 @@ onBeforeUnmount(() => {
 
 .help__content :deep(h3),
 .help__content :deep(h4) {
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   margin: 16px 0 6px;
 }
 
@@ -641,7 +641,7 @@ onBeforeUnmount(() => {
 
 .help__content :deep(code) {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: var(--text-size-sm);
   padding: 1px 4px;
   border-radius: 4px;
   background: var(--surface-2);
@@ -673,7 +673,7 @@ onBeforeUnmount(() => {
 
 .help__content :deep(table) {
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .help__content :deep(th),
@@ -725,7 +725,7 @@ onBeforeUnmount(() => {
   .help__contents {
     display: none;
     position: absolute;
-    z-index: 2;
+    z-index: calc(var(--z-canvas-overlay) + 2);
     inset: 0 auto 0 0;
     width: min(300px, 86%);
     box-shadow: var(--shadow-overlay);

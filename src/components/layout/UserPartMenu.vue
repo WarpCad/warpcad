@@ -224,7 +224,7 @@ useOverlayStack(
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -237,17 +237,17 @@ useOverlayStack(
 .umenu__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: var(--z-modal);
 }
 
 .umenu__backdrop--dim {
-  background: rgb(0 0 0 / 0.35);
+  background: var(--scrim);
 }
 
 .umenu,
 .udialog {
   position: fixed;
-  z-index: 41;
+  z-index: var(--z-modal-frame);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -275,14 +275,14 @@ useOverlayStack(
 .umenu__title,
 .udialog__title {
   margin: 0 0 4px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-medium);
   overflow-wrap: anywhere;
 }
 
 .umenu__note {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -305,7 +305,7 @@ useOverlayStack(
 .udialog__text,
 .udialog__problem {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.45;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -319,7 +319,7 @@ useOverlayStack(
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -333,7 +333,7 @@ useOverlayStack(
   color: var(--text-1);
   font-family: inherit;
   /* 16 px: iOS Safari zooms the page on focus of anything smaller. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .udialog__actions {

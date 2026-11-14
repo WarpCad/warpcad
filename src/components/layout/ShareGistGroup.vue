@@ -345,8 +345,8 @@ async function stop() {
 
 .share-gist__heading {
   margin: 0;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-bold);
   color: var(--text-1);
 }
 
@@ -357,7 +357,7 @@ async function stop() {
 .share-gist__disclosure,
 .share-gist__confirm-text {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -369,7 +369,7 @@ async function stop() {
   border: 1px solid var(--accent-secondary);
   border-radius: 999px;
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .share-gist__busy {
@@ -381,7 +381,7 @@ async function stop() {
 }
 
 .share-gist__disclosure {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .share-gist__check {
@@ -389,7 +389,7 @@ async function stop() {
   align-items: center;
   gap: 10px;
   min-height: var(--tap);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -419,7 +419,7 @@ async function stop() {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--text-size-title);
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -459,6 +459,6 @@ async function stop() {
   color: var(--text-1);
   font-family: var(--font-mono);
   /* 16px: iOS Safari zooms the page on focus of anything smaller. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 </style>

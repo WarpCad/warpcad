@@ -2,20 +2,11 @@
   "$comment": "Seeded by TODO/testing-036 from the tree as it was. Each entry is the number of violations a file may still carry. An entry can only go DOWN (the spec fails when a file is under its count, too), and ui-118 empties the list.",
   "rules": {
     "style-color": {
-      "src/components/layout/HelpSheet.vue": 1,
-      "src/components/layout/UserPartMenu.vue": 1,
       "src/components/viewport/Gizmo.vue": 4,
       "src/components/viewport/RotateDial.vue": 2,
       "src/components/viewport/TranslateRuler.vue": 2
     },
     "style-z-index": {
-      "src/components/layout/HelpSheet.vue": 3,
-      "src/components/layout/LibraryPanel.vue": 2,
-      "src/components/layout/LibraryRail.vue": 1,
-      "src/components/layout/LibraryRow.vue": 1,
-      "src/components/layout/LibraryRowPopout.vue": 1,
-      "src/components/layout/LibrarySectionPopout.vue": 1,
-      "src/components/layout/UserPartMenu.vue": 2,
       "src/components/viewport/CutPlaneOverlay.vue": 1,
       "src/components/viewport/ModelImportStatus.vue": 1,
       "src/components/viewport/OperationsGroupPopover.vue": 1,
@@ -26,22 +17,6 @@
       "src/components/viewport/ViewportContextBanner.vue": 1
     },
     "style-font": {
-      "src/components/layout/BaseDialog.vue": 2,
-      "src/components/layout/DescriptionHint.vue": 1,
-      "src/components/layout/HelpEntryButton.vue": 2,
-      "src/components/layout/HelpSheet.vue": 15,
-      "src/components/layout/HistoryControls.vue": 2,
-      "src/components/layout/LibraryPanel.vue": 7,
-      "src/components/layout/LibraryRail.vue": 6,
-      "src/components/layout/LibraryRow.vue": 13,
-      "src/components/layout/LibraryRowPopout.vue": 2,
-      "src/components/layout/LibrarySectionPopout.vue": 1,
-      "src/components/layout/SaveToLibraryButton.vue": 1,
-      "src/components/layout/SaveToLibrarySheet.vue": 4,
-      "src/components/layout/ShareGistGroup.vue": 8,
-      "src/components/layout/ShareSheet.vue": 10,
-      "src/components/layout/SharedView.vue": 10,
-      "src/components/layout/UserPartMenu.vue": 7,
       "src/components/viewport/AlignGrid.vue": 4,
       "src/components/viewport/AlignPopover.vue": 7,
       "src/components/viewport/DimensionLines.vue": 2,
@@ -63,9 +38,6 @@
       "src/components/viewport/ViewportContextBanner.vue": 2
     },
     "style-var-fallback": {
-      "src/components/layout/LibraryPanel.vue": 1,
-      "src/components/layout/LibraryRail.vue": 1,
-      "src/components/layout/LibraryRowPopout.vue": 1,
       "src/components/viewport/Grid.vue": 4,
       "src/components/viewport/NavigationChrome.vue": 8,
       "src/components/viewport/OperationsToolbar.vue": 1,

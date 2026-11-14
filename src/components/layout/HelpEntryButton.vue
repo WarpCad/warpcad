@@ -50,8 +50,8 @@ const help = useHelpStore()
 }
 
 .help-entry__glyph {
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--text-size-title);
+  font-weight: var(--weight-bold);
   line-height: 1;
 }
 

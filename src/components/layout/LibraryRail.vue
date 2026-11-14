@@ -373,7 +373,7 @@ onBeforeUnmount(() => {
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
-  font-size: 18px;
+  font-size: var(--text-size-2xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -445,14 +445,14 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 18px;
-  font-weight: 650;
+  font-size: var(--text-size-2xl);
+  font-weight: var(--weight-bold);
   line-height: 1;
 }
 
 .library-rail__launcher-name {
   max-width: 100%;
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 1.15;
   text-align: center;
   overflow-wrap: anywhere;
@@ -500,7 +500,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-contrast);
-  font-size: 10px;
+  font-size: var(--text-size-2xs);
   line-height: 16px;
   text-align: center;
 }
@@ -509,12 +509,12 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 8px;
   left: calc(100% + 6px);
-  z-index: 14;
+  z-index: calc(var(--z-panel) + 4);
   display: flex;
   flex-direction: column;
   gap: 6px;
   width: 220px;
-  max-width: calc(100vw - var(--layout-library-width, 72px) - 24px);
+  max-width: calc(100vw - var(--layout-library-width) - 24px);
   /* Informational: never in the way of the Operations toolbar underneath. */
   pointer-events: none;
 }
@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
   background: var(--surface-glass);
   backdrop-filter: blur(8px);
   box-shadow: var(--shadow-overlay);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-1);
   overflow-wrap: anywhere;

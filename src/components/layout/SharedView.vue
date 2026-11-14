@@ -184,7 +184,7 @@ async function closeAbout() {
 
 .shared__kicker {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -192,8 +192,8 @@ async function closeAbout() {
 
 .shared__title {
   margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 650;
+  font-size: var(--text-size-display);
+  font-weight: var(--weight-bold);
   line-height: 1.25;
   color: var(--text-1);
   overflow-wrap: anywhere;
@@ -207,7 +207,7 @@ async function closeAbout() {
 
 .shared__note {
   margin: 4px 0 0;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -218,7 +218,7 @@ async function closeAbout() {
 
 .shared__hint {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
 }
 
@@ -241,7 +241,7 @@ async function closeAbout() {
 
 .shared__opening {
   margin: auto;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   color: var(--text-2);
 }
 
@@ -257,7 +257,7 @@ async function closeAbout() {
 
 .shared__status {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   text-align: center;
   overflow-wrap: anywhere;
@@ -278,13 +278,13 @@ async function closeAbout() {
 
 .shared__incomplete-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 650;
+  font-size: var(--text-size-display);
+  font-weight: var(--weight-bold);
 }
 
 .shared__incomplete-text {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-size-title);
   line-height: 1.45;
   color: var(--text-2);
 }

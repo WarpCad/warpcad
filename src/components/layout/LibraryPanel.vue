@@ -393,7 +393,7 @@ onBeforeUnmount(() => {
 
 .library__hint {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
 }
@@ -403,7 +403,7 @@ onBeforeUnmount(() => {
   padding: 6px 8px;
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-1);
 }
@@ -457,13 +457,13 @@ onBeforeUnmount(() => {
   padding: 0 6px;
   border-radius: 999px;
   background: var(--surface-2);
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   letter-spacing: 0;
 }
 
 .library__import-error {
   margin: 0 0 8px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--danger);
   overflow-wrap: anywhere;
@@ -473,13 +473,13 @@ onBeforeUnmount(() => {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 20;
+  z-index: var(--z-sheet);
   padding: 4px 9px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text-1);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   white-space: nowrap;
   /* The icon trails the pointer; it must never eat the events that move it. */
   pointer-events: none;
@@ -492,9 +492,9 @@ onBeforeUnmount(() => {
     position: absolute;
     right: 0;
     /* Lifted above the Inspector's docked tab while the sheet is open (AppView, ui-070). */
-    bottom: var(--layout-library-bottom, 0px);
+    bottom: var(--layout-library-bottom);
     left: 0;
-    z-index: 10;
+    z-index: var(--z-panel);
     border-right: none;
     padding-left: 0;
     padding-bottom: 0;
@@ -517,8 +517,8 @@ onBeforeUnmount(() => {
     background: transparent;
     color: var(--text-1);
     font: inherit;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--text-size-md);
+    font-weight: var(--weight-medium);
     cursor: pointer;
   }
 

@@ -159,8 +159,8 @@ const frameStyle = computed(() => ({
 
 .modal__title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--text-size-title);
+  font-weight: var(--weight-bold);
   line-height: 1.3;
   color: var(--text-1);
   /* A file name in a title (the disk-change dialog) can be one long unbroken word. */
