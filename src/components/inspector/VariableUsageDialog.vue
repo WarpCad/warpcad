@@ -5,11 +5,8 @@
  * actions — **Delete and keep current values** and **Cancel**. There is no plain destructive
  * delete. A centred modal at tablet/laptop width; a bottom sheet at phone width.
  */
-import { ref } from 'vue'
-
-import { useFocusTrap } from '../../composables/useFocusTrap.js'
-import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 
 defineProps({
   name: { type: String, required: true },
@@ -23,70 +20,38 @@ defineProps({
 
 const emit = defineEmits(['keep', 'cancel'])
 
-// Mounted only while open (the parent `v-if`s it), so it is open for its whole life.
-const panel = ref(null)
-useOverlayStack(() => true, () => emit('cancel'))
-useFocusTrap(panel, () => true)
+// Mounted only while open (the parent `v-if`s it), so it is open for its whole life. `BaseDialog`
+// owns the backdrop, the focus trap, Escape (`escapable`) and the phone bottom sheet.
 </script>
 
 <template>
-  <div class="usage">
-    <div class="usage__backdrop" data-testid="variable-usage-backdrop" @click="emit('cancel')"></div>
-    <section ref="panel" class="usage__panel" role="dialog" aria-modal="true" aria-labelledby="usage-title" data-testid="variable-usage-dialog">
-      <h2 id="usage-title" class="usage__title">{{ name }} is still used</h2>
-      <p class="usage__text">Deleting it turns each of these back into the value it has now.</p>
-      <ul class="usage__list">
-        <li v-for="(consumer, index) in consumers" :key="index" class="usage__row" data-testid="variable-usage-consumer">
-          {{ consumer.name }}<span class="usage__what"> — {{ consumer.kind === 'condition' ? 'condition' : (consumer.path ?? 'parameter') }}</span>
-        </li>
-      </ul>
-      <p v-if="error" class="usage__error" role="alert" data-testid="variable-usage-error">{{ error }}</p>
-      <footer class="usage__footer">
-        <BaseButton data-testid="variable-usage-cancel" @click="emit('cancel')">Cancel</BaseButton>
-        <BaseButton variant="primary" data-testid="variable-usage-keep" @click="emit('keep')">Delete and keep current values</BaseButton>
-      </footer>
-    </section>
-  </div>
+  <BaseDialog
+    open
+    testid="variable-usage-dialog"
+    backdrop-testid="variable-usage-backdrop"
+    :title="`${name} is still used`"
+    placement="center"
+    width="480px"
+    sheet
+    escapable
+    @backdrop="emit('cancel')"
+    @escape="emit('cancel')"
+  >
+    <p class="usage__text">Deleting it turns each of these back into the value it has now.</p>
+    <ul class="usage__list">
+      <li v-for="(consumer, index) in consumers" :key="index" class="usage__row" data-testid="variable-usage-consumer">
+        {{ consumer.name }}<span class="usage__what"> — {{ consumer.kind === 'condition' ? 'condition' : (consumer.path ?? 'parameter') }}</span>
+      </li>
+    </ul>
+    <p v-if="error" class="usage__error" role="alert" data-testid="variable-usage-error">{{ error }}</p>
+    <footer class="usage__footer">
+      <BaseButton data-testid="variable-usage-cancel" @click="emit('cancel')">Cancel</BaseButton>
+      <BaseButton variant="primary" data-testid="variable-usage-keep" @click="emit('keep')">Delete and keep current values</BaseButton>
+    </footer>
+  </BaseDialog>
 </template>
 
 <style scoped>
-.usage {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.usage__backdrop {
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, var(--surface-0) 60%, transparent);
-}
-
-.usage__panel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: min(480px, 100%);
-  max-height: min(80vh, 640px);
-  padding: 14px 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  color: var(--text-1);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
-}
-
-.usage__title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 650;
-}
-
 .usage__text {
   margin: 0;
   font-size: 12px;
@@ -125,18 +90,6 @@ useFocusTrap(panel, () => true)
 }
 
 @media (max-width: 640px) {
-  .usage {
-    align-items: flex-end;
-    padding: 0;
-  }
-
-  .usage__panel {
-    width: 100%;
-    max-height: 80vh;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    padding-bottom: max(14px, var(--layout-safe-bottom));
-  }
-
   .usage__footer {
     flex-direction: column-reverse;
   }

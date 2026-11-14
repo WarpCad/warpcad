@@ -29,8 +29,6 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, toRaw } from 'vue'
 
-import { useFocusTrap } from '../../composables/useFocusTrap.js'
-import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { paramOptions } from '../../core/kernel/registry.js'
 import { fixKeyOf, offeredFixesOf } from '../../core/repair.js'
@@ -39,6 +37,7 @@ import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 
 /** @typedef {import('../../core/dependents.js').Breakage} Breakage */
 /** @typedef {import('../../core/repair.js').Fix} Fix */
@@ -60,10 +59,8 @@ function onPhoneChange(event) {
   isPhone.value = event.matches
 }
 
-// Escape is its Cancel and nothing underneath hears it: the stack hands the key to the top overlay.
-const panelEl = ref(null)
-useOverlayStack(() => dialog.open, () => cancel())
-useFocusTrap(panelEl, () => dialog.open)
+// Escape is its Cancel and nothing underneath hears it: `BaseDialog` is on the overlay stack
+// (`escapable`), traps focus and lifts above the on-screen keyboard.
 
 onMounted(() => {
   if (typeof window.matchMedia === 'function') {
@@ -289,18 +286,21 @@ function apply() {
 </script>
 
 <template>
-  <div v-if="dialog.open" class="repair" :class="{ 'repair--sheet': isPhone }">
-    <div class="repair__backdrop" data-testid="repair-backdrop" @click="cancel()"></div>
-    <section
-      ref="panelEl"
-      class="repair__panel"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="repair-title"
-      data-testid="repair-dialog"
-      :data-layout="isPhone ? 'sheet' : 'modal'"
-    >
-      <h2 id="repair-title" class="repair__title" data-testid="repair-title">{{ title }}</h2>
+  <BaseDialog
+    :open="dialog.open"
+    testid="repair-dialog"
+    backdrop-testid="repair-backdrop"
+    title-testid="repair-title"
+    :title="title"
+    placement="center"
+    width="560px"
+    sheet
+    escapable
+    :data-layout="isPhone ? 'sheet' : 'modal'"
+    @backdrop="cancel()"
+    @escape="cancel()"
+  >
+    <div class="repair" :class="{ 'repair--sheet': isPhone }">
       <p class="repair__intro">
         Choose what happens to each item before the change is made. Nothing has changed yet.
       </p>
@@ -383,50 +383,21 @@ function apply() {
           Apply
         </BaseButton>
       </footer>
-    </section>
-  </div>
+    </div>
+  </BaseDialog>
 </template>
 
 <style scoped>
 .repair {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.repair__backdrop {
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, var(--surface-0) 60%, transparent);
-}
-
-.repair__panel {
-  position: relative;
   display: flex;
   flex-direction: column;
-  width: min(560px, 100%);
-  max-height: min(80vh, 720px);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  color: var(--text-1);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
-}
-
-.repair__title {
-  margin: 0;
-  padding: 14px 16px 4px;
-  font-size: 15px;
-  font-weight: 650;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .repair__intro {
   margin: 0;
-  padding: 0 16px 8px;
+  padding: 0 0 8px;
   font-size: 12px;
   color: var(--text-2);
 }
@@ -436,7 +407,7 @@ function apply() {
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: 0 16px;
+  padding: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
@@ -513,7 +484,7 @@ function apply() {
 }
 
 .repair__error {
-  margin: 8px 16px 0;
+  margin: 8px 0 0;
   font-size: 12px;
   color: var(--danger);
 }
@@ -522,32 +493,15 @@ function apply() {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 12px 0 0;
   border-top: 1px solid var(--border);
 }
 
-/* Phone: a full-height bottom sheet over the Inspector sheet, each Fix select at full
-   width under its row's text, Apply/Cancel pinned to the bottom edge. */
-.repair--sheet {
-  align-items: stretch;
-  padding: 0;
-}
-
-.repair--sheet .repair__panel {
-  width: 100%;
-  max-height: none;
-  height: 100%;
-  border-radius: 0;
-  border-width: 0;
-}
-
+/* Phone: each Fix select at full width under its row's text, Apply/Cancel on the bottom edge
+   (the frame is `BaseDialog`'s bottom sheet, lifted above the keyboard). */
 .repair--sheet .repair__field {
   grid-template-columns: minmax(0, 1fr);
   gap: 2px;
-}
-
-.repair--sheet .repair__footer {
-  padding-bottom: calc(12px + var(--layout-safe-bottom));
 }
 
 .repair--sheet .repair__btn {

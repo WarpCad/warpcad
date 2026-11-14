@@ -89,3 +89,115 @@ test('Tab stays inside the Help sheet too', async ({ page }) => {
     expect(await focusIsIn(page, 'help-sheet'), `Tab ${press + 1} stayed in Help`).toBe(true)
   }
 })
+
+// --- `TODO/ui-116`: the dialogs that moved onto `BaseDialog` ---------------------------------------
+
+/**
+ * Tab and Shift+Tab ten times each: focus must never leave the dialog with this test id.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} testId
+ */
+async function expectTabStaysIn(page, testId) {
+  await expect.poll(() => focusIsIn(page, testId)).toBe(true)
+  for (let press = 0; press < 10; press += 1) {
+    await page.keyboard.press('Tab')
+    expect(await focusIsIn(page, testId), `Tab ${press + 1} stayed in ${testId}`).toBe(true)
+  }
+  for (let press = 0; press < 3; press += 1) {
+    await page.keyboard.press('Shift+Tab')
+    expect(await focusIsIn(page, testId), `Shift+Tab ${press + 1} stayed in ${testId}`).toBe(true)
+  }
+}
+
+test('the repair dialog traps Tab, sits over the page, and Escape cancels it', async ({ page }, info) => {
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await page.evaluate(async () => {
+    const { useRepairDialogStore } = await /** @type {any} */ (window).__e2eImport('/src/stores/repairDialog.js')
+    useRepairDialogStore().show({
+      edit: { rootId: 'body-1', record: null, param: null, oldValue: null },
+      breakages: [
+        {
+          dependentRecordId: 'rec-1',
+          dependentBodyId: 'body-2',
+          dependentName: 'Cube 1',
+          step: 2,
+          relationship: 'Snap → avjack',
+          placement: true,
+          missingPieces: ['avjack'],
+          newParts: ['usb-a', 'hdmi'],
+          suggestions: {},
+          reason: 'The part has no piece named avjack',
+          refIds: [],
+        },
+      ],
+    })
+  })
+  const dialog = page.getByTestId('repair-dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveAttribute('aria-modal', 'true')
+  await expect(page.getByTestId('repair-backdrop')).toBeVisible()
+  await expectTabStaysIn(page, 'repair-dialog')
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `repair-dialog-${info.project.name}.png`) })
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+})
+
+test('the variable-usage dialog traps Tab and Escape cancels it', async ({ page }, info) => {
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  // A Pi with its Model bound to a variable, so deleting the variable has a consumer to list.
+  const rows = page.getByTestId('library-rows')
+  if (!(await rows.isVisible())) {
+    await page.getByTestId('library-tab').click()
+    await expect(rows).toBeVisible()
+  }
+  await page.getByTestId('library-rows-raspberrypi').scrollIntoViewIfNeeded()
+  await page.evaluate(() => {
+    const row = document.querySelector('[data-testid="library-row-raspberrypi.bplus"]')
+    const view = document.querySelector('[data-testid="viewport"]')
+    if (!row || !view) throw new Error('missing library row or viewport')
+    const from = row.getBoundingClientRect()
+    const to = view.getBoundingClientRect()
+    const startX = from.left + from.width / 2
+    const startY = from.top + from.height / 2
+    const endX = to.left + to.width * 0.3
+    const endY = to.top + to.height * 0.25
+    const fire = (/** @type {EventTarget} */ target, /** @type {string} */ type, /** @type {number} */ x, /** @type {number} */ y) =>
+      target.dispatchEvent(
+        new PointerEvent(type, { pointerId: 31, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y, bubbles: true, cancelable: true }),
+      )
+    fire(row, 'pointerdown', startX, startY)
+    for (const t of [0.25, 0.5, 0.75, 1]) fire(window, 'pointermove', startX + (endX - startX) * t, startY + (endY - startY) * t)
+    fire(window, 'pointerup', endX, endY)
+  })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  const tab = page.getByTestId('library-tab')
+  if ((await tab.isVisible()) && (await rows.isVisible())) await tab.click()
+  const inspector = page.getByTestId('inspector')
+  if ((await inspector.getAttribute('data-open')) !== 'true' && (await page.getByTestId('inspector-tab').isVisible())) {
+    await page.getByTestId('inspector-tab').click()
+    await expect(inspector).toHaveAttribute('data-open', 'true')
+  }
+  const inspectorView = page.getByTestId('inspector-view-inspector')
+  if (await inspectorView.isVisible()) await inspectorView.click()
+  await page.getByTestId('param-bind-model').click()
+  await page.getByTestId('param-bind-new').click()
+  await page.getByTestId('param-bind-new-name').fill('board')
+  await page.getByTestId('param-bind-new-create').click()
+  await expect(page.getByTestId('param-chip-model')).toHaveAttribute('data-variable', 'board')
+  const variablesView = page.getByTestId('inspector-view-variables')
+  if (await variablesView.isVisible()) await variablesView.click()
+  await page.getByTestId('variable-menu-board').click()
+  await page.getByTestId('variable-delete-board').click()
+
+  const dialog = page.getByTestId('variable-usage-dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveAttribute('aria-modal', 'true')
+  await expectTabStaysIn(page, 'variable-usage-dialog')
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `usage-dialog-${info.project.name}.png`) })
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByTestId('variable-row-board')).toBeVisible()
+})

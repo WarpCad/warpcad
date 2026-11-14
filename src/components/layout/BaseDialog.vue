@@ -57,6 +57,8 @@ const props = defineProps({
   tone: { type: String, default: 'default', validator: (/** @type {string} */ v) => v === 'default' || v === 'danger' },
   /** The frame's preferred width, a CSS length. */
   width: { type: String, default: '420px' },
+  /** The backdrop's `data-testid`; defaults to `<testid>-backdrop`. */
+  backdropTestid: { type: String, default: '' },
   /** The `data-testid` of the title heading, for a dialog whose spec reads it. */
   titleTestid: { type: String, default: '' },
   /** Register on the overlay stack and emit `escape` when Escape reaches this dialog. */
@@ -81,7 +83,7 @@ const frameStyle = computed(() => ({
 <template>
   <Teleport to="body">
     <template v-if="open">
-      <div class="modal__backdrop" :data-testid="`${testid}-backdrop`" @click="$emit('backdrop')" />
+      <div class="modal__backdrop" :data-testid="backdropTestid || `${testid}-backdrop`" @click="$emit('backdrop')" />
       <div
         ref="dialogEl"
         class="modal"

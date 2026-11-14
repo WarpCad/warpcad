@@ -37,6 +37,8 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   /** The frame's own `data-testid`. */
   testid: { type: String, required: true },
+  /** The backdrop's `data-testid`; defaults to `<testid>-backdrop`. */
+  backdropTestid: { type: String, default: '' },
   title: { type: String, required: true },
   anchor: { type: /** @type {import('vue').PropType<Element | AnchorRect | null>} */ (Object), default: null },
   placement: {
@@ -107,7 +109,7 @@ const frameStyle = computed(() => (position.value ? { left: `${position.value.le
 <template>
   <Teleport to="body" :disabled="!teleport">
     <template v-if="open">
-      <div v-if="modal" class="popover__backdrop" :data-testid="`${testid}-backdrop`" @click="close()" />
+      <div v-if="modal" class="popover__backdrop" :data-testid="backdropTestid || `${testid}-backdrop`" @click="close()" />
       <div
         ref="frameEl"
         class="popover"

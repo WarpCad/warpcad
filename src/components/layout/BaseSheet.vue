@@ -36,6 +36,8 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   /** The frame's own `data-testid`. */
   testid: { type: String, required: true },
+  /** The backdrop's `data-testid`; defaults to `<testid>-backdrop`. */
+  backdropTestid: { type: String, default: '' },
   title: { type: String, required: true },
   helpTopic: { type: String, default: '' },
   side: { type: String, default: 'bottom', validator: (/** @type {string} */ v) => v === 'bottom' || v === 'right' },
@@ -73,7 +75,7 @@ const frameStyle = computed(() => ({
 <template>
   <Teleport to="body" :disabled="!teleport">
     <template v-if="open">
-      <div v-if="modal" class="sheet__backdrop" :style="frameStyle" :data-testid="`${testid}-backdrop`" @click="emit('backdrop')" />
+      <div v-if="modal" class="sheet__backdrop" :style="frameStyle" :data-testid="backdropTestid || `${testid}-backdrop`" @click="emit('backdrop')" />
       <component
         :is="as"
         ref="frameEl"
