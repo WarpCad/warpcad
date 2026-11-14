@@ -4113,3 +4113,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** full e2e matrix on the final tree 5799 passed, 0 failed, 1975 skipped, unit 9359 passed (this session); orbit frame time before and after in bench/results/2026-11-14-render-008.md; real-device judgment of the light-theme colours logged in TODO/VERIFY.md render-008
 **To Add:** none
+
+## 2026-11-14T12:00:00Z — ui-114: one button for the whole app
+
+**Post:** WarpCad had 352 button elements in 97 components, and 68 of those components wrote their own button rule. The copies were the same control, which is how the AI dialogs ended up with an 80 px minimum width and the storage dialogs with 96 px, with nothing in either file saying why. The focus ring was written 43 times and the tap-size rule restated in each file.
+
+BaseButton (default, primary, danger, quiet, link variants; tap, compact and large sizes) and IconButton (a square target with a required label) now draw them. Both read only tokens and own the focus ring and touch-action, so a restyle is one file. The migration went in four stages, one family per commit: dialogs, strips and toasts, panels, toolbars, and finally the timeline and Help. Controls that really are different stayed their own, with a stated reason each: the segmented pickers, the Inspector tab, the Library rail launchers, and menus whose rows are menu items rather than buttons.
+
+Two things I caught on the way. Mapping a role="radio" segmented picker onto the button would have put an invalid aria-pressed on it, so those wait for the segmented component instead. And a Help screenshot drifted when the header's text size changed from 13 px, which the e2e pair caught before it merged.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9386 passed (this session); e2e on the firefox-laptop and webkit-phone pair 1167 passed, one Help screenshot drifted and was fixed, then Help, pwa-update, color and design-intent specs passed (this session); 68 component files use BaseButton or IconButton (grep this session); 352 buttons, 68 components, 43 focus-ring copies and the 80/96 px split from TODO/done/ui-114
+**To Add:** none

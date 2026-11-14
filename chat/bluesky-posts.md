@@ -2838,3 +2838,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** full e2e matrix on the final tree 5799 passed, 0 failed, unit 9359 passed (this session); orbit frame time unchanged and zero getComputedStyle calls in a 5 s orbit (this session); cube, cylinder, selection and recolour drive in both themes (this session)
 **To Add:** none
+
+## 2026-11-14T12:00:00Z — ui-114: one button for the whole app
+
+**Post:** WarpCad had 352 buttons and 68 components each styling their own, which is how two dialogs ended up 16 px apart for no reason anyone could find. BaseButton and IconButton now draw them, with one focus ring and one tap size, so restyling a button is a one-file edit. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9386 passed (this session); e2e on the firefox-laptop and webkit-phone pair 1167 passed, one Help screenshot drifted and was fixed, then the Help, pwa-update and color specs passed (this session); 68 component files now use BaseButton or IconButton (grep this session); 352 buttons in 97 components and the 80 px vs 96 px dialog widths come from TODO/done/ui-114
+**To Add:** none
