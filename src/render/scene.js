@@ -30,9 +30,13 @@ import {
   WebGLRenderer,
 } from 'three'
 import { buildGridLines } from './grid.js'
+import { SCENE_THEMES, sameSceneTheme, sceneThemeOf } from './theme.js'
 
 /**
- * Scene palettes, one per colour scheme.
+ * Scene palettes, one per colour scheme: the background and grid slice of the fallback
+ * {@link SCENE_THEMES} (`src/render/theme.js`). The live colours come from the theme tokens
+ * (`--scene-background`, `--scene-grid-*`, `--axis-*`) through `readSceneTheme`; these are what
+ * Node, workers and tests use, and `theme.spec.js` holds them equal to the CSS (`TODO/render-008`).
  *
  * Dark is primary and light follows `prefers-color-scheme`, per CLAUDE.md's UI
  * convention — and that has to include the *canvas*, not just the DOM chrome
@@ -46,23 +50,26 @@ import { buildGridLines } from './grid.js'
  * and `e2e/viewport-scaffold.e2e.js` samples real pixels to keep it that way.
  */
 export const VIEWPORT_THEMES = Object.freeze({
-  dark: Object.freeze({
-    background: 0x161a21,
-    gridMinor: 0x2f3742,
-    gridMajor: 0x4d5a6b,
-    axisX: 0xc75c5c,
-    axisY: 0x6aa84f,
-  }),
-  light: Object.freeze({
-    background: 0xe9edf3,
-    gridMinor: 0xc2cad6,
-    gridMajor: 0x8c99ab,
-    axisX: 0xb04a45,
-    axisY: 0x4f7f3a,
-  }),
+  dark: viewportSlice(SCENE_THEMES.dark),
+  light: viewportSlice(SCENE_THEMES.light),
 })
 
+/**
+ * @param {Readonly<import('./theme.js').SceneTheme>} theme
+ * @returns {Readonly<{ background: number, gridMinor: number, gridMajor: number, axisX: number, axisY: number }>}
+ */
+function viewportSlice(theme) {
+  return Object.freeze({
+    background: theme.background,
+    gridMinor: theme.gridMinor,
+    gridMajor: theme.gridMajor,
+    axisX: theme.axisX,
+    axisY: theme.axisY,
+  })
+}
+
 /** @typedef {keyof typeof VIEWPORT_THEMES} ViewportTheme */
+/** @typedef {import('./theme.js').SceneTheme} SceneTheme */
 
 /** The default (primary) palette. */
 export const VIEWPORT_COLORS = VIEWPORT_THEMES.dark
@@ -90,8 +97,11 @@ function lineSegments(positions, color, opacity) {
  * @property {import('./grid.js').GridLines} gridLines
  * @property {(orbit: OrbitCamera) => void} applyCamera
  * @property {(aspect: number) => void} setAspect
- * @property {(name: string) => boolean} setTheme repaints scene + grid; false if unchanged
- * @property {ViewportTheme} theme
+ * @property {(theme: Readonly<SceneTheme> | string) => boolean} setTheme repaint the background,
+ *   grid and lights from a {@link SceneTheme} (a scheme name stands for its fallback); false when
+ *   nothing changed
+ * @property {ViewportTheme} theme the current scheme's name
+ * @property {Readonly<SceneTheme>} sceneTheme the colours currently drawn
  * @property {() => void} dispose
  */
 
@@ -100,13 +110,13 @@ function lineSegments(positions, color, opacity) {
  *
  * @param {object} [options]
  * @param {number} [options.fovDeg]
- * @param {ViewportTheme} [options.theme]
+ * @param {Readonly<SceneTheme> | ViewportTheme} [options.theme] the colours to start with
  * @param {Parameters<typeof buildGridLines>[0]} [options.grid]
  * @returns {SceneGraph}
  */
 export function createSceneGraph(options = {}) {
   const fovDeg = options.fovDeg ?? 45
-  let theme = VIEWPORT_THEMES[options.theme ?? 'dark'] ?? VIEWPORT_THEMES.dark
+  let theme = sceneThemeOf(options.theme)
   const scene = new Scene()
   const background = new Color(theme.background)
   scene.background = background
@@ -115,23 +125,30 @@ export function createSceneGraph(options = {}) {
   // "scene has no light sources"; nothing here is lit yet (the grid uses
   // LineBasicMaterial), but the first primitive lands in `ui-010` on top of this
   // exact scene and must not rediscover that bug.
-  scene.add(new HemisphereLight(0xc8dcff, 0x20262f, 1.6))
-  scene.add(new AmbientLight(0xffffff, 0.45))
-  const key = new DirectionalLight(0xffffff, 1.7)
+  // Colours from the theme (`--scene-light-*`), the same in both schemes today; `setTheme`
+  // recolours these instances rather than replacing them.
+  const hemisphere = new HemisphereLight(theme.lightSky, theme.lightGround, 1.6)
+  scene.add(hemisphere)
+  const ambient = new AmbientLight(theme.lightKey, 0.45)
+  scene.add(ambient)
+  const key = new DirectionalLight(theme.lightKey, 1.7)
   key.position.set(240, -320, 480)
   scene.add(key)
-  const fill = new DirectionalLight(0x9fb6d4, 0.6)
+  const fill = new DirectionalLight(theme.lightFill, 0.6)
   fill.position.set(-300, 220, 140)
   scene.add(fill)
 
   const gridLines = buildGridLines(options.grid)
   const grid = new Group()
   grid.name = 'grid'
-  grid.add(lineSegments(gridLines.minor, theme.gridMinor, 0.75))
-  grid.add(lineSegments(gridLines.major, theme.gridMajor, 1))
-  grid.add(lineSegments(gridLines.axisX, theme.axisX, 1))
-  grid.add(lineSegments(gridLines.axisY, theme.axisY, 1))
+  const minor = lineSegments(gridLines.minor, theme.gridMinor, 0.75)
+  const major = lineSegments(gridLines.major, theme.gridMajor, 1)
+  const axisX = lineSegments(gridLines.axisX, theme.axisX, 1)
+  const axisY = lineSegments(gridLines.axisY, theme.axisY, 1)
+  grid.add(minor, major, axisX, axisY)
   scene.add(grid)
+  /** @param {LineSegments} tier */
+  const tierColor = (tier) => /** @type {LineBasicMaterial} */ (tier.material).color
 
   const camera = new PerspectiveCamera(fovDeg, 1, 1, 40000)
   // Z-up (CLAUDE.md's units/coordinate-space rule). The per-frame up vector is
@@ -168,26 +185,34 @@ export function createSceneGraph(options = {}) {
       camera.updateProjectionMatrix()
     },
 
-    setTheme(name) {
-      // Explicit rather than an index lookup: an unknown name must be a no-op,
+    setTheme(next) {
+      // A scheme name stands for its fallback; anything else that is not a SceneTheme is a no-op,
       // never an undefined palette that blanks the scene.
-      const next =
-        name === 'light' ? VIEWPORT_THEMES.light : name === 'dark' ? VIEWPORT_THEMES.dark : null
-      if (!next || next === theme) return false
-      theme = next
+      if (typeof next === 'string' && next !== 'light' && next !== 'dark') return false
+      const resolved = sceneThemeOf(next)
+      if (sameSceneTheme(resolved, theme)) return false
+      theme = resolved
+      // `setHex` on the instances built above: once per theme change, nothing allocated for the
+      // render path to pick up.
       background.setHex(theme.background)
-      // Same order the tiers were added in above: minor, major, X axis, Y axis.
-      const tierColors = [theme.gridMinor, theme.gridMajor, theme.axisX, theme.axisY]
-      grid.children.forEach((child, index) => {
-        if (!(child instanceof LineSegments)) return
-        const material = /** @type {LineBasicMaterial} */ (child.material)
-        material.color.setHex(tierColors[index])
-      })
+      tierColor(minor).setHex(theme.gridMinor)
+      tierColor(major).setHex(theme.gridMajor)
+      tierColor(axisX).setHex(theme.axisX)
+      tierColor(axisY).setHex(theme.axisY)
+      hemisphere.color.setHex(theme.lightSky)
+      hemisphere.groundColor.setHex(theme.lightGround)
+      ambient.color.setHex(theme.lightKey)
+      key.color.setHex(theme.lightKey)
+      fill.color.setHex(theme.lightFill)
       return true
     },
 
     get theme() {
-      return theme === VIEWPORT_THEMES.light ? 'light' : 'dark'
+      return theme.scheme === 'light' ? 'light' : 'dark'
+    },
+
+    get sceneTheme() {
+      return theme
     },
 
     dispose() {
@@ -274,7 +299,7 @@ export function rebuildGpuResources(renderer, scene) {
  * @param {HTMLCanvasElement} canvas
  * @param {object} [options]
  * @param {number} [options.fovDeg]
- * @param {ViewportTheme} [options.theme]
+ * @param {Readonly<SceneTheme> | ViewportTheme} [options.theme]
  * @param {number} [options.maxPixelRatio]
  * @returns {Viewport}
  */

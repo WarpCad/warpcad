@@ -87,7 +87,8 @@ import { createOrbitCamera } from '../../render/camera.js'
 import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
 import { createViewport, rebuildGpuResources } from '../../render/scene.js'
 import { createContextRecovery } from '../../render/contextRecovery.js'
-import { applyViewVisibility, BODY_COLORS, createGhostMaterial, drawnBoundsOf, geom3ToBufferGeometry } from '../../render/mesh.js'
+import { applyViewVisibility, createGhostMaterial, drawnBoundsOf, geom3ToBufferGeometry } from '../../render/mesh.js'
+import { readSceneTheme, sceneThemeOf } from '../../render/theme.js'
 import { announcedColor, announcedPartColors, createBodyCounts, createBodyMeshes } from '../../render/bodyMeshes.js'
 import { createPlacementGhost } from '../../render/placementGhost.js'
 import { createSketchSnap } from '../../render/sketchSnap.js'
@@ -1100,14 +1101,32 @@ function measure() {
 // --- bodies (src/render/bodyMeshes.js, TODO/ui-108) ------------------------
 
 /**
- * Recolour the scene's materials for the current colour scheme: the bodies' (the controller's)
- * and the placement ghost's and sketch preview's, which still live here.
+ * The 3D view's colours, read from the theme tokens (`TODO/render-008`). Called on mount and on a
+ * theme change only, never from the frame or pointer path: `getComputedStyle` forces a style flush.
+ * A token three.js cannot use (or no stylesheet at all) is reported and the fallback for the
+ * scheme is drawn instead, never black.
+ *
+ * @returns {Readonly<import('../../render/theme.js').SceneTheme>}
  */
-function applyMaterialTheme() {
-  const palette = BODY_COLORS[theme.value] ?? BODY_COLORS.dark
-  placementGhost.setColor(palette.ghost)
-  sketchPreviewMaterial?.color.setHex(palette.ghost)
-  bodyScene.applyMaterialTheme(theme.value)
+function readCurrentSceneTheme() {
+  try {
+    return readSceneTheme(getComputedStyle(document.documentElement), theme.value)
+  } catch (error) {
+    console.error(error)
+    return sceneThemeOf(theme.value)
+  }
+}
+
+/**
+ * Recolour the scene's materials for a scene theme: the bodies' (the controller's) and the
+ * placement ghost's and sketch preview's, which still live here. A body's user colour is untouched.
+ *
+ * @param {Readonly<import('../../render/theme.js').SceneTheme>} colors
+ */
+function applyMaterialTheme(colors) {
+  placementGhost.setColor(colors.bodyGhost)
+  sketchPreviewMaterial?.color.setHex(colors.bodyGhost)
+  bodyScene.applyMaterialTheme(colors)
 }
 
 // --- gizmo drag (TODO/ui-012) ---------------------------------------------
@@ -1183,7 +1202,8 @@ const placementGhost = createPlacementGhost({
   onVisibleChange: (value) => {
     ghostVisible.value = value
   },
-  color: (BODY_COLORS[theme.value] ?? BODY_COLORS.dark).ghost,
+  // The fallback until mount reads the tokens (`onMounted` recolours it).
+  color: sceneThemeOf(theme.value).bodyGhost,
 })
 
 /** @type {import('../../stores/placement.js').DropTarget} */
@@ -1982,9 +2002,12 @@ async function onRestoreView() {
   else contextRecovery.attemptFailed()
 }
 
+/** One token read per theme change, after `useTheme` has set `<html data-theme>`. */
 function onThemeChange() {
-  applyMaterialTheme()
-  if (viewport?.graph.setTheme(theme.value)) scheduleRender()
+  const colors = readCurrentSceneTheme()
+  applyMaterialTheme(colors)
+  viewport?.graph.setTheme(colors)
+  scheduleRender()
 }
 
 /**
@@ -2039,12 +2062,15 @@ const stopWatchers = []
 onMounted(() => {
   const canvas = canvasEl.value
   if (!canvas) return
-  const palette = BODY_COLORS[theme.value] ?? BODY_COLORS.dark
-  bodyScene.createMaterials(theme.value)
-  sketchPreviewMaterial = createGhostMaterial(palette.ghost)
+  // First paint: `useTheme()` (in setup) has already written `<html data-theme>`, so this one read
+  // sees the resolved theme's tokens, and every material and the scene start in those colours.
+  const colors = readCurrentSceneTheme()
+  bodyScene.createMaterials(colors)
+  sketchPreviewMaterial = createGhostMaterial(colors.bodyGhost)
+  placementGhost.setColor(colors.bodyGhost)
 
   try {
-    viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: theme.value })
+    viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: colors })
     viewport.graph.scene.add(bodiesGroup)
     referenceImage.attach(viewport.graph.scene)
     // `TODO/ai-007`: the assistant's capture_view renders this scene offscreen, with its own

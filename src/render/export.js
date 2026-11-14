@@ -69,6 +69,7 @@ import { BufferAttribute, Group, Mesh, MeshStandardMaterial } from 'three'
 import { EXPORT_FORMATS, exportFilename, solidsForExport } from '../core/export.js'
 import { makeWatertight } from '../core/kernel/watertight.js'
 import { geom3ToBufferGeometry } from './mesh.js'
+import { SCENE_THEMES } from './theme.js'
 
 /** @typedef {import('../core/export.js').ExportBody} ExportBody */
 /** @typedef {import('../core/export.js').ExportResult} ExportResult */
@@ -99,6 +100,10 @@ export const GLTF_ROOT_NAME = 'warpcad-export'
  * @param {object} [options]
  * @param {{ name: string, solid: any }[]} [options.prepared] Already validated and
  *   repaired solids, in `bodies` order.
+ * @param {Readonly<import('./theme.js').SceneTheme>} [options.sceneTheme] Where the material
+ *   colour comes from (`exportBody`, the `--export-body` token, `TODO/render-008`). That role is
+ *   the same in both themes on purpose, a file being the same whoever exports it, so the fallback
+ *   is right for every caller that does not pass one.
  * @returns {Promise<ExportResult>}
  * @throws {import('../core/export.js').ExportError} `nothing-to-export`,
  *   `evaluation-failed` or `empty-geometry`, exactly as for STL and OBJ.
@@ -114,7 +119,8 @@ export async function exportGltf(bodies, options = {}) {
   root.rotation.x = -Math.PI / 2 // document +Z (up) → glTF +Y (up); +Y → -Z
   root.scale.setScalar(MM_TO_METRES)
 
-  const material = new MeshStandardMaterial({ color: 0xb0b8c4, metalness: 0.1, roughness: 0.6 })
+  const color = (options.sceneTheme ?? SCENE_THEMES.dark).exportBody
+  const material = new MeshStandardMaterial({ color, metalness: 0.1, roughness: 0.6 })
   let triangleCount = 0
   const geometries = solids.map(({ name, solid }) => {
     // Closed geometry, like STL and OBJ — `TODO/io-005`, and the module comment above

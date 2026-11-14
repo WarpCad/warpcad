@@ -6,8 +6,20 @@ priority: high
 model: opus
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112, ui-113]
-status: open
+status: done
 ---
+
+## Resolution
+
+Closed 2026-11-14. Shipped as proposed, with these differences.
+
+- `readSceneTheme(style, scheme)` takes `#rrggbb` **and `#rgb`**. The production CSS minifier writes `#ffffff` as `#fff` and a custom property is reported as authored, so the strict reader threw on `--scene-light-key` in every production build and the viewport silently drew the fallback palette. The unit and e2e suites missed it because the fallback equals the tokens; the acceptance drive on a production build logged the console error. `e2e/viewport-scaffold.e2e.js` now fails on any `readSceneTheme` console error, in both themes.
+- Extra tokens: `--scene-light-key` (key and ambient light) and `--export-body` (the glTF export preview material), beyond the list above.
+- `capture_view` is **not** forced to one theme: the AI's capture follows the viewport's theme, as the file proposed by default (comment in `offscreenCapture.js`). Part thumbnails and glTF export are deliberately not themed.
+- Light `--axis-x`/`--axis-y` now have values (`#b04a45`, `#4f7f3a`), so the DOM dimension lines, the gizmo and the rulers change colour in light mode only. That is the drift this file reported.
+- `guard-allowlist.json`'s js-color entries are emptied; `src/render/theme.js` is the one exempt file for the fallback table, checked against the CSS by `theme.spec.js`.
+- Performance: orbit frame time unchanged (`bench/results/2026-11-14-render-008.md`, new `bench/orbit-frame-time.mjs`); zero `getComputedStyle` calls in a 5 s orbit.
+- `docs:media` regenerates every GIF and fails on the known `import-3mf-align.dark.gif` size budget, so the GIFs were not committed; no still picture drifted. Light-theme GIFs that show axis colours still carry the old red and green until the next clean `docs:gifs`.
 
 ## Problem
 

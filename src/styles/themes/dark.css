@@ -20,8 +20,24 @@
 
   --accent: var(--blue-400);
   --accent-contrast: var(--navy-950);
+  /* The X and Y axes: the WebGL axis lines and the DOM dimension lines read the same token. */
   --axis-x: var(--rust-500);
   --axis-y: var(--green-500);
+
+  /* The 3D view (`TODO/render-008`), read by `src/render/theme.js`, so each is a plain #rrggbb.
+     The ground is its own role, a step lighter than --surface-0: the canvas is a surface of its
+     own, not the page behind the chrome, and SECOND-ATTEMPT.md's "the scene is very dark" shipped
+     twice (`e2e/viewport-scaffold.e2e.js` samples real pixels to keep it readable). */
+  --scene-background: var(--slate-925);
+  --scene-grid-minor: var(--slate-780);
+  --scene-grid-major: var(--slate-600);
+  /* Solid bodies: the default colour (a user colour override always wins over it), the first-picked
+     selection, the rest of a multi-selection, the placement ghost, and the object list's hover. */
+  --body: var(--denim-300);
+  --body-selected: var(--amber-300);
+  --body-secondary: var(--teal-300);
+  --body-ghost: var(--amber-300);
+  --body-hover: var(--violet-300);
   /* Placement snap guides (`TODO/ui-013`). Deliberately its own hue rather than
      `--accent`: the guides are drawn over a selected body's transform gizmo and
      dimension lines, which are already accent-blue, axis-red and axis-green, and
@@ -33,21 +49,20 @@
      first (`TODO/ui-014`). Its own token rather than a dimmed `--accent`,
      following `--snap-guide`'s precedent: the two colours carry different
      meanings — base versus subtrahend — and a shade of one hue reads as
-     "the same thing, slightly faded" rather than as a different role. Kept in
-     step with `BODY_COLORS.*.secondary` in `src/render/mesh.js`, which paints
-     the solids themselves. */
-  --accent-secondary: var(--teal-300);
+     "the same thing, slightly faded" rather than as a different role. The
+     same colour as the solids it marks, by definition. */
+  --accent-secondary: var(--body-secondary);
   /* The Inspector object list's hover highlight (`TODO/ui-049`): the hovered row's marker
      and the tint on the matching geometry, one colour so the two read as one thing. A
      third role colour, never `--accent` or `--accent-secondary` — hovering a row whose body
-     is already selected has to read as something different. Kept in step with
-     `BODY_COLORS.*.hover` in `src/render/mesh.js`. */
-  --hover-highlight: var(--violet-300);
+     is already selected has to read as something different. The geometry's tint is
+     `--body-hover`, so the two are one value by definition. */
+  --hover-highlight: var(--body-hover);
   /* The Align popover's position icons (`TODO/ui-086`): the moving body (first picked, amber)
      and the target (second picked, teal), so an icon matches what the viewport shows. Not new
-     hues. Kept in step with `BODY_COLORS.*.selected` / `.secondary` in `src/render/mesh.js`. */
-  --role-moving: var(--amber-300);
-  --role-target: var(--teal-300);
+     hues: the selection colours the viewport paints the two bodies in, by definition. */
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
   /* Committed sketch geometry (`TODO/ui-020`). Its own token for the same
      reason `--snap-guide` has one: a sketch line is a *different kind of thing*
      from every solid and overlay around it, and the whole point of its styling

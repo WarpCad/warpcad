@@ -51,6 +51,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### render-008 — The 3D view's colours on a real GPU and screen (2026-11-14 05:20)
+
+Pixels were sampled in headless Chromium (software rasteriser) and on all three engines by the e2e matrix, so the colour values are proven. Whether the light-theme body, selection and axis colours *read well* on a real display is a judgment only a person can make.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a real phone or iPad, switch System/Dark/Light in the Help footer with a cube, a cylinder and both selected: the body, amber selection, teal secondary selection and red/green axis lines are distinct and comfortable against the ground in both themes (light-theme axes are now deeper than dark's). | Open | |
+
 ### ui-115 — One NumberField for every size field (2026-11-14 00:21)
 
 Emulated viewports and the three engines cover typing, Enter and the comma decimal; a real touch keyboard

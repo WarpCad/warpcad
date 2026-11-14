@@ -172,6 +172,9 @@ export function renderPartThumbnail(geometry, { size = 96, maxFaces = MAX_FACES,
     context.clearRect(0, 0, size, size)
     context.lineJoin = 'round'
     context.lineWidth = 0.7
+    // Not from the theme tokens, unlike the 3D view (`TODO/render-008`): this PNG is stored in the
+    // library and written into part files, so a themed colour would bake the saving user's theme
+    // into a file. A mid-tone ramp on a transparent ground reads on both themes' panels.
     for (const face of faces) {
       const level = Math.round(70 + 150 * face.shade)
       const fill = `rgb(${Math.round(level * 0.78)}, ${Math.round(level * 0.9)}, ${level})`

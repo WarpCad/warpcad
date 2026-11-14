@@ -24,19 +24,29 @@
 
     --accent: var(--blue-700);
     --accent-contrast: var(--white);
-    /* The axis colours read on both grounds, so they are the same in both themes. */
-    --axis-x: var(--rust-500);
-    --axis-y: var(--green-500);
+    /* A step darker than the dark theme's, so the axis lines read against the light ground. The
+       WebGL axes and the DOM dimension lines share them (`TODO/render-008`). */
+    --axis-x: var(--rust-600);
+    --axis-y: var(--green-600);
+
+    --scene-background: var(--cloud-150);
+    --scene-grid-minor: var(--cloud-350);
+    --scene-grid-major: var(--cloud-500);
+    --body: var(--denim-500);
+    --body-selected: var(--amber-600);
+    --body-secondary: var(--teal-600);
+    --body-ghost: var(--amber-600);
+    --body-hover: var(--violet-600);
     /* Darkened for the light scheme: the dark theme's fuchsia is unreadable on
        a near-white grid. */
     --snap-guide: var(--fuchsia-700);
     /* Darkened for the same reason as the guide colour above: the dark theme's
        teal has no contrast against a near-white panel. */
-    --accent-secondary: var(--teal-600);
+    --accent-secondary: var(--body-secondary);
     /* Darkened for the same reason: a pale lilac marker is invisible on a white panel. */
-    --hover-highlight: var(--violet-600);
-    --role-moving: var(--amber-600);
-    --role-target: var(--teal-600);
+    --hover-highlight: var(--body-hover);
+    --role-moving: var(--body-selected);
+    --role-target: var(--body-secondary);
     /* Darkened for the same reason as the three above: the dark theme's sky blue
        washes out against a near-white grid, and a sketch line a user cannot see
        is the exact failure this token exists to prevent. */
@@ -67,19 +77,29 @@
 
   --accent: var(--blue-700);
   --accent-contrast: var(--white);
-  /* The axis colours read on both grounds, so they are the same in both themes. */
-  --axis-x: var(--rust-500);
-  --axis-y: var(--green-500);
+  /* A step darker than the dark theme's, so the axis lines read against the light ground. The
+     WebGL axes and the DOM dimension lines share them (`TODO/render-008`). */
+  --axis-x: var(--rust-600);
+  --axis-y: var(--green-600);
+
+  --scene-background: var(--cloud-150);
+  --scene-grid-minor: var(--cloud-350);
+  --scene-grid-major: var(--cloud-500);
+  --body: var(--denim-500);
+  --body-selected: var(--amber-600);
+  --body-secondary: var(--teal-600);
+  --body-ghost: var(--amber-600);
+  --body-hover: var(--violet-600);
   /* Darkened for the light scheme: the dark theme's fuchsia is unreadable on
      a near-white grid. */
   --snap-guide: var(--fuchsia-700);
   /* Darkened for the same reason as the guide colour above: the dark theme's
      teal has no contrast against a near-white panel. */
-  --accent-secondary: var(--teal-600);
+  --accent-secondary: var(--body-secondary);
   /* Darkened for the same reason: a pale lilac marker is invisible on a white panel. */
-  --hover-highlight: var(--violet-600);
-  --role-moving: var(--amber-600);
-  --role-target: var(--teal-600);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
   /* Darkened for the same reason as the three above: the dark theme's sky blue
      washes out against a near-white grid, and a sketch line a user cannot see
      is the exact failure this token exists to prevent. */

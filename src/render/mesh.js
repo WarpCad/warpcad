@@ -35,6 +35,7 @@ import {
 import { ownOverrideOf, paintColorOf, recipeColorOf } from '../core/colorOverride.js'
 import { boundsOf, hasNamedParts, toGeom3 } from '../core/kernel/group.js'
 import { isBodyDrawn, isPartDrawn } from '../core/visibility.js'
+import { SCENE_THEMES } from './theme.js'
 
 /** @typedef {import('@jscad/modeling').geometries.geom3.Geom3} Geom3 */
 /** @typedef {import('../core/kernel/group.js').Group} KernelGroup */
@@ -249,27 +250,43 @@ function nonDegenerateFan(polygons) {
  * highlight, never either selection colour, so hovering a row whose body is already
  * selected still reads as something different happening. Violet, because every other hue
  * nearby is taken: amber and teal are the selection, blue the gizmo and `--accent`,
- * magenta the snap guides, sky blue a sketch line. Kept in step with `--hover-highlight`
- * in `src/styles/themes/dark.css`, which marks the hovered row in the list with the same colour
- * so the row and the geometry read as one thing. `selected` / `secondary` are likewise kept in
- * step with `--role-moving` / `--role-target`, which colour the Align popover's position icons.
+ * magenta the snap guides, sky blue a sketch line.
+ *
+ * The values are the theme tokens (`--body`, `--body-selected`, `--body-secondary`,
+ * `--body-ghost`, `--body-hover`, `TODO/render-008`); `--hover-highlight`, `--role-moving` and
+ * `--role-target`, which mark the object list's hovered row and the Align popover's icons, are
+ * defined as the same tokens, so the DOM and the geometry cannot disagree. This table is the
+ * body slice of the fallback `SCENE_THEMES` (`src/render/theme.js`), for Node, workers and tests;
+ * the viewport reads the live values with `readSceneTheme`.
  */
 export const BODY_COLORS = Object.freeze({
-  dark: Object.freeze({
-    body: 0x9fc0e8,
-    selected: 0xffc46b,
-    secondary: 0x66d9c0,
-    ghost: 0xffc46b,
-    hover: 0xb69cff,
-  }),
-  light: Object.freeze({
-    body: 0x6f8fb8,
-    selected: 0xd4802a,
-    secondary: 0x0f8a72,
-    ghost: 0xd4802a,
-    hover: 0x6d3fd6,
-  }),
+  dark: bodySlice(SCENE_THEMES.dark),
+  light: bodySlice(SCENE_THEMES.light),
 })
+
+/**
+ * @param {Readonly<import('./theme.js').SceneTheme>} theme
+ * @returns {Readonly<{ body: number, selected: number, secondary: number, ghost: number, hover: number }>}
+ */
+function bodySlice(theme) {
+  return Object.freeze({
+    body: theme.body,
+    selected: theme.bodySelected,
+    secondary: theme.bodySecondary,
+    ghost: theme.bodyGhost,
+    hover: theme.bodyHover,
+  })
+}
+
+/**
+ * The highlight colours a {@link ColorMaterialCache} tints with, from a scene theme.
+ *
+ * @param {Readonly<import('./theme.js').SceneTheme>} theme
+ * @returns {{ selected: number, secondary: number, hover: number }}
+ */
+export function highlightsOf(theme) {
+  return { selected: theme.bodySelected, secondary: theme.bodySecondary, hover: theme.bodyHover }
+}
 
 /** @typedef {keyof typeof BODY_COLORS} MeshTheme */
 
@@ -409,7 +426,8 @@ export function createColorMaterialCache(highlights) {
   function tint(material, role, hovered = false) {
     if (!hovered) {
       if (role === 'none') {
-        material.emissive.setHex(0x000000)
+        // No glow: emissive black.
+        material.emissive.setScalar(0)
         material.emissiveIntensity = 1
         return
       }

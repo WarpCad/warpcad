@@ -335,6 +335,247 @@ test('the rendered scene follows the browser colour scheme', async ({ page }) =>
   expect(light, 'light scene should be light').toBeGreaterThan(150)
 })
 
+/**
+ * Wait two frames, so whatever the last change scheduled has been drawn.
+ * @param {import('@playwright/test').Page} page
+ */
+function twoFrames(page) {
+  return page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+}
+
+/**
+ * A custom property of the root element, as the page resolves it.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} name
+ * @returns {Promise<string>}
+ */
+function rootToken(page, name) {
+  return page.evaluate((token) => getComputedStyle(document.documentElement).getPropertyValue(token).trim().toLowerCase(), name)
+}
+
+/** @param {string} hex `#rrggbb` @returns {{ r: number, g: number, b: number }} */
+function rgbOfHex(hex) {
+  const value = Number.parseInt(hex.slice(1), 16)
+  return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 }
+}
+
+/**
+ * The most common colour of the rendered canvas, at full resolution: with nothing placed, the
+ * background. The grid's lines are thin, so they never outnumber the ground between them.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{ r: number, g: number, b: number }>}
+ */
+async function canvasModeColour(page) {
+  await twoFrames(page)
+  return page.evaluate(() => {
+    const source = /** @type {HTMLCanvasElement} */ (document.querySelector('[data-testid="viewport-canvas"]'))
+    const off = document.createElement('canvas')
+    off.width = source.width
+    off.height = source.height
+    const ctx = off.getContext('2d')
+    if (!ctx) throw new Error('no 2d context')
+    ctx.drawImage(source, 0, 0)
+    const { data } = ctx.getImageData(0, 0, source.width, source.height)
+    /** @type {Map<number, number>} */
+    const counts = new Map()
+    for (let i = 0; i < data.length; i += 4 * 3) {
+      const key = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2]
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    let best = 0
+    let bestCount = -1
+    for (const [key, count] of counts) if (count > bestCount) [best, bestCount] = [key, count]
+    return { r: (best >> 16) & 255, g: (best >> 8) & 255, b: best & 255 }
+  })
+}
+
+/**
+ * The mean colour of a small patch around a fraction of the canvas.
+ * @param {import('@playwright/test').Page} page
+ * @param {number} fx
+ * @param {number} fy
+ * @returns {Promise<{ r: number, g: number, b: number }>}
+ */
+async function canvasPatch(page, fx, fy) {
+  await twoFrames(page)
+  return page.evaluate(
+    ({ fx, fy }) => {
+      const source = /** @type {HTMLCanvasElement} */ (document.querySelector('[data-testid="viewport-canvas"]'))
+      const off = document.createElement('canvas')
+      off.width = source.width
+      off.height = source.height
+      const ctx = off.getContext('2d')
+      if (!ctx) throw new Error('no 2d context')
+      ctx.drawImage(source, 0, 0)
+      const radius = 3
+      const { data } = ctx.getImageData(Math.round(source.width * fx) - radius, Math.round(source.height * fy) - radius, radius * 2 + 1, radius * 2 + 1)
+      let r = 0
+      let g = 0
+      let b = 0
+      for (let i = 0; i < data.length; i += 4) {
+        r += data[i]
+        g += data[i + 1]
+        b += data[i + 2]
+      }
+      const n = data.length / 4
+      return { r: r / n, g: g / n, b: b / n }
+    },
+    { fx, fy },
+  )
+}
+
+/** @param {{ r: number, g: number, b: number }} a @param {{ r: number, g: number, b: number }} b */
+function channelGap(a, b) {
+  return Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b))
+}
+
+/**
+ * Switch the system scheme and wait for the theme to resolve to it.
+ * @param {import('@playwright/test').Page} page
+ * @param {'dark' | 'light'} scheme
+ */
+async function useScheme(page, scheme) {
+  await page.emulateMedia({ colorScheme: scheme })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', scheme)
+}
+
+test('the drawn background is the --scene-background token, in both themes (TODO/render-008)', async ({ page }) => {
+  for (const scheme of /** @type {const} */ (['dark', 'light'])) {
+    await useScheme(page, scheme)
+    const token = await rootToken(page, '--scene-background')
+    expect(token, `${scheme}: --scene-background is a #rrggbb token`).toMatch(/^#[0-9a-f]{6}$/)
+    const want = rgbOfHex(token)
+    // Retry briefly: the repaint after a scheme switch lands on the next frame.
+    await expect
+      .poll(async () => channelGap(await canvasModeColour(page), want), { timeout: 3000, message: `${scheme}: canvas background vs ${token}` })
+      .toBeLessThanOrEqual(2)
+  }
+})
+
+test('the default body colour follows the theme, and a recoloured body keeps its own (TODO/render-008)', async ({ page }, testInfo) => {
+  /** @param {string} id @param {number} xMm */
+  const place = (id, xMm) =>
+    page.evaluate(
+      async ({ id, xMm }) => {
+        const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+        useDocumentStore().append({ id, op: 'primitive.cuboid', name: id, params: { size: [70, 70, 70], center: [xMm, 0, 35] } })
+      },
+      { id, xMm },
+    )
+  // One large cube on the camera's target, so the middle of the canvas is a face of it.
+  await place('plain', 0)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+  await useScheme(page, 'dark')
+  const darkDefault = await canvasPatch(page, 0.5, 0.5)
+  await useScheme(page, 'light')
+  const lightDefault = await canvasPatch(page, 0.5, 0.5)
+  expect(channelGap(darkDefault, lightDefault), 'the default body colour should change with the theme').toBeGreaterThan(20)
+
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  for (const scheme of /** @type {const} */ (['dark', 'light'])) {
+    await useScheme(page, scheme)
+    await twoFrames(page)
+    const file = join(SNAPSHOT_DIR, `scene-theme-${scheme}-${testInfo.project.name}.png`)
+    await page.getByTestId('viewport').screenshot({ path: file })
+    await testInfo.attach(`scene-theme-${scheme}-${testInfo.project.name}`, { path: file, contentType: 'image/png' })
+  }
+
+  // User colours win: an override is the body's colour in every theme.
+  await page.evaluate(async () => {
+    const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+    useDocumentStore().setColorOverride('plain', { color: 0xff0000 })
+  })
+  await useScheme(page, 'dark')
+  const darkRed = await canvasPatch(page, 0.5, 0.5)
+  expect(darkRed.r, 'the recoloured face reads red').toBeGreaterThan(darkRed.g + 40)
+  await useScheme(page, 'light')
+  const lightRed = await canvasPatch(page, 0.5, 0.5)
+  expect(channelGap(darkRed, lightRed), 'a recoloured body is the same colour in both themes').toBeLessThanOrEqual(6)
+})
+
+test('the theme tokens read cleanly in the production build, in both themes (TODO/render-008)', async ({ page }) => {
+  // The production CSS minifier writes #ffffff as #fff. A reader that only took #rrggbb threw on
+  // `--scene-light-key`, logged to the console and silently drew the fallback palette for every
+  // user, while every pixel check still passed because the fallback equals the tokens.
+  /** @type {string[]} */
+  const errors = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text())
+  })
+  page.on('pageerror', (error) => errors.push(String(error)))
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.reload() // the listener is attached after beforeEach's navigation, so boot again
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.waitForTimeout(150)
+  expect(errors.filter((text) => text.includes('readSceneTheme')), 'scene theme read errors').toEqual([])
+})
+
+test('a 5-second orbit never calls getComputedStyle (TODO/render-008)', async ({ page }) => {
+  // The theme is read once per theme change; a read in the frame or pointer path forces a style
+  // flush every frame and blows the 16 ms budget (CLAUDE.md Performance).
+  await page.addInitScript(() => {
+    const original = window.getComputedStyle
+    /** @type {any} */ (window).__getComputedStyleCalls = 0
+    window.getComputedStyle = function (...args) {
+      /** @type {any} */ (window).__getComputedStyleCalls += 1
+      return original.apply(this, /** @type {any} */ (args))
+    }
+  })
+  await page.reload()
+  await expect(page.getByTestId('viewport')).not.toHaveAttribute('data-frames-rendered', '0')
+  await twoFrames(page)
+
+  const result = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const page = /** @type {any} */ (window)
+        const canvas = /** @type {HTMLCanvasElement} */ (document.querySelector('[data-testid="viewport-canvas"]'))
+        const view = document.querySelector('[data-testid="viewport"]')
+        const box = canvas.getBoundingClientRect()
+        const x = box.left + box.width / 2
+        const y = box.top + box.height / 2
+        /** @param {string} type @param {number} cx */
+        const fire = (type, cx) =>
+          canvas.dispatchEvent(
+            new PointerEvent(type, {
+              pointerId: 1,
+              pointerType: 'mouse',
+              isPrimary: true,
+              button: 0,
+              buttons: type === 'pointerup' ? 0 : 1,
+              clientX: cx,
+              clientY: y,
+              bubbles: true,
+              cancelable: true,
+            }),
+          )
+        const frames0 = Number(view?.getAttribute('data-frames-rendered'))
+        page.__getComputedStyleCalls = 0
+        fire('pointerdown', x)
+        const start = performance.now()
+        let step = 0
+        const tick = () => {
+          step += 1
+          // Back and forth, so the drag never leaves the canvas.
+          fire('pointermove', x + 120 * Math.sin(step / 15))
+          if (performance.now() - start < 5000) requestAnimationFrame(tick)
+          else {
+            fire('pointerup', x)
+            const frames = Number(view?.getAttribute('data-frames-rendered')) - frames0
+            resolve({ calls: page.__getComputedStyleCalls, frames })
+          }
+        }
+        requestAnimationFrame(tick)
+      }),
+  )
+  const { calls, frames } = /** @type {{ calls: number, frames: number }} */ (result)
+  expect(frames, 'the orbit actually rendered frames').toBeGreaterThan(20)
+  expect(calls, 'getComputedStyle calls during the orbit').toBe(0)
+})
+
 test('the orientation gizmo snaps the camera to standard views', async ({ page }) => {
   await page.getByTestId('gizmo-view-top').click()
   // Z-up: the top view looks straight down the Z axis.

@@ -189,11 +189,6 @@
       "src/components/viewport/PlacementSession.vue": 1,
       "src/views/AppView.vue": 5
     },
-    "js-color": {
-      "src/render/export.js": 1,
-      "src/render/mesh.js": 11,
-      "src/render/offscreenCapture.js": 1,
-      "src/render/scene.js": 15
-    }
+    "js-color": {}
   }
 }

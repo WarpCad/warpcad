@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { BoxGeometry, Color, Light, LineSegments, Mesh, MeshStandardMaterial, Texture } from 'three'
 import { createSceneGraph, rebuildGpuResources, VIEWPORT_COLORS, VIEWPORT_THEMES } from './scene.js'
 import { createOrbitCamera, STANDARD_VIEWS } from './camera.js'
+import { SCENE_THEMES } from './theme.js'
 
 /**
  * Only `createSceneGraph` is covered here — it is deliberately WebGL-free so it
@@ -137,6 +138,59 @@ describe('createSceneGraph', () => {
     expect(graph.setTheme('light')).toBe(false)
     expect(graph.setTheme('solarized')).toBe(false)
     expect(graph.theme).toBe('light')
+    graph.dispose()
+  })
+
+  it('takes a SceneTheme read from the tokens and recolours the existing instances in place (TODO/render-008)', () => {
+    const graph = createSceneGraph({ theme: 'dark' })
+    const tiers = graph.grid.children.filter((child) => child instanceof LineSegments)
+    const materials = tiers.map((tier) => tier.material)
+    const background = graph.scene.background
+    const lights = graph.scene.children.filter((child) => child instanceof Light)
+    const lightColors = lights.map((light) => light.color)
+
+    // Not either fallback: proves the colours come from the object handed in, not a name lookup.
+    const custom = Object.freeze({
+      ...SCENE_THEMES.light,
+      background: 0x101010,
+      gridMinor: 0x202020,
+      gridMajor: 0x303030,
+      axisX: 0x404040,
+      axisY: 0x505050,
+      lightSky: 0x606060,
+      lightGround: 0x707070,
+      lightFill: 0x808080,
+      lightKey: 0x909090,
+    })
+    expect(graph.setTheme(custom)).toBe(true)
+    expect(graph.sceneTheme).toBe(custom)
+    expect(graph.theme).toBe('light')
+
+    // Same instances: a theme change allocates nothing the render path then has to pick up.
+    expect(graph.scene.background).toBe(background)
+    expect(graph.grid.children.filter((child) => child instanceof LineSegments).map((tier) => tier.material)).toEqual(materials)
+    for (const [index, light] of lights.entries()) expect(light.color, light.type).toBe(lightColors[index])
+
+    expect(/** @type {Color} */ (graph.scene.background).getHex()).toBe(0x101010)
+    expect(materials.map((m) => /** @type {import('three').LineBasicMaterial} */ (m).color.getHex())).toEqual([0x202020, 0x303030, 0x404040, 0x505050])
+    const hemisphere = /** @type {import('three').HemisphereLight} */ (lights.find((light) => light.type === 'HemisphereLight'))
+    expect(hemisphere.color.getHex()).toBe(0x606060)
+    expect(hemisphere.groundColor.getHex()).toBe(0x707070)
+    const directional = lights.filter((light) => light.type === 'DirectionalLight').map((light) => light.color.getHex())
+    expect(directional.sort()).toEqual([0x808080, 0x909090].sort())
+    expect(lights.find((light) => light.type === 'AmbientLight')?.color.getHex()).toBe(0x909090)
+
+    // A fresh read with the same values is not a change.
+    expect(graph.setTheme({ ...custom })).toBe(false)
+    graph.dispose()
+  })
+
+  it('builds its lights from the theme it starts with', () => {
+    const graph = createSceneGraph({ theme: SCENE_THEMES.dark })
+    const hemisphere = /** @type {import('three').HemisphereLight} */ (graph.scene.children.find((child) => child.type === 'HemisphereLight'))
+    expect(hemisphere.color.getHex()).toBe(SCENE_THEMES.dark.lightSky)
+    expect(hemisphere.groundColor.getHex()).toBe(SCENE_THEMES.dark.lightGround)
+    expect(/** @type {Color} */ (graph.scene.background).getHex()).toBe(SCENE_THEMES.dark.background)
     graph.dispose()
   })
 

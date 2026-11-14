@@ -63,9 +63,8 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 | 14 | ▶ Ready | `FIND` | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton; 68 components move off their own button rule | sonnet |
 | 16 | ▶ Ready | `FIND` | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover on `ModalShell` | sonnet |
 | 17 | ⏳ Waits on 14 | `FIND` | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading, ListRow | sonnet |
-| 18 | ▶ Ready | `FIND` | [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | opus |
-| 19 | ⏳ Waits on 14, 16–18 | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep; empty the guard's allow-list (last in the chain) | sonnet |
-| 20 | ⏳ Waits on 14, 16–19 | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Close the theme umbrella: check every step is in `TODO/done/` and the guard's allow-list is empty (no code) | sonnet |
+| 19 | ⏳ Waits on 14, 16–17 | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep; empty the guard's allow-list (last in the chain) | sonnet |
+| 20 | ⏳ Waits on 14, 16–17, 19 | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Close the theme umbrella: check every step is in `TODO/done/` and the guard's allow-list is empty (no code) | sonnet |
 | 21 | ▶ Ready | `FIND` | [`testing-021`](FIND-testing-021-verify-rows-overtaken-by-later-work.md) Re-check VERIFY.md rows later work appears to have answered (7 rows) | sonnet |
 | 22 | ▶ Ready | `FIND` | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks (11 rows) | sonnet |
 | 23 | ▶ Ready | `FIND` | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks on the owner's files, against copies (7 rows) | sonnet |
@@ -155,9 +154,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-114`](FIND-ui-114-base-button-and-icon-button.md) Base Button and IconButton, and move every hand-styled button onto them | finding | medium | sonnet | ▶ Ready (Next up row 14) |
 | [`ui-116`](FIND-ui-116-base-dialog-sheet-popover.md) Base Dialog, Sheet and Popover frames, built on ModalShell | finding | medium | sonnet | ▶ Ready (Next up row 16) |
 | [`ui-117`](FIND-ui-117-base-toast-banner-chip-heading.md) Base Toast, Banner, Chip, SectionHeading and ListRow | finding | low | sonnet | ⏳ Waits on 14 (Next up row 17) |
-| [`render-008`](FIND-render-008-renderer-theme-bridge.md) The 3D view reads its colours from the theme tokens | finding | high | opus | ▶ Ready (Next up row 18) |
-| [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep — replace the remaining style literals and empty the guard's allow-list | finding | low | sonnet | ⏳ Waits on 14, 16–18 (Next up row 19) |
-| [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture — restyle the whole UI from a small, known set of files (umbrella) | finding | high | sonnet | ⏳ Waits on 14, 16–19 (Next up row 20) |
+| [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep — replace the remaining style literals and empty the guard's allow-list | finding | low | sonnet | ⏳ Waits on 14, 16–17 (Next up row 19) |
+| [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture — restyle the whole UI from a small, known set of files (umbrella) | finding | high | sonnet | ⏳ Waits on 14, 16–17, 19 (Next up row 20) |
 | [`testing-021`](FIND-testing-021-verify-rows-overtaken-by-later-work.md) Re-check the VERIFY.md rows that later work appears to have answered, then close or reword them | finding | low | sonnet | ▶ Ready (Next up row 21) |
 | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks that emulated viewports and the three Playwright engines can settle | finding | medium | sonnet | ▶ Ready (Next up row 22) |
 | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks that name the owner's own project files, against copies | finding | medium | sonnet | ▶ Ready (Next up row 23) |
@@ -304,7 +302,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-114` | Base Button and IconButton; 68 components move off their own button rule. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | 1, 4, 7, 10, 24 |
 | `ui-116` | Base Dialog, Sheet and Popover on `ModalShell`; ten hand-rolled overlays move on. Filed 2026-11-10 from the architecture audit | Finding | `ui-110`, `ui-112` | 7, 10, 11, 17, 21, 24, 29 |
 | `ui-117` | Base Toast (queued), Banner, Chip, SectionHeading, ListRow. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `ui-114` | 6, 18, 22, 29 |
-| `render-008` | The 3D view reads its colours from the theme tokens (one read per theme change, never per frame). Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `ui-113` | 1, 4, 13 |
 | `ui-118` | Theme migration sweep: replace the remaining style literals and empty the guard's allow-list. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `testing-036`, `ui-114`–`ui-117`, `render-008` | 1, 4, 7, 9, 10, 13 |
 | `ui-111` | Theme architecture umbrella, closed last (re-wired 2026-11-13: it depends on its chain, not the other way round): token layers, base components, theme switch, renderer bridge, guard. Its three owner decisions were answered 2026-11-10. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`–`ui-118`, `testing-036`, `render-008` | 1, 4, 7, 9, 10, 13 |
 | `testing-021` | Re-check VERIFY.md rows later work appears to have answered; close or reword (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |

@@ -69,6 +69,21 @@
 
   /* The shadow four dialogs hand-write (0 12px 40px). The same in both themes. */
   --shadow-popover: 0 12px 40px var(--black-35);
+
+  /* The 3D view's roles that do not change with the theme (`TODO/render-008`); the themed ones
+     (ground, grid, axes, bodies) are in `themes/*.css`. `src/render/theme.js` reads every scene
+     role once per theme change and hands three.js the numbers, so each must stay a plain `#rrggbb`
+     (a `color-mix()` here makes `readSceneTheme` throw rather than paint black).
+     The light rig: hemisphere sky and ground, the white key and ambient, the cool fill. */
+  --scene-light-sky: var(--ice-200);
+  --scene-light-ground: var(--slate-840);
+  --scene-light-key: var(--white);
+  --scene-light-fill: var(--steel-300);
+  /* The cut faces of the assistant's section capture: the inside of a wall. */
+  --scene-section: var(--brick-400);
+  /* A body's colour in an exported .glb. Deliberately not themed: a file is the same whoever
+     exports it, whatever their theme. */
+  --export-body: var(--pewter-300);
 }
 
 /*

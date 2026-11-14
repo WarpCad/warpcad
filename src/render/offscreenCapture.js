@@ -57,9 +57,9 @@ import {
 } from 'three'
 
 import { STANDARD_VIEWS, positionFromSpherical, upFromSpherical } from './camera.js'
-import { BODY_COLORS, createBodyMaterial, createBodyObject, disposeBodyObject } from './mesh.js'
+import { createBodyMaterial, createBodyObject, disposeBodyObject } from './mesh.js'
 import { referenceImageMatrix } from './referenceImage.js'
-import { VIEWPORT_THEMES } from './scene.js'
+import { sceneThemeOf } from './theme.js'
 
 /** @typedef {import('../ai/tools/capture.js').CaptureRequest} CaptureRequest */
 /** @typedef {import('../ai/tools/capture.js').CaptureResult} CaptureResult */
@@ -97,9 +97,6 @@ export const OVERLAY_MODEL_OPACITY = 0.55
 
 /** Room left around an overlay's framed box. */
 const OVERLAY_MARGIN = 1.04
-
-/** The colour a section's cut faces show: the inside of the wall. */
-const SECTION_COLOR = 0xd9534f
 
 /**
  * The camera for a named view, backed off until the box's bounding sphere fits the narrower of
@@ -240,8 +237,19 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
 
   return {
     capture(request) {
-      const theme = graph.theme
-      const palette = BODY_COLORS[theme] ?? BODY_COLORS.dark
+      // `TODO/render-008`: the capture draws in the colours the viewport is showing right now
+      // (`graph.sceneTheme`, read from the theme tokens), so it follows the user's theme.
+      //
+      // Decision: a capture is NOT forced to one theme for the model. (1) The activity row shows the
+      // user "the picture the model saw" (`ActivityRow.vue`), and that only means something if it is
+      // the picture the user is looking at. (2) Both themes are designed for a body to read against
+      // its ground (the e2e samples real pixels in both), and `contentFraction` is measured against
+      // this theme's own background, so the near-empty warning is right in either. (3) Forcing one
+      // would mean recolouring the live scene's background, grid and lights for the capture and back,
+      // on a scene the user's next frame shares. The cost is that a theme switch between two captures
+      // changes their colours, which the model is not told about; revisit if a model is seen reading
+      // that as a change to the part.
+      const colors = sceneThemeOf(graph.sceneTheme ?? graph.theme)
       const { widthPx, heightPx } = request
       const scale = Math.max(1, Math.min(SUPERSAMPLE, Math.floor(renderer.capabilities.maxTextureSize / Math.max(widthPx, heightPx))))
       const renderWidth = widthPx * scale
@@ -268,7 +276,7 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
       /** @type {import('three').Object3D[]} */
       const built = []
       for (const body of request.bodies) {
-        const color = highlighted.has(body.id) ? palette.selected : body.color ? Number.parseInt(body.color.slice(1), 16) : palette.body
+        const color = highlighted.has(body.id) ? colors.bodySelected : body.color ? Number.parseInt(body.color.slice(1), 16) : colors.body
         const front = material(color)
         if (overlay) {
           // Over a drawing: see-through, so the lines underneath read through the model.
@@ -285,7 +293,7 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
         group.add(object)
         if (plane) {
           // The inside of a cut wall: its back faces, in one flat colour, so the section reads.
-          const back = new MeshStandardMaterial({ color: SECTION_COLOR, side: BackSide, clippingPlanes: [plane], roughness: 1, metalness: 0 })
+          const back = new MeshStandardMaterial({ color: colors.section, side: BackSide, clippingPlanes: [plane], roughness: 1, metalness: 0 })
           materials.push(back)
           object.updateMatrixWorld(true)
           group.add(twinWith(object, back))
@@ -386,7 +394,7 @@ export function createOffscreenCapture({ renderer, graph, makeCanvas }) {
       context.imageSmoothingEnabled = true
       context.imageSmoothingQuality = 'high'
       context.drawImage(full, 0, 0, widthPx, heightPx)
-      const stats = pixelStats(context.getImageData(0, 0, widthPx, heightPx).data, rgbOf(VIEWPORT_THEMES[theme]?.background ?? VIEWPORT_THEMES.dark.background))
+      const stats = pixelStats(context.getImageData(0, 0, widthPx, heightPx).data, rgbOf(colors.background))
       const url = out.toDataURL('image/png')
       return {
         mediaType: 'image/png',

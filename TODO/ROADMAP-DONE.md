@@ -830,6 +830,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `render-008` | The 3D view reads its colours from the theme tokens, once per theme change and never per frame: `src/render/theme.js` turns the scene-role tokens into the integers three.js takes, `setTheme` and `applyMaterialTheme` recolour the existing materials in place, and the fallback palette is checked against the CSS. Light-mode axis colours now match the DOM's. Filed 2026-11-10 from the architecture audit. [`done/render-008`](done/render-008-renderer-theme-bridge.md) | Finding | `ui-112`, `ui-113` | 1, 4, 13 (re-driven in both themes; the `ui-014`, `ui-049` and `ui-099` repros re-run, see Completion Log) |
 | ✅ `ui-115` | Base form fields, with one unit-aware `NumberField` in place of two number-entry patterns that disagreed on `12,5` and `12.5 mm`. All 30 native number inputs and the 11 hand-written text fields moved onto it; `FieldLabel`, `TextInput`, `SelectInput`, `FileInput` and `SegmentedToggle` exist but no existing component uses them yet (left to `ui-118`). Filed 2026-11-10 from the architecture audit. [`done/ui-115`](done/ui-115-base-field-and-number-field.md) | Finding | `ui-112` | 2, 12, 21 (re-driven by hand; the `ui-052`, `ui-059` and `ui-086` repros re-run, see Completion Log) |
 | ✅ `ui-113` | Choose System, Dark or Light in the Help footer: one module (`useTheme`) decides the theme and writes `<html data-theme>`, the 3D view and Help pictures follow it, the choice is remembered. First paint can show the device's theme for one frame (CSP forbids an inline script). Filed 2026-11-10 from the architecture audit. [`done/ui-113`](done/ui-113-theme-switch-setting.md) | Finding | `ui-112` | 1, 13 (re-driven by hand in each forced theme; the docs-030 repro re-run, see Completion Log) |
 | ✅ `testing-036` | A guard spec that fails on styling written outside the token files. Filed 2026-11-10 from the architecture audit | Finding | `ui-112` | ✅ done: none re-driven (unit-only guard spec) |
@@ -1331,5 +1332,6 @@ convention going forward.
 | `testing-036` | 2026-11-13 19:20 | 1h5m |
 | `ui-113` | 2026-11-13 23:10 | 4h03m |
 | `ui-115` | 2026-11-14 00:21 | 1h15m |
+| `render-008` | 2026-11-14 05:20 | 4h43m (sonnet half only, from Step 3 at 00:37 UTC, including two oversubscribed e2e reruns; the Opus half is not counted) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

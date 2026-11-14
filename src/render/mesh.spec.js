@@ -24,7 +24,9 @@ import {
   paintBodyObject,
   applyViewVisibility,
   drawnBoundsOf,
+  highlightsOf,
 } from './mesh.js'
+import { SCENE_THEMES } from './theme.js'
 
 const { primitives, measurements } = modeling
 
@@ -753,6 +755,25 @@ describe('per-body colour overrides (TODO/ui-037)', () => {
     colors.dispose()
     expect(disposed).toBe(1)
     expect(colors.size).toBe(0)
+  })
+
+  it('takes its highlights from a SceneTheme and retints the same material, keeping the user colour (TODO/render-008)', () => {
+    const materials = shared()
+    const colors = cache()
+    const mesh = createBodyObject(primitives.cuboid({ size: [10, 10, 10] }), materials.body, 'a')
+    paintBodyObject(mesh, { role: 'base', overrides: [{ color: 0x00ff00 }], preview: null, shared: materials, cache: colors })
+    const before = materialOf(mesh)
+    const emissive = before.emissive
+    const custom = Object.freeze({ ...SCENE_THEMES.light, bodySelected: 0x112233, bodySecondary: 0x445566, bodyHover: 0x778899 })
+    expect(highlightsOf(custom)).toEqual({ selected: 0x112233, secondary: 0x445566, hover: 0x778899 })
+    colors.setHighlights(highlightsOf(custom))
+    // The same material and the same Color: nothing reallocated by a theme change.
+    expect(materialOf(mesh)).toBe(before)
+    expect(materialOf(mesh).emissive).toBe(emissive)
+    expect(emissive.getHex()).toBe(0x112233)
+    // User colours win: the override is the body's colour in every theme.
+    expect(materialOf(mesh).color.getHex()).toBe(0x00ff00)
+    colors.dispose()
   })
 })
 

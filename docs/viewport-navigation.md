@@ -158,6 +158,12 @@ the current orientation off the triad itself rather than off the numeric
 "az/el" caption underneath. The buttons for the axes pointing away from you
 are drawn fainter and dashed, so the three axes actually facing you stand out.
 
+The axis colours come from the same theme as the rest of the app, so the red X and green Y on the
+triad, on the grid's axis lines and on the dimension lines are always the same colours. In the
+light theme they are deeper reds and greens than in the dark one, so they still read against the
+pale ground. Choose System, Dark or Light in the Help sheet's footer ([Help](help.md)) and watch the triad: the 3D view
+re-colours at once, with nothing to reload.
+
 Each labelled cap is a button, and clicking one moves the camera **onto** that
 axis:
 

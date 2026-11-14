@@ -5,6 +5,7 @@ import { Group as ThreeGroup, Mesh } from 'three'
 
 import { add, createGroup } from '../core/kernel/group.js'
 import { BODY_COLORS } from './mesh.js'
+import { SCENE_THEMES } from './theme.js'
 import { announcedColor, announcedPartColors, createBodyCounts, createBodyMeshes } from './bodyMeshes.js'
 
 const { primitives } = modeling
@@ -391,6 +392,34 @@ describe('createBodyMeshes: theme', () => {
     controller.applyMaterialTheme('dark')
     expect(/** @type {any} */ (a.material).color.getHex()).toBe(BODY_COLORS.dark.selected)
     expect(/** @type {any} */ (b.material).color.getHex()).toBe(BODY_COLORS.dark.body)
+  })
+
+  it('takes a SceneTheme, recolours the shared materials in place, and leaves a user colour alone (TODO/render-008)', () => {
+    const { controller, selection } = setup({ bodies: [body('a'), body('b'), body('red', { colorOverrides: [{ color: 0xff0000 }] })] })
+    controller.createMaterials(SCENE_THEMES.dark)
+    controller.syncBodies()
+    selection.ids = ['a']
+    controller.applySelectionMaterial()
+    const a = /** @type {Mesh} */ (controller.meshes.get('a'))
+    const b = /** @type {Mesh} */ (controller.meshes.get('b'))
+    const red = /** @type {Mesh} */ (controller.meshes.get('red'))
+    const selectedBefore = a.material
+    const bodyBefore = b.material
+    const redBefore = red.material
+    expect(/** @type {any} */ (red.material).color.getHex()).toBe(0xff0000)
+
+    // Not either fallback, so the colours can only have come from the object handed in.
+    const custom = Object.freeze({ ...SCENE_THEMES.light, body: 0x123456, bodySelected: 0x654321, bodySecondary: 0x0a0b0c, bodyHover: 0x0c0b0a })
+    controller.applyMaterialTheme(custom)
+    expect(a.material).toBe(selectedBefore)
+    expect(b.material).toBe(bodyBefore)
+    expect(/** @type {any} */ (a.material).color.getHex()).toBe(0x654321)
+    expect(/** @type {any} */ (b.material).color.getHex()).toBe(0x123456)
+    const twin = /** @type {Mesh} */ (a.children.find((child) => child.name === 'xray-twin'))
+    expect(/** @type {any} */ (twin.material).color.getHex()).toBe(0x654321)
+    // User colours win: the recoloured body keeps its own colour and material in every theme.
+    expect(red.material).toBe(redBefore)
+    expect(/** @type {any} */ (red.material).color.getHex()).toBe(0xff0000)
   })
 
   it('an unknown theme falls back to dark', () => {

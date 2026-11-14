@@ -17,7 +17,6 @@ import { Group as ThreeGroup } from 'three'
 import {
   addXrayTwin,
   applyViewVisibility,
-  BODY_COLORS,
   bodyObjectIsCurrent,
   createBodyMaterial,
   createBodyObject,
@@ -26,9 +25,11 @@ import {
   createXrayMaterial,
   disposeBodyObject,
   disposeMesh,
+  highlightsOf,
   paintBodyObject,
   updateBodyObject,
 } from './mesh.js'
+import { sceneThemeOf } from './theme.js'
 import { isDrawn } from './pick.js'
 import { colorIntToCssHex, ownOverrideOf } from '../core/colorOverride.js'
 import { isBodyDrawn, isPartDrawn } from '../core/visibility.js'
@@ -164,20 +165,21 @@ export function createBodyMeshes(deps) {
   const repeatTransients = []
 
   /**
-   * Create the shared materials in a theme's palette. Called once, on mount.
+   * Create the shared materials in a theme's colours. Called once, on mount.
    *
-   * @param {import('./mesh.js').MeshTheme} theme
+   * @param {Readonly<import('./theme.js').SceneTheme> | import('./mesh.js').MeshTheme} theme the
+   *   colours read from the tokens (`readSceneTheme`); a scheme name stands for its fallback
    * @returns {void}
    */
   function createMaterials(theme) {
-    const palette = BODY_COLORS[theme] ?? BODY_COLORS.dark
-    bodyMaterial = createBodyMaterial(palette.body)
-    selectedMaterial = createBodyMaterial(palette.selected)
-    secondaryMaterial = createBodyMaterial(palette.secondary)
-    xrayMaterial = createXrayMaterial(palette.selected)
-    xraySecondaryMaterial = createXrayMaterial(palette.secondary)
-    xrayHoverMaterial = createXrayMaterial(palette.hover)
-    colorMaterials = createColorMaterialCache({ selected: palette.selected, secondary: palette.secondary, hover: palette.hover })
+    const colors = sceneThemeOf(theme)
+    bodyMaterial = createBodyMaterial(colors.body)
+    selectedMaterial = createBodyMaterial(colors.bodySelected)
+    secondaryMaterial = createBodyMaterial(colors.bodySecondary)
+    xrayMaterial = createXrayMaterial(colors.bodySelected)
+    xraySecondaryMaterial = createXrayMaterial(colors.bodySecondary)
+    xrayHoverMaterial = createXrayMaterial(colors.bodyHover)
+    colorMaterials = createColorMaterialCache(highlightsOf(colors))
   }
 
   /**
@@ -523,18 +525,23 @@ export function createBodyMeshes(deps) {
    * placement ghost and the sketch preview have materials of their own, which the viewport
    * recolours alongside this.
    *
-   * @param {import('./mesh.js').MeshTheme} theme
+   * Only the default body colour and the highlights change: a body with a user colour override
+   * (`src/core/colorOverride.js`) keeps it in every theme. The materials are recoloured in place,
+   * so nothing is allocated for the render path to pick up.
+   *
+   * @param {Readonly<import('./theme.js').SceneTheme> | import('./mesh.js').MeshTheme} theme the
+   *   colours read from the tokens; a scheme name stands for its fallback
    * @returns {void}
    */
   function applyMaterialTheme(theme) {
-    const palette = BODY_COLORS[theme] ?? BODY_COLORS.dark
-    bodyMaterial?.color.setHex(palette.body)
-    selectedMaterial?.color.setHex(palette.selected)
-    secondaryMaterial?.color.setHex(palette.secondary)
-    xrayMaterial?.color.setHex(palette.selected)
-    xraySecondaryMaterial?.color.setHex(palette.secondary)
-    xrayHoverMaterial?.color.setHex(palette.hover)
-    colorMaterials?.setHighlights({ selected: palette.selected, secondary: palette.secondary, hover: palette.hover })
+    const colors = sceneThemeOf(theme)
+    bodyMaterial?.color.setHex(colors.body)
+    selectedMaterial?.color.setHex(colors.bodySelected)
+    secondaryMaterial?.color.setHex(colors.bodySecondary)
+    xrayMaterial?.color.setHex(colors.bodySelected)
+    xraySecondaryMaterial?.color.setHex(colors.bodySecondary)
+    xrayHoverMaterial?.color.setHex(colors.bodyHover)
+    colorMaterials?.setHighlights(highlightsOf(colors))
     // A hovered body with no colour of its own wears a copy of the palette colour, keyed by
     // that colour: a scheme switch needs a repaint to pick up the new one.
     if (hoverHighlight.target || hoverHighlight.many) paintBodies()
