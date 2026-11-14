@@ -18,6 +18,7 @@
  */
 import { useDeleteCommands } from '../../composables/useDeleteCommands.js'
 import { useRepeatStore } from '../../stores/repeat.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const commands = useDeleteCommands()
 const { enabled, reason, label, describe, error, target, formulaNote } = commands
@@ -32,8 +33,8 @@ const repeat = useRepeatStore()
 
 <template>
   <div class="delete" data-testid="inspector-delete-row">
-    <button
-      type="button"
+    <BaseButton
+      variant="danger"
       class="delete__btn"
       :data-testid="target?.kind === 'part' ? 'inspector-remove-part' : 'inspector-delete'"
       :disabled="!enabled"
@@ -48,22 +49,22 @@ const repeat = useRepeatStore()
         />
       </svg>
       <span>{{ label }}</span>
-    </button>
+    </BaseButton>
     <p v-if="!enabled" class="delete__reason" data-testid="inspector-delete-reason">{{ reason }}</p>
     <p v-if="enabled && formulaNote" class="delete__reason" data-testid="inspector-delete-formulas">{{ formulaNote }}</p>
     <p v-if="error" class="delete__reason" data-testid="inspector-delete-error" role="alert">{{ error }}</p>
     <div v-if="repeat.deleteConfirm" class="delete__confirm" role="alertdialog" data-testid="delete-repeats-confirm" :aria-label="repeat.deleteConfirm.question">
       <p class="delete__question" data-testid="delete-repeats-question">{{ repeat.deleteConfirm.question }}</p>
       <div class="delete__choices">
-        <button type="button" class="delete__choice delete__choice--danger" data-testid="delete-repeats-too" @click="commands.resolveDelete('with-repeats')">
+        <BaseButton variant="danger" data-testid="delete-repeats-too" @click="commands.resolveDelete('with-repeats')">
           Delete the repeats
-        </button>
-        <button type="button" class="delete__choice" data-testid="delete-repeats-leave-broken" @click="commands.resolveDelete('leave-broken')">
+        </BaseButton>
+        <BaseButton data-testid="delete-repeats-leave-broken" @click="commands.resolveDelete('leave-broken')">
           Leave broken
-        </button>
-        <button type="button" class="delete__choice" data-testid="delete-repeats-cancel" @click="commands.resolveDelete(null)">
+        </BaseButton>
+        <BaseButton data-testid="delete-repeats-cancel" @click="commands.resolveDelete(null)">
           Cancel
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>
@@ -90,24 +91,6 @@ const repeat = useRepeatStore()
   gap: 6px;
 }
 
-.delete__choice {
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.delete__choice--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-  font-weight: 600;
-}
 
 /*
  * Pinned to the bottom of the Inspector's scroll area (Step 2 of TODO/ui-051, measured):
@@ -131,17 +114,8 @@ const repeat = useRepeatStore()
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: var(--tap);
-  min-height: var(--tap);
   padding: 0 16px;
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--danger);
-  font: inherit;
   font-weight: 600;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
 .delete__btn:hover:not(:disabled),
