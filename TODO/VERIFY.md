@@ -2573,4 +2573,16 @@ One Pi now drills every hole: a Subtract that cuts with only the Pi's mounting h
 | 1 | **Feel, on a real iPhone and iPad:** drag the Align panel by its grip with a thumb. It should follow the finger at 1:1 with no page scroll or rubber-banding, and the grip (44 px tall on a phone) should be easy to hit. Only a scripted touch drag (Chromium CDP) has been tried. | open | |
 | 2 | **Safari desktop and Firefox:** drag, arrow-key nudge and double-click reset on the Align and Fillet panels (the e2e covers the Align drag on all three engines; the feel is unjudged). | open | |
 
+### ui-114 — Base button: stage 2 families (2026-11-14 14:00)
+
+The 48 px dialogs, DeleteButton, the strips and toasts, four sketch panels, six Inspector rows and the Assistant panel now
+draw their buttons with `BaseButton`. Four looks changed on purpose and are a judgment call, not something a test settles.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Primary buttons that used to be an accent outline (Disk change Reload, Trace and Scale Apply, the Inspector's Save and Create rows) are now the filled accent look: read each in both themes. | Open | |
+| 2 | Toast and banner buttons lost their hover/focus accent border; the shared focus ring replaces it. Visible on a keyboard Tab in Firefox and Safari? | Open | |
+| 3 | The Assistant's three height buttons and Watch keep square corners and 8 px padding through a parent selector. At 390 px does the header row still wrap the same way? | Open | |
+| 4 | The Show all toggle on a long reply is now an underlined link. Reads as a link, not a stray label? | Open | |
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

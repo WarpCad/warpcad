@@ -12,17 +12,30 @@ status: open
 > **Decided 2026-11-10** (`ui-111`, decision 1): base components live in the existing folders. These
 > go in `src/components/controls/`.
 
-> **Progress 2026-11-14 (stays open).** Landed: `BaseButton.vue` and `IconButton.vue` (with specs and stories, and
-> `focus()` exposed for template refs), `HelpButton` and `EyeToggle` as thin `IconButton` wrappers, and the dialog
-> family's eleven components moved onto `BaseButton` (`ai/ConnectClaudeCode`, `KeySheet`, `StarterCopy`,
-> `StepLimitSheet`, `SubscriptionRoute`; `storage/ConnectDialog`, `GistConnectDialog`, `ProjectSettingsDialog`,
-> `ReplaceConfirmDialog`, `SaveAsGistDialog`; `inspector/DependentRepairDialog`). `git log` gave no reason for 80 vs
-> 96, so tap buttons are `min-width: 80px`. `testing-036`'s font allow-list is tightened for those files.
-> **Remaining**: the rest of the dialog family (`storage/ConflictDialog`, `DiskChangeDialog`;
-> `inspector/VariableUsageDialog`; `layout/SharedAboutPopup`, `UserPartMenu`, `SaveToLibrarySheet`, `ShareSheet`,
-> `ShareGistGroup`; `features/SplitSheet` are 48 px / `--radius-md` / left-aligned variants that need props first),
-> `DeleteButton`, and the strips and toasts, panels, toolbars and popovers, AI and "the rest" families above.
-> Scenarios 1, 4, 7 (after the toolbar family) and 10, 24 (after the rest of the dialogs) still owe a re-drive.
+> **Progress 2026-11-14 (stays open).** Stage 1: `BaseButton.vue` and `IconButton.vue` (with specs and stories, and
+> `focus()` exposed for template refs), `HelpButton` and `EyeToggle` as thin `IconButton` wrappers, and eleven dialogs
+> (`ai/ConnectClaudeCode`, `KeySheet`, `StarterCopy`, `StepLimitSheet`, `SubscriptionRoute`; `storage/ConnectDialog`,
+> `GistConnectDialog`, `ProjectSettingsDialog`, `ReplaceConfirmDialog`, `SaveAsGistDialog`;
+> `inspector/DependentRepairDialog`). `git log` gave no reason for 80 vs 96, so tap buttons are `min-width: 80px`.
+> Stage 2 (six commits, each on all nine engine-viewport projects for its own specs): `BaseButton` gains `size="large"`
+> (48 px, `--radius-md`), `align="start"`, `fill`, `narrow` (a `--tap` minimum instead of 80 px), `variant="link"` and
+> `"link-danger"`, and `compact` takes the dense panels' 12 px type. Moved: the nine 48 px dialogs (`storage/ConflictDialog`,
+> `DiskChangeDialog`; `inspector/VariableUsageDialog`; `layout/SharedAboutPopup`, `UserPartMenu`'s rename and delete
+> dialogs, `SaveToLibrarySheet`, `ShareSheet`, `ShareGistGroup`; `features/SplitSheet`); `inspector/DeleteButton`; the
+> strips and toasts (`display/MergeBanner`, `MergeToast`, `RepeatToast`; `layout/UpdateToast`; `inspector/DependentsBanner`;
+> `viewport/ModelImportStatus`); the panels `sketch/ReferenceImagePanel`, `SlicePanel`, `TraceTool`, `ScaleTool` and
+> `inspector/ConditionRow`, `RepeatSection`, `VariableRow`, `VariableAddForm`, `VariableFormulaView`, `PromptsViewRow`;
+> and AI `ChatPanel`, `Composer`, `SaveProposal`, `PromptReply`, `ConnectButton`.
+> **Remaining**: (1) panels left on purpose for a decision: `sketch/ExtrudePanel` (method picker) and
+> `SketchProfileFields` (role picker) are segmented radio groups, `SketchPanelSheet` (a close cross),
+> `inspector/Inspector.vue` (tabs, list bars, breadcrumb crumbs, colour reset), `ParamBindPopover` and `FormulaInsertList`
+> (option lists with primary rows); (2) toolbars and popovers: `viewport/OperationsToolbar`, `NavigationChrome`,
+> `SketchToolbar`, `AlignGrid`, `GroupMergePopover`, `RepeatSheet`, `PlacementSession`; `storage/FileMenu`,
+> `ExportPopover`, `ResolutionPopover`; these need `IconButton` to gain a bordered look and a selected state first, and
+> acceptance 1, 4 and 7 re-driven with touch only; (3) AI: `AssistantButton` (its working animation is a deliberate
+> difference), `layout/UserPartMenu`'s menu rows and trigger; (4) the rest: `layout/HelpSheet`, `SharedView`,
+> `DescriptionHint`, `HistoryControls`, `SaveToLibraryButton`, `LibraryRail`; `timeline/TimelineRow`, `TimelineStrips`,
+> `TimelinePanel`; `display/SaveStatus`. `ui-085` and `ui-087` re-run when the toolbars and popovers move.
 
 ## Problem
 
