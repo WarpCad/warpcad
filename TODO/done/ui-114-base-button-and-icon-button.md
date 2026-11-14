@@ -6,8 +6,46 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14, closed in stage 4).** `BaseButton` and `IconButton` (with `bordered`, `size="large"`, `align`,
+> `fill`, `narrow` and the `link` variants) live in `src/components/controls/`, and every component in the Affected files list
+> is either on them or has a stated reason below to keep its own control. Stage 4 moved `inspector/ParamBindPopover`
+> and `FormulaInsertList` (option rows are `BaseButton align="start"`, their primary actions `variant="primary"`),
+> `sketch/SketchPanelSheet`'s close cross (`IconButton variant="quiet"`), `SketchProfileFields`' action and delete buttons,
+> `inspector/Inspector`'s colour Reset, `timeline/TimelineRow`'s action buttons and intent toggle (`IconButton`),
+> and `layout/HelpSheet`'s Back, Contents, Close, Retry and Check for updates. Visible differences, all small: the
+> bind popover's "New variable" rows are now filled accent (they were accent-outlined), the timeline's action
+> buttons are 13 px type (were 12 px) and no longer shift colour on hover, and an expanded intent toggle is no longer
+> tinted accent (its `aria-expanded` still reports it).
+>
+> **Left on purpose, one reason each.**
+> - `sketch/ExtrudePanel` (method picker) and `SketchProfileFields` (role picker), and `layout/HelpSheet`'s theme row: segmented
+>   controls with `role="radio"` and `aria-checked` (or a group of `aria-pressed`), a one-of-many widget that `SegmentedToggle`
+>   (made in `ui-115`, still unused) is for, and that `ui-118` adopts. `BaseButton`'s `pressed` would add `aria-pressed` to a
+>   radio, which is invalid. Three call sites carry the pattern, so no new finding: `ui-118` already owns it.
+> - `inspector/Inspector.vue`: the tab (a drag grip as well as a button, `pointerdown` and `pointerup` handlers), the Objects and
+>   Prompts bars (a disclosure header with a count and a chevron, which `ui-117`'s `SectionHeading` covers), and the breadcrumb
+>   crumbs and "Show all" (inline text links in a sentence). The colour Reset did map and moved.
+> - `layout/LibraryRail` (launcher glyph and a count badge, a prop by decision 4 above) and `ai/AssistantButton` (its working
+>   animation, likewise): purpose-built, and each is one component's own look.
+> - `display/SaveStatus`: renders a `<button>` or a `<div>` through `<component :is>` depending on state, a status chip that
+>   becomes a button, not a button.
+> - `storage/FileMenu` and `layout/UserPartMenu`'s rows: `role="menuitem"` rows with stacked reason text, and a File trigger with a
+>   pending spinner. A menu, not buttons (stage 3 reasoning).
+> - `viewport/OperationsToolbar`'s `.ops__btn` row: a glyph plus a label that appears by tier, a launcher caret and a count badge.
+>   `IconButton` is square with no visible-label mode. A labelled variant is the next step if the owner wants one; not filed, since
+>   nothing else needs it.
+> - `timeline/TimelineRow`'s row itself (a selectable list row with chips, a `ListRow` for `ui-117`).
+>
+> **The allow-list** (`src/styles/guard-allowlist.json`) counts style literals, not button rules, so this stage lowered the
+> `style-font` entries for `FormulaInsertList`, `ParamBindPopover`, `HelpSheet` and `TimelineRow` by one each. Each file still
+> listed holds literals for its own non-button rules, and `ui-118` empties them.
+>
+> **Retirement.** Acceptance 1, 4 and 7 re-driven with trusted touch in stage 3 (no toolbar changed in stage 4); 10 by the
+> dialog specs; 24 needs a real API key and was not driven. `ui-085` and `ui-087` repros passed in stage 3. Stage 4's e2e ran
+> on the rotating pair firefox-laptop and webkit-phone.
 
 > **Decided 2026-11-10** (`ui-111`, decision 1): base components live in the existing folders. These
 > go in `src/components/controls/`.
