@@ -134,4 +134,9 @@ L. Each migration is S–M and independently shippable.
   `ui-085` (Library sheet scrolls sideways in Safari), `ui-086` and `ui-087` (Align popover and
   popovers hiding targets), `io-017` (the gist dialog's bottom sheet), `testing-008` (Split sheet).
 
+## Regression found after close
+
+2026-11-14: the Split sheet's phone grid rules (`body :global(.sheet.split) > .split__*`) compiled to rules on the frame itself, so the Pieces list was 189 px wide instead of 364 px on the phone projects. ui-116's e2e run used `chromium-tablet` and `webkit-laptop`, which did not catch it. Fixed in the commit "fix(ui): the Split sheet's phone grid rules apply again"; see `TROUBLESHOOTING.md` and `src/components/layout/scopedGlobalCombinator.spec.js`.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+

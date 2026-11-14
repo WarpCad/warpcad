@@ -682,14 +682,14 @@ body :global(.sheet.split) {
     gap: 6px 10px;
   }
 
-  body :global(.sheet.split) > .split__title,
-  body :global(.sheet.split) > .split__toggle,
-  body :global(.sheet.split) > .split__kinds,
-  body :global(.sheet.split) > .split__hint,
-  body :global(.sheet.split) > .split__pieces,
-  body :global(.sheet.split) > .split__problem,
-  body :global(.sheet.split) > .split__warning,
-  body :global(.sheet.split) > .split__actions {
+  .split > .split__title,
+  .split > .split__toggle,
+  .split > .split__kinds,
+  .split > .split__hint,
+  .split > .split__pieces,
+  .split > .split__problem,
+  .split > .split__warning,
+  .split > .split__actions {
     grid-column: 1 / -1;
   }
 
@@ -704,7 +704,7 @@ body :global(.sheet.split) {
     max-height: 42dvh;
   }
 
-  body :global(.sheet.split) > .split__actions {
+  .split > .split__actions {
     position: sticky;
     bottom: calc(-12px - var(--layout-safe-bottom));
     margin: 0 -12px calc(-12px - var(--layout-safe-bottom));

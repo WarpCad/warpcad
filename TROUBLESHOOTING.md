@@ -479,6 +479,16 @@ Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). 
 
 **Steps taken to resolve:** Read the on-screen error, then built and installed a bundled build and confirmed the viewport rendered.
 
+### 2026-11-14 — `body :global(.sheet.split) > .child` in a scoped style silently styles the frame
+
+**What happened:** After the Split sheet moved onto BaseSheet (`TODO/ui-116`), the phone sheet's Pieces list was 189 px wide instead of 364 px, and `number-entry` and `print-prep-keys` screenshots failed on the `firefox-phone` and `chromium-laptop` pair. ui-116's own run used `chromium-tablet` and `webkit-laptop`, so it never ran the phone-width Split snapshots.
+
+**Why it happened:** Vue's scoped-style compiler keeps only the `:global(...)` part of a selector that has anything after it, so `body :global(.sheet.split) > .split__pieces { grid-column: 1 / -1 }` compiled to `.sheet.split { grid-column: 1 / -1 }`. The child rules never applied, and the pieces list, the actions row and the hints fell into one grid column.
+
+**Fix / Prevention:** write the child rules as `.split > .split__pieces` (the frame's class is not scoped). `src/components/layout/scopedGlobalCombinator.spec.js` fails on any scoped `:global(...)` followed by a combinator or selector.
+
+**Steps taken to resolve:** Ran `compileStyle` on the selector, saw the output, rewrote the nine child selectors.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]
