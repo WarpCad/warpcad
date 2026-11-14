@@ -201,3 +201,39 @@ test('the variable-usage dialog traps Tab and Escape cancels it', async ({ page 
   await expect(dialog).toHaveCount(0)
   await expect(page.getByTestId('variable-row-board')).toBeVisible()
 })
+
+test('the Share sheet is modal: Tab stays inside, the clear scrim catches a click, Escape closes it', async ({ page }, info) => {
+  await page.goto('/')
+  await expect(page.getByTestId('app-header')).toBeVisible()
+  // Nothing in the scene still opens the sheet (with only the reason in it); the frame is the same.
+  // The header's Share button, or the request File ▾ → Share… makes where the row has no room for it (the phone header).
+  const openShare = async () => {
+    const button = page.getByTestId('share-open')
+    if (await button.isVisible()) {
+      await button.focus()
+      await page.keyboard.press('Enter')
+    } else {
+      // File ▾ → Share… is dimmed with nothing in the scene; it asks for the sheet through this store.
+      await page.evaluate(async () => {
+        const { useShareStore } = await /** @type {any} */ (window).__e2eImport('/src/stores/share.js')
+        useShareStore().requestSheet()
+      })
+    }
+  }
+  await openShare()
+  const sheet = page.getByTestId('share-sheet')
+  await expect(sheet).toBeVisible()
+  await expect(sheet).toHaveAttribute('aria-modal', 'true')
+  await expectTabStaysIn(page, 'share-sheet')
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `share-sheet-${info.project.name}.png`) })
+  await page.keyboard.press('Escape')
+  await expect(sheet).toHaveCount(0)
+
+  await openShare()
+  await expect(sheet).toBeVisible()
+  // The scrim is clear (it never dims) but it is there: a click on it closes the sheet.
+  const backdrop = page.getByTestId('share-backdrop')
+  await expect(backdrop).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await backdrop.click({ position: { x: 4, y: 4 } })
+  await expect(sheet).toHaveCount(0)
+})

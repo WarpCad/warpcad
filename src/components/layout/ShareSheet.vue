@@ -39,11 +39,10 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 
-import HelpButton from '../controls/HelpButton.vue'
+import BaseSheet from './BaseSheet.vue'
 import DescriptionHint from './DescriptionHint.vue'
 import ShareGistGroup from './ShareGistGroup.vue'
 import { useGistPublish } from '../../composables/useGistPublish.js'
-import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { parseNdjson } from '../../core/ndjson.js'
 import { serializeProject } from '../../core/project.js'
 import { shareFileName } from '../../core/shareCopy.js'
@@ -127,8 +126,6 @@ const canSend = computed(() => {
     return false
   }
 })
-
-const popoverStyle = computed(() => ({ '--layout-share-top': `${anchor.value.top}px`, '--layout-share-right': `${anchor.value.right}px` }))
 
 /** The project as records, at the moment the sheet opens. */
 function projectRecords() {
@@ -256,8 +253,8 @@ watch(
   },
 )
 
-// The gist token dialog opens over the sheet; its Escape is the File menu's, not the sheet's.
-useEscapeToClose(() => open.value && !menu.gistConnectOpen, closeSheet)
+// The gist token dialog opens over the sheet; its Escape is the File menu's, not the sheet's, so
+// the sheet leaves the overlay stack (`:stack` on the BaseSheet) while that dialog is open.
 // `TODO/io-017`: which GitHub account is connected, for the gist group and the chip (no network).
 onMounted(() => void gist.start().catch(() => {}))
 watch(open, (isOpen) => overlays.setOpen('share-sheet', isOpen))
@@ -297,94 +294,102 @@ onBeforeUnmount(() => {
       <span class="share-chip__label">{{ chipText }}</span>
     </span>
 
-    <Teleport to="body">
-      <template v-if="open">
-        <div class="share-backdrop" data-testid="share-backdrop" @click="closeSheet()" />
-        <section class="share-sheet" role="dialog" aria-label="Share" data-testid="share-sheet" :style="popoverStyle">
-          <div class="share-sheet__head">
-            <h2 class="share-sheet__title">Share</h2>
-            <HelpButton topic="share" class="share-sheet__help" />
-          </div>
+    <BaseSheet
+      :open="open"
+      modal
+      scrim="clear"
+      card
+      width="360px"
+      :top="`${anchor.top}px`"
+      :right="`${anchor.right}px`"
+      :stack="!menu.gistConnectOpen"
+      class="share-sheet"
+      testid="share-sheet"
+      backdrop-testid="share-backdrop"
+      title="Share"
+      help-topic="share"
+      @backdrop="closeSheet()"
+      @escape="closeSheet()"
+    >
+      <p v-if="empty" class="share-sheet__empty" data-testid="share-empty">
+        {{ EMPTY_REASON }}. Place a shape first, then tap Share.
+      </p>
 
-          <p v-if="empty" class="share-sheet__empty" data-testid="share-empty">
-            {{ EMPTY_REASON }}. Place a shape first, then tap Share.
-          </p>
+      <template v-else>
+        <label class="share-sheet__field">
+          Name
+          <input
+            ref="nameInput"
+            v-model="name"
+            class="share-sheet__input"
+            type="text"
+            autocomplete="off"
+            autocapitalize="sentences"
+            maxlength="200"
+            data-testid="share-name"
+            @blur="onNameBlur()"
+          />
+        </label>
 
-          <template v-else>
-            <label class="share-sheet__field">
-              Name
-              <input
-                ref="nameInput"
-                v-model="name"
-                class="share-sheet__input"
-                type="text"
-                autocomplete="off"
-                autocapitalize="sentences"
-                maxlength="200"
-                data-testid="share-name"
-                @blur="onNameBlur()"
-              />
-            </label>
+        <p v-if="tooBig" class="share-sheet__too-big" role="alert" data-testid="share-too-big">
+          This project is too big to send as a link ({{ sizeText }}). Publish it as a gist below for a short
+          link, or send the file.
+        </p>
+        <div v-else class="share-sheet__actions">
+          <BaseButton
+            v-if="canSend"
+            variant="primary"
+            size="large"
+            fill
+            data-testid="share-send"
+            :disabled="!link"
+            @click="send()"
+          >
+            Send…
+          </BaseButton>
+          <BaseButton
+            :variant="canSend ? 'default' : 'primary'"
+            size="large"
+            fill
+            data-testid="share-copy"
+            :disabled="!link"
+            @click="copy()"
+          >
+            Copy link
+          </BaseButton>
+        </div>
 
-            <p v-if="tooBig" class="share-sheet__too-big" role="alert" data-testid="share-too-big">
-              This project is too big to send as a link ({{ sizeText }}). Publish it as a gist below for a short
-              link, or send the file.
-            </p>
-            <div v-else class="share-sheet__actions">
-              <BaseButton
-                v-if="canSend"
-                variant="primary"
-                size="large"
-                fill
-                data-testid="share-send"
-                :disabled="!link"
-                @click="send()"
-              >
-                Send…
-              </BaseButton>
-              <BaseButton
-                :variant="canSend ? 'default' : 'primary'"
-                size="large"
-                fill
-                data-testid="share-copy"
-                :disabled="!link"
-                @click="copy()"
-              >
-                Copy link
-              </BaseButton>
-            </div>
+        <!-- TODO/ui-091: what the recipient will see first; Edit… / Add… open Project settings. -->
+        <DescriptionHint @edit="closeSheet()" />
 
-            <!-- TODO/ui-091: what the recipient will see first; Edit… / Add… open Project settings. -->
-            <DescriptionHint @edit="closeSheet()" />
+        <p v-if="problem" class="share-sheet__problem" role="alert" data-testid="share-problem">{{ problem }}</p>
+        <textarea
+          v-if="manualText"
+          ref="manualField"
+          class="share-sheet__manual"
+          readonly
+          rows="3"
+          data-testid="share-link-text"
+          :value="manualText"
+        />
 
-            <p v-if="problem" class="share-sheet__problem" role="alert" data-testid="share-problem">{{ problem }}</p>
-            <textarea
-              v-if="manualText"
-              ref="manualField"
-              class="share-sheet__manual"
-              readonly
-              rows="3"
-              data-testid="share-link-text"
-              :value="manualText"
-            />
+        <BaseButton
+          variant="link"
+          class="share-sheet__file"
+          data-testid="share-file"
+          @click="sendFile()"
+        >
+          Send the file
+        </BaseButton>
 
-            <BaseButton
-              variant="link"
-              class="share-sheet__file"
-              data-testid="share-file"
-              @click="sendFile()"
-            >
-              Send the file
-            </BaseButton>
+        <p class="share-sheet__disclosure" data-testid="share-disclosure">
+          Anyone with this link can open and copy this project, including its notes. It can't be taken back.
+        </p>
 
-            <p class="share-sheet__disclosure" data-testid="share-disclosure">
-              Anyone with this link can open and copy this project, including its notes. It can't be taken back.
-            </p>
-
-            <ShareGistGroup :too-big="tooBig" :name="shareName" @toast="showToast" />
-          </template>
-        </section>
+        <ShareGistGroup :too-big="tooBig" :name="shareName" @toast="showToast" />
       </template>
+    </BaseSheet>
+    <Teleport to="body">
       <div class="share-toast" role="status" aria-live="polite" data-testid="share-toast" :data-visible="toast ? 'true' : 'false'">
         <template v-if="toast">{{ toast }}</template>
       </div>
@@ -461,52 +466,16 @@ onBeforeUnmount(() => {
   background: var(--accent-secondary);
 }
 
-/* The click-catcher at the popover tier (File ▾'s 30/31). */
-.share-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  background: transparent;
-}
-
-/* Phone first: a bottom sheet. */
-.share-sheet {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 31;
-  box-sizing: border-box;
-  max-height: 86dvh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+/* The frame is `BaseSheet`; its spacing stays this sheet's own (10px rhythm, 16px sides) so the
+   layout, and the pictures of it, did not move. */
+body :global(.sheet.share-sheet) {
   gap: 10px;
-  padding: 12px 16px calc(12px + var(--layout-safe-bottom));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: var(--font);
-  box-shadow: var(--shadow-overlay);
+  padding-inline: 16px;
 }
 
-.share-sheet__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.share-sheet__title {
-  margin: 0;
+body :global(.sheet.share-sheet .sheet__title) {
   font-size: 15px;
   font-weight: 650;
-}
-
-/* The 44px target overhangs the title line rather than growing the header (`TODO/ui-061`). */
-.share-sheet__help {
-  margin: -12px -8px -12px 0;
 }
 
 .share-sheet__empty {
@@ -583,7 +552,7 @@ onBeforeUnmount(() => {
   position: fixed;
   top: 60px;
   left: 50%;
-  z-index: 60;
+  z-index: var(--z-toast);
   max-width: calc(100vw - 32px);
   padding: 8px 14px;
   border: 1px solid var(--border-strong);
@@ -634,20 +603,6 @@ onBeforeUnmount(() => {
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
-  }
-}
-
-/* Wider than a phone: a popover under the button. */
-@media (min-width: 641px) {
-  .share-sheet {
-    top: var(--layout-share-top, 56px);
-    right: var(--layout-share-right, 8px);
-    bottom: auto;
-    left: auto;
-    width: min(360px, calc(100vw - 16px));
-    max-height: calc(100dvh - var(--layout-share-top, 56px) - 12px);
-    border-radius: var(--radius-lg);
-    padding-bottom: 12px;
   }
 }
 </style>
