@@ -58,6 +58,7 @@
 
     /* Lighter than the dark theme's scrim, so a dialog over a light page does not turn it grey-black. */
     --scrim: var(--ink-35);
+    --overlay-drop: var(--ink-35);
 
     --shadow-overlay: 0 6px 24px var(--ink-18);
   }
@@ -111,6 +112,7 @@
 
   /* Lighter than the dark theme's scrim, so a dialog over a light page does not turn it grey-black. */
   --scrim: var(--ink-35);
+  --overlay-drop: var(--ink-35);
 
   --shadow-overlay: 0 6px 24px var(--ink-18);
 }

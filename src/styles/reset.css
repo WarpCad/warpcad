@@ -23,3 +23,14 @@ body {
 #app {
   height: 100%;
 }
+
+/* One reduced-motion rule for the whole app (`TODO/ui-118`): the transition and short-animation durations are
+   tokens, so zeroing them here stops every one of them. Not covered on purpose: the looping spinners and
+   pulses (each carries its own rule), and the tier crossfade, which `useTierCrossfade` times in script
+   (`TODO/ui-079`). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-1: 0ms;
+    --duration-2: 0ms;
+  }
+}

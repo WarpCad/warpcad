@@ -41,6 +41,10 @@
   --text-size-lg: var(--font-size-5);
   --text-size-xl: var(--font-size-6);
   --text-size-2xl: var(--font-size-7);
+  /* The two roles that are not steps: the 15px dialog and sheet title, and the 20px display glyph or heading. */
+  --text-size-title: var(--font-size-8);
+  --text-size-display: var(--font-size-9);
+  --weight-regular: var(--font-weight-0);
   --weight-medium: var(--font-weight-1);
   --weight-bold: var(--font-weight-2);
 
@@ -55,6 +59,8 @@
      over a lower one, whatever its own frame number: popover 30/31 is under modal 40/41. */
   --z-canvas-overlay: 0;
   --z-panel: 10;
+  /* The phone Library sheet. */
+  --z-sheet: 20;
   --z-chat: 25;
   /* A docked, non-modal sheet (Repeat): beside the popovers, and under the phone Library sheet (20). */
   --z-dock: 30;
@@ -91,7 +97,7 @@
 /* At phone width a docked sheet drops under the Library sheet (20) so the Library can open over it. */
 @media (max-width: 640px) {
   :root {
-    --z-dock: 19;
+    --z-dock: calc(var(--z-sheet) - 1);
   }
 }
 

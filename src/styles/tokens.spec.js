@@ -22,13 +22,13 @@ const THEMED = [
   '--surface-0', '--surface-1', '--surface-2', '--surface-glass', '--border', '--border-strong',
   '--text-1', '--text-2', '--text-3', '--accent', '--accent-contrast', '--axis-x', '--axis-y',
   '--snap-guide', '--accent-secondary', '--hover-highlight', '--role-moving', '--role-target',
-  '--sketch-stroke', '--danger', '--warn', '--shadow-overlay', '--scrim',
+  '--sketch-stroke', '--danger', '--warn', '--shadow-overlay', '--scrim', '--overlay-drop',
 ]
 
 const SCALES = [
   '--space-1', '--space-8', '--font-size-1', '--font-size-7', '--radius-1', '--radius-3', '--duration-1', '--duration-2',
   '--text-size-2xs', '--text-size-xs', '--text-size-sm', '--text-size-md', '--text-size-lg', '--text-size-xl', '--text-size-2xl',
-  '--weight-medium', '--weight-bold',
+  '--weight-regular', '--weight-medium', '--weight-bold', '--text-size-title', '--text-size-display', '--z-sheet',
   '--z-canvas-overlay', '--z-panel', '--z-chat', '--z-popover', '--z-modal', '--z-help', '--z-toast',
   '--radius-pill', '--radius-round', '--duration-fast', '--duration-base', '--ease-standard',
   '--scrim', '--focus-ring', '--shadow-popover',
