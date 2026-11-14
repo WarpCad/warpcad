@@ -26,6 +26,7 @@ import { usePersistenceStore } from '../../stores/persistence.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseBanner from '../display/BaseBanner.vue'
 
 const update = useAppUpdateStore()
 const persistence = usePersistenceStore()
@@ -44,17 +45,15 @@ const safe = computed(() =>
 
 <template>
   <div class="update-slot" role="status" aria-live="polite">
-    <div v-if="update.needRefresh" class="update-strip" data-testid="pwa-update-toast">
-      <p class="update-strip__text" data-testid="pwa-update-text">
-        A new version of WarpCad is available.
-        <span class="update-strip__version" data-testid="pwa-update-current">You are on {{ update.buildLabel }}.</span>
-        <template v-if="update.confirming">
-          <strong data-testid="pwa-update-confirm-text">
-            You have work in progress. The project is saved, but an open pop-up, drag or unfinished edit will be lost. Reload anyway?
-          </strong>
-        </template>
-      </p>
-      <div class="update-strip__actions">
+    <BaseBanner v-if="update.needRefresh" layout="dock" data-testid="pwa-update-toast" text-testid="pwa-update-text">
+      A new version of WarpCad is available.
+      <span class="update-strip__version" data-testid="pwa-update-current">You are on {{ update.buildLabel }}.</span>
+      <template v-if="update.confirming">
+        <strong data-testid="pwa-update-confirm-text">
+          You have work in progress. The project is saved, but an open pop-up, drag or unfinished edit will be lost. Reload anyway?
+        </strong>
+      </template>
+      <template #actions>
         <BaseButton
           v-if="!update.confirming"
           variant="primary"
@@ -80,11 +79,11 @@ const safe = computed(() =>
         >
           Later
         </BaseButton>
-      </div>
-    </div>
-    <div v-else-if="update.offlineReady" class="update-strip" data-testid="pwa-offline-ready">
-      <p class="update-strip__text">WarpCad is ready to work offline.</p>
-      <div class="update-strip__actions">
+      </template>
+    </BaseBanner>
+    <BaseBanner v-else-if="update.offlineReady" layout="dock" data-testid="pwa-offline-ready">
+      WarpCad is ready to work offline.
+      <template #actions>
         <BaseButton
           narrow
           data-testid="pwa-offline-ready-dismiss"
@@ -93,38 +92,13 @@ const safe = computed(() =>
         >
           OK
         </BaseButton>
-      </div>
-    </div>
+      </template>
+    </BaseBanner>
   </div>
 </template>
 
 <style scoped>
-.update-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 4px 8px 4px 14px;
-  padding-bottom: max(4px, var(--layout-safe-bottom));
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
-  color: var(--text-1);
-}
-
-.update-strip__text {
-  flex: 1 1 14em;
-  min-width: 0;
-  margin: 0;
-  font-size: 13px;
-}
-
 .update-strip__version {
   color: var(--text-2);
 }
-
-.update-strip__actions {
-  display: flex;
-  gap: 6px;
-}
-
 </style>

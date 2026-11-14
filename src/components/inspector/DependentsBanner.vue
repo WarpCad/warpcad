@@ -11,7 +11,7 @@
  *
  * Both carry **Resolve…** (`dependents-resolve`), which reopens the repair dialog on the
  * breakages against the body whose parts are missing. The banner wraps; at phone width it
- * collapses to one line plus Resolve…, so it cannot push the Parameters section's first
+ * collapses to one line plus Resolve… (`BaseBanner`'s `truncate`), so it cannot push the Parameters section's first
  * field below the Inspector sheet's peek height.
  */
 import { computed } from 'vue'
@@ -19,6 +19,7 @@ import { computed } from 'vue'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseBanner from '../display/BaseBanner.vue'
 
 const props = defineProps({
   body: {
@@ -72,57 +73,24 @@ function resolve(bodyId) {
 </script>
 
 <template>
-  <div v-if="dependents.length > 0" class="banner" role="status" data-testid="dependents-banner">
-    <p class="banner__text">{{ dependentsText }}</p>
-    <BaseButton class="banner__btn" narrow data-testid="dependents-resolve" @click="resolve(body.id)">Resolve…</BaseButton>
-  </div>
-  <div
+  <BaseBanner v-if="dependents.length > 0" tone="warn" layout="box" truncate role="status" data-testid="dependents-banner">
+    {{ dependentsText }}
+    <template #actions>
+      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(body.id)">Resolve…</BaseButton>
+    </template>
+  </BaseBanner>
+  <BaseBanner
     v-for="reference in references"
     :key="reference.recordId"
-    class="banner"
+    tone="warn"
+    layout="box"
+    truncate
     role="status"
     data-testid="references-banner"
   >
-    <p class="banner__text">{{ referenceText(reference) }}</p>
-    <BaseButton class="banner__btn" narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">
-      Resolve…
-    </BaseButton>
-  </div>
+    {{ referenceText(reference) }}
+    <template #actions>
+      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">Resolve…</BaseButton>
+    </template>
+  </BaseBanner>
 </template>
-
-<style scoped>
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
-  padding: 6px 8px;
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-}
-
-.banner__text {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-1);
-  overflow-wrap: anywhere;
-}
-
-.banner__btn {
-  flex-shrink: 0;
-}
-
-/* Phone: one line plus Resolve…, so the Parameters section's first field stays within
-   the sheet's peek height. The full sentence is still the element's text for a reader. */
-@media (max-width: 640px) {
-  .banner__text {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-}
-</style>

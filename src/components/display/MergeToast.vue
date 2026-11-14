@@ -19,20 +19,20 @@
  */
 import { useMergeStore } from '../../stores/merge.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseBanner from './BaseBanner.vue'
 
 const merge = useMergeStore()
 </script>
 
 <template>
   <div class="merge-toast-slot" role="status" aria-live="polite">
-    <div
+    <BaseBanner
       v-if="merge.notice && merge.notice.kind === 'toast'"
-      class="merge-strip"
+      :tone="merge.notice.tone === 'error' ? 'danger' : 'info'"
       :data-tone="merge.notice.tone"
       data-testid="merge-toast"
-    >
-      <p class="merge-strip__text" data-testid="merge-toast-text">{{ merge.notice.text }}</p>
-      <div class="merge-strip__actions">
+      text-testid="merge-toast-text"
+    >{{ merge.notice.text }}<template #actions>
         <BaseButton
           v-if="merge.notice.undoable && merge.canUndo"
           narrow
@@ -51,58 +51,20 @@ const merge = useMergeStore()
         >
           ✕
         </BaseButton>
-      </div>
-      <p v-if="merge.undoRefusal" class="merge-strip__refusal" role="alert" data-testid="merge-undo-refusal">
-        {{ merge.undoRefusal }}
-      </p>
-    </div>
+      </template>
+      <template v-if="merge.undoRefusal" #footer>
+        <p class="merge-toast__refusal" role="alert" data-testid="merge-undo-refusal">{{ merge.undoRefusal }}</p>
+      </template>
+    </BaseBanner>
   </div>
 </template>
 
 <style scoped>
-.merge-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 2px 8px 2px 14px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
-  color: var(--text-1);
-}
-
-.merge-strip[data-tone='error'] {
-  background: color-mix(in srgb, var(--danger) 14%, var(--surface-1));
-}
-
-.merge-strip__text {
-  flex: 1 1 12em;
-  min-width: 0;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.merge-strip__actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-}
-
-.merge-strip__refusal {
-  flex: 1 0 100%;
+.merge-toast__refusal {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--danger);
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 480px) {
-  .merge-strip {
-    padding-left: 10px;
-  }
 }
 </style>

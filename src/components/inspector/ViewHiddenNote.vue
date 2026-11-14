@@ -16,6 +16,7 @@ import { computed } from 'vue'
 
 import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
 import { useDocumentStore } from '../../stores/document.js'
+import BaseBanner from '../display/BaseBanner.vue'
 
 const props = defineProps({
   /** The Inspector's `BodyDescription` — `id`, and `subPart` while drilled into one part. */
@@ -47,19 +48,13 @@ function onShow() {
 </script>
 
 <template>
-  <p v-if="hidden" class="note" data-testid="inspector-view-hidden" role="status">
+  <BaseBanner v-if="hidden" layout="note" role="status" data-testid="inspector-view-hidden">
     Hidden in the view ·
     <button type="button" class="note__show" data-testid="inspector-view-hidden-show" @click="onShow">Show</button>
-  </p>
+  </BaseBanner>
 </template>
 
 <style scoped>
-.note {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: var(--text-2);
-}
-
 .note__show {
   min-height: var(--tap);
   padding: 0 4px;

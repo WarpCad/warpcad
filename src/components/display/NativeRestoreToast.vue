@@ -16,6 +16,8 @@
 import { onBeforeUnmount, watch } from 'vue'
 
 import { usePersistenceStore } from '../../stores/persistence.js'
+import BaseButton from '../controls/BaseButton.vue'
+import BaseBanner from './BaseBanner.vue'
 
 /** How long the toast stays, ms. */
 const LINGER_MS = 12_000
@@ -41,66 +43,20 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="native-restore-slot" role="status" aria-live="polite">
-    <div v-if="persistence.nativeRestoreNotice" class="native-restore-toast" data-testid="native-restore-toast">
-      <p class="native-restore-toast__text">Restored your last session from the app's backup copy.</p>
-      <button
-        type="button"
-        class="native-restore-toast__dismiss"
-        data-testid="native-restore-toast-dismiss"
-        aria-label="Dismiss"
-        title="Dismiss"
-        @click="persistence.dismissNativeRestoreNotice()"
-      >
-        ✕
-      </button>
-    </div>
+    <BaseBanner v-if="persistence.nativeRestoreNotice" data-testid="native-restore-toast">
+      Restored your last session from the app's backup copy.
+      <template #actions>
+        <BaseButton
+          variant="quiet"
+          narrow
+          data-testid="native-restore-toast-dismiss"
+          aria-label="Dismiss"
+          title="Dismiss"
+          @click="persistence.dismissNativeRestoreNotice()"
+        >
+          ✕
+        </BaseButton>
+      </template>
+    </BaseBanner>
   </div>
 </template>
-
-<style scoped>
-.native-restore-toast {
-  display: flex;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 2px 8px 2px 14px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
-  color: var(--text-1);
-}
-
-.native-restore-toast__text {
-  flex: 1 1 12em;
-  min-width: 0;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.native-restore-toast__dismiss {
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-2);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.native-restore-toast__dismiss:hover,
-.native-restore-toast__dismiss:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-  outline: none;
-}
-
-@media (max-width: 480px) {
-  .native-restore-toast {
-    padding-left: 10px;
-  }
-}
-</style>
