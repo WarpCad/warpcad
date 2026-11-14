@@ -475,8 +475,8 @@ function onInspectorClaim() {
 
 .app__title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--text-size-title);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.02em;
   color: var(--text-1);
 }
@@ -491,7 +491,7 @@ function onInspectorClaim() {
 
 .app__version {
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.2;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
@@ -506,7 +506,7 @@ function onInspectorClaim() {
   }
 
   .app__version {
-    font-size: 10px;
+    font-size: var(--text-size-2xs);
   }
 }
 
@@ -515,7 +515,7 @@ function onInspectorClaim() {
      this the shrinkable bar would take part of the squeeze while the hint still had room. */
   flex-shrink: 1000;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
   /* Never force horizontal scrolling of primary UI at phone width
      (CLAUDE.md Responsive Layout). */
@@ -608,6 +608,13 @@ function onInspectorClaim() {
      the class of bug a passing spec cannot see. Zero at widths where the
      Library is a column instead of a sheet. */
   --layout-viewport-bottom-inset: var(--layout-safe-bottom);
+  /* Defaults for the layout variables only some states set, so every reader can use var(--x) bare
+     (`TODO/ui-118`): the chip room the viewport sets while a placement is armed, the Inspector's and
+     the Library's lift above a stacked tab, and the linked chat sheet's height (inline when measured). */
+  --layout-placement-chip-room: 0px;
+  --layout-inspector-bottom: var(--layout-library-tab-height);
+  --layout-library-bottom: 0px;
+  --layout-chat-linked-height: 160px;
   /* Height of the Library sheet's collapsed tab. The Inspector sheet stacks
      directly on top of it rather than over it, so it reads the same number. */
   --layout-library-tab-height: calc(52px + var(--layout-safe-bottom));
@@ -727,7 +734,7 @@ function onInspectorClaim() {
    History, chat) is a `max-width: 640px` media query, and the grid has to agree with them exactly. */
 @media (min-width: 641px) {
   .app__body {
-    grid-template-columns: var(--layout-library-width, 200px) 1fr var(--layout-inspector-width, 220px);
+    grid-template-columns: var(--layout-library-width) 1fr var(--layout-inspector-width);
   }
 
   /* `TODO/ui-079` stage 7: only a *tier* change animates the tracks. The store sets this flag for
@@ -736,7 +743,7 @@ function onInspectorClaim() {
      and the new tracks land in the same style change, which is what starts the transition. All
      three engines interpolate these `var()`-built tracks (the e2e samples the in-between widths). */
   .app__body[data-panel-animating] {
-    transition: grid-template-columns 180ms ease-out;
+    transition: grid-template-columns var(--duration-base) ease-out;
   }
 }
 
@@ -799,12 +806,12 @@ function onInspectorClaim() {
   .app__title {
     /* `TODO/ui-075`: Firefox counts the bar's right padding in `scrollWidth`, so the row has to
        end inside the padding, not just inside the viewport; 13px with no tracking buys ~9px. */
-    font-size: 13px;
+    font-size: var(--text-size-md);
     letter-spacing: 0;
   }
 
   .app__hint {
-    font-size: 11px;
+    font-size: var(--text-size-xs);
   }
 }
 
@@ -826,7 +833,7 @@ function onInspectorClaim() {
 
   /* `TODO/ui-071`: an MCP agent is connected, so the sheet is its measured compact height. */
   .app__body[data-chat-sheet='linked'] {
-    --layout-viewport-bottom-inset: calc(var(--layout-chat-linked-height, 160px) + 12px);
+    --layout-viewport-bottom-inset: calc(var(--layout-chat-linked-height) + 12px);
   }
 }
 
@@ -835,7 +842,7 @@ function onInspectorClaim() {
   /* The fourth track stays on this media query so it always agrees with `ChatPanel.vue`'s own
      sheet-or-column switch (`max-width: 1099px`); the store takes the same 340px off `E`. */
   .app__body:not([data-chat-sheet='none']) {
-    grid-template-columns: var(--layout-library-width, 200px) 1fr var(--layout-inspector-width, 280px) 340px;
+    grid-template-columns: var(--layout-library-width) 1fr var(--layout-inspector-width) 340px;
   }
 
   .app__body > :deep(.chat) {

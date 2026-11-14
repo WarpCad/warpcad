@@ -60,8 +60,7 @@
       "src/components/viewport/SketchToolbar.vue": 9,
       "src/components/viewport/TranslateRuler.vue": 2,
       "src/components/viewport/Viewport.vue": 1,
-      "src/components/viewport/ViewportContextBanner.vue": 2,
-      "src/views/AppView.vue": 7
+      "src/components/viewport/ViewportContextBanner.vue": 2
     },
     "style-var-fallback": {
       "src/components/layout/LibraryPanel.vue": 1,
@@ -70,8 +69,7 @@
       "src/components/viewport/Grid.vue": 4,
       "src/components/viewport/NavigationChrome.vue": 8,
       "src/components/viewport/OperationsToolbar.vue": 1,
-      "src/components/viewport/PlacementSession.vue": 1,
-      "src/views/AppView.vue": 5
+      "src/components/viewport/PlacementSession.vue": 1
     },
     "js-color": {}
   }

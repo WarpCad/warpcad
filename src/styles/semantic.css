@@ -72,6 +72,9 @@
   --z-help-frame: calc(var(--z-help) + 1);
   --z-toast: 60;
 
+  /* The Library rail's width when a pop-out is drawn outside `.app__body` (AppView sets the live value inline). */
+  --layout-library-width: 72px;
+
   /* The focus ring: written 43 times as these two declarations today. */
   --focus-ring: 2px solid var(--accent);
 
