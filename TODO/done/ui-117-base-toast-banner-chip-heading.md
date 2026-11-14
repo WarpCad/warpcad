@@ -6,8 +6,46 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112, ui-114]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14, five commits, one base part each).**
+> 1. **`BaseToast`, `stores/toasts.js`, `layout/ToastHost.vue`.** `show({ text, key?, tone?, testid?, lingerMs?, action?, link? })`
+>    queues; `DEFAULT_LINGER_MS` is 5 s for every source (the gist toast keeps 6 s because it carries a button). Each toast runs its own
+>    clock, a second toast never replaces the first, and a repeat of the same `key` replaces its own earlier toast in place (so *Link copied* twice is one
+>    pill, as before, and the existing `toHaveText` specs still see one element). `danger` toasts are `role="alert"`. The host is mounted once in
+>    `AppView.vue` at `--z-toast` and stacks the pills. `ShareSheet`, `SaveToLibrarySheet` (through `stores/library.js`) and the gist toast
+>    (through `stores/fileMenu.js`, whose **Copy link** is the toast's `action` and whose failed copy shows a read-only `link` field) raise toasts on
+>    the queue; their `data-testid`s are unchanged. The library's "Could not ..." toasts are now danger. `e2e/toast-queue.e2e.js` copies a link, then saves to
+>    the library, and asserts both toasts are visible and do not overlap (Chromium, phone, tablet, laptop, a snapshot at each).
+> 2. **`BaseBanner`** (`tone` of info, warn or danger; `layout` of strip, dock, box or note; `truncate`; actions and footer slots).
+>    `MergeBanner`, `MergeToast`, `RepeatToast`, `NativeRestoreToast`, `UpdateToast`, `DependentsBanner` and `ViewHiddenNote` render through it.
+>    **Deviation from the finding:** `UpdateToast` (and `NativeRestoreToast`) went to `BaseBanner`, not `BaseToast`. They are in-flow strips by
+>    design (they must push the viewport rather than cover the navigation chrome, `build-005`), which is the banner's `dock` and `strip` layouts, not a floating pill.
+>    `RepeatToast` and `NativeRestoreToast` keep their own timers (their logic, per the finding).
+> 3. **`BaseChip`** (`tone`, `size` of sm, md, lg or tap, `dot` with `dotTone` and `pulse`, a `leading` slot, `dashed`, `as="button"`). Moved:
+>    `AiWorkingChip`, `BridgeChip`, `WebMcpChip`, the Share sheet's gist chip and the five History row chips in `TimelineRow`. The `ai-working-chip`
+>    docs picture still matches (`testing-010` stays closed). **Not moved, with reasons:** `SaveStatus` (a borderless status line, not a pill),
+>    `ParamBoundChip` (a name button, a value and a menu, not one chip), `PlacementSession`'s chip (a positioned glass card around a Cancel button) and
+>    `ChatPanel`'s `chat__chip` (already `BaseButton`s since `ui-114`). That is four of the nine; five of the nine named plus the History chips are on `BaseChip`.
+> 4. **`SectionHeading`** at **12 px** (`--text-size-sm`): the four panel headings keep their size, and the Inspector's Color, Parts and Transform
+>    titles, `ParamFields`' title and `ConditionRow`'s title grow from 11 px. **`VisuallyHidden`** is a component plus `src/styles/utilities.css`
+>    (`.visually-hidden`, and `.visually-hidden-phone` at 640 px and `.visually-hidden-narrow` at 1099 px for the labels that hide only below a width);
+>    seven copies of the clip rule are gone. Also fixed a `ui-114` leftover in `UserPartMenu` (a dangling `.umenu__item,` selector dimmed every menu item).
+>    Twelve docs pictures regenerated.
+> 5. **`ListRow`** (leading, default and trailing slots; `selected`, `hovered`, `interactive`, `truncate`, `tag`). `ObjectList` (body rows and both kinds of part
+>    row), `LibraryRow`'s labelled catalogue line and `VariableRow`'s head are on it. **Not moved:** `TimelineRow` and `PromptsViewRow` (both expand
+>    in place), `LibraryRow`'s My parts row and tiles (a multi-line card and a different shape), `SlicePanel` (not named).
+>
+> **Waived: Storybook `*.story.e2e.js` snapshots.** The repo has no Storybook Playwright project, and CLAUDE.md says story specs do not count as
+> reachability. Stories exist for all six parts (`BaseToast`, `BaseBanner`, `BaseChip`, `SectionHeading`, `VisuallyHidden`, `ListRow`); the app-level specs
+> and the rotating engine pair are the proof, as for `ui-116`.
+>
+> **Known and not this task's.** Three e2e specs fail on `main` before this task and still fail: `number-entry.e2e.js` (Split offset screenshot) and
+> two `print-prep-keys.e2e.js` pieces-list screenshots ("Expected an image 364px by 105px, got 189px"). Confirmed at `f270f66` in a clean worktree on
+> `chromium-laptop` and `firefox-phone`. The Split sheet's width changed in `ui-116`.
+> The docs movies (`*.gif`) of the Inspector were not regenerated (`npm run docs:gifs` rewrites every GIF); `docs-media` warns that
+> `select-marquee.dark.gif` is stale against its spec.
 
 > **Decided 2026-11-10** (`ui-111`, decision 1): base components live in the existing folders. These
 > go in `src/components/display/`.
