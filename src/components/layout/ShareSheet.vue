@@ -273,9 +273,9 @@ onBeforeUnmount(() => {
       <svg class="share-button__icon" viewBox="0 0 20 20" aria-hidden="true">
         <path d="M10 2.5v10M6 6l4-3.5L14 6M4.5 10v6.5h11V10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-      <span class="share-button__label">Share</span>
+      <span class="share-button__label visually-hidden-narrow">Share</span>
     </button>
-    <span v-if="empty" id="share-open-reason" class="share-reason" data-testid="share-reason">{{ EMPTY_REASON }}</span>
+    <span v-if="empty" id="share-open-reason" class="share-reason visually-hidden-narrow" data-testid="share-reason">{{ EMPTY_REASON }}</span>
     <BaseChip
       v-else-if="gistPublish.published.value"
       class="share-chip"
@@ -285,7 +285,7 @@ onBeforeUnmount(() => {
       data-testid="share-gist-chip"
       :title="`${chipText} as a GitHub gist`"
     >
-      <span class="share-chip__label">{{ chipText }}</span>
+      <span class="share-chip__label visually-hidden-narrow">{{ chipText }}</span>
     </BaseChip>
 
     <BaseSheet
@@ -537,17 +537,6 @@ body :global(.sheet.share-sheet .sheet__title) {
     padding: 0;
     border: 0;
     pointer-events: none;
-  }
-
-  .share-button__label,
-  .share-chip__label,
-  .share-reason {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
   }
 }
 </style>

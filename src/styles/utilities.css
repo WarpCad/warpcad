@@ -1,0 +1,48 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Utility classes (`TODO/ui-117`). Visually hidden text: off screen, still in the accessibility tree.
+ * The `VisuallyHidden` component (`components/display/VisuallyHidden.vue`) is `.visually-hidden`; the two
+ * `-phone` and `-narrow` classes hide a label only below a width, where a button keeps its icon and the
+ * words stay for assistive tech. The widths match the layout's own: phone is 640px
+ * (`breakpoints.js`), narrow is below the wide header's 1100px.
+ */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .visually-hidden-phone {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (max-width: 1099px) {
+  .visually-hidden-narrow {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

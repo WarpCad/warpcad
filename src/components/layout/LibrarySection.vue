@@ -6,6 +6,7 @@
  * rows come from `src/core/library.js`; this file names no section and no recipe.
  */
 import LibraryRow from './LibraryRow.vue'
+import SectionHeading from '../display/SectionHeading.vue'
 
 defineProps({
   /** A section of `LIBRARY_SECTIONS`. */
@@ -17,9 +18,9 @@ defineProps({
 </script>
 
 <template>
-  <h2 class="library__heading" :data-testid="`library-heading-${section.id}`">
+  <SectionHeading :level="2" class="library__heading" :data-testid="`library-heading-${section.id}`">
     {{ section.title }}
-  </h2>
+  </SectionHeading>
   <!-- The primitives list keeps the bare `library-rows` id it has had since ui-010: a dozen
        existing specs open the panel by waiting on it, and renaming it would be churn with no
        reader-facing gain. Every other section is `library-rows-<id>`. -->
@@ -29,15 +30,6 @@ defineProps({
 </template>
 
 <style scoped>
-.library__heading {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
 /* A section heading that is not the first one needs room above it, or the two
    lists read as one long list with a word in the middle. Both elements carry this
    component's scope, so the rule holds across one section's list and the next's heading. */

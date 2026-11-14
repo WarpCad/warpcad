@@ -43,6 +43,7 @@ import { useLibraryStore } from '../../stores/library.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { useRepeatStore } from '../../stores/repeat.js'
 import HelpButton from '../controls/HelpButton.vue'
+import VisuallyHidden from '../display/VisuallyHidden.vue'
 import LibraryRow from './LibraryRow.vue'
 import LibraryRowPopout from './LibraryRowPopout.vue'
 import LibrarySectionPopout from './LibrarySectionPopout.vue'
@@ -250,7 +251,7 @@ onBeforeUnmount(() => {
           :title="section.title"
           :aria-label="section.title"
         >
-          <span class="library-rail__hidden">{{ section.title }}</span>
+          <VisuallyHidden>{{ section.title }}</VisuallyHidden>
         </h2>
         <ul
           class="library-rail__tiles"
@@ -270,7 +271,7 @@ onBeforeUnmount(() => {
       <!-- My parts (TODO/ui-055): still collapsible; the toggle is a tile with the count. -->
       <template v-if="form === 'tiles'">
         <h2 class="library-rail__divider" data-testid="library-heading-user" title="My parts" aria-label="My parts">
-          <span class="library-rail__hidden">My parts</span>
+          <VisuallyHidden>My parts</VisuallyHidden>
         </h2>
         <div class="library-rail__toggle-item">
           <button
@@ -395,14 +396,6 @@ onBeforeUnmount(() => {
   background: var(--border-strong);
 }
 
-.library-rail__hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
 
 .library-rail__tiles {
   display: flex;

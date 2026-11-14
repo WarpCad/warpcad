@@ -69,7 +69,7 @@ const title = computed(() => {
     @click="onClick()"
   >
     <span class="save-status__dot" aria-hidden="true" data-testid="save-status-dot" />
-    <span class="save-status__text" data-testid="save-status-text">{{ surface.text.value }}</span>
+    <span class="save-status__text visually-hidden-phone" data-testid="save-status-text">{{ surface.text.value }}</span>
   </component>
 </template>
 
@@ -162,18 +162,6 @@ const title = computed(() => {
        Redo, History and File sideways at the one width where every pixel is budgeted. */
     width: 28px;
     margin: 0 -4px;
-  }
-
-  .save-status__text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
   }
 }
 </style>

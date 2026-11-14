@@ -80,6 +80,7 @@ import HelpButton from '../controls/HelpButton.vue'
 import LibraryRail from './LibraryRail.vue'
 import LibraryRow from './LibraryRow.vue'
 import LibrarySection from './LibrarySection.vue'
+import SectionHeading from '../display/SectionHeading.vue'
 
 const props = defineProps({
   /**
@@ -268,7 +269,7 @@ onBeforeUnmount(() => {
            Importing is not here (TODO/ui-107): File → Import model… brings a model into the
            project, and File → Import part file… reads a part file into this list. -->
       <div class="library__user-head">
-        <h2 class="library__heading library__heading--toggle" data-testid="library-heading-user">
+        <SectionHeading :level="2" class="library__heading library__heading--toggle" data-testid="library-heading-user">
           <button
             type="button"
             class="library__section-toggle"
@@ -281,7 +282,7 @@ onBeforeUnmount(() => {
             My parts
             <span class="library__count" data-testid="library-user-count">{{ library.userRows.length + library.brokenRows.length }}</span>
           </button>
-        </h2>
+        </SectionHeading>
       </div>
       <div v-show="library.expanded" id="library-user-body" data-testid="library-user-body">
         <p v-if="library.importError" class="library__import-error" role="alert" data-testid="library-import-error">
@@ -368,15 +369,6 @@ onBeforeUnmount(() => {
      scrolls sideways by whatever pixel overflows (`TODO/ui-085`). */
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-.library__heading {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
 }
 
 .library__hint-row {

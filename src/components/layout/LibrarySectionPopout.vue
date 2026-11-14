@@ -24,6 +24,7 @@ import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import LibraryRow from './LibraryRow.vue'
 import LibrarySection from './LibrarySection.vue'
+import SectionHeading from '../display/SectionHeading.vue'
 
 const props = defineProps({
   /** A section of `LIBRARY_SECTIONS`, or `null` for My parts (`user`). */
@@ -55,7 +56,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
   >
     <LibrarySection v-if="section" :section="section" />
     <template v-else>
-      <h2 class="library-section-popout__heading" data-testid="library-heading-user">My parts</h2>
+      <SectionHeading :level="2" class="library-section-popout__heading" data-testid="library-heading-user">My parts</SectionHeading>
       <p v-if="library.loadProblem" class="library-section-popout__hint" role="status" data-testid="library-load-problem">
         Your saved parts could not all be read: {{ library.loadProblem }}
       </p>
@@ -116,15 +117,6 @@ const title = computed(() => props.section?.title ?? 'My parts')
   .library-section-popout {
     animation: none;
   }
-}
-
-.library-section-popout__heading {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
 }
 
 .library-section-popout__hint {

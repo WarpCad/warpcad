@@ -8,4 +8,5 @@
 @import './semantic.css';
 @import './themes/dark.css';
 @import './themes/light.css';
+@import './utilities.css';
 @import './reset.css';

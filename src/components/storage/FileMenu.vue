@@ -431,7 +431,7 @@ onBeforeUnmount(() => {
       <span class="file-button__label">File</span>
       <span v-if="persistence.loading" class="file-button__pending" data-testid="file-open-pending">
         <span class="file-button__spinner" aria-hidden="true" />
-        <span class="file-button__pending-text">{{ pendingLabel }}</span>
+        <span class="file-button__pending-text visually-hidden-phone">{{ pendingLabel }}</span>
       </span>
       <span v-else class="file-button__caret" aria-hidden="true">▾</span>
       <HostedDot :state="hosted.dotState" />
@@ -1018,13 +1018,5 @@ onBeforeUnmount(() => {
   }
 
   /* The header is tight at phone width: the spinner stays, the word moves to the label. */
-  .file-button__pending-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
 }
 </style>

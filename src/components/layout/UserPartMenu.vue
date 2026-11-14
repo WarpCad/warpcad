@@ -288,8 +288,6 @@ useOverlayStack(
   overflow-wrap: anywhere;
 }
 
-.umenu__item,
-
 .umenu__item:disabled {
   opacity: 0.5;
   cursor: not-allowed;

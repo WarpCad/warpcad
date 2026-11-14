@@ -39,6 +39,7 @@ import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import ParamBindButton from './ParamBindButton.vue'
 import ParamBindPopover from './ParamBindPopover.vue'
 import ParamBoundChip from './ParamBoundChip.vue'
+import SectionHeading from '../display/SectionHeading.vue'
 
 const props = defineProps({
   body: {
@@ -410,7 +411,7 @@ function onEnumChange(event, field) {
     :data-editable="editable ? 'true' : 'false'"
     :data-blocked-by="editability.blockedBy ?? ''"
   >
-    <h3 class="params__title">Parameters</h3>
+    <SectionHeading class="params__title">Parameters</SectionHeading>
     <dl class="params__fields">
       <template v-for="field in body.params" :key="field.key">
         <template v-if="field.kind === 'vector'">
@@ -687,14 +688,6 @@ function onEnumChange(event, field) {
   border-top: 1px solid var(--border);
 }
 
-.params__title {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
 
 .params__fields {
   display: grid;

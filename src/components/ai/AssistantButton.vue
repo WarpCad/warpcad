@@ -25,7 +25,7 @@ const assistant = useAssistantStore()
     @click="assistant.open()"
   >
     <span class="assistant-button__glyph" aria-hidden="true">✦</span>
-    <span class="assistant-button__label">Assistant</span>
+    <span class="assistant-button__label visually-hidden-phone">Assistant</span>
     <span v-if="assistant.dotState !== 'none'" class="assistant-button__badge">
       <ConnectionDot :state="assistant.dotState" testid="assistant-dot" />
     </span>
@@ -85,13 +85,5 @@ const assistant = useAssistantStore()
     padding: 0;
   }
 
-  .assistant-button__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
 }
 </style>

@@ -29,6 +29,7 @@ import { paramOptions } from '../../core/kernel/registry.js'
 import { variablesOf } from '../../core/variables.js'
 import { useDocumentStore } from '../../stores/document.js'
 import BaseButton from '../controls/BaseButton.vue'
+import SectionHeading from '../display/SectionHeading.vue'
 
 const props = defineProps({
   /** The record that carries `when` — a body's creation record for a whole-body condition. */
@@ -134,7 +135,7 @@ function remove() {
 
 <template>
   <section v-if="condition || variables.length > 0" class="condition" data-testid="inspector-condition">
-    <h3 class="condition__title">Condition</h3>
+    <SectionHeading class="condition__title">Condition</SectionHeading>
     <p v-if="condition" class="condition__text" data-testid="inspector-condition-text">{{ condition.sentence }}</p>
     <p v-else class="condition__text condition__text--none" data-testid="inspector-condition-none">Always built.</p>
 
@@ -185,14 +186,6 @@ function remove() {
   border-top: 1px solid var(--border);
 }
 
-.condition__title {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
 
 .condition__text {
   margin: 0 0 6px;

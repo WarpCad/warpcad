@@ -83,9 +83,9 @@ describe('token files', () => {
     expect(readTokenFile(f).trim().length).toBeGreaterThan(0)
   })
 
-  it('index.css imports the layers in order, reset last', () => {
+  it('index.css imports the layers in order (utilities before the reset), reset last', () => {
     const imports = [...readTokenFile('index.css').matchAll(/@import\s+['"]\.\/([^'"]+)['"]/g)].map((m) => m[1])
-    expect(imports).toEqual(['base.css', 'semantic.css', 'themes/dark.css', 'themes/light.css', 'reset.css'])
+    expect(imports).toEqual(['base.css', 'semantic.css', 'themes/dark.css', 'themes/light.css', 'utilities.css', 'reset.css'])
   })
 
   it('keeps every existing token name', () => {

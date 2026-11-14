@@ -16,6 +16,7 @@
  */
 import { computed } from 'vue'
 import { chooseScaleBar } from '../../render/camera.js'
+import VisuallyHidden from '../display/VisuallyHidden.vue'
 
 const props = defineProps({
   /** World millimetres per screen pixel at the camera target plane. */
@@ -45,10 +46,10 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
     <p class="readout__legend" data-testid="grid-legend">
       Grid <strong>{{ minorMm }} mm</strong> · major <strong>{{ majorMm }} mm</strong>
     </p>
-    <p class="readout__sr">
+    <VisuallyHidden as="p">
       Scale bar represents {{ bar.label }}. Minor grid lines are {{ minorMm }} millimetres apart;
       bold major lines are {{ majorMm }} millimetres apart.
-    </p>
+    </VisuallyHidden>
   </div>
 </template>
 
@@ -97,17 +98,6 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
   font-weight: 600;
 }
 
-.readout__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
 
 @media (max-width: 480px) {
   .readout {

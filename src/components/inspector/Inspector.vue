@@ -163,6 +163,7 @@ import { BODY_COLORS } from '../../render/mesh.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
+import SectionHeading from '../display/SectionHeading.vue'
 
 const props = defineProps({
   /**
@@ -673,7 +674,7 @@ watch([() => body.value?.id, colorPart], () => {
     </button>
 
     <div id="inspector-sheet" ref="sheetEl" class="inspector__sheet" data-testid="inspector-sheet">
-      <h2 class="inspector__heading">Inspector</h2>
+      <SectionHeading :level="2" class="inspector__heading">Inspector</SectionHeading>
       <InspectorViewTabs v-if="panelState !== 'sketch'" />
 
       <!-- The Prompts view (TODO/ui-092): replaces the rest of the sheet while it is up, at every
@@ -871,7 +872,7 @@ watch([() => body.value?.id, colorPart], () => {
           :data-color-part="colorPart ?? ''"
           :data-recipe-color="recipeColor ? colorIntToCssHex(recipeColor.color) : ''"
         >
-          <h3 class="inspector__section-title">Color</h3>
+          <SectionHeading class="inspector__section-title">Color</SectionHeading>
           <div class="inspector__color-row">
             <input
               class="inspector__swatch"
@@ -900,7 +901,7 @@ watch([() => body.value?.id, colorPart], () => {
              add it as an operand, hover to find it in the view. Absent, not disabled,
              for a bare solid. -->
         <section v-if="hasParts" class="inspector__section" data-testid="inspector-parts">
-          <h3 class="inspector__section-title">Parts</h3>
+          <SectionHeading class="inspector__section-title">Parts</SectionHeading>
           <label
             v-if="hasHiddenParts"
             class="inspector__hidden-toggle"
@@ -934,7 +935,7 @@ watch([() => body.value?.id, colorPart], () => {
         <ConditionRow v-if="!body.subPart" :record-id="body.id" :condition="body.condition ?? null" />
 
         <section class="inspector__section" data-testid="inspector-transform">
-          <h3 class="inspector__section-title">Transform</h3>
+          <SectionHeading class="inspector__section-title">Transform</SectionHeading>
           <dl class="inspector__fields">
             <dt class="inspector__label">Position <span class="inspector__unit">(mm)</span></dt>
             <dd class="inspector__value inspector__value--vector">
@@ -1187,14 +1188,6 @@ watch([() => body.value?.id, colorPart], () => {
   overflow-y: auto;
 }
 
-.inspector__heading {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
 
 .inspector__count {
   margin: 6px 0;
@@ -1268,14 +1261,6 @@ watch([() => body.value?.id, colorPart], () => {
   border-top: 1px solid var(--border);
 }
 
-.inspector__section-title {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
 
 .inspector__fields {
   display: grid;
