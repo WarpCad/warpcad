@@ -51,8 +51,8 @@ the full history is in git.*
 
 **Order, and why.** Rows 1–3 fix flaky and drifted tests first, so later tasks' full runs start green. Rows 4–10 are independent
 fixes, ending with the two big Opus refactors; `ui-108` splits `Viewport.vue` before the theme chain touches the renderer.
-Rows 11–20 are the theme chain; the guard (`testing-036`) lands right after the token split so the migrations can't regress it,
-and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md checks against the finished UI.
+The theme chain (old rows 11–20, closed 2026-11-14) ran the guard (`testing-036`) right after the token split so the migrations couldn't regress it;
+the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md checks against the finished UI.
 **Opus tasks** (each splits into an Opus half and a Sonnet half): `perf-004`, `ui-108`, `render-008`.
 **New findings a task files** get a Findings row at the bottom of the table and run after row 34, unless the owner re-ranks them.
 
@@ -60,7 +60,6 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 20 | ▶ Ready | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Close the theme umbrella: check every step is in `TODO/done/` and the guard's allow-list is empty (no code) | sonnet |
 | 22 | ▶ Ready | `FIND` | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks (11 rows) | sonnet |
 | 23 | ▶ Ready | `FIND` | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks on the owner's files, against copies (7 rows) | sonnet |
 | 24 | ▶ Ready | `FIND` | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks at laptop width (13 rows) | sonnet |
@@ -75,6 +74,9 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 | 33 | ▶ Ready | `FIND` | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP, not an API key | sonnet |
 | 34 | ▶ Ready | `FIND` | [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed Pages build | sonnet |
 | 35 | ▶ Ready | `FIND` | [`ai-035`](FIND-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills (add clearances, create an enclosure) from the MCP server, per SEP-2640 | opus |
+| 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
+| 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
+| 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 
 ---
 
@@ -148,7 +150,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture — restyle the whole UI from a small, known set of files (umbrella) | finding | high | sonnet | ▶ Ready (Next up row 20) |
 | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks that emulated viewports and the three Playwright engines can settle | finding | medium | sonnet | ▶ Ready (Next up row 22) |
 | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks that name the owner's own project files, against copies | finding | medium | sonnet | ▶ Ready (Next up row 23) |
 | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks that only need the built app at laptop width | finding | medium | sonnet | ▶ Ready (Next up row 24) |
@@ -163,6 +164,9 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Drive the VERIFY.md model-behaviour rows through Claude Code over MCP instead of an API key | finding | medium | sonnet | ▶ Ready (Next up row 33) |
 | [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed GitHub Pages build | finding | low | sonnet | ▶ Ready (Next up row 34) |
 | [`ai-035`](FIND-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills from the MCP server using the Skills extension (SEP-2640) | feature | medium | opus | ▶ Ready (Next up row 35) |
+| [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ▶ Ready (Next up row 36) |
+| [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
+| [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
@@ -325,7 +329,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-111` | Theme architecture umbrella, closed last (re-wired 2026-11-13: it depends on its chain, not the other way round): token layers, base components, theme switch, renderer bridge, guard. Its three owner decisions were answered 2026-11-10. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`–`ui-118`, `testing-036`, `render-008` | 1, 4, 7, 9, 10, 13 |
 | `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none (part of 6) |
 | `testing-018` | Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 31, 10 |
 | `testing-019` | Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 6, 10, 11, 16 |
@@ -340,6 +343,9 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
 | `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `ai-035` | Serve skills (add clearances to a group, create an enclosure) from the MCP server per SEP-2640; opens with an SDK-support check. Filed 2026-11-13 at the owner's request | Finding | — | none (re-run `testing-022` MCP checks) |
+| `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
+| `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
+| `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 
 ---
 
@@ -437,7 +443,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 30 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the theme chain (`ui-112`–`ui-118`, `testing-036`, `render-008`, closed by `ui-111`), then the VERIFY.md drives. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 32 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, then three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

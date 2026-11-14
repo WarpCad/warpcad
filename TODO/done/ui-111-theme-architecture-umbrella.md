@@ -6,8 +6,32 @@ priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112, testing-036, ui-113, ui-114, ui-115, ui-116, ui-117, render-008, ui-118]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14, closed by checking, no code of its own).** All nine steps are in `TODO/done/` with `status: done`
+> (`ui-112`, `testing-036`, `ui-113`, `ui-114`, `ui-115`, `ui-116`, `ui-117`, `render-008`, `ui-118`), `src/styles/guard-allowlist.json` no longer
+> exists, and `npx vitest run src/styles` passes (3 files, 67 tests) with the guard strict. The files to edit are named in `docs/decisions/theming.md`.
+>
+> | Problem in this file | State | Evidence |
+> |---|---|---|
+> | 1. Type, layer, shape and motion scales | Resolved, spacing left | `base.css`/`semantic.css` hold type, `--z-*`, radius and `--duration-*`; `.vue` files now have 0 numeric `font-size`, 0 `z-index` literals. Spacing (649 `padding`/`gap` literals) and 58 numeric `border-radius` values stay (see `ui-123`). |
+> | 2. 103 `var(--x, fallback)` | Resolved | 0 remain under `src/`; the guard's `style-var-fallback` and `style-var-undefined` rules fail on any. |
+> | 3. 3D view palette in JS | Resolved (`render-008`) | `src/render/theme.js` reads the `--scene-*` tokens per theme change; `theme.spec.js` holds the JS fallback equal to the CSS; no `0x......` literals remain in `scene.js`, `mesh.js`, `offscreenCapture.js` or `export.js`. |
+> | 4. Theme choice, two `matchMedia` readers | Resolved (`ui-113`) | `useTheme.js` is the one reader for theme (System, Dark, Light in the Help sheet); the other `matchMedia` users (`useMediaQuery`, `panelLayout`, `useTierCrossfade`, `TraceTool`, `AiHeaderEntry`, `AppView`) query layout or motion, not the colour scheme. |
+> | 5. `--surface-0` duplicated in four places | Handled, one left by hand | `index.html` and `vite.config.js` carry the value on purpose and `tokens.spec.js` fails if either drifts. `warpcad-native/src-tauri/tauri.conf.json` `backgroundColor` is still hand-copied (`#10131a`) with no check: tracked in `ui-123`. |
+> | 6. 68 button rules and repeated controls | Mostly resolved, some left | `BaseButton`, `IconButton`, `FieldLabel`, `TextInput`, `NumberField`, `SelectInput`, `BaseDialog`, `BaseToast`, `BaseBanner`, `BaseChip` exist and were adopted. About 26 components still define a layout-specific button rule; the rest are in `ui-122`. |
+> | 7. Light-theme gaps | Resolved | `ModalShell`'s `rgba(0,0,0,.5)` is now `--scrim`; the hand-written shadows are `--overlay-drop`; the scene lights and first-paint background have light values (`themes/light.css`, `index.html`). 0 `rgb(0 0 0` literals remain in `.vue` files. |
+>
+> **Left on purpose, listed so the record survives:**
+>
+> - Spacing literals (hundreds, uncounted by `ui-118`; 649 `padding`/`gap` declarations measured today) and 58 `border-radius` literals are not guarded: `ui-123`.
+> - `HelpSheet`, `UserPartMenu`, `FileMenu`, the two Library popouts, the segmented pickers and the Inspector tabs stay their own components; `ui-122` decides each.
+> - The native window's `backgroundColor` is hand-copied and unchecked: `ui-123`.
+> - Storybook `*.story.e2e.js` snapshots were waived (no Storybook Playwright project exists): `testing-038`.
+> - Looping spinners and pulses keep their own durations and reduced-motion rules, and the tier crossfade (`ui-079`) stays literal, as `ui-118` recorded.
+> - No acceptance scenario was re-driven for this task (no code). The owner did a free-form pass after `ui-118`.
+> - Verification for this change: docs and roadmap only, so no e2e run; the `src/styles` specs, typecheck and SPDX check were run.
 
 > **Re-wired 2026-11-13:** this umbrella now *depends on* its chain instead of the chain depending on it. It has no code of its own and is done when steps 1–8 are, so `ui-112` waiting on it was a deadlock for `/run-todos`. Its owner decisions were answered 2026-11-10 (below), which is all `ui-112` needed from it. Running this task means checking every step's file is in `TODO/done/` and the guard's allow-list is empty, then closing it. Model lowered to `sonnet` for that reason.
 
