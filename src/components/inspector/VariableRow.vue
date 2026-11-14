@@ -19,6 +19,7 @@ import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import VariableFormulaView from './VariableFormulaView.vue'
 import BaseButton from '../controls/BaseButton.vue'
+import ListRow from '../display/ListRow.vue'
 
 const props = defineProps({
   row: {
@@ -105,11 +106,13 @@ function commitRename() {
     :data-value="String(variable.value)"
     :data-pending="held !== undefined ? 'true' : 'false'"
   >
-    <div class="vrow__head">
+    <ListRow class="vrow__head">
       <span class="vrow__name" data-testid="variable-name">{{ variable.label ? `${variable.label} · ` : '' }}{{ variable.name }}</span>
-      <span class="vrow__used" :data-testid="`variable-used-${variable.name}`">{{ usedText }}</span>
-      <button type="button" class="vrow__more" :aria-expanded="menu" :aria-label="`${variable.name} actions`" :data-testid="`variable-menu-${variable.name}`" @click="menu = !menu">⋯</button>
-    </div>
+      <template #trailing>
+        <span class="vrow__used" :data-testid="`variable-used-${variable.name}`">{{ usedText }}</span>
+        <button type="button" class="vrow__more" :aria-expanded="menu" :aria-label="`${variable.name} actions`" :data-testid="`variable-menu-${variable.name}`" @click="menu = !menu">⋯</button>
+      </template>
+    </ListRow>
     <VariableFormulaView v-if="row.formula !== undefined" :row="row" />
     <div v-else class="vrow__edit">
       <label v-if="variable.kind === 'boolean'" class="vrow__check">
@@ -153,6 +156,11 @@ function commitRename() {
   align-items: center;
   gap: 6px;
   min-width: 0;
+}
+
+.vrow__head :deep(.list-row__main) {
+  /* The name and the ⋯ button share the room left by the usage text, as they did before ListRow. */
+  flex: 1;
 }
 
 .vrow__name {

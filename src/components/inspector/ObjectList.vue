@@ -54,6 +54,7 @@ import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import ListRow from '../display/ListRow.vue'
 
 const props = defineProps({
   /** `scene` — every body; `parts` — one body's part rows (the Inspector's Parts section). */
@@ -346,30 +347,32 @@ watch(
         :data-expanded="row.expanded ? 'true' : 'false'"
         :data-view-hidden="row.viewHidden ? 'true' : 'false'"
       >
-        <div
-          class="row"
-          :class="{ 'row--selected': row.selected, 'row--view-hidden': row.viewHidden }"
+        <ListRow
+          :class="{ 'row--view-hidden': row.viewHidden }"
+          :selected="row.selected"
+          :hovered="isHovered(row.id, null)"
           :data-testid="`objects-line-${row.id}`"
-          :data-hovered="isHovered(row.id, null) ? 'true' : 'false'"
           @pointermove="onPointerMove($event, row.id, null)"
           @pointerleave="onPointerLeave($event, row.id, null)"
           @pointerdown="onPointerDown"
           @focusin="onFocusIn(row.id, null)"
           @focusout="onFocusOut($event, row.id, null)"
         >
-          <button
-            type="button"
-            class="row__check"
-            :class="`row__check--${row.role}`"
-            role="checkbox"
-            :aria-checked="row.selected"
-            :aria-label="`${row.selected ? 'Remove' : 'Add'} ${row.name} ${row.selected ? 'from' : 'to'} the selection`"
-            :data-testid="`objects-check-${row.id}`"
-            :disabled="disabled"
-            @click="onRowCheck(row.id)"
-          >
-            <span aria-hidden="true">{{ row.selected ? row.order : '' }}</span>
-          </button>
+          <template #leading>
+            <button
+              type="button"
+              class="row__check"
+              :class="`row__check--${row.role}`"
+              role="checkbox"
+              :aria-checked="row.selected"
+              :aria-label="`${row.selected ? 'Remove' : 'Add'} ${row.name} ${row.selected ? 'from' : 'to'} the selection`"
+              :data-testid="`objects-check-${row.id}`"
+              :disabled="disabled"
+              @click="onRowCheck(row.id)"
+            >
+              <span aria-hidden="true">{{ row.selected ? row.order : '' }}</span>
+            </button>
+          </template>
           <button
             type="button"
             class="row__body"
@@ -386,31 +389,33 @@ watch(
             </span>
             <span class="row__size">{{ row.size }}</span>
           </button>
-          <EyeToggle
-            :state="row.eye"
-            :name="row.name"
-            :disabled="disabled"
-            :data-testid="`objects-eye-${row.id}`"
-            @toggle="objects.toggleBodyVisibility(row.id)"
-          />
-          <!-- A button, never an input: HistoryControls' Ctrl+Z guard treats any <input> as
-               text entry. Not disabled with the rows — reading a part's name selects nothing. -->
-          <button
-            v-if="row.expandable"
-            type="button"
-            class="row__chevron"
-            :class="{ 'row__chevron--open': row.expanded }"
-            :aria-expanded="row.expanded"
-            :aria-controls="`objects-parts-${row.id}`"
-            :aria-label="`${row.expanded ? 'Hide' : 'Show'} ${row.parts.length} parts of ${row.name}`"
-            :title="`${row.expanded ? 'Hide' : 'Show'} the parts of ${row.name}`"
-            :data-testid="`objects-expand-${row.id}`"
-            @click="onToggleExpanded(row.id)"
-          >
-            <span aria-hidden="true">▸</span>
-          </button>
-          <span v-else-if="anyExpandable" class="row__chevron-spacer" aria-hidden="true"></span>
-        </div>
+          <template #trailing>
+            <EyeToggle
+              :state="row.eye"
+              :name="row.name"
+              :disabled="disabled"
+              :data-testid="`objects-eye-${row.id}`"
+              @toggle="objects.toggleBodyVisibility(row.id)"
+            />
+            <!-- A button, never an input: HistoryControls' Ctrl+Z guard treats any <input> as
+                 text entry. Not disabled with the rows — reading a part's name selects nothing. -->
+            <button
+              v-if="row.expandable"
+              type="button"
+              class="row__chevron"
+              :class="{ 'row__chevron--open': row.expanded }"
+              :aria-expanded="row.expanded"
+              :aria-controls="`objects-parts-${row.id}`"
+              :aria-label="`${row.expanded ? 'Hide' : 'Show'} ${row.parts.length} parts of ${row.name}`"
+              :title="`${row.expanded ? 'Hide' : 'Show'} the parts of ${row.name}`"
+              :data-testid="`objects-expand-${row.id}`"
+              @click="onToggleExpanded(row.id)"
+            >
+              <span aria-hidden="true">▸</span>
+            </button>
+            <span v-else-if="anyExpandable" class="row__chevron-spacer" aria-hidden="true"></span>
+          </template>
+        </ListRow>
 
         <ul
           v-if="row.expanded"
@@ -419,35 +424,38 @@ watch(
           :data-testid="`objects-parts-${row.id}`"
           :aria-label="`Parts of ${row.name}`"
         >
-          <li
+          <ListRow
             v-for="part in row.parts"
             :key="part.name"
+            tag="li"
             class="part"
-            :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden, 'part--view-hidden': !part.drawn }"
+            :class="{ 'part--hidden': part.hidden, 'part--view-hidden': !part.drawn }"
+            :selected="part.selected"
+            :hovered="isHovered(row.id, part.name)"
             :data-testid="partTestId('item', row.id, part.name)"
-            :data-selected="part.selected ? 'true' : 'false'"
             :data-hidden="part.hidden ? 'true' : 'false'"
             :data-view-hidden="part.drawn ? 'false' : 'true'"
-            :data-hovered="isHovered(row.id, part.name) ? 'true' : 'false'"
             @pointermove="onPointerMove($event, row.id, part.name)"
             @pointerleave="onPointerLeave($event, row.id, part.name)"
             @pointerdown="onPointerDown"
             @focusin="onFocusIn(row.id, part.name)"
             @focusout="onFocusOut($event, row.id, part.name)"
           >
-            <button
-              type="button"
-              class="row__check"
-              :class="`row__check--${part.role}`"
-              role="checkbox"
-              :aria-checked="part.selected"
-              :aria-label="`${part.selected ? 'Stop addressing' : 'Address'} ${part.name} of ${row.name}${part.selected ? '' : ', adding the body to the selection'}`"
-              :data-testid="partTestId('check', row.id, part.name)"
-              :disabled="disabled"
-              @click="onPartCheck(row.id, part.name)"
-            >
-              <span aria-hidden="true">{{ part.selected ? part.order : '' }}</span>
-            </button>
+            <template #leading>
+              <button
+                type="button"
+                class="row__check"
+                :class="`row__check--${part.role}`"
+                role="checkbox"
+                :aria-checked="part.selected"
+                :aria-label="`${part.selected ? 'Stop addressing' : 'Address'} ${part.name} of ${row.name}${part.selected ? '' : ', adding the body to the selection'}`"
+                :data-testid="partTestId('check', row.id, part.name)"
+                :disabled="disabled"
+                @click="onPartCheck(row.id, part.name)"
+              >
+                <span aria-hidden="true">{{ part.selected ? part.order : '' }}</span>
+              </button>
+            </template>
             <button
               type="button"
               class="part__body"
@@ -462,14 +470,16 @@ watch(
                 >hidden</span
               >
             </button>
-            <EyeToggle
-              :state="part.viewHidden ? 'hidden' : 'shown'"
-              :name="part.name"
-              :disabled="disabled"
-              :data-testid="partTestId('eye', row.id, part.name)"
-              @toggle="onPartEye(row.id, part.name)"
-            />
-          </li>
+            <template #trailing>
+              <EyeToggle
+                :state="part.viewHidden ? 'hidden' : 'shown'"
+                :name="part.name"
+                :disabled="disabled"
+                :data-testid="partTestId('eye', row.id, part.name)"
+                @toggle="onPartEye(row.id, part.name)"
+              />
+            </template>
+          </ListRow>
         </ul>
       </li>
     </ul>
@@ -512,35 +522,38 @@ watch(
     data-testid="inspector-parts-list"
     :aria-label="`Parts of ${partsRow.name}`"
   >
-    <li
+    <ListRow
       v-for="part in partsRow.parts"
       :key="part.name"
+      tag="li"
       class="part"
-      :class="{ 'part--selected': part.selected, 'part--hidden': part.hidden, 'part--view-hidden': !part.drawn }"
+      :class="{ 'part--hidden': part.hidden, 'part--view-hidden': !part.drawn }"
+      :selected="part.selected"
+      :hovered="isHovered(partsRow.id, part.name)"
       :data-testid="partTestId('item', partsRow.id, part.name)"
-      :data-selected="part.selected ? 'true' : 'false'"
       :data-hidden="part.hidden ? 'true' : 'false'"
       :data-view-hidden="part.drawn ? 'false' : 'true'"
-      :data-hovered="isHovered(partsRow.id, part.name) ? 'true' : 'false'"
       @pointermove="onPointerMove($event, partsRow.id, part.name)"
       @pointerleave="onPointerLeave($event, partsRow.id, part.name)"
       @pointerdown="onPointerDown"
       @focusin="onFocusIn(partsRow.id, part.name)"
       @focusout="onFocusOut($event, partsRow.id, part.name)"
     >
-      <button
-        type="button"
-        class="row__check"
-        :class="`row__check--${part.role}`"
-        role="checkbox"
-        :aria-checked="part.selected"
-        :aria-label="`${part.selected ? 'Stop addressing' : 'Address'} ${part.name} of ${partsRow.name}`"
-        :data-testid="partTestId('check', partsRow.id, part.name)"
-        :disabled="disabled"
-        @click="onPartCheck(partsRow.id, part.name)"
-      >
-        <span aria-hidden="true">{{ part.selected ? part.order : '' }}</span>
-      </button>
+      <template #leading>
+        <button
+          type="button"
+          class="row__check"
+          :class="`row__check--${part.role}`"
+          role="checkbox"
+          :aria-checked="part.selected"
+          :aria-label="`${part.selected ? 'Stop addressing' : 'Address'} ${part.name} of ${partsRow.name}`"
+          :data-testid="partTestId('check', partsRow.id, part.name)"
+          :disabled="disabled"
+          @click="onPartCheck(partsRow.id, part.name)"
+        >
+          <span aria-hidden="true">{{ part.selected ? part.order : '' }}</span>
+        </button>
+      </template>
       <button
         type="button"
         class="part__body"
@@ -555,14 +568,16 @@ watch(
           >hidden</span
         >
       </button>
-      <EyeToggle
-        :state="part.viewHidden ? 'hidden' : 'shown'"
-        :name="part.name"
-        :disabled="disabled"
-        :data-testid="partTestId('eye', partsRow.id, part.name)"
-        @toggle="onPartEye(partsRow.id, part.name)"
-      />
-    </li>
+      <template #trailing>
+        <EyeToggle
+          :state="part.viewHidden ? 'hidden' : 'shown'"
+          :name="part.name"
+          :disabled="disabled"
+          :data-testid="partTestId('eye', partsRow.id, part.name)"
+          @toggle="onPartEye(partsRow.id, part.name)"
+        />
+      </template>
+    </ListRow>
   </ul>
 </template>
 
@@ -612,24 +627,17 @@ watch(
   border-bottom: 1px solid var(--border);
 }
 
-.row {
+/* The row shell (the selection fill, the hover marker, the 44px height) is `ListRow`. A selected body is
+   a full-row fill — History's selected *step* is a left accent bar instead, so the two lists do not
+   share a selection look. The inactive body below is one button, so it keeps its own. */
+.row--inactive {
   display: flex;
   align-items: stretch;
   min-height: var(--tap);
 }
 
-/* A selected body is a full-row fill — History's selected *step* is a left accent bar
-   instead, so the two lists do not share a selection look. */
 .row--selected {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface-1));
-}
-
-/* The hover marker (TODO/ui-049): an inset edge in the hover colour, the same colour the
-   matching geometry lights up in, so row and body read as one thing. An inset shadow, not a
-   border, so a hovered row does not shift its neighbours by a pixel. */
-.row[data-hovered='true'],
-.part[data-hovered='true'] {
-  box-shadow: inset 3px 0 0 var(--hover-highlight);
 }
 
 .row__check {
@@ -823,9 +831,6 @@ watch(
 }
 
 .part {
-  display: flex;
-  align-items: stretch;
-  min-height: var(--tap);
   border-left: 2px solid var(--border);
 }
 
@@ -837,8 +842,7 @@ watch(
   border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
-.part--selected {
-  background: color-mix(in srgb, var(--accent) 18%, var(--surface-1));
+.part[data-selected='true'] {
   border-left-color: var(--accent);
 }
 

@@ -33,6 +33,7 @@ import { useLibraryDefaultsStore } from '../../stores/libraryDefaults.js'
 import { useLibraryStore } from '../../stores/library.js'
 import { usePlacementStore } from '../../stores/placement.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import ListRow from '../display/ListRow.vue'
 import UserPartMenu from './UserPartMenu.vue'
 
 const props = defineProps({
@@ -309,7 +310,7 @@ onBeforeUnmount(() => {
 
   <!-- A catalogue row, labelled (the column and the row pop-out). -->
   <li v-else-if="!user" class="library__item" :class="{ 'library__item--stacked': stacked }">
-    <div class="library__line">
+    <ListRow class="library__line">
       <button
         type="button"
         class="library__row"
@@ -327,18 +328,19 @@ onBeforeUnmount(() => {
       </button>
       <!-- ↺ Reset (ui-068): only while the row is not at its registry defaults. A sibling of
            the drag button, never inside it, so pressing it cannot start a placement. -->
-      <button
-        v-if="remembered.isCustom(row)"
-        type="button"
-        class="library__reset"
-        :data-testid="`library-reset-${row.op}`"
-        :aria-label="`Reset ${row.label} to its default`"
-        :title="`Reset ${row.label} to its default`"
-        @click="remembered.reset(row.op)"
-      >
-        <span aria-hidden="true">↺</span>
-      </button>
-    </div>
+      <template v-if="remembered.isCustom(row)" #trailing>
+        <button
+          type="button"
+          class="library__reset"
+          :data-testid="`library-reset-${row.op}`"
+          :aria-label="`Reset ${row.label} to its default`"
+          :title="`Reset ${row.label} to its default`"
+          @click="remembered.reset(row.op)"
+        >
+          <span aria-hidden="true">↺</span>
+        </button>
+      </template>
+    </ListRow>
     <p v-if="summary" class="library__remembered" :data-testid="`library-remembered-${row.op}`">
       {{ summary }}
     </p>
@@ -527,9 +529,8 @@ onBeforeUnmount(() => {
 }
 
 /* The drag row plus its ↺ Reset (ui-068), side by side; the button is 44 x 44 at the right edge. */
+/* The row shell is `ListRow`; this is the gap between the drag button and its Reset. */
 .library__line {
-  display: flex;
-  align-items: stretch;
   gap: 4px;
 }
 
