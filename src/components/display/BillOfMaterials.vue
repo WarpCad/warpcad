@@ -62,8 +62,8 @@ const open = ref(true)
   border-bottom: 1px solid var(--border);
   background: transparent;
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.05em;
   text-align: left;
   text-transform: uppercase;
@@ -82,13 +82,13 @@ const open = ref(true)
 }
 
 .bom__total {
-  font-weight: 500;
+  font-weight: var(--weight-regular);
   letter-spacing: 0;
 }
 
 .bom__chevron {
   margin-left: auto;
-  transition: transform 0.12s;
+  transition: transform var(--duration-fast);
 }
 
 .bom__chevron--open {
@@ -107,7 +107,7 @@ const open = ref(true)
   justify-content: space-between;
   gap: 8px;
   padding: 3px 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
 }
 

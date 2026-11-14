@@ -35,11 +35,6 @@
     },
     "style-font": {
       "src/components/controls/HelpButton.vue": 2,
-      "src/components/display/BillOfMaterials.vue": 4,
-      "src/components/display/ConnectionDot.vue": 2,
-      "src/components/display/DescriptionText.vue": 2,
-      "src/components/display/HostedDot.vue": 2,
-      "src/components/display/SaveStatus.vue": 1,
       "src/components/features/SplitSheet.vue": 13,
       "src/components/inspector/ConditionRow.vue": 6,
       "src/components/inspector/DeleteButton.vue": 3,

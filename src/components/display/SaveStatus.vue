@@ -87,7 +87,7 @@ const title = computed(() => {
      (`TODO/testing-001`). Every routine message fits; only a long error grows past it. */
   min-width: 132px;
   padding: 0 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-3);
 }
 

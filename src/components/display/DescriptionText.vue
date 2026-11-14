@@ -53,7 +53,7 @@ const blocks = computed(() => parseDescription(props.text))
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.5;
   color: var(--text-1);
   overflow-wrap: anywhere;
@@ -73,6 +73,6 @@ const blocks = computed(() => parseDescription(props.text))
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.92em;
+  font-size: var(--text-size-md);
 }
 </style>

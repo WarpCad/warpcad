@@ -46,8 +46,8 @@ defineProps({
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: var(--text-size-2xs);
+  font-weight: var(--weight-bold);
   line-height: 1;
 }
 
