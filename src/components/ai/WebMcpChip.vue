@@ -22,6 +22,7 @@ import { computed } from 'vue'
 
 import { useWebMcp } from '../../composables/useWebMcp.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
+import BaseChip from '../display/BaseChip.vue'
 
 const chat = useAiChatStore()
 const webMcp = useWebMcp()
@@ -42,11 +43,13 @@ const title = computed(() =>
 </script>
 
 <template>
-  <button
+  <BaseChip
     v-if="chat.webMcp !== 'unavailable'"
-    type="button"
-    role="switch"
+    as="button"
     class="webmcp-chip"
+    tone="neutral"
+    size="tap"
+    role="switch"
     :aria-checked="on ? 'true' : 'false'"
     :data-state="chat.webMcp"
     :data-tools="chat.webMcpTools"
@@ -55,8 +58,8 @@ const title = computed(() =>
     :title="title"
     @click="webMcp.toggle()"
   >
-    <span class="webmcp-chip__track" aria-hidden="true"><span class="webmcp-chip__thumb" /></span>{{ chat.webMcpLabel }}
-  </button>
+    <template #leading><span class="webmcp-chip__track" aria-hidden="true"><span class="webmcp-chip__thumb" /></span></template>{{ chat.webMcpLabel }}
+  </BaseChip>
 </template>
 
 <style scoped>
@@ -64,28 +67,13 @@ const title = computed(() =>
    squeezing the status away or pushing Close off the edge. */
 .webmcp-chip {
   order: 10;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--tap);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 12px;
-  white-space: nowrap;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
 .webmcp-chip__track {
   position: relative;
   width: 22px;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--border-strong);
   transition: background 120ms ease;
 }
@@ -96,7 +84,7 @@ const title = computed(() =>
   left: 2px;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--surface-1);
   transition: transform 120ms ease;
 }
@@ -107,11 +95,6 @@ const title = computed(() =>
 
 .webmcp-chip[aria-checked='true'] .webmcp-chip__thumb {
   transform: translateX(10px);
-}
-
-.webmcp-chip:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

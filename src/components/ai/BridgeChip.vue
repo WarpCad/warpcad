@@ -12,6 +12,7 @@ import { computed } from 'vue'
 import { PAUSED_NOTICE } from '../../composables/useLiveBridge.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
+import BaseChip from '../display/BaseChip.vue'
 
 const chat = useAiChatStore()
 const assistant = useAssistantStore()
@@ -26,20 +27,29 @@ const label = computed(() => {
   if (chat.bridge === 'disconnected') return 'MCP connection · disconnected'
   return ''
 })
+
+/** The dot's colour: accent while connected, warning when something is wrong, muted otherwise. */
+const dotTone = computed(() => {
+  if (chat.bridge === 'connected') return 'accent'
+  if (chat.bridge === 'disconnected' || chat.bridge === 'ambiguous' || chat.bridge === 'expired') return 'warn'
+  return 'muted'
+})
 </script>
 
 <template>
-  <button
+  <BaseChip
     v-if="label !== ''"
-    type="button"
+    as="button"
     class="bridge-chip"
+    :tone="chat.bridge === 'disconnected' ? 'warn' : 'neutral'"
+    size="tap"
+    dot
+    :dot-tone="dotTone"
     :data-state="chat.bridge"
     data-testid="ai-bridge-chip"
     :title="chat.bridgeMessage || 'Live MCP access'"
     @click="assistant.openConnect()"
-  >
-    <span class="bridge-chip__dot" aria-hidden="true" />{{ label }}
-  </button>
+  >{{ label }}</BaseChip>
 </template>
 
 <style scoped>
@@ -47,47 +57,5 @@ const label = computed(() => {
 .bridge-chip[data-state='paused'] {
   white-space: normal;
   text-align: start;
-}
-
-.bridge-chip {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--tap);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 12px;
-  white-space: nowrap;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.bridge-chip__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-2);
-}
-
-.bridge-chip[data-state='connected'] .bridge-chip__dot {
-  background: var(--accent);
-}
-
-.bridge-chip[data-state='disconnected'] {
-  border-color: var(--warn);
-}
-
-.bridge-chip[data-state='disconnected'] .bridge-chip__dot {
-  background: var(--warn);
-}
-
-.bridge-chip[data-state='ambiguous'] .bridge-chip__dot,
-.bridge-chip[data-state='expired'] .bridge-chip__dot {
-  background: var(--warn);
 }
 </style>

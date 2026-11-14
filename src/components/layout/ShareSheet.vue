@@ -56,6 +56,7 @@ import { usePersistenceStore } from '../../stores/persistence.js'
 import { useShareStore } from '../../stores/share.js'
 import { useToastsStore } from '../../stores/toasts.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseChip from '../display/BaseChip.vue'
 
 /**
  * The longest link the sheet will offer, in URL characters (`docs/decisions/share-link.md`,
@@ -275,15 +276,17 @@ onBeforeUnmount(() => {
       <span class="share-button__label">Share</span>
     </button>
     <span v-if="empty" id="share-open-reason" class="share-reason" data-testid="share-reason">{{ EMPTY_REASON }}</span>
-    <span
+    <BaseChip
       v-else-if="gistPublish.published.value"
       class="share-chip"
+      tone="secondary"
+      dot
+      dot-tone="secondary"
       data-testid="share-gist-chip"
       :title="`${chipText} as a GitHub gist`"
     >
-      <span class="share-chip__dot" aria-hidden="true" />
       <span class="share-chip__label">{{ chipText }}</span>
-    </span>
+    </BaseChip>
 
     <BaseSheet
       :open="open"
@@ -432,26 +435,6 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* `TODO/io-017`: published as a gist from this account. */
-.share-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  border: 1px solid var(--accent-secondary);
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--text-2);
-  white-space: nowrap;
-}
-
-.share-chip__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent-secondary);
-}
-
 /* The frame is `BaseSheet`; its spacing stays this sheet's own (10px rhythm, 16px sides) so the
    layout, and the pictures of it, did not move. */
 body :global(.sheet.share-sheet) {
@@ -547,7 +530,7 @@ body :global(.sheet.share-sheet .sheet__title) {
     position: relative;
   }
 
-  .share-chip {
+  .share-chip.base-chip {
     position: absolute;
     top: 3px;
     right: 3px;

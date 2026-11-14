@@ -37,6 +37,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import BaseButton from '../controls/BaseButton.vue'
 import IconButton from '../controls/IconButton.vue'
 import NumberField from '../controls/NumberField.vue'
+import BaseChip from '../display/BaseChip.vue'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { originChipText } from '../../core/origin.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -193,36 +194,39 @@ function cancel() {
         <span class="row__step" aria-hidden="true">{{ row.step }}</span>
         <span class="row__text">{{ row.text }}</span>
         <span class="row__chips">
-          <span v-if="row.suppressed" class="chip chip--muted" data-testid="chip-suppressed">
+          <BaseChip v-if="row.suppressed" tone="quiet" size="sm" data-testid="chip-suppressed">
             suppressed
-          </span>
-          <span v-if="!row.active" class="chip chip--muted" data-testid="chip-inactive">inactive</span>
+          </BaseChip>
+          <BaseChip v-if="!row.active" tone="quiet" size="sm" data-testid="chip-inactive">inactive</BaseChip>
           <!-- A condition (TODO/ui-052): shown whether or not it currently holds, so a row
                that only exists on a Pi 4 says so on a Pi 4 too. While it does not hold the
                row greys like a suppressed one, but carries this chip instead of the
                "suppressed" label, so the two can be told apart. -->
-          <span
+          <BaseChip
             v-if="row.condition"
-            class="chip chip--condition"
+            class="chip--condition"
+            size="sm"
+            dashed
             data-testid="timeline-condition-chip"
             :data-holds="row.inactiveBy === null ? 'true' : 'false'"
             :title="row.condition.sentence"
           >
-            {{ row.condition.chip }}
-          </span>
-          <span
+            <span class="chip__ellipsis">{{ row.condition.chip }}</span>
+          </BaseChip>
+          <BaseChip
             v-if="brokenReason"
-            class="chip chip--broken"
+            tone="danger"
+            size="sm"
             data-testid="chip-broken"
             :title="brokenReason"
           >
             broken
-          </span>
+          </BaseChip>
           <!-- §19 point 2: a step someone else added is never hidden — it is in
                History with an origin chip, so the user can see it and can
                Suppress or Edit it like any other step. Absent for local edits,
                which is almost all of them today. -->
-          <span v-if="row.origin !== 'local'" class="chip" data-testid="chip-origin">{{ originLabel }}</span>
+          <BaseChip v-if="row.origin !== 'local'" size="sm" data-testid="chip-origin">{{ originLabel }}</BaseChip>
         </span>
       </button>
       <IconButton
@@ -242,7 +246,7 @@ function cancel() {
     </div>
 
     <div v-if="row.intent !== null && intentOpen" :id="intentId" class="intent" data-testid="timeline-intent">
-      <span class="chip intent__origin" data-testid="timeline-intent-origin">{{ originLabel }}</span>
+      <BaseChip class="intent__origin" size="sm" data-testid="timeline-intent-origin">{{ originLabel }}</BaseChip>
       <p class="intent__text">{{ row.intent }}</p>
     </div>
 
@@ -463,30 +467,14 @@ function cancel() {
   flex-shrink: 0;
 }
 
-.chip {
-  padding: 1px 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  color: var(--text-2);
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-.chip--muted {
-  color: var(--text-3);
-}
-
 .chip--condition {
-  border-style: dashed;
-  color: var(--text-2);
   max-width: 14em;
+  min-width: 0;
+}
+
+.chip__ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.chip--broken {
-  border-color: var(--danger);
-  color: var(--danger);
 }
 
 /* Layout only: the toggle sits beside the row at its own width. The look is `IconButton`'s. */

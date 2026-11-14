@@ -13,6 +13,7 @@
 import { computed } from 'vue'
 
 import { useAiChatStore } from '../../stores/aiChat.js'
+import BaseChip from './BaseChip.vue'
 
 const chat = useAiChatStore()
 const who = computed(() => {
@@ -27,58 +28,27 @@ const detail = computed(() => {
 </script>
 
 <template>
-  <span
+  <BaseChip
     v-if="chat.running || chat.bridgeWorking"
     class="ai-working"
+    tone="accent"
+    size="lg"
+    dot
+    dot-tone="accent"
+    pulse
     role="status"
     :aria-label="who"
     :title="detail"
     data-testid="ai-working-chip"
   >
-    <span class="ai-working__dot" aria-hidden="true" />
     <span class="ai-working__text" aria-hidden="true">{{ who }}</span>
-  </span>
+  </BaseChip>
 </template>
 
 <style scoped>
-.ai-working {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
-  color: var(--text-1);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.ai-working__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: ai-working-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes ai-working-pulse {
-  50% {
-    opacity: 0.35;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ai-working__dot {
-    animation: none;
-  }
-}
-
 /* Phone: the dot only — the header has no width to spare (`AppView.vue`'s phone budget). */
 @media (max-width: 640px) {
-  .ai-working {
+  .ai-working.base-chip {
     min-height: 20px;
     padding: 0 6px;
   }
