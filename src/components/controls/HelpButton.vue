@@ -16,6 +16,7 @@ import { computed } from 'vue'
 
 import { topicTitle } from '../../help/topics.js'
 import { useHelpStore } from '../../stores/help.js'
+import IconButton from './IconButton.vue'
 
 const props = defineProps({
   /** A key of `TOPICS` in `src/help/topics.js`. */
@@ -29,37 +30,17 @@ const toolName = computed(() => props.label || topicTitle(props.topic))
 </script>
 
 <template>
-  <button
-    type="button"
+  <IconButton
     class="help-button"
     :data-testid="`help-${topic}`"
-    :aria-label="`Help: ${toolName}`"
-    :title="`Help: ${toolName}`"
+    :label="`Help: ${toolName}`"
     @click="help.open(topic)"
   >
     <span class="help-button__glyph" aria-hidden="true">?</span>
-  </button>
+  </IconButton>
 </template>
 
 <style scoped>
-.help-button {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* The tap target is the full 44px; the visible disc is smaller so it never reads as a primary action. */
-  width: var(--tap);
-  height: var(--tap);
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-2);
-  font-family: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
 .help-button__glyph {
   display: inline-flex;
   align-items: center;
@@ -74,8 +55,8 @@ const toolName = computed(() => props.label || topicTitle(props.topic))
   line-height: 1;
 }
 
-.help-button:hover,
-.help-button:focus-visible {
+.help-button.icon-button:hover:not(:disabled),
+.help-button.icon-button:focus-visible {
   color: var(--accent);
 }
 </style>

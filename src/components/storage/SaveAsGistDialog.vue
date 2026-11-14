@@ -25,6 +25,7 @@ import { computed, ref, watch } from 'vue'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import DescriptionHint from '../layout/DescriptionHint.vue'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const SECRET_NOTE = 'A secret gist is not private: anyone with the link can read it. Saving sends the whole project to GitHub.'
 const PUBLIC_NOTE = "Anyone can find a public gist on GitHub. Saving sends the whole project to GitHub. This can't be changed later."
@@ -78,10 +79,10 @@ async function copyLink() {
     <template v-if="menu.gistSaveStep === 'connect'">
       <p class="save-gist__note">Connect GitHub for gists first. The token is kept in this browser only.</p>
       <div class="save-gist__actions">
-        <button type="button" class="save-gist__button" data-testid="save-gist-cancel" @click="menu.closeSaveAsGist()">Cancel</button>
-        <button type="button" class="save-gist__button save-gist__button--primary" data-testid="save-gist-connect" @click="menu.openGistConnect()">
+        <BaseButton data-testid="save-gist-cancel" @click="menu.closeSaveAsGist()">Cancel</BaseButton>
+        <BaseButton variant="primary" data-testid="save-gist-connect" @click="menu.openGistConnect()">
           Connect GitHub for gists
-        </button>
+        </BaseButton>
       </div>
     </template>
 
@@ -103,10 +104,10 @@ async function copyLink() {
       <p v-if="menu.gistSaveBusy" class="save-gist__note" role="status" data-testid="save-gist-busy">Saving to GitHub…</p>
       <p v-if="menu.gistSaveError" class="save-gist__error" role="alert" data-testid="save-gist-error">{{ menu.gistSaveError }}</p>
       <div class="save-gist__actions">
-        <button type="button" class="save-gist__button" data-testid="save-gist-cancel" @click="menu.closeSaveAsGist()">Cancel</button>
-        <button type="submit" class="save-gist__button save-gist__button--primary" data-testid="save-gist-submit" :disabled="menu.gistSaveBusy">
+        <BaseButton data-testid="save-gist-cancel" @click="menu.closeSaveAsGist()">Cancel</BaseButton>
+        <BaseButton variant="primary" type="submit" data-testid="save-gist-submit" :disabled="menu.gistSaveBusy">
           {{ menu.gistSaveStep === 'update' ? 'Save to gist' : 'Save' }}
-        </button>
+        </BaseButton>
       </div>
     </form>
   </ModalShell>
@@ -115,7 +116,7 @@ async function copyLink() {
     <div v-if="menu.gistSaveToast" class="save-gist-toast" role="status" aria-live="polite" data-testid="save-gist-toast">
       <span>{{ copyState === 'copied' ? 'Gist link copied' : menu.gistSaveToast.text }}</span>
       <input v-if="copyState === 'failed'" class="save-gist-toast__link" type="text" readonly aria-label="The gist link" :value="menu.gistSaveToast.link" data-testid="save-gist-toast-link" />
-      <button v-else-if="copyState === ''" type="button" class="save-gist-toast__copy" data-testid="save-gist-toast-copy" @click="copyLink()">Copy link</button>
+      <BaseButton v-else-if="copyState === ''" class="save-gist-toast__copy" data-testid="save-gist-toast-copy" @click="copyLink()">Copy link</BaseButton>
     </div>
   </Teleport>
 </template>
@@ -202,33 +203,6 @@ async function copyLink() {
   justify-content: flex-end;
 }
 
-.save-gist__button,
-.save-gist-toast__copy {
-  min-width: 96px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.save-gist__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.save-gist__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 /* Above the dialogs (41) and sheets, under the header; it carries a button, so it takes taps. */
 .save-gist-toast {
   position: fixed;
@@ -254,7 +228,7 @@ async function copyLink() {
   overflow-wrap: anywhere;
 }
 
-.save-gist-toast__copy {
+.save-gist-toast .save-gist-toast__copy {
   min-width: 0;
 }
 </style>

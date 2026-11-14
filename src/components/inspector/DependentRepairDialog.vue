@@ -38,6 +38,7 @@ import { variableValueLabel, variablesOf } from '../../core/variables.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 /** @typedef {import('../../core/dependents.js').Breakage} Breakage */
 /** @typedef {import('../../core/repair.js').Fix} Fix */
@@ -371,16 +372,16 @@ function apply() {
       <p v-if="dialog.error" class="repair__error" role="alert" data-testid="repair-error">{{ dialog.error }}</p>
 
       <footer class="repair__footer">
-        <button type="button" class="repair__btn" data-testid="repair-cancel" @click="cancel()">Cancel</button>
-        <button
-          type="button"
-          class="repair__btn repair__btn--primary"
+        <BaseButton class="repair__btn" data-testid="repair-cancel" @click="cancel()">Cancel</BaseButton>
+        <BaseButton
+          class="repair__btn"
+          variant="primary"
           data-testid="repair-apply"
           :disabled="!canApply"
           @click="apply()"
         >
           Apply
-        </button>
+        </BaseButton>
       </footer>
     </section>
   </div>
@@ -466,8 +467,7 @@ function apply() {
 }
 
 .repair__name:focus-visible,
-.repair__select:focus-visible,
-.repair__btn:focus-visible {
+.repair__select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
@@ -524,31 +524,6 @@ function apply() {
   gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
-}
-
-.repair__btn {
-  min-height: 44px;
-  min-width: 96px;
-  padding: 4px 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.repair__btn--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.repair__btn:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 /* Phone: a full-height bottom sheet over the Inspector sheet, each Fix select at full

@@ -36,6 +36,7 @@ import { DEFAULT_HOSTED_PATH } from '../../storage/hostedBackend.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const menu = useFileMenuStore()
 const hosted = useHostedStore()
@@ -187,22 +188,20 @@ function cancel() {
           {{ error }}
         </p>
         <div class="connect__actions">
-          <button
-            type="button"
-            class="connect__button"
+          <BaseButton
             data-testid="hosted-connect-cancel"
             @click="cancel()"
           >
             Cancel
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
+            variant="primary"
             type="submit"
-            class="connect__button connect__button--primary"
             data-testid="hosted-connect-submit"
             :disabled="!canSubmit"
           >
             {{ busy ? 'Connecting…' : 'Connect' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
     </template>
@@ -220,22 +219,19 @@ function cancel() {
         want it.
       </p>
       <div class="connect__actions">
-        <button
-          type="button"
-          class="connect__button"
+        <BaseButton
           data-testid="hosted-connect-replace"
           @click="replaceToken()"
         >
           Replace token
-        </button>
-        <button
-          type="button"
-          class="connect__button connect__button--primary"
+        </BaseButton>
+        <BaseButton
+          variant="primary"
           data-testid="hosted-connect-done"
           @click="menu.closeConnect()"
         >
           Done
-        </button>
+        </BaseButton>
       </div>
     </template>
   </ModalShell>
@@ -295,30 +291,5 @@ function cancel() {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.connect__button {
-  min-width: 96px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.connect__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.connect__button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 </style>

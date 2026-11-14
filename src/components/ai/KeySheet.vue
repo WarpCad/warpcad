@@ -44,6 +44,7 @@ import ConnectionDot from '../display/ConnectionDot.vue'
 import ConnectButton from './ConnectButton.vue'
 import ModalShell from '../storage/ModalShell.vue'
 import ExternalLink from '../controls/ExternalLink.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 /** Where an Anthropic API key is made. */
 const CONSOLE_URL = 'https://console.anthropic.com/settings/keys'
@@ -195,29 +196,27 @@ function done() {
           </select>
         </label>
         <div class="key__actions key__actions--wrap">
-          <button type="button" class="key__button" data-testid="ai-key-cancel" @click="cancel()">
+          <BaseButton data-testid="ai-key-cancel" @click="cancel()">
             Cancel
-          </button>
+          </BaseButton>
           <!-- TODO/ai-013: a subscription isn't an API key; this is the route that does use it. -->
-          <button
+          <BaseButton
             v-if="!assistant.hasKey"
-            type="button"
-            class="key__button"
             data-testid="ai-key-subscription"
             @click="assistant.openSubscriptionRoute()"
           >
             Use my Claude subscription…
-          </button>
+          </BaseButton>
           <!-- TODO/ai-012: the live bridge — Claude Code edits this open project, no key. -->
           <ConnectButton v-if="!assistant.hasKey" testid="ai-key-connect" />
-          <button
+          <BaseButton
+            variant="primary"
             type="submit"
-            class="key__button key__button--primary"
             data-testid="ai-key-save"
             :disabled="!canSave"
           >
             {{ busy ? 'Testing…' : 'Save and test' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
     </template>
@@ -240,24 +239,23 @@ function done() {
         </select>
       </label>
       <div class="key__actions key__actions--wrap">
-        <button
-          type="button"
-          class="key__button key__button--danger"
+        <BaseButton
+          variant="danger"
           data-testid="ai-key-forget"
           :disabled="busy"
           @click="forget()"
         >
           Forget key
-        </button>
-        <button type="button" class="key__button" data-testid="ai-key-replace" @click="replaceKey()">
+        </BaseButton>
+        <BaseButton data-testid="ai-key-replace" @click="replaceKey()">
           Replace key
-        </button>
-        <button type="button" class="key__button" data-testid="ai-key-test" :disabled="busy" @click="test()">
+        </BaseButton>
+        <BaseButton data-testid="ai-key-test" :disabled="busy" @click="test()">
           {{ busy ? 'Testing…' : 'Test' }}
-        </button>
-        <button type="button" class="key__button key__button--primary" data-testid="ai-key-done" @click="done()">
+        </BaseButton>
+        <BaseButton variant="primary" data-testid="ai-key-done" @click="done()">
           Done
-        </button>
+        </BaseButton>
       </div>
     </template>
   </ModalShell>
@@ -354,35 +352,5 @@ select.key__input {
 
 .key__actions--wrap {
   flex-wrap: wrap;
-}
-
-.key__button {
-  min-width: 80px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.key__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.key__button--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.key__button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 </style>

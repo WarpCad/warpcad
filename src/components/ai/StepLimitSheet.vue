@@ -20,6 +20,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { formatSteps } from '../../core/aiBudget.js'
 import { useAiLimitStore } from '../../stores/aiLimit.js'
 import ModalShell from '../storage/ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const limit = useAiLimitStore()
 
@@ -54,9 +55,9 @@ function save() {
     </p>
     <p v-if="limit.untrusted" class="limit__warn" role="status" data-testid="ai-step-limit-untrusted">
       This project asks for {{ asked }} steps. It's using {{ inForce }} until you approve it.
-      <button type="button" class="limit__button limit__button--inline" data-testid="ai-step-limit-approve" @click="limit.approve()">
+      <BaseButton class="limit__button--inline" data-testid="ai-step-limit-approve" @click="limit.approve()">
         Use {{ asked }}
-      </button>
+      </BaseButton>
     </p>
     <form class="limit__form" novalidate @submit.prevent="save()">
       <label class="limit__field">
@@ -76,8 +77,8 @@ function save() {
       <p v-if="limit.error" id="ai-step-limit-error" class="limit__error" role="alert" data-testid="ai-step-limit-error">{{ limit.error }}</p>
       <p class="limit__note">A higher limit lets one turn spend more of your API budget.</p>
       <div class="limit__actions">
-        <button type="button" class="limit__button" data-testid="ai-step-limit-cancel" @click="limit.close()">Cancel</button>
-        <button type="submit" class="limit__button limit__button--primary" data-testid="ai-step-limit-save">Save</button>
+        <BaseButton data-testid="ai-step-limit-cancel" @click="limit.close()">Cancel</BaseButton>
+        <BaseButton variant="primary" type="submit" data-testid="ai-step-limit-save">Save</BaseButton>
       </div>
     </form>
   </ModalShell>
@@ -145,26 +146,7 @@ function save() {
   gap: 8px;
 }
 
-.limit__button {
-  min-width: 80px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.limit__button--inline {
+.limit__warn .limit__button--inline {
   min-width: 0;
-}
-
-.limit__button--primary {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 </style>

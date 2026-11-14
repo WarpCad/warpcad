@@ -36,6 +36,7 @@ import { useProjectSettingsStore } from '../../stores/projectSettings.js'
 import NumberField from '../controls/NumberField.vue'
 import DescriptionText from '../display/DescriptionText.vue'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const settings = useProjectSettingsStore()
 const documentStore = useDocumentStore()
@@ -117,9 +118,9 @@ function save() {
           These instructions came with this project, from whoever wrote the file. Until you confirm them, the
           assistant treats them as notes about the project, not as rules to follow.
         </p>
-        <button type="button" class="settings__button" data-testid="project-settings-trust" @click="settings.trustCurrent()">
+        <BaseButton data-testid="project-settings-trust" @click="settings.trustCurrent()">
           Use this project's instructions
-        </button>
+        </BaseButton>
       </div>
 
       <textarea
@@ -162,12 +163,12 @@ function save() {
       </fieldset>
 
       <div class="settings__actions">
-        <button type="button" class="settings__button" data-testid="project-settings-cancel" @click="settings.close()">
+        <BaseButton data-testid="project-settings-cancel" @click="settings.close()">
           Cancel
-        </button>
-        <button type="submit" class="settings__button settings__button--primary" data-testid="project-settings-save">
+        </BaseButton>
+        <BaseButton variant="primary" type="submit" data-testid="project-settings-save">
           Save
-        </button>
+        </BaseButton>
       </div>
     </form>
   </ModalShell>
@@ -291,25 +292,5 @@ function save() {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.settings__button {
-  min-width: 96px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.settings__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
 }
 </style>

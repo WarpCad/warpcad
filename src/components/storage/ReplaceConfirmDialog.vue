@@ -25,6 +25,7 @@ import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const menu = useFileMenuStore()
 const hosted = useHostedStore()
@@ -74,42 +75,36 @@ watch(
   >
     <p class="confirm__text">{{ sentence }}</p>
     <div class="confirm__actions">
-      <button
+      <BaseButton
         ref="cancelButton"
-        type="button"
-        class="confirm__button"
         data-testid="file-open-confirm-cancel"
         @click="menu.cancelConfirm()"
       >
         Cancel
-      </button>
+      </BaseButton>
       <!-- TODO/io-016: the Shared view has no File menu, so its "Save or download yours first" is here. -->
-      <button
+      <BaseButton
         v-if="menu.confirm === 'share'"
-        type="button"
-        class="confirm__button"
         data-testid="file-open-confirm-save"
         @click="menu.saveLocal()"
       >
         {{ persistence.fileCapabilities.mode === 'native' ? 'Save yours first' : 'Download yours first' }}
-      </button>
-      <button
-        type="button"
-        class="confirm__button confirm__button--danger"
+      </BaseButton>
+      <BaseButton
+        variant="danger"
         data-testid="file-open-confirm-replace"
         @click="menu.confirmReplace()"
       >
         {{ menu.confirm === 'share-update' ? 'Open theirs instead' : 'Replace' }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
+        variant="primary"
         v-if="menu.confirm === 'share-update'"
-        type="button"
-        class="confirm__button confirm__button--primary"
         data-testid="file-open-confirm-merge"
         @click="menu.confirmMerge()"
       >
         Merge their changes
-      </button>
+      </BaseButton>
     </div>
   </ModalShell>
 </template>
@@ -127,30 +122,5 @@ watch(
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.confirm__button {
-  min-width: 96px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.confirm__button--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.confirm__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
 }
 </style>

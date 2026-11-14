@@ -51,6 +51,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-114 — Base button: dialog family (2026-11-14 13:00)
+
+The ten dialogs the finding names (plus `DependentRepairDialog`) now draw their buttons with `BaseButton`. Three looks
+changed on purpose and are a judgment call, not something a test can settle.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The storage dialogs' buttons are now 80 px wide, not 96 px (Connect, Save as gist, Replace confirm, Project settings): do the two-button rows still look balanced at phone, tablet and laptop? | Open | |
+| 2 | The Step limit sheet's Save is now the filled primary look, not an accent outline: read it in both themes. | Open | |
+| 3 | The keyboard focus ring (`--focus-ring`, 2 px offset) on dialog buttons in Firefox and Safari: visible and not clipped by the sheet edge? | Open | |
+
 ### render-008 — The 3D view's colours on a real GPU and screen (2026-11-14 05:20)
 
 Pixels were sampled in headless Chromium (software rasteriser) and on all three engines by the e2e matrix, so the colour values are proven. Whether the light-theme body, selection and axis colours *read well* on a real display is a judgment only a person can make.

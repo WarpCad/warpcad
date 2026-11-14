@@ -18,6 +18,8 @@
  */
 import { computed } from 'vue'
 
+import IconButton from '../controls/IconButton.vue'
+
 const props = defineProps({
   /** `shown`, `hidden`, or `mixed` (a body row only: shown, with some part hidden). */
   state: { type: String, default: 'shown' },
@@ -37,11 +39,10 @@ const title = computed(() => {
 </script>
 
 <template>
-  <button
-    type="button"
+  <IconButton
     class="eye"
     :class="`eye--${state}`"
-    :aria-label="label"
+    :label="label"
     :title="title"
     :data-eye="state"
     :disabled="disabled"
@@ -59,26 +60,11 @@ const title = computed(() => {
         <path class="eye__slash" d="M4 4l16 16" />
       </template>
     </svg>
-  </button>
+  </IconButton>
 </template>
 
 <style scoped>
-.eye {
-  flex: 0 0 var(--tap);
-  width: var(--tap);
-  min-height: var(--tap);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.eye--hidden {
+.eye.eye--hidden {
   color: var(--text-3);
 }
 
@@ -99,19 +85,14 @@ const title = computed(() => {
   stroke-width: 2;
 }
 
-.eye:focus-visible {
-  outline: 2px solid var(--accent);
+/* Inset, so a row that clips its overflow still shows the ring. */
+.eye.icon-button:focus-visible {
   outline-offset: -2px;
 }
 
 @media (hover: hover) {
-  .eye:hover:not(:disabled) {
+  .eye.icon-button:hover:not(:disabled) {
     color: var(--text-1);
   }
-}
-
-.eye:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 </style>

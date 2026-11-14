@@ -9,6 +9,7 @@
  * copy the text by hand (the text itself is shown, selectable, by the parent).
  */
 import { onBeforeUnmount, ref } from 'vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   /** What to copy. */
@@ -43,9 +44,9 @@ async function copy() {
 
 <template>
   <div class="starter">
-    <button type="button" class="starter__button" :data-testid="testid" @click="copy()">
+    <BaseButton :data-testid="testid" @click="copy()">
       {{ state === 'copied' ? 'Copied' : label }}
-    </button>
+    </BaseButton>
     <p v-if="state === 'failed'" class="starter__note" role="status" :data-testid="`${testid}-status`">
       Couldn’t copy — select the text above and copy it
     </p>
@@ -57,20 +58,6 @@ async function copy() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.starter__button {
-  min-width: 80px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
 .starter__note {

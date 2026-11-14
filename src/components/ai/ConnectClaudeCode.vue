@@ -35,6 +35,7 @@ import { useHelpStore } from '../../stores/help.js'
 import ModalShell from '../storage/ModalShell.vue'
 import NativeMcpAccess from './NativeMcpAccess.vue'
 import StarterCopy from './StarterCopy.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
@@ -110,17 +111,17 @@ function close() {
         <template v-if="chat.webMcp === 'unavailable'">This browser doesn’t offer WebMCP yet; the Help page says how to turn it on in Chrome.</template>
       </p>
       <div class="connect__actions">
-        <button v-if="chat.webMcp !== 'unavailable'" type="button" class="connect__button" data-testid="ai-connect-browser-agents" @click="assistant.open()">
+        <BaseButton v-if="chat.webMcp !== 'unavailable'" data-testid="ai-connect-browser-agents" @click="assistant.open()">
           Show the Browser agents switch
-        </button>
-        <button type="button" class="connect__button" data-testid="ai-connect-webmcp-help" @click="help.openPage('webmcp')">About browser agents</button>
+        </BaseButton>
+        <BaseButton data-testid="ai-connect-webmcp-help" @click="help.openPage('webmcp')">About browser agents</BaseButton>
       </div>
       <p class="connect__text">
         An MCP client can also work on a saved project file; WarpCad merges its changes into the open
         project.
       </p>
       <div class="connect__actions">
-        <button type="button" class="connect__button" data-testid="ai-connect-mcp-help" @click="help.openPage('mcp', 'three-ways-in')">The three ways in</button>
+        <BaseButton data-testid="ai-connect-mcp-help" @click="help.openPage('mcp', 'three-ways-in')">The three ways in</BaseButton>
       </div>
     </div>
 
@@ -164,10 +165,10 @@ function close() {
       </label>
       <p v-if="native" class="connect__note" data-testid="ai-connect-onscreen">Works while WarpCad is open on screen.</p>
       <div class="connect__actions">
-        <button v-if="accessEnabled" type="button" class="connect__button" data-testid="ai-connect-disable" @click="turnOff()">Turn off</button>
-        <button type="button" class="connect__button connect__button--primary" data-testid="ai-connect-enable" @click="enable()">
+        <BaseButton v-if="accessEnabled" data-testid="ai-connect-disable" @click="turnOff()">Turn off</BaseButton>
+        <BaseButton variant="primary" data-testid="ai-connect-enable" @click="enable()">
           {{ accessEnabled ? 'Update access' : 'Enable access' }}
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -177,8 +178,8 @@ function close() {
     <p class="connect__status" role="status" data-testid="ai-connect-status" :data-state="chat.bridge">{{ status }}</p>
 
     <div class="connect__actions">
-      <button type="button" class="connect__button" data-testid="ai-connect-keys" @click="assistant.openKeySheet()">Key and model…</button>
-      <button type="button" class="connect__button connect__button--primary" data-testid="ai-connect-done" @click="close()">Done</button>
+      <BaseButton data-testid="ai-connect-keys" @click="assistant.openKeySheet()">Key and model…</BaseButton>
+      <BaseButton variant="primary" data-testid="ai-connect-done" @click="close()">Done</BaseButton>
     </div>
   </ModalShell>
 </template>
@@ -246,6 +247,7 @@ function close() {
   .connect__starter-buttons {
     flex-direction: column;
   }
+
 }
 
 .connect__ok {
@@ -284,30 +286,5 @@ function close() {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.connect__button {
-  min-width: 80px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.connect__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.connect__button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 </style>

@@ -38,6 +38,7 @@ import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
 import ExternalLink from '../controls/ExternalLink.vue'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 /** GitHub's page for a new fine-grained token. */
 const TOKEN_PAGE = 'https://github.com/settings/personal-access-tokens/new'
@@ -165,15 +166,15 @@ function close() {
         <p v-if="error" class="gist-connect__error" role="alert" data-testid="gist-connect-error">{{ error }}</p>
         <p v-if="note" class="gist-connect__note" role="status" data-testid="gist-connect-note">{{ note }}</p>
         <div class="gist-connect__actions">
-          <button type="button" class="gist-connect__button" data-testid="gist-connect-cancel" @click="close()">Cancel</button>
-          <button
+          <BaseButton data-testid="gist-connect-cancel" @click="close()">Cancel</BaseButton>
+          <BaseButton
+            variant="primary"
             type="submit"
-            class="gist-connect__button gist-connect__button--primary"
             data-testid="gist-connect-submit"
             :disabled="!canSubmit"
           >
             {{ busy ? 'Checking…' : 'Connect' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
 
@@ -208,21 +209,21 @@ function close() {
         {{ BROADER_THAN_NEEDED_MESSAGE }}
       </p>
       <div class="gist-connect__actions gist-connect__actions--wrap">
-        <button
-          type="button"
-          class="gist-connect__button gist-connect__button--danger"
+        <BaseButton
+          class="gist-connect__remove"
+          variant="danger"
           data-testid="gist-disconnect"
           :disabled="busy"
           @click="disconnect()"
         >
           Disconnect
-        </button>
-        <button type="button" class="gist-connect__button" data-testid="gist-connect-replace" :disabled="busy" @click="replaceToken()">
+        </BaseButton>
+        <BaseButton data-testid="gist-connect-replace" :disabled="busy" @click="replaceToken()">
           Replace token
-        </button>
-        <button type="button" class="gist-connect__button gist-connect__button--primary" data-testid="gist-connect-done" @click="close()">
+        </BaseButton>
+        <BaseButton variant="primary" data-testid="gist-connect-done" @click="close()">
           Done
-        </button>
+        </BaseButton>
       </div>
     </template>
   </ModalShell>
@@ -334,41 +335,16 @@ function close() {
   flex-wrap: wrap;
 }
 
-.gist-connect__button {
-  min-width: 96px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.gist-connect__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.gist-connect__button--danger {
+/* Disconnect sits apart at the start of the row, as a quiet danger text button. */
+.gist-connect__actions .gist-connect__remove {
   margin-right: auto;
   border-color: transparent;
   background: transparent;
-  color: var(--danger);
-}
-
-.gist-connect__button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 @media (max-width: 640px) {
   /* Phone: the two main buttons share the row; full width is the thumb's. */
-  .gist-connect__actions .gist-connect__button:not(.gist-connect__button--danger) {
+  .gist-connect__actions > :not(.gist-connect__remove) {
     flex: 1;
   }
 }

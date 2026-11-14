@@ -12,6 +12,18 @@ status: open
 > **Decided 2026-11-10** (`ui-111`, decision 1): base components live in the existing folders. These
 > go in `src/components/controls/`.
 
+> **Progress 2026-11-14 (stays open).** Landed: `BaseButton.vue` and `IconButton.vue` (with specs and stories, and
+> `focus()` exposed for template refs), `HelpButton` and `EyeToggle` as thin `IconButton` wrappers, and the dialog
+> family's eleven components moved onto `BaseButton` (`ai/ConnectClaudeCode`, `KeySheet`, `StarterCopy`,
+> `StepLimitSheet`, `SubscriptionRoute`; `storage/ConnectDialog`, `GistConnectDialog`, `ProjectSettingsDialog`,
+> `ReplaceConfirmDialog`, `SaveAsGistDialog`; `inspector/DependentRepairDialog`). `git log` gave no reason for 80 vs
+> 96, so tap buttons are `min-width: 80px`. `testing-036`'s font allow-list is tightened for those files.
+> **Remaining**: the rest of the dialog family (`storage/ConflictDialog`, `DiskChangeDialog`;
+> `inspector/VariableUsageDialog`; `layout/SharedAboutPopup`, `UserPartMenu`, `SaveToLibrarySheet`, `ShareSheet`,
+> `ShareGistGroup`; `features/SplitSheet` are 48 px / `--radius-md` / left-aligned variants that need props first),
+> `DeleteButton`, and the strips and toasts, panels, toolbars and popovers, AI and "the rest" families above.
+> Scenarios 1, 4, 7 (after the toolbar family) and 10, 24 (after the rest of the dialogs) still owe a re-drive.
+
 ## Problem
 
 There are 352 `<button>` elements in 97 components and no shared button. **68 components define

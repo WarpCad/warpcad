@@ -19,6 +19,7 @@ import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import ModalShell from '../storage/ModalShell.vue'
 import StarterCopy from './StarterCopy.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const assistant = useAssistantStore()
 const open = computed(() => assistant.view === 'subscription')
@@ -72,12 +73,12 @@ function back() {
       <template v-else-if="copied === 'failed'">Couldn't copy. Select the command above and copy it by hand.</template>
     </p>
     <div class="route__actions">
-      <button type="button" class="route__button" data-testid="ai-subscription-back" @click="back()">
+      <BaseButton data-testid="ai-subscription-back" @click="back()">
         Use an API key instead
-      </button>
-      <button type="button" class="route__button route__button--primary" data-testid="ai-subscription-copy" @click="copy()">
+      </BaseButton>
+      <BaseButton variant="primary" data-testid="ai-subscription-copy" @click="copy()">
         Copy
-      </button>
+      </BaseButton>
     </div>
   </ModalShell>
 </template>
@@ -124,25 +125,5 @@ function back() {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.route__button {
-  min-width: 80px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.route__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
 }
 </style>
