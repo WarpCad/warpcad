@@ -107,7 +107,7 @@ useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
 .disk__detail,
 .disk__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   color: var(--text-2);
   overflow-wrap: anywhere;

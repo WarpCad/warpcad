@@ -254,7 +254,7 @@ function sizeLabel(bytes) {
 
 .export__heading {
   margin: 4px 2px 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -279,7 +279,7 @@ function sizeLabel(bytes) {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
   pointer-events: none;
 }
@@ -296,7 +296,7 @@ function sizeLabel(bytes) {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
 }
 
 .export__select:focus-visible {
@@ -316,7 +316,7 @@ function sizeLabel(bytes) {
   min-height: var(--tap);
   padding: 0 4px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.3;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -355,7 +355,7 @@ function sizeLabel(bytes) {
   align-items: center;
   justify-content: center;
   padding: 0 6px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   text-align: center;
   color: var(--text-2);
   cursor: pointer;
@@ -381,7 +381,7 @@ function sizeLabel(bytes) {
 .export__segment:has(input:checked) {
   background: color-mix(in srgb, var(--accent) 22%, var(--surface-1));
   color: var(--text-1);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .export__segment:has(input:focus-visible) {
@@ -391,7 +391,7 @@ function sizeLabel(bytes) {
 
 .export__summary {
   margin: 10px 2px 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -402,7 +402,7 @@ function sizeLabel(bytes) {
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--text-1);
   overflow-wrap: anywhere;
@@ -423,7 +423,7 @@ function sizeLabel(bytes) {
   padding: 6px 8px;
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--danger);
   overflow-wrap: anywhere;
@@ -440,7 +440,7 @@ function sizeLabel(bytes) {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .export__piece {

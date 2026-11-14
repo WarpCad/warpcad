@@ -240,7 +240,7 @@ function close() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -255,7 +255,7 @@ function close() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px, deliberately: iOS Safari zooms the whole page on focus of any input below it. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .gist-connect__help {
@@ -269,7 +269,7 @@ function close() {
 .gist-connect__help p,
 .gist-connect__meta {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.45;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -286,7 +286,7 @@ function close() {
   align-items: center;
   min-height: var(--tap);
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -299,7 +299,7 @@ function close() {
 
 .gist-connect__connected {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-size-title);
   color: var(--text-1);
   overflow-wrap: anywhere;
 }
@@ -308,7 +308,7 @@ function close() {
 .gist-connect__warning,
 .gist-connect__note {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

@@ -86,7 +86,7 @@ function submit() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -101,13 +101,13 @@ function submit() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px, deliberately: iOS zooms the whole page on focus of any input below it. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .file-name__note,
 .file-name__error {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -133,7 +133,7 @@ function submit() {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -142,7 +142,7 @@ function submit() {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .file-name__button:disabled {

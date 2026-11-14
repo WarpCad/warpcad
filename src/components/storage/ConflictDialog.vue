@@ -119,7 +119,7 @@ useOverlayStack(() => hosted.conflictOpen, () => void choose('cancel'))
 .conflict__detail,
 .conflict__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.45;
   color: var(--text-2);
   overflow-wrap: anywhere;

@@ -819,7 +819,7 @@ onBeforeUnmount(() => {
   background: var(--surface-1);
   color: var(--text-2);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
@@ -832,7 +832,7 @@ onBeforeUnmount(() => {
 }
 
 .file-button__caret {
-  font-size: 11px;
+  font-size: var(--text-size-xs);
 }
 
 /* TODO/core-032: an Open in progress. */
@@ -841,7 +841,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   color: var(--accent);
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 /* A transform animation runs on the compositor, so it keeps turning while the fold holds the
@@ -874,7 +874,7 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   background: transparent;
-  z-index: 30;
+  z-index: var(--z-popover);
 }
 
 .file-menu {
@@ -886,13 +886,13 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-lg);
   background: var(--surface-1);
   box-shadow: var(--shadow-overlay);
-  z-index: 31;
+  z-index: var(--z-popover-frame);
 }
 
 .file-menu__status {
   margin: 0;
   padding: 8px 10px 6px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -911,7 +911,7 @@ onBeforeUnmount(() => {
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 14%, var(--surface-1));
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   line-height: 1.35;
   color: var(--text-1);
 }
@@ -928,7 +928,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--text-1);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   text-align: left;
   overflow-wrap: anywhere;
   cursor: pointer;
@@ -968,7 +968,7 @@ onBeforeUnmount(() => {
 }
 
 .file-menu__reason {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.3;
   color: var(--text-2);
 }
@@ -979,14 +979,14 @@ onBeforeUnmount(() => {
 
 .file-menu__item--dismiss {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--text-size-md);
 }
 
 .file-menu__check {
   flex: none;
   width: 14px;
   color: var(--accent-secondary);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .file-menu__divider {
@@ -994,7 +994,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   margin: 6px 4px 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);

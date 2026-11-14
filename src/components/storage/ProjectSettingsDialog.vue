@@ -182,15 +182,15 @@ function save() {
 }
 
 .settings__field {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-medium);
   color: var(--text-1);
 }
 
 .settings__help,
 .settings__count {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--text-2);
 }
@@ -212,7 +212,7 @@ function save() {
 
 .settings__untrusted-text {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.45;
   color: var(--text-1);
 }
@@ -228,7 +228,7 @@ function save() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px, deliberately: iOS Safari zooms the whole page on focus of any input below it. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
   line-height: 1.4;
   resize: vertical;
   white-space: pre-wrap;
@@ -264,7 +264,7 @@ function save() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -279,12 +279,12 @@ function save() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px for the same iOS focus-zoom reason as the instructions field. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .settings__error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--danger);
 }
 

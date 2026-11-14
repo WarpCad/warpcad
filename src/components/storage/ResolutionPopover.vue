@@ -128,7 +128,7 @@ watch(
 
 .resolution__heading {
   margin: 4px 2px 2px;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -136,7 +136,7 @@ watch(
 
 .resolution__intro {
   margin: 0 2px 6px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--text-2);
 }
@@ -186,12 +186,12 @@ watch(
 }
 
 .resolution__label {
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.3;
 }
 
 .resolution__hint {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.3;
   color: var(--text-2);
   overflow-wrap: anywhere;
@@ -202,7 +202,7 @@ watch(
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 14%, var(--surface-1));
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.35;
 }
 

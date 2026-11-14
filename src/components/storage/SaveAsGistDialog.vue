@@ -107,7 +107,7 @@ function submit() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -122,7 +122,7 @@ function submit() {
   color: var(--text-1);
   font-family: inherit;
   /* 16px, deliberately: iOS Safari zooms the whole page on focus of any input below it. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .save-gist__choice {
@@ -136,7 +136,7 @@ function submit() {
 .save-gist__legend {
   padding: 0;
   margin-bottom: 2px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -145,7 +145,7 @@ function submit() {
   align-items: center;
   gap: 8px;
   min-height: var(--tap);
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -160,7 +160,7 @@ function submit() {
 .save-gist__note,
 .save-gist__error {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   color: var(--text-2);
   overflow-wrap: anywhere;

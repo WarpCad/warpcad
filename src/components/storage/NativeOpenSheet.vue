@@ -74,7 +74,7 @@ function modified(epochMs) {
 <style scoped>
 .open-sheet__note {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   line-height: 1.4;
   color: var(--text-2);
 }
@@ -115,12 +115,12 @@ function modified(epochMs) {
 
 .open-sheet__name {
   max-width: 100%;
-  font-size: 15px;
+  font-size: var(--text-size-title);
   overflow-wrap: anywhere;
 }
 
 .open-sheet__date {
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -140,7 +140,7 @@ function modified(epochMs) {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -149,6 +149,6 @@ function modified(epochMs) {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 </style>

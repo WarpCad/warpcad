@@ -112,7 +112,7 @@ watch(
 <style scoped>
 .confirm__text {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-size-lg);
   line-height: 1.45;
   color: var(--text-2);
 }
