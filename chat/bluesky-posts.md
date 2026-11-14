@@ -2829,3 +2829,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** new number-entry spec on all nine engine-viewport projects; full e2e matrix 5763 passed, 0 failed, unit 9338 passed (this session)
 **To Add:** none
+
+## 2026-11-14T05:25:00Z — render-008: the 3D view follows the theme tokens
+
+**Post:** WarpCad's 3D view kept its own colour palette in JavaScript, so a theme change stopped at the canvas edge and the light-mode X axis was a different red in WebGL than in the dimension lines. The scene now reads the same theme tokens as the UI, once per theme change, never per frame. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** full e2e matrix on the final tree 5799 passed, 0 failed, unit 9359 passed (this session); orbit frame time unchanged and zero getComputedStyle calls in a 5 s orbit (this session); cube, cylinder, selection and recolour drive in both themes (this session)
+**To Add:** none

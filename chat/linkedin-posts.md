@@ -4098,3 +4098,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** new number-entry spec on all nine engine-viewport projects; full e2e matrix 5763 passed, 0 failed, unit 9338 passed (this session); touch keyboard and comma-locale checks open in TODO/VERIFY.md ui-115
 **To Add:** none
+
+## 2026-11-14T05:25:00Z — render-008: the 3D view follows the theme tokens
+
+**Post:** WarpCad's 3D view had its own palette written as hex constants in JavaScript. The rest of the app takes its colours from theme tokens, so a theme edit stopped at the edge of the canvas, and the two had already drifted: in light mode the X axis was one red in WebGL and a different red in the dimension lines.
+
+The scene colours (ground, grid, axes, body, selection, hover, lights) are now tokens too. A small reader turns them into the integers three.js takes, once on mount and once per theme change, and recolours the existing materials in place. Nothing reads style in the frame or pointer path: a five-second orbit makes zero getComputedStyle calls, and frame time is unchanged. A part you coloured yourself keeps its colour in every theme.
+
+The drive on a production build found something the tests did not. The CSS minifier writes #ffffff as #fff, the first version of the reader only accepted six digits, and every production user was silently getting the fallback palette. The fallback equals the tokens, so every pixel check passed. The reader accepts the short form now, and a new end-to-end test fails on any theme-read error.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** full e2e matrix on the final tree 5799 passed, 0 failed, 1975 skipped, unit 9359 passed (this session); orbit frame time before and after in bench/results/2026-11-14-render-008.md; real-device judgment of the light-theme colours logged in TODO/VERIFY.md render-008
+**To Add:** none
