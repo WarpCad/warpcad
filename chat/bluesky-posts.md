@@ -2820,3 +2820,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** theme-switch e2e and Help picture specs: 373 passed, 0 failed on all nine engine-viewport projects (this session); cube and cylinder drive in both forced themes against the opposite system scheme (this session)
 **To Add:** docs/screenshots/help-theme-control.png
+
+## 2026-11-14T00:25:00Z — ui-115: one number field for every size
+
+**Post:** In WarpCad, typing 2,5 or 12.5 mm into the Inspector always worked, but the Fillet popover and the Split sheet used the browser's number input and rejected the same text. One NumberField now serves all of them. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** new number-entry spec on all nine engine-viewport projects; full e2e matrix 5763 passed, 0 failed, unit 9338 passed (this session)
+**To Add:** none

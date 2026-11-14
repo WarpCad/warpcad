@@ -4083,3 +4083,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** theme-switch e2e and Help picture specs: 373 passed, 0 failed on all nine engine-viewport projects (this session); pair run 1159 passed, 0 failed; real-device first-paint judgment logged in TODO/VERIFY.md ui-113
 **To Add:** docs/screenshots/help-theme-control.png
+
+## 2026-11-14T00:25:00Z — ui-115: one number field for every size
+
+**Post:** WarpCad had two ways to type a dimension. In the Inspector you could type 12,5, 12.5 mm or 45° and it understood. In the Fillet popover and the Split sheet, the browser's native number input rejected the same text, and the bound value held an empty string while you were mid-edit.
+
+Both are now one NumberField component. It is a text field with a decimal keypad that commits once, on blur or Enter, through the same parser; text that is not a number puts the old value back, Escape restores, and the arrow keys step. Fields that preview as you type (the Split cut plane) opt in to live updates, and "Auto" fields accept a blank. Thirty native inputs and eleven hand-written ones moved over.
+
+Two behaviours changed on purpose: Enter commits a field but no longer submits the sheet around it, and a number changed from outside, like dragging the cut plane, replaces text you are halfway through typing. The full test matrix caught both in existing specs.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** new number-entry spec on all nine engine-viewport projects; full e2e matrix 5763 passed, 0 failed, unit 9338 passed (this session); touch keyboard and comma-locale checks open in TODO/VERIFY.md ui-115
+**To Add:** none
