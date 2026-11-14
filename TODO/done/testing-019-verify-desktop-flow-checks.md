@@ -6,8 +6,22 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14):** the 13 rows were driven on a production build (`npm run build`, `vite preview`) at laptop 1440x900 in Chromium, with WebKit added
+> for `core-053` #1 and `ui-035` #1, and `perf-003` #1 on `npm run dev` (stopped afterwards) with the scripted provider; no API key and no network LLM call
+> anywhere (`ai-033` #3 and `ai-021` #5 used the stand-in `document.modelContext` agent). Results are in `TODO/VERIFY.md`. **OK:** `ui-090` #1 and #2 (Show all
+> keeps the drilled `Group 1 ▸ Cube 1`; the header reads `1 hidden · Show all` before and after a reload; scenarios 6 and 10 now carry an "Also re-drive" line),
+> `ai-033` #3, `perf-003` #1 (header Undo reads `Undo: Place Cube 1` before, during and after the scripted turn and Undo AI turn), `core-054` #1 (red cylinder, default cube,
+> 14 748 and 14 760 red pixels), `core-053` #1 (Print 2 388 and Fine 1 916 triangles, identical in Chromium and WebKit; a file no longer opens broken, so the row was made
+> through Pi Model 5 with Leave broken), `core-028` #1 (a body off the plane gives a separate copy; one centred on the plane lands on itself, as the popover says),
+> `ui-035` #1 (holes are hidden cutter parts now: 0 of 5 clicks reach them with Show hidden parts off from Top and Bottom, 5 of 5 from Top, Bottom and under with it on),
+> `core-018` #2 (clean crossing and ends; 5 thin-wall warnings of 1 mm at z = 9, none at the crossing) and the registry half of `ai-021` #5 (50 bodies returned whole with an
+> `oversize` note). **Issue:** `core-042` #1, filed as `FIND-core-083` (a sketch's Linear Twist 90 at the default one twist step reads 3 820 mm³, not 14 400; the mesh
+> is not inside-out). **Left `Open` on purpose:** `core-027` #1 (measured: wide end of the flat head at z = 0, thread up; whether orientation `down` is wanted is the owner's call,
+> `FIND-testing-033`), `data-003` #2 (the refusal works but does not share the `save-status` chip and its wording leaks internals; filed `FIND-ui-125`; the chip decision stays the owner's)
+> and the real-Chrome half of `ai-021` #5. No product code changed, so no unit or e2e run beyond `npm run spdx` and `npm run typecheck`. Social drafts: none.
 
 ## Problem
 

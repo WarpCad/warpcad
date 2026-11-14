@@ -60,7 +60,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 24 | ▶ Ready | `FIND` | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks at laptop width (13 rows) | sonnet |
 | 25 | ▶ Ready | `FIND` | [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks (8 rows) | sonnet |
 | 26 | ▶ Ready | `FIND` | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with Claude Code as client (12 rows) | sonnet |
 | 27 | ▶ Ready | `FIND` | [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open exported STL, OBJ and glTF files in real tools (6 rows) | sonnet |
@@ -77,6 +76,8 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 39 | ▶ Ready | `FIND` | [`ui-124`](FIND-ui-124-nav-chrome-covers-scale-readout-at-650px.md) Stop the navigation chrome covering the grid scale readout at about 650 px wide | sonnet |
 | 40 | ▶ Ready | `FIND` | [`testing-039`](FIND-testing-039-graduate-overlay-and-gizmo-engine-checks-to-a-spec.md) Graduate the hand-checked Show hidden parts overlay and move-arrow colour checks into a three-engine e2e spec | sonnet |
+| 41 | ▶ Ready | `FIND` | [`core-083`](FIND-core-083-sketch-linear-twist-collapses-at-default-steps.md) Make a sketch's Linear twist take its steps from the resolution, so Twist 90 is not a folded solid | sonnet |
+| 42 | ▶ Ready | `FIND` | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) Word the Undo refusal from step labels and show it in the save-status chip | sonnet |
 
 ---
 
@@ -150,7 +151,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks that only need the built app at laptop width | finding | medium | sonnet | ▶ Ready (Next up row 24) |
 | [`testing-020`](FIND-testing-020-verify-touch-timing-and-offline-checks.md) Drive the VERIFY.md touch, timing and offline checks that emulation and real timers can settle | finding | medium | sonnet | ▶ Ready (Next up row 25) |
 | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as the client | finding | medium | sonnet | ▶ Ready (Next up row 26) |
 | [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open WarpCad's exported STL, OBJ and glTF files in real tools on this Mac | finding | medium | sonnet | ▶ Ready (Next up row 27) |
@@ -167,6 +167,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`ui-124`](FIND-ui-124-nav-chrome-covers-scale-readout-at-650px.md) Stop the navigation chrome covering the grid scale readout at about 650 px wide | finding | low | sonnet | ▶ Ready (Next up row 39) |
 | [`testing-039`](FIND-testing-039-graduate-overlay-and-gizmo-engine-checks-to-a-spec.md) Graduate the hand-checked Show hidden parts overlay and move-arrow colour checks into a three-engine e2e spec | finding | low | sonnet | ▶ Ready (Next up row 40) |
+| [`core-083`](FIND-core-083-sketch-linear-twist-collapses-at-default-steps.md) A sketch's Linear twist at the default one twist step folds the solid | finding | medium | sonnet | ▶ Ready (Next up row 41) |
+| [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) The Undo refusal message leaks internals and is not in the save-status chip | finding | low | sonnet | ▶ Ready (Next up row 42) |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
@@ -329,7 +331,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `testing-019` | Drive the VERIFY.md flow checks that need only the built app at laptop width (13 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 6, 10, 11, 16 |
 | `testing-020` | Drive the VERIFY.md touch, timing and offline checks emulation can settle (8 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 7 (if `ui-062` #4 reproduces) |
 | `testing-022` | Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 23, 25 |
 | `testing-023` | Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 11, 26 |
@@ -346,6 +347,8 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `ui-124` | The navigation chrome covers the left 10 px of the grid scale readout at a window about 650 px wide. Filed 2026-11-14 from the `testing-017` sweep | Finding | — | 1, 4 (tablet width) |
 | `testing-039` | Graduate the hand-checked Show hidden parts overlay and move-arrow colour checks into a three-engine e2e spec. Filed 2026-11-14 from `testing-017` | Finding | — | none |
+| `core-083` | A sketch's Linear Twist at the default one twist step folds the solid (30 × 16 × 30 mm at Twist 90 reads 3 820 mm³, not 14 400). Filed 2026-11-14 from `testing-019` | Finding | — | 9 |
+| `ui-125` | The header's Undo refusal leaks `document.undo:` and a record id, and sits beside the save-status chip instead of in it. Filed 2026-11-14 from `testing-019` | Finding | — | none |
 
 ---
 
@@ -443,7 +446,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 33 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 34 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
