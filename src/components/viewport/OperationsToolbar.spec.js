@@ -109,6 +109,22 @@ describe('OperationsToolbar — Fillet/Chamfer (TODO/ui-027)', () => {
     expect(chamfer.attributes('disabled')).toBeDefined()
   })
 
+  it('the Fillet and Chamfer popover is a BasePopover frame: a dialog, draggable, with its own click-catching backdrop (TODO/ui-116)', async () => {
+    placeCube()
+    selection.select('cube-1')
+    const wrapper = mount(OperationsToolbar)
+
+    await wrapper.get('[data-testid="operation-fillet"]').trigger('click')
+    const popover = body().get('[data-testid="fillet-chamfer-popover"]')
+    expect(popover.attributes('role')).toBe('dialog')
+    expect(popover.attributes('data-popover-frame')).toBeDefined()
+    expect(popover.find('[data-popover-grip]').exists()).toBe(true)
+    expect(body().findAll('.ops__popover-backdrop, .popover__backdrop')).toHaveLength(1)
+
+    await body().get('[data-testid="fillet-chamfer-popover-backdrop"]').trigger('click')
+    expect(body().find('[data-testid="fillet-chamfer-popover"]').exists()).toBe(false)
+  })
+
   it("the popover's own commit button stays disabled until both Face and Radius are filled", async () => {
     placeCube()
     selection.select('cube-1')

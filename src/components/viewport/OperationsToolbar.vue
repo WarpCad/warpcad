@@ -309,11 +309,11 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, w
 
 import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
+import BasePopover from '../layout/BasePopover.vue'
 import NumberField from '../controls/NumberField.vue'
 import AlignPopover from './AlignPopover.vue'
 import GroupMergePopover from './GroupMergePopover.vue'
 import OperationsGroupPopover from './OperationsGroupPopover.vue'
-import PopoverGrip from './PopoverGrip.vue'
 
 import { operandsHaveParts } from '../../core/groupMerge.js'
 import { bisectParams, booleanRecord, groupRecord, inPlaceRecord, mirrorRecord, operandFromSelection } from '../../core/operationRecords.js'
@@ -718,7 +718,9 @@ const openPopover = ref(
 )
 // Dragging the popover's grip (`TODO/ui-087`): the frame is teleported, so the composable finds it
 // through the grip rather than through a ref.
-usePopoverDrag(openPopover)
+// Fillet/Chamfer, Resize and Mirror are `BasePopover` frames, which wire their own drag
+// (`TODO/ui-116`); only the two frames this file still owns are wired here.
+usePopoverDrag(computed(() => (openPopover.value === 'align' || openPopover.value === 'group-merge' ? openPopover.value : null)))
 useOverlayStack(() => openPopover.value !== null, () => closePopover())
 
 // Tell the app an operation popover is open, so a background hosted-conflict dialog is deferred
@@ -1864,14 +1866,20 @@ onBeforeUnmount(() => closeGroup())
          the DOM node itself out from under `.ops` so `position: fixed` means
          what it says. -->
     <Teleport to="body">
-      <div v-if="openPopover" class="ops__popover-backdrop" @click="closePopover" />
-      <div
+      <div v-if="openPopover === 'align' || openPopover === 'group-merge'" class="ops__popover-backdrop" @click="closePopover" />
+      <BasePopover
         v-if="openPopover && isFilletChamferOp(openPopover)"
+        open
+        modal
+        draggable
+        :teleport="false"
+        :drag-key="openPopover"
         class="ops__popover"
-        data-testid="fillet-chamfer-popover"
+        testid="fillet-chamfer-popover"
+        :title="openPopover === 'modify.filletRim' ? 'Fillet' : 'Chamfer'"
         :data-op="openPopover"
+        @close="closePopover"
       >
-        <PopoverGrip />
         <p class="ops__popover-note">
           {{ FILLET_CHAMFER_OPERATIONS.find((operation) => operation.op === openPopover)?.scopeNote }}
         </p>
@@ -1905,7 +1913,7 @@ onBeforeUnmount(() => closeGroup())
           </BaseButton>
         </div>
         <HelpButton :topic="openPopover === 'modify.filletRim' ? 'fillet' : 'chamfer'" class="ops__popover-help" />
-      </div>
+      </BasePopover>
 
       <!-- Enlarge/Fit/Bisect (TODO/ui-028): this toolbar's third popover
            shape, reusing the Teleport/backdrop mechanism above verbatim.
@@ -1913,13 +1921,19 @@ onBeforeUnmount(() => closeGroup())
            distinguished by `data-op` and the field set inside — the same
            "one popover, `data-op` tells them apart" shape Fillet/Chamfer's
            own popover above already established. -->
-      <div
+      <BasePopover
         v-else-if="openPopover && isResizeOp(openPopover)"
+        open
+        modal
+        draggable
+        :teleport="false"
+        :drag-key="openPopover"
         class="ops__popover"
-        data-testid="resize-popover"
+        testid="resize-popover"
+        title="Enlarge, fit or bisect"
         :data-op="openPopover"
+        @close="closePopover"
       >
-        <PopoverGrip />
         <template v-if="openPopover === 'modify.enlarge'">
           <p class="ops__popover-note">
             Grows (positive) or shrinks (negative) the shape by this many
@@ -2026,15 +2040,21 @@ onBeforeUnmount(() => closeGroup())
           </BaseButton>
         </div>
         <HelpButton :topic="openPopover === 'modify.bisect' ? 'bisect' : 'resize'" class="ops__popover-help" />
-      </div>
+      </BasePopover>
 
-      <div
+      <BasePopover
         v-else-if="openPopover === 'transform.mirror'"
+        open
+        modal
+        draggable
+        :teleport="false"
+        drag-key="transform.mirror"
         class="ops__popover"
-        data-testid="mirror-popover"
+        testid="mirror-popover"
+        title="Mirror"
         data-op="transform.mirror"
+        @close="closePopover"
       >
-        <PopoverGrip />
         <p class="ops__popover-note">
           Adds a reflected <strong>copy</strong> on the other side of a plane.
           The original stays exactly where it is; the copy becomes the selection.
@@ -2065,7 +2085,7 @@ onBeforeUnmount(() => closeGroup())
           </BaseButton>
         </div>
         <HelpButton topic="mirror" class="ops__popover-help" />
-      </div>
+      </BasePopover>
 
       <!-- Align (TODO/ui-060): the frame is this file's `.ops__popover`, the contents are
            AlignPopover's. It stays open across taps; Escape or the backdrop closes it. -->
@@ -2454,7 +2474,7 @@ onBeforeUnmount(() => closeGroup())
      modal, and once Bisect grew to six fields its lower controls extended into
      the band the auto-opened Inspector sheet occupies at 390px, which then
      intercepted every pointer event aimed at Commit. */
-  z-index: 30;
+  z-index: var(--z-popover);
 }
 
 .ops__popover {
@@ -2481,7 +2501,7 @@ onBeforeUnmount(() => closeGroup())
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
-  z-index: 31;
+  z-index: var(--z-popover-frame);
 }
 
 /* The Align popover is wider than its siblings (`TODO/ui-086`): seven 44 px position buttons,
@@ -2728,5 +2748,25 @@ onBeforeUnmount(() => closeGroup())
     padding: 8px;
     gap: 6px;
   }
+}
+</style>
+
+<!-- Not scoped on purpose: a `BasePopover` frame's root is a Teleport, so this file's scope id never
+     reaches it. The Fillet/Chamfer, Resize and Mirror frames are placed and dressed here exactly as
+     `.ops__popover` above places the Align and Group frames (`TODO/ui-116`). `body` outranks the
+     frame's own one-class rule. -->
+<style>
+body .popover.ops__popover {
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(260px, calc(100vw - 32px));
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
 }
 </style>
