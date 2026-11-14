@@ -8,7 +8,7 @@
  * which a subscription does cover, driving WarpCad through its MCP server (`docs/mcp.md`). This
  * dialog says that plainly and hands over the one command that sets it up.
  *
- * Nothing here reads, stores or sends a credential. It is `ModalShell`'s top-anchored frame, so
+ * Nothing here reads, stores or sends a credential. It is `BaseDialog`'s top-anchored frame, so
  * at phone width it is full width and the command wraps instead of scrolling sideways.
  */
 import { computed, ref, watch } from 'vue'
@@ -17,7 +17,7 @@ import { STARTER_CLAUDE_CODE } from '../../ai/mcpPrompts.js'
 import { MCP_ADD_COMMAND } from '../../ai/subscriptionRoute.js'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import { useAssistantStore } from '../../stores/assistant.js'
-import ModalShell from '../storage/ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import StarterCopy from './StarterCopy.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
@@ -49,7 +49,7 @@ function back() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-subscription-sheet" title="Use your Claude subscription" help-topic="assistant-subscription" @backdrop="back()">
+  <BaseDialog :open="open" testid="ai-subscription-sheet" title="Use your Claude subscription" help-topic="assistant-subscription" @backdrop="back()">
     <p class="route__text">
       The in-app Assistant needs an <strong>API key</strong>, which is billed separately from a Claude
       Pro or Max subscription. A subscription can't be used by the app directly.
@@ -80,7 +80,7 @@ function back() {
         Copy
       </BaseButton>
     </div>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

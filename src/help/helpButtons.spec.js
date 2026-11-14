@@ -24,16 +24,18 @@ const files = walk(componentsDir).map((full) => ({
 }))
 
 /** Does the source render a pop-up, popover, sheet or dialog of its own? */
-const isPopup = (source) => /role="dialog"|aria-modal|<ModalShell|ops__popover"|<Teleport/.test(source)
+const isPopup = (source) => /role="dialog"|aria-modal|<BaseDialog|ops__popover"|<Teleport/.test(source)
 
 /**
  * Pop-ups that show a tool or settings surface carry a **?** (`HelpButton`, or a `helpTopic` on
- * `ModalShell`). These are the ones that deliberately do not, each with its reason — a
+ * `BaseDialog`). These are the ones that deliberately do not, each with its reason — a
  * confirmation that asks one yes/no question has nothing to document, and the File menu is
  * itself where Help lives. A new pop-up fails here until it is either wired or named.
  */
 const EXCEPTIONS = Object.freeze({
-  'src/components/storage/ModalShell.vue': 'the frame itself: it renders the button for any dialog that passes helpTopic',
+  'src/components/layout/BaseDialog.vue': 'the frame itself: it renders the button for any dialog that passes helpTopic',
+  'src/components/layout/BaseSheet.vue': 'the frame itself: it renders the button for any sheet that passes helpTopic',
+  'src/components/layout/BasePopover.vue': 'the frame itself: a popover that documents a tool carries its own HelpButton in its slot',
   'src/components/storage/FileMenu.vue': 'the menu that holds the Help entry; its dialogs are listed below',
   'src/components/storage/ReplaceConfirmDialog.vue': 'a one-question confirm; nothing to document beyond its own text',
   'src/components/storage/DiskChangeDialog.vue': 'a one-question confirm about a changed file',

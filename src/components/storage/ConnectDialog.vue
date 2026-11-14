@@ -35,7 +35,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { DEFAULT_HOSTED_PATH } from '../../storage/hostedBackend.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useHostedStore } from '../../stores/hosted.js'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const menu = useFileMenuStore()
@@ -129,7 +129,7 @@ function cancel() {
 </script>
 
 <template>
-  <ModalShell
+  <BaseDialog
     :open="menu.connectOpen"
     testid="hosted-connect-dialog"
     :title="hosted.connected && mode === 'form' ? 'Replace token' : 'Connect repository'"
@@ -234,7 +234,7 @@ function cancel() {
         </BaseButton>
       </div>
     </template>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

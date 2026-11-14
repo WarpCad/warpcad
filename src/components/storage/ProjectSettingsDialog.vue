@@ -18,7 +18,7 @@
  *   a **Use this project's instructions** confirm (`docs/decisions/ai-partner.md` decision 7);
  *   text the user saves here is trusted. The text is only ever a `<textarea>` value — never
  *   markup — so a file's `<script>` is characters on screen.
- * - **Small screens**: `ModalShell` makes it a top-anchored, full-width sheet at phone width
+ * - **Small screens**: `BaseDialog` makes it a top-anchored, full-width sheet at phone width
  *   (never bottom-anchored, so the on-screen keyboard cannot hide it); every button is a
  *   44px (`--tap`) target and the field is 16px text so iOS does not zoom on focus.
  * - **Build volume** (`TODO/io-007`): width × depth × height of the printer, mm — what every
@@ -35,7 +35,7 @@ import { useDocumentStore } from '../../stores/document.js'
 import { useProjectSettingsStore } from '../../stores/projectSettings.js'
 import NumberField from '../controls/NumberField.vue'
 import DescriptionText from '../display/DescriptionText.vue'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const settings = useProjectSettingsStore()
@@ -82,7 +82,7 @@ function save() {
 </script>
 
 <template>
-  <ModalShell :open="settings.isOpen" testid="project-settings-dialog" title="Project settings" help-topic="project-settings" @backdrop="settings.close()">
+  <BaseDialog :open="settings.isOpen" testid="project-settings-dialog" title="Project settings" help-topic="project-settings" @backdrop="settings.close()">
     <form class="settings__form" novalidate @submit.prevent="save()">
       <label class="settings__field" for="project-settings-description">Description</label>
       <p id="project-settings-description-help" class="settings__help">
@@ -171,7 +171,7 @@ function save() {
         </BaseButton>
       </div>
     </form>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

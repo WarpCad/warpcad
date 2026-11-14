@@ -30,7 +30,7 @@
  * ## Phone
  *
  * Inputs are 16px (iOS zooms the page on focus of anything smaller), targets are 44px, and the
- * frame is `ModalShell`'s: full width minus 16px and **top-anchored**, so the on-screen keyboard
+ * frame is `BaseDialog`'s: full width minus 16px and **top-anchored**, so the on-screen keyboard
  * cannot cover the field (`interaction-model-qa.md` §10 Q16 — the same reason `Connect` is not a
  * bottom sheet). It scrolls rather than clips, and never scrolls sideways.
  */
@@ -42,7 +42,7 @@ import { useAssistantStore } from '../../stores/assistant.js'
 import { useSettingsStore } from '../../stores/settings.js'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ConnectButton from './ConnectButton.vue'
-import ModalShell from '../storage/ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import ExternalLink from '../controls/ExternalLink.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
@@ -162,7 +162,7 @@ function done() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-key-sheet" title="Assistant key" help-topic="assistant-key" @backdrop="cancel()">
+  <BaseDialog :open="open" testid="ai-key-sheet" title="Assistant key" help-topic="assistant-key" @backdrop="cancel()">
     <template v-if="mode === 'form'">
       <p class="key__help">
         Create a key in the
@@ -258,7 +258,7 @@ function done() {
         </BaseButton>
       </div>
     </template>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

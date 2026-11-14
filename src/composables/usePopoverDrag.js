@@ -14,8 +14,8 @@ import { usePanelLayoutStore } from '../stores/panelLayout.js'
  * centring `transform`, so the drag offset and the transform cannot fight.
  */
 
-/** The teleported popover frame. Only `OperationsToolbar.vue` renders it. */
-export const POPOVER_FRAME_SELECTOR = '.ops__popover'
+/** The teleported popover frame. The toolbar's `.ops__popover`, or any `BasePopover` with `draggable` (`data-popover-frame`). */
+export const POPOVER_FRAME_SELECTOR = '.ops__popover, [data-popover-frame]'
 /** The grip's marker attribute (`PopoverGrip.vue`). */
 export const POPOVER_GRIP_ATTR = 'data-popover-grip'
 /** Arrow-key step, in viewport pixels. Shift steps the larger distance. */

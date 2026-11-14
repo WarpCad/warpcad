@@ -7,7 +7,6 @@
       "src/components/inspector/VariableUsageDialog.vue": 1,
       "src/components/layout/HelpSheet.vue": 1,
       "src/components/layout/UserPartMenu.vue": 1,
-      "src/components/storage/ModalShell.vue": 1,
       "src/components/viewport/Gizmo.vue": 4,
       "src/components/viewport/RotateDial.vue": 2,
       "src/components/viewport/TranslateRuler.vue": 2
@@ -37,7 +36,6 @@
       "src/components/sketch/TraceTool.vue": 1,
       "src/components/storage/ExportPopover.vue": 2,
       "src/components/storage/FileMenu.vue": 2,
-      "src/components/storage/ModalShell.vue": 2,
       "src/components/storage/ResolutionPopover.vue": 2,
       "src/components/storage/SaveAsGistDialog.vue": 1,
       "src/components/timeline/TimelinePanel.vue": 1,
@@ -140,7 +138,6 @@
       "src/components/storage/ExportPopover.vue": 10,
       "src/components/storage/FileMenu.vue": 10,
       "src/components/storage/GistConnectDialog.vue": 6,
-      "src/components/storage/ModalShell.vue": 2,
       "src/components/storage/NativeOpenSheet.vue": 5,
       "src/components/storage/ProjectNameDialog.vue": 5,
       "src/components/storage/ProjectSettingsDialog.vue": 8,
@@ -170,7 +167,8 @@
       "src/components/viewport/TranslateRuler.vue": 2,
       "src/components/viewport/Viewport.vue": 1,
       "src/components/viewport/ViewportContextBanner.vue": 2,
-      "src/views/AppView.vue": 7
+      "src/views/AppView.vue": 7,
+      "src/components/layout/BaseDialog.vue": 2
     },
     "style-var-fallback": {
       "src/components/ai/ChatPanel.vue": 2,
@@ -180,7 +178,6 @@
       "src/components/layout/LibraryRowPopout.vue": 1,
       "src/components/layout/ShareSheet.vue": 3,
       "src/components/sketch/SketchPanelSheet.vue": 2,
-      "src/components/storage/ModalShell.vue": 2,
       "src/components/timeline/TimelinePanel.vue": 2,
       "src/components/viewport/Grid.vue": 4,
       "src/components/viewport/NavigationChrome.vue": 8,

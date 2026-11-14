@@ -25,7 +25,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useHostedStore } from '../../stores/hosted.js'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const hosted = useHostedStore()
@@ -73,7 +73,7 @@ useOverlayStack(() => hosted.conflictOpen, () => void choose('cancel'))
 </script>
 
 <template>
-  <ModalShell
+  <BaseDialog
     :open="hosted.conflictOpen"
     testid="hosted-conflict"
     :title="TITLE"
@@ -112,7 +112,7 @@ useOverlayStack(() => hosted.conflictOpen, () => void choose('cancel'))
       Nothing was merged automatically. Load remote also replaces any edits you
       have not pushed, and clears the undo history.
     </p>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

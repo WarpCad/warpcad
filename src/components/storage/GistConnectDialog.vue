@@ -28,7 +28,7 @@
  *
  * ## Phone
  *
- * A bottom sheet at 390px (`ModalShell`'s `sheet`, lifted above the keyboard), the token field
+ * A bottom sheet at 390px (`BaseDialog`'s `sheet`, lifted above the keyboard), the token field
  * first and the explanation under it; a dialog from 641px. 16px inputs, 44px targets.
  */
 import { computed, nextTick, ref, watch } from 'vue'
@@ -37,7 +37,7 @@ import { BROADER_THAN_NEEDED_MESSAGE } from '../../core/gistMessages.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
 import ExternalLink from '../controls/ExternalLink.vue'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 /** GitHub's page for a new fine-grained token. */
@@ -146,7 +146,7 @@ function close() {
 </script>
 
 <template>
-  <ModalShell :open="menu.gistConnectOpen" sheet testid="gist-connect-dialog" :title="title" help-topic="gist" @backdrop="close()">
+  <BaseDialog :open="menu.gistConnectOpen" sheet testid="gist-connect-dialog" :title="title" help-topic="gist" @backdrop="close()">
     <template v-if="mode === 'form'">
       <form class="gist-connect__form" novalidate @submit.prevent="submit()">
         <label class="gist-connect__field">
@@ -226,7 +226,7 @@ function close() {
         </BaseButton>
       </div>
     </template>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

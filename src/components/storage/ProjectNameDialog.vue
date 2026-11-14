@@ -10,13 +10,13 @@
  * - **Feedback**: the sheet closes and the chip reads `Saved to <name>.ndjson · 14:05`. A name
  *   already taken by another project stays in the sheet with the reason (`file-name-error`).
  *
- * A bottom sheet at phone width, lifted by the keyboard (`ModalShell`'s `sheet`). Names only; the
+ * A bottom sheet at phone width, lifted by the keyboard (`BaseDialog`'s `sheet`). Names only; the
  * write is `fileMenu.saveNamed`.
  */
 import { nextTick, ref, watch } from 'vue'
 
 import { useFileMenuStore } from '../../stores/fileMenu.js'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 
 const menu = useFileMenuStore()
 
@@ -40,7 +40,7 @@ function submit() {
 </script>
 
 <template>
-  <ModalShell
+  <BaseDialog
     :open="menu.nameRequest !== null"
     sheet
     testid="file-name-dialog"
@@ -72,7 +72,7 @@ function submit() {
         </button>
       </div>
     </form>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

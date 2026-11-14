@@ -12,7 +12,7 @@
  * - **Feedback**: the page opens scrolled to the tool's heading, which flashes. Contents lists
  *   every page; in-page links stay inside the sheet; **Back** retraces them; **Close**, Escape or a
  *   tap on the backdrop returns to exactly the pop-up that was open.
- * - **Layering**: teleported to `<body>` at z-index 50/51, above `ModalShell` (40/41), the popover
+ * - **Layering**: teleported to `<body>` at z-index 50/51, above `BaseDialog` (40/41), the popover
  *   tier (30/31) and the sheets, so opening it from a pop-up neither closes that pop-up nor loses
  *   the selection under it. Escape is taken in the capture phase so a pop-up under the sheet
  *   does not also close.

@@ -51,7 +51,7 @@
 
   /* Layers. A tier is a base number; a surface that has a backdrop and a frame takes the tier for
      the backdrop and the tier plus one for the frame (`--z-modal` is the backdrop, `--z-modal-frame`
-     the dialog above it; ModalShell.vue's header states the same rule). A higher tier always sits
+     the dialog above it; BaseDialog.vue's header states the same rule). A higher tier always sits
      over a lower one, whatever its own frame number: popover 30/31 is under modal 40/41. */
   --z-canvas-overlay: 0;
   --z-panel: 10;

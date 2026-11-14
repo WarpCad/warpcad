@@ -6,7 +6,7 @@
  *
  * Opened from the Assistant panel's bar (**Limit: 1,000 steps**, `ai-step-limit-open`) or from the
  * stop notice (**Change limit…**, `ai-step-limit-from-notice`). A bottom sheet over the viewport at
- * phone width (`ModalShell`'s `sheet`, lifted above the on-screen keyboard), the ordinary dialog
+ * phone width (`BaseDialog`'s `sheet`, lifted above the on-screen keyboard), the ordinary dialog
  * from 641px — like `KeySheet`, but this value is the **project's**, saved in its file, where
  * `KeySheet` holds the browser's.
  *
@@ -19,7 +19,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { formatSteps } from '../../core/aiBudget.js'
 import { useAiLimitStore } from '../../stores/aiLimit.js'
-import ModalShell from '../storage/ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const limit = useAiLimitStore()
@@ -49,7 +49,7 @@ function save() {
 </script>
 
 <template>
-  <ModalShell :open="limit.isOpen" sheet testid="ai-step-limit-sheet" title="AI step limit" help-topic="assistant-step-limit" @backdrop="limit.close()">
+  <BaseDialog :open="limit.isOpen" sheet testid="ai-step-limit-sheet" title="AI step limit" help-topic="assistant-step-limit" @backdrop="limit.close()">
     <p class="limit__help">
       How many steps one AI turn may build in this project. The limit is saved with the project, and only you can change it.
     </p>
@@ -81,7 +81,7 @@ function save() {
         <BaseButton variant="primary" type="submit" data-testid="ai-step-limit-save">Save</BaseButton>
       </div>
     </form>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

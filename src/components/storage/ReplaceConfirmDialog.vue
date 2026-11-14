@@ -24,7 +24,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const menu = useFileMenuStore()
@@ -67,7 +67,7 @@ watch(
 </script>
 
 <template>
-  <ModalShell
+  <BaseDialog
     :open="menu.confirm !== null"
     testid="file-open-confirm"
     :title="title"
@@ -106,7 +106,7 @@ watch(
         Merge their changes
       </BaseButton>
     </div>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

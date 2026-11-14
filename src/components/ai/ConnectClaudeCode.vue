@@ -32,7 +32,7 @@ import { browserEngine, nativeLiveHost, useLiveBridge } from '../../composables/
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
 import { useHelpStore } from '../../stores/help.js'
-import ModalShell from '../storage/ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import NativeMcpAccess from './NativeMcpAccess.vue'
 import StarterCopy from './StarterCopy.vue'
 import BaseButton from '../controls/BaseButton.vue'
@@ -99,7 +99,7 @@ function close() {
 </script>
 
 <template>
-  <ModalShell :open="open" testid="ai-connect-sheet" title="Live MCP access" help-topic="claude-code" @backdrop="close()">
+  <BaseDialog :open="open" testid="ai-connect-sheet" title="Live MCP access" help-topic="claude-code" @backdrop="close()">
     <div v-if="!available" class="connect__hosted" data-testid="ai-connect-hosted">
       <p class="connect__text">
         Live MCP access lets an MCP client on your computer, such as Claude Code, edit the project open
@@ -181,7 +181,7 @@ function close() {
       <BaseButton data-testid="ai-connect-keys" @click="assistant.openKeySheet()">Key and model…</BaseButton>
       <BaseButton variant="primary" data-testid="ai-connect-done" @click="close()">Done</BaseButton>
     </div>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

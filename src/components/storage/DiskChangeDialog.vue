@@ -16,7 +16,7 @@
  * Three answers: **Reload** (replace this project with the file), **Overwrite the file** (write
  * this project over it), **Cancel**. Cancel is focused by default and Escape is Cancel, so a
  * stray Enter never replaces or overwrites anything. The same modal frame as every File-menu
- * dialog (`ModalShell.vue`): top-anchored and full width at phone width, 44px targets, and it
+ * dialog (`BaseDialog.vue`): top-anchored and full width at phone width, 44px targets, and it
  * waits while a drag or another dialog is open.
  *
  * The file's name is shown as text; nothing from the file's *contents* is shown here.
@@ -25,7 +25,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const persistence = usePersistenceStore()
@@ -64,7 +64,7 @@ useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
 </script>
 
 <template>
-  <ModalShell :open="persistence.diskPromptOpen" testid="disk-change" :title="title" @backdrop="choose('cancel')">
+  <BaseDialog :open="persistence.diskPromptOpen" testid="disk-change" :title="title" @backdrop="choose('cancel')">
     <p class="disk__detail" data-testid="disk-change-reason">{{ persistence.diskIssueText }}</p>
     <div class="disk__actions">
       <BaseButton
@@ -100,7 +100,7 @@ useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
       Overwrite discards the file’s changes. A file that is a copy of this project is merged in
       automatically instead of asking.
     </p>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

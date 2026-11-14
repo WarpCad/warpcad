@@ -10,14 +10,14 @@
  * subset (paragraphs, bullets, bold, italic, code) as elements with text content, no `v-html`, no
  * link, no image; anything else is characters on screen.
  *
- * Built on `ModalShell` (labelled `role="dialog"`, `aria-modal`, scrolls inside itself, top-anchored
+ * Built on `BaseDialog` (labelled `role="dialog"`, `aria-modal`, scrolls inside itself, top-anchored
  * at phone width). Focus moves to **View the model** when it opens; the owner of the popup
  * (`SharedView.vue`) puts focus back on the Shared view when it closes.
  */
 import { nextTick, ref, watch } from 'vue'
 
 import DescriptionText from '../display/DescriptionText.vue'
-import ModalShell from '../storage/ModalShell.vue'
+import BaseDialog from './BaseDialog.vue'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
 import BaseButton from '../controls/BaseButton.vue'
 
@@ -47,14 +47,14 @@ watch(
 </script>
 
 <template>
-  <ModalShell :open="open" testid="shared-about" title="About this project" help-topic="shared-link" @backdrop="emit('close')">
+  <BaseDialog :open="open" testid="shared-about" title="About this project" help-topic="shared-link" @backdrop="emit('close')">
     <div class="about__body" data-testid="shared-about-body">
       <DescriptionText :text="text" testid="shared-about-text" />
     </div>
     <BaseButton ref="button" variant="primary" size="large" data-testid="shared-about-close" @click="emit('close')">
       View the model
     </BaseButton>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

@@ -18,7 +18,7 @@ import { ref, watch } from 'vue'
 
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 
 const menu = useFileMenuStore()
 const persistence = usePersistenceStore()
@@ -51,7 +51,7 @@ function modified(epochMs) {
 </script>
 
 <template>
-  <ModalShell :open="menu.openSheetOpen" sheet testid="file-open-sheet" title="Open" help-topic="native-files" @backdrop="menu.closeOpenSheet()">
+  <BaseDialog :open="menu.openSheetOpen" sheet testid="file-open-sheet" title="Open" help-topic="native-files" @backdrop="menu.closeOpenSheet()">
     <p v-if="listing" class="open-sheet__note" role="status">Reading WarpCad's folder…</p>
     <p v-else-if="projects.length === 0" class="open-sheet__note" data-testid="file-open-empty">No projects in WarpCad's folder yet.</p>
     <ul v-else class="open-sheet__list" aria-label="Projects in WarpCad's folder">
@@ -68,7 +68,7 @@ function modified(epochMs) {
         Browse…
       </button>
     </div>
-  </ModalShell>
+  </BaseDialog>
 </template>
 
 <style scoped>

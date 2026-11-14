@@ -17,14 +17,14 @@
  * - **The toast** (`save-gist-toast`) names the gist and carries **Copy link**
  *   (`save-gist-toast-copy`), a new tap, so the clipboard write has its own activation.
  *
- * A bottom sheet at 390px (`ModalShell`'s `sheet`, the Share sheet's gist token dialog's frame),
+ * A bottom sheet at 390px (`BaseDialog`'s `sheet`, the Share sheet's gist token dialog's frame),
  * a dialog from 641px. 16px inputs, 44px targets.
  */
 import { computed, ref, watch } from 'vue'
 
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import DescriptionHint from '../layout/DescriptionHint.vue'
-import ModalShell from './ModalShell.vue'
+import BaseDialog from '../layout/BaseDialog.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
 const SECRET_NOTE = 'A secret gist is not private: anyone with the link can read it. Saving sends the whole project to GitHub.'
@@ -75,7 +75,7 @@ async function copyLink() {
 </script>
 
 <template>
-  <ModalShell :open="menu.gistSaveOpen" sheet testid="save-gist-dialog" :title="title" help-topic="gist" @backdrop="menu.closeSaveAsGist()">
+  <BaseDialog :open="menu.gistSaveOpen" sheet testid="save-gist-dialog" :title="title" help-topic="gist" @backdrop="menu.closeSaveAsGist()">
     <template v-if="menu.gistSaveStep === 'connect'">
       <p class="save-gist__note">Connect GitHub for gists first. The token is kept in this browser only.</p>
       <div class="save-gist__actions">
@@ -110,7 +110,7 @@ async function copyLink() {
         </BaseButton>
       </div>
     </form>
-  </ModalShell>
+  </BaseDialog>
 
   <Teleport to="body">
     <div v-if="menu.gistSaveToast" class="save-gist-toast" role="status" aria-live="polite" data-testid="save-gist-toast">

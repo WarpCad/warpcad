@@ -1,12 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The shared frame of the three File-menu dialogs (`TODO/ui-033`): the replace-project
- * confirm, the Connect dialog and the hosted conflict dialog
- * (`docs/decisions/interaction-model-qa.md` §10, §11).
+ * **BaseDialog**, the one frame of every modal dialog (`TODO/ui-116`; it began as `ModalShell`,
+ * `TODO/ui-033`, the frame of the File-menu dialogs: `docs/decisions/interaction-model-qa.md`
+ * §10, §11). It is **always modal**; a non-modal surface is `BaseSheet`, an anchored one
+ * `BasePopover`.
  *
- * - **Teleported to `<body>`** at the modal tier (z-index 40/41 — above the popover tier 30/31,
- *   the Library sheet 20 and the Inspector sheet 11).
+ * - **Teleported to `<body>`** at the modal tier (`--z-modal` backdrop, `--z-modal-frame` dialog:
+ *   above the popover tier, the Library sheet and the Inspector sheet).
  * - **Top-anchored, full width minus 16px** at phone width and never bottom-anchored, so the
  *   on-screen keyboard cannot hide it (§10 Q16); `max-height` plus `overflow-y: auto` so a
  *   short viewport scrolls the dialog rather than clipping its last button.
@@ -22,13 +23,24 @@
  *   `visualViewport` measure `ChatPanel.vue` uses), so a focused field is never behind it. From
  *   641px it is the ordinary dialog.
  *
+ * - **`placement`**: `top` (the default, top-anchored so the keyboard cannot cover it) or `center`
+ *   (a confirm or repair dialog that has room to be centred).
+ * - **`tone`**: `danger` marks a destructive confirm with a `--danger` top edge.
+ * - **`width`**: the frame's preferred width (a CSS length); it still never exceeds the viewport.
+ * - **`escapable`**: Escape emits `escape` while the dialog is open, through `useOverlayStack`, so
+ *   a dialog without its own Escape handler needs none. Dialogs that already register one leave it off.
+ * - Attributes it does not declare (`data-layout`, say) land on the dialog element, not the backdrop.
+ *
  * It owns layout only. What each dialog says and does is its own component's.
  */
 import { computed, ref } from 'vue'
 
 import { useFocusTrap } from '../../composables/useFocusTrap.js'
 import { useKeyboardInset } from '../../composables/useKeyboardInset.js'
+import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import HelpButton from '../controls/HelpButton.vue'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -39,8 +51,19 @@ const props = defineProps({
   helpTopic: { type: String, default: '' },
   /** A bottom sheet at phone width (see the module note); the ordinary dialog from 641px. */
   sheet: { type: Boolean, default: false },
+  /** `top` or `center` (see the module note). */
+  placement: { type: String, default: 'top', validator: (/** @type {string} */ v) => v === 'top' || v === 'center' },
+  /** `danger` for a destructive confirm. */
+  tone: { type: String, default: 'default', validator: (/** @type {string} */ v) => v === 'default' || v === 'danger' },
+  /** The frame's preferred width, a CSS length. */
+  width: { type: String, default: '420px' },
+  /** The `data-testid` of the title heading, for a dialog whose spec reads it. */
+  titleTestid: { type: String, default: '' },
+  /** Register on the overlay stack and emit `escape` when Escape reaches this dialog. */
+  escapable: { type: Boolean, default: false },
 })
-defineEmits(['backdrop'])
+const emit = defineEmits(['backdrop', 'escape'])
+useOverlayStack(() => props.escapable && props.open, () => emit('escape'))
 
 /** The dialog element, the focus trap's root. */
 const dialogEl = ref(null)
@@ -49,7 +72,10 @@ useFocusTrap(dialogEl, () => props.open)
 /** How much of the layout viewport the on-screen keyboard covers, in px; 0 where it does not. */
 const { keyboardInsetPx } = useKeyboardInset(() => props.sheet && props.open)
 
-const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `${keyboardInsetPx.value}px` } : undefined))
+const frameStyle = computed(() => ({
+  '--layout-modal-width': props.width,
+  '--layout-modal-keyboard': `${props.sheet ? keyboardInsetPx.value : 0}px`,
+}))
 </script>
 
 <template>
@@ -59,7 +85,8 @@ const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `$
       <div
         ref="dialogEl"
         class="modal"
-        :class="{ 'modal--sheet': sheet }"
+        :class="{ 'modal--sheet': sheet, 'modal--center': placement === 'center', 'modal--danger': tone === 'danger' }"
+        v-bind="$attrs"
         role="dialog"
         aria-modal="true"
         :aria-label="title"
@@ -67,7 +94,7 @@ const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `$
         :style="frameStyle"
       >
         <div class="modal__head">
-          <h2 class="modal__title">{{ title }}</h2>
+          <h2 class="modal__title" :data-testid="titleTestid || undefined">{{ title }}</h2>
           <HelpButton v-if="helpTopic" class="modal__help" :topic="helpTopic" />
         </div>
         <slot />
@@ -80,8 +107,8 @@ const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `$
 .modal__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 40;
+  background: var(--scrim);
+  z-index: var(--z-modal);
 }
 
 .modal {
@@ -90,7 +117,7 @@ const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `$
   left: 50%;
   transform: translateX(-50%);
   box-sizing: border-box;
-  width: min(420px, calc(100vw - 16px));
+  width: min(var(--layout-modal-width), calc(100vw - 16px));
   max-height: calc(100dvh - 76px);
   overflow-y: auto;
   display: flex;
@@ -102,7 +129,17 @@ const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `$
   background: var(--surface-1);
   color: var(--text-1);
   box-shadow: var(--shadow-overlay);
-  z-index: 41;
+  z-index: var(--z-modal-frame);
+}
+
+.modal--center {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-height: calc(100dvh - 32px);
+}
+
+.modal--danger {
+  border-top: 3px solid var(--danger);
 }
 
 .modal__head {
@@ -133,11 +170,11 @@ const frameStyle = computed(() => (props.sheet ? { '--layout-modal-keyboard': `$
   .modal--sheet {
     top: auto;
     right: 0;
-    bottom: var(--layout-modal-keyboard, 0px);
+    bottom: var(--layout-modal-keyboard);
     left: 0;
     transform: none;
     width: 100%;
-    max-height: calc(100dvh - 24px - var(--layout-modal-keyboard, 0px));
+    max-height: calc(100dvh - 24px - var(--layout-modal-keyboard));
     padding: 14px 16px calc(14px + var(--layout-safe-bottom));
     border-width: 1px 0 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
