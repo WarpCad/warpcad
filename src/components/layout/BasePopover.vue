@@ -90,7 +90,7 @@ function place() {
   let top = vertical === 'top' ? rect.top - box.height - GAP_PX : rect.bottom + GAP_PX
   left = Math.min(Math.max(left, 8), Math.max(8, window.innerWidth - box.width - 8))
   top = Math.min(Math.max(top, 8), Math.max(8, window.innerHeight - box.height - 8))
-  position.value = { left, top }
+  position.value = { left: Math.round(left), top: Math.round(top) }
 }
 
 watch(
