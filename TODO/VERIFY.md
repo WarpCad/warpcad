@@ -51,6 +51,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-115 — One NumberField for every size field (2026-11-14 00:21)
+
+Emulated viewports and the three engines cover typing, Enter and the comma decimal; a real touch keyboard
+and a real comma-decimal locale were not available.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the iPhone and iPad, tap Fillet **Radius**, Split **Offset** and the Inspector **Size X**: the keyboard is the decimal pad, the whole value is selected on focus (a typed digit replaces it), and the page does not zoom | Open | |
+| 2 | With the device set to a comma-decimal region, type `2,5` into the same three fields: each shows `2.5` | Open | |
+
 ### ui-113 — Theme switch: System, Dark, Light (2026-11-13 23:10)
 
 The one frame of the device's theme before a forced theme applies is accepted by the task (the CSP forbids an inline script that could read the stored choice), but how visible it is on real hardware is a feel judgment no spec makes.

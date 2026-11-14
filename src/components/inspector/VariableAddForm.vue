@@ -13,9 +13,9 @@
  */
 import { computed, ref } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
 import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { formulaPreviewLine, parseOptionList } from '../../composables/variableEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import FormulaEditor from './FormulaEditor.vue'
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -24,7 +24,7 @@ const commands = useVariableCommands()
 
 const name = ref('')
 const kind = ref(/** @type {'number' | 'boolean' | 'enum' | 'formula'} */ ('number'))
-const value = ref('0')
+const value = ref(0)
 const unit = ref('mm')
 const flag = ref(false)
 const options = ref('')
@@ -45,7 +45,7 @@ function submit() {
   /** @type {Record<string, any>} */
   const definition = { name: name.value.trim(), kind: kind.value }
   if (kind.value === 'number') {
-    definition.value = parseNumeric(value.value) ?? Number.NaN
+    definition.value = value.value
     if (unit.value !== '') definition.unit = unit.value
   } else if (kind.value === 'boolean') {
     definition.value = flag.value
@@ -75,7 +75,7 @@ function submit() {
       <FormulaEditor v-model="formula" :preview="preview" label="Formula" @enter="submit" />
     </div>
     <label v-if="kind === 'number'" class="vadd__field">Value
-      <input v-model="value" class="vadd__input" type="text" inputmode="decimal" data-testid="variable-add-value" />
+      <NumberField v-model="value" class="vadd__input" :unit="unit === 'mm' || unit === 'deg' ? unit : ''" live data-testid="variable-add-value" />
     </label>
     <label v-if="kind === 'number' || kind === 'formula'" class="vadd__field">Unit
       <select v-model="unit" class="vadd__input" data-testid="variable-add-unit">

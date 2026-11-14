@@ -50,6 +50,7 @@ import PopoverGrip from './PopoverGrip.vue'
 import { computed, onBeforeUnmount, ref, toRaw, watch, watchEffect } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
+import NumberField from '../controls/NumberField.vue'
 import AlignGrid from './AlignGrid.vue'
 import AlignPositionIcon from './AlignPositionIcon.vue'
 
@@ -216,7 +217,7 @@ function onMeasureFromChange(event) {
 }
 
 /** Millimetres added to the next Second-selected tap. */
-const offsetMm = ref(/** @type {number | ''} */ (0))
+const offsetMm = ref(0)
 
 /** The last tap's kernel rejection, or `null`. */
 const opError = ref(/** @type {string | null} */ (null))
@@ -386,7 +387,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 
     <label v-if="target === 'second'" class="align-popover__field">
       Offset (mm)
-      <input type="number" v-model.number="offsetMm" data-testid="align-offset" />
+      <NumberField v-model="offsetMm" unit="mm" live data-testid="align-offset" />
     </label>
 
     <p v-if="opError" class="align-popover__error" data-testid="align-error">{{ opError }}</p>

@@ -23,8 +23,7 @@
  */
 import { computed, ref } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
-import { formatMmValue } from '../../core/units.js'
+import NumberField from '../controls/NumberField.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { importImageFile, rememberAssetBitmap } from '../../sketch/imageClient.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -72,34 +71,18 @@ function onOpacity(event) {
 
 /**
  * @param {'x' | 'y'} axis
- * @param {Event} event
+ * @param {number} value
  */
-function commitOffset(axis, event) {
-  const target = /** @type {HTMLInputElement} */ (event.target)
+function commitOffset(axis, value) {
   const current = placement.value
   if (!current) return
-  const parsed = parseNumeric(target.value)
-  if (parsed === null) {
-    target.value = formatMmValue(current.offsetMm[axis === 'x' ? 0 : 1])
-    return
-  }
-  editor.updateImage({ offsetMm: axis === 'x' ? [parsed, current.offsetMm[1]] : [current.offsetMm[0], parsed] })
+  editor.updateImage({ offsetMm: axis === 'x' ? [value, current.offsetMm[1]] : [current.offsetMm[0], value] })
 }
 
-/** @param {Event} event */
-function commitRotation(event) {
-  const target = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(target.value)
-  if (parsed === null || !placement.value) {
-    target.value = formatMmValue(placement.value?.rotationDeg ?? 0)
-    return
-  }
-  editor.updateImage({ rotationDeg: parsed })
-}
-
-/** @param {Event} event */
-function blurTarget(event) {
-  /** @type {HTMLInputElement} */ (event.target).blur()
+/** @param {number} value */
+function commitRotation(value) {
+  if (!placement.value) return
+  editor.updateImage({ rotationDeg: value })
 }
 </script>
 
@@ -177,40 +160,34 @@ function blurTarget(event) {
       <div class="ref-image__grid">
         <label class="ref-image__field">
           <span>X</span>
-          <input
-            type="text"
-            inputmode="decimal"
+          <NumberField
+            unit="mm"
             aria-label="Image X offset in millimetres"
             data-testid="sketch-image-x"
-            :value="formatMmValue(placement.offsetMm[0])"
-            @change="commitOffset('x', $event)"
-            @keydown.enter.prevent="blurTarget"
+            :model-value="placement.offsetMm[0]"
+            @update:model-value="commitOffset('x', $event)"
           />
           <span class="ref-image__unit">mm</span>
         </label>
         <label class="ref-image__field">
           <span>Y</span>
-          <input
-            type="text"
-            inputmode="decimal"
+          <NumberField
+            unit="mm"
             aria-label="Image Y offset in millimetres"
             data-testid="sketch-image-y"
-            :value="formatMmValue(placement.offsetMm[1])"
-            @change="commitOffset('y', $event)"
-            @keydown.enter.prevent="blurTarget"
+            :model-value="placement.offsetMm[1]"
+            @update:model-value="commitOffset('y', $event)"
           />
           <span class="ref-image__unit">mm</span>
         </label>
         <label class="ref-image__field">
           <span>Rot</span>
-          <input
-            type="text"
-            inputmode="decimal"
+          <NumberField
+            unit="deg"
             aria-label="Image rotation in degrees"
             data-testid="sketch-image-rotation"
-            :value="formatMmValue(placement.rotationDeg)"
-            @change="commitRotation"
-            @keydown.enter.prevent="blurTarget"
+            :model-value="placement.rotationDeg"
+            @update:model-value="commitRotation($event)"
           />
           <span class="ref-image__unit">°</span>
         </label>

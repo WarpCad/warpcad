@@ -31,6 +31,8 @@
  */
 import { computed } from 'vue'
 
+import NumberField from '../controls/NumberField.vue'
+
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
 import { SKETCH_TOOLS, useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { isClosed } from '../../sketch/profile.js'
@@ -80,10 +82,9 @@ function toggleHole() {
   editor.setSelectedRole(isHole.value ? 'solid' : 'hole')
 }
 
-/** @param {Event} event */
-function onSides(event) {
-  const value = Math.round(Number(/** @type {HTMLInputElement} */ (event.target).value))
-  if (Number.isFinite(value) && value >= 3 && value <= 64) editor.polygonSides = value
+/** @param {number} value a whole number from 3 to 64, which the field has already enforced */
+function onSides(value) {
+  editor.polygonSides = value
 }
 </script>
 
@@ -114,19 +115,17 @@ function onSides(event) {
           </svg>
           <template v-else>{{ TOOL_INFO[tool].glyph }}</template>
         </button>
-        <input
+        <NumberField
           v-if="editor.tool === 'polygon'"
           class="sketch-toolbar__sides"
-          type="number"
-          min="3"
-          max="64"
-          step="1"
-          inputmode="numeric"
+          integer
+          :min="3"
+          :max="64"
           aria-label="Polygon sides"
           title="How many sides the next polygon gets"
           data-testid="sketch-polygon-sides"
-          :value="editor.polygonSides"
-          @change="onSides"
+          :model-value="editor.polygonSides"
+          @update:model-value="onSides"
         />
       </div>
 

@@ -12,7 +12,7 @@
  */
 import { computed, ref } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
 import { currentParamsOf } from '../../core/paramEdit.js'
@@ -70,31 +70,21 @@ const editability = computed(() => {
   return sketchCommands.canEdit(props.body.id)
 })
 
-/** @param {string} key */
+/** @param {string} key @returns {number | null} */
 function valueOf(key) {
-  return String(params.value?.extrusion?.[key] ?? '')
+  const value = params.value?.extrusion?.[key]
+  return typeof value === 'number' ? value : null
 }
 
-/** @param {{ key: string, integer?: boolean }} field @param {Event} event */
-function commit(field, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(input.value)
-  if (parsed === null || (field.integer && !Number.isInteger(parsed)) || !params.value) {
-    input.value = valueOf(field.key)
-    return
-  }
+/** @param {{ key: string }} field @param {number} value a finite number, whole when the field is `integer` */
+function commit(field, value) {
+  if (!params.value) return
   try {
-    paramCommands.setParams(props.body.id, { extrusion: { ...params.value.extrusion, [field.key]: parsed } })
+    paramCommands.setParams(props.body.id, { extrusion: { ...params.value.extrusion, [field.key]: value } })
     error.value = ''
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught)
-    input.value = valueOf(field.key)
   }
-}
-
-/** @param {Event} event */
-function blurTarget(event) {
-  /** @type {HTMLInputElement} */ (event.target).blur()
 }
 </script>
 
@@ -112,16 +102,15 @@ function blurTarget(event) {
           <span v-if="field.unit" class="sketch-body__unit"> ({{ field.unit }})</span>
         </dt>
         <dd>
-          <input
+          <NumberField
             :id="`inspector-sketch-${field.key}`"
             class="sketch-body__input"
-            type="text"
-            :inputmode="field.integer ? 'numeric' : 'decimal'"
+            :unit="field.unit === 'mm' ? 'mm' : ''"
+            :integer="field.integer === true"
             :readonly="!editability.editable"
             :data-testid="`inspector-sketch-${field.key}`"
-            :value="valueOf(field.key)"
-            @change="commit(field, $event)"
-            @keydown.enter.prevent="blurTarget"
+            :model-value="valueOf(field.key)"
+            @update:model-value="commit(field, $event)"
           />
         </dd>
       </template>

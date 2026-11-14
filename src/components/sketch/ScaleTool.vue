@@ -17,18 +17,18 @@
 import { computed, nextTick, ref, watch } from 'vue'
 
 import { LENGTH_UNITS } from '../../sketch/calibration.js'
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 const editor = useSketchEditorStore()
 
-const length = ref('')
+const length = ref(/** @type {number | null} */ (null))
 const unit = ref(/** @type {import('../../sketch/calibration.js').LengthUnit} */ ('mm'))
 const error = ref('')
 /** The outline count the confirm asks about, or 0 when not confirming. */
 const confirming = ref(0)
-const lengthInput = ref(/** @type {HTMLInputElement | null} */ (null))
+const lengthInput = ref(/** @type {{ focus: () => void } | null} */ (null))
 const yesButton = ref(/** @type {HTMLButtonElement | null} */ (null))
 
 const step = computed(() => editor.scaleStep)
@@ -46,7 +46,7 @@ watch(step, async (next, previous) => {
     error.value = ''
     confirming.value = 0
     const calibration = editor.activeImage.placement?.calibration
-    length.value = calibration ? String(calibration.length) : ''
+    length.value = calibration ? calibration.length : null
     unit.value = calibration?.unit ?? unit.value
   }
   if (next === 'length') {
@@ -56,7 +56,7 @@ watch(step, async (next, previous) => {
 })
 
 function apply() {
-  const parsed = parseNumeric(length.value)
+  const parsed = length.value
   if (parsed === null || !(parsed > 0)) {
     error.value = 'Type the line’s real length — a number greater than 0'
     return
@@ -72,7 +72,7 @@ function apply() {
 
 /** @param {boolean} rescaleOutlines */
 function finish(rescaleOutlines) {
-  const parsed = parseNumeric(length.value) ?? 0
+  const parsed = length.value ?? 0
   const problem = editor.applyScale(parsed, unit.value, rescaleOutlines)
   confirming.value = 0
   error.value = problem
@@ -109,12 +109,13 @@ function cancel() {
         <HelpButton topic="scale" class="scale-tool__help" />
       </div>
       <form v-if="step === 'length'" class="scale-tool__row" @submit.prevent="apply">
-        <input
+        <NumberField
           ref="lengthInput"
           v-model="length"
           class="scale-tool__length"
-          type="text"
-          inputmode="decimal"
+          nullable
+          live
+          submit
           aria-label="Length of the line"
           data-testid="sketch-scale-length"
         />

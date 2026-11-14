@@ -16,8 +16,7 @@
  */
 import { computed, ref, watch } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
-import { formatMmValue } from '../../core/units.js'
+import NumberField from '../controls/NumberField.vue'
 import { isClosed } from '../../sketch/profile.js'
 import { describeCurve } from '../../sketch/curves.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -44,29 +43,30 @@ const fields = computed(() => {
   return [...centre, { key: 'radiusMm', label: 'Radius', unit: 'mm' }, { key: 'sides', label: 'Sides', unit: '', integer: true }, { key: 'rotationDeg', label: 'Rotation', unit: '°' }]
 })
 
-/** @param {{ key: string, index?: number }} field */
+/** @param {{ key: string, index?: number }} field @returns {number | null} */
 function valueOf(field) {
   const current = /** @type {any} */ (profile.value)
-  if (!current) return ''
+  if (!current) return null
   const value = field.index === undefined ? current[field.key] : current[field.key][field.index]
-  return typeof value === 'number' ? formatMmValue(value) : ''
+  return typeof value === 'number' ? value : null
 }
 
-/** @param {{ key: string, index?: number, integer?: boolean }} field @param {Event} event */
-function commit(field, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
+/** What a field accepts: a size is never negative, a polygon has three or more sides. */
+/** @param {{ key: string, integer?: boolean }} field */
+function minOf(field) {
+  if (field.integer) return 3
+  return field.key === 'centerMm' || field.key === 'rotationDeg' ? undefined : 0
+}
+
+/** @param {{ key: string, index?: number }} field @param {number} value */
+function commit(field, value) {
   const current = /** @type {any} */ (profile.value)
-  const parsed = parseNumeric(input.value)
-  const invalid = parsed === null || (field.integer && !(Number.isInteger(parsed) && parsed >= 3)) || (field.key !== 'centerMm' && field.key !== 'rotationDeg' && parsed < 0)
-  if (!current || invalid) {
-    input.value = valueOf(field)
-    return
-  }
+  if (!current) return
   const next = { ...current }
-  if (field.index === undefined) next[field.key] = parsed
+  if (field.index === undefined) next[field.key] = value
   else {
     next[field.key] = [...current[field.key]]
-    next[field.key][field.index] = parsed
+    next[field.key][field.index] = value
   }
   editor.replaceInActiveSlice(next)
 }
@@ -112,24 +112,27 @@ watch(
   },
 )
 
-/** @param {{ key: string, text?: boolean, scale?: number }} field */
-function curveValueOf(field) {
-  const value = curve.value?.params?.[field.key]
-  if (field.text) return String(value ?? '')
-  return typeof value === 'number' ? formatMmValue(value * (field.scale ?? 1)) : ''
+/** @param {{ key: string }} field @returns {string} the NACA code, the one text field */
+function curveTextOf(field) {
+  return String(curve.value?.params?.[field.key] ?? '')
 }
 
-/** @param {{ key: string, text?: boolean, scale?: number }} field @param {Event} event */
-function commitCurve(field, event) {
+/** @param {{ key: string, scale?: number }} field @returns {number | null} */
+function curveValueOf(field) {
+  const value = curve.value?.params?.[field.key]
+  return typeof value === 'number' ? value * (field.scale ?? 1) : null
+}
+
+/** @param {{ key: string }} field @param {Event} event the NACA code, the one text field */
+function commitCurveText(field, event) {
   const input = /** @type {HTMLInputElement} */ (event.target)
-  let value
-  if (field.text) value = input.value.trim()
-  else {
-    const parsed = parseNumeric(input.value)
-    value = parsed === null ? Number.NaN : parsed / (field.scale ?? 1)
-  }
-  curveError.value = editor.updateSelectedCurve({ [field.key]: value })
-  if (curveError.value) input.value = curveValueOf(field)
+  curveError.value = editor.updateSelectedCurve({ [field.key]: input.value.trim() })
+  if (curveError.value) input.value = curveTextOf(field)
+}
+
+/** @param {{ key: string, scale?: number }} field @param {number} value */
+function commitCurve(field, value) {
+  curveError.value = editor.updateSelectedCurve({ [field.key]: value / (field.scale ?? 1) })
 }
 
 /** @param {string} role */
@@ -139,22 +142,17 @@ function setRole(role) {
 
 const vertexMm = computed(() => editor.selectedVertexMm)
 
-/** @param {0 | 1} axis @param {Event} event */
-function commitVertex(axis, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
+/** @param {0 | 1} axis @param {number} value */
+function commitVertex(axis, value) {
   const current = vertexMm.value
-  const parsed = parseNumeric(input.value)
-  if (!current || parsed === null) {
-    input.value = current ? formatMmValue(current[axis]) : ''
-    return
-  }
+  if (!current) return
   const next = [current[0], current[1]]
-  next[axis] = parsed
+  next[axis] = value
   editor.moveVertex(editor.selectedVertex, next)
 }
 
 /** Simplify's tolerance, as typed, in mm. */
-const toleranceText = ref('0.5')
+const tolerance = ref(0.5)
 const simplifyError = ref('')
 watch(
   () => editor.selectedProfileId,
@@ -164,8 +162,7 @@ watch(
 )
 
 function applySimplify() {
-  const parsed = parseNumeric(toleranceText.value)
-  simplifyError.value = parsed === null ? 'Type a tolerance in millimetres, 0 or more' : editor.simplifySelected(parsed)
+  simplifyError.value = editor.simplifySelected(tolerance.value)
 }
 
 /** @param {Event} event */
@@ -202,14 +199,14 @@ function blurTarget(event) {
             {{ field.label }}<span v-if="field.unit" class="profile__unit"> ({{ field.unit }})</span>
           </dt>
           <dd>
-            <input
+            <NumberField
               class="profile__input"
-              type="text"
-              :inputmode="field.integer ? 'numeric' : 'decimal'"
+              :unit="field.unit === 'mm' ? 'mm' : ''"
+              :integer="field.integer === true"
+              :min="minOf(field)"
               :data-testid="`inspector-sketch-field-${field.key}${field.index === undefined ? '' : `-${field.index}`}`"
-              :value="valueOf(field)"
-              @change="commit(field, $event)"
-              @keydown.enter.prevent="blurTarget"
+              :model-value="valueOf(field)"
+              @update:model-value="commit(field, $event)"
             />
           </dd>
         </template>
@@ -226,13 +223,22 @@ function blurTarget(event) {
             <dt>{{ field.label }}<span v-if="field.unit" class="profile__unit"> ({{ field.unit }})</span></dt>
             <dd>
               <input
+                v-if="field.text"
                 class="profile__input"
                 type="text"
-                :inputmode="field.text ? 'numeric' : 'decimal'"
+                inputmode="numeric"
                 :data-testid="`inspector-sketch-curve-${field.key}`"
-                :value="curveValueOf(field)"
-                @change="commitCurve(field, $event)"
+                :value="curveTextOf(field)"
+                @change="commitCurveText(field, $event)"
                 @keydown.enter.prevent="blurTarget"
+              />
+              <NumberField
+                v-else
+                class="profile__input"
+                :unit="field.unit === 'mm' ? 'mm' : ''"
+                :data-testid="`inspector-sketch-curve-${field.key}`"
+                :model-value="curveValueOf(field)"
+                @update:model-value="commitCurve(field, $event)"
               />
             </dd>
           </template>
@@ -257,26 +263,22 @@ function blurTarget(event) {
         <dl v-if="vertexMm" class="profile__fields" data-testid="inspector-sketch-vertex">
           <dt>Point {{ editor.selectedVertex + 1 }} X <span class="profile__unit">(mm)</span></dt>
           <dd>
-            <input
+            <NumberField
               class="profile__input"
-              type="text"
-              inputmode="decimal"
+              unit="mm"
               data-testid="inspector-sketch-vertex-x"
-              :value="formatMmValue(vertexMm[0])"
-              @change="commitVertex(0, $event)"
-              @keydown.enter.prevent="blurTarget"
+              :model-value="vertexMm[0]"
+              @update:model-value="commitVertex(0, $event)"
             />
           </dd>
           <dt>Point {{ editor.selectedVertex + 1 }} Y <span class="profile__unit">(mm)</span></dt>
           <dd>
-            <input
+            <NumberField
               class="profile__input"
-              type="text"
-              inputmode="decimal"
+              unit="mm"
               data-testid="inspector-sketch-vertex-y"
-              :value="formatMmValue(vertexMm[1])"
-              @change="commitVertex(1, $event)"
-              @keydown.enter.prevent="blurTarget"
+              :model-value="vertexMm[1]"
+              @update:model-value="commitVertex(1, $event)"
             />
           </dd>
         </dl>
@@ -295,14 +297,14 @@ function blurTarget(event) {
         </template>
         <div class="profile__simplify">
           <label class="profile__simplify-label" for="sketch-simplify-tolerance">Simplify, tolerance <span class="profile__unit">(mm)</span></label>
-          <input
+          <NumberField
             id="sketch-simplify-tolerance"
-            v-model="toleranceText"
+            v-model="tolerance"
             class="profile__input profile__input--narrow"
-            type="text"
-            inputmode="decimal"
+            unit="mm"
+            :min="0"
+            live
             data-testid="inspector-sketch-simplify-tolerance"
-            @keydown.enter.prevent="applySimplify"
           />
           <button type="button" class="profile__action" data-testid="inspector-sketch-simplify" @click="applySimplify">Apply</button>
         </div>

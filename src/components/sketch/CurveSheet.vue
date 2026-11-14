@@ -20,7 +20,7 @@
  */
 import { computed, ref } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import { DEFAULT_AIRFOIL_POINTS, DEFAULT_ELLIPSE_POINTS } from '../../sketch/curves.js'
 import { isClosed } from '../../sketch/profile.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -35,11 +35,11 @@ const KINDS = Object.freeze([
 
 const kind = ref(/** @type {'naca4' | 'ellipse' | 'spline'} */ ('naca4'))
 const code = ref('2412')
-const chordText = ref('120')
-const airfoilPointsText = ref(String(DEFAULT_AIRFOIL_POINTS))
-const widthText = ref('60')
-const heightText = ref('30')
-const ellipsePointsText = ref(String(DEFAULT_ELLIPSE_POINTS))
+const chordMm = ref(120)
+const airfoilPoints = ref(DEFAULT_AIRFOIL_POINTS)
+const widthMm = ref(60)
+const heightMm = ref(30)
+const ellipsePoints = ref(DEFAULT_ELLIPSE_POINTS)
 const error = ref('')
 const errorField = ref('')
 
@@ -51,11 +51,6 @@ const splineProblem = computed(() => {
   if (!isClosed(profile)) return 'The outline must be closed'
   return ''
 })
-
-/** @param {string} text @returns {number} NaN when it is not a number, so curves.js names it. */
-function number(text) {
-  return parseNumeric(text) ?? Number.NaN
-}
 
 function fail(/** @type {{ field: string, message: string }} */ outcome) {
   errorField.value = outcome.field
@@ -69,11 +64,11 @@ function place() {
     kind.value === 'naca4'
       ? editor.armCurve({
           curve: 'naca4',
-          params: { code: code.value.trim(), chordMm: number(chordText.value), points: number(airfoilPointsText.value) },
+          params: { code: code.value.trim(), chordMm: chordMm.value, points: airfoilPoints.value },
         })
       : editor.armCurve({
           curve: 'ellipse',
-          params: { radiusXMm: number(widthText.value) / 2, radiusYMm: number(heightText.value) / 2, points: number(ellipsePointsText.value) },
+          params: { radiusXMm: widthMm.value / 2, radiusYMm: heightMm.value / 2, points: ellipsePoints.value },
         })
   if (!outcome.ok) {
     // The ellipse is described to people by width and height, to curves.js by radii.
@@ -123,11 +118,11 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
       </label>
       <label class="curve__field">
         <span>Chord <span class="curve__unit">(mm)</span></span>
-        <input v-model="chordText" type="text" inputmode="decimal" data-testid="sketch-curve-chord" :aria-invalid="invalid('chordMm')" />
+        <NumberField v-model="chordMm" unit="mm" live data-testid="sketch-curve-chord" :invalid="invalid('chordMm') === 'true'" />
       </label>
       <label class="curve__field">
         <span>Points</span>
-        <input v-model="airfoilPointsText" type="text" inputmode="numeric" data-testid="sketch-curve-points" :aria-invalid="invalid('points')" />
+        <NumberField v-model="airfoilPoints" integer unit="" live data-testid="sketch-curve-points" :invalid="invalid('points') === 'true'" />
       </label>
       <button type="submit" class="curve__go" data-testid="sketch-curve-place">Place — then drag it into position</button>
     </form>
@@ -135,15 +130,15 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
     <form v-else-if="kind === 'ellipse'" class="curve__fields" @submit.prevent="place">
       <label class="curve__field">
         <span>Width <span class="curve__unit">(mm)</span></span>
-        <input v-model="widthText" type="text" inputmode="decimal" data-testid="sketch-curve-width" :aria-invalid="invalid('widthMm')" />
+        <NumberField v-model="widthMm" unit="mm" live data-testid="sketch-curve-width" :invalid="invalid('widthMm') === 'true'" />
       </label>
       <label class="curve__field">
         <span>Height <span class="curve__unit">(mm)</span></span>
-        <input v-model="heightText" type="text" inputmode="decimal" data-testid="sketch-curve-height" :aria-invalid="invalid('heightMm')" />
+        <NumberField v-model="heightMm" unit="mm" live data-testid="sketch-curve-height" :invalid="invalid('heightMm') === 'true'" />
       </label>
       <label class="curve__field">
         <span>Points</span>
-        <input v-model="ellipsePointsText" type="text" inputmode="numeric" data-testid="sketch-curve-ellipse-points" :aria-invalid="invalid('points')" />
+        <NumberField v-model="ellipsePoints" integer unit="" live data-testid="sketch-curve-ellipse-points" :invalid="invalid('points') === 'true'" />
       </label>
       <button type="submit" class="curve__go" data-testid="sketch-curve-place">Place — then drag it into position</button>
     </form>

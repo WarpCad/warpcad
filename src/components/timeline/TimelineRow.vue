@@ -34,6 +34,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
+import NumberField from '../controls/NumberField.vue'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { originChipText } from '../../core/origin.js'
 import { useTimelineStore } from '../../stores/timeline.js'
@@ -145,12 +146,11 @@ function vectorOf(field) {
  *
  * @param {import('../../composables/useTimelineCommands.js').StepField} field
  * @param {number} index
- * @param {Event} event
+ * @param {number} value
  */
-function onVectorInput(field, index, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
+function onVectorInput(field, index, value) {
   const next = (draft.value[field.key] ?? []).slice()
-  next[index] = Number(input.value)
+  next[index] = value
   draft.value[field.key] = next
 }
 
@@ -327,28 +327,24 @@ function cancel() {
       <label v-for="field in fields" :key="field.key" class="edit__field">
         <span class="edit__label">{{ field.label }}</span>
 
-        <input
+        <NumberField
           v-if="field.kind === 'number'"
-          v-model.number="draft[field.key]"
+          v-model="draft[field.key]"
           class="edit__input"
-          type="number"
-          step="any"
-          inputmode="decimal"
+          live
           :data-testid="`timeline-field-${field.key}`"
         />
 
         <span v-else-if="field.kind === 'vector'" class="edit__vector">
-          <input
+          <NumberField
             v-for="(component, index) in vectorOf(field)"
             :key="index"
             class="edit__input edit__input--axis"
-            type="number"
-            step="any"
-            inputmode="decimal"
-            :value="component"
+            live
+            :model-value="component"
             :aria-label="`${field.label} ${field.axes?.[index] ?? index + 1}`"
             :data-testid="`timeline-field-${field.key}-${index}`"
-            @input="onVectorInput(field, index, $event)"
+            @update:model-value="onVectorInput(field, index, $event)"
           />
         </span>
 

@@ -10,7 +10,7 @@
  */
 import { computed } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import { EXTRUSION_METHODS } from '../../sketch/profile.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
@@ -58,26 +58,15 @@ const FIELDS = Object.freeze({
 const method = computed(() => editor.draft.extrusion.method)
 const methodReason = computed(() => editor.methodProblems[method.value] ?? '')
 
-/** @param {string} key @param {boolean | undefined} integer @param {Event} event */
-function commit(key, integer, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(input.value)
-  const current = /** @type {any} */ (editor.draft.extrusion)[key]
-  if (parsed === null || (integer && !Number.isInteger(parsed))) {
-    input.value = String(current)
-    return
-  }
-  editor.setExtrusionParam(key, parsed)
+/** @param {string} key @param {number} value a finite number, whole when the field is `integer` */
+function commit(key, value) {
+  editor.setExtrusionParam(key, value)
 }
 
-/** @param {string} key */
+/** @param {string} key @returns {number | null} */
 function valueOf(key) {
-  return String(/** @type {Record<string, unknown>} */ (editor.draft.extrusion)[key] ?? '')
-}
-
-/** @param {Event} event */
-function blurTarget(event) {
-  /** @type {HTMLInputElement} */ (event.target).blur()
+  const value = /** @type {Record<string, unknown>} */ (editor.draft.extrusion)[key]
+  return typeof value === 'number' ? value : null
 }
 </script>
 
@@ -114,14 +103,13 @@ function blurTarget(event) {
           <span v-if="field.unit" class="extrude__unit">({{ field.unit }})</span>
         </dt>
         <dd>
-          <input
+          <NumberField
             :id="`sketch-param-${field.key}`"
-            type="text"
-            :inputmode="field.integer ? 'numeric' : 'decimal'"
+            :unit="field.unit === 'mm' ? 'mm' : ''"
+            :integer="field.integer === true"
             :data-testid="`sketch-param-${field.key}`"
-            :value="valueOf(field.key)"
-            @change="commit(field.key, field.integer, $event)"
-            @keydown.enter.prevent="blurTarget"
+            :model-value="valueOf(field.key)"
+            @update:model-value="commit(field.key, $event)"
           />
         </dd>
       </template>

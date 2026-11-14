@@ -89,12 +89,10 @@
  * cannot produce different records (control 4's "either path results in the same
  * underlying mutation").
  *
- * `ui-029` extends the identical field contract — `editingField`/
- * `editingSnapshot`/`fieldValue`/`parseNumeric`/`onFieldFocus`/`onFieldEnter` —
- * to the **Parameters** section's numeric fields, wired to
- * `src/composables/useParamCommands.js` instead. Not a parallel implementation:
- * the live-typing guard that stops a re-render eating a half-typed value is the
- * same code, keyed by `param-*` rather than `position-*`/`rotation-*`.
+ * `ui-029` extends the identical field contract to the **Parameters** section's numeric
+ * fields, wired to `src/composables/useParamCommands.js` instead. Both use
+ * `controls/NumberField.vue` (`TODO/ui-115`), whose own focus handling is what stops a
+ * re-render eating a half-typed value.
  *
  * Three things stay read-only, each deliberately rather than by omission:
  *
@@ -125,6 +123,7 @@ import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useAlignReferenceStore } from '../../stores/alignReference.js'
+import NumberField from '../controls/NumberField.vue'
 import ObjectList from './ObjectList.vue'
 import ViewHiddenNote from './ViewHiddenNote.vue'
 import PartDefaultHidden from './PartDefaultHidden.vue'
@@ -150,7 +149,6 @@ import { useDocumentStore } from '../../stores/document.js'
 import { canRenamePartsOf } from '../../core/document.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
-import { parseNumeric } from '../../composables/numericEntry.js'
 import { useColorCommands } from '../../composables/useColorCommands.js'
 import { useTheme } from '../../composables/useTheme.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
@@ -465,89 +463,30 @@ function onTabClick() {
 const transformCommands = useTransformCommands()
 
 /**
- * The field the user currently has focus in, e.g. `"position-0"`, or `''`.
+ * Commit a typed Transform field. `NumberField` commits once on blur or Enter and hands over a
+ * finite number (a gizmo drag re-renders these fields sixty times a second, and the field itself
+ * keeps what is being typed, `TODO/ui-115`); text that is not a number never gets here.
  *
- * A live gizmo drag re-renders these fields sixty times a second. Rebinding the
- * `value` of a field somebody is *typing* into would eat their keystrokes and
- * move their caret, so the focused field is left showing exactly what was typed
- * until it commits.
- */
-const editingField = ref('')
-
-/**
- * What the focused field displayed at the moment it was focused.
- *
- * Bound back to that field for as long as it stays focused, so the bound value
- * never *changes* and Vue therefore never writes to the element — leaving what
- * the user is typing exactly where it is. Returning `undefined` instead would put
- * the literal string "undefined" in the box, and re-binding the live value would
- * fight the keyboard.
- */
-const editingSnapshot = ref('')
-
-/**
- * The value to show in one Transform field: the live number, unless this is the
- * field being edited.
- *
- * @param {string} key
- * @param {string} display Already formatted for display.
- * @returns {string}
- */
-function fieldValue(key, display) {
-  return editingField.value === key ? editingSnapshot.value : display
-}
-
-
-/**
- * @param {Event} event
- * @param {string} key
- * @returns {void}
- */
-function onFieldFocus(event, key) {
-  editingSnapshot.value = /** @type {HTMLInputElement} */ (event.target).value
-  editingField.value = key
-}
-
-/**
- * Commit a typed Transform field — the blur/Enter trigger control 4 specifies.
- *
- * @param {Event} event
  * @param {'position' | 'rotation'} which
  * @param {number} axisIndex
+ * @param {number} value
  * @returns {void}
  */
-function commitTransformField(event, which, axisIndex) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(input.value)
+function commitTransformField(which, axisIndex, value) {
   const selectedBody = body.value
-  // Releasing the field first means the re-render below repaints it with the
-  // document's own formatting — which is also how a rejected value is undone,
-  // with no separate "restore" path to keep in step.
-  editingField.value = ''
   transformError.value = ''
   // A drilled-into sub-part's fields are `readonly`, so this should be
   // unreachable — but the guard is here rather than assumed, because the one
   // thing worse than no gizmo in this state is a numeric field that silently
   // moves the whole group (`TODO/ui-016`). The same for a repeat body (`TODO/ui-069`).
-  if (parsed === null || !selectedBody || transformFrozen.value) return
+  if (!selectedBody || transformFrozen.value) return
   // A refusal from the command layer is shown, never left as an uncaught page error.
   try {
-    if (which === 'position') transformCommands.setPositionAxis(selectedBody.id, axisIndex, parsed)
-    else transformCommands.setRotationAxis(selectedBody.id, axisIndex, parsed)
+    if (which === 'position') transformCommands.setPositionAxis(selectedBody.id, axisIndex, value)
+    else transformCommands.setRotationAxis(selectedBody.id, axisIndex, value)
   } catch (caught) {
     transformError.value = caught instanceof Error ? caught.message : String(caught)
   }
-}
-
-/**
- * Enter commits without waiting for focus to move — a user typing a position and
- * pressing Enter expects the body to move, not to have to click elsewhere first.
- *
- * @param {KeyboardEvent} event
- * @returns {void}
- */
-function onFieldEnter(event) {
-  /** @type {HTMLInputElement} */ (event.target).blur()
 }
 
 // --- the Parts section (TODO/ui-049, superseding ui-047's Hidden parts) -----
@@ -1008,18 +947,15 @@ watch([() => body.value?.id, colorPart], () => {
             <dd class="inspector__value inspector__value--vector">
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`p-${axis}`" class="inspector__component">
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
-                <input
+                <NumberField
                   class="inspector__input"
                   :class="{ 'inspector__input--editable': !transformFrozen }"
-                  type="text"
-                  inputmode="decimal"
+                  unit="mm"
                   :readonly="transformFrozen"
                   :data-testid="`inspector-position-${axis}`"
                   :aria-label="`Position ${axis.toUpperCase()} in millimetres`"
-                  :value="fieldValue(`position-${index}`, formatMmValue(body.positionMm[index]))"
-                  @focus="onFieldFocus($event, `position-${index}`)"
-                  @blur="commitTransformField($event, 'position', index)"
-                  @keydown.enter.prevent="onFieldEnter"
+                  :model-value="body.positionMm[index]"
+                  @update:model-value="commitTransformField('position', index, $event)"
                 />
               </label>
             </dd>
@@ -1028,18 +964,16 @@ watch([() => body.value?.id, colorPart], () => {
             <dd class="inspector__value inspector__value--vector">
               <label v-for="(axis, index) in ['x', 'y', 'z']" :key="`r-${axis}`" class="inspector__component">
                 <span class="inspector__component-label">{{ axis.toUpperCase() }}</span>
-                <input
+                <NumberField
                   class="inspector__input"
                   :class="{ 'inspector__input--editable': !transformFrozen }"
-                  type="text"
-                  inputmode="decimal"
+                  unit="deg"
+                  :format="formatDeg"
                   :readonly="transformFrozen"
                   :data-testid="`inspector-rotation-${axis}`"
                   :aria-label="`Rotation ${axis.toUpperCase()} in degrees`"
-                  :value="fieldValue(`rotation-${index}`, formatDeg(body.rotationDeg[index]))"
-                  @focus="onFieldFocus($event, `rotation-${index}`)"
-                  @blur="commitTransformField($event, 'rotation', index)"
-                  @keydown.enter.prevent="onFieldEnter"
+                  :model-value="body.rotationDeg[index]"
+                  @update:model-value="commitTransformField('rotation', index, $event)"
                 />
               </label>
             </dd>

@@ -18,63 +18,46 @@
  * photo was removed because a load could not verify it as a safe image.
  */
 import ReferenceImagePanel from './ReferenceImagePanel.vue'
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
-import { formatMmValue } from '../../core/units.js'
 
 const editor = useSketchEditorStore()
 const emit = defineEmits(['activate'])
 
-/** @param {number} index @param {Event} event */
-function commitZ(index, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
-  const parsed = parseNumeric(input.value)
-  if (parsed === null) {
-    input.value = formatMmValue(editor.draft.slices[index].zMm)
-    return
-  }
-  editor.setSliceOffset(index, parsed)
+/** @param {number} index @param {number} value */
+function commitZ(index, value) {
+  editor.setSliceOffset(index, value)
   if (index === editor.activeSlice) emit('activate', index)
 }
 
 /**
  * @param {number} index
  * @param {'x' | 'y' | 'twist'} which
- * @param {Event} event
+ * @param {number} value
  */
-function commitTransform(index, which, event) {
-  const input = /** @type {HTMLInputElement} */ (event.target)
+function commitTransform(index, which, value) {
   const slice = editor.draft.slices[index]
-  const parsed = parseNumeric(input.value)
-  if (parsed === null) {
-    input.value = transformValue(slice, which)
-    return
-  }
-  if (which === 'twist') editor.setSliceTransformOf(index, { rotateDeg: parsed })
+  if (which === 'twist') editor.setSliceTransformOf(index, { rotateDeg: value })
   else {
     const [x, y] = slice.offsetMm ?? [0, 0]
-    editor.setSliceTransformOf(index, { offsetMm: which === 'x' ? [parsed, y] : [x, parsed] })
+    editor.setSliceTransformOf(index, { offsetMm: which === 'x' ? [value, y] : [x, value] })
   }
 }
 
 /**
  * @param {import('../../sketch/profile.js').Slice} slice
  * @param {'x' | 'y' | 'twist'} which
+ * @returns {number}
  */
 function transformValue(slice, which) {
-  if (which === 'twist') return formatMmValue(slice.rotateDeg ?? 0)
-  return formatMmValue((slice.offsetMm ?? [0, 0])[which === 'x' ? 0 : 1])
+  if (which === 'twist') return slice.rotateDeg ?? 0
+  return (slice.offsetMm ?? [0, 0])[which === 'x' ? 0 : 1]
 }
 
 /** @param {number} index */
 function activate(index) {
   editor.setActiveSlice(index)
   emit('activate', index)
-}
-
-/** @param {Event} event */
-function blurTarget(event) {
-  /** @type {HTMLInputElement} */ (event.target).blur()
 }
 
 function add() {
@@ -123,54 +106,46 @@ function remove() {
         </button>
         <label class="slices__z">
           <span>Z</span>
-          <input
-            type="text"
-            inputmode="decimal"
+          <NumberField
+            unit="mm"
             :aria-label="`Slice ${index + 1} offset in millimetres`"
             :data-testid="`sketch-slice-z-${index}`"
-            :value="formatMmValue(slice.zMm)"
-            @change="commitZ(index, $event)"
-            @keydown.enter.prevent="blurTarget"
+            :model-value="slice.zMm"
+            @update:model-value="commitZ(index, $event)"
           />
           <span class="slices__unit">mm</span>
         </label>
         <div class="slices__transform">
           <label class="slices__z">
             <span>Offset X</span>
-            <input
-              type="text"
-              inputmode="decimal"
-              :aria-label="`Slice ${index + 1} offset X in millimetres`"
-              :data-testid="`sketch-slice-offset-x-${index}`"
-              :value="transformValue(slice, 'x')"
-              @change="commitTransform(index, 'x', $event)"
-              @keydown.enter.prevent="blurTarget"
-            />
+            <NumberField
+            unit="mm"
+            :aria-label="`Slice ${index + 1} offset X in millimetres`"
+            :data-testid="`sketch-slice-offset-x-${index}`"
+            :model-value="transformValue(slice, 'x')"
+            @update:model-value="commitTransform(index, 'x', $event)"
+          />
           </label>
           <label class="slices__z">
             <span>Y</span>
-            <input
-              type="text"
-              inputmode="decimal"
-              :aria-label="`Slice ${index + 1} offset Y in millimetres`"
-              :data-testid="`sketch-slice-offset-y-${index}`"
-              :value="transformValue(slice, 'y')"
-              @change="commitTransform(index, 'y', $event)"
-              @keydown.enter.prevent="blurTarget"
-            />
+            <NumberField
+            unit="mm"
+            :aria-label="`Slice ${index + 1} offset Y in millimetres`"
+            :data-testid="`sketch-slice-offset-y-${index}`"
+            :model-value="transformValue(slice, 'y')"
+            @update:model-value="commitTransform(index, 'y', $event)"
+          />
             <span class="slices__unit">mm</span>
           </label>
           <label class="slices__z">
             <span>Twist</span>
-            <input
-              type="text"
-              inputmode="decimal"
-              :aria-label="`Slice ${index + 1} twist in degrees`"
-              :data-testid="`sketch-slice-twist-${index}`"
-              :value="transformValue(slice, 'twist')"
-              @change="commitTransform(index, 'twist', $event)"
-              @keydown.enter.prevent="blurTarget"
-            />
+            <NumberField
+            unit="deg"
+            :aria-label="`Slice ${index + 1} twist in degrees`"
+            :data-testid="`sketch-slice-twist-${index}`"
+            :model-value="transformValue(slice, 'twist')"
+            @update:model-value="commitTransform(index, 'twist', $event)"
+          />
             <span class="slices__unit">°</span>
           </label>
         </div>

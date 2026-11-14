@@ -178,7 +178,8 @@ test('Backspace while typing in a Position field edits the field and deletes not
   await selectFromList(page, 'c2', testInfo)
   const field = page.getByTestId('inspector-position-x')
   await field.click()
-  await field.press('End')
+  // Focusing selects the whole value, so collapse it to the end (End is a no-op on macOS).
+  await field.press('ArrowRight')
   const typed = await field.inputValue()
   await field.press('Backspace')
   await expect(field).toHaveValue(typed.slice(0, -1))

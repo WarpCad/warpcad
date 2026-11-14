@@ -189,6 +189,12 @@ alone, so changing a cylinder's Diameter does not touch its Height. For a shape 
 multi-part parameter — a cube's **Size X/Y/Z**, a triangle's **Side lengths A/B/C** —
 each box is one part of it, so you can make a cube into a slab by changing X alone.
 
+Any size field accepts a comma or a point, with or without `mm`, in the Inspector and in
+every panel and sheet alike. In the Fillet popover, for example, type `2,5` into **Radius**
+and press **Enter**: the box shows `2.5`, and the **Fillet** button commits a 2.5 mm fillet. Typing
+`3 mm` instead gives `3`. The Up and Down arrow keys nudge a focused size by one step
+(hold Shift for ten).
+
 If you type something that is not a number, the box puts the old value back and nothing
 changes. If you type a number the shape cannot be built from — a diameter of `0`, or a
 negative height — nothing changes either, and a short message appears under the boxes

@@ -308,6 +308,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue'
 
 import HelpButton from '../controls/HelpButton.vue'
+import NumberField from '../controls/NumberField.vue'
 import AlignPopover from './AlignPopover.vue'
 import GroupMergePopover from './GroupMergePopover.vue'
 import OperationsGroupPopover from './OperationsGroupPopover.vue'
@@ -1885,12 +1886,7 @@ onBeforeUnmount(() => closeGroup())
 
         <label class="ops__popover-field">
           Radius (mm)
-          <input
-            type="number"
-            v-model.number="radiusMm"
-            min="0"
-            data-testid="fillet-chamfer-radius"
-          />
+          <NumberField v-model="radiusMm" unit="mm" :min="0" nullable live data-testid="fillet-chamfer-radius" />
         </label>
 
         <!-- The first user-facing runtime kernel-error path on this toolbar —
@@ -1941,15 +1937,15 @@ onBeforeUnmount(() => closeGroup())
           </p>
           <label class="ops__popover-field">
             X delta (mm)
-            <input type="number" v-model.number="enlargeDeltaMm.x" data-testid="resize-enlarge-dx" />
+            <NumberField v-model="enlargeDeltaMm.x" unit="mm" live data-testid="resize-enlarge-dx" />
           </label>
           <label class="ops__popover-field">
             Y delta (mm)
-            <input type="number" v-model.number="enlargeDeltaMm.y" data-testid="resize-enlarge-dy" />
+            <NumberField v-model="enlargeDeltaMm.y" unit="mm" live data-testid="resize-enlarge-dy" />
           </label>
           <label class="ops__popover-field">
             Z delta (mm)
-            <input type="number" v-model.number="enlargeDeltaMm.z" data-testid="resize-enlarge-dz" />
+            <NumberField v-model="enlargeDeltaMm.z" unit="mm" live data-testid="resize-enlarge-dz" />
           </label>
         </template>
 
@@ -1962,15 +1958,15 @@ onBeforeUnmount(() => closeGroup())
           </p>
           <label class="ops__popover-field">
             X size (mm)
-            <input type="number" v-model.number="fitSizeMm.x" min="0" data-testid="resize-fit-x" />
+            <NumberField v-model="fitSizeMm.x" unit="mm" :min="0" live data-testid="resize-fit-x" />
           </label>
           <label class="ops__popover-field">
             Y size (mm)
-            <input type="number" v-model.number="fitSizeMm.y" min="0" data-testid="resize-fit-y" />
+            <NumberField v-model="fitSizeMm.y" unit="mm" :min="0" live data-testid="resize-fit-y" />
           </label>
           <label class="ops__popover-field">
             Z size (mm)
-            <input type="number" v-model.number="fitSizeMm.z" min="0" data-testid="resize-fit-z" />
+            <NumberField v-model="fitSizeMm.z" unit="mm" :min="0" live data-testid="resize-fit-z" />
           </label>
           <label class="ops__checkbox">
             <input type="checkbox" v-model="fitKeepAspectRatio" data-testid="resize-fit-keep-aspect" />
@@ -1992,7 +1988,7 @@ onBeforeUnmount(() => closeGroup())
           </label>
           <label class="ops__popover-field">
             Offset (mm)
-            <input type="number" v-model.number="bisectOffsetMm" data-testid="resize-bisect-offset" />
+            <NumberField v-model="bisectOffsetMm" unit="mm" nullable live data-testid="resize-bisect-offset" />
           </label>
           <p class="ops__popover-hint">
             No default on purpose — type where along the axis to cut, measured
@@ -2006,7 +2002,7 @@ onBeforeUnmount(() => closeGroup())
                section. -->
           <label class="ops__popover-field">
             Angle (degrees)
-            <input type="number" v-model.number="bisectAngleDeg" data-testid="resize-bisect-angle" />
+            <NumberField v-model="bisectAngleDeg" unit="deg" nullable live data-testid="resize-bisect-angle" />
           </label>
           <label class="ops__popover-field">
             Rotate-axis
@@ -2018,11 +2014,7 @@ onBeforeUnmount(() => closeGroup())
           </label>
           <label class="ops__popover-field">
             Rotate-offset (mm)
-            <input
-              type="number"
-              v-model.number="bisectRotateOffsetMm"
-              data-testid="resize-bisect-rotate-offset"
-            />
+            <NumberField v-model="bisectRotateOffsetMm" unit="mm" nullable live data-testid="resize-bisect-rotate-offset" />
           </label>
           <p class="ops__popover-hint">
             No default on purpose, same as Offset above — left blank, the tilt
@@ -2076,7 +2068,7 @@ onBeforeUnmount(() => closeGroup())
         </label>
         <label class="ops__popover-field">
           Plane position (mm)
-          <input type="number" v-model.number="mirrorPlaneMm" data-testid="mirror-plane" />
+          <NumberField v-model="mirrorPlaneMm" unit="mm" nullable live data-testid="mirror-plane" />
         </label>
         <p class="ops__popover-hint">
           0 is the world plane. Clearing it mirrors about the shape's own

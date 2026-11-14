@@ -31,6 +31,7 @@ import { computed, onBeforeUnmount, watch } from 'vue'
 
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import HelpButton from '../controls/HelpButton.vue'
+import NumberField from '../controls/NumberField.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import {
   CONNECTOR_LABELS,
@@ -55,29 +56,6 @@ onBeforeUnmount(() => overlays.setOpen('split-sheet', false))
 
 useOverlayStack(() => sheet.isOpen, () => sheet.close())
 
-/**
- * The dowel diameter field: blank is the search's own size.
- *
- * @param {Event} event
- */
-function onDowelSize(event) {
-  const text = /** @type {HTMLInputElement} */ (event.target).value.trim()
-  const value = Number(text)
-  sheet.dowelSizeMm = text === '' || !Number.isFinite(value) ? null : value
-}
-
-/**
- * A whole-number or decimal field where blank means Auto.
- *
- * @param {Event} event
- * @returns {number | null}
- */
-function autoNumber(event) {
-  const text = /** @type {HTMLInputElement} */ (event.target).value.trim()
-  const value = Number(text)
-  return text === '' || !Number.isFinite(value) ? null : value
-}
-
 /** Whether the Magnet size field shows: for the Magnets joint, or while placing magnets by hand. */
 const showMagnetSize = computed(
   () =>
@@ -95,9 +73,9 @@ const profileFields = computed(() => PROFILE_FIELDS[sheet.joint] ?? [])
  * @returns {number | null}
  */
 const profileValue = (field) => /** @type {any} */ (sheet)[field] ?? null
-/** @param {string} field @param {Event} event */
-function setProfileValue(field, event) {
-  /** @type {any} */ (sheet)[field] = autoNumber(event)
+/** @param {string} field @param {number | null} value */
+function setProfileValue(field, value) {
+  /** @type {any} */ (sheet)[field] = value
 }
 
 /** @param {readonly number[]} size */
@@ -138,12 +116,12 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
       <label class="split__field">
         Offset from the minimum face (mm)
-        <input
-          v-model.number="sheet.offsetMm"
+        <NumberField
+          v-model="sheet.offsetMm"
           class="split__input"
-          type="number"
-          step="0.5"
-          inputmode="decimal"
+          unit="mm"
+          :step="0.5"
+          live
           data-testid="split-offset"
         />
       </label>
@@ -168,34 +146,32 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
       </label>
       <label v-if="!sheet.manual && sheet.joint === 'dowel' && sheet.stock !== 'filament'" class="split__field">
         Dowel diameter (mm)
-        <input
+        <NumberField
           class="split__input"
-          type="number"
-          step="0.5"
-          min="2"
-          max="10"
-          inputmode="decimal"
+          unit="mm"
+          :step="0.5"
+          :min="2"
+          :max="10"
+          nullable
           placeholder="Auto"
           data-testid="split-dowel-size"
-          :value="sheet.dowelSizeMm ?? ''"
-          @change="onDowelSize"
+          v-model="sheet.dowelSizeMm"
         />
       </label>
 
       <template v-if="!sheet.manual && sheet.joint === 'butterfly'">
         <label class="split__field">
           Keys
-          <input
+          <NumberField
             class="split__input"
-            type="number"
-            step="1"
-            min="1"
-            max="16"
-            inputmode="numeric"
+            integer
+            :step="1"
+            :min="1"
+            :max="16"
+            nullable
             placeholder="Auto"
             data-testid="split-butterfly-count"
-            :value="sheet.butterflyCount ?? ''"
-            @change="sheet.butterflyCount = autoNumber($event)"
+            v-model="sheet.butterflyCount"
           />
         </label>
         <label class="split__field">
@@ -212,17 +188,16 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         </label>
         <label class="split__field">
           Depth (mm)
-          <input
+          <NumberField
             class="split__input"
-            type="number"
-            step="0.5"
-            min="1"
-            inputmode="decimal"
+            unit="mm"
+            :step="0.5"
+            :min="1"
+            nullable
             placeholder="Auto"
             data-testid="split-butterfly-depth"
             :disabled="sheet.butterflyThrough"
-            :value="sheet.butterflyDepthMm ?? ''"
-            @change="sheet.butterflyDepthMm = autoNumber($event)"
+            v-model="sheet.butterflyDepthMm"
           />
         </label>
         <label class="split__toggle">
@@ -234,32 +209,30 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
       <template v-if="!sheet.manual && sheet.joint === 'tenon'">
         <label class="split__field">
           Tenon width (mm)
-          <input
+          <NumberField
             class="split__input"
-            type="number"
-            step="0.5"
-            min="6"
-            max="30"
-            inputmode="decimal"
+            unit="mm"
+            :step="0.5"
+            :min="6"
+            :max="30"
+            nullable
             placeholder="Auto"
             data-testid="split-tenon-width"
-            :value="sheet.tenonWidthMm ?? ''"
-            @change="sheet.tenonWidthMm = autoNumber($event)"
+            v-model="sheet.tenonWidthMm"
           />
         </label>
         <label class="split__field">
           Tenon thickness (mm)
-          <input
+          <NumberField
             class="split__input"
-            type="number"
-            step="0.5"
-            min="3"
-            max="8"
-            inputmode="decimal"
+            unit="mm"
+            :step="0.5"
+            :min="3"
+            :max="8"
+            nullable
             placeholder="Auto"
             data-testid="split-tenon-thickness"
-            :value="sheet.tenonThicknessMm ?? ''"
-            @change="sheet.tenonThicknessMm = autoNumber($event)"
+            v-model="sheet.tenonThicknessMm"
           />
         </label>
       </template>
@@ -273,30 +246,28 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         <template v-if="sheet.magnetSize === 'custom'">
           <label class="split__field">
             Magnet diameter (mm)
-            <input
+            <NumberField
               class="split__input"
-              type="number"
-              step="0.5"
-              min="2"
-              max="25"
-              inputmode="decimal"
+              unit="mm"
+              :step="0.5"
+              :min="2"
+              :max="25"
+              nullable
               data-testid="split-magnet-diameter"
-              :value="sheet.magnetDiameterMm ?? ''"
-              @change="sheet.magnetDiameterMm = autoNumber($event)"
+              v-model="sheet.magnetDiameterMm"
             />
           </label>
           <label class="split__field">
             Magnet thickness (mm)
-            <input
+            <NumberField
               class="split__input"
-              type="number"
-              step="0.5"
-              min="1"
-              max="10"
-              inputmode="decimal"
+              unit="mm"
+              :step="0.5"
+              :min="1"
+              :max="10"
+              nullable
               data-testid="split-magnet-thickness"
-              :value="sheet.magnetThicknessMm ?? ''"
-              @change="sheet.magnetThicknessMm = autoNumber($event)"
+              v-model="sheet.magnetThicknessMm"
             />
           </label>
         </template>
@@ -309,17 +280,18 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         class="split__field"
       >
         {{ profile.label }}
-        <input
+        <NumberField
           class="split__input"
-          type="number"
+          :unit="profile.step === 1 ? '' : 'mm'"
+          :integer="profile.step === 1"
           :step="profile.step"
           :min="profile.min"
           :max="profile.max"
-          :inputmode="profile.step === 1 ? 'numeric' : 'decimal'"
+          nullable
           placeholder="Auto"
           :data-testid="profile.testid"
-          :value="profileValue(profile.field) ?? ''"
-          @change="setProfileValue(profile.field, $event)"
+          :model-value="profileValue(profile.field)"
+          @update:model-value="setProfileValue(profile.field, $event)"
         />
       </label>
 
@@ -411,30 +383,28 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         <template v-if="sheet.magnetSize === 'custom'">
           <label class="split__field">
             Magnet diameter (mm)
-            <input
+            <NumberField
               class="split__input"
-              type="number"
-              step="0.5"
-              min="2"
-              max="25"
-              inputmode="decimal"
+              unit="mm"
+              :step="0.5"
+              :min="2"
+              :max="25"
+              nullable
               data-testid="split-magnet-diameter"
-              :value="sheet.magnetDiameterMm ?? ''"
-              @change="sheet.magnetDiameterMm = autoNumber($event)"
+              v-model="sheet.magnetDiameterMm"
             />
           </label>
           <label class="split__field">
             Magnet thickness (mm)
-            <input
+            <NumberField
               class="split__input"
-              type="number"
-              step="0.5"
-              min="1"
-              max="10"
-              inputmode="decimal"
+              unit="mm"
+              :step="0.5"
+              :min="1"
+              :max="10"
+              nullable
               data-testid="split-magnet-thickness"
-              :value="sheet.magnetThicknessMm ?? ''"
-              @change="sheet.magnetThicknessMm = autoNumber($event)"
+              v-model="sheet.magnetThicknessMm"
             />
           </label>
         </template>
@@ -445,13 +415,13 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
       <label v-if="sheet.manual || sheet.joint !== 'none'" class="split__field">
         Clearance per side (mm)
-        <input
-          v-model.number="sheet.clearanceMm"
+        <NumberField
+          v-model="sheet.clearanceMm"
           class="split__input"
-          type="number"
-          step="0.05"
-          min="0"
-          inputmode="decimal"
+          unit="mm"
+          :step="0.05"
+          :min="0"
+          live
           data-testid="split-clearance"
         />
       </label>

@@ -33,6 +33,7 @@ import { DESCRIPTION_LIMITS } from '../../core/description.js'
 import { INSTRUCTIONS_MAX_LENGTH } from '../../core/intent.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useProjectSettingsStore } from '../../stores/projectSettings.js'
+import NumberField from '../controls/NumberField.vue'
 import DescriptionText from '../display/DescriptionText.vue'
 import ModalShell from './ModalShell.vue'
 
@@ -146,15 +147,15 @@ function save() {
         <div class="settings__volume-row">
           <label class="settings__volume-field">
             Width (X)
-            <input v-model.number="volume.widthMm" class="settings__number" type="number" min="1" inputmode="decimal" data-testid="project-settings-build-width" />
+            <NumberField v-model="volume.widthMm" class="settings__number" unit="mm" :min="1" live data-testid="project-settings-build-width" />
           </label>
           <label class="settings__volume-field">
             Depth (Y)
-            <input v-model.number="volume.depthMm" class="settings__number" type="number" min="1" inputmode="decimal" data-testid="project-settings-build-depth" />
+            <NumberField v-model="volume.depthMm" class="settings__number" unit="mm" :min="1" live data-testid="project-settings-build-depth" />
           </label>
           <label class="settings__volume-field">
             Height (Z)
-            <input v-model.number="volume.heightMm" class="settings__number" type="number" min="1" inputmode="decimal" data-testid="project-settings-build-height" />
+            <NumberField v-model="volume.heightMm" class="settings__number" unit="mm" :min="1" live data-testid="project-settings-build-height" />
           </label>
         </div>
         <p v-if="volumeError" class="settings__error" role="alert" data-testid="project-settings-build-error">{{ volumeError }}</p>

@@ -2,7 +2,7 @@
 <script setup>
 /**
  * One variable in the Variables section (`TODO/ui-059`): its name, an inline value editor
- * matching its kind (number input via `numericEntry.js`, checkbox, native dropdown), how many
+ * matching its kind (`NumberField`, checkbox, native dropdown), how many
  * parameters read it, and an overflow for **Rename** and **Delete**.
  *
  * A value that would break something is *held* and handed to the repair dialog by the
@@ -14,7 +14,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import VariableFormulaView from './VariableFormulaView.vue'
@@ -34,7 +34,6 @@ const root = ref(/** @type {HTMLElement | null} */ (null))
 const menu = ref(false)
 const renaming = ref(false)
 const newName = ref('')
-const typed = ref(/** @type {string | null} */ (null))
 
 const variable = computed(() => props.row.variable)
 
@@ -44,10 +43,7 @@ const held = computed(() => {
   return repairDialog.open && edit?.variable === variable.value.name ? edit.record?.params?.value : undefined
 })
 
-const shown = computed(() => {
-  if (typed.value !== null) return typed.value
-  return String(held.value ?? variable.value.value)
-})
+const shown = computed(() => String(held.value ?? variable.value.value))
 
 const unit = computed(() => (variable.value.kind === 'number' ? (variable.value.unit ?? '') : ''))
 
@@ -69,11 +65,9 @@ watch(
   { immediate: true },
 )
 
-/** @param {Event} event */
-function onNumberCommit(event) {
-  const parsed = parseNumeric(/** @type {HTMLInputElement} */ (event.target).value)
-  typed.value = null
-  if (parsed !== null) emit('set', variable.value.name, parsed)
+/** @param {number} value a finite number, committed once by the field */
+function onNumberCommit(value) {
+  emit('set', variable.value.name, value)
 }
 
 /** @param {Event} event */
@@ -81,16 +75,6 @@ function onChoice(event) {
   const raw = /** @type {HTMLSelectElement} */ (event.target).value
   const option = (variable.value.options ?? []).find((candidate) => String(candidate.value) === raw)
   if (option) emit('set', variable.value.name, option.value)
-}
-
-/** @param {Event} event */
-function onNumberFocus(event) {
-  typed.value = /** @type {HTMLInputElement} */ (event.target).value
-}
-
-/** @param {Event} event */
-function onNumberEnter(event) {
-  /** @type {HTMLInputElement} */ (event.target).blur()
 }
 
 /** @param {Event} event */
@@ -135,7 +119,7 @@ function commitRename() {
         <option v-for="option in variable.options" :key="String(option.value)" :value="String(option.value)">{{ option.label }}</option>
       </select>
       <template v-else>
-        <input class="vrow__input" type="text" inputmode="decimal" :value="shown" :aria-label="`${variable.name} value`" :data-testid="`variable-value-${variable.name}`" @focus="onNumberFocus" @blur="onNumberCommit" @keydown.enter.prevent="onNumberEnter" />
+        <NumberField class="vrow__input" :unit="unit === 'mm' || unit === 'deg' ? unit : ''" :model-value="Number(held ?? variable.value)" :aria-label="`${variable.name} value`" :data-testid="`variable-value-${variable.name}`" @update:model-value="onNumberCommit" />
         <span v-if="unit" class="vrow__unit">{{ unit }}</span>
       </template>
     </div>

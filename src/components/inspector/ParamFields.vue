@@ -23,7 +23,7 @@
  */
 import { computed, ref, watch } from 'vue'
 
-import { parseNumeric } from '../../composables/numericEntry.js'
+import NumberField from '../controls/NumberField.vue'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { hasEditableParams, lookupEntry, paramOptions } from '../../core/kernel/registry.js'
 import { effectiveUserPart } from '../../core/userPart.js'
@@ -318,42 +318,46 @@ function runEdit(edit, pending, key = '') {
 }
 
 /**
- * @param {Event} event
+ * A numeric scalar, committed by `NumberField` (`TODO/ui-115`).
+ *
  * @param {string} key
+ * @param {number} value
  */
-function commitParamField(event, key) {
-  const raw = /** @type {HTMLInputElement} */ (event.target).value
-  if (key === 'text') {
-    editingField.value = ''
-    if (!editable.value) return
-    // Unlike a number, an empty string is refused loudly rather than ignored, and the
-    // field is put back by hand since nothing the binding can see changed.
-    if (runEdit(() => setOne(key, raw), null, key)) {
-      /** @type {HTMLInputElement} */ (event.target).value = fieldValue(`param-${key}`, raw)
-    }
-    return
-  }
-  const parsed = parseNumeric(raw)
-  editingField.value = ''
-  if (parsed === null || !editable.value) return
-  runEdit(() => setOne(key, parsed), null, key)
+function commitNumberField(key, value) {
+  if (!editable.value) return
+  runEdit(() => setOne(key, value), null, key)
 }
 
 /**
+ * The label text, the one free-text param: committed on blur.
+ *
  * @param {Event} event
  * @param {string} key
- * @param {number} index
  */
-function commitParamComponent(event, key, index) {
-  const parsed = parseNumeric(/** @type {HTMLInputElement} */ (event.target).value)
+function commitTextField(event, key) {
+  const raw = /** @type {HTMLInputElement} */ (event.target).value
   editingField.value = ''
-  if (parsed === null || !editable.value) return
+  if (!editable.value) return
+  // Unlike a number, an empty string is refused loudly rather than ignored, and the
+  // field is put back by hand since nothing the binding can see changed.
+  if (runEdit(() => setOne(key, raw), null, key)) {
+    /** @type {HTMLInputElement} */ (event.target).value = fieldValue(`param-${key}`, raw)
+  }
+}
+
+/**
+ * @param {string} key
+ * @param {number} index
+ * @param {number} value
+ */
+function commitParamComponent(key, index, value) {
+  if (!editable.value) return
   const part = partName.value
   runEdit(
     () =>
       part === undefined
-        ? paramCommands.setParamComponent(props.body.id, key, index, parsed)
-        : paramCommands.setPartParamComponent(props.body.id, part, key, index, parsed),
+        ? paramCommands.setParamComponent(props.body.id, key, index, value)
+        : paramCommands.setPartParamComponent(props.body.id, part, key, index, value),
     null,
     key,
   )
@@ -427,19 +431,16 @@ function onEnumChange(event, field) {
               />
               <label v-else class="params__component">
                 <span class="params__component-label">{{ component.label }}</span>
-                <input
+                <NumberField
                   class="params__input"
                   :class="{ 'params__input--editable': fieldEditable(field), 'params__input--invalid': invalidFor(field.key) }"
-                  type="text"
-                  inputmode="decimal"
+                  :unit="field.unit === 'mm' ? 'mm' : ''"
                   :readonly="!fieldEditable(field)"
+                  :invalid="invalidFor(field.key)"
                   :data-testid="`inspector-param-${field.key}-${component.label.toLowerCase()}`"
-                  :aria-invalid="invalidFor(field.key) ? 'true' : undefined"
                   :aria-label="`${field.label} ${component.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
-                  :value="fieldValue(`param-${field.key}-${index}`, displayValue(component.value, field.unit))"
-                  @focus="onFieldFocus($event, `param-${field.key}-${index}`)"
-                  @blur="commitParamComponent($event, field.key, index)"
-                  @keydown.enter.prevent="onFieldEnter"
+                  :model-value="component.value"
+                  @update:model-value="commitParamComponent(field.key, index, $event)"
                 />
               </label>
             </template>
@@ -532,18 +533,30 @@ function onEnumChange(event, field) {
             />
             <template v-else>
               <input
+                v-if="field.kind === 'text'"
                 class="params__input"
                 :class="{ 'params__input--editable': fieldEditable(field), 'params__input--invalid': invalidFor(field.key) }"
                 type="text"
-                :inputmode="field.kind === 'text' ? 'text' : 'decimal'"
                 :readonly="!fieldEditable(field)"
                 :data-testid="`inspector-param-${field.key}`"
                 :aria-invalid="invalidFor(field.key) ? 'true' : undefined"
-                :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
+                :aria-label="`${field.label}`"
                 :value="fieldValue(`param-${field.key}`, displayValue(field.value, field.unit))"
                 @focus="onFieldFocus($event, `param-${field.key}`)"
-                @blur="commitParamField($event, field.key)"
+                @blur="commitTextField($event, field.key)"
                 @keydown.enter.prevent="onFieldEnter"
+              />
+              <NumberField
+                v-else
+                class="params__input"
+                :class="{ 'params__input--editable': fieldEditable(field), 'params__input--invalid': invalidFor(field.key) }"
+                :unit="field.unit === 'mm' ? 'mm' : ''"
+                :readonly="!fieldEditable(field)"
+                :invalid="invalidFor(field.key)"
+                :data-testid="`inspector-param-${field.key}`"
+                :aria-label="`${field.label}${field.unit === 'mm' ? ' in millimetres' : ''}`"
+                :model-value="Number(field.value)"
+                @update:model-value="commitNumberField(field.key, $event)"
               />
               <span v-if="field.unit" class="params__unit">{{ field.unit }}</span>
             </template>

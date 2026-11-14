@@ -6,8 +6,20 @@ priority: high
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112]
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-13).** `NumberField.vue` (tolerant text entry through `parseNumeric`, commits once on
+> blur or Enter, Escape restores, Arrow keys step, `nullable` for "Auto" fields, `live` for fields whose
+> neighbours react as you type, `submit` for the one field whose form should submit on Enter) replaces all 30
+> native `type="number"` inputs in the six Pattern B components and the hand-written text fields in all 11 Pattern A
+> components, with the display and parsing rules added to `numericEntry.js`. `FieldLabel`, `TextInput`,
+> `SelectInput`, `FileInput` and `SegmentedToggle` exist in `src/components/controls/` with specs and stories, but
+> **no existing component was moved onto them yet**: the ten label copies, seven text-input copies, three hidden file
+> inputs and 17 hand-built segmented rows still carry their own rules, so the guard's allow-list did not shrink here.
+> That adoption is left to the `ui-118` sweep. Enter in a `NumberField` commits and leaves the field but does not
+> submit a surrounding form (the Split sheet and History edit form no longer apply on Enter); `submit` opts a
+> field in, used for the Set-scale length.
 
 > **Decided 2026-11-10** (`ui-111`, decision 1): base components live in the existing folders. These
 > go in `src/components/controls/`.
