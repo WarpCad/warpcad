@@ -30,6 +30,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import IconButton from '../controls/IconButton.vue'
 import { isTextEntry } from '../../composables/textEntry.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -102,25 +103,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <div class="history" data-testid="history-controls">
-    <button
-      type="button"
+    <IconButton
+      bordered
       class="history__button"
+      :label="
+        timeline.previewing
+          ? 'Leave the preview to undo'
+          : documentStore.canUndo
+            ? `Undo: ${documentStore.undoLabel}`
+            : 'Nothing to undo'
+      "
       data-testid="undo-button"
       :disabled="undoDisabled"
-      :title="
-        timeline.previewing
-          ? 'Leave the preview to undo'
-          : documentStore.canUndo
-            ? `Undo: ${documentStore.undoLabel}`
-            : 'Nothing to undo'
-      "
-      :aria-label="
-        timeline.previewing
-          ? 'Leave the preview to undo'
-          : documentStore.canUndo
-            ? `Undo: ${documentStore.undoLabel}`
-            : 'Nothing to undo'
-      "
       :data-undo-label="documentStore.undoLabel"
       @click="run('undo')"
     >
@@ -129,31 +123,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
            controls. The accessible name above is what a screen reader gets, and
            it names the action, not just the verb. -->
       <span aria-hidden="true">↶</span>
-    </button>
-    <button
-      type="button"
+    </IconButton>
+    <IconButton
+      bordered
       class="history__button"
+      :label="
+        timeline.previewing
+          ? 'Leave the preview to redo'
+          : documentStore.canRedo
+            ? `Redo: ${documentStore.redoLabel}`
+            : 'Nothing to redo'
+      "
       data-testid="redo-button"
       :disabled="redoDisabled"
-      :title="
-        timeline.previewing
-          ? 'Leave the preview to redo'
-          : documentStore.canRedo
-            ? `Redo: ${documentStore.redoLabel}`
-            : 'Nothing to redo'
-      "
-      :aria-label="
-        timeline.previewing
-          ? 'Leave the preview to redo'
-          : documentStore.canRedo
-            ? `Redo: ${documentStore.redoLabel}`
-            : 'Nothing to redo'
-      "
       :data-redo-label="documentStore.redoLabel"
       @click="run('redo')"
     >
       <span aria-hidden="true">↷</span>
-    </button>
+    </IconButton>
     <p v-if="refusal" class="history__refusal" role="alert" data-testid="history-refusal">
       {{ refusal }}
     </p>
@@ -167,33 +154,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   gap: 4px;
 }
 
-.history__button {
-  /* 44px at every width, per the cross-cutting phone budget — a header control
-     that shrinks below the tap target on the one device with no keyboard
-     shortcut would fail CLAUDE.md's Responsive Layout rule outright. */
-  width: var(--tap);
-  height: var(--tap);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
+/* The 44 px target at every width is `IconButton`'s default: a header control that shrinks below it on
+   the one device with no keyboard shortcut would fail CLAUDE.md's Responsive Layout rule. */
+.history .history__button {
   font-size: 18px;
   line-height: 1;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.history__button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.history__button:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 
 .history__refusal {

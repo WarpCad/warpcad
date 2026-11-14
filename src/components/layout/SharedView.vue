@@ -45,6 +45,7 @@
  */
 import { computed, nextTick, ref } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import SharedAboutPopup from './SharedAboutPopup.vue'
 import ReplaceConfirmDialog from '../storage/ReplaceConfirmDialog.vue'
 import Viewport from '../viewport/Viewport.vue'
@@ -91,9 +92,9 @@ async function closeAbout() {
           Ask the person who sent it to send it again, or to send the file instead.
         </p>
       </template>
-      <button type="button" class="shared__button shared__button--primary" data-testid="shared-start" @click="$emit('start')">
+      <BaseButton size="large" variant="primary" data-testid="shared-start" @click="$emit('start')">
         Start WarpCad
-      </button>
+      </BaseButton>
     </div>
 
     <template v-else>
@@ -102,17 +103,17 @@ async function closeAbout() {
         <h1 class="shared__title" data-testid="shared-title">{{ share.phase === 'ready' ? share.name : 'Opening…' }}</h1>
         <p v-if="share.note" class="shared__note" data-testid="shared-note">{{ share.note }}</p>
         <p v-if="description" class="shared__note" data-testid="shared-description">{{ description }}</p>
-        <button
+        <BaseButton
           v-if="hasAbout"
           ref="aboutButton"
-          type="button"
+          variant="link"
           class="shared__about"
           data-testid="shared-about-open"
           aria-haspopup="dialog"
           @click="share.openAbout()"
         >
           About
-        </button>
+        </BaseButton>
         <p v-if="share.phase === 'ready'" class="shared__hint" data-testid="shared-hint">Drag to turn it · pinch or scroll to zoom</p>
       </header>
 
@@ -123,32 +124,31 @@ async function closeAbout() {
 
       <div class="shared__actions">
         <template v-if="ownLink">
-          <button type="button" class="shared__button shared__button--primary" data-testid="shared-gist-edit" @click="gist.openOwnToEdit()">
+          <BaseButton size="large" variant="primary" data-testid="shared-gist-edit" @click="gist.openOwnToEdit()">
             Open it to edit
-          </button>
-          <button type="button" class="shared__button" data-testid="shared-gist-copy" @click="gist.makeOwnCopy()">
+          </BaseButton>
+          <BaseButton size="large" data-testid="shared-gist-copy" @click="gist.makeOwnCopy()">
             Make a copy
-          </button>
+          </BaseButton>
         </template>
-        <button
+        <BaseButton
           v-else
-          type="button"
-          class="shared__button shared__button--primary"
+          size="large"
+          variant="primary"
           data-testid="shared-copy"
           :disabled="share.phase !== 'ready'"
           @click="share.makeCopy()"
         >
           Make my own copy to edit
-        </button>
-        <button
-          type="button"
-          class="shared__button shared__button--quiet"
+        </BaseButton>
+        <BaseButton
+          variant="link"
           data-testid="shared-save-file"
           :disabled="share.phase !== 'ready'"
           @click="share.saveFile()"
         >
           Save a copy of the file
-        </button>
+        </BaseButton>
         <p v-if="share.status" class="shared__status" role="status" data-testid="shared-status">{{ share.status }}</p>
       </div>
     </template>
@@ -222,18 +222,8 @@ async function closeAbout() {
   color: var(--text-3);
 }
 
-.shared__about {
-  min-height: 44px;
+.shared__head .shared__about {
   margin: 4px 0 0 -8px;
-  padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
 .shared__stage {
@@ -263,40 +253,6 @@ async function closeAbout() {
   padding: 10px 16px calc(10px + var(--layout-safe-bottom));
   border-top: 1px solid var(--border);
   background: var(--surface-1);
-}
-
-.shared__button {
-  min-height: 48px;
-  padding: 0 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 15px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.shared__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.shared__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-/* Quiet: a text link's weight, a full 44px target. */
-.shared__button--quiet {
-  min-height: var(--tap);
-  border-color: transparent;
-  background: transparent;
-  color: var(--accent);
-  font-size: 14px;
 }
 
 .shared__status {

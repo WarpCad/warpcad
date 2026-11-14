@@ -10,6 +10,7 @@
  */
 import { computed } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import { descriptionFirstLine } from '../../core/description.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useProjectSettingsStore } from '../../stores/projectSettings.js'
@@ -33,9 +34,9 @@ function edit() {
       People who open this will see: <em class="hint__line" data-testid="description-hint-line">{{ firstLine }}</em>
     </p>
     <p v-else class="hint__text" data-testid="description-hint-text">Add a description for the people you are sending this to</p>
-    <button type="button" class="hint__button" data-testid="description-hint-edit" @click="edit()">
+    <BaseButton variant="link" data-testid="description-hint-edit" @click="edit()">
       {{ firstLine ? 'Edit…' : 'Add…' }}
-    </button>
+    </BaseButton>
   </div>
 </template>
 
@@ -62,16 +63,4 @@ function edit() {
   color: var(--text-1);
 }
 
-.hint__button {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
 </style>

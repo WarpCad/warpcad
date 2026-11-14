@@ -24,6 +24,7 @@
  */
 import { computed } from 'vue'
 
+import IconButton from '../controls/IconButton.vue'
 import TimelineRow from './TimelineRow.vue'
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
@@ -63,16 +64,9 @@ const relatedIds = computed(() => {
       <span class="panel__count" data-testid="timeline-count">
         {{ timeline.stepCount }} step{{ timeline.stepCount === 1 ? '' : 's' }}
       </span>
-      <button
-        type="button"
-        class="panel__close"
-        data-testid="timeline-close"
-        aria-label="Close History"
-        title="Close History"
-        @click="timeline.setOpen(false)"
-      >
+      <IconButton variant="quiet" class="panel__close" label="Close History" data-testid="timeline-close" @click="timeline.setOpen(false)">
         ✕
-      </button>
+      </IconButton>
     </header>
 
     <p v-if="timeline.stepCount === 0" class="panel__empty" data-testid="timeline-empty">
@@ -132,25 +126,10 @@ const relatedIds = computed(() => {
   color: var(--text-3);
 }
 
-.panel__close {
+.panel .panel__close {
   margin-left: auto;
-  width: var(--tap);
   height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-2);
   font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.panel__close:hover {
-  border-color: var(--border-strong);
-  color: var(--text-1);
 }
 
 .panel__empty {

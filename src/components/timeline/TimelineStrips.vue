@@ -30,6 +30,7 @@
  */
 import { onBeforeUnmount, onMounted } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
@@ -68,14 +69,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       role="status"
     >
       <span class="strip__text">{{ timeline.previewText }}</span>
-      <button
-        type="button"
-        class="strip__action"
-        data-testid="timeline-back-to-latest"
-        @click="timeline.endPreview()"
-      >
+      <BaseButton size="compact" class="strip__action" data-testid="timeline-back-to-latest" @click="timeline.endPreview()">
         Back to latest
-      </button>
+      </BaseButton>
     </div>
 
     <div
@@ -88,14 +84,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         <span class="strip__text" data-testid="timeline-rollback-text">
           {{ timeline.rollbackText }}
         </span>
-        <button
-          type="button"
-          class="strip__action"
-          data-testid="timeline-roll-forward"
-          @click="commands.rollForward()"
-        >
+        <BaseButton size="compact" class="strip__action" data-testid="timeline-roll-forward" @click="commands.rollForward()">
           Roll forward
-        </button>
+        </BaseButton>
       </div>
       <!-- §18's second, smaller line. Where new steps land is the single most
            surprising thing about being rolled back, so it is stated rather than
@@ -172,23 +163,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   color: var(--text-2);
 }
 
-.strip__action {
+/* Placement and density only: the look is `BaseButton`'s. The strips are measured (§18), so the 28 px stays. */
+.strip .strip__action {
   margin-left: auto;
   min-height: 28px;
   padding: 4px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
   font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.strip__action:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 @media (max-width: 640px) {
@@ -199,7 +179,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   /* §18's phone rule: the rollback strip is two lines (~48px) and the preview
      strip stays one. The header-plus-strip height is subtracted from the
      viewport the way the header already is, so neither overlaps a control. */
-  .strip__action {
+  .strip .strip__action {
     min-height: 32px;
   }
 }

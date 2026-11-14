@@ -7,6 +7,7 @@
  * When it is disabled it says why in a visible line, not only in a tooltip: a phone has no
  * hover, and "Select exactly 1 — tap Combine into group…" is the instruction the person needs.
  */
+import BaseButton from '../controls/BaseButton.vue'
 import { useLibraryStore } from '../../stores/library.js'
 
 const library = useLibraryStore()
@@ -14,16 +15,15 @@ const library = useLibraryStore()
 
 <template>
   <div class="save-library">
-    <button
-      type="button"
-      class="save-library__button"
+    <BaseButton
+      align="start"
       data-testid="library-save"
       :disabled="!library.saveGate.enabled"
       :title="library.saveGate.enabled ? 'Save this group to My parts, so it can be dragged into any project' : library.saveGate.reason"
       @click="library.openSave()"
     >
       Save to library…
-    </button>
+    </BaseButton>
     <p v-if="!library.saveGate.enabled" class="save-library__reason" data-testid="library-save-reason">
       {{ library.saveGate.reason }}
     </p>
@@ -35,28 +35,6 @@ const library = useLibraryStore()
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.save-library__button {
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.save-library__button:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.save-library__button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .save-library__reason {
