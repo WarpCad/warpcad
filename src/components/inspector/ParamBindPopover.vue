@@ -11,17 +11,19 @@
  * listed beside other number variables, with their value. A formula this row cannot read (a
  * body not built until later) is core's refusal, shown here instead of binding.
  *
- * Tap-driven, no hover state anywhere. At phone width it is a bottom sheet of its own
- * (`position: fixed`); wider, it opens inline under the field. Every refusal is core's own
+ * Tap-driven, no hover state anywhere. At phone width it is a non-modal `BaseSheet` (a bottom
+ * sheet that Escape closes, `TODO/ui-116`); wider, it opens inline under the field. Every refusal is core's own
  * reason string, shown as-is — nothing about what may be bound is decided here.
  */
 import { computed, ref } from 'vue'
 
 import { formulaPreviewLine, seedDefinition, seedFormulaText, suggestVariableName } from '../../composables/variableEntry.js'
+import { useMediaQuery } from '../../composables/useMediaQuery.js'
 import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseSheet from '../layout/BaseSheet.vue'
 import FormulaEditor from './FormulaEditor.vue'
 
 const props = defineProps({
@@ -41,6 +43,15 @@ const props = defineProps({
 const commands = useVariableCommands()
 const ui = useVariablesUiStore()
 const documentStore = useDocumentStore()
+
+/** At phone width the frame is a non-modal `BaseSheet` (`TODO/ui-116`); wider it is the inline box. */
+const isPhone = useMediaQuery('(max-width: 640px)')
+const frame = computed(() => (isPhone.value ? BaseSheet : 'div'))
+const frameProps = computed(() =>
+  isPhone.value
+    ? { open: true, testid: 'param-bind-popover', title: `Bind ${props.label} to a variable`, tier: 'popover', onEscape: () => (ui.popoverKey = '') }
+    : { 'data-testid': 'param-bind-popover', role: 'group', 'aria-label': `Bind ${props.label} to a variable`, class: 'bind--inline' },
+)
 
 const naming = ref(false)
 const name = ref('')
@@ -102,7 +113,7 @@ function create() {
 </script>
 
 <template>
-  <div class="bind" data-testid="param-bind-popover" role="group" :aria-label="`Bind ${label} to a variable`">
+  <component :is="frame" v-bind="frameProps" class="bind">
     <p class="bind__title">Bind {{ label }} to a variable</p>
     <div v-if="naming" class="bind__new">
       <label class="bind__label" for="bind-new-name">Name</label>
@@ -135,7 +146,7 @@ function create() {
     </ul>
     <p v-if="error" class="bind__error" role="alert" data-testid="param-bind-error">{{ error }}</p>
     <BaseButton align="start" class="bind__btn" data-testid="param-bind-close" @click="ui.popoverKey = ''">Close</BaseButton>
-  </div>
+  </component>
 </template>
 
 <style scoped>
@@ -143,6 +154,10 @@ function create() {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* The inline box under the field; the phone sheet's frame is `BaseSheet`'s. */
+.bind--inline {
   padding: 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -224,20 +239,5 @@ function create() {
   margin: 0;
   font-size: 12px;
   color: var(--danger);
-}
-
-@media (max-width: 640px) {
-  .bind {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 40;
-    max-height: 60vh;
-    overflow-y: auto;
-    padding-bottom: max(8px, var(--layout-safe-bottom));
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    box-shadow: var(--shadow-overlay);
-  }
 }
 </style>

@@ -6,19 +6,24 @@
  * then the quantity. The reference it builds (`composables/formulaInsert.js`) is handed to the
  * box to put at the caret, so nobody has to know the syntax or type `[` on a phone.
  *
- * Tap-driven, no hover. At phone width it is a bottom sheet of its own, like the bind list; wider,
+ * Tap-driven, no hover. At phone width it is a non-modal `BaseSheet`, like the bind list (`TODO/ui-116`); wider,
  * it opens inline under the box. It lists bodies whatever is selected. Names are text
  * interpolation only, never markup.
  */
 import { computed, ref } from 'vue'
 
 import { FORMULA_QUANTITY_CHOICES, formulaInsertBodies, formulaReferenceText } from '../../composables/formulaInsert.js'
+import { useMediaQuery } from '../../composables/useMediaQuery.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseSheet from '../layout/BaseSheet.vue'
 import { useDocumentStore } from '../../stores/document.js'
 
 const emit = defineEmits(['insert', 'close'])
 
 const documentStore = useDocumentStore()
+
+/** At phone width the list is a non-modal `BaseSheet` (`TODO/ui-116`); wider it is the inline box. */
+const isPhone = useMediaQuery('(max-width: 640px)')
 
 const bodies = computed(() => formulaInsertBodies(documentStore.bodies))
 const bodyId = ref('')
@@ -33,6 +38,13 @@ const title = computed(() => {
   if (stage.value === 'part') return `Which part of ${body.value?.name ?? ''}?`
   return `Which size of ${part.value === null ? body.value?.name : `${body.value?.name} ▸ ${part.value}`}?`
 })
+
+const frame = computed(() => (isPhone.value ? BaseSheet : 'div'))
+const frameProps = computed(() =>
+  isPhone.value
+    ? { open: true, testid: 'formula-insert-list', title: title.value, tier: 'popover', 'data-stage': stage.value, onEscape: () => emit('close') }
+    : { 'data-testid': 'formula-insert-list', role: 'group', 'aria-label': title.value, 'data-stage': stage.value, class: 'finsert--inline' },
+)
 
 /** @param {string} id */
 function chooseBody(id) {
@@ -56,7 +68,7 @@ function choose(quantity) {
 </script>
 
 <template>
-  <div class="finsert" role="group" :aria-label="title" data-testid="formula-insert-list" :data-stage="stage">
+  <component :is="frame" v-bind="frameProps" class="finsert">
     <div class="finsert__head">
       <BaseButton v-if="stage !== 'body'" size="compact" class="finsert__small" data-testid="formula-insert-back" @click="back">‹ Back</BaseButton>
       <p class="finsert__title">{{ title }}</p>
@@ -85,7 +97,7 @@ function choose(quantity) {
         </BaseButton>
       </li>
     </ul>
-  </div>
+  </component>
 </template>
 
 <style scoped>
@@ -93,6 +105,10 @@ function choose(quantity) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* The inline box under the formula; the phone sheet's frame is `BaseSheet`'s. */
+.finsert--inline {
   padding: 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -153,20 +169,5 @@ function choose(quantity) {
 .finsert__empty {
   font-size: 12px;
   color: var(--text-3);
-}
-
-@media (max-width: 640px) {
-  .finsert {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 45;
-    max-height: 60vh;
-    overflow-y: auto;
-    padding-bottom: max(8px, var(--layout-safe-bottom));
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    box-shadow: var(--shadow-overlay);
-  }
 }
 </style>
