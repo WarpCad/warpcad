@@ -34,7 +34,6 @@
       "src/components/viewport/ViewportContextBanner.vue": 1
     },
     "style-font": {
-      "src/components/features/SplitSheet.vue": 13,
       "src/components/inspector/ConditionRow.vue": 6,
       "src/components/inspector/DeleteButton.vue": 3,
       "src/components/inspector/DependentRepairDialog.vue": 7,

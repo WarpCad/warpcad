@@ -499,13 +499,13 @@ body :global(.sheet.split) {
 
 .split__title {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-size-lg);
+  font-weight: var(--weight-medium);
 }
 
 .split__note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
 }
@@ -514,7 +514,7 @@ body :global(.sheet.split) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
@@ -528,7 +528,7 @@ body :global(.sheet.split) {
   color: var(--text-1);
   font-family: inherit;
   /* 16px: iOS Safari zooms the page on focus of anything smaller. */
-  font-size: 16px;
+  font-size: var(--text-size-xl);
 }
 
 .split__pieces {
@@ -544,11 +544,11 @@ body :global(.sheet.split) {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 2px 8px;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
 }
 
 .split__piece-name {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
   overflow-wrap: anywhere;
 }
 
@@ -565,7 +565,7 @@ body :global(.sheet.split) {
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid currentColor;
-  font-size: 11px;
+  font-size: var(--text-size-xs);
   white-space: nowrap;
 }
 
@@ -584,7 +584,7 @@ body :global(.sheet.split) {
 .split__problem,
 .split__warning {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -608,7 +608,7 @@ body :global(.sheet.split) {
   align-items: center;
   gap: 8px;
   min-height: var(--tap);
-  font-size: 13px;
+  font-size: var(--text-size-md);
   color: var(--text-1);
 }
 
@@ -639,7 +639,7 @@ body :global(.sheet.split) {
   background: var(--surface-2);
   color: var(--text-1);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-size-md);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -667,7 +667,7 @@ body :global(.sheet.split) {
 
 .split__hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-size-sm);
   line-height: 1.4;
   color: var(--text-2);
 }
@@ -718,7 +718,7 @@ body :global(.sheet.split) {
   }
 
   .split__hint {
-    font-size: 11px;
+    font-size: var(--text-size-xs);
   }
 
   .split__field,
