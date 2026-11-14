@@ -26,16 +26,24 @@ status: open
 > `viewport/ModelImportStatus`); the panels `sketch/ReferenceImagePanel`, `SlicePanel`, `TraceTool`, `ScaleTool` and
 > `inspector/ConditionRow`, `RepeatSection`, `VariableRow`, `VariableAddForm`, `VariableFormulaView`, `PromptsViewRow`;
 > and AI `ChatPanel`, `Composer`, `SaveProposal`, `PromptReply`, `ConnectButton`.
-> **Remaining**: (1) panels left on purpose for a decision: `sketch/ExtrudePanel` (method picker) and
-> `SketchProfileFields` (role picker) are segmented radio groups, `SketchPanelSheet` (a close cross),
-> `inspector/Inspector.vue` (tabs, list bars, breadcrumb crumbs, colour reset), `ParamBindPopover` and `FormulaInsertList`
-> (option lists with primary rows); (2) toolbars and popovers: `viewport/OperationsToolbar`, `NavigationChrome`,
-> `SketchToolbar`, `AlignGrid`, `GroupMergePopover`, `RepeatSheet`, `PlacementSession`; `storage/FileMenu`,
-> `ExportPopover`, `ResolutionPopover`; these need `IconButton` to gain a bordered look and a selected state first, and
-> acceptance 1, 4 and 7 re-driven with touch only; (3) AI: `AssistantButton` (its working animation is a deliberate
-> difference), `layout/UserPartMenu`'s menu rows and trigger; (4) the rest: `layout/HelpSheet`, `SharedView`,
-> `DescriptionHint`, `HistoryControls`, `SaveToLibraryButton`, `LibraryRail`; `timeline/TimelineRow`, `TimelineStrips`,
-> `TimelinePanel`; `display/SaveStatus`. `ui-085` and `ui-087` re-run when the toolbars and popovers move.
+> **Progress 2026-11-14, stage 3 (stays open).** `IconButton` gains `bordered` (the toolbar look: `--border-strong` outline on
+> `--surface-2`, accent on hover and press, accent fill when `pressed`) with a spec and two stories. Moved: the popovers
+> (`viewport/GroupMergePopover`, `RepeatSheet` incl. its minimise `IconButton`, `PlacementSession`, `AlignGrid`;
+> `storage/ResolutionPopover`, `ExportPopover`); the toolbars' own buttons (`NavigationChrome`: steps, zoom, reset, expand and
+> gear are `IconButton`, the drag-mode and preset toggles are `BaseButton` with `variant="primary"` as the selected state;
+> `SketchToolbar`: tools and Delete are `IconButton`, the text buttons `BaseButton`; `OperationsToolbar`'s fillet, resize and
+> mirror Cancel and commit buttons); and "the rest" (`layout/SharedView`, `DescriptionHint`, `SaveToLibraryButton`,
+> `HistoryControls`; `timeline/TimelineStrips`, `TimelinePanel`'s close). Sizing (a toolbar's compact tier, the strips'
+> measured 28 px, a pill radius) stays as a layout-only rule on the instance, never a colour or border.
+> **Looked at and left, with reasons**: `OperationsToolbar`'s `.ops__btn` row (a glyph plus a label that shows or hides by
+> tier, a launcher caret and a count badge: `IconButton` is square and has no visible-label mode; a labelled variant is the
+> next step if the owner wants it moved); `storage/FileMenu` (`role="menuitem"` rows with stacked reason text and a File
+> trigger with a pending spinner: a menu, not buttons), and `layout/UserPartMenu`'s rows for the same reason. **Left for a
+> decision** (segmented controls, tabs and the close cross may legitimately stay their own components; the allow-list entries
+> stay until they do): `sketch/ExtrudePanel`, `SketchProfileFields`, `SketchPanelSheet`, `inspector/Inspector.vue`,
+> `ParamBindPopover`, `FormulaInsertList`. **Not yet looked at**: `layout/HelpSheet`, `timeline/TimelineRow`,
+> `layout/LibraryRail` (launcher glyph stays a prop), `ai/AssistantButton` (working animation stays a prop),
+> `display/SaveStatus`. Acceptance 1, 4 and 7 re-driven by their own specs with trusted touch (see `TODO/ACCEPTANCE.md`); the `ui-085` repro (`e2e/library-sheet-overflow.e2e.js`) and `ui-087` repro (`e2e/snap-align-operation.e2e.js`) pass on chromium phone and tablet. Commits `4648d49`, `2cb9fdf`, `b81c62d`.
 
 ## Problem
 
