@@ -20,6 +20,7 @@
 import ReferenceImagePanel from './ReferenceImagePanel.vue'
 import NumberField from '../controls/NumberField.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const editor = useSketchEditorStore()
 const emit = defineEmits(['activate'])
@@ -152,17 +153,16 @@ function remove() {
       </li>
     </ol>
     <div class="slices__actions">
-      <button type="button" class="slices__btn" data-testid="sketch-slice-add" @click="add">＋ Slice</button>
-      <button
-        type="button"
-        class="slices__btn"
+      <BaseButton size="compact" data-testid="sketch-slice-add" @click="add">＋ Slice</BaseButton>
+      <BaseButton
+        size="compact"
         data-testid="sketch-slice-delete"
         :disabled="editor.draft.slices.length <= 1"
         :title="editor.draft.slices.length <= 1 ? 'A sketch needs at least one slice' : 'Delete the active slice and its outlines'"
         @click="remove"
       >
         Delete slice
-      </button>
+      </BaseButton>
     </div>
     <ReferenceImagePanel />
   </div>
@@ -283,19 +283,4 @@ function remove() {
   gap: 6px;
 }
 
-.slices__btn {
-  min-height: var(--tap-compact);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.slices__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 </style>

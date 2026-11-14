@@ -20,6 +20,7 @@ import { LENGTH_UNITS } from '../../sketch/calibration.js'
 import NumberField from '../controls/NumberField.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const editor = useSketchEditorStore()
 
@@ -29,7 +30,7 @@ const error = ref('')
 /** The outline count the confirm asks about, or 0 when not confirming. */
 const confirming = ref(0)
 const lengthInput = ref(/** @type {{ focus: () => void } | null} */ (null))
-const yesButton = ref(/** @type {HTMLButtonElement | null} */ (null))
+const yesButton = ref(/** @type {{ focus: () => void } | null} */ (null))
 
 const step = computed(() => editor.scaleStep)
 const UNITS = Object.keys(LENGTH_UNITS)
@@ -99,8 +100,8 @@ function cancel() {
         Rescale the {{ confirming }} outline{{ confirming === 1 ? '' : 's' }} on this slice to match the image?
       </p>
       <div class="scale-tool__row">
-        <button ref="yesButton" type="button" class="scale-tool__btn scale-tool__btn--primary" data-testid="sketch-scale-rescale-yes" @click="finish(true)">Yes</button>
-        <button type="button" class="scale-tool__btn" data-testid="sketch-scale-rescale-no" @click="finish(false)">No</button>
+        <BaseButton ref="yesButton" variant="primary" narrow data-testid="sketch-scale-rescale-yes" @click="finish(true)">Yes</BaseButton>
+        <BaseButton narrow data-testid="sketch-scale-rescale-no" @click="finish(false)">No</BaseButton>
       </div>
     </template>
     <template v-else>
@@ -122,11 +123,11 @@ function cancel() {
         <select v-model="unit" class="scale-tool__unit" aria-label="Unit" data-testid="sketch-scale-unit">
           <option v-for="entry in UNITS" :key="entry" :value="entry">{{ entry }}</option>
         </select>
-        <button type="submit" class="scale-tool__btn scale-tool__btn--primary" data-testid="sketch-scale-apply">Apply</button>
-        <button type="button" class="scale-tool__btn" data-testid="sketch-scale-cancel" @click="cancel">Cancel</button>
+        <BaseButton type="submit" variant="primary" narrow data-testid="sketch-scale-apply">Apply</BaseButton>
+        <BaseButton narrow data-testid="sketch-scale-cancel" @click="cancel">Cancel</BaseButton>
       </form>
       <div v-else class="scale-tool__row">
-        <button type="button" class="scale-tool__btn" data-testid="sketch-scale-cancel" @click="cancel">Cancel</button>
+        <BaseButton narrow data-testid="sketch-scale-cancel" @click="cancel">Cancel</BaseButton>
       </div>
     </template>
     <p v-if="error" class="scale-tool__error" role="alert" data-testid="sketch-scale-error">{{ error }}</p>
@@ -196,23 +197,6 @@ function cancel() {
   background: var(--surface-0);
   color: var(--text-1);
   font-size: 14px;
-}
-
-.scale-tool__btn {
-  min-width: 44px;
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.scale-tool__btn--primary {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface-1));
 }
 
 .scale-tool__error {

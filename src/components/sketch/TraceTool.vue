@@ -24,6 +24,7 @@ import { formatMmValue } from '../../core/units.js'
 import HelpButton from '../controls/HelpButton.vue'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { WIDE_BANNER_QUERY } from '../../styles/breakpoints.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const editor = useSketchEditorStore()
 
@@ -75,25 +76,25 @@ function toggleAuto() {
         aria-label="Tracing…"
         data-testid="sketch-trace-spinner"
       />
-      <button
-        type="button"
+      <BaseButton
         class="trace-tool__btn"
+        narrow
         data-testid="sketch-trace-adjust"
         :aria-expanded="adjustOpen"
         title="Tolerance and threshold"
         @click="adjustOpen = !adjustOpen"
       >
         Adjust
-      </button>
-      <button
-        type="button"
+      </BaseButton>
+      <BaseButton
         class="trace-tool__btn"
-        :class="{ 'trace-tool__btn--primary': editor.tracedThisArming > 0 }"
+        narrow
+        :variant="editor.tracedThisArming > 0 ? 'primary' : 'default'"
         data-testid="sketch-trace-finish"
         @click="editor.finishTrace()"
       >
         {{ editor.tracedThisArming > 0 ? 'Finish' : 'Cancel' }}
-      </button>
+      </BaseButton>
       <HelpButton topic="trace" class="trace-tool__help" />
     </div>
 
@@ -114,16 +115,17 @@ function toggleAuto() {
       </label>
       <div class="trace-tool__field">
         <span>Threshold</span>
-        <button
-          type="button"
-          class="trace-tool__btn trace-tool__btn--small"
+        <BaseButton
+          class="trace-tool__btn"
+          size="compact"
+          narrow
           data-testid="sketch-trace-threshold-auto"
-          :aria-pressed="autoThreshold"
+          :pressed="autoThreshold"
           title="Automatic threshold (Otsu) — or pick one with the slider"
           @click="toggleAuto"
         >
           Auto
-        </button>
+        </BaseButton>
         <input
           type="range"
           min="1"
@@ -215,30 +217,11 @@ function toggleAuto() {
 
 .trace-tool__btn {
   flex: none;
-  min-width: 44px;
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-size: 13px;
-  cursor: pointer;
 }
 
-.trace-tool__btn--small {
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-.trace-tool__btn[aria-pressed='true'],
 .trace-tool__btn[aria-expanded='true'] {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
-}
-
-.trace-tool__btn--primary {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface-1));
+  color: var(--accent);
 }
 
 .trace-tool__status {

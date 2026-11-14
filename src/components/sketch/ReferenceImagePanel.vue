@@ -27,6 +27,7 @@ import NumberField from '../controls/NumberField.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { importImageFile, rememberAssetBitmap } from '../../sketch/imageClient.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const editor = useSketchEditorStore()
 const input = ref(/** @type {HTMLInputElement | null} */ (null))
@@ -118,26 +119,24 @@ function commitRotation(value) {
         aria-hidden="true"
         @change="onFile"
       />
-      <button
-        type="button"
-        class="ref-image__btn ref-image__btn--primary"
+      <BaseButton
+        size="compact"
         data-testid="sketch-image-add"
         :disabled="editor.imageImporting"
         :title="shown ? 'Choose a different photo for this slice' : 'Choose a photo (PNG, JPEG or WebP) to trace over'"
         @click="choose"
       >
         {{ editor.imageImporting ? 'Preparing image…' : shown ? 'Replace image…' : 'Add image…' }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="view.state !== 'none'"
-        type="button"
-        class="ref-image__btn"
+        size="compact"
         data-testid="sketch-image-remove"
         title="Take the photo off this slice — the outlines stay"
         @click="editor.removeImage()"
       >
         Remove image
-      </button>
+      </BaseButton>
     </div>
 
     <p v-if="editor.imageError" class="ref-image__error" data-testid="sketch-image-error" role="alert">{{ editor.imageError }}</p>
@@ -193,27 +192,25 @@ function commitRotation(value) {
         </label>
       </div>
       <div class="ref-image__row">
-        <button
-          type="button"
-          class="ref-image__btn ref-image__btn--primary"
+        <BaseButton
+          size="compact"
           data-testid="sketch-image-scale"
-          :aria-pressed="editor.imageTool === 'scale'"
+          :pressed="editor.imageTool === 'scale'"
           title="Draw a line along the ruler in the photo, then type its real length"
           @click="editor.imageTool === 'scale' ? editor.cancelScale() : editor.armScale()"
         >
           Set scale
-        </button>
-        <button
-          type="button"
-          class="ref-image__btn ref-image__btn--primary"
+        </BaseButton>
+        <BaseButton
+          size="compact"
           data-testid="sketch-image-trace"
-          :aria-pressed="editor.imageTool === 'trace'"
+          :pressed="editor.imageTool === 'trace'"
           :aria-busy="editor.traceRunning"
           title="Tap inside a part in the photo to get its outline, holes included"
           @click="editor.imageTool === 'trace' ? editor.finishTrace() : editor.armTrace()"
         >
           Auto-trace
-        </button>
+        </BaseButton>
       </div>
     </template>
   </section>
@@ -281,31 +278,6 @@ function commitRotation(value) {
   height: 1px;
   opacity: 0;
   pointer-events: none;
-}
-
-.ref-image__btn {
-  min-height: var(--tap-compact);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.ref-image__btn--primary {
-  color: var(--text-1);
-  border-color: var(--accent);
-}
-
-.ref-image__btn[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
-}
-
-.ref-image__btn:disabled {
-  opacity: 0.6;
-  cursor: progress;
 }
 
 .ref-image__grid {
