@@ -36,7 +36,7 @@
  *
  * ## The backdrop
  *
- * A transparent, full-viewport click-catcher at z-index 30 with the popover at 31 (the tier
+ * A transparent, full-viewport click-catcher (`BasePopover`'s `modal`, `--z-popover`) with the frame above it (the tier
  * the Q&A fixes for popovers). It is what stops a *pointer* changing the selection while this
  * is open, so the scope line cannot go stale under the user; the keyboard cannot be stopped
  * that way, which is why the store derives every line live rather than snapshotting at open.
@@ -48,11 +48,12 @@
  * Enter anywhere in the form is Export. Esc is handled by `FileMenu.vue`'s one keydown
  * listener (`stores/fileMenu.js` `dismissTopmost`), like every other overlay this menu owns.
  */
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import { EXPORT_FORMATS } from '../../core/export.js'
 import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
+import BasePopover from '../layout/BasePopover.vue'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 
 const props = defineProps({
@@ -64,26 +65,11 @@ const dialog = useExportDialogStore()
 
 /** @type {import('vue').Ref<HTMLElement | null>} */
 const rootRef = ref(null)
-const position = ref({ top: 60, left: 8, width: 320 })
 
 const formatKeys = /** @type {Array<'stl' | 'obj' | 'glb'>} */ (Object.keys(EXPORT_FORMATS))
 
-/** Anchor under the File button, clamped inside the viewport — measured on open, not per frame. */
-function measure() {
-  const box = props.anchor?.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-  const width = Math.min(320, viewportWidth - 16)
-  const right = box?.right ?? viewportWidth - 8
-  const left = Math.max(8, Math.min(right - width, viewportWidth - width - 8))
-  position.value = { top: Math.round((box?.bottom ?? 52) + 6), left: Math.round(left), width }
-}
-
-const style = computed(() => ({
-  top: `${position.value.top}px`,
-  left: `${position.value.left}px`,
-  width: `${position.value.width}px`,
-  maxHeight: `calc(100dvh - ${position.value.top + 12}px)`,
-}))
+/** The frame's width: 320px, or the viewport minus the 8px margins. `BasePopover` places it under the File button. */
+const frameStyle = { width: 'min(320px, calc(100vw - 16px))', maxHeight: 'calc(100dvh - 72px)' }
 
 /** The one-line reason Export cannot go ahead right now, if any. */
 const blockedText = computed(() => dialog.unavailableReason || dialog.scopeProblem)
@@ -103,8 +89,6 @@ watch(
   () => dialog.isOpen,
   async (open, was) => {
     if (open) {
-      measure()
-      window.addEventListener('resize', measure)
       await nextTick()
       const target = /** @type {HTMLElement | null} */ (
         rootRef.value?.querySelector('input[name="export-scope"]:checked:not(:disabled)') ??
@@ -113,14 +97,11 @@ watch(
       )
       target?.focus()
     } else {
-      window.removeEventListener('resize', measure)
       if (was) props.anchor?.focus()
     }
   },
   { immediate: true },
 )
-
-onBeforeUnmount(() => window.removeEventListener('resize', measure))
 
 /**
  * A file size for the Print pieces list: bytes under 1 KB, else KB or MB to one decimal.
@@ -136,18 +117,18 @@ function sizeLabel(bytes) {
 </script>
 
 <template>
-  <Teleport to="body">
-    <template v-if="dialog.isOpen">
-      <div class="export__backdrop" data-testid="export-backdrop" @click="dialog.close()" />
-      <form
-        ref="rootRef"
-        class="export"
-        role="dialog"
-        aria-label="Export"
-        data-testid="export-popover"
-        :style="style"
-        @submit.prevent="dialog.commit()"
-      >
+  <BasePopover
+    :open="dialog.isOpen"
+    testid="export-popover"
+    backdrop-testid="export-backdrop"
+    title="Export"
+    :anchor="anchor"
+    placement="bottom-end"
+    modal
+    :style="frameStyle"
+    @close="dialog.close()"
+  >
+    <form ref="rootRef" class="export" @submit.prevent="dialog.commit()">
         <p class="export__heading" aria-hidden="true">Scope</p>
         <div role="radiogroup" aria-label="Scope" class="export__group">
           <label class="export__row" data-testid="export-scope-selection-label">
@@ -259,34 +240,11 @@ function sizeLabel(bytes) {
           </BaseButton>
         </div>
         <HelpButton topic="export" class="export__help" />
-      </form>
-    </template>
-  </Teleport>
+    </form>
+  </BasePopover>
 </template>
 
 <style scoped>
-/* Transparent so the scene stays legible under the popover; above the Library (20) and
-   Inspector (11) sheets so nothing under it is reachable while it is open. */
-.export__backdrop {
-  position: fixed;
-  inset: 0;
-  background: transparent;
-  z-index: 30;
-}
-
-.export {
-  position: fixed;
-  box-sizing: border-box;
-  overflow-y: auto;
-  padding: 8px 10px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-1);
-  box-shadow: var(--shadow-overlay);
-  color: var(--text-1);
-  z-index: 31;
-}
-
 /* The ? in the popover's top-right corner (`TODO/ui-061`): out of flow, so nothing else moves. */
 .export__help {
   position: absolute;

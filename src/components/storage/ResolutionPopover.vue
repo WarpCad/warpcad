@@ -3,8 +3,8 @@
 /**
  * The design resolution popover (`TODO/core-035`, surface A) — opened by **File ▾ →
  * Resolution: Normal** and driven entirely by `stores/resolutionDialog.js`. Built the same
- * way as `ExportPopover.vue`: teleported to `<body>`, a transparent click-catching
- * backdrop at z-index 30 with the popover at 31 (above the Inspector sheet and the Library
+ * way as `ExportPopover.vue`, on `BasePopover` (`TODO/ui-116`): teleported to `<body>`, a transparent
+ * click-catching backdrop in the `--z-popover` tier with the frame above it (above the Inspector sheet and the Library
  * sheet, so it never stacks under them — the class of bug `ui-036`/`ui-043` fixed),
  * anchored under the File button and full-width at phone width, Escape via
  * `stores/fileMenu.js`'s `dismissTopmost`.
@@ -25,10 +25,11 @@
  * Opening focuses the checked radio (Arrows then move through the choices, committing as
  * they go, which is what a radio group does); closing returns focus to the File button.
  */
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
+import BasePopover from '../layout/BasePopover.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 
 const props = defineProps({
@@ -40,24 +41,9 @@ const dialog = useResolutionDialogStore()
 
 /** @type {import('vue').Ref<HTMLElement | null>} */
 const rootRef = ref(null)
-const position = ref({ top: 60, left: 8, width: 320 })
 
-/** Anchor under the File button, clamped inside the viewport — measured on open, not per frame. */
-function measure() {
-  const box = props.anchor?.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-  const width = Math.min(320, viewportWidth - 16)
-  const right = box?.right ?? viewportWidth - 8
-  const left = Math.max(8, Math.min(right - width, viewportWidth - width - 8))
-  position.value = { top: Math.round((box?.bottom ?? 52) + 6), left: Math.round(left), width }
-}
-
-const style = computed(() => ({
-  top: `${position.value.top}px`,
-  left: `${position.value.left}px`,
-  width: `${position.value.width}px`,
-  maxHeight: `calc(100dvh - ${position.value.top + 12}px)`,
-}))
+/** The frame's width: 320px, or the viewport minus the 8px margins. `BasePopover` places it under the File button. */
+const frameStyle = { width: 'min(320px, calc(100vw - 16px))', maxHeight: 'calc(100dvh - 72px)' }
 
 const disabled = computed(() => dialog.unavailableReason !== '')
 
@@ -65,8 +51,6 @@ watch(
   () => dialog.isOpen,
   async (open, was) => {
     if (open) {
-      measure()
-      window.addEventListener('resize', measure)
       await nextTick()
       const target = /** @type {HTMLElement | null} */ (
         rootRef.value?.querySelector('input[name="design-resolution"]:checked') ??
@@ -75,28 +59,26 @@ watch(
       )
       target?.focus()
     } else {
-      window.removeEventListener('resize', measure)
       if (was) props.anchor?.focus()
     }
   },
   { immediate: true },
 )
-
-onBeforeUnmount(() => window.removeEventListener('resize', measure))
 </script>
 
 <template>
-  <Teleport to="body">
-    <template v-if="dialog.isOpen">
-      <div class="resolution__backdrop" data-testid="resolution-backdrop" @click="dialog.close()" />
-      <div
-        ref="rootRef"
-        class="resolution"
-        role="dialog"
-        aria-label="Resolution"
-        data-testid="resolution-popover"
-        :style="style"
-      >
+  <BasePopover
+    :open="dialog.isOpen"
+    testid="resolution-popover"
+    backdrop-testid="resolution-backdrop"
+    title="Resolution"
+    :anchor="anchor"
+    placement="bottom-end"
+    modal
+    :style="frameStyle"
+    @close="dialog.close()"
+  >
+    <div ref="rootRef" class="resolution">
         <p class="resolution__heading" id="resolution-heading">Resolution</p>
         <p class="resolution__intro">
           How finely curves are faceted. Finer means holes and pegs print closer to size.
@@ -132,33 +114,11 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
           </BaseButton>
         </div>
         <HelpButton topic="resolution" class="resolution__help" />
-      </div>
-    </template>
-  </Teleport>
+    </div>
+  </BasePopover>
 </template>
 
 <style scoped>
-/* Transparent so the scene stays legible — and the re-facet visible — under the popover. */
-.resolution__backdrop {
-  position: fixed;
-  inset: 0;
-  background: transparent;
-  z-index: 30;
-}
-
-.resolution {
-  position: fixed;
-  box-sizing: border-box;
-  overflow-y: auto;
-  padding: 8px 10px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-1);
-  box-shadow: var(--shadow-overlay);
-  color: var(--text-1);
-  z-index: 31;
-}
-
 /* The ? in the popover's top-right corner (`TODO/ui-061`): out of flow, so nothing else moves. */
 .resolution__help {
   position: absolute;
