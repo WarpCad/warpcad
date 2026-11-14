@@ -11,6 +11,7 @@
  * open the same sheet instead, so it stays reachable at every width.
  */
 import { useAssistantStore } from '../../stores/assistant.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 defineProps({
   /** The button's `data-testid`; the reason line is `${testid}-reason`. */
@@ -24,14 +25,13 @@ const assistant = useAssistantStore()
 
 <template>
   <span class="connect-entry" :class="{ 'connect-entry--wide-only': onlyWhereUsable }">
-    <button
-      type="button"
-      class="connect-entry__button"
+    <BaseButton
+      narrow
       :data-testid="testid"
       @click="assistant.openConnect()"
     >
       Live MCP access…
-    </button>
+    </BaseButton>
   </span>
 </template>
 
@@ -51,24 +51,6 @@ const assistant = useAssistantStore()
   .connect-entry--wide-only {
     display: inline-flex;
   }
-}
-
-.connect-entry__button {
-  min-height: var(--tap);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.connect-entry__button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .connect-entry__reason {

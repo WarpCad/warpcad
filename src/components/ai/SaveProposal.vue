@@ -12,6 +12,7 @@
  * every button is a 44 px target. The name is model text and is rendered as text only.
  */
 import { computed } from 'vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 /** @typedef {import('../../ai/transcript.js').SaveItem} SaveItem */
 
@@ -46,12 +47,12 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
     </p>
     <div class="save__actions">
       <template v-if="open">
-        <button type="button" class="save__button save__button--confirm" data-testid="ai-save-confirm" :disabled="busy" @click="emit('confirm')">
+        <BaseButton variant="primary" narrow data-testid="ai-save-confirm" :disabled="busy" @click="emit('confirm')">
           Confirm
-        </button>
-        <button v-if="item.status === 'proposed'" type="button" class="save__button" data-testid="ai-save-cancel" :disabled="busy" @click="emit('cancel')">
+        </BaseButton>
+        <BaseButton v-if="item.status === 'proposed'" narrow data-testid="ai-save-cancel" :disabled="busy" @click="emit('cancel')">
           Not now
-        </button>
+        </BaseButton>
       </template>
       <span class="save__status" role="status" data-testid="ai-save-status">{{ statusLine }}</span>
     </div>
@@ -102,29 +103,4 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
   flex: 1 1 8em;
 }
 
-.save__button {
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-0);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.save__button--confirm {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.save__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 </style>

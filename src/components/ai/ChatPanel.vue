@@ -53,6 +53,7 @@ import ConnectButton from './ConnectButton.vue'
 import Composer from './Composer.vue'
 import SaveProposal from './SaveProposal.vue'
 import TokenReadout from './TokenReadout.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const assistant = useAssistantStore()
 const chat = useAiChatStore()
@@ -190,12 +191,12 @@ const HEIGHTS = /** @type {const} */ ([
       <span class="chat__status" role="status" data-testid="ai-status">{{ statusLine }}</span>
       <BridgeChip />
       <WebMcpChip />
-      <button
-        type="button"
+      <BaseButton
         class="chat__watch"
+        narrow
         data-testid="ai-watch"
         :disabled="!chat.canWatch"
-        :aria-pressed="timeline.watching ? 'true' : 'false'"
+        :pressed="timeline.watching"
         :title="
           timeline.watching
             ? 'Back to your project'
@@ -206,23 +207,23 @@ const HEIGHTS = /** @type {const} */ ([
         @click="agent.toggleWatch()"
       >
         Watch
-      </button>
+      </BaseButton>
       <div class="chat__heights" role="group" aria-label="Assistant height">
-        <button
+        <BaseButton
           v-for="height in HEIGHTS"
           :key="height.id"
-          type="button"
           class="chat__height"
-          :aria-pressed="chat.sheet === height.id"
+          narrow
+          :pressed="chat.sheet === height.id"
           :data-testid="`ai-sheet-${height.id}`"
           @click="chat.setSheet(height.id)"
         >
           {{ height.label }}
-        </button>
+        </BaseButton>
       </div>
-      <button type="button" class="chat__close" data-testid="assistant-close" aria-label="Close the assistant" @click="assistant.close()">
+      <BaseButton class="chat__close" narrow data-testid="assistant-close" aria-label="Close the assistant" @click="assistant.close()">
         ✕
-      </button>
+      </BaseButton>
     </header>
 
     <template v-if="!peek">
@@ -232,7 +233,7 @@ const HEIGHTS = /** @type {const} */ ([
         </p>
         <p class="chat__model">
           <template v-if="!assistant.mcpOnly && !assistant.browserAgentOnly">Model: <strong data-testid="assistant-model-name">{{ assistant.modelName }}</strong></template>
-          <button v-if="!assistant.scripted" type="button" class="chat__link" data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</button>
+          <BaseButton v-if="!assistant.scripted" class="chat__link" narrow data-testid="assistant-keys" @click="assistant.openKeySheet()">Key and model…</BaseButton>
           <ConnectButton testid="ai-connect-open" only-where-usable />
           <!-- Help for the Assistant (`TODO/ui-061`): at the end of the Model line, not in the header,
                which has no spare width at phone width (its extra row costs the log its height). -->
@@ -278,41 +279,41 @@ const HEIGHTS = /** @type {const} */ ([
       <!-- TODO/ai-033: outside v-show="!linked", so a live or WebMCP agent's stop is seen too. -->
       <p v-if="aiLimit.stoppedAt !== null" class="chat__notice chat__limit-stop" role="status" data-testid="ai-step-limit-notice">
         This turn reached the project's limit of {{ formatSteps(aiLimit.stoppedAt) }} steps.
-        <button type="button" class="chat__chip" data-testid="ai-step-limit-from-notice" @click="aiLimit.openFromNotice()">Change limit…</button>
+        <BaseButton class="chat__chip" narrow data-testid="ai-step-limit-from-notice" @click="aiLimit.openFromNotice()">Change limit…</BaseButton>
       </p>
 
       <div class="chat__bar">
-        <button
-          type="button"
+        <BaseButton
           class="chat__undo"
+          narrow
           data-testid="ai-undo-turn"
           :disabled="!chat.canUndoTurn"
           title="Take back everything the assistant did in its last turn"
           @click="agent.undoTurn()"
         >
           Undo AI turn
-        </button>
+        </BaseButton>
         <!-- TODO/ai-033: in the bar, not .chat__meta, which hides while an agent is connected. -->
-        <button
-          type="button"
+        <BaseButton
           class="chat__chip"
+          narrow
           data-testid="ai-step-limit-open"
           :data-untrusted="aiLimit.untrusted ? 'true' : 'false'"
           title="How many steps one AI turn may build in this project"
           @click="aiLimit.open()"
         >
           Limit: {{ aiLimit.label }}<span class="chat__limit-unit"> steps</span>
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-if="selectedBody"
           v-show="!linked"
-          type="button"
           class="chat__chip"
+          narrow
           data-testid="ai-ask-selection"
           @click="askAboutSelection()"
         >
           Ask about {{ selectedBody.name }}
-        </button>
+        </BaseButton>
         <TokenReadout v-show="!linked" :usage="chat.usage" :cost="chat.turnCost" :session="chat.sessionCost" />
       </div>
 
@@ -406,53 +407,15 @@ const HEIGHTS = /** @type {const} */ ([
   display: flex;
 }
 
-.chat__height,
-.chat__watch,
-.chat__close,
-.chat__undo,
-.chat__chip,
-.chat__link {
-  min-height: var(--tap);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.chat__height {
-  min-width: 44px;
+.chat__heights .chat__height {
   padding: 0 8px;
   border-radius: 0;
 }
 
-.chat__height[aria-pressed='true'] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.chat__close {
-  min-width: var(--tap);
-}
-
 /* `TODO/ai-017`: a 44px toggle; the accent when it is on, like the height buttons. */
-.chat__watch {
+.chat__head .chat__watch {
   flex: none;
-  min-width: var(--tap);
   padding: 0 8px;
-}
-
-.chat__watch[aria-pressed='true'] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.chat__watch:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* At phone width the status line holds the title, the status, Watch, three heights and Close:
@@ -486,7 +449,7 @@ const HEIGHTS = /** @type {const} */ ([
   color: var(--text-2);
 }
 
-.chat__link {
+.chat__model .chat__link {
   padding: 0 10px;
 }
 
@@ -547,7 +510,8 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 .chat__undo,
-.chat__chip {
+.chat__bar .chat__chip,
+.chat__notice .chat__chip {
   padding: 0 12px;
 }
 
@@ -564,11 +528,6 @@ const HEIGHTS = /** @type {const} */ ([
   .chat__limit-unit {
     display: none;
   }
-}
-
-.chat__undo:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* Laptop: a persistent column beside the viewport (a grid cell of `.app__body`), not an overlay. */

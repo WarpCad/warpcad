@@ -24,6 +24,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { responseTextOf } from '../../core/prompt.js'
 import { useDocumentStore } from '../../stores/document.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   /** The prompt, as `promptsForBody` hands it out. */
@@ -127,32 +128,32 @@ watch(
     <template v-if="reply !== '' && !editing">
       <span class="reply__label">Reply</span>
       <p class="reply__text" :class="{ 'reply__text--collapsed': !expanded }" data-testid="prompt-reply-text">{{ reply }}</p>
-      <button v-if="long" type="button" class="reply__toggle" data-testid="prompt-reply-toggle" :aria-expanded="expanded ? 'true' : 'false'" @click="expanded = !expanded">
+      <BaseButton v-if="long" variant="link" class="reply__toggle" data-testid="prompt-reply-toggle" :aria-expanded="expanded ? 'true' : 'false'" @click="expanded = !expanded">
         {{ expanded ? 'Show less' : 'Show all' }}
-      </button>
+      </BaseButton>
     </template>
     <form v-if="editing" class="reply__form" data-testid="prompt-reply-edit-form" @submit.prevent="saveEdit">
       <label class="reply__label" :for="`reply-edit-${prompt.id}`">Reply</label>
       <textarea :id="`reply-edit-${prompt.id}`" ref="editField" v-model="editDraft" class="reply__field" rows="8" data-testid="prompt-reply-edit-input" />
       <p v-if="problem !== ''" class="reply__problem" role="alert" data-testid="prompt-reply-problem">{{ problem }}</p>
       <div class="reply__actions">
-        <button type="button" class="reply__button" data-testid="prompt-reply-edit-cancel" @click="cancelEdit">Cancel</button>
-        <button type="submit" class="reply__button reply__button--confirm" data-testid="prompt-reply-edit-save" :disabled="editDraft.trim() === ''">Save</button>
+        <BaseButton narrow data-testid="prompt-reply-edit-cancel" @click="cancelEdit">Cancel</BaseButton>
+        <BaseButton type="submit" variant="primary" narrow data-testid="prompt-reply-edit-save" :disabled="editDraft.trim() === ''">Save</BaseButton>
       </div>
     </form>
     <div v-if="edits && !readOnly && reply !== '' && !editing && !adding" class="reply__edits">
-      <button type="button" class="reply__button" data-testid="prompt-reply-edit" @click="openEdit">Edit reply</button>
-      <button type="button" class="reply__button" data-testid="prompt-reply-remove" @click="remove">Remove reply</button>
+      <BaseButton narrow data-testid="prompt-reply-edit" @click="openEdit">Edit reply</BaseButton>
+      <BaseButton narrow data-testid="prompt-reply-remove" @click="remove">Remove reply</BaseButton>
     </div>
     <p v-if="problem !== '' && !editing && !adding" class="reply__problem" role="alert" data-testid="prompt-reply-problem">{{ problem }}</p>
-    <button v-if="!readOnly && !editing && !adding" type="button" class="reply__add" data-testid="prompt-reply-add" @click="open">Add reply…</button>
+    <BaseButton v-if="!readOnly && !editing && !adding" class="reply__add" data-testid="prompt-reply-add" @click="open">Add reply…</BaseButton>
     <form v-else-if="!readOnly && adding" class="reply__form" data-testid="prompt-reply-form" @submit.prevent="add">
       <label class="reply__label" :for="`reply-${prompt.id}`">Paste the agent's reply</label>
       <textarea :id="`reply-${prompt.id}`" ref="field" v-model="draft" class="reply__field" rows="6" data-testid="prompt-reply-input" />
       <p v-if="problem !== ''" class="reply__problem" role="alert" data-testid="prompt-reply-problem">{{ problem }}</p>
       <div class="reply__actions">
-        <button type="button" class="reply__button" data-testid="prompt-reply-cancel" @click="cancel">Cancel</button>
-        <button type="submit" class="reply__button reply__button--confirm" data-testid="prompt-reply-submit" :disabled="draft.trim() === ''">Add</button>
+        <BaseButton narrow data-testid="prompt-reply-cancel" @click="cancel">Cancel</BaseButton>
+        <BaseButton type="submit" variant="primary" narrow data-testid="prompt-reply-submit" :disabled="draft.trim() === ''">Add</BaseButton>
       </div>
     </form>
   </div>
@@ -196,36 +197,13 @@ watch(
   overflow: hidden;
 }
 
-.reply__toggle {
-  align-self: flex-start;
-  min-height: var(--tap);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.reply__add,
-.reply__button {
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-0);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
 /* Full-width: a phone-sized tap target in the Inspector column. */
 .reply__add {
   width: 100%;
+}
+
+.reply__toggle {
+  align-self: flex-start;
 }
 
 .reply__form {
@@ -267,15 +245,4 @@ watch(
   gap: 8px;
 }
 
-.reply__button--confirm {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.reply__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 </style>

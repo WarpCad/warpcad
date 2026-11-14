@@ -15,6 +15,7 @@ import { ref } from 'vue'
 import { useAgent } from '../../composables/useAgent.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import { useAssistantStore } from '../../stores/assistant.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const chat = useAiChatStore()
 const assistant = useAssistantStore()
@@ -63,9 +64,9 @@ async function onPicked(event) {
     <p v-if="chat.attaching > 0" class="composer__pending" role="status" data-testid="ai-attach-pending">Preparing image…</p>
     <p v-if="chat.attachError" class="composer__error" role="alert" data-testid="ai-attach-error">{{ chat.attachError }}</p>
     <div class="composer__row">
-      <button
-        type="button"
+      <BaseButton
         class="composer__button"
+        narrow
         data-testid="ai-attach"
         aria-label="Attach image"
         title="Attach image"
@@ -73,7 +74,7 @@ async function onPicked(event) {
         @click="picker?.click()"
       >
         📎
-      </button>
+      </BaseButton>
       <input
         ref="picker"
         class="composer__file"
@@ -94,24 +95,27 @@ async function onPicked(event) {
         :disabled="assistant.mcpOnly || assistant.browserAgentOnly"
         @keydown="onKeydown"
       />
-      <button
+      <BaseButton
         v-if="chat.running"
-        type="button"
-        class="composer__button composer__button--stop"
+        class="composer__button"
+        variant="danger"
+        narrow
         data-testid="ai-stop"
         @click="agent.stop()"
       >
         Stop
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-else
         type="submit"
-        class="composer__button composer__button--send"
+        class="composer__button"
+        variant="primary"
+        narrow
         data-testid="ai-send"
         :disabled="!chat.canSend || assistant.mcpOnly || assistant.browserAgentOnly"
       >
         Send
-      </button>
+      </BaseButton>
     </div>
   </form>
 </template>
@@ -164,33 +168,6 @@ async function onPicked(event) {
 
 .composer__button {
   flex: none;
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.composer__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.composer__button--send {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.composer__button--stop {
-  border-color: var(--danger);
-  color: var(--danger);
 }
 
 .composer__file {
