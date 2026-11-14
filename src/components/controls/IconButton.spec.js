@@ -43,6 +43,15 @@ describe('IconButton (TODO/ui-114)', () => {
     expect(wrapper.attributes('data-testid')).toBe('icon')
   })
 
+  it('bordered draws the toolbar look, and pressed adds the active look to it', () => {
+    const plain = mount(IconButton, { props: { label: 'x' } })
+    expect(plain.classes()).not.toContain('icon-button--bordered')
+    const on = mount(IconButton, { props: { label: 'x', bordered: true, pressed: true } })
+    expect(on.classes()).toEqual(expect.arrayContaining(['icon-button--bordered', 'icon-button--active']))
+    expect(on.attributes('aria-pressed')).toBe('true')
+    expect(mount(IconButton, { props: { label: 'x', bordered: true, pressed: false } }).attributes('aria-pressed')).toBe('false')
+  })
+
   it('warns when label is missing', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mount(IconButton, { slots: { default: svg } })

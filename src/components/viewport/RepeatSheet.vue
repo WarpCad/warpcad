@@ -24,7 +24,9 @@
  */
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
+import IconButton from '../controls/IconButton.vue'
 import { useRepeatStore } from '../../stores/repeat.js'
 
 const repeat = useRepeatStore()
@@ -72,34 +74,26 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
     >
       <!-- Phone width only (CSS): the one-line bar the sheet shrinks to. -->
       <div class="repeat__bar" data-testid="repeat-bar">
-        <button type="button" class="repeat__bar-text" data-testid="repeat-expand" @click="repeat.expand()">
+        <BaseButton variant="quiet" class="repeat__bar-text" data-testid="repeat-expand" @click="repeat.expand()">
           {{ barText }}
-        </button>
-        <button
-          type="button"
-          class="repeat__apply repeat__apply--bar"
+        </BaseButton>
+        <BaseButton
+          variant="primary"
           data-testid="repeat-bar-apply"
           :disabled="!repeat.canApply"
           :title="repeat.canApply ? repeat.applyLabel : (repeat.applyReason ?? '')"
           @click="repeat.apply()"
         >
           Apply
-        </button>
+        </BaseButton>
       </div>
 
       <div class="repeat__body">
         <div class="repeat__head">
           <p class="repeat__title" data-testid="repeat-headline">{{ repeat.headline }}</p>
-          <button
-            type="button"
-            class="repeat__minimize"
-            data-testid="repeat-minimize"
-            aria-label="Shrink the Repeat panel"
-            title="Shrink the Repeat panel"
-            @click="repeat.minimize()"
-          >
+          <IconButton bordered class="repeat__minimize" label="Shrink the Repeat panel" data-testid="repeat-minimize" @click="repeat.minimize()">
             ▾
-          </button>
+          </IconButton>
           <HelpButton topic="repeat" class="repeat__help" />
         </div>
 
@@ -145,17 +139,16 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
         <p v-if="repeat.error" class="repeat__reason" role="alert" data-testid="repeat-error">{{ repeat.error }}</p>
 
         <div class="repeat__actions">
-          <button type="button" class="repeat__cancel" data-testid="repeat-cancel" @click="repeat.cancel()">Cancel</button>
-          <button
-            type="button"
-            class="repeat__apply"
+          <BaseButton data-testid="repeat-cancel" @click="repeat.cancel()">Cancel</BaseButton>
+          <BaseButton
+            variant="primary"
             data-testid="repeat-apply"
             :disabled="!repeat.canApply"
             :title="repeat.canApply ? repeat.applyLabel : (repeat.applyReason ?? '')"
             @click="repeat.apply()"
           >
             {{ repeat.applyLabel }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </section>
@@ -191,7 +184,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
 }
 
 .repeat__bar,
-.repeat__minimize {
+.repeat .repeat__minimize {
   display: none;
 }
 
@@ -312,36 +305,6 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
   background: var(--surface-glass);
 }
 
-.repeat__cancel,
-.repeat__apply,
-.repeat__bar-text,
-.repeat__minimize {
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.repeat__apply {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.repeat__apply:disabled {
-  border-color: var(--border);
-  background: var(--surface-1);
-  color: var(--text-3);
-  cursor: not-allowed;
-}
-
 /*
  * Tablet: the viewport pane is only ~390px wide between the persistent Library and Inspector, so
  * the panel cannot sit beside the navigation chrome (bottom-left) and the scale readout; it
@@ -376,12 +339,8 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
     max-height: 40dvh;
   }
 
-  .repeat__minimize {
+  .repeat .repeat__minimize {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--tap);
-    padding: 0;
   }
 
   /* Exactly AppView's `--layout-repeat-bar-height`: the Inspector sheet lifts by this much while the
@@ -406,8 +365,6 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
   .repeat__bar-text {
     flex: 1 1 auto;
     min-width: 0;
-    border-color: transparent;
-    background: transparent;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;

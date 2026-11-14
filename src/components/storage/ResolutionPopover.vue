@@ -27,6 +27,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { useResolutionDialogStore } from '../../stores/resolutionDialog.js'
 
@@ -126,9 +127,9 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
           {{ dialog.unavailableReason }}
         </p>
         <div class="resolution__actions">
-          <button type="button" class="resolution__button" data-testid="resolution-close" @click="dialog.close()">
+          <BaseButton fill data-testid="resolution-close" @click="dialog.close()">
             Done
-          </button>
+          </BaseButton>
         </div>
         <HelpButton topic="resolution" class="resolution__help" />
       </div>
@@ -250,21 +251,4 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure))
   margin-top: 10px;
 }
 
-.resolution__button {
-  flex: 1;
-  min-height: var(--tap);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.resolution__button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 </style>

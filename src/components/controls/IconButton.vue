@@ -6,6 +6,10 @@
  * `aria-label` and, unless `title` says otherwise, the tooltip.
  *
  * Variants and sizes match `BaseButton`. `pressed` sets `aria-pressed` and the active look.
+ * `bordered` draws the toolbar look (a `--border-strong` outline on `--surface-2`) instead of the bare glyph;
+ * it also lights up in the accent on hover and press, and `pressed` fills it in the accent so a selected tool
+ * reads at a glance.
+ * An instance may still size itself from a parent rule (a toolbar's compact tier); the look stays here.
  */
 import { onMounted, ref } from 'vue'
 
@@ -18,6 +22,9 @@ const props = defineProps({
   variant: { type: String, default: 'default', validator: (/** @type {string} */ v) => ['default', 'primary', 'danger', 'quiet'].includes(v) },
   /** `tap | compact` */
   size: { type: String, default: 'tap', validator: (/** @type {string} */ v) => ['tap', 'compact'].includes(v) },
+  /** The toolbar look: an outlined square on `--surface-2`. */
+  bordered: { type: Boolean, default: false },
+  /** Sets `aria-pressed` and the active look. Unset leaves `aria-pressed` off. */
   pressed: { type: Boolean, default: undefined },
   disabled: { type: Boolean, default: false },
 })
@@ -37,7 +44,7 @@ onMounted(() => {
     ref="button"
     type="button"
     class="icon-button"
-    :class="[`icon-button--${variant}`, `icon-button--${size}`, { 'icon-button--active': pressed }]"
+    :class="[`icon-button--${variant}`, `icon-button--${size}`, { 'icon-button--active': pressed, 'icon-button--bordered': bordered }]"
     :aria-label="label || undefined"
     :title="title || label || undefined"
     :aria-pressed="pressed"
@@ -84,6 +91,12 @@ onMounted(() => {
   outline-offset: 2px;
 }
 
+.icon-button--bordered {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
 .icon-button--primary {
   border-color: var(--accent);
   background: var(--accent);
@@ -100,6 +113,19 @@ onMounted(() => {
 
 .icon-button--active {
   color: var(--accent);
+}
+
+.icon-button--bordered:hover:not(:disabled),
+.icon-button--bordered:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-button--bordered:active:not(:disabled),
+.icon-button--bordered.icon-button--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .icon-button:disabled {

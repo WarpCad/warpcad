@@ -51,6 +51,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { EXPORT_FORMATS } from '../../core/export.js'
+import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 
@@ -231,15 +232,9 @@ function sizeLabel(bytes) {
              flat, zipped. A second action over the same scope; the list below is its feedback. -->
         <p class="export__heading" aria-hidden="true">Print pieces</p>
         <p class="export__note">One STL per part, each laid flat on its largest face, in a zip.</p>
-        <button
-          type="button"
-          class="export__button export__button--wide"
-          data-testid="export-print-pieces"
-          :disabled="!dialog.canExport"
-          @click="dialog.printPieces()"
-        >
+        <BaseButton class="export__button--wide" data-testid="export-print-pieces" :disabled="!dialog.canExport" @click="dialog.printPieces()">
           Print pieces (.zip)
-        </button>
+        </BaseButton>
         <ul v-if="dialog.printPiecesFiles.length > 0" class="export__pieces" data-testid="export-print-pieces-list" :aria-label="dialog.printPiecesZip">
           <li
             v-for="file in dialog.printPiecesFiles"
@@ -256,17 +251,12 @@ function sizeLabel(bytes) {
         </ul>
 
         <div class="export__actions">
-          <button type="button" class="export__button" data-testid="export-cancel" @click="dialog.close()">
+          <BaseButton fill data-testid="export-cancel" @click="dialog.close()">
             Cancel
-          </button>
-          <button
-            type="submit"
-            class="export__button export__button--primary"
-            data-testid="export-commit"
-            :disabled="!dialog.canExport"
-          >
+          </BaseButton>
+          <BaseButton fill type="submit" variant="primary" data-testid="export-commit" :disabled="!dialog.canExport">
             {{ commitLabel }}
-          </button>
+          </BaseButton>
         </div>
         <HelpButton topic="export" class="export__help" />
       </form>
@@ -520,33 +510,4 @@ function sizeLabel(bytes) {
   margin-top: 10px;
 }
 
-.export__button {
-  flex: 1;
-  min-height: var(--tap);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.export__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.export__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.export__button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 </style>

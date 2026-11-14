@@ -22,6 +22,7 @@ import PopoverGrip from './PopoverGrip.vue'
  */
 import { computed, reactive, toRaw } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 
 import { useSelectedOperands } from '../../composables/useSelectedBody.js'
@@ -178,8 +179,8 @@ function commit() {
     <p v-if="errorText" class="group-merge__error" data-testid="group-merge-error" role="alert">{{ errorText }}</p>
 
     <div class="group-merge__actions">
-      <button type="button" class="group-merge__cancel" data-testid="group-merge-cancel" @click="emit('close')">Cancel</button>
-      <button type="button" class="group-merge__commit" data-testid="group-merge-commit" :disabled="!canCommit" @click="commit">Group</button>
+      <BaseButton fill data-testid="group-merge-cancel" @click="emit('close')">Cancel</BaseButton>
+      <BaseButton fill data-testid="group-merge-commit" :disabled="!canCommit" @click="commit">Group</BaseButton>
     </div>
 
     <HelpButton topic="group" class="group-merge__help" />
@@ -299,37 +300,8 @@ function commit() {
   gap: 8px;
 }
 
-.group-merge__cancel,
-.group-merge__commit {
-  flex: 1;
-  min-height: var(--tap);
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.group-merge__cancel {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-1);
-}
-
-.group-merge__commit {
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text-1);
-}
-
-.group-merge__commit:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 .group-merge__check input:focus-visible,
-.group-merge__field input:focus-visible,
-.group-merge__cancel:focus-visible,
-.group-merge__commit:focus-visible {
+.group-merge__field input:focus-visible {
   outline: 2px solid var(--accent);
 }
 </style>

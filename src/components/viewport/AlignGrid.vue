@@ -22,6 +22,8 @@
  * @module components/viewport/AlignGrid
  */
 
+import BaseButton from '../controls/BaseButton.vue'
+
 /** World axes, in the fixed row order every testid uses. */
 const AXES = /** @type {const} */ (['x', 'y', 'z'])
 
@@ -75,10 +77,10 @@ const hasHeader = () => props.columns.some((column) => column.header)
     </template>
     <template v-for="axis in AXES" :key="axis">
       <span class="align-grid__axis">{{ axis.toUpperCase() }}</span>
-      <button
+      <BaseButton
         v-for="(column, index) in props.columns"
         :key="column.key"
-        type="button"
+        narrow
         class="align-grid__button"
         :class="{ 'align-grid__button--first': index === 0, 'align-grid__button--last': index === props.columns.length - 1 }"
         :disabled="column.disabled"
@@ -92,7 +94,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
         @blur="emit('preview', null, null)"
       >
         <slot :column="column" :axis="axis">{{ column.label }}</slot>
-      </button>
+      </BaseButton>
     </template>
   </div>
 </template>
@@ -149,23 +151,16 @@ const hasHeader = () => props.columns.some((column) => column.header)
   background: var(--border-strong);
 }
 
-.align-grid__button {
+/* Layout only: the look (border, fill, focus ring, disabled) is `BaseButton`'s. A 44 px target that
+   fits the grid cell, with the small label type the rows were drawn in. */
+.align-grid .align-grid__button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
   padding: 0 0.15rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
   font-size: 0.72rem;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-/* One strip: shared borders, only the ends rounded. */
 .align-grid--segmented .align-grid__button {
   border-radius: 0;
   margin-left: -1px;
@@ -181,18 +176,4 @@ const hasHeader = () => props.columns.some((column) => column.header)
 }
 
 /* The "pressed" feedback a no-op tap gets (TODO/ui-060): nothing moves, nothing is appended. */
-.align-grid__button:active:not(:disabled) {
-  background: var(--surface-1);
-  border-color: var(--accent);
-}
-
-.align-grid__button:focus-visible {
-  outline: 2px solid var(--accent);
-  position: relative;
-}
-
-.align-grid__button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 </style>

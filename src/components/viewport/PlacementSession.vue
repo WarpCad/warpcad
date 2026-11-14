@@ -21,6 +21,7 @@
  */
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import { useModelImportStore } from '../../stores/modelImport.js'
 import { usePlacementStore } from '../../stores/placement.js'
 
@@ -145,9 +146,9 @@ onBeforeUnmount(() => {
     <div ref="chipEl" class="session-chip" role="status" data-testid="placement-chip">
       <span class="session-chip__text" data-testid="placement-chip-label">Place {{ placement.label }}</span>
       <span class="session-chip__dot" aria-hidden="true">·</span>
-      <button type="button" class="session-chip__cancel" data-testid="placement-chip-cancel" @click="modelImport.cancelPlacement()">
+      <BaseButton narrow class="session-chip__cancel" data-testid="placement-chip-cancel" @click="modelImport.cancelPlacement()">
         Cancel
-      </button>
+      </BaseButton>
     </div>
   </template>
 </template>
@@ -196,21 +197,8 @@ onBeforeUnmount(() => {
   color: var(--text-3);
 }
 
-.session-chip__cancel {
-  min-width: var(--tap);
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border);
+/* The chip's pill shape is the one thing this button keeps from its own rule. */
+.session-chip .session-chip__cancel {
   border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  cursor: pointer;
 }
-
-.session-chip__cancel:hover,
-.session-chip__cancel:focus-visible {
-  border-color: var(--border-strong);
-}
-
 </style>

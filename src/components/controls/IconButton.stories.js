@@ -18,3 +18,5 @@ export const Quiet = { args: { variant: 'quiet' } }
 export const Compact = { args: { size: 'compact' } }
 export const Pressed = { args: { pressed: true } }
 export const Disabled = { args: { disabled: true } }
+export const Bordered = { args: { bordered: true } }
+export const BorderedPressed = { args: { bordered: true, pressed: true } }
