@@ -20,11 +20,10 @@
  */
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
-import { useOverlayStack } from '../../composables/useOverlayStack.js'
-import HelpButton from '../controls/HelpButton.vue'
 import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import BaseButton from '../controls/BaseButton.vue'
+import BaseSheet from './BaseSheet.vue'
 
 const library = useLibraryStore()
 const overlays = useOverlaysStore()
@@ -41,25 +40,21 @@ watch(
   { immediate: true }
 )
 onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
-
-useOverlayStack(() => library.saveOpen, () => library.closeSave())
 </script>
 
 <template>
-  <Teleport to="body">
-    <form
-      v-if="library.saveOpen"
-      class="save-sheet"
-      role="dialog"
-      aria-label="Save to library"
-      data-testid="save-library-sheet"
-      novalidate
-      @submit.prevent="library.save()"
-    >
-      <div class="save-sheet__head">
-        <p class="save-sheet__title">Save to library</p>
-        <HelpButton topic="save-to-library" class="save-sheet__help" />
-      </div>
+  <BaseSheet
+    :open="library.saveOpen"
+    as="form"
+    card
+    tier="modal"
+    testid="save-library-sheet"
+    title="Save to library"
+    help-topic="save-to-library"
+    novalidate
+    @submit.prevent="library.save()"
+    @escape="library.closeSave()"
+  >
       <p class="save-sheet__note">
         Saves this group as a fixed part you can drag into any project. To save another size, place it, change it, and save it under a new name.
       </p>
@@ -113,8 +108,9 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
           {{ library.saving ? 'Saving…' : 'Save' }}
         </BaseButton>
       </div>
-    </form>
+  </BaseSheet>
 
+  <Teleport to="body">
     <div
       class="library-toast"
       role="status"
@@ -128,47 +124,6 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
 </template>
 
 <style scoped>
-.save-sheet {
-  position: fixed;
-  z-index: 42;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: var(--font);
-  box-shadow: var(--shadow-overlay);
-  /* Phone first: a bottom sheet. */
-  right: 0;
-  bottom: 0;
-  left: 0;
-  max-height: 86dvh;
-  overflow-y: auto;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding-bottom: calc(12px + var(--layout-safe-bottom));
-}
-
-.save-sheet__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-/* The 44px target overhangs the title line rather than growing the header (`TODO/ui-061`). */
-.save-sheet__help {
-  margin: -12px -8px -12px 0;
-}
-
-.save-sheet__title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .save-sheet__note {
   margin: 0;
   font-size: 12px;
@@ -218,7 +173,7 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
   position: fixed;
   top: 60px;
   left: 50%;
-  z-index: 60;
+  z-index: var(--z-toast);
   max-width: calc(100vw - 32px);
   padding: 8px 14px;
   border: 1px solid var(--border-strong);
@@ -235,18 +190,5 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
 
 .library-toast[data-visible='false'] {
   display: none;
-}
-
-@media (min-width: 641px) {
-  .save-sheet {
-    top: 64px;
-    right: 16px;
-    bottom: auto;
-    left: auto;
-    width: min(340px, calc(100vw - 32px));
-    max-height: calc(100dvh - 96px);
-    border-radius: var(--radius-lg);
-    padding-bottom: 12px;
-  }
 }
 </style>
