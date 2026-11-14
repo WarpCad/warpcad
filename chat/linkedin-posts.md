@@ -4158,3 +4158,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9450 passed (this session); e2e on the chromium-laptop and firefox-phone pair 1198 passed, 3 failed that also fail on the commit before this task (this session); toast-queue spec 3 of 3 at chromium laptop, tablet and phone (this session); the queue, 12 regenerated pictures, 7 copies of the clip rule and the stays from TODO/done/ui-117
 **To Add:** none
+
+## 2026-11-14T19:00:00Z — ui-118: the theme sweep ends with a strict guard
+
+**Post:** The last step of WarpCad's theme work was the dull one: walking every component and replacing hand-written font sizes, weights, z-index numbers and colours with named tokens. 620 of them, in about 100 files, one folder per commit. A style guard that had been carrying an allow-list of exceptions now has none, so a new literal fails the unit run.
+
+A few choices worth naming. Layer numbers became calc() on a layer token, so no stacking order moved. The drop shadows under the gizmo, rotate dial and ruler became one themed token with a light-theme value, since they were tuned only for the dark scene. One global reduced-motion rule zeroes the transition durations. The only visible change was the help footer text, 12.5px snapped to 12px; one snapshot and five documentation pictures were regenerated for it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9452 passed (this session); e2e on every spec at chromium phone, tablet and laptop 1868 passed, 3 failed on one deliberate snapshot (this session); rotating pair webkit-laptop + chromium-phone 1222 passed (this session); the allow-list from 620 to empty, TODO/done/ui-118
+**To Add:** none

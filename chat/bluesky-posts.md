@@ -2865,3 +2865,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9450 passed (this session); e2e on the chromium-laptop and firefox-phone pair 1198 passed, 3 failed that also fail on the commit before this task (this session); toast-queue spec 3 of 3 at chromium laptop, tablet and phone (this session); the queue, the 12 regenerated pictures and the 7 copies of the clip rule from TODO/done/ui-117
 **To Add:** none
+
+## 2026-11-14T19:00:00Z — ui-118: one place to restyle type, layers and motion
+
+**Post:** In WarpCad, 620 hand-written font sizes, weights, layers and colours across 100+ components are now tokens, and a guard fails the build if a new literal appears. One rule now stops every transition for people who ask for reduced motion. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9452 passed (this session); e2e on every spec at chromium phone, tablet and laptop 1868 passed, 3 failed on one deliberate snapshot (this session); rotating pair webkit-laptop + chromium-phone 1222 passed (this session); the allow-list from 620 to empty, TODO/done/ui-118
+**To Add:** none
