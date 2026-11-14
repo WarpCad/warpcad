@@ -6,8 +6,22 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+Verification only; no product code changed. All eight rows were driven against HEAD on 2026-11-14, and each one's Status and Notes are in
+`TODO/VERIFY.md` with the raw numbers: `core-029` #3 (offline reload plus a Bolt drop on the production build with its service worker: OK),
+`ui-084` #2 (long-press callout at 522 ms, gone 1539 ms after release, a drag from the same tile still places: OK), `ui-084` #3 (the new My
+parts tile pulses once for 900 ms and is scrolled into view: OK), `core-061` #2 (Bolt 1 and its repeats update in the same frame: OK),
+`data-010` #2 (stamping 0.051 ms per mutation, input to second frame about 40 ms on 200 records: OK), `ui-062` #4 (**reproduces**, see
+`FIND-ui-126`; acceptance 7's chrome steps re-driven and pass), `ui-051` #3 (WebKit 820x1180: Delete, Backspace and Backspace-in-a-field behave;
+the premise of a collapsed Inspector sheet does not hold at that width, noted), `core-031` #2 (headed Google Chrome 157 on the M4 Pro at 120 Hz:
+0 blank frames in 1,280 sampled over 8 transitions: OK). Two follow-ups filed: `FIND-ui-126` (the ring wins a Pan-mode press) and
+`FIND-testing-040` (graduate the long-press and the pulse to a real-timer spec). Nothing is left Open. The preview builds were made from the
+working tree; the owner's theme work in progress adds no files under `src/styles/themes/` here (only `dark.css` and `light.css`), so no
+measurement was affected.
 
 ## Problem
 
