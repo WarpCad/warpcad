@@ -13,6 +13,7 @@ import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { setGistDependencies, useGistStore } from '../../stores/gist.js'
 import { useProjectSettingsStore } from '../../stores/projectSettings.js'
 import { setPersistenceDependencies, usePersistenceStore } from '../../stores/persistence.js'
+import ToastHost from '../layout/ToastHost.vue'
 import SaveAsGistDialog from './SaveAsGistDialog.vue'
 
 enableAutoUnmount(afterEach)
@@ -89,6 +90,8 @@ afterEach(() => {
 
 async function open() {
   mount(SaveAsGistDialog, { attachTo: document.body })
+  // The toast after a save is drawn by the one host (`TODO/ui-117`).
+  mount(ToastHost, { attachTo: document.body })
   useFileMenuStore().requestSaveAsGist()
   await flush()
 }

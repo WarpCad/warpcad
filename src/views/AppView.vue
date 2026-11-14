@@ -41,6 +41,7 @@ import HelpSheet from '../components/layout/HelpSheet.vue'
 import ShareSheet from '../components/layout/ShareSheet.vue'
 import SharedView from '../components/layout/SharedView.vue'
 import { useShareLink } from '../composables/useShareLink.js'
+import ToastHost from '../components/layout/ToastHost.vue'
 import UpdateToast from '../components/layout/UpdateToast.vue'
 import HistoryControls from '../components/layout/HistoryControls.vue'
 import LibraryPanel from '../components/layout/LibraryPanel.vue'
@@ -413,6 +414,8 @@ function onInspectorClaim() {
     <!-- A newer build is installed (TODO/build-005): the last row of the column, in flow, so it
          pushes the viewport up instead of covering the navigation chrome, gizmo or chat sheet. -->
     <UpdateToast />
+    <!-- Every floating toast (TODO/ui-117): one queue, one stack, so two fired together never overlap. -->
+    <ToastHost />
     <!-- The repair dialog (TODO/ui-052): over everything, opened by an Inspector
          dropdown, a History row's Edit, or a Resolve… button. -->
     <DependentRepairDialog />

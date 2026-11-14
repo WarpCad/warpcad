@@ -98,11 +98,14 @@ import { useResolutionDialogStore } from './resolutionDialog.js'
 import { useSharedOpenStore } from './sharedOpen.js'
 import { IMPORT_PREVIEW_REASON } from './modelImport.js'
 import { useTimelineStore } from './timeline.js'
+import { useToastsStore } from './toasts.js'
 
 /** @typedef {'open' | 'load' | 'new' | 'share' | 'share-update'} ConfirmKind */
 
-/** How long the *Saved to gist* toast stays (`TODO/io-021`). */
+/** How long the *Saved to gist* toast stays (`TODO/io-021`): longer than the default, it carries Copy link. */
 const GIST_TOAST_MS = 6000
+/** The toast queue key of the *Saved to gist* toast (`stores/toasts.js`). */
+const GIST_TOAST_KEY = 'gist-save'
 
 /**
  * What the Save as gist dialog shows: the token step, the first save's form, or **Save to gist**
@@ -165,10 +168,14 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
   const gistSaveOpen = ref(false)
   /** The last gist save's failure, in `gistMessages.js`'s wording, for that dialog — or `''`. */
   const gistSaveError = ref('')
-  /** The toast after a gist save: its words and the short link its **Copy link** copies. */
-  const gistSaveToast = shallowRef(/** @type {{ text: string, link: string } | null} */ (null))
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let gistToastTimer = null
+  const toasts = useToastsStore()
+  /** The short link the *Saved to gist* toast's **Copy link** copies. */
+  const gistToastLink = shallowRef('')
+  /** The toast after a gist save: its words and the short link its **Copy link** copies. It lives on the toast queue. */
+  const gistSaveToast = computed(() => {
+    const toast = toasts.items.find((t) => t.key === GIST_TOAST_KEY)
+    return toast ? { text: toast.text, link: gistToastLink.value } : null
+  })
   /** Resolves the hosted store's pending "replace?" question (`TODO/io-011`). */
   let replaceAnswer = /** @type {((answer: boolean) => void) | null} */ (null)
 
@@ -595,15 +602,37 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
 
   /** @param {string} text @param {string} link */
   function showGistToast(text, link) {
-    if (gistToastTimer !== null) clearTimeout(gistToastTimer)
-    gistSaveToast.value = { text, link }
-    gistToastTimer = setTimeout(dismissGistToast, GIST_TOAST_MS)
+    gistToastLink.value = link
+    toasts.show({
+      key: GIST_TOAST_KEY,
+      testid: 'save-gist-toast',
+      text,
+      lingerMs: GIST_TOAST_MS,
+      action: { label: 'Copy link', testid: 'save-gist-toast-copy', run: () => void copyGistLink(link) },
+    })
+  }
+
+  /**
+   * The toast's **Copy link**: a new tap, so the clipboard write has its own activation. On
+   * success the toast says so; if the clipboard refuses it shows the link to copy by hand.
+   *
+   * @param {string} link
+   */
+  async function copyGistLink(link) {
+    try {
+      await navigator.clipboard.writeText(link)
+      toasts.update(GIST_TOAST_KEY, { text: 'Gist link copied', action: null, link: null, lingerMs: GIST_TOAST_MS })
+    } catch {
+      toasts.update(GIST_TOAST_KEY, {
+        action: null,
+        link: { value: link, label: 'The gist link', testid: 'save-gist-toast-link' },
+        lingerMs: GIST_TOAST_MS,
+      })
+    }
   }
 
   function dismissGistToast() {
-    if (gistToastTimer !== null) clearTimeout(gistToastTimer)
-    gistToastTimer = null
-    gistSaveToast.value = null
+    toasts.dismiss(GIST_TOAST_KEY)
   }
 
   function closeSaveAsGist() {

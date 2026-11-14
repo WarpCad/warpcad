@@ -62,7 +62,7 @@ test.describe('docs media: the Share sheet gist group', () => {
     })
     await expect(page.getByTestId('share-gist-status')).toHaveText('Published · secret · 14:05')
     // The toast is on a timer; the picture is of the sheet, not of a moment.
-    await expect(page.getByTestId('share-toast')).toHaveAttribute('data-visible', 'false', { timeout: 8000 })
+    await expect(page.getByTestId('share-toast')).toBeHidden({ timeout: 8000 })
     await page.getByTestId('share-name').blur()
     await shot(page, 'share-gist.png')
   })

@@ -44,6 +44,7 @@ const EXCEPTIONS = Object.freeze({
   'src/components/inspector/VariableUsageDialog.vue': 'a delete-confirm',
   'src/components/layout/UserPartMenu.vue': 'a row menu with rename/delete confirms',
   'src/components/layout/HelpSheet.vue': 'the help itself',
+  'src/components/layout/ToastHost.vue': 'the toast stack: feedback pills, not a tool pop-up',
   'src/components/layout/LibraryRowPopout.vue': 'one Library row\'s settings; the rail\'s own ? (LibraryPanel) is the help for the Library',
   'src/components/layout/LibrarySectionPopout.vue': 'one Library section\'s rows, opened from the rail; the rail\'s own ? (LibraryPanel) is the help for the Library',
   'src/components/viewport/OperationsGroupPopover.vue': 'a list of the Operations toolbar\'s own buttons; each member that opens a popover carries its ?, and at this pane width the File menu\'s Help row reaches Combining shapes (as for the icon row)',

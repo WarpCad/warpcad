@@ -54,6 +54,7 @@ import { useGistStore } from '../../stores/gist.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import { useShareStore } from '../../stores/share.js'
+import { useToastsStore } from '../../stores/toasts.js'
 import BaseButton from '../controls/BaseButton.vue'
 
 /**
@@ -61,8 +62,6 @@ import BaseButton from '../controls/BaseButton.vue'
  * "The ceiling" — the filing's estimate until it is measured on a real iPhone and in Gmail).
  */
 const SHARE_LINK_MAX_CHARS = 6000
-/** How long the *Link copied* toast stays. */
-const TOAST_MS = 4000
 /** What the sheet calls an empty scene. */
 const EMPTY_REASON = 'Nothing to share yet'
 
@@ -73,6 +72,7 @@ const share = useShareStore()
 const menu = useFileMenuStore()
 const gist = useGistStore()
 const gistPublish = useGistPublish()
+const toasts = useToastsStore()
 
 /** The header chip's words: *Published*, and the time when this session published. */
 const chipText = computed(() => {
@@ -90,9 +90,6 @@ const link = ref('')
 const problem = ref('')
 /** Shown selected when the clipboard refused, so the text can still be copied by hand. */
 const manualText = ref('')
-const toast = ref('')
-/** @type {ReturnType<typeof setTimeout> | null} */
-let toastTimer = null
 /** Which link build is current; a newer name supersedes an older build. */
 let build = 0
 /** The name typed here, kept for the next opening while the same project stays loaded. */
@@ -186,12 +183,7 @@ watch(name, (next) => {
 
 /** @param {string} text */
 function showToast(text) {
-  if (toastTimer !== null) clearTimeout(toastTimer)
-  toast.value = text
-  toastTimer = setTimeout(() => {
-    toast.value = ''
-    toastTimer = null
-  }, TOAST_MS)
+  toasts.show({ key: 'share', testid: 'share-toast', text })
 }
 
 /** **Send…** — must run inside the tap: `navigator.share` needs the user's activation. */
@@ -260,7 +252,6 @@ onMounted(() => void gist.start().catch(() => {}))
 watch(open, (isOpen) => overlays.setOpen('share-sheet', isOpen))
 onBeforeUnmount(() => {
   overlays.setOpen('share-sheet', false)
-  if (toastTimer !== null) clearTimeout(toastTimer)
 })
 </script>
 
@@ -389,11 +380,6 @@ onBeforeUnmount(() => {
         <ShareGistGroup :too-big="tooBig" :name="shareName" @toast="showToast" />
       </template>
     </BaseSheet>
-    <Teleport to="body">
-      <div class="share-toast" role="status" aria-live="polite" data-testid="share-toast" :data-visible="toast ? 'true' : 'false'">
-        <template v-if="toast">{{ toast }}</template>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -546,30 +532,6 @@ body :global(.sheet.share-sheet .sheet__title) {
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-2);
-}
-
-.share-toast {
-  position: fixed;
-  top: 60px;
-  left: 50%;
-  z-index: var(--z-toast);
-  max-width: calc(100vw - 32px);
-  padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: var(--font);
-  font-size: 13px;
-  box-shadow: var(--shadow-overlay);
-  transform: translateX(-50%);
-  /* A toast never takes a tap from what is under it. */
-  pointer-events: none;
-  overflow-wrap: anywhere;
-}
-
-.share-toast[data-visible='false'] {
-  display: none;
 }
 
 @media (max-width: 1099px) {

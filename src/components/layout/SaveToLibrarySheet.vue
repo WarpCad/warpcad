@@ -14,7 +14,7 @@
  *   format cannot carry (a conditional or broken step) stays here in a `role="alert"`, by name.
  * - **Small screens**: a bottom sheet, every control a 44 px target, 16 px inputs so iOS does
  *   not zoom on focus. Escape closes it.
- * - **Toast**: a polite live region, so a screen reader announces the save too.
+ * - **Toast**: raised on the one toast queue (`stores/toasts.js`, drawn by `ToastHost.vue`), a polite status, so a screen reader announces the save too.
  *
  * Layout and events only; every rule lives in `stores/library.js` and `core/userPartTools.js`.
  */
@@ -109,18 +109,6 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
         </BaseButton>
       </div>
   </BaseSheet>
-
-  <Teleport to="body">
-    <div
-      class="library-toast"
-      role="status"
-      aria-live="polite"
-      data-testid="library-toast"
-      :data-visible="library.toast.text ? 'true' : 'false'"
-    >
-      <template v-if="library.toast.text">{{ library.toast.text }}</template>
-    </div>
-  </Teleport>
 </template>
 
 <style scoped>
@@ -167,28 +155,5 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 .save-sheet__actions {
   display: flex;
   gap: 8px;
-}
-
-.library-toast {
-  position: fixed;
-  top: 60px;
-  left: 50%;
-  z-index: var(--z-toast);
-  max-width: calc(100vw - 32px);
-  padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--surface-1);
-  color: var(--text-1);
-  font-family: var(--font);
-  font-size: 13px;
-  box-shadow: var(--shadow-overlay);
-  transform: translateX(-50%);
-  /* A toast never takes a tap from what is under it. */
-  pointer-events: none;
-}
-
-.library-toast[data-visible='false'] {
-  display: none;
 }
 </style>

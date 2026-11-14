@@ -71,6 +71,7 @@ import { createUserLibrary, loadUserLibrary } from '../storage/userLibrary.js'
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
 import { useTimelineStore } from './timeline.js'
+import { useToastsStore } from './toasts.js'
 
 /** The face budget of an imported model's thumbnail (the default is 40,000). */
 const MESH_THUMBNAIL_FACES = 12_000
@@ -104,8 +105,6 @@ function skippedSentences(result) {
   return text
 }
 
-/** How long the "Saved <name>" toast stays, ms. */
-const TOAST_MS = 4500
 
 /** @typedef {import('../core/userPart.js').UserPartDefinition} UserPartDefinition */
 /** @typedef {import('../core/library.js').LibraryRow} LibraryRow */
@@ -207,9 +206,9 @@ export const useLibraryStore = defineStore('library', () => {
   const loaded = ref(false)
   /** Whether the My parts section is open in the panel. */
   const expanded = ref(false)
+  /** The last toast this store raised (its words and a count); the pill itself lives in `stores/toasts.js`. */
   const toast = ref({ text: '', id: 0 })
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let toastTimer = null
+  const toasts = useToastsStore()
 
   function backendOf() {
     // `TODO/io-015`: inside a native shell My parts is also kept in the app's own folder.
@@ -228,20 +227,13 @@ export const useLibraryStore = defineStore('library', () => {
     boundaries = { ...boundaries, ...overrides }
   }
 
-  /** @param {string} text */
-  function showToast(text) {
+  /**
+   * @param {string} text
+   * @param {'neutral' | 'danger'} [tone] `danger` for a failure, which is announced as an alert
+   */
+  function showToast(text, tone = 'neutral') {
     toast.value = { text, id: toast.value.id + 1 }
-    if (toastTimer !== null) clearTimeout(toastTimer)
-    toastTimer = setTimeout(() => {
-      toast.value = { text: '', id: toast.value.id }
-      toastTimer = null
-    }, TOAST_MS)
-  }
-
-  function dismissToast() {
-    if (toastTimer !== null) clearTimeout(toastTimer)
-    toastTimer = null
-    toast.value = { text: '', id: toast.value.id }
+    toasts.show({ key: 'library', testid: 'library-toast', text, tone })
   }
 
   /**
@@ -627,7 +619,7 @@ export const useLibraryStore = defineStore('library', () => {
       showToast(`Saved ${name}`)
       return true
     } catch (error) {
-      showToast(`Could not duplicate: ${error instanceof Error ? error.message : String(error)}`)
+      showToast(`Could not duplicate: ${error instanceof Error ? error.message : String(error)}`, 'danger')
       return false
     }
   }
@@ -649,7 +641,8 @@ export const useLibraryStore = defineStore('library', () => {
     if (text.length > MAX_PART_FILE_CHARS) {
       showToast(
         `Could not export ${part.name}: the part file would be ${(text.length / 1_000_000).toFixed(1)} million characters, ` +
-          `over the ${(MAX_PART_FILE_CHARS / 1_000_000).toFixed(0)} million Import part file… reads`
+          `over the ${(MAX_PART_FILE_CHARS / 1_000_000).toFixed(0)} million Import part file… reads`,
+        'danger',
       )
       return false
     }
@@ -780,7 +773,7 @@ export const useLibraryStore = defineStore('library', () => {
       showToast(`Deleted ${name} from My parts`)
       return true
     } catch (error) {
-      showToast(`Could not delete: ${error instanceof Error ? error.message : String(error)}`)
+      showToast(`Could not delete: ${error instanceof Error ? error.message : String(error)}`, 'danger')
       return false
     }
   }
@@ -833,7 +826,7 @@ export const useLibraryStore = defineStore('library', () => {
       failure !== '' ? failure : added.length === 0 && skipped.length > 0 ? `${skipped.join(', ')} already in My parts` : ''
     // Started from the File menu now (`TODO/ui-107`), so the Library may be closed: a file that
     // added nothing says why where it can be seen.
-    if (added.length === 0 && importError.value !== '') showToast(`Nothing imported: ${importError.value}`)
+    if (added.length === 0 && importError.value !== '') showToast(`Nothing imported: ${importError.value}`, 'danger')
     return { added, skipped, problems }
   }
 
@@ -854,7 +847,7 @@ export const useLibraryStore = defineStore('library', () => {
       await reload()
       return true
     } catch (error) {
-      showToast(`Could not change units: ${error instanceof Error ? error.message : String(error)}`)
+      showToast(`Could not change units: ${error instanceof Error ? error.message : String(error)}`, 'danger')
       return false
     }
   }
@@ -868,7 +861,6 @@ export const useLibraryStore = defineStore('library', () => {
     loaded,
     expanded,
     toast,
-    dismissToast,
     useBackend,
     start,
     userRows,
