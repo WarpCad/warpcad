@@ -4128,3 +4128,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9386 passed (this session); e2e on the firefox-laptop and webkit-phone pair 1167 passed, one Help screenshot drifted and was fixed, then Help, pwa-update, color and design-intent specs passed (this session); 68 component files use BaseButton or IconButton (grep this session); 352 buttons, 68 components, 43 focus-ring copies and the 80/96 px split from TODO/done/ui-114
 **To Add:** none
+
+## 2026-11-14T14:00:00Z — ui-116: one frame for dialogs, sheets and popovers
+
+**Post:** About twenty overlays in WarpCad drew their own teleport, backdrop, frame and shadow. ModalShell, the one shared dialog frame, sat in the storage folder although the AI and layout components used it. It is now BaseDialog in layout, with BaseSheet and BasePopover beside it, and eleven hand-rolled overlays moved over in three stages.
+
+The frames keep what was deliberately different. Split and Repeat stay non-modal because the user works in the viewport while they are open; Repeat opts out of the overlay stack because its Escape belongs to the Operations toolbar. The Share sheet keeps a clear backdrop that still catches the click. The three operation popovers stay draggable so they do not hide their targets. Every data-testid and selector is unchanged, and each migrated modal got a focus-trap case.
+
+Four overlays stayed hand-rolled, each with a written reason: the File menu and Library popouts are menus rather than dialogs, the My parts menu pairs a menu with an alertdialog, and Help has its own header and layer above every dialog.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9415 passed (this session); e2e on the chromium-tablet and webkit-laptop pair 1221 passed, 0 failed, rest skipped by project (this session); chromium-phone repro specs and docs-laptop print-prep 8/8 (this session); the 14 importers, eleven migrated overlays and four stays from TODO/done/ui-116
+**To Add:** none

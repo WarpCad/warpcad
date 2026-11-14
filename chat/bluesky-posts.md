@@ -2847,3 +2847,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9386 passed (this session); e2e on the firefox-laptop and webkit-phone pair 1167 passed, one Help screenshot drifted and was fixed, then the Help, pwa-update and color specs passed (this session); 68 component files now use BaseButton or IconButton (grep this session); 352 buttons in 97 components and the 80 px vs 96 px dialog widths come from TODO/done/ui-114
 **To Add:** none
+
+## 2026-11-14T14:00:00Z — ui-116: one frame for dialogs, sheets and popovers
+
+**Post:** WarpCad's overlays each drew their own backdrop, frame and shadow. Dialogs, sheets and popovers now sit on three base frames: BaseDialog, BaseSheet, BasePopover. Non-modal sheets stay non-modal, draggable popovers stay draggable, and every test id is unchanged. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9415 passed (this session); e2e on the chromium-tablet and webkit-laptop pair 1221 passed, 0 failed, rest skipped by project (this session); chromium-phone repro specs and docs-laptop print-prep 8/8 (this session); frames and the 14 ModalShell importers from TODO/done/ui-116
+**To Add:** none
