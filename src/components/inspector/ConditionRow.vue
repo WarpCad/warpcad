@@ -28,6 +28,7 @@ import { useParamCommands } from '../../composables/useParamCommands.js'
 import { paramOptions } from '../../core/kernel/registry.js'
 import { variablesOf } from '../../core/variables.js'
 import { useDocumentStore } from '../../stores/document.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   /** The record that carries `when` — a body's creation record for a whole-body condition. */
@@ -160,17 +161,17 @@ function remove() {
 
     <div class="condition__actions">
       <template v-if="editing">
-        <button type="button" class="condition__btn condition__btn--primary" data-testid="inspector-condition-save" @click="save()">
+        <BaseButton variant="primary" narrow data-testid="inspector-condition-save" @click="save()">
           Save
-        </button>
-        <button type="button" class="condition__btn" data-testid="inspector-condition-cancel" @click="editing = false">
+        </BaseButton>
+        <BaseButton narrow data-testid="inspector-condition-cancel" @click="editing = false">
           Cancel
-        </button>
+        </BaseButton>
       </template>
       <template v-else>
-        <button v-if="condition" type="button" class="condition__btn" data-testid="inspector-condition-edit" @click="startEdit()">Edit</button>
-        <button v-else type="button" class="condition__btn" data-testid="inspector-condition-add" @click="startEdit()">Only when a variable…</button>
-        <button v-if="condition" type="button" class="condition__btn" data-testid="inspector-condition-remove" @click="remove()">Remove</button>
+        <BaseButton v-if="condition" narrow data-testid="inspector-condition-edit" @click="startEdit()">Edit</BaseButton>
+        <BaseButton v-else narrow data-testid="inspector-condition-add" @click="startEdit()">Only when a variable…</BaseButton>
+        <BaseButton v-if="condition" narrow data-testid="inspector-condition-remove" @click="remove()">Remove</BaseButton>
       </template>
     </div>
     <p v-if="error" class="condition__error" role="alert" data-testid="inspector-condition-error">{{ error }}</p>
@@ -249,28 +250,6 @@ function remove() {
 .condition__actions {
   display: flex;
   gap: 6px;
-}
-
-.condition__btn {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.condition__btn--primary {
-  border-color: var(--accent);
-}
-
-.condition__btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .condition__error {

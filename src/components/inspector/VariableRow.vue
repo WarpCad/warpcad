@@ -18,6 +18,7 @@ import NumberField from '../controls/NumberField.vue'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import VariableFormulaView from './VariableFormulaView.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   row: {
@@ -125,12 +126,12 @@ function commitRename() {
     </div>
     <div v-if="renaming" class="vrow__rename">
       <input v-model="newName" class="vrow__input" type="text" autocapitalize="off" spellcheck="false" :aria-label="`New name for ${variable.name}`" :data-testid="`variable-rename-input-${variable.name}`" @keydown.enter.prevent="commitRename" />
-      <button type="button" class="vrow__btn" :data-testid="`variable-rename-save-${variable.name}`" @click="commitRename">Rename</button>
-      <button type="button" class="vrow__btn" @click="renaming = false">Cancel</button>
+      <BaseButton narrow :data-testid="`variable-rename-save-${variable.name}`" @click="commitRename">Rename</BaseButton>
+      <BaseButton narrow @click="renaming = false">Cancel</BaseButton>
     </div>
     <div v-if="menu" class="vrow__menu" role="menu">
-      <button type="button" class="vrow__btn" role="menuitem" :data-testid="`variable-rename-${variable.name}`" @click="startRename">Rename</button>
-      <button type="button" class="vrow__btn" role="menuitem" :data-testid="`variable-delete-${variable.name}`" @click="menu = false; emit('remove', variable.name)">Delete</button>
+      <BaseButton narrow role="menuitem" :data-testid="`variable-rename-${variable.name}`" @click="startRename">Rename</BaseButton>
+      <BaseButton narrow role="menuitem" :data-testid="`variable-delete-${variable.name}`" @click="menu = false; emit('remove', variable.name)">Delete</BaseButton>
     </div>
   </li>
 </template>
@@ -170,19 +171,6 @@ function commitRename() {
 }
 
 .vrow__more,
-.vrow__btn {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
 
 .vrow__input {
   flex: 1;
@@ -232,7 +220,6 @@ function commitRename() {
 }
 
 .vrow__more:focus-visible,
-.vrow__btn:focus-visible,
 .vrow__input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;

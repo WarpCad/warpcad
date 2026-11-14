@@ -16,6 +16,7 @@ import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { formulaPreviewLine } from '../../composables/variableEntry.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import FormulaEditor from './FormulaEditor.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   row: {
@@ -62,8 +63,8 @@ function save() {
     <template v-if="editing">
       <FormulaEditor v-model="text" :preview="preview" :label="`Formula for ${variable.name}`" @enter="save" />
       <div class="vformula__actions">
-        <button type="button" class="vformula__btn vformula__btn--primary" :disabled="!preview.ok" :data-testid="`variable-formula-save-${variable.name}`" @click="save">Save</button>
-        <button type="button" class="vformula__btn" :data-testid="`variable-formula-cancel-${variable.name}`" @click="editing = false">Cancel</button>
+        <BaseButton variant="primary" narrow :disabled="!preview.ok" :data-testid="`variable-formula-save-${variable.name}`" @click="save">Save</BaseButton>
+        <BaseButton narrow :data-testid="`variable-formula-cancel-${variable.name}`" @click="editing = false">Cancel</BaseButton>
       </div>
     </template>
     <button v-else type="button" class="vformula__text" :aria-label="`Edit the formula for ${variable.name}`" :data-testid="`variable-formula-${variable.name}`" @click="startEdit">{{ row.formula }}</button>
@@ -119,31 +120,7 @@ function save() {
   gap: 6px;
 }
 
-.vformula__btn {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.vformula__btn--primary {
-  border-color: var(--accent);
-}
-
-.vformula__btn:disabled {
-  border-color: var(--border);
-  color: var(--text-3);
-  cursor: not-allowed;
-}
-
-.vformula__text:focus-visible,
-.vformula__btn:focus-visible {
+.vformula__text:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }

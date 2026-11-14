@@ -27,6 +27,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { responseTextOf } from '../../core/prompt.js'
 import { useDocumentStore } from '../../stores/document.js'
 import PromptReply from '../ai/PromptReply.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   /** The request, as the document hands it out. */
@@ -190,15 +191,15 @@ watch(
         <label class="detail__label" :for="`request-edit-${prompt.id}`">Edit the request</label>
         <textarea :id="`request-edit-${prompt.id}`" ref="requestField" v-model="requestDraft" class="edit__field" rows="8" data-testid="prompts-edit-request-input" />
         <div class="edit__actions">
-          <button type="button" class="edit__button" data-testid="prompts-edit-request-cancel" @click="cancelRequestEdit">Cancel</button>
-          <button type="submit" class="edit__button edit__button--confirm" data-testid="prompts-edit-request-save" :disabled="requestDraft.trim() === ''">Save</button>
+          <BaseButton narrow data-testid="prompts-edit-request-cancel" @click="cancelRequestEdit">Cancel</BaseButton>
+          <BaseButton type="submit" variant="primary" narrow data-testid="prompts-edit-request-save" :disabled="requestDraft.trim() === ''">Save</BaseButton>
         </div>
       </form>
       <p v-else class="detail__text" data-testid="prompts-row-full">{{ prompt.text }}</p>
       <div v-if="editable && !editingRequest" class="edit__actions edit__actions--start" data-testid="prompts-row-edits">
-        <button type="button" class="edit__button" data-testid="prompts-edit-request" @click="openRequestEdit">Edit request</button>
-        <button type="button" class="edit__button" data-testid="prompts-remove-request" @click="removeRequest">Remove request</button>
-        <button v-if="nextId !== ''" type="button" class="edit__button" data-testid="prompts-combine-next" @click="combineWithNext">Combine with next</button>
+        <BaseButton narrow data-testid="prompts-edit-request" @click="openRequestEdit">Edit request</BaseButton>
+        <BaseButton narrow data-testid="prompts-remove-request" @click="removeRequest">Remove request</BaseButton>
+        <BaseButton v-if="nextId !== ''" narrow data-testid="prompts-combine-next" @click="combineWithNext">Combine with next</BaseButton>
       </div>
       <p v-if="problem !== ''" class="edit__problem" role="alert" data-testid="prompts-row-problem">{{ problem }}</p>
       <PromptReply :prompt="prompt" :edits="editable" :read-only="!editable" />
@@ -372,31 +373,6 @@ watch(
 .edit__actions--start {
   justify-content: flex-start;
   padding: 2px 0 4px;
-}
-
-.edit__button {
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-0);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.edit__button--confirm {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.edit__button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .edit__button:focus-visible {

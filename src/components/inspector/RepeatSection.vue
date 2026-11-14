@@ -19,6 +19,7 @@ import { computed, ref } from 'vue'
 
 import { useDocumentStore } from '../../stores/document.js'
 import { useSelectionStore } from '../../stores/selection.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   /** The Inspector's body description; carries `repeat` (`core/inspector.js`). */
@@ -95,27 +96,25 @@ function detach() {
     </p>
 
     <div class="repeat-info__actions">
-      <button
-        type="button"
-        class="repeat-info__button"
+      <BaseButton
+        narrow
         data-testid="repeat-goto-source"
         :disabled="!sourceLive"
         :title="sourceLive ? `Select ${info.sourceName}, where its steps are edited` : `${info.sourceName} is gone`"
         @click="goToSource"
       >
         Go to {{ info.sourceName }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="!member"
-        type="button"
-        class="repeat-info__button"
+        narrow
         data-testid="repeat-detach"
         :disabled="detachReason !== ''"
         :title="detachReason || 'Turn each repeat into its own part, no longer linked'"
         @click="detach"
       >
         Detach
-      </button>
+      </BaseButton>
     </div>
     <p v-if="!member && detachReason" class="repeat-info__line repeat-info__line--quiet" data-testid="repeat-detach-reason">
       {{ detachReason }}
@@ -160,24 +159,6 @@ function detach() {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.repeat-info__button {
-  min-height: var(--tap);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.repeat-info__button:disabled {
-  color: var(--text-3);
-  cursor: not-allowed;
 }
 
 .repeat-info__error {

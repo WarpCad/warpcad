@@ -17,6 +17,7 @@ import { useVariableCommands } from '../../composables/useVariableCommands.js'
 import { formulaPreviewLine, parseOptionList } from '../../composables/variableEntry.js'
 import NumberField from '../controls/NumberField.vue'
 import FormulaEditor from './FormulaEditor.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const emit = defineEmits(['submit', 'cancel'])
 
@@ -89,8 +90,8 @@ function submit() {
       <input v-model="options" class="vadd__input" type="text" autocapitalize="off" placeholder="4, 5" data-testid="variable-add-options" />
     </label>
     <div class="vadd__actions">
-      <button type="submit" class="vadd__btn vadd__btn--primary" :disabled="blocked" data-testid="variable-add-create">{{ kind === 'formula' ? 'Create' : 'Add variable' }}</button>
-      <button type="button" class="vadd__btn" data-testid="variable-add-cancel" @click="emit('cancel')">Cancel</button>
+      <BaseButton type="submit" variant="primary" narrow :disabled="blocked" data-testid="variable-add-create">{{ kind === 'formula' ? 'Create' : 'Add variable' }}</BaseButton>
+      <BaseButton narrow data-testid="variable-add-cancel" @click="emit('cancel')">Cancel</BaseButton>
     </div>
   </form>
 </template>
@@ -134,31 +135,7 @@ function submit() {
   gap: 6px;
 }
 
-.vadd__btn {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.vadd__btn--primary {
-  border-color: var(--accent);
-}
-
-.vadd__btn:disabled {
-  border-color: var(--border);
-  color: var(--text-3);
-  cursor: not-allowed;
-}
-
-.vadd__input:focus-visible,
-.vadd__btn:focus-visible {
+.vadd__input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
