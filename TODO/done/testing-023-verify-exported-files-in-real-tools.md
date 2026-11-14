@@ -6,8 +6,12 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+Verification only; no product code changed (one caveat added to `docs/export.md`). Driven 2026-11-14 on HEAD, production build, Chromium 1440x900 (File ▾ → Export… with real downloads; one STL also on WebKit, byte-identical). Tools we did not write: UltiMaker Cura's `CuraEngine` 5.13.0 (in `Contents/Resources/`, stock Ultimaker Original definitions; it warns `Mesh has disconnected faces!` on a cube with its top removed, so its silence means something), the Khronos `gltf-validator` 2.0.0-dev.3.10 (installed in a scratch directory, not in `package.json`), and the donmccurdy viewer (three.js r176) through Playwright. Answered: `ui-034` #2 stays **Open** (STL slices with no warning, OBJ and glb clean by independent readers and the validator; MeshLab was **not run**: no `meshlabserver` or `pymeshlab`, nothing installed, and `computer-use` is unavailable in this session); `io-003` #1 **OK** (0.04 m, upright, 0 of 18 open edges in the viewer); `io-009` #1 **OK** (a generated 240,960-triangle scan reads 3.5 mm and **Units** inch reads 88.9 mm; a 310,960-triangle copy is refused by the 250,000 cap), #4 **OK** (the 96 x 96 thumbnail is recognisable, with a faint facet moiré), #2 **Issue** (a cut dense scan exports open edges and Cura warns: `FIND-io-031`); `core-035` #1 slicer half **OK** (Ø22 at Normal 21.916 mm and Print 21.981 mm across flats, no Cura warning), the printing half stays Open. No real scan was downloaded: the scan is a generated, closed UV-sphere blob (CC0, script in the scratchpad), because no public-domain STL with a few hundred thousand triangles under a stated license was to hand and the app caps at 250,000. Acceptance 11 step 5 was finally driven in these tools and 26 re-driven (`e2e/import-model.e2e.js` at chromium-laptop, 8 passed, and a scripted Import, Units, Save to library, Subtract and Export). Left Open and listed for the owner: `ui-034` #2 (MeshLab's non-manifold and topology filters, and an OBJ in a real tool) and `core-035` #1 (print and caliper). Social drafts: none.
 
 ## Problem
 
