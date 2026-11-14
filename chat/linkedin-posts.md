@@ -4172,3 +4172,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9452 passed (this session); e2e on every spec at chromium phone, tablet and laptop 1868 passed, 3 failed on one deliberate snapshot (this session); rotating pair webkit-laptop + chromium-phone 1222 passed (this session); the allow-list from 620 to empty, TODO/done/ui-118
 **To Add:** none
+
+## 2026-11-14T21:00:00Z — ui-111: the theme umbrella closes
+
+**Post:** WarpCad's theme work started as one complaint: restyling the app meant editing dozens of files, and the 3D view kept its own colours in JavaScript. Nine steps later it is closed. The palette, type scale, layers and motion live in src/styles, the 3D view reads the same tokens, buttons, fields, dialogs and toasts are shared components, and a strict guard fails the build on a raw colour, font size or z-index. Light, Dark and System are a choice in the app.
+
+The last task was a check, not code: confirm every step was done, the guard's allow-list was gone, and each of the original seven problems was either fixed or left on purpose. It left four on purpose: spacing and corner-radius literals, a few hand-built sheets and pickers, the native window's background colour, and Storybook snapshots. Each now has its own task, so nothing is parked in a comment. A short page in docs/decisions names the files to edit.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `npx vitest run src/styles` 67 passed (this session); typecheck and SPDX check clean (this session); all nine steps of the umbrella in TODO/done/ui-111
+**To Add:** none

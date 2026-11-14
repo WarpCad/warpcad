@@ -2874,3 +2874,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9452 passed (this session); e2e on every spec at chromium phone, tablet and laptop 1868 passed, 3 failed on one deliberate snapshot (this session); rotating pair webkit-laptop + chromium-phone 1222 passed (this session); the allow-list from 620 to empty, TODO/done/ui-118
 **To Add:** none
+
+## 2026-11-14T21:00:00Z — ui-111: the theme work is finished, and there is one place to restyle
+
+**Post:** WarpCad's theme work is finished: palette, type, layers, motion and the 3D view's colours now come from a few files in src/styles, and a strict guard fails the build on a stray literal. Light, Dark or System, chosen in the app. Spacing and corner radius are still hand-written, and I filed that as its own task. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `npx vitest run src/styles` 67 passed (this session); typecheck and SPDX check clean (this session); all nine steps of the umbrella in TODO/done/ui-111
+**To Add:** none
