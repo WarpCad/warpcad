@@ -19,6 +19,9 @@
  * different features that happen to look alike.
  */
 import { computed, ref, watch } from 'vue'
+
+import BaseButton from '../controls/BaseButton.vue'
+import IconButton from '../controls/IconButton.vue'
 import { MOUSE_NAV_PRESETS, useSettingsStore } from '../../stores/settings.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 
@@ -158,33 +161,33 @@ const STEPS = Object.freeze([
          expand toggle shares their row. -->
     <div class="chrome__body">
       <div v-if="!sketching" class="chrome__modes" role="group" aria-label="Viewport drag mode">
-        <button
-          type="button"
+        <BaseButton
+          size="compact"
           class="chrome__mode"
-          :class="{ 'chrome__mode--on': dragMode === 'orbit' }"
+          :variant="dragMode === 'orbit' ? 'primary' : 'default'"
           :aria-pressed="dragMode === 'orbit'"
           data-testid="nav-mode-orbit"
           title="Drag to orbit"
           @click="emit('mode', 'orbit')"
         >
           Orbit
-        </button>
-        <button
-          type="button"
+        </BaseButton>
+        <BaseButton
+          size="compact"
           class="chrome__mode"
-          :class="{ 'chrome__mode--on': dragMode === 'pan' }"
+          :variant="dragMode === 'pan' ? 'primary' : 'default'"
           :aria-pressed="dragMode === 'pan'"
           data-testid="nav-mode-pan"
           title="Drag to pan"
           @click="emit('mode', 'pan')"
         >
           Pan
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-if="canSelect"
-          type="button"
+          size="compact"
           class="chrome__mode"
-          :class="{ 'chrome__mode--on': dragMode === 'select' }"
+          :variant="dragMode === 'select' ? 'primary' : 'default'"
           :aria-pressed="dragMode === 'select'"
           data-testid="nav-mode-select"
           title="Drag a box to select several bodies (TODO/ui-024)"
@@ -192,18 +195,18 @@ const STEPS = Object.freeze([
           @click="emit('mode', 'select')"
         >
           Select
-        </button>
-        <button
-          type="button"
+        </BaseButton>
+        <IconButton
+          bordered
+          size="compact"
           class="chrome__gear"
+          label="Mouse navigation settings"
           :aria-expanded="settingsOpen"
           data-testid="nav-settings-gear"
-          title="Mouse navigation settings"
-          aria-label="Mouse navigation settings"
           @click="toggleSettings"
         >
           ⚙
-        </button>
+        </IconButton>
       </div>
 
       <div
@@ -213,18 +216,19 @@ const STEPS = Object.freeze([
         aria-label="Mouse navigation preset"
         data-testid="nav-settings-panel"
       >
-        <button
+        <BaseButton
           v-for="preset in MOUSE_NAV_PRESETS"
           :key="preset.id"
-          type="button"
+          size="compact"
+          align="start"
           class="chrome__preset"
-          :class="{ 'chrome__preset--on': settings.mouseNavPreset === preset.id }"
+          :variant="settings.mouseNavPreset === preset.id ? 'primary' : 'default'"
           :aria-pressed="settings.mouseNavPreset === preset.id"
           :data-testid="`nav-preset-${preset.id}`"
           @click="choosePreset(preset.id)"
         >
           {{ preset.label }}
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -235,65 +239,49 @@ const STEPS = Object.freeze([
            ~6px to spare against the Operations toolbar above it. Bottom-aligned
            so it sits in the same corner collapsed and expanded — the second
            tap lands where the first did. -->
-      <button
-        type="button"
+      <IconButton
+        bordered
+        size="compact"
         class="chrome__expand"
+        :label="expanded ? 'Hide navigation controls' : 'Show navigation controls'"
         :aria-expanded="expanded"
         data-testid="nav-expand-toggle"
-        :title="expanded ? 'Hide navigation controls' : 'Show navigation controls'"
-        :aria-label="expanded ? 'Hide navigation controls' : 'Show navigation controls'"
         @click="toggleExpanded"
       >
         ✥
-      </button>
+      </IconButton>
       <div class="chrome__pad" role="group" :aria-label="`${verb} the camera`">
-        <button
+        <IconButton
           v-for="step in STEPS"
           :key="step.dir"
-          type="button"
+          bordered
           class="chrome__btn"
           :style="{ gridArea: step.cell }"
+          :label="`${verb} camera ${step.dir}`"
           :data-testid="`nav-step-${step.dir}`"
-          :title="`${verb} camera ${step.dir}`"
-          :aria-label="`${verb} camera ${step.dir}`"
           @click="emit('step', step.dir)"
         >
           {{ step.glyph }}
-        </button>
-        <button
-          type="button"
+        </IconButton>
+        <IconButton
+          bordered
           class="chrome__btn chrome__btn--reset"
           style="grid-area: center"
+          label="Reset camera position, zoom and orientation"
           data-testid="nav-reset"
-          title="Reset camera position, zoom and orientation"
-          aria-label="Reset camera position, zoom and orientation"
           @click="emit('reset')"
         >
           ⌂
-        </button>
+        </IconButton>
       </div>
 
       <div class="chrome__zoom" role="group" aria-label="Zoom">
-        <button
-          type="button"
-          class="chrome__btn"
-          data-testid="nav-zoom-in"
-          title="Zoom in"
-          aria-label="Zoom in"
-          @click="emit('zoom', 'in')"
-        >
+        <IconButton bordered class="chrome__btn" label="Zoom in" data-testid="nav-zoom-in" @click="emit('zoom', 'in')">
           +
-        </button>
-        <button
-          type="button"
-          class="chrome__btn"
-          data-testid="nav-zoom-out"
-          title="Zoom out"
-          aria-label="Zoom out"
-          @click="emit('zoom', 'out')"
-        >
+        </IconButton>
+        <IconButton bordered class="chrome__btn" label="Zoom out" data-testid="nav-zoom-out" @click="emit('zoom', 'out')">
           −
-        </button>
+        </IconButton>
       </div>
     </div>
   </div>
@@ -319,24 +307,20 @@ const STEPS = Object.freeze([
   display: contents;
 }
 
+/* The nav buttons are `IconButton` and `BaseButton`: the look (outline, fill, hover, focus ring) is
+   theirs. What stays here is size and placement. The selected state of the toggles (the drag-mode
+   and preset buttons use `variant="primary"`; the expand toggle and gear are `aria-expanded`) is the
+   one look this file still names. */
+
 /* Hidden everywhere except a raised phone cluster — see the media block below. */
-.chrome__expand {
+.chrome .chrome__expand {
   display: none;
-  width: var(--tap-compact);
-  height: var(--tap-compact);
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
   font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  touch-action: manipulation;
   align-self: flex-end;
 }
 
-.chrome__expand[aria-expanded='true'] {
+.chrome .chrome__expand[aria-expanded='true'],
+.chrome .chrome__gear[aria-expanded='true'] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
@@ -347,43 +331,20 @@ const STEPS = Object.freeze([
   gap: 4px;
 }
 
-.chrome__mode {
+.chrome .chrome__mode {
   flex: 1;
+  min-width: 0;
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
   font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-.chrome__mode--on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.chrome__gear {
+.chrome .chrome__gear {
   flex: 0 0 auto;
   width: 30px;
+  height: auto;
   min-height: 32px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
   font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.chrome__gear[aria-expanded='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
 }
 
 /* Opens upward from the modes row so it never reaches toward the orientation
@@ -406,24 +367,10 @@ const STEPS = Object.freeze([
   box-shadow: var(--shadow-overlay);
 }
 
-.chrome__preset {
+.chrome .chrome__preset {
   min-height: var(--tap);
   padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
   font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.chrome__preset--on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
 }
 
 .chrome__row {
@@ -447,38 +394,13 @@ const STEPS = Object.freeze([
   gap: 2px;
 }
 
-.chrome__btn {
-  width: var(--tap);
-  height: var(--tap);
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
+.chrome .chrome__btn {
   font-size: 14px;
   line-height: 1;
-  cursor: pointer;
-  /* Keep taps from being swallowed by double-tap-to-zoom on touch engines. */
-  touch-action: manipulation;
 }
 
-.chrome__btn--reset {
-  background: var(--surface-1);
-  color: var(--text-2);
+.chrome .chrome__btn--reset {
   font-size: 16px;
-}
-
-.chrome__btn:hover,
-.chrome__btn:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-  outline: none;
-}
-
-.chrome__btn:active {
-  background: var(--accent);
-  color: var(--accent-contrast);
 }
 
 /* The compact form (`TODO/ui-084`): the ≤ 480px rules below, keyed on the chrome tier as well, so
@@ -522,7 +444,7 @@ const STEPS = Object.freeze([
     padding: 4px;
   }
 
-  .chrome__btn {
+  .chrome .chrome__btn {
     /* Still a comfortable target at 390px width — the whole cluster is
        38×3 + 38 + gaps ≈ 162px, so nothing reflows off-screen and the page
        never scrolls horizontally. */
@@ -530,12 +452,12 @@ const STEPS = Object.freeze([
     height: var(--tap-compact);
   }
 
-  .chrome__mode {
+  .chrome .chrome__mode {
     min-height: 30px;
     font-size: 11px;
   }
 
-  .chrome__gear {
+  .chrome .chrome__gear {
     min-height: 30px;
     width: 26px;
     font-size: 13px;
@@ -545,7 +467,7 @@ const STEPS = Object.freeze([
     min-width: 200px;
   }
 
-  .chrome__preset {
+  .chrome .chrome__preset {
     min-height: 30px;
     font-size: 11px;
   }

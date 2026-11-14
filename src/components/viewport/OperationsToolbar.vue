@@ -307,6 +307,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import NumberField from '../controls/NumberField.vue'
 import AlignPopover from './AlignPopover.vue'
@@ -1896,23 +1897,12 @@ onBeforeUnmount(() => closeGroup())
         </p>
 
         <div class="ops__popover-actions">
-          <button
-            type="button"
-            class="ops__popover-cancel"
-            data-testid="fillet-chamfer-cancel"
-            @click="closePopover"
-          >
+          <BaseButton size="compact" fill data-testid="fillet-chamfer-cancel" @click="closePopover">
             Cancel
-          </button>
-          <button
-            type="button"
-            class="ops__popover-commit"
-            :disabled="!canCommitFilletChamfer"
-            data-testid="fillet-chamfer-commit"
-            @click="commitFilletChamfer"
-          >
+          </BaseButton>
+          <BaseButton size="compact" fill variant="primary" :disabled="!canCommitFilletChamfer" data-testid="fillet-chamfer-commit" @click="commitFilletChamfer">
             {{ openPopover === 'modify.filletRim' ? 'Fillet' : 'Chamfer' }}
-          </button>
+          </BaseButton>
         </div>
         <HelpButton :topic="openPopover === 'modify.filletRim' ? 'fillet' : 'chamfer'" class="ops__popover-help" />
       </div>
@@ -2028,23 +2018,12 @@ onBeforeUnmount(() => closeGroup())
         </p>
 
         <div class="ops__popover-actions">
-          <button
-            type="button"
-            class="ops__popover-cancel"
-            data-testid="resize-cancel"
-            @click="closePopover"
-          >
+          <BaseButton size="compact" fill data-testid="resize-cancel" @click="closePopover">
             Cancel
-          </button>
-          <button
-            type="button"
-            class="ops__popover-commit"
-            :disabled="!canCommitResize"
-            data-testid="resize-commit"
-            @click="commitResize"
-          >
+          </BaseButton>
+          <BaseButton size="compact" fill variant="primary" :disabled="!canCommitResize" data-testid="resize-commit" @click="commitResize">
             {{ RESIZE_OPERATIONS.find((operation) => operation.op === openPopover)?.label }}
-          </button>
+          </BaseButton>
         </div>
         <HelpButton :topic="openPopover === 'modify.bisect' ? 'bisect' : 'resize'" class="ops__popover-help" />
       </div>
@@ -2078,12 +2057,12 @@ onBeforeUnmount(() => closeGroup())
           {{ opError }}
         </p>
         <div class="ops__popover-actions">
-          <button type="button" class="ops__popover-cancel" data-testid="mirror-cancel" @click="closePopover">
+          <BaseButton size="compact" fill data-testid="mirror-cancel" @click="closePopover">
             Cancel
-          </button>
-          <button type="button" class="ops__popover-commit" data-testid="mirror-commit" @click="commitMirror">
+          </BaseButton>
+          <BaseButton size="compact" fill variant="primary" data-testid="mirror-commit" @click="commitMirror">
             Mirror
-          </button>
+          </BaseButton>
         </div>
         <HelpButton topic="mirror" class="ops__popover-help" />
       </div>
@@ -2618,34 +2597,6 @@ onBeforeUnmount(() => closeGroup())
   display: flex;
   gap: 6px;
   margin-top: 2px;
-}
-
-.ops__popover-cancel,
-.ops__popover-commit {
-  flex: 1;
-  min-height: var(--tap-compact);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.ops__popover-cancel {
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.ops__popover-commit {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.ops__popover-commit:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 /*

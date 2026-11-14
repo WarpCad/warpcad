@@ -31,6 +31,8 @@
  */
 import { computed } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
+import IconButton from '../controls/IconButton.vue'
 import NumberField from '../controls/NumberField.vue'
 
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
@@ -98,14 +100,13 @@ function onSides(value) {
   >
     <div class="sketch-toolbar__row">
       <div class="sketch-toolbar__group" role="group" aria-label="Sketch tools">
-        <button
+        <IconButton
           v-for="tool in SKETCH_TOOLS"
           :key="tool"
-          type="button"
+          bordered
           class="sketch-toolbar__btn sketch-toolbar__btn--tool"
-          :class="{ 'sketch-toolbar__btn--on': editor.tool === tool }"
-          :aria-pressed="editor.tool === tool"
-          :aria-label="TOOL_INFO[tool].label"
+          :pressed="editor.tool === tool"
+          :label="TOOL_INFO[tool].label"
           :title="`${TOOL_INFO[tool].label} — ${TOOL_INFO[tool].hint}`"
           :data-testid="`sketch-tool-${tool}`"
           @click="editor.setTool(tool)"
@@ -114,7 +115,7 @@ function onSides(value) {
             <path d="M5 3 L5 19 L9.2 15 L12 21.5 L14.6 20.3 L11.8 14 L17.5 14 Z" />
           </svg>
           <template v-else>{{ TOOL_INFO[tool].glyph }}</template>
-        </button>
+        </IconButton>
         <NumberField
           v-if="editor.tool === 'polygon'"
           class="sketch-toolbar__sides"
@@ -129,10 +130,11 @@ function onSides(value) {
         />
       </div>
 
-      <button
-        type="button"
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn"
-        :class="{ 'sketch-toolbar__btn--open': editor.panel === 'curve', 'sketch-toolbar__btn--on': editor.tool === 'curve' }"
+        :class="{ 'sketch-toolbar__btn--open': editor.panel === 'curve' }"
+        :variant="editor.tool === 'curve' ? 'primary' : 'default'"
         :aria-expanded="editor.panel === 'curve'"
         aria-label="Curve"
         title="Curve — an airfoil, an ellipse, or a smooth spline through an outline's points"
@@ -140,13 +142,12 @@ function onSides(value) {
         @click="editor.togglePanel('curve')"
       >
         Curve ▾
-      </button>
+      </BaseButton>
 
-      <button
-        type="button"
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn sketch-toolbar__btn--snap"
-        :class="{ 'sketch-toolbar__btn--snap-on': editor.snapEnabled }"
-        :aria-pressed="editor.snapEnabled"
+        :pressed="editor.snapEnabled"
         :title="
           editor.snapEnabled
             ? 'Snapping is on: new points jump to corners, centres, midpoints and edges nearby. Tap to turn it off (or hold Shift while drawing)'
@@ -160,12 +161,12 @@ function onSides(value) {
           <path d="M5 4 V12 A7 7 0 0 0 19 12 V4 M5 8 H9 M15 8 H19 M9 4 V12 A3 3 0 0 0 15 12 V4" />
         </svg>
         Snap
-      </button>
+      </BaseButton>
 
-      <button
-        type="button"
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn"
-        :class="{ 'sketch-toolbar__btn--on': isHole }"
+        :variant="isHole ? 'primary' : 'default'"
         :aria-pressed="isHole"
         :disabled="!selected"
         :title="selected ? 'Mark the selected outline as a Hole (or back to Solid)' : 'Tap an outline first, then mark it as a Hole'"
@@ -174,13 +175,13 @@ function onSides(value) {
         @click="toggleHole"
       >
         Hole
-      </button>
+      </BaseButton>
 
-      <button
-        type="button"
+      <IconButton
+        bordered
         class="sketch-toolbar__btn sketch-toolbar__btn--icon"
         :disabled="!selected || Boolean(editor.deleteProblem)"
-        :aria-label="editor.deleteTarget === 'vertex' ? 'Delete vertex' : 'Delete outline'"
+        :label="editor.deleteTarget === 'vertex' ? 'Delete vertex' : 'Delete outline'"
         :title="deleteTitle"
         data-testid="sketch-delete"
         :data-target="editor.deleteTarget"
@@ -189,10 +190,10 @@ function onSides(value) {
         <svg class="sketch-toolbar__icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 7 H20 M9 7 V4.5 H15 V7 M6.5 7 L7.5 20 H16.5 L17.5 7 M10 10.5 V16.5 M14 10.5 V16.5" />
         </svg>
-      </button>
+      </IconButton>
 
-      <button
-        type="button"
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn"
         :class="{ 'sketch-toolbar__btn--open': editor.panel === 'slices' }"
         :aria-expanded="editor.panel === 'slices'"
@@ -201,9 +202,9 @@ function onSides(value) {
         @click="editor.togglePanel('slices')"
       >
         Slices {{ editor.draft.slices.length }}
-      </button>
-      <button
-        type="button"
+      </BaseButton>
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn"
         :class="{ 'sketch-toolbar__btn--open': editor.panel === 'extrude' }"
         :aria-expanded="editor.panel === 'extrude'"
@@ -212,10 +213,10 @@ function onSides(value) {
         @click="editor.togglePanel('extrude')"
       >
         {{ METHOD_LABELS[editor.draft.extrusion.method] }} ▾
-      </button>
+      </BaseButton>
 
-      <button
-        type="button"
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn sketch-toolbar__btn--done"
         :disabled="Boolean(editor.doneProblem)"
         :title="editor.doneProblem || 'Finish the sketch and make the solid'"
@@ -223,36 +224,36 @@ function onSides(value) {
         @click="commands.done()"
       >
         Done
-      </button>
-      <button
-        type="button"
+      </BaseButton>
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn"
         title="Discard every change since the editor opened"
         data-testid="sketch-cancel"
         @click="commands.cancel()"
       >
         Cancel
-      </button>
+      </BaseButton>
     </div>
     <div v-if="editor.chainLive" class="sketch-toolbar__row sketch-toolbar__row--chain" data-testid="sketch-chain-row">
-      <button
-        type="button"
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn sketch-toolbar__btn--chain"
         title="Finish the line and leave it open (Esc or Enter)"
         data-testid="sketch-line-finish"
         @click="editor.finishChain()"
       >
         Finish
-      </button>
-      <button
-        type="button"
+      </BaseButton>
+      <BaseButton
+        narrow
         class="sketch-toolbar__btn sketch-toolbar__btn--chain"
         title="Remove the last point (Backspace)"
         data-testid="sketch-line-undo"
         @click="editor.undoPoint()"
       >
         Undo point
-      </button>
+      </BaseButton>
     </div>
     <p v-if="editor.chainLive && editor.tool === 'line'" class="sketch-toolbar__status sketch-toolbar__status--info" data-testid="sketch-chain-hint" role="status">
       Click to add a point · Esc to finish · click the first point to close
@@ -309,20 +310,15 @@ function onSides(value) {
   align-items: center;
 }
 
-.sketch-toolbar__btn {
-  min-height: var(--tap);
-  min-width: var(--tap);
+/* The toolbar's buttons are `BaseButton` (text) and `IconButton` (glyph): the look is theirs. What
+   stays is this bar's density (12 px type, 10 px padding), the one state look `BaseButton` has no
+   prop for (`aria-expanded`: a panel is open, so the button takes the accent), and the Done accent. */
+.sketch-toolbar .sketch-toolbar__btn {
   padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
   font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-.sketch-toolbar__btn--tool {
+.sketch-toolbar .sketch-toolbar__btn--tool {
   padding: 0;
   font-size: 18px;
   line-height: 1;
@@ -344,50 +340,25 @@ function onSides(value) {
   fill: currentColor;
 }
 
-.sketch-toolbar__btn--on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-/* Snap on reads as "engaged" without claiming the solid fill the armed tool uses. */
-.sketch-toolbar__btn--snap {
+.sketch-toolbar .sketch-toolbar__btn--snap {
   display: inline-flex;
   align-items: center;
   gap: 3px;
 }
 
-.sketch-toolbar__btn--snap-on {
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.sketch-toolbar__btn--snap:not(.sketch-toolbar__btn--snap-on) .sketch-toolbar__icon {
+.sketch-toolbar__btn--snap:not([aria-pressed='true']) .sketch-toolbar__icon {
   opacity: 0.5;
 }
 
-.sketch-toolbar__btn--open {
+.sketch-toolbar .sketch-toolbar__btn--open {
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.sketch-toolbar__btn--done:not(:disabled) {
+.sketch-toolbar .sketch-toolbar__btn--done:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
-}
-
-.sketch-toolbar__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.sketch-toolbar__btn:hover:not(:disabled),
-.sketch-toolbar__btn:focus-visible {
-  border-color: var(--accent);
-  outline: none;
 }
 
 .sketch-toolbar__sides {
@@ -444,25 +415,35 @@ function onSides(value) {
     gap: 4px;
   }
 
-  .sketch-toolbar__btn {
+  .sketch-toolbar .sketch-toolbar__btn {
     min-height: var(--tap-compact);
     min-width: var(--tap-compact);
     padding: 0 7px;
     font-size: 11px;
   }
 
-  .sketch-toolbar__btn--tool {
+  .sketch-toolbar .sketch-toolbar__btn--tool,
+  .sketch-toolbar .sketch-toolbar__btn--icon {
+    width: var(--tap-compact);
+    height: var(--tap-compact);
     padding: 0;
+  }
+
+  .sketch-toolbar .sketch-toolbar__btn--tool {
     font-size: 16px;
   }
 
   /* Select, Delete and Snap are the controls a finger needs most and a keyboard cannot
      stand in for (Snap is the phone's only way to turn snapping off — no Shift key), so they
      keep the full 44 px target the rest of the row gives up. */
-  .sketch-toolbar__btn[data-testid='sketch-tool-select'],
-  .sketch-toolbar__btn[data-testid='sketch-delete'],
-  .sketch-toolbar__btn[data-testid='sketch-snap-toggle'],
-  .sketch-toolbar__btn--chain {
+  .sketch-toolbar .sketch-toolbar__btn[data-testid='sketch-tool-select'],
+  .sketch-toolbar .sketch-toolbar__btn[data-testid='sketch-delete'] {
+    width: var(--tap);
+    height: var(--tap);
+  }
+
+  .sketch-toolbar .sketch-toolbar__btn[data-testid='sketch-snap-toggle'],
+  .sketch-toolbar .sketch-toolbar__btn--chain {
     min-height: var(--tap);
     min-width: var(--tap);
   }
