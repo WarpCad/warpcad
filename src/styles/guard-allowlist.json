@@ -148,7 +148,7 @@
       "src/components/storage/ResolutionPopover.vue": 5,
       "src/components/storage/SaveAsGistDialog.vue": 6,
       "src/components/timeline/TimelinePanel.vue": 6,
-      "src/components/timeline/TimelineRow.vue": 8,
+      "src/components/timeline/TimelineRow.vue": 7,
       "src/components/timeline/TimelineStrips.vue": 4,
       "src/components/timeline/TimelineToggle.vue": 2,
       "src/components/viewport/AlignGrid.vue": 4,

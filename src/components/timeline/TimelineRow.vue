@@ -34,6 +34,8 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
+import BaseButton from '../controls/BaseButton.vue'
+import IconButton from '../controls/IconButton.vue'
 import NumberField from '../controls/NumberField.vue'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { originChipText } from '../../core/origin.js'
@@ -223,22 +225,20 @@ function cancel() {
           <span v-if="row.origin !== 'local'" class="chip" data-testid="chip-origin">{{ originLabel }}</span>
         </span>
       </button>
-      <button
+      <IconButton
         v-if="row.intent !== null"
-        type="button"
         class="row__intent-toggle"
+        label="Why this step exists"
         data-testid="timeline-intent-toggle"
         :aria-expanded="intentOpen ? 'true' : 'false'"
         :aria-controls="intentId"
-        aria-label="Why this step exists"
-        title="Why this step exists"
         @click="intentOpen = !intentOpen"
       >
         <svg class="row__intent-icon" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M3 1.5h7l3 3v10H3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" />
           <path d="M5.5 7h5M5.5 9.5h5M5.5 12h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
         </svg>
-      </button>
+      </IconButton>
     </div>
 
     <div v-if="row.intent !== null && intentOpen" :id="intentId" class="intent" data-testid="timeline-intent">
@@ -254,19 +254,15 @@ function cancel() {
     </p>
 
     <div v-if="selected" class="actions" data-testid="timeline-actions">
-      <button
-        type="button"
-        class="actions__btn"
+      <BaseButton
         data-testid="timeline-edit"
         :disabled="!editVerdict.editable || editing"
         :title="editVerdict.reason ?? 'Edit this step’s values'"
         @click="startEdit()"
       >
         Edit
-      </button>
-      <button
-        type="button"
-        class="actions__btn"
+      </BaseButton>
+      <BaseButton
         data-testid="timeline-suppress"
         :aria-pressed="row.suppressed"
         :title="
@@ -277,50 +273,43 @@ function cancel() {
         @click="commands.setSuppressed(row.id, !row.suppressed)"
       >
         {{ row.suppressed ? 'Unsuppress' : 'Suppress' }}
-      </button>
-      <button
-        type="button"
-        class="actions__btn"
+      </BaseButton>
+      <BaseButton
         data-testid="timeline-move-up"
         :disabled="!upVerdict.allowed"
         :title="upVerdict.reason ?? 'Move this step one position earlier'"
         @click="commands.moveStep(row.id, -1)"
       >
         Move up
-      </button>
-      <button
-        type="button"
-        class="actions__btn"
+      </BaseButton>
+      <BaseButton
         data-testid="timeline-move-down"
         :disabled="!downVerdict.allowed"
         :title="downVerdict.reason ?? 'Move this step one position later'"
         @click="commands.moveStep(row.id, 1)"
       >
         Move down
-      </button>
-      <button
-        type="button"
-        class="actions__btn"
+      </BaseButton>
+      <BaseButton
         data-testid="timeline-rollback"
         :disabled="!rollbackVerdict.allowed"
         :title="rollbackVerdict.reason ?? 'Stop evaluating after this step — nothing is deleted'"
         @click="commands.rollBackTo(row.id)"
       >
         Roll back to here
-      </button>
+      </BaseButton>
       <!-- TODO/data-006 (option c): only on a broken tail row that broke because a step
            inserted while rolled back moved the body it builds on. Nothing re-points until
            this is pressed; a row broken for any other reason never shows it. -->
-      <button
+      <BaseButton
         v-if="row.relinkTo !== null"
-        type="button"
-        class="actions__btn actions__btn--primary"
+        variant="primary"
         data-testid="timeline-relink"
         title="Point this step at the body’s new position, so it can be built again"
         @click="commands.relinkStep(row.id)"
       >
         Re-link to the moved step
-      </button>
+      </BaseButton>
     </div>
 
     <form v-if="selected && editing" class="edit" data-testid="timeline-edit-form" @submit.prevent="apply()">
@@ -376,12 +365,12 @@ function cancel() {
       </label>
 
       <div class="edit__buttons">
-        <button type="submit" class="actions__btn actions__btn--primary" data-testid="timeline-apply">
+        <BaseButton type="submit" variant="primary" data-testid="timeline-apply">
           Apply
-        </button>
-        <button type="button" class="actions__btn" data-testid="timeline-cancel" @click="cancel()">
+        </BaseButton>
+        <BaseButton data-testid="timeline-cancel" @click="cancel()">
           Cancel
-        </button>
+        </BaseButton>
       </div>
     </form>
   </li>
@@ -500,24 +489,10 @@ function cancel() {
   color: var(--danger);
 }
 
+/* Layout only: the toggle sits beside the row at its own width. The look is `IconButton`'s. */
 .row__intent-toggle {
-  flex: 0 0 auto;
-  width: var(--tap);
-  min-height: var(--tap);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.row__intent-toggle:hover,
-.row__intent-toggle[aria-expanded='true'] {
-  color: var(--accent);
+  align-self: stretch;
+  height: auto;
 }
 
 .row__intent-icon {
@@ -559,41 +534,7 @@ function cancel() {
   padding: 0 10px 8px 13px;
 }
 
-.actions__btn {
-  min-height: var(--tap);
-  padding: 4px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.actions__btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.actions__btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.actions__btn--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-/* The generic hover rule above paints text with --accent, which is this button's own
-   background; keep the contrast token while hovered (TODO/ui-103). */
-.actions__btn--primary:hover:not(:disabled) {
-  color: var(--accent-contrast);
-}
-
+/* Buttons here are `BaseButton`s; the strip only lays them out. */
 .edit {
   display: flex;
   flex-direction: column;

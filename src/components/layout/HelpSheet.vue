@@ -30,7 +30,9 @@ import { helpUrl, loadHelpIndex, loadHelpPage, resolveSlug } from '../../help/lo
 import { sanitizeHelpHtml } from '../../help/sanitize.js'
 import { TOPICS } from '../../help/topics.js'
 import { isNativeShell, openExternal, probeShell } from '../../native/shell.js'
+import BaseButton from '../controls/BaseButton.vue'
 import ExternalLink from '../controls/ExternalLink.vue'
+import IconButton from '../controls/IconButton.vue'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
 import { THEME_PREFERENCES } from '../../stores/settings.js'
@@ -270,36 +272,38 @@ onBeforeUnmount(() => {
       <div class="help__backdrop" data-testid="help-backdrop" @click="help.close()" />
       <div ref="helpEl" class="help" role="dialog" aria-modal="true" aria-label="Help" data-testid="help-sheet" :data-page="help.page">
         <header class="help__head">
-          <button
-            type="button"
-            class="help__btn"
+          <BaseButton
+            variant="quiet"
+            narrow
+            class="help__nav"
             data-testid="help-back"
             :disabled="!help.canGoBack"
             aria-label="Back"
             @click="help.back()"
           >
             ‹ Back
-          </button>
+          </BaseButton>
           <h2 class="help__title" data-testid="help-current-page">{{ currentTitle }}</h2>
-          <button
-            type="button"
-            class="help__btn help__contents-toggle"
+          <BaseButton
+            variant="quiet"
+            narrow
+            class="help__nav help__contents-toggle"
             data-testid="help-contents-toggle"
             :aria-expanded="help.contentsOpen"
             @click="help.toggleContents()"
           >
             Contents
-          </button>
-          <button
+          </BaseButton>
+          <IconButton
             ref="closeButton"
-            type="button"
-            class="help__btn help__close"
+            label="Close help"
+            variant="quiet"
+            class="help__close"
             data-testid="help-close"
-            aria-label="Close help"
             @click="help.close()"
           >
             ×
-          </button>
+          </IconButton>
         </header>
         <div class="help__body">
           <nav
@@ -328,12 +332,12 @@ onBeforeUnmount(() => {
             </p>
             <div v-else-if="state === 'error' && native" class="help__status" role="alert" data-testid="help-error">
               Help needs a connection. Everything else in WarpCad works offline.
-              <button type="button" class="help__btn" data-testid="help-retry" @click="retry()">Retry</button>
+              <BaseButton data-testid="help-retry" @click="retry()">Retry</BaseButton>
             </div>
             <div v-else-if="state === 'error'" class="help__status" role="alert" data-testid="help-error">
               Could not load this page. If you are offline and have not opened Help before, it is not cached
               yet — reconnect once and it will be.
-              <button type="button" class="help__btn" data-testid="help-retry" @click="retry()">Try again</button>
+              <BaseButton data-testid="help-retry" @click="retry()">Try again</BaseButton>
             </div>
             <!-- Help HTML from our docs build, fetched (from app.warpcad.com in the native app) and sanitised (`src/help/sanitize.js`). -->
             <article
@@ -367,15 +371,13 @@ onBeforeUnmount(() => {
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
               <span data-testid="help-version">{{ update.helpVersionLine }}</span>
-              <button
-                type="button"
-                class="help__btn"
+              <BaseButton
                 data-testid="pwa-check-update"
                 :disabled="update.checking"
                 @click="update.check()"
               >
                 {{ update.checking ? 'Checking…' : 'Check for updates' }}
-              </button>
+              </BaseButton>
               <span v-if="update.message" class="help__version-message" role="status" data-testid="pwa-check-message">{{ update.message }}</span>
             </div>
             <p v-if="state === 'ready' && skewLine" class="help__version-skew" data-testid="help-version-skew">{{ skewLine }}</p>
@@ -496,29 +498,11 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.help__btn {
-  min-width: var(--tap);
-  min-height: var(--tap);
+/* Layout only: the header's text buttons keep their side padding and header type size (the Help
+   screenshots are taken with it); the look is `BaseButton`'s. */
+.help__nav {
   padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-2);
-  font-family: inherit;
   font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.help__btn:hover:not(:disabled),
-.help__btn:focus-visible {
-  color: var(--accent);
-  border-color: var(--border-strong);
-}
-
-.help__btn:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 
 .help__close {
