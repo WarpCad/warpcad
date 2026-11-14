@@ -929,6 +929,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `core-081` | Build operation records in one core module, not in the toolbar and the AI tools separately. Closed 2026-11-11: builders in `src/core/operationRecords.js`, UI and AI paths share them; e2e pair and 3×3 matrix green, acceptance 4/5/6/16/32 covered by e2e specs | Finding | — | 4, 5, 6, 16, 32 |
 | ✅ `testing-010` | The docs screenshot "ai-working-chip still" drifted on laptop. It no longer reproduces: the drift was the header version label changing with release bumps, which b81a99b pinned. No baseline or component change needed; the full docs-* screenshot suite is green under `CI=1` | Finding | — | none |
 | ✅ `testing-021` | Re-check the VERIFY.md rows later work appears to have answered. All seven were overtaken or half-answered; six closed `N/A` with evidence, `ui-039` #1's toolbar-fit half answered. No docs page was untrue. Filed 2026-11-07, closed 2026-11-14 | Finding | — | none |
+| ✅ `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle. All 11 rows answered on a fresh production build in Chromium, Firefox and WebKit at the reference viewports: ten `OK` (the `ui-050` row's premise had moved to the Align popover, the `ui-085` row's tablet half is N/A because the Library is a rail there), and the `ui-079` desktop sweep found one defect, filed as `ui-124` (navigation chrome overlaps the scale readout at about 650 px); the real-iPad half of `ui-079` stays in VERIFY.md. Filed `testing-039` to graduate the repeat-checked `render-007` and `ui-048` rows into a spec. Filed 2026-11-07, closed 2026-11-14. [`done/testing-017`](done/testing-017-verify-layout-and-engine-checks-in-emulation.md) | Finding | — | none (part of 6) |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1345,5 +1346,6 @@ convention going forward.
 | `ui-117` | 2026-11-14 16:33 | 54m (five stage commits in one run) |
 | `ui-118` | 2026-11-14 | one run over two sessions, 14 commits |
 | `ui-111` | 2026-11-14 | docs and roadmap only: verified the chain, wrote `docs/decisions/theming.md`, filed three follow-ups |
+| `testing-017` | 2026-11-14 13:50 | ~1h (verification only: no product code changed; two findings filed) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

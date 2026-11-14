@@ -6,8 +6,18 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-14):** all eleven rows were driven on a fresh production build (`npm run build`, `vite preview`) with
+> Playwright in Chromium, Firefox and WebKit at 390x844, 820x1180 and 1440x900, and written into `TODO/VERIFY.md`. Ten read `OK`
+> with their numbers; two carry a scope note (`ui-085` #2: the tablet width is N/A, the Library is a 72 px rail there with no hint or Help
+> button; `ui-050` #4: the Inspector row it names became the Align popover in `ui-060`, so the Align popover was driven instead).
+> `ui-079` #3's desktop half is answered and found **one defect**, the navigation chrome overlapping the grid scale readout at a
+> window about 650 px wide, filed as `FIND-ui-124`; its real-iPad half stays `Open` in VERIFY.md. `render-007` #2 launched a headed
+> Firefox (Playwright's build) fine, so nothing was left Open for that row; it does not cover the owner's own Firefox or a human eye.
+> `ai-017` #2 had to run on the dev server because Scripted mode is dev-only. `render-007` and `ui-048` #4 have now been checked by
+> hand twice, so `FIND-testing-039` asks for one three-engine spec. No source file changed.
 
 ## Problem
 
