@@ -26,6 +26,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const persistence = usePersistenceStore()
 
@@ -66,34 +67,33 @@ useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
   <ModalShell :open="persistence.diskPromptOpen" testid="disk-change" :title="title" @backdrop="choose('cancel')">
     <p class="disk__detail" data-testid="disk-change-reason">{{ persistence.diskIssueText }}</p>
     <div class="disk__actions">
-      <button
-        type="button"
-        class="disk__button disk__button--primary"
+      <BaseButton
+        variant="primary"
+        align="start"
         data-testid="disk-change-reload"
         :disabled="working"
         @click="choose('reload')"
       >
         Reload (replaces this project)
-      </button>
-      <button
-        type="button"
-        class="disk__button disk__button--danger"
+      </BaseButton>
+      <BaseButton
+        variant="danger"
+        align="start"
         data-testid="disk-change-overwrite"
         :disabled="working"
         @click="choose('overwrite')"
       >
         Overwrite the file with this project
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         ref="cancelButton"
-        type="button"
-        class="disk__button"
+        align="start"
         data-testid="disk-change-cancel"
         :disabled="working"
         @click="choose('cancel')"
       >
         Cancel
-      </button>
+      </BaseButton>
     </div>
     <p class="disk__note">
       Reload drops any edits made here since you opened or saved the file, and clears the undo history.
@@ -119,31 +119,4 @@ useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
   gap: 8px;
 }
 
-.disk__button {
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.disk__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.disk__button--primary {
-  border-color: var(--accent);
-}
-
-.disk__button--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-}
 </style>

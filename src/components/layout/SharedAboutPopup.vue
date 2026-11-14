@@ -19,6 +19,7 @@ import { nextTick, ref, watch } from 'vue'
 import DescriptionText from '../display/DescriptionText.vue'
 import ModalShell from '../storage/ModalShell.vue'
 import { useEscapeToClose } from '../../composables/useEscapeToClose.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -50,9 +51,9 @@ watch(
     <div class="about__body" data-testid="shared-about-body">
       <DescriptionText :text="text" testid="shared-about-text" />
     </div>
-    <button ref="button" type="button" class="about__button" data-testid="shared-about-close" @click="emit('close')">
+    <BaseButton ref="button" variant="primary" size="large" data-testid="shared-about-close" @click="emit('close')">
       View the model
-    </button>
+    </BaseButton>
   </ModalShell>
 </template>
 
@@ -61,17 +62,4 @@ watch(
   min-width: 0;
 }
 
-.about__button {
-  min-height: 48px;
-  padding: 0 16px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-md);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  touch-action: manipulation;
-}
 </style>

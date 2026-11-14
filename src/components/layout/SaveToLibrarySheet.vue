@@ -24,6 +24,7 @@ import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import HelpButton from '../controls/HelpButton.vue'
 import { useLibraryStore } from '../../stores/library.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const library = useLibraryStore()
 const overlays = useOverlaysStore()
@@ -98,17 +99,19 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
       </p>
 
       <div class="save-sheet__actions">
-        <button type="button" class="save-sheet__button" data-testid="save-library-cancel" @click="library.closeSave()">
+        <BaseButton size="large" fill data-testid="save-library-cancel" @click="library.closeSave()">
           Cancel
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           type="submit"
-          class="save-sheet__button save-sheet__button--primary"
+          variant="primary"
+          size="large"
+          fill
           :disabled="!library.canSave"
           data-testid="save-library-submit"
         >
           {{ library.saving ? 'Saving…' : 'Save' }}
-        </button>
+        </BaseButton>
       </div>
     </form>
 
@@ -209,30 +212,6 @@ useOverlayStack(() => library.saveOpen, () => library.closeSave())
 .save-sheet__actions {
   display: flex;
   gap: 8px;
-}
-
-.save-sheet__button {
-  flex: 1;
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.save-sheet__button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.save-sheet__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
 }
 
 .library-toast {

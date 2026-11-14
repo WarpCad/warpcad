@@ -710,7 +710,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     await expect(page.getByTestId('share-copy')).toHaveCount(0)
     await expect(page.getByTestId('share-too-big')).toContainText('Publish it as a gist')
     const connect = page.getByTestId('share-gist-connect')
-    await expect(connect).toHaveClass(/share-gist__button--primary/)
+    await expect(connect).toHaveClass(/base-button--primary/)
 
     // The dialog opens over the sheet; Escape closes the dialog only.
     await tap(input, connect)
@@ -724,7 +724,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     await expect(page.getByTestId('share-sheet')).toBeVisible()
 
     const publish = page.getByTestId('share-gist-publish')
-    await expect(publish).toHaveClass(/share-gist__button--primary/)
+    await expect(publish).toHaveClass(/base-button--primary/)
     await tap(input, publish)
     await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
     const link = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))

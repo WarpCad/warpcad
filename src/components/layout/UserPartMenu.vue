@@ -21,6 +21,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useLibraryStore } from '../../stores/library.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   row: {
@@ -173,15 +174,17 @@ useOverlayStack(
         <p v-if="library.renameProblem" class="udialog__problem" data-testid="user-part-rename-problem">{{ library.renameProblem }}</p>
         <p v-if="library.renameError" class="udialog__problem" role="alert">{{ library.renameError }}</p>
         <div class="udialog__actions">
-          <button type="button" class="udialog__button" data-testid="user-part-rename-cancel" @click="library.cancelRename()">Cancel</button>
-          <button
+          <BaseButton size="large" fill data-testid="user-part-rename-cancel" @click="library.cancelRename()">Cancel</BaseButton>
+          <BaseButton
             type="submit"
-            class="udialog__button udialog__button--primary"
+            variant="primary"
+            size="large"
+            fill
             :disabled="library.renameProblem !== ''"
             data-testid="user-part-rename-save"
           >
             Rename
-          </button>
+          </BaseButton>
         </div>
       </form>
     </template>
@@ -192,17 +195,18 @@ useOverlayStack(
         <p class="udialog__title">Delete {{ library.deletePrompt.name }}?</p>
         <p class="udialog__text" data-testid="user-part-delete-message">{{ library.deletePrompt.message }}</p>
         <div class="udialog__actions">
-          <button type="button" class="udialog__button" data-testid="user-part-delete-cancel" @click="library.cancelDelete()">Cancel</button>
-          <button
+          <BaseButton size="large" fill data-testid="user-part-delete-cancel" @click="library.cancelDelete()">Cancel</BaseButton>
+          <BaseButton
             v-if="library.deletePrompt.confirmLabel"
             ref="deleteConfirm"
-            type="button"
-            class="udialog__button udialog__button--primary"
+            variant="primary"
+            size="large"
+            fill
             data-testid="user-part-delete-confirm"
             @click="library.confirmDelete()"
           >
             {{ library.deletePrompt.confirmLabel }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </template>
@@ -285,21 +289,8 @@ useOverlayStack(
 }
 
 .umenu__item,
-.udialog__button {
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-}
 
-.umenu__item:disabled,
-.udialog__button:disabled {
+.umenu__item:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -351,17 +342,6 @@ useOverlayStack(
   display: flex;
   gap: 8px;
   margin-top: 6px;
-}
-
-.udialog__actions .udialog__button {
-  flex: 1;
-  text-align: center;
-}
-
-.udialog__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
 }
 
 @media (min-width: 641px) {

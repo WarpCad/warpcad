@@ -9,6 +9,7 @@ import { ref } from 'vue'
 
 import { useFocusTrap } from '../../composables/useFocusTrap.js'
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 defineProps({
   name: { type: String, required: true },
@@ -41,8 +42,8 @@ useFocusTrap(panel, () => true)
       </ul>
       <p v-if="error" class="usage__error" role="alert" data-testid="variable-usage-error">{{ error }}</p>
       <footer class="usage__footer">
-        <button type="button" class="usage__btn" data-testid="variable-usage-cancel" @click="emit('cancel')">Cancel</button>
-        <button type="button" class="usage__btn usage__btn--primary" data-testid="variable-usage-keep" @click="emit('keep')">Delete and keep current values</button>
+        <BaseButton data-testid="variable-usage-cancel" @click="emit('cancel')">Cancel</BaseButton>
+        <BaseButton variant="primary" data-testid="variable-usage-keep" @click="emit('keep')">Delete and keep current values</BaseButton>
       </footer>
     </section>
   </div>
@@ -121,28 +122,6 @@ useFocusTrap(panel, () => true)
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.usage__btn {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.usage__btn--primary {
-  border-color: var(--accent);
-}
-
-.usage__btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 
 @media (max-width: 640px) {

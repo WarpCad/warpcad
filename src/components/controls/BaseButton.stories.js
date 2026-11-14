@@ -16,3 +16,7 @@ export const Quiet = { args: { variant: 'quiet' } }
 export const Compact = { args: { size: 'compact' } }
 export const Pressed = { args: { pressed: true } }
 export const Disabled = { args: { disabled: true } }
+export const Large = { args: { size: 'large' } }
+export const AlignStart = { args: { align: 'start', fill: true, default: 'Option-style label' } }
+export const Link = { args: { variant: 'link', default: 'Send the file' } }
+export const LinkDanger = { args: { variant: 'link-danger', default: 'Stop sharing' } }

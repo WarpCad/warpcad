@@ -31,6 +31,7 @@ import { useGistPublish } from '../../composables/useGistPublish.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
 import ExternalLink from '../controls/ExternalLink.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const props = defineProps({
   /** The long link is over its ceiling: the gist is the way to share this project. */
@@ -218,15 +219,15 @@ async function stop() {
       <p v-else class="share-gist__note">
         Publish the project to a GitHub gist for a short link that works at any size.
       </p>
-      <button
-        type="button"
-        class="share-gist__button"
-        :class="{ 'share-gist__button--primary': props.tooBig }"
+      <BaseButton
+        :variant="props.tooBig ? 'primary' : 'default'"
+        size="large"
+        fill
         data-testid="share-gist-connect"
         @click="openConnect()"
       >
         Connect GitHub for short links
-      </button>
+      </BaseButton>
     </template>
 
     <template v-else-if="!published">
@@ -237,36 +238,36 @@ async function stop() {
         <input v-model="makePublic" type="checkbox" data-testid="share-gist-public" :disabled="busy" />
         <span>Make it public</span>
       </label>
-      <button
-        type="button"
-        class="share-gist__button share-gist__button--wide"
-        :class="{ 'share-gist__button--primary': props.tooBig }"
+      <BaseButton
+        :variant="props.tooBig ? 'primary' : 'default'"
+        size="large"
+        class="share-gist__wide"
         data-testid="share-gist-publish"
         :disabled="!publisher.canPublish.value"
         @click="publish()"
       >
         {{ gist.publishState === 'publishing' ? 'Publishing…' : 'Publish to a gist' }}
-      </button>
+      </BaseButton>
     </template>
 
     <template v-else>
       <p class="share-gist__status" data-testid="share-gist-status">{{ statusText }}</p>
-      <button
-        type="button"
-        class="share-gist__button share-gist__button--wide"
-        :class="{ 'share-gist__button--primary': props.tooBig }"
+      <BaseButton
+        :variant="props.tooBig ? 'primary' : 'default'"
+        size="large"
+        class="share-gist__wide"
         data-testid="share-gist-copy"
         :disabled="busy"
         @click="copyLink()"
       >
         Copy gist link
-      </button>
+      </BaseButton>
       <div class="share-gist__row">
-        <button type="button" class="share-gist__button" data-testid="share-gist-update" :disabled="!publisher.canUpdate.value" @click="update()">
+        <BaseButton size="large" fill data-testid="share-gist-update" :disabled="!publisher.canUpdate.value" @click="update()">
           {{ gist.publishState === 'updating' ? 'Updating…' : 'Update gist' }}
-        </button>
+        </BaseButton>
         <ExternalLink
-          class="share-gist__button share-gist__button--link"
+          class="share-gist__link"
           :href="publisher.pageUrl.value ?? undefined"
           data-testid="share-gist-page"
         >Open on GitHub</ExternalLink>
@@ -278,24 +279,24 @@ async function stop() {
           and GitHub's caches for a few minutes, may remain.
         </p>
         <div class="share-gist__row">
-          <button type="button" class="share-gist__button" data-testid="share-gist-stop-cancel" @click="confirmingStop = false">
+          <BaseButton size="large" fill data-testid="share-gist-stop-cancel" @click="confirmingStop = false">
             Keep sharing
-          </button>
-          <button type="button" class="share-gist__button share-gist__button--danger" data-testid="share-gist-stop-yes" :disabled="busy" @click="stop()">
+          </BaseButton>
+          <BaseButton variant="danger" size="large" fill data-testid="share-gist-stop-yes" :disabled="busy" @click="stop()">
             Stop sharing
-          </button>
+          </BaseButton>
         </div>
       </div>
-      <button
+      <BaseButton
         v-else
-        type="button"
-        class="share-gist__text-button share-gist__text-button--danger"
+        variant="link-danger"
+        class="share-gist__text-button"
         data-testid="share-gist-stop"
         :disabled="busy"
         @click="confirmingStop = true"
       >
         Stop sharing
-      </button>
+      </BaseButton>
     </template>
 
     <template v-if="gist.connected && publisher.promptCount.value > 0">
@@ -321,15 +322,15 @@ async function stop() {
 
     <p class="share-gist__disclosure" data-testid="share-gist-disclosure">{{ disclosure }}</p>
 
-    <button
+    <BaseButton
       v-if="gist.connected"
-      type="button"
+      variant="link"
       class="share-gist__text-button"
       data-testid="share-gist-manage"
       @click="openConnect()"
     >
       GitHub account: {{ gist.login }}
-    </button>
+    </BaseButton>
   </section>
 </template>
 
@@ -405,7 +406,7 @@ async function stop() {
   gap: 8px;
 }
 
-.share-gist__button {
+.share-gist__link {
   box-sizing: border-box;
   flex: 1;
   display: inline-flex;
@@ -425,53 +426,12 @@ async function stop() {
   touch-action: manipulation;
 }
 
-.share-gist__button--wide {
+.share-gist__wide {
   width: 100%;
-  flex: none;
 }
 
-.share-gist__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.share-gist__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-.share-gist__button--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-/* Secondary: a text link's weight, a full 44px target. */
 .share-gist__text-button {
   align-self: flex-start;
-  min-height: var(--tap);
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 14px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  overflow-wrap: anywhere;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.share-gist__text-button--danger {
-  color: var(--danger);
-}
-
-.share-gist__text-button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .share-gist__confirm {

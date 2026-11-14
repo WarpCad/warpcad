@@ -26,6 +26,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import ModalShell from './ModalShell.vue'
+import BaseButton from '../controls/BaseButton.vue'
 
 const hosted = useHostedStore()
 
@@ -80,34 +81,32 @@ useOverlayStack(() => hosted.conflictOpen, () => void choose('cancel'))
   >
     <p v-if="detail" class="conflict__detail" data-testid="hosted-conflict-detail">{{ detail }}</p>
     <div class="conflict__actions">
-      <button
-        type="button"
-        class="conflict__button conflict__button--danger"
+      <BaseButton
+        variant="danger"
+        align="start"
         data-testid="hosted-conflict-overwrite"
         :disabled="working"
         @click="choose('overwrite')"
       >
         Overwrite remote
-      </button>
-      <button
-        type="button"
-        class="conflict__button"
+      </BaseButton>
+      <BaseButton
+        align="start"
         data-testid="hosted-conflict-load"
         :disabled="working"
         @click="choose('load')"
       >
         Load remote (replaces this project)
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         ref="cancelButton"
-        type="button"
-        class="conflict__button"
+        align="start"
         data-testid="hosted-conflict-cancel"
         :disabled="working"
         @click="choose('cancel')"
       >
         Cancel
-      </button>
+      </BaseButton>
     </div>
     <p class="conflict__note">
       Nothing was merged automatically. Load remote also replaces any edits you
@@ -132,27 +131,4 @@ useOverlayStack(() => hosted.conflictOpen, () => void choose('cancel'))
   gap: 8px;
 }
 
-.conflict__button {
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.conflict__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.conflict__button--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-}
 </style>

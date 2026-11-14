@@ -118,7 +118,7 @@ describe('ShareGistGroup', () => {
   it('over the long-link ceiling the gist button is the primary action', async () => {
     render({ tooBig: true })
     await flush()
-    expect(q('share-gist-connect').classList.contains('share-gist__button--primary')).toBe(true)
+    expect(q('share-gist-connect').classList.contains('base-button--primary')).toBe(true)
   })
 
   it('Publish to a gist: secret by default, the short link copied, a toast, then the published controls', async () => {

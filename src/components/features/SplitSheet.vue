@@ -30,6 +30,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
 
 import { useOverlayStack } from '../../composables/useOverlayStack.js'
+import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import NumberField from '../controls/NumberField.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
@@ -463,15 +464,15 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
       <p v-if="sheet.error" class="split__problem" role="alert" data-testid="split-error">{{ sheet.error }}</p>
 
       <div class="split__actions">
-        <button type="button" class="split__button" data-testid="split-cancel" @click="sheet.close()">Cancel</button>
-        <button
+        <BaseButton data-testid="split-cancel" @click="sheet.close()">Cancel</BaseButton>
+        <BaseButton
           type="submit"
-          class="split__button split__button--primary"
+          variant="primary"
           :disabled="!sheet.canApply"
           data-testid="split-apply"
         >
           Apply
-        </button>
+        </BaseButton>
       </div>
     </form>
   </Teleport>
@@ -616,31 +617,6 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.split__button {
-  min-width: 88px;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.split__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.split__button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .split__toggle {

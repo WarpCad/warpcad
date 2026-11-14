@@ -17,11 +17,11 @@ describe('BaseButton (TODO/ui-114)', () => {
     expect(mount(BaseButton, { attrs: { type: 'submit' } }).attributes('type')).toBe('submit')
   })
 
-  it.each(['default', 'primary', 'danger', 'quiet'])('variant %s renders its class', (variant) => {
+  it.each(['default', 'primary', 'danger', 'quiet', 'link', 'link-danger'])('variant %s renders its class', (variant) => {
     expect(mount(BaseButton, { props: { variant } }).classes()).toContain(`base-button--${variant}`)
   })
 
-  it.each(['tap', 'compact'])('size %s renders its class', (size) => {
+  it.each(['tap', 'compact', 'large'])('size %s renders its class', (size) => {
     expect(mount(BaseButton, { props: { size } }).classes()).toContain(`base-button--${size}`)
   })
 
@@ -29,6 +29,12 @@ describe('BaseButton (TODO/ui-114)', () => {
     const classes = mount(BaseButton).classes()
     expect(classes).toContain('base-button--default')
     expect(classes).toContain('base-button--tap')
+  })
+
+  it('align="start" and fill add their classes', () => {
+    const classes = mount(BaseButton, { props: { align: 'start', fill: true } }).classes()
+    expect(classes).toContain('base-button--start')
+    expect(classes).toContain('base-button--fill')
   })
 
   it('passes data-testid and listeners through, and a click fires', async () => {

@@ -55,6 +55,7 @@ import { useGistStore } from '../../stores/gist.js'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import { usePersistenceStore } from '../../stores/persistence.js'
 import { useShareStore } from '../../stores/share.js'
+import BaseButton from '../controls/BaseButton.vue'
 
 /**
  * The longest link the sheet will offer, in URL characters (`docs/decisions/share-link.md`,
@@ -330,26 +331,27 @@ onBeforeUnmount(() => {
               link, or send the file.
             </p>
             <div v-else class="share-sheet__actions">
-              <button
+              <BaseButton
                 v-if="canSend"
-                type="button"
-                class="share-sheet__button share-sheet__button--primary"
+                variant="primary"
+                size="large"
+                fill
                 data-testid="share-send"
                 :disabled="!link"
                 @click="send()"
               >
                 Send…
-              </button>
-              <button
-                type="button"
-                class="share-sheet__button"
-                :class="{ 'share-sheet__button--primary': !canSend }"
+              </BaseButton>
+              <BaseButton
+                :variant="canSend ? 'default' : 'primary'"
+                size="large"
+                fill
                 data-testid="share-copy"
                 :disabled="!link"
                 @click="copy()"
               >
                 Copy link
-              </button>
+              </BaseButton>
             </div>
 
             <!-- TODO/ui-091: what the recipient will see first; Edit… / Add… open Project settings. -->
@@ -366,14 +368,14 @@ onBeforeUnmount(() => {
               :value="manualText"
             />
 
-            <button
-              type="button"
+            <BaseButton
+              variant="link"
               class="share-sheet__file"
               data-testid="share-file"
               @click="sendFile()"
             >
               Send the file
-            </button>
+            </BaseButton>
 
             <p class="share-sheet__disclosure" data-testid="share-disclosure">
               Anyone with this link can open and copy this project, including its notes. It can't be taken back.
@@ -540,51 +542,8 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.share-sheet__button {
-  flex: 1;
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 15px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.share-sheet__button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.share-sheet__button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-}
-
-/* Secondary: a text link's weight, a full 44px target. */
 .share-sheet__file {
   align-self: flex-start;
-  min-height: var(--tap);
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 14px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.share-sheet__file.share-sheet__button {
-  align-self: stretch;
-  text-decoration: none;
 }
 
 .share-sheet__too-big,
