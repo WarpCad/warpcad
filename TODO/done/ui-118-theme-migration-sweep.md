@@ -6,7 +6,7 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: [ui-112, testing-036, ui-114, ui-115, ui-116, ui-117, render-008]
-status: open
+status: done
 ---
 
 ## Problem
@@ -78,5 +78,15 @@ L in total; each folder is S–M.
 - Closed findings whose reproductions re-run: `ui-079` (tier crossfade, the one deliberate
   animation exception), `testing-009` and `testing-010` if still open (both are snapshot drift, and
   this task moves snapshots).
+
+## Result (2026-11-14)
+
+- Starting allow-list: 620 violations (style-font 547 in 109 files, style-z-index 33, style-var-fallback 29, style-color 11). Ending: empty, and the allow-list and its tests are deleted.
+- Decisions: 15px -> `--text-size-title`, 20px and 22px -> `--text-size-display` (20px), 8px/9px -> 10px, 12.5px and 0.75rem/0.72rem/0.85em -> 12px, 0.8rem/0.92em -> 13px, weights 500 -> `--weight-regular`, 600 -> medium, 650/700/800 -> bold. z-index literals are `calc()` on `--z-canvas-overlay` or `--z-panel` so no order moved; `--z-sheet` (20) is new. Overlay drop shadows -> themed `--overlay-drop`; scrims -> `--scrim`.
+- `var(--x, fallback)`: dropped where `--x` is set on the same element or on `.app__body`; the variables only some states set got defaults on `.app__body`, and `--layout-library-width` a `:root` default for pop-outs drawn outside it.
+- Durations: the 120ms/0.12s/180ms transitions use `--duration-fast`/`--duration-base`, zeroed by one rule in `src/styles/reset.css`. Looping spinners and pulses keep their own durations and rules; the tier crossfade (ui-079) stays literal.
+- Spacing literals were not touched (hundreds remain); the owner can decide whether the guard should cover spacing.
+- Deviation from Testing: e2e ran on the rotating pair, never `test:e2e:full` (owner rule 2026-11-14), plus every spec on chromium phone, tablet and laptop. One accepted snapshot diff: `help-footer.png` (12.5px -> 12px), nine images regenerated, plus five docs pictures.
+- Not done: the hand drive of acceptance scenarios 1, 4, 7, 9, 10, 13 in both themes. The full chromium three-viewport run covers their specs; the owner's free-form pass is still owed.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

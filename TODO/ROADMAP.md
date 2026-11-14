@@ -60,8 +60,7 @@ and the umbrella `ui-111` closes last. Rows 21–34 drive the parked VERIFY.md c
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 19 | ▶ Ready | `FIND` | [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep; empty the guard's allow-list (last in the chain) | sonnet |
-| 20 | ⏳ Waits on 19 | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Close the theme umbrella: check every step is in `TODO/done/` and the guard's allow-list is empty (no code) | sonnet |
+| 20 | ▶ Ready | `FIND` | [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Close the theme umbrella: check every step is in `TODO/done/` and the guard's allow-list is empty (no code) | sonnet |
 | 22 | ▶ Ready | `FIND` | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks (11 rows) | sonnet |
 | 23 | ▶ Ready | `FIND` | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks on the owner's files, against copies (7 rows) | sonnet |
 | 24 | ▶ Ready | `FIND` | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks at laptop width (13 rows) | sonnet |
@@ -149,8 +148,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`ui-118`](FIND-ui-118-theme-migration-sweep.md) Theme migration sweep — replace the remaining style literals and empty the guard's allow-list | finding | low | sonnet | ▶ Ready (Next up row 19) |
-| [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture — restyle the whole UI from a small, known set of files (umbrella) | finding | high | sonnet | ⏳ Waits on 19 (Next up row 20) |
+| [`ui-111`](FIND-ui-111-theme-architecture-umbrella.md) Theme architecture — restyle the whole UI from a small, known set of files (umbrella) | finding | high | sonnet | ▶ Ready (Next up row 20) |
 | [`testing-017`](FIND-testing-017-verify-layout-and-engine-checks-in-emulation.md) Drive the VERIFY.md layout and engine checks that emulated viewports and the three Playwright engines can settle | finding | medium | sonnet | ▶ Ready (Next up row 22) |
 | [`testing-018`](FIND-testing-018-verify-checks-on-copies-of-owner-files.md) Drive the VERIFY.md checks that name the owner's own project files, against copies | finding | medium | sonnet | ▶ Ready (Next up row 23) |
 | [`testing-019`](FIND-testing-019-verify-desktop-flow-checks.md) Drive the VERIFY.md flow checks that only need the built app at laptop width | finding | medium | sonnet | ▶ Ready (Next up row 24) |
@@ -327,7 +325,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-118` | Theme migration sweep: replace the remaining style literals and empty the guard's allow-list. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`, `testing-036`, `ui-114`–`ui-117`, `render-008` | 1, 4, 7, 9, 10, 13 |
 | `ui-111` | Theme architecture umbrella, closed last (re-wired 2026-11-13: it depends on its chain, not the other way round): token layers, base components, theme switch, renderer bridge, guard. Its three owner decisions were answered 2026-11-10. Filed 2026-11-10 from the architecture audit | Finding | `ui-112`–`ui-118`, `testing-036`, `render-008` | 1, 4, 7, 9, 10, 13 |
 | `testing-017` | Drive the VERIFY.md layout and engine checks emulation and the three engines can settle (11 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none (part of 6) |
 | `testing-018` | Drive the VERIFY.md checks that name the owner’s files, against copies (7 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 31, 10 |
