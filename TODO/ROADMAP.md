@@ -43,8 +43,7 @@ the full history is in git.*
    continues with tasks that don't depend on it. Two failures in a row stop the loop. Rule in `TODO/BUDGET.md` Config.
 3. **Screws, threads and gears stay deferred**: `core-065`, `core-074`, `ui-080` and the seven M11 rows are renamed `DEFER-…`
    and listed under [Deferred](#open-work-outside-any-milestone), out of every table the runner reads.
-4. **`testing-022` and `testing-032` run in the loop**, with `claude -p` on the owner's subscription. Consent for `testing-022`'s
-   `ai-028` #1 row and its temporary MCP-config edit is recorded in its file.
+4. **`testing-032` runs in the loop**, with `claude -p` on the owner's subscription (`testing-022` ran the same way and is closed).
 5. **`testing-026` and `testing-027` are held** (setup still missing; see [Held](#held--not-run-by-run-todos)).
 6. **`testing-033` is held** and run by hand, because its job is to ask questions.
 7. **Nothing native is pushed**, to GitHub or the App Store. Every M19 row is held.
@@ -60,7 +59,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 26 | ▶ Ready | `FIND` | [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with Claude Code as client (12 rows) | sonnet |
 | 27 | ▶ Ready | `FIND` | [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open exported STL, OBJ and glTF files in real tools (6 rows) | sonnet |
 | 28 | ▶ Ready | `FIND` | [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and gh history (10 rows) | sonnet |
 | 29 | ▶ Ready | `FIND` | [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the pre-push hook, dev-only specs and build notices (6 rows) | sonnet |
@@ -79,6 +77,8 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 42 | ▶ Ready | `FIND` | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) Word the Undo refusal from step labels and show it in the save-status chip | sonnet |
 | 43 | ▶ Ready | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
 | 44 | ▶ Ready | `FIND` | [`testing-040`](FIND-testing-040-graduate-rail-long-press-and-save-pulse-to-a-real-timer-spec.md) Graduate the rail tile long-press callout and the My parts save pulse into a real-timer e2e spec | sonnet |
+| 45 | ▶ Ready | `FIND` | [`ai-037`](FIND-ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) Bind the dev server to IPv4 loopback so the registered `127.0.0.1:5183/mcp` endpoint answers | sonnet |
+| 46 | ▶ Ready | `FIND` | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) Stop a client that exited normally from blocking the next one as "ambiguous" for five minutes | sonnet |
 
 ---
 
@@ -152,7 +152,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`testing-022`](FIND-testing-022-verify-mcp-checks-with-claude-code-as-client.md) Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as the client | finding | medium | sonnet | ▶ Ready (Next up row 26) |
 | [`testing-023`](FIND-testing-023-verify-exported-files-in-real-tools.md) Open WarpCad's exported STL, OBJ and glTF files in real tools on this Mac | finding | medium | sonnet | ▶ Ready (Next up row 27) |
 | [`testing-024`](FIND-testing-024-verify-deployed-site-and-github-checks.md) Answer the VERIFY.md deploy and CI checks from the live site and the GitHub run history | finding | medium | sonnet | ▶ Ready (Next up row 28) |
 | [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the VERIFY.md pre-push hook, dev-only spec and build-output checks locally | finding | low | sonnet | ▶ Ready (Next up row 29) |
@@ -171,6 +170,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) The Undo refusal message leaks internals and is not in the save-status chip | finding | low | sonnet | ▶ Ready (Next up row 42) |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
 | [`testing-040`](FIND-testing-040-graduate-rail-long-press-and-save-pulse-to-a-real-timer-spec.md) Graduate the rail tile long-press callout and the My parts save pulse into a real-timer e2e spec | finding | low | sonnet | ▶ Ready (Next up row 44) |
+| [`ai-037`](FIND-ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) `npm run dev` listens on IPv6 loopback only, so the endpoint `mcp:add -- --dev` registers refuses connections | finding | medium | sonnet | ▶ Ready (Next up row 45) |
+| [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) A client that exits normally leaves its live MCP session counted, so the next client is refused as ambiguous for up to five minutes | finding | low | sonnet | ▶ Ready (Next up row 46) |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
@@ -333,7 +334,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `testing-022` | Drive the VERIFY.md MCP and live-bridge checks with a real Claude Code as client (12 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 23, 25 |
 | `testing-023` | Open exported STL, OBJ and glTF files in Cura, MeshLab and a glTF viewer (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 11, 26 |
 | `testing-024` | Answer the VERIFY.md deploy and CI checks from the live site and gh run history (10 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `testing-025` | Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 24, 25 (scripted only) |
@@ -352,6 +352,8 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-125` | The header's Undo refusal leaks `document.undo:` and a record id, and sits beside the save-status chip instead of in it. Filed 2026-11-14 from `testing-019` | Finding | — | none |
 | `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
 | `testing-040` | Graduate the rail tile long-press callout (522 ms) and the My parts save pulse (900 ms) into a real-timer e2e spec. Filed 2026-11-14 from `testing-020` | Finding | — | none |
+| `ai-037` | Bind the dev server to IPv4 loopback so `npm run mcp:add -- --dev` registers an endpoint that answers. Filed 2026-11-14 from the `testing-022` drive of `ai-016` and `ai-012` #1 | Finding | — | 25 |
+| `ai-038` | A client that exits without DELETE blocks the next live MCP client as ambiguous for up to five minutes. Filed 2026-11-14 from the `testing-022` drive of `ai-023` #2 | Finding | — | 25 |
 
 ---
 
@@ -449,7 +451,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 35 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 36 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

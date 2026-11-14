@@ -6,8 +6,27 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+Verification only; no product code changed. Twelve rows were driven on 2026-11-14 with a real Claude Code 2.1.322, headless (`claude -p --model haiku`, which
+resolved to `claude-haiku-5-5`, the cheapest model the build offers; owner subscription, no API key), 21 runs in all: 6 for the `ai-028` three-case
+drive, 2 discarded (the bench prompt *make me something nice* with Claude Code default tools answered with an Artifact page and never reached
+WarpCad; the tool set was cut for every later run), build and check-print (2, which also answer `ai-029` #4's first half), 1 fan duct, 1 bracket plate, and
+9 on the dev live bridge (lease off, an ambiguous refusal, a killed client, its second client, the accepted third, an expired lease, and three bursts, one of which
+never reached the limit). Answered OK: `ai-029` #2 and #3 (the
+guide arrives whole, 10,394 characters, not cut at 2,048, so no recipe fallback), `ai-028` #1 (the agent read `warpcad://guide` unasked in all 6 runs;
+table in `bench/results/ai/2026-11-14-mcp-guide.md`), `ai-031` #1, `ai-009` #1, `ai-016` #1 (the owner's `~/.claude.json` was backed up first and
+restored; `diff` empty), `ai-012` #1, `ai-033` #2, `ai-023` #2. `ai-027` #1 is **Issue**: on Haiku one of two airfoil runs asked and wrote nothing,
+the other built 8 steps without asking (model variance, `FIND-testing-032`). Left Open: `ai-029` #4 (the half that pastes the other-agent paragraph into
+a client without prompt support: no such client here) and `perf-003` #3 (a held Library drag during an agent write, and a gizmo drag). Acceptance
+23 re-driven (a real Claude edit merged into an opened copy through File, Merge file: `Merged 5 steps from bracket.ndjson`, no dialog, 30 x 20 x 33
+mm body) and 25 (steps 2 to 5 and 7, plus phone reachability). Two defects filed: `FIND-ai-037` (`npm run dev` binds `::1` only, so the registered
+`127.0.0.1:5183/mcp` refuses: the owner's own `--dev` registration showed `ECONNREFUSED`) and `FIND-ai-038` (a normal client exit leaves its session
+counted, so the next client is "ambiguous" for up to five minutes). Also seen, already filed: the Undo AI turn refusal shows internal ids
+(`FIND-ui-125`). Social drafts: none.
 
 ## Problem
 
