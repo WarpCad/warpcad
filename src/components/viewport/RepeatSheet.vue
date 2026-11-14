@@ -28,6 +28,7 @@ import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import IconButton from '../controls/IconButton.vue'
 import { useRepeatStore } from '../../stores/repeat.js'
+import BaseSheet from '../layout/BaseSheet.vue'
 
 const repeat = useRepeatStore()
 
@@ -61,17 +62,17 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
 </script>
 
 <template>
-  <Teleport to="body">
-    <section
-      v-if="repeat.armed && repeat.seed"
-      class="repeat"
-      :class="{ 'repeat--minimized': repeat.minimized }"
-      role="dialog"
-      aria-label="Repeat"
-      data-testid="repeat-sheet"
-      :data-minimized="repeat.minimized ? 'true' : 'false'"
-      :data-subject="repeat.subject?.id ?? ''"
-    >
+  <BaseSheet
+    :open="repeat.armed && !!repeat.seed"
+    tier="dock"
+    :stack="false"
+    class="repeat"
+    :class="{ 'repeat--minimized': repeat.minimized }"
+    testid="repeat-sheet"
+    title="Repeat"
+    :data-minimized="repeat.minimized ? 'true' : 'false'"
+    :data-subject="repeat.subject?.id ?? ''"
+  >
       <!-- Phone width only (CSS): the one-line bar the sheet shrinks to. -->
       <div class="repeat__bar" data-testid="repeat-bar">
         <BaseButton variant="quiet" class="repeat__bar-text" data-testid="repeat-expand" @click="repeat.expand()">
@@ -104,11 +105,11 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
               type="checkbox"
               :data-testid="`repeat-target-${name}`"
               :checked="repeat.ticked.includes(name)"
-              :disabled="name === repeat.seed.partName"
+              :disabled="name === repeat.seed?.partName"
               @change="repeat.toggleTarget(name)"
             />
             <span>{{ name }}</span>
-            <span v-if="name === repeat.seed.partName" class="repeat__seed-tag">first part</span>
+            <span v-if="name === repeat.seed?.partName" class="repeat__seed-tag">first part</span>
           </label>
         </fieldset>
 
@@ -121,7 +122,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
             data-testid="repeat-step"
             :data-mentions-seed="step.mentionsSeed ? 'true' : 'false'"
           >
-            <span v-if="step.mentionsSeed" class="repeat__reaim" :title="`Re-aimed at each target instead of ${repeat.seed.partName}`">↻</span>
+            <span v-if="step.mentionsSeed" class="repeat__reaim" :title="`Re-aimed at each target instead of ${repeat.seed?.partName}`">↻</span>
             {{ step.label }}
           </li>
         </ol>
@@ -151,8 +152,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
           </BaseButton>
         </div>
       </div>
-    </section>
-  </Teleport>
+  </BaseSheet>
 </template>
 
 <style scoped>
@@ -163,24 +163,18 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
  * very ⇔ Align button the user needs next (found driving the flow by hand). Down here it clears
  * the toolbar, the popover and the orientation gizmo, one layer **below** the popover (30 vs 31).
  */
-.repeat {
-  position: fixed;
+body :global(.sheet.repeat) {
+  right: auto;
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 30;
-  box-sizing: border-box;
   width: min(300px, calc(100vw - 32px));
   max-height: calc(100dvh - 200px);
-  overflow-y: auto;
   padding: 10px 12px 12px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-overlay);
-  color: var(--text-1);
-  font-family: var(--font);
+  gap: 0;
 }
 
 .repeat__bar,
@@ -311,7 +305,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
  * lifts above them instead.
  */
 @media (min-width: 641px) and (max-width: 1099px) {
-  .repeat {
+  body :global(.sheet.repeat) {
     bottom: 232px;
     max-height: calc(100dvh - 420px);
   }
@@ -323,17 +317,14 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
  * Under the Library sheet (20), over the Inspector sheet (11).
  */
 @media (max-width: 640px) {
-  .repeat {
-    top: auto;
-    right: 0;
+  /* The frame's layer is the `dock` tier: `--z-dock` is 19 at this width, under the Library sheet (20). */
+  body :global(.sheet.repeat) {
     /* Above the Library's tab (AppView's `--layout-library-tab-height`, 52px), never over it: the user
        has to open the Library from here to drag the first part in (found driving the phone flow). */
     bottom: 52px;
     left: 0;
     transform: none;
-    z-index: 19;
     width: 100%;
-    max-height: 45dvh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding-bottom: 12px;
     max-height: 40dvh;
@@ -345,8 +336,7 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', onWindowPointerD
 
   /* Exactly AppView's `--layout-repeat-bar-height`: the Inspector sheet lifts by this much while the
      bar is up, so the bar never sits on the sheet's sticky Delete row. */
-  .repeat--minimized {
-    box-sizing: border-box;
+  body :global(.sheet.repeat.repeat--minimized) {
     height: 54px;
     padding: 4px 8px;
     overflow: hidden;

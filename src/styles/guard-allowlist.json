@@ -12,7 +12,6 @@
     "style-z-index": {
       "src/components/ai/AiHeaderEntry.vue": 1,
       "src/components/ai/ChatPanel.vue": 1,
-      "src/components/features/SplitSheet.vue": 1,
       "src/components/inspector/DeleteButton.vue": 1,
       "src/components/inspector/Inspector.vue": 1,
       "src/components/layout/HelpSheet.vue": 3,
@@ -34,7 +33,6 @@
       "src/components/viewport/OperationsGroupPopover.vue": 1,
       "src/components/viewport/OperationsToolbar.vue": 2,
       "src/components/viewport/PlacementSession.vue": 2,
-      "src/components/viewport/RepeatSheet.vue": 2,
       "src/components/viewport/SketchToolbar.vue": 1,
       "src/components/viewport/Viewport.vue": 1,
       "src/components/viewport/ViewportContextBanner.vue": 1

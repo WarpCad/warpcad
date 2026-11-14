@@ -29,10 +29,10 @@
  */
 import { computed, onBeforeUnmount, watch } from 'vue'
 
-import { useOverlayStack } from '../../composables/useOverlayStack.js'
 import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
 import NumberField from '../controls/NumberField.vue'
+import BaseSheet from '../layout/BaseSheet.vue'
 import { useOverlaysStore } from '../../stores/overlays.js'
 import {
   CONNECTOR_LABELS,
@@ -54,8 +54,6 @@ watch(
   { immediate: true },
 )
 onBeforeUnmount(() => overlays.setOpen('split-sheet', false))
-
-useOverlayStack(() => sheet.isOpen, () => sheet.close())
 
 /** Whether the Magnet size field shows: for the Magnets joint, or while placing magnets by hand. */
 const showMagnetSize = computed(
@@ -84,16 +82,18 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 </script>
 
 <template>
-  <Teleport to="body">
-    <form
-      v-if="sheet.isOpen"
-      class="split"
-      role="dialog"
-      aria-label="Split into printable pieces"
-      data-testid="split-sheet"
-      novalidate
-      @submit.prevent="sheet.apply()"
-    >
+  <BaseSheet
+    :open="sheet.isOpen"
+    as="form"
+    card
+    width="300px"
+    class="split"
+    testid="split-sheet"
+    title="Split into printable pieces"
+    novalidate
+    @submit.prevent="sheet.apply()"
+    @escape="sheet.close()"
+  >
       <div class="split__head">
         <p class="split__title">Split into printable pieces</p>
         <HelpButton topic="split" class="split__help" />
@@ -474,31 +474,15 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           Apply
         </BaseButton>
       </div>
-    </form>
-  </Teleport>
+  </BaseSheet>
 </template>
 
 <style scoped>
-.split {
-  position: fixed;
-  top: 64px;
-  right: 16px;
-  z-index: 31;
-  box-sizing: border-box;
-  width: min(300px, calc(100vw - 32px));
-  max-height: calc(100dvh - 96px);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+/* The frame is `BaseSheet` (a non-modal card); what stays here is this sheet's own glass look and its
+   phone grid. `body` lifts the rules over the frame's own scoped ones. */
+body :global(.sheet.split) {
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-overlay);
-  color: var(--text-1);
-  font-family: var(--font);
 }
 
 .split__head {
@@ -690,14 +674,7 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
 
 /* Phone: a bottom sheet, so the viewport — and the cut plane — stay visible above it. */
 @media (max-width: 640px) {
-  .split {
-    top: auto;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding-bottom: calc(12px + var(--layout-safe-bottom));
+  body :global(.sheet.split) {
     /* Two fields per row and no intro paragraph: the sheet stays under half the screen, so the
        cut plane's handle (at the middle of the body) is not hidden behind it. */
     display: grid;
@@ -705,14 +682,14 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
     gap: 6px 10px;
   }
 
-  .split > .split__title,
-  .split > .split__toggle,
-  .split > .split__kinds,
-  .split > .split__hint,
-  .split > .split__pieces,
-  .split > .split__problem,
-  .split > .split__warning,
-  .split > .split__actions {
+  body :global(.sheet.split) > .split__title,
+  body :global(.sheet.split) > .split__toggle,
+  body :global(.sheet.split) > .split__kinds,
+  body :global(.sheet.split) > .split__hint,
+  body :global(.sheet.split) > .split__pieces,
+  body :global(.sheet.split) > .split__problem,
+  body :global(.sheet.split) > .split__warning,
+  body :global(.sheet.split) > .split__actions {
     grid-column: 1 / -1;
   }
 
@@ -723,11 +700,11 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
   /* The cut plane and its connector markers sit just above the middle of the screen, and the
      sheet has grown (Place connectors toggle, picker, hint) — so it is capped lower, scrolls
      inside, and keeps Apply in reach, rather than burying them (the `io-007` finding, again). */
-  .split {
+  body :global(.sheet.split) {
     max-height: 42dvh;
   }
 
-  .split > .split__actions {
+  body :global(.sheet.split) > .split__actions {
     position: sticky;
     bottom: calc(-12px - var(--layout-safe-bottom));
     margin: 0 -12px calc(-12px - var(--layout-safe-bottom));
