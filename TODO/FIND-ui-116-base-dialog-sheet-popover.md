@@ -100,22 +100,21 @@ L. Each migration is S–M and independently shippable.
   `ui-085` (Library sheet scrolls sideways in Safari), `ui-086` and `ui-087` (Align popover and
   popovers hiding targets), `io-017` (the gist dialog's bottom sheet), `testing-008` (Split sheet).
 
-## Progress (2026-11-14, `/run-todos` agent) — OPEN, partly shipped
+## Progress (2026-11-14, `/run-todos` agent, stage 2) — OPEN, partly shipped
 
-**Shipped (five commits, each green):**
+**Shipped (stage 1, five commits; stage 2, three):**
 
-- **Stage 1.** `storage/ModalShell.vue` is `layout/BaseDialog.vue` (`git mv`; all 14 importers updated, not 12: `ProjectNameDialog` and `NativeOpenSheet` were missing from the table). A `.vue` re-export shim at the old path is not possible (the SFC compiler adds its own default export; `vue-tsc` rejects it), so there is none. `BaseDialog` gained `tone`, `placement`, `width`, `titleTestid`, `backdropTestid` and an opt-in `escapable` (Escape through `useOverlayStack`); it uses `--scrim`, `--z-modal(-frame)`. `BaseSheet` and `BasePopover` exist with specs and stories (the `*.story.e2e.js` snapshots are not written yet).
-- **Stage 2.** `DependentRepairDialog` and `VariableUsageDialog` are on `BaseDialog`. At phone width the repair dialog is now a bottom sheet as tall as its rows, not a full-height panel. `e2e/overlay-focus.e2e.js` has a case for each.
-- **Stage 3a.** `ExportPopover` and `ResolutionPopover` are on `BasePopover` (modal, `bottom-end` of the File button).
-- **Stage 4a.** `SaveToLibrarySheet` is a non-modal card `BaseSheet`.
+- **Stage 1.** `storage/ModalShell.vue` is `layout/BaseDialog.vue` (`git mv`; all 14 importers updated, not 12: `ProjectNameDialog` and `NativeOpenSheet` were missing from the table). A `.vue` re-export shim at the old path is not possible (the SFC compiler adds its own default export; `vue-tsc` rejects it), so there is none. `BaseDialog` gained `tone`, `placement`, `width`, `titleTestid`, `backdropTestid` and an opt-in `escapable` (Escape through `useOverlayStack`); it uses `--scrim`, `--z-modal(-frame)`. `BaseSheet` and `BasePopover` exist with specs and stories.
+- `DependentRepairDialog` and `VariableUsageDialog` are on `BaseDialog` (at phone width the repair dialog is a bottom sheet as tall as its rows); `ExportPopover` and `ResolutionPopover` are on `BasePopover` (modal, `bottom-end` of the File button); `SaveToLibrarySheet` is a non-modal card `BaseSheet`. `e2e/overlay-focus.e2e.js` has a case for each dialog.
+- **Stage 2.** `ParamBindPopover` and `FormulaInsertList` are a non-modal `BaseSheet` at phone width and stay the inline box under their field from tablet width (`composables/useMediaQuery.js` picks the frame; the stylesheet cannot swap a component). The Fillet/Chamfer, Resize and Mirror popovers in `OperationsToolbar` are modal, draggable `BasePopover` frames, each with a `dragKey`; the toolbar's own backdrop, drag wiring and `.ops__popover` rule now serve only the Align and Group popovers, and its Escape order is unchanged. A `BasePopover` root is a Teleport, so the toolbar's scoped CSS cannot reach it: the frames are placed by an unscoped `body .popover.ops__popover` block. The docs pictures the ui-114 button changes had moved were regenerated in their own commit.
 
 **Remaining (the table rows still hand-rolled):**
 
-- Popovers: `inspector/ParamBindPopover.vue` (inline in the field on desktop, a fixed bottom sheet on phone, so it needs a `BaseSheet`/`BasePopover` split, not a straight swap), `FormulaInsertList.vue`, the three `.ops__popover` frames in `OperationsToolbar.vue` (draggable: needs `BasePopover` `draggable` with a `dragKey` per popover, and the toolbar's own Escape order kept).
 - Sheets: `ShareSheet.vue` (anchored under its button on desktop through `--layout-share-top/right`; its backdrop is clear, so `BaseSheet` needs a `scrim` choice), `SplitSheet.vue` and `RepeatSheet.vue` (non-modal; Repeat's Escape belongs to the Operations toolbar, so `BaseSheet` needs an opt-out of the overlay stack, and its phone tier is 19 under the Library, which `tier` does not name yet).
 - `HelpSheet.vue` and `UserPartMenu.vue`, last.
 - `FileMenu.vue` and the two Library popouts stay menus: they are not dialogs, and a `BaseMenu` has not earned a place. Say so in the retirement text.
-- Stories' `*.story.e2e.js` snapshots for the three base parts, both themes.
+- Stories' `*.story.e2e.js` snapshots for the three base parts, both themes. **There is no Storybook Playwright project or web server in `playwright.config.js` yet** (no `*.story.e2e.js` file exists in the repo), so this needs a `storybook` project, a `storybook build` + static serve `webServer` entry and the three specs; budget it as its own step.
 - `guard-allowlist.json` z-index and colour entries for the remaining files go down with each migration.
+- Acceptance 17, 29 and 11, and the closed-finding reproductions for the Share, Split and Repeat sheets, re-run when those migrate.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
