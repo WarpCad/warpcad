@@ -2856,3 +2856,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9415 passed (this session); e2e on the chromium-tablet and webkit-laptop pair 1221 passed, 0 failed, rest skipped by project (this session); chromium-phone repro specs and docs-laptop print-prep 8/8 (this session); frames and the 14 ModalShell importers from TODO/done/ui-116
 **To Add:** none
+
+## 2026-11-14T16:40:00Z — ui-117: toasts that queue, and five more shared parts
+
+**Post:** In WarpCad, two toasts raised together used to land on the same spot, so the second hid the first. They now go through one queue and stack. Banners, chips, section headings, hidden text and list rows each got one shared part too. Built with Claude Code, reviewed by me. #CAD #WebGL #OpenSource
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9450 passed (this session); e2e on the chromium-laptop and firefox-phone pair 1198 passed, 3 failed that also fail on the commit before this task (this session); toast-queue spec 3 of 3 at chromium laptop, tablet and phone (this session); the queue, the 12 regenerated pictures and the 7 copies of the clip rule from TODO/done/ui-117
+**To Add:** none

@@ -4143,3 +4143,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** unit 9415 passed (this session); e2e on the chromium-tablet and webkit-laptop pair 1221 passed, 0 failed, rest skipped by project (this session); chromium-phone repro specs and docs-laptop print-prep 8/8 (this session); the 14 importers, eleven migrated overlays and four stays from TODO/done/ui-116
 **To Add:** none
+
+## 2026-11-14T16:40:00Z — ui-117: toasts that queue, and five more shared parts
+
+**Post:** Copy a share link in WarpCad, then save a part to the library a second later, and the two confirmations used to be drawn at the same spot, so the second covered the first. Three hand-written pills, each with its own timer, were the cause. They now raise toasts on one queue, drawn by one host that stacks them, with one default time on screen. A new spec copies a link, saves to the library and checks that both messages are visible and do not overlap, at phone, tablet and laptop width.
+
+The same task gave five other repeated pieces one shared part each: banners and strips, chips, the small uppercase section heading, visually hidden text and list rows. The heading had two sizes side by side in the Inspector; it is one size now, and twelve documentation pictures changed with it.
+
+Some pieces stayed as they were, each with a written reason. The update strip is a banner rather than a toast because it sits in the page flow so it never covers the navigation chrome. The save-status line and the variable chip are not pills.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** unit 9450 passed (this session); e2e on the chromium-laptop and firefox-phone pair 1198 passed, 3 failed that also fail on the commit before this task (this session); toast-queue spec 3 of 3 at chromium laptop, tablet and phone (this session); the queue, 12 regenerated pictures, 7 copies of the clip rule and the stays from TODO/done/ui-117
+**To Add:** none
