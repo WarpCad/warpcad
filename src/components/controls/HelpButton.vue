@@ -50,8 +50,8 @@ const toolName = computed(() => props.label || topicTitle(props.topic))
   box-sizing: border-box;
   border: 1.5px solid currentColor;
   border-radius: 50%;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-bold);
   line-height: 1;
 }
 
