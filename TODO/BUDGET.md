@@ -31,7 +31,7 @@ don't rebuild the estimation math without one.
   batch. Lower it back to 3 when that run ends, unless the owner says otherwise. Raise or lower it
   because the user said so, not because the loop estimated it had headroom.
   **Decided 2026-11-13:** lower the batch size back to 3 and the cap back to 3 hours when this run ends, not before. No reason beyond the recommendation was given.
-- **Hard wall-clock cap per batch**: 24 hours (was 3, raised with the batch size on 2026-11-13).
+- **Hard wall-clock cap per batch**: 48 hours (was 3, raised to 24 with the batch size on 2026-11-13; the owner moved it out another 24 hours on 2026-11-14, so the current batch, started 2026-11-13 15:06 UTC, ends at 2026-11-15 15:06 UTC).
   Whichever limit — task count or wall-clock — is hit first ends the batch and triggers the check-in.
 - **On failure: stash and skip** (owner, 2026-11-13; overrides `run-todos.md` Step 4's and Step 6's
   "stop the loop" for this rule's cases). When a `/fix-todo` agent stops on a failure it could not
