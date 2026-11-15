@@ -83,6 +83,7 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 52 | ▶ Ready | `FIND` | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | sonnet |
 | 53 | ▶ Ready | `FIND` | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | sonnet |
 | 54 | ▶ Ready | `FIND` | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | sonnet |
+| 55 | ▶ Ready | `FIND` | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | sonnet |
 
 ---
 
@@ -215,6 +216,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | finding | medium | sonnet | ▶ Ready (Next up row 52) |
 | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | finding | medium | sonnet | ▶ Ready (Next up row 53) |
 | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | finding | low | sonnet | ▶ Ready (Next up row 54) |
+| [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | finding | low | sonnet |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
@@ -366,6 +368,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-128` | Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | 1, 4, 7, 9 |
 | `ui-129` | Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
 | `ai-039` | Reword the "via another program" chip, the stale-project refusal and the conflict strip. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
+| `ui-130` | Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 
 ---
 

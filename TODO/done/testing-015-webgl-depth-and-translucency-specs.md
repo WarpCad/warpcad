@@ -70,4 +70,8 @@ Not UI-touching (test-only).
 
 - **Page**: n/a (test-only; no user-visible control changes).
 
+## Real-GPU look (testing-030, 2026-11-14)
+
+Headed Chrome on the Apple M4 Pro (Metal) now covers the real-GPU half of `ui-016` #1 (Chromium only), `core-034` #1, `render-003` #1 and #2: still frames identical, orbit temporal spikes only on grid lines, panel agents saw no glitch. `core-034` #2 was not re-looked at. Safari and real iPhone/iPad GPUs are still not covered.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

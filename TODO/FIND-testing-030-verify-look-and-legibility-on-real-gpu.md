@@ -67,6 +67,12 @@ Rows (entry and row number in `TODO/VERIFY.md`; abridged, the full text is in VE
 | `ui-036 #1` (part) | On a real iPhone, open Bisect with a body selected and read the popover over the auto-opened Inspector sheet: is the faint Inspector text ("INSPECTOR", part name) showing through behind the fields distracting enough to want a… |
 | `core-035 #2` (part) | On a real iPhone and iPad, open File ▾ → Resolution…, step Draft → Normal → Fine → Print on a scene with a large cylinder and a sphere. The re-facet should be visibly different at each step, and Draft should not look broken.… |
 
+## Progress (2026-11-14, first run, task left open)
+
+Driven in headed Chrome 157 on the Apple M4 Pro, production build of HEAD; phone rows were 390x844 emulation. Panel agents spawned: 8 (4 batches, A and B each, haiku). Answered with numbers in `TODO/VERIFY.md`: `ui-089` #2, `ui-065` #3, `core-034` #1, `ui-048` #1, `render-003` #1 and #2, `ui-037` #2, `core-024` #3, `core-016` #3, `ui-022` #1 and #2, `ui-023` #2, `ui-011` #1 (all OK); `ui-030` #1, `ui-021` #2, `ui-023` #1 (Issue, `FIND-ui-130`). Mac half only (row stays Open): `ui-049` #1 (panel split, dE00 5-7 on light blue), `core-033` #2, `core-024` #1 and #2, `ui-021` #1 (panel split). Acceptance 13 (through `ui-037` #2) re-driven by the stage-B script (place, recolour, select, hover, in both schemes); acceptance 5 not re-driven through `ui-016` #1.
+
+Rows not reached, still to do: `ui-016` #1 (WebKit half not run; Safari automation does not work), `ui-084` #5, `core-060` #2, `ui-064` #2 (dial handle not captured), `ui-055` #2, `sketch-003` #5, `sketch-001` #10, `render-002` #1, `core-035` #2, `ui-042` #2, `ui-033` #3, `io-001` #2, `ui-036` #1, `core-015` #1 and `core-014` #1 (V1 snapshots are at `~/src/jscad/jscad-raspberrypi/test/images/`, side-by-side not made), `ui-029` #1, `ui-020` #2, `ui-013` #2.
+
 ## Affected files
 
 - `TODO/VERIFY.md` (each row's Status and Notes, with the numbers and a screenshot path)
