@@ -6,7 +6,7 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage (third pass)
 depends: []
-status: open
+status: done
 ---
 
 ## Problem
@@ -67,11 +67,33 @@ Rows (entry and row number in `TODO/VERIFY.md`; abridged, the full text is in VE
 | `ui-036 #1` (part) | On a real iPhone, open Bisect with a body selected and read the popover over the auto-opened Inspector sheet: is the faint Inspector text ("INSPECTOR", part name) showing through behind the fields distracting enough to want a… |
 | `core-035 #2` (part) | On a real iPhone and iPad, open File ▾ → Resolution…, step Draft → Normal → Fine → Print on a scene with a large cylinder and a sphere. The re-facet should be visibly different at each step, and Draft should not look broken.… |
 
-## Progress (2026-11-14, first run, task left open)
+## What shipped
 
-Driven in headed Chrome 157 on the Apple M4 Pro, production build of HEAD; phone rows were 390x844 emulation. Panel agents spawned: 8 (4 batches, A and B each, haiku). Answered with numbers in `TODO/VERIFY.md`: `ui-089` #2, `ui-065` #3, `core-034` #1, `ui-048` #1, `render-003` #1 and #2, `ui-037` #2, `core-024` #3, `core-016` #3, `ui-022` #1 and #2, `ui-023` #2, `ui-011` #1 (all OK); `ui-030` #1, `ui-021` #2, `ui-023` #1 (Issue, `FIND-ui-130`). Mac half only (row stays Open): `ui-049` #1 (panel split, dE00 5-7 on light blue), `core-033` #2, `core-024` #1 and #2, `ui-021` #1 (panel split). Acceptance 13 (through `ui-037` #2) re-driven by the stage-B script (place, recolour, select, hover, in both schemes); acceptance 5 not re-driven through `ui-016` #1.
+Verification only; no product code changed. Two stages in headed Google Chrome 157 on the Apple M4 Pro (ANGLE Metal), production build
+of HEAD served with `vite preview`; phone rows were 390x844 touch emulation on the same GPU, not a phone. Panels: 14 fresh haiku agents
+(8 in stage 1, 6 in stage 2: three batches, A and B each, screenshots only). Every row's Status and Notes in `TODO/VERIFY.md` carry the
+numbers, thresholds and scratchpad screenshot paths.
 
-Rows not reached, still to do: `ui-016` #1 (WebKit half not run; Safari automation does not work), `ui-084` #5, `core-060` #2, `ui-064` #2 (dial handle not captured), `ui-055` #2, `sketch-003` #5, `sketch-001` #10, `render-002` #1, `core-035` #2, `ui-042` #2, `ui-033` #3, `io-001` #2, `ui-036` #1, `core-015` #1 and `core-014` #1 (V1 snapshots are at `~/src/jscad/jscad-raspberrypi/test/images/`, side-by-side not made), `ui-029` #1, `ui-020` #2, `ui-013` #2.
+- **OK**: `ui-089` #2, `ui-065` #3, `core-034` #1, `ui-048` #1, `render-003` #1 and #2, `ui-037` #2, `core-024` #3, `core-016` #3, `ui-022` #1 and
+  #2, `ui-023` #2, `ui-011` #1 (stage 1); `ui-084` #5, `ui-055` #2, `sketch-003` #5, `sketch-001` #10, `ui-042` #2 (stage 2).
+- **Issue, finding filed**: `ui-030` #1, `ui-021` #2, `ui-023` #1 (`FIND-ui-130`); `ui-064` #2 (`FIND-ui-131`, the dial readout sits under the
+  operations toolbar at phone width); `render-002` #1 (`FIND-ui-132`, a label is picked only on its letter strokes); `io-001` #2
+  (`FIND-ui-133`, idle and saved dots share a shape, paused and failed too). `core-060` #2 is an Issue folded into `FIND-ui-130` (same
+  cause: small hardware is not framed; the docs picture also still shows the last screw's gizmo).
+- **Left Open, with the reason** (the Mac half is answered in each row's Notes; the rest cannot be answered here):
+  - Real iPhone, iPad, sunlight or low-brightness halves: `core-033` #2, `core-024` #1 and #2, `core-035` #2, `ui-033` #3, `ui-036` #1,
+    `ui-020` #2, `ui-013` #2.
+  - WebKit not run (Safari automation does not work here) and phone and tablet orbits not driven: `ui-016` #1. Its Chrome half is OK.
+  - A real hardware owner is needed to say whether V1 was right: `core-015` #1 and `core-014` #1 (side-by-sides against V1's snapshots made,
+    positions match, colours differ).
+  - Panel split or no panel answer: `ui-049` #1 and `ui-021` #1 (A and B disagreed; dE00 5 to 7 on the light-blue body), `ui-029` #1 (premise
+    changed, Fillet no longer freezes the fields; the read-only Size boxes' look was not in the panel's crop and the panel budget was spent).
+  - `render-002` #1's legibility half (A: not clearly, B: partly).
+
+Acceptance 13 was re-driven in stage 1 (place, recolour, select, hover in both schemes). Acceptance 5 was re-driven by hand in stage 2: a
+Cube, an enclosed Bolt, the Cube's check then the Bolt's `tap` part, Subtract left 60362.401 mm3 of 64000.000 (a 3637.6 mm3 clearance cut, not the
+bolt's 2920.801 metal), Undo restored both. PASS. Closed-finding regression: `render-003`'s translucency rows (orbit frames, still-frame
+difference 0 px).
 
 ## Affected files
 
