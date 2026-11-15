@@ -57,7 +57,7 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
+| 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 32 | ▶ Ready | `FIND` | [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Tap accuracy, timing, reach and step counts for the VERIFY.md phone rows | sonnet |
 | 33 | ▶ Ready | `FIND` | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP, not an API key | sonnet |
@@ -346,7 +346,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
+| ⚠ `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
 | `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
 | `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
