@@ -2961,3 +2961,14 @@ Two Library rail behaviours were only tested with fake timers: the long-press th
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** e2e/library-rail-touch.e2e.js, 10 of 10 over five repeats; slowed the press to 1500 ms, the linger to 4 s and the pulse to 2 s, and each went red
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(ai): the dev server binds IPv4 loopback so the registered MCP endpoint answers (TODO/ai-037)
+
+`npm run dev` listened on ::1 only, so the endpoint the docs and `mcp:add --dev` name, 127.0.0.1:5183/mcp, refused every connection while localhost:5183 worked. One config line binds the IPv4 loopback (not the LAN); `claude mcp get warpcad` now says Connected.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** scripts/dev-server-host.spec.js starts the real dev server and asks 127.0.0.1, localhost and [::1]; red before the fix
+**To Add:** none

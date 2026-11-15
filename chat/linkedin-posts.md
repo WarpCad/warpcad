@@ -4276,3 +4276,20 @@ A timing spec that flakes is worse than none, so the tolerances are wide, and it
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** e2e/library-rail-touch.e2e.js, 10 of 10 over five repeats on chromium-tablet; three timing mutations each went red
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(ai): the dev server binds IPv4 loopback so the registered MCP endpoint answers (TODO/ai-037)
+
+"localhost" is not one address. On a Mac it can resolve to ::1 and 127.0.0.1, and a server that binds "localhost" may take only the first. WarpCad's dev server did: the app loaded at http://localhost:5183, but the MCP endpoint that `npm run mcp:add -- --dev` registers, http://127.0.0.1:5183/mcp, refused every connection. Claude Code reported ECONNREFUSED and the server was plainly running.
+
+The production preview server had been fixed for this already; the dev server had not. The fix is one config line, `host: '127.0.0.1'`, deliberately not `host: true`, which would put an unauthenticated editing endpoint on the LAN. The spec starts the real dev server on a spare port and asks it on three addresses: 127.0.0.1 answers, localhost still answers, and [::1] is refused. It was red before the change. `claude mcp get warpcad` now says Connected.
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(ai): the dev server binds IPv4 loopback so the registered MCP endpoint answers (TODO/ai-037)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** scripts/dev-server-host.spec.js (red, then green); claude mcp get warpcad reads Connected; live pairing e2e 3 of 3 on the dev server
+**To Add:** none

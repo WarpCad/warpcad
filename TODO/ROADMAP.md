@@ -64,7 +64,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 43 | ▶ Ready | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
-| 45 | ▶ Ready | `FIND` | [`ai-037`](FIND-ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) Bind the dev server to IPv4 loopback so the registered `127.0.0.1:5183/mcp` endpoint answers | sonnet |
 | 46 | ▶ Ready | `FIND` | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) Stop a client that exited normally from blocking the next one as "ambiguous" for five minutes | sonnet |
 | 47 | ▶ Ready | `FIND` | [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) Close the open edges a Subtract leaves in a dense imported scan's STL export | opus |
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
@@ -164,7 +163,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
-| [`ai-037`](FIND-ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) `npm run dev` listens on IPv6 loopback only, so the endpoint `mcp:add -- --dev` registers refuses connections | finding | medium | sonnet | ▶ Ready (Next up row 45) |
 | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) A client that exits normally leaves its live MCP session counted, so the next client is refused as ambiguous for up to five minutes | finding | low | sonnet | ▶ Ready (Next up row 46) |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
@@ -352,7 +350,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
-| `ai-037` | Bind the dev server to IPv4 loopback so `npm run mcp:add -- --dev` registers an endpoint that answers. Filed 2026-11-14 from the `testing-022` drive of `ai-016` and `ai-012` #1 | Finding | — | 25 |
 | `ai-038` | A client that exits without DELETE blocks the next live MCP client as ambiguous for up to five minutes. Filed 2026-11-14 from the `testing-022` drive of `ai-023` #2 | Finding | — | 25 |
 | `io-031` | A Subtract cut in a dense imported scan (32k triangles and up) exports an STL with open edges that Cura warns about. Filed 2026-11-14 from the testing-023 drive of `io-009` #2 | Finding | — | 11, 26 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |

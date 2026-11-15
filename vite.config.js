@@ -150,7 +150,10 @@ export default defineConfig(({ command, mode }) => ({
   // a stray dev server from another project squatting on the default port
   // would make Playwright's `reuseExistingServer` silently attach to the
   // wrong app instead of failing loudly. Fail loudly instead.
-  server: { port: 5183, strictPort: true },
+  // Bound to IPv4 loopback (not `host: true`, which exposes the LAN) so the endpoint `npm run mcp:add -- --dev`
+  // registers (http://127.0.0.1:5183/mcp) answers; unset, Vite binds `localhost`, which can be `::1` only.
+  // `http://localhost:5183` still works (TODO/ai-037, `scripts/dev-server-host.spec.js`).
+  server: { host: '127.0.0.1', port: 5183, strictPort: true },
   // The same policy for `npm run preview`: the live MCP endpoint (`VITE_LIVE_BRIDGE=1`, `mcp/livePreview.js`)
   // is registered on a fixed port so `npm run mcp:add -- --preview` can name it.
   // Bound to IPv4 loopback so the documented endpoint (http://127.0.0.1:4173/mcp) answers; `localhost` still resolves here.

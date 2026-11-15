@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-022 drive of ai-016 and ai-012 #1
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-15.** `vite.config.js` now sets `server: { host: '127.0.0.1', ... }` with a comment. `scripts/dev-server-host.spec.js` starts the real dev server on a spare port and asserts `127.0.0.1/mcp` and `/` answer, `localhost` still answers, and `[::1]` is refused (it was red before the fix). `mcp/bridge.js` `devAllowList` already accepts `localhost`, `127.0.0.1` and `[::1]` for Host and Origin, so the gate needed no change. On this Mac `localhost` resolves to both `::1` and `127.0.0.1`, so Safari, Firefox and Chromium all reach the IPv4 bind. Playwright's dev webServer (`E2E_DEV=1`, `npm run dev`, URL `http://localhost:5183`) still starts; the default e2e run uses the production preview on 5184 and never touched the dev server.
 
 ## Problem
 

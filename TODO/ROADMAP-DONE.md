@@ -948,6 +948,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `ui-124` | The navigation chrome no longer covers the grid scale readout at a window about 650 px wide: from 641 px up, when the canvas is under 380 px wide the pad folds to its 38 px toggle (the form the phone's raised pad uses) through a container query on the viewport. Filed 2026-11-14 from the `testing-017` sweep. [`done/ui-124`](done/ui-124-nav-chrome-covers-scale-readout-at-650px.md) | Finding | — | 1, 4 (tablet width, driven at 650, 660 and 820 px) |
 | ✅ `core-083` | A sketch's Linear Twist now takes its steps from the resolution (at most 3° a step) when Twist steps is left at 1, so Twist 90 on 30 × 16 × 30 mm reads 14 091 mm³, not 3 820; a count below the floor is refused. Docs and the Extrude panel say what Twist steps does | Finding | 9 |
 | ✅ `ui-125` | The header's Undo refusal now reads `Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on it. Open History to suppress that step first.`, from History labels and a plain-words origin and not a record id, and shows as an alert in the save-status chip (a wrapped panel under the header) instead of a second red block that squeezed the hint. The error carries `code: 'undo-blocked'`. Filed 2026-11-14 from `testing-019` | Finding | — | none |
+| ✅ `ai-037` | The dev server now binds `127.0.0.1` (`server.host`, as `preview` does), so the endpoint `npm run mcp:add -- --dev` registers answers and `claude mcp get warpcad` reads Connected; `http://localhost:5183` still works and `::1` and the LAN are not bound. `scripts/dev-server-host.spec.js` starts the real dev server and asks it. Filed 2026-11-14 from the `testing-022` drive. [`done/ai-037`](done/ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) | Finding | — | 25 (re-driven, step 2 wording unchanged) |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1383,5 +1384,6 @@ convention going forward.
 | `core-083` | 2026-11-15 14:35 | ~32m (RED first, one kernel change plus a step-angle ceiling found by measuring, a pair run, three engines of drive, regenerated two docs pictures, one finding filed) |
 | `ui-125` | 2026-11-15 14:24 | ~30m (RED first on four unit specs and one e2e, one core message and the chip's refusal panel, a pair run, nine projects of the new spec, a two-width drive) |
 | `testing-040` | 2026-11-15 14:55 | ~27m (one new two-test spec, two mutation checks after the first long-press one passed for the wrong reason, a pair run and ten repeats) |
+| `ai-037` | 2026-11-15 15:25 | ~20m (RED first on a new spec that starts the real dev server, one config line, a pair run, the dev e2e path and the live pairing spec, a read-only `claude mcp get` drive) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
