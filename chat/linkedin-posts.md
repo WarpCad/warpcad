@@ -4308,3 +4308,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** mcp/liveHttp.spec.js (red, then green, including a live second client still refused); `lsof` on a running `claude -p`; three back-to-back clean exits served and two concurrent clients refused, with `claude -p --model haiku`
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/io-031
+
+A scan with a cube cut out of it exported an STL that a slicer could call not closed. In a 32,320-triangle scan the cut left 23 open edges where the cutter's walls met the scan, and 141 in a 240,960-triangle one. The volume still matched, so nothing in the app showed it.
+
+The repair that closes those seams treated one cell of its snap grid as a corner's identity, so two corners a hair apart but in different cells were never joined, and a face that visited one corner twice made an edge four faces shared. It now joins corners within the snap distance and splits such faces. The cut files are closed at the file's precision, and the low-polygon exports are byte-for-byte the same as before.
+
+One thing did not go to plan. Cura's own check still prints "overlapping faces" on these files, because Cura treats corners about 30 micrometres apart as one and a flat face of the cut has two edges 17 micrometres apart. A fix that merges everything within 30 micrometres would damage real detail, so that is a separate finding with its own task, as is a single 1.4 micrometre edge left in the 96,600-triangle case.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** src/core/kernel/watertightDense.spec.js (generated scans, red then green); bench/results/2026-11-15-io-031.md (CuraEngine 5.13.0 before and after, open-edge counts, timing); the cut exported through File > Export on Chromium and WebKit, 0 open edges of 41,442
+**To Add:** none

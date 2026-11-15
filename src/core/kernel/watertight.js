@@ -75,6 +75,24 @@
  *   one measured bounding box by 2.3e-4 mm for no benefit, and ran roughly twice as
  *   slow (75 ms vs 39 ms over a 24-body export).
  *
+ * ### Dense meshes (`TODO/FIND-io-031`)
+ *
+ * Everything above was measured on shapes under 500 triangles. A cube cut through a
+ * 32,320-triangle imported scan still exported 23 open edges (141 at 240,960 triangles), and
+ * two defects the T-junction test cannot see by itself were behind every one of them. Both are
+ * handled around it, not inside it:
+ *
+ * - **Corners a hair apart across a cell boundary** ({@link fuseNearCorners}): two corners
+ *   within `tolerance` of each other that the snap grid keeps apart become one, *before* any
+ *   edge is tested, moving onto an existing corner and never off the bounding box.
+ * - **Faces that visit a corner twice** ({@link splitAtRepeatedCorners}): a fuse, or a corner
+ *   near an acute face corner that lands on both of its sides, makes a face fold back on
+ *   itself, so it is split into the simple loops it walks, *after* the passes.
+ *
+ * A shape with neither comes back exactly as before: `bench/watertight-equivalence.mjs`
+ * reports the ten `io-004` / `io-005` / benchmark shapes byte-identical in STL, OBJ and glTF.
+ * The dense cases are `watertightDense.spec.js`.
+ *
  * The result of this pass is for **serialization only**. Inserting a vertex into an
  * edge can leave a polygon a hair non-convex, so it must not be fed back into a boolean
  * — the same caveat `@jscad/modeling`'s own `insertTjunctions` carries.
@@ -162,7 +180,11 @@ export function makeWatertight(solid) {
   const cornerCount = identity.size
   const grid = new CornerGrid(cornerCount, tolerance)
 
-  let inserted = 0
+  // Before any edge is tested (`TODO/io-031`): corners closer than the weld radius that the
+  // snap grid still keeps apart, because they straddle a cell boundary, become one corner.
+  // A corner on the bounding box never moves — the serializer's grid hangs on the box.
+  const pinned = pinnedCorners(polygons, ids, cornerCount)
+  let inserted = fuseNearCorners(polygons, ids, cornerCount, tolerance, grid, pinned)
 
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
     // One representative coordinate per welded corner, and the order it was first
@@ -232,6 +254,11 @@ export function makeWatertight(solid) {
     if (insertedThisPass === 0) break
   }
 
+  // A face can now visit one corner twice — fused onto itself, or given the same corner on
+  // two sides of an acute angle — so it is split into the simple loops it walks.
+  inserted += splitAtRepeatedCorners(polygons, ids)
+
+  // `inserted` also counts corners fused, faces dropped and loops split: the polygons changed.
   if (inserted === 0) return solid
   // `toPolygons` above already applied the solid's lazy transforms, so the rebuilt
   // solid starts from an identity transform. Copying `solid.transforms` onto it would
@@ -295,6 +322,273 @@ export function openEdgesOf(solid, options = {}) {
     where.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2])
   }
   return { openEdges, where }
+}
+
+/**
+ * Fuse corners that lie within `tolerance` of each other but in different snap cells
+ * (`TODO/io-031`). Mutates `polygons` and `ids` in place.
+ *
+ * ## Why the snap grid alone is not enough
+ *
+ * The corner identity is a cell of the serializer's snap grid, and a grid keeps two points
+ * a hair apart in different cells whenever a cell boundary runs between them. A boolean
+ * against a dense mesh makes many such pairs: every one of the mesh's triangle planes cuts
+ * the cutter's faces, and two nearly parallel planes cut it along lines a fraction of a weld
+ * radius apart. Measured on `FIND-io-031`'s 32,320-triangle scan with a cube cut through
+ * it, every edge the T-junction pass left open had a pair like that at one end — 0.55 to
+ * 0.97 ε apart, never closer than float noise and never farther than ε. The T-junction test
+ * cannot help, by design: it refuses a corner within `tolerance` of an edge's endpoint, so
+ * it never splits an edge into a piece shorter than the weld. The two corners stay distinct,
+ * the snap writes them a grid step apart, and the sliver between them is a hole on one side
+ * and a doubled face on the other — what CuraEngine reports as *overlapping faces*.
+ *
+ * ## What it does
+ *
+ * A corner within `tolerance` of an earlier one is given that corner's identity **and its
+ * coordinate** (an existing vertex array, so nothing new is invented), which the serializer
+ * then snaps identically. A side that now joins a corner to itself is dropped, and a polygon
+ * left with fewer than three corners goes with it, exactly as the serializer's own snap would
+ * drop them. A polygon the fuse makes visit one corner twice is left to
+ * {@link splitAtRepeatedCorners}.
+ *
+ * The radius is `tolerance` — the weld radius the rest of the module already uses — and was
+ * measured against `√2 × tolerance`, the radius that would also swallow every corner the
+ * T-junction test's along-the-side endpoint clearance ignores. The larger radius opened a hole
+ * the smaller one does not (the tilted-cutter case in `watertightDense.spec.js`: fusing a corner
+ * 1.36 ε away collapsed a small face whose side closed a long, thin triangle), and once the
+ * loop split exists it closes nothing the smaller one leaves open.
+ *
+ * Merging is greedy against corners that were not themselves merged, so a run of points each
+ * within `tolerance` of the next cannot collapse along its length. A corner on the bounding
+ * box is never moved: `measureEpsilon` is derived from the box, and a box shrunk by a hair
+ * would move every cell of the serializer's grid out from under this module's identities.
+ * Those corners are visited first so that their neighbours merge onto them.
+ *
+ * @param {{ vertices: Vec3[] }[]} polygons
+ * @param {number[][]} ids Per polygon, its vertices' corner ids.
+ * @param {number} cornerCount
+ * @param {number} tolerance
+ * @param {CornerGrid} grid Reused for the neighbour search; rebuilt here.
+ * @param {Uint8Array} pinned From {@link pinnedCorners}: 1 for a corner that must not move.
+ * @returns {number} How many polygon corners were moved or dropped (0 when nothing fused).
+ */
+function fuseNearCorners(polygons, ids, cornerCount, tolerance, grid, pinned) {
+  /** @type {(Vec3 | undefined)[]} */
+  const representative = new Array(cornerCount)
+  /** @type {number[]} Corner ids in the order first walked. */
+  const walked = []
+  for (let index = 0; index < polygons.length; index += 1) {
+    const { vertices } = polygons[index]
+    const polygonIds = ids[index]
+    for (let corner = 0; corner < vertices.length; corner += 1) {
+      const id = polygonIds[corner]
+      if (representative[id] === undefined) {
+        representative[id] = vertices[corner]
+        walked.push(id)
+      }
+    }
+  }
+
+  grid.rebuild(representative)
+  const { items, counts, size } = grid
+  const root = new Int32Array(cornerCount).fill(-1)
+  const toleranceSquared = tolerance * tolerance
+  let fused = 0
+  for (const id of [...walked.filter((id) => pinned[id] === 1), ...walked.filter((id) => pinned[id] === 0)]) {
+    root[id] = id
+    if (pinned[id] === 1) continue
+    const vertex = /** @type {Vec3} */ (representative[id])
+    // The grid's cell is at least 4 × tolerance, so the 3 × 3 × 3 block around a corner's
+    // cell holds every corner within tolerance of it.
+    const cx = grid.axisCell(vertex[0], 0)
+    const cy = grid.axisCell(vertex[1], 1)
+    const cz = grid.axisCell(vertex[2], 2)
+    let best = -1
+    let bestDistance = Infinity
+    for (let z = Math.max(0, cz - 1); z <= Math.min(size[2] - 1, cz + 1); z += 1) {
+      for (let y = Math.max(0, cy - 1); y <= Math.min(size[1] - 1, cy + 1); y += 1) {
+        for (let x = Math.max(0, cx - 1); x <= Math.min(size[0] - 1, cx + 1); x += 1) {
+          const cell = (z * size[1] + y) * size[0] + x
+          for (let slot = counts[cell]; slot < counts[cell + 1]; slot += 1) {
+            const other = items[slot]
+            // Only a corner already settled as its own root: no chains, no cycles.
+            if (other === id || root[other] !== other) continue
+            const there = /** @type {Vec3} */ (representative[other])
+            const dx = there[0] - vertex[0]
+            const dy = there[1] - vertex[1]
+            const dz = there[2] - vertex[2]
+            const distance = dx * dx + dy * dy + dz * dz
+            if (distance > toleranceSquared || distance >= bestDistance) continue
+            best = other
+            bestDistance = distance
+          }
+        }
+      }
+    }
+    if (best !== -1) {
+      root[id] = best
+      fused += 1
+    }
+  }
+  if (fused === 0) return 0
+
+  let changed = 0
+  /** @type {number[]} Polygons a fuse left with fewer than three corners. */
+  const emptied = []
+  for (let index = 0; index < polygons.length; index += 1) {
+    const polygonIds = ids[index]
+    if (polygonIds.every((id) => root[id] === id)) continue
+    const { vertices } = polygons[index]
+    /** @type {Vec3[]} */
+    const kept = []
+    /** @type {number[]} */
+    const keptIds = []
+    for (let corner = 0; corner < vertices.length; corner += 1) {
+      const id = root[polygonIds[corner]]
+      if (keptIds.length > 0 && keptIds[keptIds.length - 1] === id) continue
+      kept.push(id === polygonIds[corner] ? vertices[corner] : /** @type {Vec3} */ (representative[id]))
+      keptIds.push(id)
+    }
+    while (keptIds.length > 1 && keptIds[keptIds.length - 1] === keptIds[0]) {
+      kept.pop()
+      keptIds.pop()
+    }
+    changed += vertices.length - kept.length + 1
+    polygons[index] = { vertices: kept }
+    ids[index] = keptIds
+    if (kept.length < 3) emptied.push(index)
+  }
+  for (let at = emptied.length - 1; at >= 0; at -= 1) {
+    polygons.splice(emptied[at], 1)
+    ids.splice(emptied[at], 1)
+  }
+  return changed
+}
+
+/**
+ * Split every polygon that visits a corner more than once into the simple loops it walks,
+ * and drop the loops of fewer than three corners (`TODO/io-031`). Mutates `polygons` and
+ * `ids` in place.
+ *
+ * Two things make such a polygon, both measured on `FIND-io-031`'s scans. A fuse can turn
+ * `A, B, C, B′` into `A, B, C, B`. And the T-junction pass, near the apex of a face's acute
+ * corner (about 10° in the case measured), finds one corner within `tolerance` of *both*
+ * sides and inserts it into each, giving `P, Q, R, S, Q`. Triangulated whole, either puts
+ * four triangles on one edge — `Q → P` from the face itself and `P → Q` from its fold, on
+ * top of the two neighbours — which is the *overlapping faces* CuraEngine reports.
+ *
+ * Splitting at the repeat is exact: every directed side is kept, in a loop of its own. A
+ * two-corner loop is a side walked out and straight back (`P → Q → P`), whose two directed
+ * sides cancel each other, so dropping it leaves the surface's edge balance unchanged and
+ * removes only the zero-width spike. What remains of `P, Q, R, S, Q` is the triangle
+ * `Q, R, S`, and the neighbours that also received `Q` close up against it.
+ *
+ * @param {{ vertices: Vec3[] }[]} polygons
+ * @param {number[][]} ids
+ * @returns {number} How many polygons were split or dropped.
+ */
+function splitAtRepeatedCorners(polygons, ids) {
+  let changed = 0
+  /** @type {{ vertices: Vec3[] }[]} */
+  const extraPolygons = []
+  /** @type {number[][]} */
+  const extraIds = []
+  let kept = 0
+  for (let index = 0; index < polygons.length; index += 1) {
+    const polygonIds = ids[index]
+    if (!hasRepeatedCorner(polygonIds)) {
+      polygons[kept] = polygons[index]
+      ids[kept] = polygonIds
+      kept += 1
+      continue
+    }
+    changed += 1
+    // Walk the corners on a stack; whenever a corner already on the stack comes round
+    // again, everything above it is a closed loop, and is cut off as one.
+    const { vertices } = polygons[index]
+    /** @type {number[]} Positions into `vertices`, in walk order. */
+    const stack = []
+    /** @type {Map<number, number>} Corner id → its depth on the stack. */
+    const depth = new Map()
+    /** @param {number[]} loop */
+    const emit = (loop) => {
+      if (loop.length < 3) return
+      extraPolygons.push({ vertices: loop.map((at) => vertices[at]) })
+      extraIds.push(loop.map((at) => polygonIds[at]))
+    }
+    for (let corner = 0; corner < vertices.length; corner += 1) {
+      const id = polygonIds[corner]
+      const seen = depth.get(id)
+      if (seen === undefined) {
+        depth.set(id, stack.length)
+        stack.push(corner)
+        continue
+      }
+      const loop = stack.splice(seen)
+      for (const at of loop) depth.delete(polygonIds[at])
+      emit(loop)
+      depth.set(id, stack.length)
+      stack.push(corner)
+    }
+    emit(stack)
+  }
+  polygons.length = kept
+  ids.length = kept
+  for (let at = 0; at < extraPolygons.length; at += 1) {
+    polygons.push(extraPolygons[at])
+    ids.push(extraIds[at])
+  }
+  return changed
+}
+
+/**
+ * Whether a polygon visits any corner twice. Allocation-free: almost every polygon is a
+ * triangle or a quad, and this runs once per polygon of every exported solid.
+ *
+ * @param {number[]} polygonIds
+ * @returns {boolean}
+ */
+function hasRepeatedCorner(polygonIds) {
+  for (let first = 0; first < polygonIds.length - 1; first += 1) {
+    for (let second = first + 1; second < polygonIds.length; second += 1) {
+      if (polygonIds[first] === polygonIds[second]) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Corners the repair must leave where they are: any corner one of whose vertices touches
+ * the solid's bounding box. `measureEpsilon` — and so the serializer's whole snap grid — is
+ * derived from that box, so a box shrunk by a hair would re-grid every corner.
+ *
+ * @param {{ vertices: Vec3[] }[]} polygons
+ * @param {number[][]} ids
+ * @param {number} cornerCount
+ * @returns {Uint8Array} 1 per pinned corner id.
+ */
+function pinnedCorners(polygons, ids, cornerCount) {
+  const min = [Infinity, Infinity, Infinity]
+  const max = [-Infinity, -Infinity, -Infinity]
+  for (const { vertices } of polygons) {
+    for (const vertex of vertices) {
+      for (let axis = 0; axis < 3; axis += 1) {
+        if (vertex[axis] < min[axis]) min[axis] = vertex[axis]
+        if (vertex[axis] > max[axis]) max[axis] = vertex[axis]
+      }
+    }
+  }
+  const pinned = new Uint8Array(cornerCount)
+  for (let index = 0; index < polygons.length; index += 1) {
+    const { vertices } = polygons[index]
+    for (let corner = 0; corner < vertices.length; corner += 1) {
+      const vertex = vertices[corner]
+      for (let axis = 0; axis < 3; axis += 1) {
+        if (vertex[axis] === min[axis] || vertex[axis] === max[axis]) pinned[ids[index][corner]] = 1
+      }
+    }
+  }
+  return pinned
 }
 
 /**

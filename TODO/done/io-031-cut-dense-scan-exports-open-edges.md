@@ -6,8 +6,20 @@ priority: medium
 model: opus
 milestone: none — Findings table, filed 2026-11-14 from the testing-023 drive of io-009 #2
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** The exported STL of a dense scan with a Subtract cut is now a closed surface at the file's
+> precision: 0 open edges at 1e-5 mm on the 32k and 240k cuts (23 and 141 before), STL volume within 4e-6 of the kernel,
+> low-poly exports byte-identical (`bench/watertight-equivalence.mjs`). `makeWatertight` (`src/core/kernel/watertight.js`)
+> treated a cell of the serializer's snap grid as a corner's identity; it now fuses corners within the snap epsilon before
+> the T-junction passes and splits faces that visit one corner twice after them. **The stated target (no Cura warnings) was
+> not met**: `Mesh has disconnected faces!` is gone but `Mesh has overlapping faces!` remains on the 32k, 96k and 240k cuts,
+> because Cura melds vertices within about 30 micrometres and the cutter's flat face has two edges 17 micrometres apart;
+> clearing it needs a flat-face cleanup (`io-032`). The 96k case keeps one 1.4 micrometre four-face edge (`io-033`). That
+> scope decision was taken for the owner by the unattended run; review it. The standing dense case is a unit spec
+> (`src/core/kernel/watertightDense.spec.js`, generated meshes); an all-engine e2e of the same case was driven but not kept.
+> Measurements: `bench/results/2026-11-15-io-031.md`.
 
 ## Problem
 

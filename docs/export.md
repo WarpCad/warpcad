@@ -169,10 +169,14 @@ Netfabb*, Bambu Studio's repair prompt, MeshLab's **Filters → Selection → Se
 non-manifold edges** — it should find nothing to repair, whether you exported a plain box, a
 Union of two shapes, a bolt from the library, or a whole scene of them in one file.
 
-One known exception: a **dense imported scan** (tens of thousands of triangles or more) with a
-cut made in it by **Subtract** can export with a few open edges where the cut meets the
-scan. Cura slices it but warns *Mesh has overlapping faces* (or *disconnected faces*), and a
-repair tool finds a handful of edges to fix. The same scan exported without a cut is closed. It is a known bug that is being worked on.
+That holds for a **dense imported scan** with a cut made in it by **Subtract** too: the cut
+file is a closed surface at the precision the file is written in (a hundredth of a micrometre).
+One narrow note for that case: Cura looks at corners about 30 micrometres apart as one, and on a
+scan with tens of thousands of triangles it can still print *Mesh has overlapping faces* where the
+cut meets the scan. It still slices the file, and the shape it slices is the shape you see.
+For example, import a scan, place a **Cube** through it, select both, press **Subtract**, then
+**File ▾ → Export… → STL** and open the file in Cura: the part loads and slices, with at most that
+one warning, and a mesh check such as MeshLab's **Select non-manifold edges** finds nothing.
 
 ### Trying it on a shape that used to be the hard case
 

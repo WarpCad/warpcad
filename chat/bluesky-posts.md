@@ -2983,3 +2983,14 @@ A one-shot Claude Code run that finished normally still counted as connected to 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** mcp/liveHttp.spec.js (red, then green; a live second client is still refused); four `claude -p --model haiku` drives against the dev bridge: three back-to-back clean exits all served, two concurrent clients both refused
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/io-031
+
+Cut a cube out of a 30,000-triangle scan in WarpCad and the exported STL used to have a couple of dozen open edges where the cut met the scan. It is now a closed surface (0 open edges at file precision, 32k to 240k triangles). Cura still prints one "overlapping faces" warning on it, so that is filed, not hidden. #CAD #3DPrinting Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** src/core/kernel/watertightDense.spec.js (generated scans, red then green); bench/results/2026-11-15-io-031.md (CuraEngine before and after, open-edge counts); STL exported through File > Export on Chromium and WebKit, 0 open edges of 41,442
+**To Add:** none

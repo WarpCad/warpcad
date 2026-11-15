@@ -59,7 +59,7 @@ waits on one stays held. Rows that collide with another session's uncommitted ed
 `ui-108`; the numbers of the rows that closed are gone. What is left is `ui-108` (it splits `Viewport.vue`), the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed
 (43–66). Row numbers are stable ids, not positions: a gap means a row closed.
-**Opus tasks** (each splits into an Opus half and a Sonnet half): `perf-004`, `ui-108`, `io-031`.
+**Opus tasks** (each splits into an Opus half and a Sonnet half): `perf-004`, `ui-108`, `io-032`, `io-033`.
 **New findings a task files** get a Findings row at the bottom of the table and the next free Next up number, unless the owner re-ranks them.
 
 | # | State | Milestone | Task | Model |
@@ -83,7 +83,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 37 | ⚠ Parked 2026-11-15: another session has uncommitted edits in the theme and skin styles; unpark when they are committed | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ⚠ Parked 2026-11-15: another session has uncommitted edits in .storybook/; unpark when they are committed | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 43 | ⚠ Parked 2026-11-15: another session has uncommitted edits in Viewport.vue; unpark when they are committed | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
-| 47 | ▶ Ready | `FIND` | [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) Close the open edges a Subtract leaves in a dense imported scan's STL export | opus |
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 | 50 | ▶ Ready | `FIND` | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | sonnet |
@@ -103,6 +102,8 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 64 | ▶ Ready | `FIND` | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | sonnet |
 | 65 | ▶ Ready | `FIND` | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | sonnet |
 | 66 | ▶ Ready | `FIND` | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable | sonnet |
+| 67 | ▶ Ready | `FIND` | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a sub-30-micrometre flat-face cleanup | opus |
+| 68 | ▶ Ready | `FIND` | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) Close the one 1.4 micrometre four-face edge left in the 96k cut's STL export | opus |
 
 ---
 
@@ -218,7 +219,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-058`](DEFER-ui-058-gear-mesh-operation.md) Mesh operation for two gears (was M11) | feature | high | opus | Deferred 2026-11-07 |
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
-| [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) A dense imported scan with a Subtract cut exports an STL that is not closed, and Cura says so | finding | medium | opus | ▶ Ready (Next up row 47) |
 | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) The warpcad.com home page has not followed the app's Help since its daily rebuild was removed | finding | low | sonnet | ▶ Ready (Next up row 48) |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
 | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 50) |
@@ -238,6 +238,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | finding | medium | sonnet | ▶ Ready (Next up row 62) |
 | [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | finding | low | sonnet | ▶ Ready (Next up row 63) |
 | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | finding | medium | sonnet | ▶ Ready (Next up row 64) |
+| [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Cura still prints "Mesh has overlapping faces!" for a dense scan with a Subtract cut, though the STL is closed | finding | low | opus | ▶ Ready (Next up row 67) |
+| [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) One 1.4 micrometre edge shared by four triangles remains in the 96k cut's STL export | finding | low | opus | ▶ Ready (Next up row 68) |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
@@ -376,7 +378,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | ⚠ `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | ⚠ `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | ⚠ `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
-| `io-031` | A Subtract cut in a dense imported scan (32k triangles and up) exports an STL with open edges that Cura warns about. Filed 2026-11-14 from the testing-023 drive of `io-009` #2 | Finding | — | 11, 26 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
 | `docs-036` | Fix the docs pictures and sentences two cold readers could not follow. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
@@ -396,6 +397,8 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `sketch-009` | Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
 | `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
 | `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Filed 2026-11-15 by `perf-005` | Finding | — | 1 |
+| `io-032` | Cura prints "Mesh has overlapping faces!" for a Subtract cut in a dense imported scan (32k triangles and up) though the STL is closed at 1e-5 mm: a 17 micrometre band in a flat face. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
+| `io-033` | One 1.4 micrometre edge used by four triangles remains in the 96k scan's cut STL export. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 
 ---
 
@@ -494,7 +497,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 27 queued + 5 held | 20 ready for `/run-todos`; 7 parked (`perf-004` on an owner question, six on another session's uncommitted edits); `testing-026`–`028`, `testing-033`, `ai-041` held. |
+| [Findings](#findings-open-rows) | 28 queued + 5 held | 21 ready for `/run-todos`; 7 parked (`perf-004` on an owner question, six on another session's uncommitted edits); `testing-026`–`028`, `testing-033`, `ai-041` held. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 11 queued + 10 held | Queued (local, never pushed): `build-031`–`build-035`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
