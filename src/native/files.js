@@ -10,9 +10,12 @@
  * ones those guest bindings send: a write's bytes are the **payload** and its path and options are
  * percent-encoded **headers**; every other command takes JSON with `options.baseDir`.
  *
- * Paths are always **relative to `$DOCUMENT`** (`baseDir` {@link DOCUMENT_BASE_DIR}), the only
- * folder the shell's capabilities let the page touch. A file the document picker hands out joins
- * that scope for the session, as the dialog plugin arranges, and is read by its own path.
+ * Paths are always **relative to the project folder**, which {@link projectFolderPrefix} places under
+ * `$DOCUMENT` (`baseDir` {@link DOCUMENT_BASE_DIR}): on iOS and Android `$DOCUMENT` is the app's own
+ * folder, so the project folder is it; on macOS and Windows `$DOCUMENT` is the user's Documents
+ * folder, which the shell's capability scope keeps out of reach (`TODO/io-029`), so projects live in
+ * `Documents/WarpCad/`. A file the document picker hands out joins the scope for the session, as the
+ * dialog plugin arranges, and is read by its own path.
  *
  * A save is a **temp file, then a rename**, as `mcp/projectFile.js` writes: a crash mid-save leaves
  * the old project whole, never a torn one. A failure removes the temp file and rejects.
@@ -31,6 +34,30 @@ export const DOCUMENT_BASE_DIR = 6
 
 /** `BaseDirectory.AppData` in `@tauri-apps/api/path`: `$APPDATA`, *Library/Application Support/<bundle id>* on iOS (`TODO/io-015`). */
 export const APPDATA_BASE_DIR = 14
+
+/** The folder inside Documents the Mac and Windows apps keep everything in (`TODO/io-029`). */
+export const DESKTOP_PROJECT_FOLDER = 'WarpCad'
+
+/** @type {WeakMap<object, string>} the prefix once known, by the global its bridge is read from */
+const prefixes = new WeakMap()
+
+/**
+ * The part every `$DOCUMENT`-relative path starts with: `WarpCad/` on macOS and Windows, where
+ * `$DOCUMENT` is the user's own Documents folder and the shell grants only that subfolder
+ * (`TODO/io-029`); `''` on iOS and Android, where `$DOCUMENT` is the app's own folder. Every call
+ * that touches Documents goes through this one function.
+ *
+ * @param {FilesGlobal} global
+ * @returns {Promise<string>}
+ */
+export async function projectFolderPrefix(global) {
+  const known = prefixes.get(global)
+  if (known !== undefined) return known
+  const { platform } = await loadShellDetails(probeShell(global), global)
+  const prefix = platform === 'macos' || platform === 'windows' ? `${DESKTOP_PROJECT_FOLDER}/` : ''
+  prefixes.set(global, prefix)
+  return prefix
+}
 
 /** The folder under Documents every export goes to. */
 export const EXPORTS_FOLDER = 'Exports'
@@ -170,19 +197,21 @@ async function writeAtomic(command, path, bytes, global, tempId, baseDir = DOCUM
  */
 export async function writeProjectFile(name, text, global = /** @type {FilesGlobal} */ (globalThis), tempId = randomId()) {
   if (!isPlainName(name)) throw new UserFacingError('files/is-not-a-file-name-warpcad-can-save-under', `"${name}" is not a file name WarpCad can save under`)
-  await writeAtomic('plugin:fs|write_text_file', name, encoder.encode(text), global, tempId)
+  const prefix = await projectFolderPrefix(global)
+  if (prefix !== '') await call('plugin:fs|mkdir', { path: DESKTOP_PROJECT_FOLDER, options: { baseDir: DOCUMENT_BASE_DIR, recursive: true } }, global)
+  await writeAtomic('plugin:fs|write_text_file', `${prefix}${name}`, encoder.encode(text), global, tempId)
   return { name, ...(await statProjectFile(name, global)) }
 }
 
 /**
- * A Documents file's modification time.
+ * A project-folder file's modification time.
  *
- * @param {string} path Documents-relative
+ * @param {string} path project-folder-relative
  * @param {FilesGlobal} [global]
  * @returns {Promise<{ lastModified: number }>}
  */
 export async function statProjectFile(path, global = /** @type {FilesGlobal} */ (globalThis)) {
-  const info = /** @type {{ mtime?: unknown } | null} */ (await call('plugin:fs|stat', { path, options: { baseDir: DOCUMENT_BASE_DIR } }, global))
+  const info = /** @type {{ mtime?: unknown } | null} */ (await call('plugin:fs|stat', { path: `${await projectFolderPrefix(global)}${path}`, options: { baseDir: DOCUMENT_BASE_DIR } }, global))
   const mtime = info?.mtime
   return { lastModified: typeof mtime === 'number' ? mtime : typeof mtime === 'string' ? Date.parse(mtime) : 0 }
 }
@@ -195,7 +224,7 @@ export async function statProjectFile(path, global = /** @type {FilesGlobal} */ 
  * @returns {Promise<{ name: string, text: string, lastModified: number }>}
  */
 export async function readProjectFile(name, global = /** @type {FilesGlobal} */ (globalThis)) {
-  const answer = await call('plugin:fs|read_text_file', { path: name, options: { baseDir: DOCUMENT_BASE_DIR } }, global)
+  const answer = await call('plugin:fs|read_text_file', { path: `${await projectFolderPrefix(global)}${name}`, options: { baseDir: DOCUMENT_BASE_DIR } }, global)
   const { lastModified } = await statProjectFile(name, global)
   return { name, text: decodeText(answer), lastModified }
 }
@@ -208,7 +237,7 @@ export async function readProjectFile(name, global = /** @type {FilesGlobal} */ 
  * @returns {Promise<boolean>}
  */
 export async function projectExists(name, global = /** @type {FilesGlobal} */ (globalThis)) {
-  return (await call('plugin:fs|exists', { path: name, options: { baseDir: DOCUMENT_BASE_DIR } }, global)) === true
+  return (await call('plugin:fs|exists', { path: `${await projectFolderPrefix(global)}${name}`, options: { baseDir: DOCUMENT_BASE_DIR } }, global)) === true
 }
 
 /**
@@ -218,8 +247,12 @@ export async function projectExists(name, global = /** @type {FilesGlobal} */ (g
  * @returns {Promise<ProjectEntry[]>}
  */
 export async function listProjects(global = /** @type {FilesGlobal} */ (globalThis)) {
+  const prefix = await projectFolderPrefix(global)
+  const folder = prefix.replace(/\/$/, '')
+  // The desktop folder is made on the first save; before that there is nothing to list.
+  if (folder !== '' && (await call('plugin:fs|exists', { path: folder, options: { baseDir: DOCUMENT_BASE_DIR } }, global)) !== true) return []
   const entries = /** @type {Array<{ name?: unknown, isFile?: unknown }>} */ (
-    (await call('plugin:fs|read_dir', { path: '', options: { baseDir: DOCUMENT_BASE_DIR } }, global)) ?? []
+    (await call('plugin:fs|read_dir', { path: folder, options: { baseDir: DOCUMENT_BASE_DIR } }, global)) ?? []
   )
   const names = entries
     .filter((entry) => entry.isFile === true && typeof entry.name === 'string')
@@ -233,14 +266,15 @@ export async function listProjects(global = /** @type {FilesGlobal} */ (globalTh
  * Where an export is, in the words of the app that shows it: the Files app on iOS, the Documents
  * folder elsewhere.
  *
- * @param {string} path Documents-relative, `Exports/part.stl`
+ * @param {string} path project-folder-relative, `Exports/part.stl`
  * @param {string} platform the shell's OS (`ios`, `macos`, …), `''` when unknown
  * @param {boolean} iPad whether an iOS device is an iPad
  * @returns {string}
  */
 export function exportPlace(path, platform, iPad) {
   const parts = path.split('/').join(' › ')
-  return platform === 'ios' ? `Files › On My ${iPad ? 'iPad' : 'iPhone'} › WarpCad › ${parts}` : `Documents › ${parts}`
+  if (platform === 'ios') return `Files › On My ${iPad ? 'iPad' : 'iPhone'} › WarpCad › ${parts}`
+  return platform === 'macos' || platform === 'windows' ? `Documents › ${DESKTOP_PROJECT_FOLDER} › ${parts}` : `Documents › ${parts}`
 }
 
 /**
@@ -261,13 +295,14 @@ function isIPad(global) {
  * @param {Uint8Array | string} data
  * @param {FilesGlobal} [global]
  * @param {string} [tempId]
- * @returns {Promise<{ path: string, place: string }>} the Documents-relative path, and where to find it
+ * @returns {Promise<{ path: string, place: string }>} the project-folder-relative path, and where to find it
  */
 export async function writeExport(name, data, global = /** @type {FilesGlobal} */ (globalThis), tempId = randomId()) {
   if (!isPlainName(name)) throw new UserFacingError('files/is-not-a-file-name-warpcad-can-export-under', `"${name}" is not a file name WarpCad can export under`)
-  await call('plugin:fs|mkdir', { path: EXPORTS_FOLDER, options: { baseDir: DOCUMENT_BASE_DIR, recursive: true } }, global)
+  const prefix = await projectFolderPrefix(global)
+  await call('plugin:fs|mkdir', { path: `${prefix}${EXPORTS_FOLDER}`, options: { baseDir: DOCUMENT_BASE_DIR, recursive: true } }, global)
   const path = `${EXPORTS_FOLDER}/${name}`
-  await writeAtomic('plugin:fs|write_file', path, bytesOf(data), global, tempId)
+  await writeAtomic('plugin:fs|write_file', `${prefix}${path}`, bytesOf(data), global, tempId)
   const { platform } = await loadShellDetails(probeShell(global), global)
   return { path, place: exportPlace(path, platform, isIPad(global)) }
 }

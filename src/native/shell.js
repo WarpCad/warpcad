@@ -172,7 +172,7 @@ export function invoke(cmd, args = {}, global = /** @type {BridgeGlobal} */ (/**
   return options === undefined ? internals.invoke(cmd, args) : internals.invoke(cmd, args, options)
 }
 
-/** The opener plugin's command (`tauri-plugin-opener`, granted `https://` only in `capabilities/default.json`). */
+/** The opener plugin's command (`tauri-plugin-opener`, granted `https://` only in `capabilities/mobile.json and desktop.json`). */
 export const OPEN_URL_COMMAND = 'plugin:opener|open_url'
 
 /**

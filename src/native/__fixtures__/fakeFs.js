@@ -21,6 +21,8 @@
 /**
  * @typedef {object} FakeFsOptions
  * @property {number} [startTime] The first modification time handed out, epoch ms.
+ * @property {boolean} [desktop] Model the Mac and Windows scope (`TODO/io-029`): `$DOCUMENT` is the
+ *   user's own Documents folder, and only `WarpCad/` inside it is reachable; anything else is refused.
  */
 
 /**
@@ -80,6 +82,7 @@ export function createFakeTauriFs(options = {}) {
     if (baseDir !== DOCUMENT && baseDir !== APPDATA) throw `forbidden path: ${path}`
     const parts = String(path).split('/').filter((part) => part !== '' && part !== '.')
     if (parts.includes('..')) throw `forbidden path: ${path}`
+    if (options.desktop === true && baseDir === DOCUMENT && parts[0] !== 'WarpCad') throw `forbidden path: ${path}`
     // `$APPDATA` is a second scope; its files never appear as Documents.
     return (baseDir === APPDATA ? [APP, ...parts] : parts).join('/')
   }

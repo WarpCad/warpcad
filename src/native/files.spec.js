@@ -8,6 +8,7 @@ import {
   DOCUMENT_BASE_DIR,
   exportPlace,
   listProjects,
+  projectExists,
   pickFile,
   projectFileNameFor,
   readPickedFile,
@@ -31,7 +32,7 @@ import {
 
 /** A global with the fake bridge installed, and the fake itself. */
 function shell({ platform = 'ios', userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' } = {}) {
-  const fs = createFakeTauriFs()
+  const fs = createFakeTauriFs({ desktop: platform === 'macos' || platform === 'windows' })
   const invoke = vi.fn((cmd, args, options) => (cmd === 'shell_info' ? Promise.resolve({ platform, version: '1.13.0' }) : fs.invoke(cmd, args, options)))
   return { fs, invoke, global: { __TAURI_INTERNALS__: { invoke }, navigator: { userAgent, maxTouchPoints: 5 } } }
 }
@@ -66,7 +67,7 @@ describe('writeProjectFile — a temp file, then a rename (never a torn project)
   it('sends the bytes as the payload and the path and Documents base dir as headers, as the plugin reads them', async () => {
     const { invoke, global } = shell()
     await writeProjectFile('my part.ndjson', 'x', global, 't1')
-    const [cmd, payload, options] = invoke.mock.calls[0]
+    const [cmd, payload, options] = invoke.mock.calls.find((call) => call[0] !== 'shell_info')
     expect(cmd).toBe('plugin:fs|write_text_file')
     expect(payload).toBeInstanceOf(Uint8Array)
     expect(new TextDecoder().decode(payload)).toBe('x')
@@ -197,7 +198,8 @@ describe('writeExport — Documents/Exports, and where to find it', () => {
   it('names the place by device: iPad, and the Documents folder on a Mac', () => {
     expect(exportPlace('Exports/part.stl', 'ios', false)).toBe('Files › On My iPhone › WarpCad › Exports › part.stl')
     expect(exportPlace('Exports/part.stl', 'ios', true)).toBe('Files › On My iPad › WarpCad › Exports › part.stl')
-    expect(exportPlace('Exports/part.stl', 'macos', false)).toBe('Documents › Exports › part.stl')
+    expect(exportPlace('Exports/part.stl', 'macos', false)).toBe('Documents › WarpCad › Exports › part.stl')
+    expect(exportPlace('Exports/part.stl', 'windows', false)).toBe('Documents › WarpCad › Exports › part.stl')
     expect(exportPlace('Exports/part.stl', '', false)).toBe('Documents › Exports › part.stl')
   })
 
@@ -338,5 +340,72 @@ describe('the app-data copy (TODO/io-015) — $APPDATA, never Documents', () => 
       await expect(writeAppData(bad, 'x', global), bad).rejects.toThrow(/not a path/)
       await expect(readAppData(bad, global), bad).rejects.toThrow(/not a path/)
     }
+  })
+})
+
+describe('the desktop project folder (TODO/io-029) — Documents/WarpCad on macos and windows, Documents itself elsewhere', () => {
+  describe.each(['macos', 'windows'])('on %s', (platform) => {
+    it('saves into Documents/WarpCad, creating the folder first, through a hidden temp file and a rename', async () => {
+      const { fs, global } = shell({ platform, userAgent: 'Mozilla/5.0 (Macintosh)' })
+      await writeProjectFile('bracket.ndjson', '{"a":1}\n', global, 'abc')
+      expect(fs.documents()).toEqual(['WarpCad/bracket.ndjson'])
+      expect(fs.calls.map((c) => [c.cmd, c.path, c.newPath])).toEqual([
+        ['plugin:fs|mkdir', 'WarpCad', undefined],
+        ['plugin:fs|write_text_file', 'WarpCad/.bracket.ndjson.abc.tmp', undefined],
+        ['plugin:fs|rename', 'WarpCad/.bracket.ndjson.abc.tmp', 'WarpCad/bracket.ndjson'],
+        ['plugin:fs|stat', 'WarpCad/bracket.ndjson', undefined],
+      ])
+    })
+
+    it('reads, checks and lists inside WarpCad, and never lists a project that sits directly in Documents', async () => {
+      const { fs, global } = shell({ platform, userAgent: 'Mozilla/5.0 (Macintosh)' })
+      fs.put('WarpCad/mine.ndjson', 'a\n')
+      fs.put('stray.ndjson', 'not ours\n')
+      await expect(readProjectFile('mine.ndjson', global)).resolves.toMatchObject({ name: 'mine.ndjson', text: 'a\n' })
+      await expect(projectExists('mine.ndjson', global)).resolves.toBe(true)
+      await expect(projectExists('stray.ndjson', global)).resolves.toBe(false)
+      expect((await listProjects(global)).map((p) => p.name)).toEqual(['mine.ndjson'])
+    })
+
+    it('lists nothing before the folder exists, and never asks to read Documents itself', async () => {
+      const { fs, global } = shell({ platform, userAgent: 'Mozilla/5.0 (Macintosh)' })
+      await expect(listProjects(global)).resolves.toEqual([])
+      expect(fs.calls.filter((c) => c.cmd === 'plugin:fs|read_dir' && (c.path ?? '') === '')).toEqual([])
+    })
+
+    it('exports to WarpCad/Exports and says so', async () => {
+      const { fs, global } = shell({ platform, userAgent: 'Mozilla/5.0 (Macintosh)' })
+      const written = await writeExport('part.stl', new Uint8Array([1]), global, 'e1')
+      expect(fs.documents()).toEqual(['WarpCad/Exports/part.stl'])
+      expect(written).toEqual({ path: 'Exports/part.stl', place: 'Documents › WarpCad › Exports › part.stl' })
+    })
+
+    it('a file the shell opened directly in the project folder is opened by name; one from elsewhere is copied in', async () => {
+      const { fs, global } = shell({ platform, userAgent: 'Mozilla/5.0 (Macintosh)' })
+      fs.put('WarpCad/here.ndjson', 'x')
+      await expect(importOpenedFile({ name: 'here.ndjson', path: null }, global)).resolves.toBe('here.ndjson')
+      fs.queueOpened({ name: 'there.ndjson', path: '/Users/me/Desktop/there.ndjson' }, 'copied\n')
+      const [entry] = await takeOpenedFiles(global)
+      await expect(importOpenedFile(entry, global)).resolves.toBe('there.ndjson')
+      expect(fs.documents()).toEqual(['WarpCad/here.ndjson', 'WarpCad/there.ndjson'])
+    })
+
+    it('a picked file is still read by its own path', async () => {
+      const { fs, global } = shell({ platform, userAgent: 'Mozilla/5.0 (Macintosh)' })
+      fs.putOutside('/Users/me/Desktop/pick.ndjson', 'picked\n')
+      fs.queuePick('/Users/me/Desktop/pick.ndjson')
+      const picked = await pickFile(global)
+      await expect(readPickedFile(picked.path, global)).resolves.toBe('picked\n')
+    })
+  })
+
+  describe.each(['ios', 'android'])('on %s', (platform) => {
+    it('keeps projects and exports directly in Documents, with no WarpCad prefix', async () => {
+      const { fs, global } = shell({ platform })
+      await writeProjectFile('bracket.ndjson', 'x', global, 'abc')
+      await writeExport('part.stl', 'y', global, 'e1')
+      expect(fs.documents()).toEqual(['Exports/part.stl', 'bracket.ndjson'])
+      expect(fs.calls.some((c) => c.path?.startsWith('WarpCad'))).toBe(false)
+    })
   })
 })

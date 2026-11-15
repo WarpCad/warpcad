@@ -65,9 +65,8 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 8 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, three follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 7 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, three follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 27 queued (26 ready, 1 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Parked: `perf-004` (owner question). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
-| 70 | ▶ Ready | `M19` | [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) Scope Mac and Windows file access to `Documents/WarpCad` | sonnet |
 | 71 | ▶ Ready | `M19` | [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: Wi-Fi address only, request size cap, the unencrypted-token sentence | opus |
 | 72 | ▶ Ready | `M19` | [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS, checked by a test | sonnet |
 | 73 | ▶ Ready | `M19` | [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme | sonnet |
@@ -193,7 +192,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
 | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
-| [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) On Mac and Windows the page can read and delete anything in the user's Documents folder (M19) | finding | high | sonnet | ▶ Ready (Next up row 70) |
 | [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted (M19) | finding | medium | opus | ▶ Ready (Next up row 71) |
 | [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS for the native app, checked by a test (M19) | finding | medium | sonnet | ▶ Ready (Next up row 72) |
 | [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme (M19) | finding | medium | sonnet | ▶ Ready (Next up row 73) |
@@ -288,7 +286,6 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `io-029` | On Mac and Windows the page can read and delete anything in the user's Documents folder: scope it to `Documents/WarpCad`. Two repositories | Finding | — | none (Mac shell) |
 | `ai-036` | MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted. Two repositories for the sheet's sentence. Opus | Finding | — | none |
 | `build-034` | One version number and one minimum OS (iOS and iPadOS 26.0, macOS 26.0, decided 2026-11-13), checked by a test | Finding | — | none |
 | `ui-121` | The iOS status bar and launch screen follow the theme. Check on the simulator first; it may already be fine | Finding | — | none (simulator) |
@@ -490,7 +487,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 27 queued + 5 held | 26 ready for `/run-todos`; `perf-004` parked on an owner question; `testing-026`–`028`, `testing-033`, `ai-041` held. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 8 queued + 10 held | Queued (local, never pushed): `build-034`, `build-035`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `io-026`, `testing-011`, `testing-035`. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 7 queued + 10 held | Queued (local, never pushed): `build-034`, `build-035`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |

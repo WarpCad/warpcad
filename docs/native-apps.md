@@ -142,6 +142,21 @@ layout. Mouse, trackpad and keyboard shortcuts work as they do in a desktop brow
 the same steps as above with a mouse: drag **Cube** from the Library into the view and
 release. The Help version line ends in `macOS app` and the app's version.
 
+**Where your projects are kept.** **File ▾ → Save** writes the project to a **WarpCad** folder
+inside your Documents folder, `~/Documents/WarpCad`, and makes the folder the first time you
+save. Exports go to `~/Documents/WarpCad/Exports`. **Open…** lists the `.ndjson` projects in
+`~/Documents/WarpCad` only, not the rest of Documents, and the app cannot read, change or delete
+anything else in Documents. To open a project kept somewhere else, such as your Desktop, choose
+**Browse…** in the Open sheet and pick the file yourself.
+
+**Try it:**
+
+1. Drag **Cube** from the Library into the view, then choose **File ▾ → Save**, type `bracket`
+   and press **Save**. The status line says *Saved to bracket.ndjson*.
+2. In Finder, open **Documents**. A **WarpCad** folder is there, and `bracket.ndjson` is inside it.
+3. Choose **File ▾ → Export**, tick **STL** and press **Export**. The status line says
+   *Saved to Documents › WarpCad › Exports › …*, and the file is in `WarpCad/Exports`.
+
 An MCP client on the same Mac, such as Claude Code, can edit the open project through the app's
 own endpoint, `http://127.0.0.1:5184/mcp`, once you enable **Assistant → Live MCP access…**. See
 [From the iOS app](mcp.md#from-the-ios-app); the Mac app works the same way, and keeps serving
@@ -156,6 +171,12 @@ same device. The Help version line ends in `Android app` and the app's version.
 
 The Windows app opens WarpCad in its own window, like the Mac app. The Help version line ends
 in `Windows app` and the app's version.
+
+**Where your projects are kept.** Projects are saved in a **WarpCad** folder inside your
+Documents folder (`Documents\WarpCad`, made on your first save), and exports go to
+`Documents\WarpCad\Exports`. **Open…** lists the projects in that folder only; **Browse…**
+opens a file from anywhere else. The steps are the same as on the Mac: **File ▾ → Save**, name
+the project, and look in **Documents › WarpCad** in File Explorer.
 
 ## Installing a test build
 

@@ -36,11 +36,12 @@ import { createFakeTauriFs } from '../../src/native/__fixtures__/fakeFs.js'
  *
  * @param {Record<string, unknown>} commands the JSON command table
  * @param {typeof createFakeTauriFs} createFs the in-memory Documents folder (`TODO/io-014`)
+ * @param {boolean} desktop whether the folder keeps the Mac and Windows scope, `WarpCad/` only (`TODO/io-029`)
  */
-function installInPage(commands, createFs) {
+function installInPage(commands, createFs, desktop) {
   /** @type {Map<string, unknown>} */
   const table = new Map(Object.entries(commands))
-  const fs = createFs()
+  const fs = createFs({ desktop })
   /**
    * The fake Keychain (`TODO/ai-025`): account to string, in the page, so a reload starts it empty.
    * @type {Map<string, string>}
@@ -186,7 +187,7 @@ export async function installNativeShell(page, options = {}) {
     ...options.commands,
   }
   // A script string, not a function: the fake folder's source goes in with it.
-  await page.addInitScript({ content: `(${installInPage.toString()})(${JSON.stringify(table)}, ${createFakeTauriFs.toString()})` })
+  await page.addInitScript({ content: `(${installInPage.toString()})(${JSON.stringify(table)}, ${createFakeTauriFs.toString()}, ${JSON.stringify(['macos', 'windows'].includes(options.platform ?? 'ios'))})` })
 }
 
 /**

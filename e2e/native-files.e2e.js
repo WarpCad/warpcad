@@ -2,7 +2,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { test, expect } from '@playwright/test'
+import { test as base, expect } from '@playwright/test'
 
 import { failNativeCommand, installNativeShell, nativeAppData, nativeDocuments, nativeFileText, queueNativePick } from './fixtures/nativeShell.js'
 import { closeLibrary, isPhone, openLibrary, pointer, viewportPoint } from './support/humanInput.js'
@@ -22,6 +22,9 @@ import { closeLibrary, isPhone, openLibrary, pointer, viewportPoint } from './su
  *
  *     npx playwright test e2e/native-files.e2e.js
  */
+
+/** The OS the fake shell reports; `ios` unless a describe block sets it (`TODO/io-029`). */
+const test = base.extend({ shellPlatform: ['ios', { option: true }] })
 
 const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'native-files-snapshots')
 test.beforeAll(() => mkdirSync(SNAPSHOT_DIR, { recursive: true }))
@@ -102,8 +105,8 @@ async function moveBox(page, press, x) {
   await expect(field).toHaveValue(new RegExp(`^${x}(\\.0+)?$`))
 }
 
-test.beforeEach(async ({ page }) => {
-  await installNativeShell(page, { platform: 'ios', version: '1.13.0' })
+test.beforeEach(async ({ page, shellPlatform }) => {
+  await installNativeShell(page, { platform: shellPlatform, version: '1.13.0' })
 })
 
 test('Save names a file once and then saves in place; Open… lists it; Export writes to Exports with a toast — no download anywhere', async ({ page }, info) => {
@@ -314,4 +317,54 @@ test('a copy of the open project tapped in the Files app asks to merge, as a re-
   // The copy went in beside the open project's file, never over it.
   expect(await nativeDocuments(page)).toEqual(['bracket 2.ndjson', 'bracket.ndjson'])
   expect(await nativeFileText(page, 'bracket.ndjson')).toBe(saved)
+})
+
+test.describe('on a Mac or a PC (TODO/io-029): everything lives in Documents/WarpCad, never loose in Documents', () => {
+  test.use({ shellPlatform: 'macos' })
+
+  test('Save, Open…, Browse… and Export stay inside Documents/WarpCad; a project loose in Documents is not listed', async ({ page }, info) => {
+    const downloads = await watchDownloads(page)
+    await page.goto('/')
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+    await placeBox(page, info)
+    // The user's own file, directly in Documents: not WarpCad's to list, read or touch.
+    await page.evaluate(() => /** @type {any} */ (window).__nativeShell.fs.put('stray.ndjson', 'not a WarpCad project\n'))
+
+    await openFileMenu(page)
+    await page.getByTestId('file-save').click()
+    await page.getByTestId('file-name-input').fill('bracket')
+    await page.getByTestId('file-name-save').click()
+    await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.ndjson')
+    expect((await nativeDocuments(page)).sort()).toEqual(['WarpCad/bracket.ndjson', 'stray.ndjson'])
+
+    // Open… lists the WarpCad folder only.
+    await openFileMenu(page)
+    await page.getByTestId('file-open').click()
+    await page.getByTestId('file-open-confirm-replace').click()
+    const rows = page.getByTestId('file-open-row')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText('bracket.ndjson')
+    await page.screenshot({ path: join(SNAPSHOT_DIR, `open-sheet-mac-${info.project.name}.png`) })
+    await rows.first().click()
+    await expect(page.getByTestId('file-open-sheet')).toHaveCount(0)
+
+    // Export lands in Documents/WarpCad/Exports and the chip says so.
+    await openFileMenu(page)
+    await page.getByTestId('file-export').click()
+    await page.getByTestId('export-format-stl').check()
+    await page.getByTestId('export-commit').click()
+    await expect.poll(async () => (await nativeDocuments(page)).filter((p) => p.startsWith('WarpCad/Exports/'))).toHaveLength(1)
+    await expect(page.getByTestId('save-status')).toContainText('Saved to Documents › WarpCad › Exports › ')
+    expect((await nativeDocuments(page)).filter((p) => !p.startsWith('WarpCad/'))).toEqual(['stray.ndjson'])
+
+    // Browse… still reaches a file anywhere, by the user's own pick.
+    await openFileMenu(page)
+    await page.getByTestId('file-open').click()
+    await page.getByTestId('file-open-confirm-replace').click()
+    await queueNativePick(page, '/Users/me/Desktop/shelf.ndjson', await nativeFileText(page, 'WarpCad/bracket.ndjson') ?? '')
+    await page.getByTestId('file-open-browse').click()
+    await expect(page.getByTestId('save-status')).toContainText('Opened a copy')
+
+    expect(await downloads.all()).toEqual([])
+  })
 })

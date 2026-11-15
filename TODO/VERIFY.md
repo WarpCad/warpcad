@@ -51,6 +51,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-029 — Mac and Windows keep files in Documents/WarpCad (2026-11-15 23:20)
+
+The scope change is proven by three Rust tests (the real `tauri::scope::fs::Scope` built from `desktop.json` refuses `~/Documents` itself, a loose file in it and a `..` escape) and by `e2e/native-files.e2e.js` against the fake bridge. What an unattended run could not do is drive the real Mac window (macOS file dialogs and the Documents access prompt are never clicked through) or tap through the iOS simulator, so these are owed. Use a throwaway file name in `~/Documents`, not a real document.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Mac shell (`npm run mac:dev`): place a Cube, **File ▾ → Save**, name it `bracket`. `~/Documents/WarpCad/bracket.ndjson` exists, and nothing new is loose in `~/Documents`. | Open | |
+| 2 | Put a copy of any `.ndjson` directly in `~/Documents` (not in `WarpCad`). **File ▾ → Open…** does not list it; **Browse…** can still open it (the system dialog is the user's own choice). | Open | |
+| 3 | In the Mac window's web inspector console run `__TAURI_INTERNALS__.invoke('plugin:fs\|read_dir', { path: '', options: { baseDir: 6 } })`. It is refused (`forbidden path`), where before this change it listed Documents. | Open | |
+| 4 | First launch of a fresh Mac build does not show "WarpCad would like to access files in your Documents folder" until the first Save or Export, if at all. | Open | |
+| 5 | iOS simulator, io-014's reproduction: Save in place, Open… from the list, Export (chip reads *Files › On My iPhone › WarpCad › Exports › …*), open a `.ndjson` from Files. Behaviour must be unchanged: the iOS capability is the same `$DOCUMENT` scope as before. | Open | |
+
 ### build-033 — The iOS shell survives its web view being killed (2026-11-15 22:40)
 
 The shell now registers its own handler for the system killing the web content process: one reload per 5 s, and a second kill inside that window is left alone. Driven in the iOS 27.2 simulator with a real `kill -9` of the WebContent process (foreground, backgrounded, and two kills 0.4 s apart); what a real iPad does under memory pressure after 15 minutes in the background is not driven, and belongs to `testing-037`.
