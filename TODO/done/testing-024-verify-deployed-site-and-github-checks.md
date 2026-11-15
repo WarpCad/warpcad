@@ -6,8 +6,23 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+Verification only; no product code changed. Driven 2026-11-15 with read-only `curl`, `gh run list` and `gh run view --log`, `gh pr checks`,
+`gh release view`, `git reflog`, and one headless Chromium 153 load of the deployed app at 1440x900. Ten rows answered, nine of them OK:
+`docs-029` #2 (`llms.txt`, `llms-full.txt` and `help/agent-prompting.html` all 200 with readable types), `build-007` #5 (no CSP error naming a Google host)
+and #6 (the `collect` request's `dl` is `https://app.warpcad.com/`, no `#`; this sent exactly one real page view to the owner's GA4 property at
+00:04:53 UTC), `build-013` #1 (26 pushes to `main` since the gate and no `CI` or `Pages` run) and #2 (one tag and one release per version,
+v1.0.0 to v1.17.0; `pages` ran as a `workflow_call` under `GITHUB_TOKEN`; the bot's `chore(release)` commits are on `main`),
+`build-014` #3 (only Dependabot's own runs follow a push), `build-012` #1 and #2 (cache miss then hit; the log prints no LFS byte count, so
+`docs/decisions/hosting.md` records the 2.7 s pull and the 72,167,191 B cache entry, then 0 B and 0.4 s). Found while checking:
+`build-022` #10 Issue, the home page links 33 of the app's 35 Help pages because its daily rebuild was removed on 2026-11-06 (reworded the row;
+filed `FIND-build-039`). One thing worth knowing: the app's analytics skips automated browsers (`navigator.webdriver`), so Playwright's default
+sends no GA request; the check ran with `--disable-blink-features=AutomationControlled`. Left Open with a reason: `build-016` #3 owner half (no
+owner-authored PR exists to run `cla` and `dco`; the Dependabot half is OK). `build-022` #10's wording no longer names `help-index.snapshot.json`.
 
 ## Problem
 

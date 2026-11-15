@@ -157,12 +157,15 @@ What changed:
   using the action.
 - The media stays in LFS and history is not rewritten.
 
-Measured on GitHub (to fill in after the first two runs following the push; see `TODO/VERIFY.md`):
+Measured on GitHub, 2026-10-17, from the Pages run logs (`TODO/VERIFY.md` `build-012` #1 and #2, read in `FIND-testing-024`):
 
 | Run | LFS download | Cache |
 |---|---|---|
-| First Pages build after the push | _pending_ | miss, saved |
-| Second Pages build | _pending_ | hit |
+| First Pages build after the push (run 39076794315, commit `3271a3e`) | The whole set, once: `git lfs pull` ran 2.7 s. The log prints no byte count; the saved cache entry is 72,167,191 B (~69 MB) | `Cache not found for input keys: lfs-media-2a4710ce...`, then `Cache saved with key: lfs-media-2a4710ce...` |
+| Second Pages build (run 39077655761, `workflow_dispatch`, same commit) | 0 B: `git lfs pull` ran 0.4 s and fetched nothing | `Cache hit for: lfs-media-2a4710ce...`, `Cache restored from key: lfs-media-2a4710ce...`, `not saving cache` |
+
+The 72,167,191 B restored on the second run comes from the Actions cache, not from Git LFS, so it does not count against the LFS
+bandwidth quota. Net: one ~72 MB LFS download on the first build, none after, until the media set changes and the key with it.
 
 ## Revisit when
 
