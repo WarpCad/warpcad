@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage (third pass)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** Verification only; no product code changed. `bench/tap-scatter.mjs` (seeded Gaussian fingertip scatter and a hit tally, with its unit spec) was kept; the drive scripts stayed in the session scratchpad and their printed numbers are in `bench/results/2026-11-15-testing-031.md`. All 29 rows were driven on a production build of the working tree as it stood (other sessions had uncommitted theme edits in it), Chromium touch emulation at 390x844 and 820x1180, WebKit for the orientation caps, CuraEngine 5.13.0 for `io-007` #2. Fully moved rows settled: **OK** `sketch-007` #3, `ui-066` #1, `ui-065` #1, `core-004` #1, `ui-063` #1, `ui-051` #2, `ui-038` #1, `ui-048` #2, `ui-055` #3, `io-007` #2; **Issue** `render-001` #2 (`ui-134`), `ui-024` #2 (`ui-135`), `data-007` #1 (`ui-136`), `ui-067` #3 (`ui-137`, an analytic measurement of the documented map), `sketch-006` #1 (`sketch-009`); **N/A** `ui-050` #3 (the row moved into the Align popover). Partial rows got their numbers in Notes and stay Open: `ui-020` #1, `core-004` #2, `ui-094` #1, `ui-069` #3, `ui-075` #1 (the Live MCP button is dev-host only, so the production header neighbours were measured), `ui-072` #1, `core-031` #3, `core-030` #1/#2, `core-029` #1/#2, `core-035` #3, `core-032` #1. One new Open row asks whether the sigma 3.5 mm tap model matches a real thumb. Closed-finding regression: `core-030`'s Undo stall (23-51 ms worst gap at 1-6x) and `core-029`'s drop floor (66-85 ms for a Cube beside ten Pis) are unchanged. Acceptance 7 re-driven: PASS.
 
 ## Problem
 

@@ -59,7 +59,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 |---|---|---|---|---|
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 32 | ▶ Ready | `FIND` | [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Tap accuracy, timing, reach and step counts for the VERIFY.md phone rows | sonnet |
 | 33 | ▶ Ready | `FIND` | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Model-behaviour rows through Claude Code over MCP, not an API key | sonnet |
 | 34 | ▶ Ready | `FIND` | [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed Pages build | sonnet |
 | 35 | ▶ Ready | `FIND` | [`ai-035`](FIND-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills (add clearances, create an enclosure) from the MCP server, per SEP-2640 | opus |
@@ -86,6 +85,11 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 56 | ▶ Ready | `FIND` | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | sonnet |
 | 57 | ▶ Ready | `FIND` | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | sonnet |
 | 58 | ▶ Ready | `FIND` | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | sonnet |
+| 59 | ▶ Ready | `FIND` | [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | sonnet |
+| 60 | ▶ Ready | `FIND` | [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | sonnet |
+| 61 | ▶ Ready | `FIND` | [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | sonnet |
+| 62 | ▶ Ready | `FIND` | [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | sonnet |
+| 63 | ▶ Ready | `FIND` | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | sonnet |
 
 ---
 
@@ -159,7 +163,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Measure the VERIFY.md tap-accuracy, timing, reach and step-count rows in emulation | finding | medium | sonnet | ▶ Ready (Next up row 32) |
 | [`testing-032`](FIND-testing-032-verify-model-behaviour-over-mcp.md) Drive the VERIFY.md model-behaviour rows through Claude Code over MCP instead of an API key | finding | medium | sonnet | ▶ Ready (Next up row 33) |
 | [`perf-005`](FIND-perf-005-bundle-load-bench-against-deployed-url.md) Point the bundle-load bench at the deployed GitHub Pages build | finding | low | sonnet | ▶ Ready (Next up row 34) |
 | [`ai-035`](FIND-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills from the MCP server using the Skills extension (SEP-2640) | feature | medium | opus | ▶ Ready (Next up row 35) |
@@ -221,6 +224,11 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | finding | low | sonnet | ▶ Ready (Next up row 56) |
 | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | finding | low | sonnet | ▶ Ready (Next up row 57) |
 | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | finding | low | sonnet | ▶ Ready (Next up row 58) |
+| [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | finding | medium | sonnet | ▶ Ready (Next up row 59) |
+| [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | finding | medium | sonnet | ▶ Ready (Next up row 60) |
+| [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | finding | medium | sonnet | ▶ Ready (Next up row 61) |
+| [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | finding | low | sonnet | ▶ Ready (Next up row 62) |
+| [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | finding | medium | sonnet | ▶ Ready (Next up row 63) |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
@@ -348,7 +356,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | ⚠ `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
 | `testing-032` | Model-behaviour rows through Claude Code over MCP instead of an API key. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 17, 18 (MCP route) |
 | `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | none |
 | `ai-035` | Serve skills (add clearances to a group, create an enclosure) from the MCP server per SEP-2640; opens with an SDK-support check. Filed 2026-11-13 at the owner's request | Finding | — | none (re-run `testing-022` MCP checks) |
@@ -375,6 +382,11 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-131` | Keep the rotate dial readout clear of the operations toolbar at phone width. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-132` | Let a click anywhere in a text label box select it, not only on its letter strokes. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-133` | Give the save-status chip idle and saved dots different shapes, and paused and failed too. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 10 |
+| `ui-134` | Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | 7 |
+| `ui-135` | Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | 7 |
+| `ui-136` | Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
+| `ui-137` | Place split-face connector markers with the true camera projection. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
+| `sketch-009` | Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
 
 ---
 
@@ -472,7 +484,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 42 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 46 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

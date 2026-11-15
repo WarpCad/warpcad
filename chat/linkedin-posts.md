@@ -4186,3 +4186,11 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `npx vitest run src/styles` 67 passed (this session); typecheck and SPDX check clean (this session); all nine steps of the umbrella in TODO/done/ui-111
 **To Add:** none
+
+## 2026-11-15T05:05:00Z — testing-031: measuring the "does it feel okay on a phone" rows
+
+**Post:** A pile of my "check this on a real phone" notes hid questions a script can answer: will a fingertip hit the button, is a tap swallowed, does a footer cover an error, does an Undo burst stall. I simulated fingertips as touch events scattered 3.5 mm around the aim, ran Chrome with the CPU throttled 4-6x, and measured.
+
+The results were not subtle. On a 390 px screen the six orientation caps fire the right view 50-60% of the time, because their 30 px boxes overlap. The Orbit, Pan and Select buttons are 30 px tall and fire a neighbour 5-9%. A refusal message under the phone Inspector is 88% hidden behind the pinned Delete footer. Closing a sketch outline by tapping its first point worked 45% of the time. Ten fast Undo taps on a 24-part scene stayed under 51 ms per frame at 6x throttle, so that fix held.
+
+Five findings are filed. What I did not measure is my own thumb: the scatter is a model, so I queued one row asking whether real taps are better or worse than 3.5 mm.
