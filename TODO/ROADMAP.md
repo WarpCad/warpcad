@@ -59,7 +59,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 |---|---|---|---|---|
 | 9 | ▶ Ready | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 29 | ▶ Ready | `FIND` | [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the pre-push hook, dev-only specs and build notices (6 rows) | sonnet |
 | 30 | ▶ Ready | `FIND` | [`testing-029`](FIND-testing-029-verify-cold-read-panel.md) Cold-read panel: fresh agents answer the "does a stranger understand this" rows | sonnet |
 | 31 | ▶ Ready | `FIND` | [`testing-030`](FIND-testing-030-verify-look-and-legibility-on-real-gpu.md) Look-and-legibility rows on the Mac's real GPU, with contrast, ΔE and flicker measurements | sonnet |
 | 32 | ▶ Ready | `FIND` | [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Tap accuracy, timing, reach and step counts for the VERIFY.md phone rows | sonnet |
@@ -79,6 +78,7 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 46 | ▶ Ready | `FIND` | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) Stop a client that exited normally from blocking the next one as "ambiguous" for five minutes | sonnet |
 | 47 | ▶ Ready | `FIND` | [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) Close the open edges a Subtract leaves in a dense imported scan's STL export | opus |
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
+| 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 
 ---
 
@@ -152,7 +152,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`testing-025`](FIND-testing-025-verify-git-hook-and-build-output-checks.md) Drive the VERIFY.md pre-push hook, dev-only spec and build-output checks locally | finding | low | sonnet | ▶ Ready (Next up row 29) |
 | [`testing-029`](FIND-testing-029-verify-cold-read-panel.md) Run a cold-read panel on the VERIFY.md "does a stranger understand this" rows | finding | medium | sonnet | ▶ Ready (Next up row 30) |
 | [`testing-030`](FIND-testing-030-verify-look-and-legibility-on-real-gpu.md) Drive the VERIFY.md look-and-legibility rows on this Mac's real GPU and screen, with measurements | finding | medium | sonnet | ▶ Ready (Next up row 31) |
 | [`testing-031`](FIND-testing-031-verify-tap-timing-reach-and-step-counts.md) Measure the VERIFY.md tap-accuracy, timing, reach and step-count rows in emulation | finding | medium | sonnet | ▶ Ready (Next up row 32) |
@@ -207,6 +206,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) A dense imported scan with a Subtract cut exports an STL that is not closed, and Cura says so | finding | medium | opus | ▶ Ready (Next up row 47) |
 | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) The warpcad.com home page has not followed the app's Help since its daily rebuild was removed | finding | low | sonnet | ▶ Ready (Next up row 48) |
+| [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
@@ -334,7 +334,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `testing-025` | Drive the pre-push hook against a scratch remote, the dev-only specs and the build notices (6 rows). Filed 2026-11-07 from the VERIFY.md AI-drivable pass | Finding | — | 24, 25 (scripted only) |
 | `testing-029` | Cold-read panel: fresh agents answer the VERIFY.md “does a stranger understand this” rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | none |
 | `testing-030` | Look-and-legibility rows on the Mac’s real GPU and screen, with contrast, ΔE and flicker measurements. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 5, 13 |
 | `testing-031` | Measure tap accuracy (scattered fingertip taps), timing, reach and step counts for the VERIFY.md phone rows. Filed 2026-11-07 from the VERIFY.md third pass | Finding | — | 7 |
@@ -354,6 +353,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ai-038` | A client that exits without DELETE blocks the next live MCP client as ambiguous for up to five minutes. Filed 2026-11-14 from the `testing-022` drive of `ai-023` #2 | Finding | — | 25 |
 | `io-031` | A Subtract cut in a dense imported scan (32k triangles and up) exports an STL with open edges that Cura warns about. Filed 2026-11-14 from the testing-023 drive of `io-009` #2 | Finding | — | 11, 26 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
+| `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
 
 ---
 

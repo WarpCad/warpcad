@@ -6,8 +6,28 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+Verification only; no product code changed. Driven 2026-11-15 in a scratchpad clone of `main` (`fcc16b6`) pushing to a scratchpad bare
+repository; `origin` was never pushed to, and the real repo's hooks config (`.githooks`), `.todo-progress` (19 entries) and
+`_runs.json` checksum were identical before and after. Six rows answered, five OK and one Issue:
+
+- `build-014` #1 and `build-016` #5 (OK): the pre-push gate refused no stored result, a partial e2e run, and a full run with a failure and
+  no `Known-failures:` trailer (exit 1 each, messages in the VERIFY.md notes), and allowed a full green run and the failing run once the
+  commit named its failure (exit 0). The CLA backstop refused an unknown author (exit 1) and passed the owner. No bad push got through.
+- `build-014` #2 (OK): a changed `docs/media/*.gif` pushed to the bare remote with `Uploading LFS objects: 100% (1/1)`, and the object
+  is on the remote; a plain file path accepts LFS objects, so no substitute server was needed.
+- `build-011` #1 (OK): `dist/THIRD-PARTY-NOTICES.txt` has 47 entries, each with a licence text; the Albany County Fasteners paragraph reads
+  right and matches the table's source comment.
+- `testing-003` #1 (OK): the inspector overlay test was red four times from 2026-10-10 to 2026-10-30 and none since the 2026-11-03 fix
+  under `render-007`, which already found the race was elsewhere (a Firefox `drop-shadow` under the snapshot), so `testing-003` was not
+  reopened; the print-prep drag has no red recorded since its fix.
+- `build-015` #1 (Issue): the five dev-only e2e specs pass on two pairs (33 passed, 0 failed each) and the known `docs/ai-live-bridge`
+  "mcp-connected still" failure no longer reproduces, but two dev-only docs stills fail at phone width (stale since `ui-078`):
+  filed `FIND-testing-041`. Acceptance 24 and 25: scripted plumbing through the dev-only specs only, no hand drive.
 
 ## Problem
 
