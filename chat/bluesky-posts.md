@@ -2886,7 +2886,7 @@ Built with Claude Code, reviewed by me.
 
 ## 2026-11-15T05:05:00Z — testing-031: I simulated fingertips, and the orientation dial lost
 
-**Post:** I scattered 200 fake fingertip taps (3.5 mm of wobble) over WarpCad's phone controls. The orientation dial's six cap buttons fired the cap I aimed at 50-60% of the time and a neighbour 22-35%. The Orbit/Pan/Select row is 30 px tall and hit a wrong control 5-9%. Four findings filed, no code changed.
+**Post:** I scattered 200 fake fingertip taps (3.5 mm of wobble) over WarpCad's phone controls. The orientation dial's six cap buttons fired the cap I aimed at 50-60% of the time and a neighbour 22-35%. The Orbit/Pan/Select row is 30 px tall and hit a wrong control 5-9%. Five findings filed, no code changed.
 **Links:** [Repo](<repo-url>)
 **Hashtags:** #CAD #WebGL #OpenSource
 **Disclosure:** Built with Claude Code, reviewed by me.
