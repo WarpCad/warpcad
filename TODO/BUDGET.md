@@ -37,8 +37,12 @@ don't rebuild the estimation math without one.
   "stop the loop" for this rule's cases). When a `/fix-todo` agent stops on a failure it could not
   resolve (a test failure through `/test`'s whole escalation ladder, a pre-existing failure, or a
   Step 6 acceptance-scenario FAIL), the loop does not stop. It:
-  1. stashes everything the task left in the working tree: `git stash push -u -m "run-todos <id> failed: <one-line why>"`,
-     and confirms `git status --short` is empty afterwards;
+  1. stashes only what the task changed: before spawning the agent, the loop records `git status --short` as the
+     baseline; on a failure it stashes just the paths that differ from that baseline,
+     `git stash push -u -m "run-todos <id> failed: <one-line why>" -- <those paths>`, and confirms `git status --short`
+     matches the baseline afterwards. **Never a bare `git stash push -u`**: another session's uncommitted edits can be in
+     the tree, and a whole-tree stash would bury them in a failed task's stash (owner, 2026-11-15). If a path in the
+     baseline was also changed by the task, stop and ask instead of stashing it;
   2. marks the task's Next up row `⚠ Failed <date>, stash "<message>"` in `TODO/ROADMAP.md` and its
      Findings row's Task cell with a leading `⚠`, commits only that roadmap edit
      (`chore(todo): park <id> after a failed run`), and records the failure and the agent's report in

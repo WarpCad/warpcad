@@ -3,10 +3,11 @@
 Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMAP-DONE.md). This file is the source
 `/run-todos` reads for order, and the table `/fix-todo` edits when a task opens, closes or changes priority.
 
-**Snapshot:** 2026-11-13. Counts are in the [Status summary](#status-summary) at the foot of this file.
+**Snapshot:** 2026-11-15. Counts are in the [Status summary](#status-summary) at the foot of this file.
 
-> **What do I run next?** `/run-todos` runs **only the [Findings](#findings-open-rows) table**, top to bottom. That table
-> is in the same order as [Next up](#next-up--recommended-todos). Everything else here is held, deferred or reserved, and
+> **What do I run next?** `/run-todos` runs **two tables, top to bottom: [M19](#m19--native-ios-app-tauri), then
+> [Findings](#findings-open-rows)**. Together they are in the same order as [Next up](#next-up--recommended-todos). M19 rows
+> work in `../warpcad-native` and are never pushed (owner, 2026-11-15). Everything else here is held, deferred or reserved, and
 > held or deferred work is written as a list, not a table, so the runner cannot pick it up. `⏳ Waits on N` means row N
 > has to land first. Run `/fix-todo <id>` for one task, or `/loop /run-todos` to work down the table.
 > **Filenames name the milestone, not the order.** `ls TODO` groups the backlog as `FIND-…` (the Findings table) and
@@ -19,7 +20,7 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 - [Decided 2026-10-24 and still waiting on you](#decided-2026-10-24-and-still-waiting-on-you)
 - [All open work](#all-open-work)
 - [Open milestones](#open-milestones)
-  - [M19 — Native iOS app (Tauri), held](#m19--native-ios-app-tauri-held)
+  - [M19 — Native iOS app (Tauri)](#m19--native-ios-app-tauri)
   - [M18 — Launch (owner steps only)](#m18--launch-owner-steps-only)
   - [M15 — A mergeable project file (reserved rows)](#m15--a-mergeable-project-file-reserved-rows)
   - [Findings (open rows)](#findings-open-rows)
@@ -46,52 +47,71 @@ the full history is in git.*
 4. **`testing-032` runs in the loop**, with `claude -p` on the owner's subscription (`testing-022` ran the same way and is closed).
 5. **`testing-026` and `testing-027` are held** (setup still missing; see [Held](#held--not-run-by-run-todos)).
 6. **`testing-033` is held** and run by hand, because its job is to ask questions.
-7. **Nothing native is pushed**, to GitHub or the App Store. Every M19 row is held.
+7. **Nothing native is pushed**, to GitHub or the App Store. Every M19 row is held. *(Relaxed 2026-11-15, below.)*
 
-**Order, and why.** Rows 1–3 fix flaky and drifted tests first, so later tasks' full runs start green. Rows 4–10 are independent
-fixes, ending with the two big Opus refactors; `ui-108` splits `Viewport.vue` before the theme chain touches the renderer.
-The theme chain (old rows 11–20, closed 2026-11-14) ran the guard (`testing-036`) right after the token split so the migrations couldn't regress it;
-the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md checks against the finished UI.
-**Opus tasks** (each splits into an Opus half and a Sonnet half): `perf-004`, `ui-108`, `render-008`.
-**New findings a task files** get a Findings row at the bottom of the table and run after row 34, unless the owner re-ranks them.
+**Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or iPad (it
+should work now)." The 11 local M19 rows (67–77) are back in the queue and run first; every row that uploads, publishes or
+waits on one stays held. Rows that collide with another session's uncommitted edits in this repository (`ui-108`, `ui-122`,
+`ui-123`, `testing-038`, `ui-126`, `ai-038`) are parked ⚠ until those edits are committed, and the stash-on-failure rule in
+`TODO/BUDGET.md` now stashes only the failed task's own paths.
+
+**Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
+`ui-108`; the numbers of the rows that closed are gone. What is left is `ui-108` (it splits `Viewport.vue`), the three
+follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed
+(43–66). Row numbers are stable ids, not positions: a gap means a row closed.
+**Opus tasks** (each splits into an Opus half and a Sonnet half): `perf-004`, `ui-108`, `io-031`.
+**New findings a task files** get a Findings row at the bottom of the table and the next free Next up number, unless the owner re-ranks them.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [Findings](#findings-open-rows) | 40 queued + 5 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then one from `testing-020` (`ui-126`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [M19](#m19--native-ios-app-tauri) | 11 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, three follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
+| [Findings](#findings-open-rows) | 27 queued (20 ready, 7 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives and the cold-read panel filed. Parked: `perf-004` (owner question); `ui-108`, `ui-122`, `ui-123`, `testing-038`, `ui-126`, `ai-038` (another session's uncommitted edits). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
+| 67 | ▶ Ready | `M19` | [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build | sonnet |
+| 68 | ⏳ Waits on 67 | `M19` | [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) Let the native bundle's CSP allow Help and the Tauri bridge | sonnet |
+| 69 | ⏳ Waits on 67 | `M19` | [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process | sonnet |
+| 70 | ⏳ Waits on 67 | `M19` | [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) Scope Mac and Windows file access to `Documents/WarpCad` | sonnet |
+| 71 | ⏳ Waits on 67 | `M19` | [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: Wi-Fi address only, request size cap, the unencrypted-token sentence | opus |
+| 72 | ⏳ Waits on 67 | `M19` | [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS, checked by a test | sonnet |
+| 73 | ⏳ Waits on 67 | `M19` | [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme | sonnet |
+| 74 | ⏳ Waits on 67–69 | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
+| 75 | ⏳ Waits on 67 | `M19` | [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Correct the 12 native TODO, README and roadmap lines that contradict the repository | sonnet |
+| 76 | ⏳ Waits on 68 | `M19` | [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers agree | sonnet |
+| 77 | ⏳ Waits on 67 | `M19` | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` | opus |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
-| 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
-| 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
-| 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
-| 43 | ▶ Ready | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
-| 46 | ▶ Ready | `FIND` | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) Stop a client that exited normally from blocking the next one as "ambiguous" for five minutes | sonnet |
+| 10 | ⚠ Parked 2026-11-15: another session has uncommitted edits in Viewport.vue; unpark when they are committed | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
+| 36 | ⚠ Parked 2026-11-15: another session has uncommitted edits in HelpSheet.vue and the theme files; unpark when they are committed | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
+| 37 | ⚠ Parked 2026-11-15: another session has uncommitted edits in the theme and skin styles; unpark when they are committed | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
+| 38 | ⚠ Parked 2026-11-15: another session has uncommitted edits in .storybook/; unpark when they are committed | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
+| 43 | ⚠ Parked 2026-11-15: another session has uncommitted edits in Viewport.vue; unpark when they are committed | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
+| 46 | ⚠ Parked 2026-11-15: another session has uncommitted edits in mcp/liveHttp.js, where its fix is half-written; unpark when they are committed | `FIND` | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) Stop a client that exited normally from blocking the next one as "ambiguous" for five minutes | sonnet |
 | 47 | ▶ Ready | `FIND` | [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) Close the open edges a Subtract leaves in a dense imported scan's STL export | opus |
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 | 50 | ▶ Ready | `FIND` | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | sonnet |
 | 51 | ▶ Ready | `FIND` | [`core-084`](FIND-core-084-sketch-twist-volume-loss-grows-on-thin-profiles.md) Keep a sketch's automatic Twist steps within 3% of the volume on a long, thin profile | sonnet |
-| 51 | ▶ Ready | `FIND` | [`ui-127`](FIND-ui-127-repeat-bolt-and-bom-wording.md) Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line | sonnet |
-| 52 | ▶ Ready | `FIND` | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | sonnet |
-| 53 | ▶ Ready | `FIND` | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | sonnet |
-| 54 | ▶ Ready | `FIND` | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | sonnet |
-| 55 | ▶ Ready | `FIND` | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | sonnet |
-| 56 | ▶ Ready | `FIND` | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | sonnet |
-| 57 | ▶ Ready | `FIND` | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | sonnet |
-| 58 | ▶ Ready | `FIND` | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | sonnet |
-| 59 | ▶ Ready | `FIND` | [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | sonnet |
-| 60 | ▶ Ready | `FIND` | [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | sonnet |
-| 61 | ▶ Ready | `FIND` | [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | sonnet |
-| 62 | ▶ Ready | `FIND` | [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | sonnet |
-| 63 | ▶ Ready | `FIND` | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | sonnet |
-| 64 | ▶ Ready | `FIND` | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | sonnet |
-| 65 | ▶ Ready | `FIND` | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable | sonnet |
+| 52 | ▶ Ready | `FIND` | [`ui-127`](FIND-ui-127-repeat-bolt-and-bom-wording.md) Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line | sonnet |
+| 53 | ▶ Ready | `FIND` | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | sonnet |
+| 54 | ▶ Ready | `FIND` | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | sonnet |
+| 55 | ▶ Ready | `FIND` | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | sonnet |
+| 56 | ▶ Ready | `FIND` | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | sonnet |
+| 57 | ▶ Ready | `FIND` | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | sonnet |
+| 58 | ▶ Ready | `FIND` | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | sonnet |
+| 59 | ▶ Ready | `FIND` | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | sonnet |
+| 60 | ▶ Ready | `FIND` | [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | sonnet |
+| 61 | ▶ Ready | `FIND` | [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | sonnet |
+| 62 | ▶ Ready | `FIND` | [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | sonnet |
+| 63 | ▶ Ready | `FIND` | [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | sonnet |
+| 64 | ▶ Ready | `FIND` | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | sonnet |
+| 65 | ▶ Ready | `FIND` | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | sonnet |
+| 66 | ▶ Ready | `FIND` | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable | sonnet |
 
 ---
 
 ## Held — not run by /run-todos
 
-**Native app (M19), all rows.** Owner rule 2026-11-13: nothing for the native app is pushed yet, to GitHub or to the App Store. The
-rest need the iPad in hand. Details in [M19](#m19--native-ios-app-tauri-held).
+**Native app (M19), the rows that leave this Mac.** Owner rule 2026-11-13, kept 2026-11-15: nothing for the native app is pushed
+yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the held ones are listed under "Still held" in
+[M19](#m19--native-ios-app-tauri).
 
 **Findings that need the owner first:**
 
@@ -158,16 +178,17 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
-| [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ▶ Ready (Next up row 36) |
-| [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
-| [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
-| [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
-| [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) A client that exits normally leaves its live MCP session counted, so the next client is refused as ambiguous for up to five minutes | finding | low | sonnet | ▶ Ready (Next up row 46) |
+| [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ⚠ Parked (Next up row 10): another session's edits |
+| [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ⚠ Parked (Next up row 36): another session's edits |
+| [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ⚠ Parked (Next up row 37): another session's edits |
+| [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ⚠ Parked (Next up row 38): another session's edits |
+| [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ⚠ Parked (Next up row 43): another session's edits |
+| [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) A client that exits normally leaves its live MCP session counted, so the next client is refused as ambiguous for up to five minutes | finding | low | sonnet | ⚠ Parked (Next up row 46): another session's edits |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
 | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the owner decisions parked in VERIFY.md, draft a recommendation for each, and ask in batches | finding | medium | sonnet | Held (owner first) |
+| [`ai-041`](FIND-ai-041-tool-gaps-found-writing-the-first-two-skills.md) Tool gaps found writing the first two skills: triage which to build as tools | finding | medium | sonnet | Held (owner first) |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
 | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
 | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
@@ -175,20 +196,20 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
 | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
-| [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build (M19) | finding | high | sonnet | Held (native) |
-| [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge (M19) | finding | high | sonnet | Held (native) |
-| [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process, instead of a blank screen (M19) | finding | high | sonnet | Held (native) |
-| [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) On Mac and Windows the page can read and delete anything in the user's Documents folder (M19) | finding | high | sonnet | Held (native) |
-| [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted (M19) | finding | medium | opus | Held (native) |
-| [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS for the native app, checked by a test (M19) | finding | medium | sonnet | Held (native) |
-| [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme (M19) | finding | medium | sonnet | Held (native) |
-| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | Held (native) |
-| [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers say the same thing (M19) | finding | high | sonnet | Held (native) |
-| [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` (M19) | finding | high | opus | Held (native) |
+| [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build (M19) | finding | high | sonnet | ▶ Ready (Next up row 67) |
+| [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge (M19) | finding | high | sonnet | ⏳ Waits on 67 (Next up row 68) |
+| [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process, instead of a blank screen (M19) | finding | high | sonnet | ⏳ Waits on 67 (Next up row 69) |
+| [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) On Mac and Windows the page can read and delete anything in the user's Documents folder (M19) | finding | high | sonnet | ⏳ Waits on 67 (Next up row 70) |
+| [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted (M19) | finding | medium | opus | ⏳ Waits on 67 (Next up row 71) |
+| [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS for the native app, checked by a test (M19) | finding | medium | sonnet | ⏳ Waits on 67 (Next up row 72) |
+| [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme (M19) | finding | medium | sonnet | ⏳ Waits on 67 (Next up row 73) |
+| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | ⏳ Waits on 67–69 (Next up row 74) |
+| [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers say the same thing (M19) | finding | high | sonnet | ⏳ Waits on 68 (Next up row 76) |
+| [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` (M19) | finding | high | opus | ⏳ Waits on 67 (Next up row 77) |
 | [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: entitlements, hardened runtime, signing, notarized or Mac App Store build (M19) | feature | medium | sonnet | Held (native) |
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
-| [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Native TODO files, README and roadmap text that contradict the repository (12 lines) (M19) | finding | low | sonnet | Held (native) |
+| [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Native TODO files, README and roadmap text that contradict the repository (12 lines) (M19) | finding | low | sonnet | ⏳ Waits on 67 (Next up row 75) |
 | [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
 | [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
 | [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5) | feature | medium | sonnet | Deferred 2026-11-07 |
@@ -204,21 +225,21 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
 | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 50) |
 | [`core-084`](FIND-core-084-sketch-twist-volume-loss-grows-on-thin-profiles.md) A sketch's automatic Twist steps still lose several percent of the volume on a long, thin profile | finding | low | sonnet | ▶ Ready (Next up row 51) |
-| [`ui-127`](FIND-ui-127-repeat-bolt-and-bom-wording.md) Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line | finding | low | sonnet | ▶ Ready (Next up row 51) |
-| [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | finding | medium | sonnet | ▶ Ready (Next up row 52) |
-| [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | finding | medium | sonnet | ▶ Ready (Next up row 53) |
-| [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | finding | low | sonnet | ▶ Ready (Next up row 54) |
-| [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | finding | low | sonnet |
-| [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | finding | low | sonnet | ▶ Ready (Next up row 56) |
-| [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | finding | low | sonnet | ▶ Ready (Next up row 57) |
-| [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | finding | low | sonnet | ▶ Ready (Next up row 58) |
-| [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | finding | medium | sonnet | ▶ Ready (Next up row 64) |
-| [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) The deployed build fetches the Sentry SDK (144 kB gzip) before the app is usable | finding | medium | sonnet | ▶ Ready (Next up row 65) |
-| [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | finding | medium | sonnet | ▶ Ready (Next up row 59) |
-| [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | finding | medium | sonnet | ▶ Ready (Next up row 60) |
-| [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | finding | medium | sonnet | ▶ Ready (Next up row 61) |
-| [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | finding | low | sonnet | ▶ Ready (Next up row 62) |
-| [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | finding | medium | sonnet | ▶ Ready (Next up row 63) |
+| [`ui-127`](FIND-ui-127-repeat-bolt-and-bom-wording.md) Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line | finding | low | sonnet | ▶ Ready (Next up row 52) |
+| [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | finding | medium | sonnet | ▶ Ready (Next up row 53) |
+| [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | finding | medium | sonnet | ▶ Ready (Next up row 54) |
+| [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | finding | low | sonnet | ▶ Ready (Next up row 55) |
+| [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | finding | low | sonnet | ▶ Ready (Next up row 56) |
+| [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | finding | low | sonnet | ▶ Ready (Next up row 57) |
+| [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | finding | low | sonnet | ▶ Ready (Next up row 58) |
+| [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | finding | low | sonnet | ▶ Ready (Next up row 59) |
+| [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | finding | medium | sonnet | ▶ Ready (Next up row 65) |
+| [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) The deployed build fetches the Sentry SDK (144 kB gzip) before the app is usable | finding | medium | sonnet | ▶ Ready (Next up row 66) |
+| [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | finding | medium | sonnet | ▶ Ready (Next up row 60) |
+| [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | finding | medium | sonnet | ▶ Ready (Next up row 61) |
+| [`ui-136`](FIND-ui-136-param-error-hidden-under-the-phone-inspector-footer.md) Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet | finding | medium | sonnet | ▶ Ready (Next up row 62) |
+| [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | finding | low | sonnet | ▶ Ready (Next up row 63) |
+| [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | finding | medium | sonnet | ▶ Ready (Next up row 64) |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
@@ -230,11 +251,11 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 [↑ Contents](#contents)
 
-M19 is held, M18 has only owner steps, M15 has only reserved ids, so the Findings table is the only one `/run-todos` works from.
+M18 has only owner steps and M15 has only reserved ids, so `/run-todos` works from two tables: M19's local rows, then Findings.
 M20 is done ([ROADMAP-DONE.md](ROADMAP-DONE.md#m20--home-page-at-warpcadcom)). The open rows of M5, M11 and M18 were deferred on 2026-11-07 and are listed
 under [Deferred](#open-work-outside-any-milestone).
 
-### M19 — Native iOS app (Tauri), held
+### M19 — Native iOS app (Tauri)
 
 [↑ Contents](#contents)
 
@@ -258,9 +279,33 @@ Playwright cannot drive a WKWebView inside an app. Each row's `*.e2e.js` runs at
 rows close without a device.
 Scenario 28 (`testing-011`) is the one acceptance check only the device can pass.
 
-> **Held 2026-11-13 (owner):** nothing for the native app is pushed yet, to GitHub or to the App Store, so `/run-todos`
-> runs none of these. They are a list, not a table, so the runner cannot pick them up. Each is run by hand when the owner
-> has the device and wants it.
+**Filed 2026-11-13 from the native audit** (code, TODO files and release path, read on `probe/io-026` and `main`). The
+order to run them, and the gates for the iPad test, the GitHub push and each store, are in
+[`RELEASE-CHECKLIST.md`](../../warpcad-native/TODO/RELEASE-CHECKLIST.md). **The owner reordered M19 the same day:** the first device install is a
+local build over the cable (`testing-037`), then GitHub, then App Store Connect. That supersedes the "Order" list below.
+
+> **Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or
+> iPad (it should work now)." So the local rows below are back in the runner's queue: Gate 0 of
+> [`RELEASE-CHECKLIST.md`](../../warpcad-native/TODO/RELEASE-CHECKLIST.md), the local iPad pass (`testing-037`) and three
+> local follow-ups. **Never push `warpcad-native`**, and nothing goes to App Store Connect (the checklist puts every store
+> build after the GitHub push, Gate 2). Supersedes the 2026-11-13 hold for these rows only. The runner reads this table before
+> Findings, so these run first. A `/fix-todo` agent works in `warpcad-native` for these and commits there; it never pushes.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `build-031` | Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build. **First**: every row below assumes `main` holds the release work | Finding | — | none |
+| `build-032` | The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge. Two repositories; confirm on the Mac shell first | Finding | `build-031` | none (Mac shell + simulator) |
+| `build-033` | Reload the app when iOS kills its web content process, instead of a blank screen. Mac and simulator only | Finding | `build-031` | none (Mac shell + simulator) |
+| `io-029` | On Mac and Windows the page can read and delete anything in the user's Documents folder: scope it to `Documents/WarpCad`. Two repositories | Finding | `build-031` | none (Mac shell) |
+| `ai-036` | MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted. Two repositories for the sheet's sentence. Opus | Finding | `build-031` | none |
+| `build-034` | One version number and one minimum OS (iOS and iPadOS 26.0, macOS 26.0, decided 2026-11-13), checked by a test | Finding | `build-031` | none |
+| `ui-121` | The iOS status bar and launch screen follow the theme. Check on the simulator first; it may already be fine | Finding | `build-031` | none (simulator) |
+| `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | `build-031`, `build-032`, `build-033` | 28 (local build) |
+| `docs-035` | Native TODO files, README and roadmap text that contradict the repository (12 lines). Text only | Finding | `build-031` | none |
+| `build-035` | Crash reporting, the privacy manifest and the store privacy answers say the same thing (Sentry on, decided 2026-11-13). Before `build-020` | Finding | `build-032`, `core-082` | none |
+| `io-030` | Give projects a `.warpcad` extension; stop claiming every `.ndjson` (decided 2026-11-13; a format change in both repositories). Opus | Finding | `build-031` | 10, 28 |
+
+**Still held** (a list, so the runner cannot pick them up). Each contacts something outside this Mac, or waits on a row that does:
 
 - [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build. **Held:** uploads to App Store Connect.
 - [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns. **Held:** needs the device in hand (probe branch `probe/build-018`, runbook `PROBE-build-018.md`).
@@ -269,26 +314,9 @@ Scenario 28 (`testing-011`) is the one acceptance check only the device can pass
 - [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1). **Held:** needs the device (probe branch `probe/io-026`, runbook `PROBE-io-026.md`).
 - [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views. **Held:** needs a person driving the macOS shell's web view (Playwright cannot) and publishes a real gist.
 - [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1). **Held:** waits on `build-019` and publishes a hosted file with the team ID.
-
-**Filed 2026-11-13 from the native audit** (code, TODO files and release path, read on `probe/io-026` and `main`). The
-order to run them, and the gates for the iPad test, the GitHub push and each store, are in
-[`RELEASE-CHECKLIST.md`](../../warpcad-native/TODO/RELEASE-CHECKLIST.md). **The owner reordered M19 the same day:** the first device install is a
-local build over the cable (`testing-037`), then GitHub, then App Store Connect. That supersedes the "Order" list below.
-
-- [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build. **Held:** First. The `build-019` script is uncommitted on `probe/io-026`.
-- [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge. **Held:** Two repositories. Confirm on the Mac shell first.
-- [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process, instead of a blank screen. **Held:** Mac and simulator only.
-- [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) On Mac and Windows the page can read and delete anything in the user's Documents folder. **Held:** Two repositories.
-- [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted. **Held:** Two repositories for the sheet's sentence.
-- [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS for the native app, checked by a test. **Held:** Decided 2026-11-13: current and previous major versions (iOS and iPadOS 26.0, macOS 26.0).
-- [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme. **Held:** Check on the simulator first.
-- [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload. **Held:** Needs the owner and the iPad; waits on `build-031`–`build-033`.
-- [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers say the same thing. **Held:** Decided 2026-11-13: Sentry on; waits on `core-082`; before `build-020`.
-- [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) The iOS app declares itself the owner of every `.ndjson` file. **Held:** Decided 2026-11-13: a `.warpcad` extension (a format change in both repositories); gates the App Store submission.
 - [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: sandbox entitlements, hardened runtime, signing, Mac App Store build. **Held:** Decided 2026-11-13: Mac App Store; after the iOS submission.
 - [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing. **Held:** After the iOS submission; needs a Play account.
 - [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store. **Held:** After the iOS submission; needs a Windows machine.
-- [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Native TODO files, README and roadmap text that contradict the repository (12 lines). **Held:** Text only.
 
 **Order (reordered 2026-11-08: the owner cannot sign yet, so no device install is possible until the signing gate).**
 
@@ -345,12 +373,12 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | ⚠ `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
-| `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
-| `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
-| `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
-| `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
-| `ai-038` | A client that exits without DELETE blocks the next live MCP client as ambiguous for up to five minutes. Filed 2026-11-14 from the `testing-022` drive of `ai-023` #2 | Finding | — | 25 |
+| ⚠ `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
+| ⚠ `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
+| ⚠ `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
+| ⚠ `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
+| ⚠ `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
+| ⚠ `ai-038` | A client that exits without DELETE blocks the next live MCP client as ambiguous for up to five minutes. Filed 2026-11-14 from the `testing-022` drive of `ai-023` #2 | Finding | — | 25 |
 | `io-031` | A Subtract cut in a dense imported scan (32k triangles and up) exports an STL with open edges that Cura warns about. Filed 2026-11-14 from the testing-023 drive of `io-009` #2 | Finding | — | 11, 26 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
@@ -364,13 +392,13 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-131` | Keep the rotate dial readout clear of the operations toolbar at phone width. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-132` | Let a click anywhere in a text label box select it, not only on its letter strokes. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-133` | Give the save-status chip idle and saved dots different shapes, and paused and failed too. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 10 |
-| `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
-| `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Filed 2026-11-15 by `perf-005` | Finding | — | 1 |
 | `ui-134` | Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | 7 |
 | `ui-135` | Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | 7 |
 | `ui-136` | Keep a parameter error clear of the pinned Delete footer in the phone Inspector sheet. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
 | `ui-137` | Place split-face connector markers with the true camera projection. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
 | `sketch-009` | Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
+| `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
+| `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Filed 2026-11-15 by `perf-005` | Finding | — | 1 |
 
 ---
 
@@ -410,7 +438,8 @@ The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`
 
 - Owner steps for `build-016` (Parts 4 and 6), in `TODO/VERIFY.md`.
 - Owner checks for `build-007` (GA) and the M18 close, above.
-- Held rows: every M19 native row and four findings, in [Held](#held--not-run-by-run-todos).
+- Held rows: the 10 M19 rows that leave this Mac and five findings, in [Held](#held--not-run-by-run-todos).
+- **M19 free-form pass:** `testing-037` (row 74) is the owner's iPad pass on a local build; the loop stops for it.
 - **Free-form passes:** none owed. The 2026-10-17 decision records the M5–M10, M12, M16 and M17 passes as done.
   The next one falls due when the next milestone completes. M19's is taken inside `testing-011`, on the iPhone.
 
@@ -468,7 +497,8 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
+| [Findings](#findings-open-rows) | 27 queued + 5 held | 20 ready for `/run-todos`; 7 parked (`perf-004` on an owner question, six on another session's uncommitted edits); `testing-026`–`028`, `testing-033`, `ai-041` held. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 11 queued + 10 held | Queued (local, never pushed): `build-031`–`build-035`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |
