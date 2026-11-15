@@ -6,8 +6,17 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-019 drive of core-042 #1
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** A sketch's Linear twist now goes through the gear path's `twistedExtrude`. Twist steps left
+> at 1 (the default, which a stored document cannot tell from a typed 1) means "automatic": the resolution's step count,
+> raised so no step turns more than 3° (`SKETCH_TWIST_STEP_DEG`). The resolution's chord tolerance alone gave 11 steps at
+> Normal and still lost 6%, because the loss comes from the flat side faces, not the vertex chord. A count above 1 is checked
+> against `minTwistSteps`, so 2 for a 90° twist is refused with the minimum named. The 30 × 16 × 30 mm sketch at Twist 90
+> now reads 14 091 mm³ (2.1% under). The Inspector's Sketch section was not touched (`Inspector.vue` held another session's
+> uncommitted edits); the Extrude panel carries the Twist steps note, and the Inspector has no Twist steps field to explain,
+> so nothing there needed it. A long thin profile still loses more: filed as `core-084`.
 
 ## Problem
 

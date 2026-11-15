@@ -945,6 +945,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `testing-031` | Tap accuracy, timing, reach and step counts for 29 VERIFY.md phone rows, measured on a production build with scattered fingertip taps (sigma 3.5 mm), 4-6x CPU throttle, CuraEngine and gesture counts. 10 rows OK, 5 Issue, 1 N/A, 13 numbers added and left Open. Five findings filed: `ui-134`, `ui-135`, `ui-136`, `ui-137`, `sketch-009`. Acceptance 7 re-driven: PASS. Filed 2026-11-07 from the VERIFY.md third pass. [`done/testing-031`](done/testing-031-verify-tap-timing-reach-and-step-counts.md) | Finding | — | 7 |
 | ✅ `testing-032` | Drive the VERIFY.md model-behaviour rows through Claude Code over MCP (`claude -p --model haiku`, owner subscription, no key). Eight runs: `docs-029` #1 OK (two fresh fetch-only agents found the tool names), `ai-022` #1 and `ai-010` #1-#3 and `ai-008` #1 answered for the tool route and left open for the in-app half, `ai-014` #1 Issue (0 of 3 runs called `set_variable`: `describe_scene` hides the binding, filed `ai-040`). Transcripts in `bench/results/ai/2026-11-15-claude-code-over-mcp.md`. | M |
 | ✅ `ui-124` | The navigation chrome no longer covers the grid scale readout at a window about 650 px wide: from 641 px up, when the canvas is under 380 px wide the pad folds to its 38 px toggle (the form the phone's raised pad uses) through a container query on the viewport. Filed 2026-11-14 from the `testing-017` sweep. [`done/ui-124`](done/ui-124-nav-chrome-covers-scale-readout-at-650px.md) | Finding | — | 1, 4 (tablet width, driven at 650, 660 and 820 px) |
+| ✅ `core-083` | A sketch's Linear Twist now takes its steps from the resolution (at most 3° a step) when Twist steps is left at 1, so Twist 90 on 30 × 16 × 30 mm reads 14 091 mm³, not 3 820; a count below the floor is refused. Docs and the Extrude panel say what Twist steps does | Finding | 9 |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1377,5 +1378,6 @@ convention going forward.
 | `ai-035` | 2026-11-15 05:52 | ~40m (Sonnet half only: docs, 7 haiku `claude -p` drives, one skill fix, one finding filed; the Opus half's time is not counted) |
 | `ui-124` | 2026-11-15 06:14 | ~21m (one container query, one new spec, the 1440-390-1440 sweep on three engines) |
 | `testing-039` | 2026-11-15 07:02 | ~45m (one new spec, a shared snapshot helper, three mutation checks, a pair run and a nine-project run of about 29m) |
+| `core-083` | 2026-11-15 14:35 | ~32m (RED first, one kernel change plus a step-angle ceiling found by measuring, a pair run, three engines of drive, regenerated two docs pictures, one finding filed) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

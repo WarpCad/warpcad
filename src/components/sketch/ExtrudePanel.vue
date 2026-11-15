@@ -96,6 +96,10 @@ function valueOf(key) {
     <p v-if="method === 'revolve' || method === 'helical'" class="extrude__note">
       The axis is the sketch’s Y axis (the dashed line); keep outlines to its right.
     </p>
+    <p v-if="method === 'linear'" class="extrude__note" data-testid="sketch-twist-steps-note">
+      Twist steps: 1 lets WarpCad choose (about one step per 3°). A higher number is yours to
+      set; too few steps fold the solid instead of twisting it, so a count below the minimum is refused.
+    </p>
     <dl class="extrude__fields">
       <template v-for="field in FIELDS[method]" :key="`${method}-${field.key}`">
         <dt>

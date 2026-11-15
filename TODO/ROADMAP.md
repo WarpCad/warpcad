@@ -57,13 +57,12 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [Findings](#findings-open-rows) | 43 queued + 5 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 42 queued + 5 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
-| 41 | ▶ Ready | `FIND` | [`core-083`](FIND-core-083-sketch-linear-twist-collapses-at-default-steps.md) Make a sketch's Linear twist take its steps from the resolution, so Twist 90 is not a folded solid | sonnet |
 | 42 | ▶ Ready | `FIND` | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) Word the Undo refusal from step labels and show it in the save-status chip | sonnet |
 | 43 | ▶ Ready | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
 | 44 | ▶ Ready | `FIND` | [`testing-040`](FIND-testing-040-graduate-rail-long-press-and-save-pulse-to-a-real-timer-spec.md) Graduate the rail tile long-press callout and the My parts save pulse into a real-timer e2e spec | sonnet |
@@ -73,6 +72,7 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 | 50 | ▶ Ready | `FIND` | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | sonnet |
+| 51 | ▶ Ready | `FIND` | [`core-084`](FIND-core-084-sketch-twist-volume-loss-grows-on-thin-profiles.md) Keep a sketch's automatic Twist steps within 3% of the volume on a long, thin profile | sonnet |
 | 51 | ▶ Ready | `FIND` | [`ui-127`](FIND-ui-127-repeat-bolt-and-bom-wording.md) Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line | sonnet |
 | 52 | ▶ Ready | `FIND` | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | sonnet |
 | 53 | ▶ Ready | `FIND` | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | sonnet |
@@ -165,7 +165,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ▶ Ready (Next up row 36) |
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
-| [`core-083`](FIND-core-083-sketch-linear-twist-collapses-at-default-steps.md) A sketch's Linear twist at the default one twist step folds the solid | finding | medium | sonnet | ▶ Ready (Next up row 41) |
 | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) The Undo refusal message leaks internals and is not in the save-status chip | finding | low | sonnet | ▶ Ready (Next up row 42) |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
 | [`testing-040`](FIND-testing-040-graduate-rail-long-press-and-save-pulse-to-a-real-timer-spec.md) Graduate the rail tile long-press callout and the My parts save pulse into a real-timer e2e spec | finding | low | sonnet | ▶ Ready (Next up row 44) |
@@ -210,6 +209,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) The warpcad.com home page has not followed the app's Help since its daily rebuild was removed | finding | low | sonnet | ▶ Ready (Next up row 48) |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
 | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 50) |
+| [`core-084`](FIND-core-084-sketch-twist-volume-loss-grows-on-thin-profiles.md) A sketch's automatic Twist steps still lose several percent of the volume on a long, thin profile | finding | low | sonnet | ▶ Ready (Next up row 51) |
 | [`ui-127`](FIND-ui-127-repeat-bolt-and-bom-wording.md) Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line | finding | low | sonnet | ▶ Ready (Next up row 51) |
 | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | finding | medium | sonnet | ▶ Ready (Next up row 52) |
 | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | finding | medium | sonnet | ▶ Ready (Next up row 53) |
@@ -355,7 +355,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
 | `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
-| `core-083` | A sketch's Linear Twist at the default one twist step folds the solid (30 × 16 × 30 mm at Twist 90 reads 3 820 mm³, not 14 400). Filed 2026-11-14 from `testing-019` | Finding | — | 9 |
 | `ui-125` | The header's Undo refusal leaks `document.undo:` and a record id, and sits beside the save-status chip instead of in it. Filed 2026-11-14 from `testing-019` | Finding | — | none |
 | `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
 | `testing-040` | Graduate the rail tile long-press callout (522 ms) and the My parts save pulse (900 ms) into a real-timer e2e spec. Filed 2026-11-14 from `testing-020` | Finding | — | none |
@@ -365,6 +364,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
 | `docs-036` | Fix the docs pictures and sentences two cold readers could not follow. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
+| `core-084` | A sketch's automatic Twist steps still lose 5.7% of the volume on a 31 × 4.92 mm profile at Twist 90. Filed 2026-11-15 from `core-083` | Finding | — | 9 |
 | `ui-127` | Reword the Repeat lines, the Repeat Inspector note, the Bolt summary and the BOM line. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | 1, 4 (Repeat and BOM repros) |
 | `ui-128` | Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | 1, 4, 7, 9 |
 | `ui-129` | Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |

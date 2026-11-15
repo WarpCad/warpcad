@@ -2928,3 +2928,14 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** e2e/gizmo-overlay-pixels.e2e.js; broke the toggle-off, swapped an axis gradient and flattened the shading to watch it go red
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(core): a sketch's Linear twist takes its steps from the resolution (TODO/core-083)
+
+A 30 × 16 mm rectangle twisted 90° in WarpCad read 3 820 mm³ instead of 14 400. One slab can't turn, so it folded into a bow-tie. Now twisted sketches get a step count from the resolution, capped at 3° a step: 14 091 mm³, and a too-coarse count is refused.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** registry.spec.js; production build drive on Chromium and WebKit (97.8% of untwisted volume)
+**To Add:** none

@@ -767,10 +767,24 @@ function buildSketch(params, policy) {
   /** @type {Geom3} */
   let solid
   if (method === 'linear') {
-    solid = extrusions.extrudeLinear(
-      { height: options.heightMm, twistAngle: degToRad(options.twistDeg), twistSteps: options.twistSteps },
-      sketchSliceGeom2(first, policy)
-    )
+    // A twist takes the gear path (`twistedExtrude`): steps derived from the design's
+    // resolution, an explicit count checked against the floor (TODO/core-083). Twist steps
+    // of 1 is the default and means "automatic"; one slab cannot turn, it folds into a
+    // bow-tie (27% of the volume at 90°).
+    const profile = sketchSliceGeom2(first, policy)
+    solid =
+      options.twistDeg === 0
+        ? extrusions.extrudeLinear({ height: options.heightMm }, profile)
+        : twistedExtrude(
+            profile,
+            options.heightMm,
+            {
+              twistDeg: options.twistDeg,
+              twistSteps: options.twistSteps === 1 ? undefined : options.twistSteps,
+              autoStepDeg: SKETCH_TWIST_STEP_DEG,
+            },
+            policy
+          )
   } else if (method === 'revolve') {
     // Sketch X is the radius and sketch Y the height; the axis is local Z.
     // `sketchProblem` has already refused an outline crossing x = 0, so upstream's
@@ -1091,6 +1105,15 @@ function buildBevelProfile(params, policy) {
 const TWIST_VERTEX_BUDGET = 2_000_000
 
 /**
+ * The widest turn per step a sketch's automatic Twist steps allows, in degrees. The
+ * resolution's chord tolerance alone (11 steps at Normal for 90°) leaves a rectangle a
+ * few percent light, because each step's flat side faces cut the twisted surface; the
+ * measured loss is about 0.75% per degree of step, so 3° keeps a prism within about 2%
+ * (TODO/core-083).
+ */
+const SKETCH_TWIST_STEP_DEG = 3
+
+/**
  * Extrude `profile` to `heightMm` with a twist, or as a herringbone chevron.
  *
  * A herringbone is **one** `extrudeFromSlices` over `2 · steps + 1` slices: the profile
@@ -1100,7 +1123,8 @@ const TWIST_VERTEX_BUDGET = 2_000_000
  *
  * @param {Geom2} profile
  * @param {number} heightMm
- * @param {Record<string, any>} params `twistDeg`, `twistSteps`, `herringbone`.
+ * @param {Record<string, any>} params `twistDeg`, `twistSteps`, `herringbone`, and `autoStepDeg`
+ *   (when `twistSteps` is absent, the automatic count also turns no more than this per step).
  * @param {import('./tessellation.js').TessellationPolicy | undefined} policy
  * @returns {Geom3}
  */
@@ -1149,7 +1173,9 @@ function twistedExtrude(profile, heightMm, params, policy) {
     steps = explicitSteps
   } else {
     const withinBudget = Math.floor((TWIST_VERTEX_BUDGET / sides.length - 1) / runs)
-    steps = Math.max(minimum, Math.min(twistStepsFor(twistRad, radiusMm, policy), withinBudget))
+    const byAngle = typeof params.autoStepDeg === 'number' && params.autoStepDeg > 0 ? Math.ceil(Math.abs(twistDeg) / params.autoStepDeg) : 1
+    const wanted = Math.min(MAX_TWIST_STEPS, Math.max(twistStepsFor(twistRad, radiusMm, policy), byAngle))
+    steps = Math.max(minimum, Math.min(wanted, withinBudget))
   }
 
   if (!herringbone) {

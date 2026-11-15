@@ -1780,6 +1780,51 @@ describe('primitive.sketch — a sketch is a primitive that always extrudes to a
     expect(max[2]).toBeCloseTo(30, 6)
   })
 
+  describe('Linear twist (TODO/core-083): the default Twist steps no longer fold the solid', () => {
+    /** @param {number} twistDeg @param {number} [twistSteps] */
+    const twisted = (twistDeg, twistSteps = 1) =>
+      sketch({
+        slices: slices([rect('p', 'solid', [0, 0], 30, 16)]),
+        extrusion: { method: 'linear', heightMm: 30, twistDeg, twistSteps },
+      })
+    const TRUE_VOLUME_MM3 = 30 * 16 * 30
+
+    it('Twist 90 at the default steps keeps the prism volume within 3% (was 3 820 mm³, a bow-tie)', () => {
+      const volume = measurements.measureVolume(twisted(90))
+      expect(Math.abs(volume - TRUE_VOLUME_MM3) / TRUE_VOLUME_MM3).toBeLessThan(0.03)
+      expect(volume).toBeGreaterThan(0.97 * TRUE_VOLUME_MM3)
+    })
+
+    it('Twist 0 is the exact untwisted prism', () => {
+      expect(measurements.measureVolume(twisted(0))).toBeCloseTo(TRUE_VOLUME_MM3, 6)
+    })
+
+    it('a negative twist matches the positive one', () => {
+      const negative = measurements.measureVolume(twisted(-90))
+      expect(Math.abs(negative - TRUE_VOLUME_MM3) / TRUE_VOLUME_MM3).toBeLessThan(0.03)
+      // The two handednesses triangulate their side faces on opposite diagonals, so they
+      // bracket the true volume rather than agree to the last digit.
+      expect(Math.abs(negative - measurements.measureVolume(twisted(90))) / TRUE_VOLUME_MM3).toBeLessThan(0.05)
+    })
+
+    it('a full 360° twist stays a prism (within 3%) and ends on the base footprint', () => {
+      const body = twisted(360)
+      expect(Math.abs(measurements.measureVolume(body) - TRUE_VOLUME_MM3) / TRUE_VOLUME_MM3).toBeLessThan(0.03)
+      const [min, max] = measurements.measureBoundingBox(body)
+      expect(min[2]).toBeCloseTo(0, 6)
+      expect(max[2]).toBeCloseTo(30, 6)
+    })
+
+    it('an explicit count at or above the floor is used as given', () => {
+      const volume = measurements.measureVolume(twisted(90, 60))
+      expect(Math.abs(volume - TRUE_VOLUME_MM3) / TRUE_VOLUME_MM3).toBeLessThan(0.03)
+    })
+
+    it('an explicit count below the floor is refused, naming the minimum', () => {
+      expect(() => twisted(90, 2)).toThrow(/twistSteps 2 is too few[\s\S]*at least \d+/)
+    })
+  })
+
   it('Linear starts at the slice’s own Z and moves with center', () => {
     const body = sketch({
       center: [100, -50, 10],

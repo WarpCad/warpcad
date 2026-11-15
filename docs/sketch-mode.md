@@ -360,6 +360,23 @@ behind your outlines and updates as you change things.
 
 ![The Extrude panel on Linear: the method buttons across the top (Revolve, Helical and Loft greyed out, with a reason when you point at them), a one-line picture of the method, and the Height (mm), Twist (°) and Twist steps fields](./screenshots/sketch-extrude-panel.png)
 
+**Twist steps** is how many slices a twisted Linear extrude is built from. The default,
+**1**, means "automatic": WarpCad picks about one step per 3° of twist (30 steps for 90°), so the
+solid stays a true twisted prism. A number above 1 is used as you type it, but a coarse count
+folds the solid instead of twisting it (one slab turned 90° keeps about a quarter of its volume),
+so a count below the minimum for that twist is refused: **Done** greys out and the status line
+names the minimum.
+
+To see it:
+
+1. Draw a 30 × 16 mm rectangle and open **Extrude**, with **Linear** chosen.
+2. Set **Height** to `30` and **Twist** to `90`. Leave **Twist steps** at `1`.
+3. Press **Done**. The solid is a prism turned a quarter-turn from bottom to top, and keeps
+   about 98% of the 14 400 mm³ an untwisted one has (within 3%).
+4. Select the solid, press **Edit sketch**, and set **Twist steps** to `2`. **Done** greys out
+   with "twistSteps 2 is too few ... it needs at least 8" instead of building a folded bow-tie.
+   Set it back to `1`.
+
 A method you can't use right now is greyed out, and its reason shows when you point at it:
 
 - **Loft** needs two or more slices. Each slice needs exactly one Solid outline and no

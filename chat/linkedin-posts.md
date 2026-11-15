@@ -4226,3 +4226,18 @@ The cost is that at those widths the pad is one tap further away. I also wrote t
 The part I care about is whether it can fail. A test that has only ever passed proves little, so I broke the app three ways and ran it: a toggle-off that leaves the overlay drawn, an X arrow painted with the Y gradient, and arrows with the shading flattened. Each turned it red. The first version of the arrow check passed the flat-shading break by accident, because a stray pixel at the shaft's edge looked like a dark flank. I narrowed the samples to the inside of the shaft and it caught it.
 
 It runs on Chromium, Firefox and WebKit. The picture comparison takes the part of the viewport a person sees, with the gizmo and scale readout on screen, not only the bare canvas, which is what the older spec measured. The snapshot helper that three specs had each copied now lives in one shared file.
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(core): a sketch's Linear twist takes its steps from the resolution (TODO/core-083)
+
+I twisted a 30 × 16 mm rectangle 90° in WarpCad's Sketch tool and the Inspector read 3 820 mm³. A solid that size should hold 14 400. The mesh was not inside out, which is what made it easy to miss: it was a single slab folded into a bow-tie, because the sketch path handed one twist step to the kernel and a slab cannot turn.
+
+The gear path already knew better. It derives its step count from the design's resolution and refuses a count that is too coarse. The sketch path had skipped both. Routing the sketch through the same code was the easy half. The harder half was that the resolution's tolerance alone still left a rectangle 6% light, because the loss comes from the flat side faces of each step, not from where the vertices sit. I measured it, found about 0.75% per degree of step, and capped a step at 3°. The same sketch now reads 14 091 mm³.
+
+The drive on a real build caught something the unit test could not: a thin 31 × 5 mm rectangle still loses 5.7%. That is filed as its own finding rather than quietly widened.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** registry.spec.js (Twist 90, 0, -90, 360 and the refused count); drove the production build on Chromium and WebKit, 97.8% of the untwisted volume against 27% before
+**To Add:** none
