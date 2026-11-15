@@ -1,0 +1,43 @@
+# run4
+
+INIT model claude-haiku-5-5
+TEXT I'll load the WarpCad tools first, then read the guide before the first write.
+CALL ToolSearch {"query":"select:mcp__warpcad__record_prompt,mcp__warpcad__list_ops,mcp__warpcad__describe_scene,mcp__warpcad__create,mcp__warpcad__operate,mcp__warpcad__apply_records,mcp__warpcad__measure,mcp__warpcad__check_printability,mcp__warpcad__check_clearance,mcp__warpcad__record_response,ReadMcpResourceTool","max_results":11}
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__record_prompt"},{"type":"tool_reference","tool_name":"mcp__warpcad__list_ops"},{"type":"tool_reference","tool_name":"mcp__warpcad__describe_scene"},{"type":"tool_reference","tool_name":"mcp__warpcad__create"},{"type":"tool_reference","tool_name":"mcp__warpcad__operate"},{"type":"tool_reference","tool_name":"mcp__warpcad__apply_records"},{"type":"tool_reference","tool_name":"mcp__warpcad__measure"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_printability"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_clearance"},{"t...
+CALL mcp__warpcad__record_prompt {"prompt":"a 40 mm cube with a 10 mm hole straight through it"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-kf7zmo-1\",\"text\":\"a 40 mm cube with a 10 mm hole straight through it\",\"truncated\":false},\"appended\":{\"file\":\"run4.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"warpcad://guide"}
+  RESULT {"contents":[{"uri":"warpcad://guide","mimeType":"text/markdown","text":"# WarpCad modelling guide\nYou are driving a WarpCad project from outside the app, over MCP. The tools are the ones in your tool list; each write is saved in the project's History with the design intent you give it.\nBesides rationale, every write tool takes request: the user's own words for what they asked, as received. Pass it on every write. Call record_prompt first with that request, before any write.\nWhen you finish, call record_response with your final message — including every problem you met: a deviation from the...
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":0,\"bodies\":[],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+TEXT The scene is empty, so there are no ids to clash with. I'll build the block and its cutter in one atomic write, then subtract.
+
+`★ Insight ─────────────────────────────────────`
+`★ The cutter is 42 mm tall, not 40 mm.` A cutter whose faces are exactly coplanar with the block's top and bottom leaves degenerate slivers in a boolean. Overshooting by 1 mm on each side gives the kernel a clean through-cut. `boolean.subtract` keeps its first operand and removes the rest, so the cuboid goes first.
+`─────────────────────────────────────────────────`
+CALL mcp__warpcad__apply_records {"request":"a 40 mm cube with a 10 mm hole straight through it","rationale":"Build a 40 mm cube with a 10 mm through-hole in one atomic change","steps":[{"create":{"op":"primitive.cuboid","positionMm":[0,0,0],"params":{"size":[40,40,40]}}},{"create":{"op":"primitive.cylinder","positionMm":[0,0,-1],"params":{"diameter":10,"height":42}}},{"operate":{"op":"boolean.subtract","operands":[{"id":"@1"},{"id":"@2"}]}}]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"create\",\"bodyId\":\"cuboid-kf7zmo-1\",\"recordIds\":[\"cuboid-kf7zmo-1\"]},{\"batchStep\":2,\"tool\":\"create\",\"bodyId\":\"cylinder-kf7zmo-2\",\"recordIds\":[\"cylinder-kf7zmo-2\"]},{\"batchStep\":3,\"tool\":\"operate\",\"bodyId\":\"bool-kf7zmo-3\",\"recordIds\":[\"bool-kf7zmo-3\"]}],\"scene\":{\"count\":1,\"bodies\":[{\"id\":\"bool-kf7zmo-3\",\"name\":\"Subtract 1\",\"op\":\"boolean.subtract\",\"boundsMm\":[[-20,-20,0],[20,20,40]],\"sizeMm\":[40,40,40],\"color\":null,\...
+TEXT The subtraction left one body. Now I'll check the volume against the expected value and run the print check.
+CALL mcp__warpcad__measure {"ids":["bool-kf7zmo-3"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"bodies\":[{\"id\":\"bool-kf7zmo-3\",\"name\":\"Subtract 1\",\"boundsMm\":[[-20,-20,0],[20,20,40]],\"sizeMm\":[40,40,40],\"volumeMm3\":60894.171459,\"surfaceAreaMm2\":10697.760018,\"centerOfMassMm\":[0,0,20]}]}</document_data>"}]
+CALL mcp__warpcad__check_printability {"ids":["bool-kf7zmo-3"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"heuristic\":\"Heuristic checks, not a guarantee: walls were sampled with 3999 rays, so a feature narrower than the sample spacing can be missed; fit is checked on axis-aligned orientations only; overhangs and supports are not checked. Slice it before trusting it.\",\"settings\":{\"buildVolumeMm\":[220,220,250],\"minWallMm\":1.2,\"nozzleMm\":0.4},\"bodies\":[{\"id\":\"bool-kf7zmo-3\",\"name\":\"Subtract 1\",\"sizeMm\":[40,40,40],\"watertight\":true,\"openEdges\":0,\"thinnestWallMm\":15.0007,\"thinnestAtMm\":[-0.0...
+TEXT The hole is through, the part is watertight, and it fits the build volume. I'll save the reply to the project record.
+CALL mcp__warpcad__record_response {"response":"Built a 40 × 40 × 40 mm cube with a 10 mm diameter hole straight through it, on the grid, centred on X and Y (bounds −20…20, −20…20, 0…40).\n\nHow it was made: a cuboid, plus a 10 mm cylinder 42 mm tall (1 mm proud at each end) as the cutter, then boolean.subtract. The result is one body, bool-kf7zmo-3.\n\nChecks:\n- Volume 60 894 mm³, against 60 858 mm³ for a true cylindrical hole. The difference of about 36 mm³ is consistent with a faceted hole, which removes slightly less materia...
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-kf7zmo-1\",\"id\":\"reply-kf7zmo-2\",\"text\":\"Built a 40 × 40 × 40 mm cube with a 10 mm diameter hole straight through it, on the grid, centred on X and Y (bounds −20…20, −20…20, 0…40).\\n\\nHow it was made: a cuboid, plus a 10 mm cylinder 42 mm tall (1 mm proud at each end) as the cutter, then boolean.subtract. The result is one body, bool-kf7zmo-3.\\n\\nChecks:\\n- Volume 60 894 mm³, against 60 858 mm³ for a true cylindrical hole. The difference of about 36 mm³ is consistent...
+TEXT The 40 mm cube with a 10 mm through-hole is built as one body, `bool-kf7zmo-3`, centred on X and Y and sitting on the grid (bounds −20…20, −20…20, 0…40).
+
+`★ Insight ─────────────────────────────────────`
+`★ The measured volume matches the ideal hole closely.` The expected volume is 64 000 − π·5²·40 ≈ 60 858 mm³. The measured 60 894 mm³ is about 36 mm³ higher, which fits a hole whose wall is a polygon. A polygon removes slightly less material than a true circle. The surface area agrees to within 2 mm².
+`─────────────────────────────────────────────────`
+
+**Checks:**
+- **Size:** measured at 40 × 40 × 40 mm.
+- **Print check:** watertight with no open edges, thinnest wall 15 mm, and it fits the 220 × 220 × 250 mm build volume as placed. No errors or warnings. Overhangs and supports were not checked, so slice it before printing.
+
+**Choices I made:**
+- The hole runs along Z, the cube's vertical axis, since you didn't name a direction.
+- The cutter is 42 mm tall, 1 mm longer than the cube at each end, so the cut has no coplanar faces.
+- The block and cutter went in as one atomic write, so both land or neither does.
+
+turns 9, cost $0.016, model claude-haiku-5-5

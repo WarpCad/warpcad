@@ -1376,3 +1376,23 @@ Registration still goes through `document.modelContext`. Revisit if an agent sta
 `document`, or a Chrome release reuses the `navigator` name differently. The visibility gate
 (point 5) is unchanged: it was not the cause.
 
+
+### Decision 14 (2026-11-15, `ai-035`): skills over MCP, by the extension route, no SDK bump
+
+`mcp/server.js` serves WarpCad **skills** (SEP-2640, extension id `io.modelcontextprotocol/skills`) from
+`mcp/skills/<name>/SKILL.md`, shipped with the server so a skill and the tools it names are versioned together.
+**Route:** `@modelcontextprotocol/server` 2.3.1 already declares an extension in `capabilities.extensions` and
+answers non-spec methods through its three-argument `setRequestHandler`, so the server answers `skills/list` and
+`skills/get` and also serves every skill file as a `skill://<name>/<file>` resource (`resources/list`,
+`resources/read`). The SEP's own fallback, naming the URIs in `SERVER_INSTRUCTIONS`, is kept as well, so a host that
+ignores the extension still finds them. The params validators are hand-rolled Standard Schema objects, so `mcp/`
+gains no dependency, and the SDK is not bumped. `SERVER_INSTRUCTIONS` is at 2,040 of its 2,048-character limit: a
+third skill means rewording that line to point at `skills/list` and `resources/list` instead of naming URIs.
+**One registry:** a spec fails if a `SKILL.md` names a tool that is not in `src/ai/tools/`, and skills carry no scripts.
+**Trust line:** skill text is shipped by us, so it is instructions the model follows. Text that arrives with a loaded
+project (names, intent, standing instructions) stays data, as above. A spec checks that no skill tells the model to
+trust project text. **Judgment call taken without the owner (to confirm):** the clearance is an input the user gives;
+when none is given, `add-clearances` defaults to 0.2 mm per side for a snug or press fit and 0.4 mm for a sliding fit
+(the FDM figures), and sets no default for resin or CNC, where it asks. **Not covered:** the live server
+(`mcp/liveHttp.js`) declares no skills; `registerSkillHandlers` is exported so it can. **Tool gaps the skills work
+around** are listed in `TODO/FIND-ai-041` (no offset operation, no copy-body tool, and so on).

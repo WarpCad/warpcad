@@ -206,6 +206,44 @@ in Claude Code. Claude builds the plate, measures it, runs a print check, and te
 diameter it used. Then type `/mcp__warpcad__check-print` to check every body without changing
 anything.
 
+## Skills: written workflows Claude loads when a job needs them
+
+Some jobs take many tool calls in the right order. WarpCad's MCP server ships **skills** for them: short
+Markdown instructions that tell Claude which tools to call, and how to check the result. A client sees each
+skill as a name and a one-line description, and loads the full text only when your request matches. Skills use
+the MCP *Skills* extension (`io.modelcontextprotocol/skills`): the server answers `skills/list` and
+`skills/get`, and every file of a skill is also an ordinary resource, so a client that does not know the
+extension can still read it by its address.
+
+| Skill | Address | Use it when you ask for |
+|---|---|---|
+| `add-clearances` | `skill://add-clearances/SKILL.md` | a fit gap between parts that go together: a peg in a socket, a part in a pocket, a lid on a box |
+| `create-enclosure` | `skill://create-enclosure/SKILL.md` | a case or housing around a part or board, with walls, standoffs, cut-outs and a lid |
+
+The skills call only the tools listed above, so they add nothing to the tool list. They carry no scripts.
+The server's instructions name both addresses, so Claude knows they exist before it lists anything.
+
+**The clearance is a number you give.** If you give none, `add-clearances` uses **0.2 mm per side** for a snug
+or press fit and 0.4 mm for a sliding fit, which are the usual defaults for an FDM printer. It has no default for
+resin or CNC, and asks. The gap is per side: a 10 mm peg in a socket with 0.2 mm clearance has a 10.4 mm hole.
+
+**Example.** Connect Claude Code to a project (`npm run mcp:add -- bracket.ndjson`) that holds a group called
+Housing, made of two parts that go together. Type `add 0.2 mm clearance to the group called Housing`. Claude
+reads `skill://add-clearances/SKILL.md` first, then works pair by pair: it measures each pair of parts with
+`check_clearance`, cuts the gap into the part that is printed (lengths in millimetres, Z up), and measures
+again. Its last message gives the clearance it used and the gap it measured for each pair. In the app's
+History, each gap is a step marked **via mcp**, so it follows the part if the part's own steps change.
+If the two parts are in a group, Claude rebuilds the group around the new gap (this works for box-shaped parts), so the group comes back named "Group 1": rename it in the app. Then type `make an enclosure around the Pi` and watch it read `skill://create-enclosure/SKILL.md`.
+
+You can also load one by hand: in Claude Code, `@warpcad:skill://add-clearances/SKILL.md` adds the skill's text
+to your message.
+
+Skills are written by WarpCad, so Claude follows them. The text inside your project (names, notes, standing
+instructions) is still treated as data, and no skill tells Claude to follow it.
+
+Skills are served by the project-file server on this page. The [live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)
+endpoint does not offer them yet.
+
 ## Working on a project you have open
 
 You do not have to close the project first. Claude Code and the app can both edit the same file,

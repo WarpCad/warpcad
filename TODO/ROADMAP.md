@@ -59,7 +59,6 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 |---|---|---|---|---|
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 35 | ▶ Ready | `FIND` | [`ai-035`](FIND-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills (add clearances, create an enclosure) from the MCP server, per SEP-2640 | opus |
 | 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
@@ -104,6 +103,7 @@ rest need the iPad in hand. Details in [M19](#m19--native-ios-app-tauri-held).
 - [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari behaviour checks in the iOS Simulator (34 rows). **Held:** each simulator needs Settings › Safari › Advanced › **Remote Automation** turned on first
 - [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Checks blocked on native OS dialogs and private windows, with computer use (6 rows). **Held:** needs computer use, which only the Claude desktop app has
 - [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md; ask in batches. **Held:** its whole job is asking the owner ~80 questions in batches; run it by hand with `/fix-todo testing-033`, never in the loop
+- [`ai-041`](FIND-ai-041-tool-gaps-found-writing-the-first-two-skills.md) Tool gaps found writing the first two skills (no part copy, no body rename, no offset, no per-part clearance). **Held:** eight gaps to triage with the owner, which to build as tools; filed 2026-11-15 when `ai-035` closed
 
 ---
 
@@ -163,7 +163,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`ai-035`](FIND-ai-035-serve-skills-over-mcp.md) Serve WarpCad skills from the MCP server using the Skills extension (SEP-2640) | feature | medium | opus | ▶ Ready (Next up row 35) |
 | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ▶ Ready (Next up row 36) |
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
@@ -356,7 +355,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | ⚠ `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ai-035` | Serve skills (add clearances to a group, create an enclosure) from the MCP server per SEP-2640; opens with an SDK-support check. Filed 2026-11-13 at the owner's request | Finding | — | none (re-run `testing-022` MCP checks) |
 | `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
 | `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
@@ -484,7 +482,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 46 queued + 4 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
+| [Findings](#findings-open-rows) | 45 queued + 5 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

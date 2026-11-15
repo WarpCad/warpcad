@@ -51,6 +51,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-035 — WarpCad skills over MCP, driven with Claude Code as the client (2026-11-15 05:49)
+
+Seven `claude -p --model haiku` runs (`claude-haiku-5-5`, owner subscription, no API key) against scratch project files; transcripts in `bench/results/ai/2026-11-15-skills-over-mcp/`, summary in `bench/results/ai/2026-11-15-skills-over-mcp.md`. Claude Code over MCP, not the in-app Assistant. The first `add-clearances` draft lost a group's other part (fixed in the skill text and re-driven); the rows below are what a single Haiku run cannot settle.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Connect Claude Code, ask *add 0.2 mm clearance to the group called Housing* (a group of two box parts): it reads `skill://add-clearances/SKILL.md` before any write and the pocket opens 0.2 mm per side | OK | `run1c`: read the skill first, one `apply_records` (cut, rebuilt Pin, regroup), Pin and Base read back unchanged, `check_printability` clean. The gap is by construction, not measured (`check_clearance` takes whole bodies). The group comes back as "Group 1" (no rename tool). `run1` (first draft) lost the Pin; `run1b` asked a needless question; both skill defects, fixed |
+| 2 | *make an enclosure around the Raspberry Pi* reads `skill://create-enclosure/SKILL.md` and builds shell, standoffs, port openings and a lid split | OK | `run2`: 94 calls, $0.24. `check_clearance` Pi to shell 0.2 mm, thinnest wall 1.37 mm, watertight. Openings and the split are fixed numbers, not formulas (said so). The 8 mm lid seam crosses the USB-A openings (said so) |
+| 3 | Claude Code lists both skills | OK | `run3`: both `skill://` resources with descriptions from `ListMcpResourcesTool`. Claude Code does not call `skills/list` itself; `mcp/skills-protocol.spec.js` covers it |
+| 4 | A model other than Haiku (Sonnet or Opus, the owner's usual) follows both skills the same way | Open | Haiku is the cheapest model, so a floor. One run each is an anecdote |
+| 5 | **Owner's call:** the default clearance (0.2 mm per side snug or press fit, 0.4 mm sliding, no default for resin or CNC) was chosen without the owner (`docs/decisions/ai-partner.md` Decision 14) | Open | Confirm or change the numbers in `mcp/skills/add-clearances/SKILL.md` |
+| 6 | The same `Housing` request with the project open in the app: the merged steps show as **via mcp** and the rebuilt group is selectable | Open | Merge path is `testing-022`'s and unchanged; not driven with a skill |
+
 ### testing-032 — Model behaviour over MCP: what only the in-app Assistant can still show (2026-11-15 05:03)
 
 Eight `claude -p --model haiku` runs and two fetch-only agents answered the tool half of seven rows (see the `Notes` on `docs-029` #1, `ai-014` #1, `ai-022` #1, `ai-010` #1-#3 and `ai-008` #1; transcripts in `bench/results/ai/2026-11-15-claude-code-over-mcp.md`). What is left needs the in-app Assistant and a key, which is deferred for cost.

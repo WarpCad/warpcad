@@ -442,7 +442,9 @@ describe('resources', () => {
     writeFileSync(file, CUBE)
     const { client } = await connect(file)
     const { resources } = await client.listResources()
-    expect(resources.map((resource) => resource.uri).sort()).toEqual(['warpcad://guide', 'warpcad://op-catalogue', 'warpcad://op-catalogue/summary', 'warpcad://scene'])
+    // The skill:// resources (`TODO/ai-035`) are `skills-protocol.spec.js`'s.
+    const own = resources.map((resource) => resource.uri).filter((uri) => !uri.startsWith('skill://'))
+    expect(own.sort()).toEqual(['warpcad://guide', 'warpcad://op-catalogue', 'warpcad://op-catalogue/summary', 'warpcad://scene'])
 
     const scene = /** @type {any} */ (await client.readResource({ uri: 'warpcad://scene' }))
     expect(unwrapDocumentData(scene.contents[0].text)).toEqual((await call(client, 'describe_scene')).result)

@@ -1,0 +1,27 @@
+# run3
+
+INIT model claude-haiku-5-5
+TEXT I'll check the server's skill source in the repo, since that's read-only and doesn't change the project.
+CALL Glob {"pattern":"mcp/skills/**/*","path":"~/src/@WarpCad/warpcad"}
+  RESULT <tool_use_error>Error: No such tool available: Glob. Glob is disabled for this session.</tool_use_error>
+CALL Read {"file_path":"~/src/@WarpCad/warpcad/mcp/skills.js"}
+  RESULT <tool_use_error>Error: No such tool available: Read. Read is disabled for this session, in subagents as well as here.</tool_use_error>
+TEXT Read and Glob are disabled here, so I'll ask the server directly through its resource listing, which is the authoritative source for what it offers.
+CALL ToolSearch {"query":"select:ListMcpResourcesTool,ReadMcpResourceTool","max_results":2}
+  RESULT [{"type":"tool_reference","tool_name":"ListMcpResourcesTool"},{"type":"tool_reference","tool_name":"ReadMcpResourceTool"}]
+CALL ListMcpResourcesTool {"server":"warpcad"}
+  RESULT [{"name":"scene","title":"Scene","uri":"warpcad://scene","description":"Every body in the project file: id, name, op, bounds and size in mm, colour, parts — what describe_scene returns.","mimeType":"text/plain","server":"warpcad"},{"name":"op-catalogue","title":"Operation catalogue","uri":"warpcad://op-catalogue","description":"What can be created and which operations exist, with operand counts, params and defaults — what list_ops returns.","mimeType":"text/plain","server":"warpcad"},{"name":"op-catalogue-summary","title":"Operation catalogue (summary)","uri":"warpcad://op-catalogue/summary","...
+TEXT The WarpCad MCP server offers two skills. I read them from the server's own resource listing, so this reflects what the running server exposes.
+
+1. **`add-clearances`** (`skill://add-clearances/SKILL.md`): opens a fit gap between parts that must mate, such as a peg in a socket, a part in a pocket, or a lid on a box. Use it when the user asks for clearance or tolerance, wants a looser or tighter fit, or says printed parts don't fit.
+
+2. **`create-enclosure`** (`skill://create-enclosure/SKILL.md`): builds a printable box around a part or group, with wall thickness, standoffs, cut-outs and a lid split, in an order that survives a History rebuild. Use it for an enclosure, case, housing or box, for example one for a Raspberry Pi.
+
+`★ Insight ─────────────────────────────────────`
+- Skills are exposed as MCP resources under a `skill://` URI scheme, separate from the tools. The server's instructions tell the model to read the matching skill before a multi-step job, so the skill text is the procedure, not just documentation.
+- Both skills describe their trigger in the resource `description`. That is what lets a client pick the right skill from the user's wording without loading every skill body.
+`─────────────────────────────────────────────────`
+
+I didn't change anything in the project. I couldn't read the repo's `mcp/skills.js` directly because the Read and Glob tools are disabled in this session, so the list above comes from the live server, not the source file.
+
+turns 5, cost $0.005, model claude-haiku-5-5

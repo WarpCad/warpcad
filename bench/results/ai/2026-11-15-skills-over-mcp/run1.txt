@@ -1,0 +1,101 @@
+# run1
+
+INIT model claude-haiku-5-5
+TEXT I'll load the WarpCad tools first. The server asks for `record_prompt` before anything else, so I'm starting there.
+CALL ToolSearch {"query":"select:ReadMcpResourceTool,mcp__warpcad__record_prompt,mcp__warpcad__describe_scene,mcp__warpcad__list_ops,mcp__warpcad__apply_records,mcp__warpcad__operate,mcp__warpcad__check_clearance,mcp__warpcad__measure,mcp__warpcad__record_response,mcp__warpcad__get_timeline,mcp__warpcad__describe_body,mcp__warpcad__set_variable,mcp__warpcad__list_variables","max_results":20}
+  RESULT [{"type":"tool_reference","tool_name":"ReadMcpResourceTool"},{"type":"tool_reference","tool_name":"mcp__warpcad__record_prompt"},{"type":"tool_reference","tool_name":"mcp__warpcad__describe_scene"},{"type":"tool_reference","tool_name":"mcp__warpcad__list_ops"},{"type":"tool_reference","tool_name":"mcp__warpcad__apply_records"},{"type":"tool_reference","tool_name":"mcp__warpcad__operate"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_clearance"},{"type":"tool_reference","tool_name":"mcp__warpcad__measure"},{"type":"tool_reference","tool_name":"mcp__warpcad__record_response"},{"type"...
+CALL mcp__warpcad__record_prompt {"prompt":"add 0.2 mm clearance to the group called Housing"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-v5eshn-1\",\"text\":\"add 0.2 mm clearance to the group called Housing\",\"truncated\":false},\"appended\":{\"file\":\"run1.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"warpcad://guide"}
+  RESULT {"contents":[{"uri":"warpcad://guide","mimeType":"text/markdown","text":"# WarpCad modelling guide\nYou are driving a WarpCad project from outside the app, over MCP. The tools are the ones in your tool list; each write is saved in the project's History with the design intent you give it.\nBesides rationale, every write tool takes request: the user's own words for what they asked, as received. Pass it on every write. Call record_prompt first with that request, before any write.\nWhen you finish, call record_response with your final message — including every problem you met: a deviation from the...
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":1,\"bodies\":[{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}],\"intent\":\"scratch\"}],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+TEXT The group `Housing` has two parts, `Base` and `Pin`. Before I write anything, I'll read the add-clearances skill for the procedure.
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"skill://add-clearances/SKILL.md"}
+  RESULT {"contents":[{"uri":"skill://add-clearances/SKILL.md","mimeType":"text/markdown","text":"---\nname: add-clearances\ndescription: Open a fit gap between WarpCad parts that must go together, such as a peg in a socket, a part in a pocket or a lid on a box. Use when the user asks for clearance, tolerance, a looser or tighter fit, or says printed parts do not fit.\nlicense: CC-BY-SA-4.0\n---\n\n# Add clearances to a group\n\nTakes a group of parts that must fit together, and opens a gap on every face where one part meets another. Every gap is a step in the History, so it survives a rebuild.\n\n## T...
+CALL mcp__warpcad__describe_body {"id":"group-prmvni-5"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}],\"intent\":\"scratch\",\"recordId\":\"group-prmvni-5\",\"params\":{\"names\":[\"Base\",\"Pin\"]},\"positionMm\":[0,0,17.5],\"rotationDeg\":[0,0,0]}</document_data>"}]
+TEXT The skill works on mating pairs, so I need each part's geometry. I'll check the timeline for how the group was built.
+CALL mcp__warpcad__get_timeline {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"rollbackAt\":null,\"rows\":[{\"step\":1,\"id\":\"cuboid-prmvni-1\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 1\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":2,\"id\":\"cuboid-prmvni-2\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 2\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":3,\"id\":\"bool-prmvni-3\",\"op\":\"boolean.subtract\",\"label\":\"Subtract\",\"origin\":\"mcp\",\"...
+TEXT The group is built from three cuboids: a box with a pocket cut out (`Base`), and a pin (`Pin`). I'll read the dimensions of each cuboid.
+CALL mcp__warpcad__describe_body {"id":"cuboid-prmvni-1"}
+  RESULT <document_data source="project" label="tool_result">{"error":"\"cuboid-prmvni-1\" is not a body on screen — it is suppressed, past the rollback marker, consumed by an earlier operation, deleted, or a step rather than a body. Call describe_scene for the bodies there are."}</document_data>
+CALL mcp__warpcad__describe_body {"id":"cuboid-prmvni-2"}
+  RESULT <document_data source="project" label="tool_result">{"error":"\"cuboid-prmvni-2\" is not a body on screen — it is suppressed, past the rollback marker, consumed by an earlier operation, deleted, or a step rather than a body. Call describe_scene for the bodies there are."}</document_data>
+CALL mcp__warpcad__describe_body {"id":"cuboid-prmvni-4"}
+  RESULT <document_data source="project" label="tool_result">{"error":"\"cuboid-prmvni-4\" is not a body on screen — it is suppressed, past the rollback marker, consumed by an earlier operation, deleted, or a step rather than a body. Call describe_scene for the bodies there are."}</document_data>
+TEXT The source cuboids were consumed by the subtract and the group, so their ids no longer resolve. I'll look at the group's param slots for part sizes.
+CALL mcp__warpcad__list_variables {"id":"group-prmvni-5"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":0,\"variables\":[],\"bindable\":{\"id\":\"group-prmvni-5\",\"slots\":[],\"reason\":\"a group.assemble step has no params of its own — its geometry is its operands\"}}</document_data>"}]
+TEXT The skill reads part sizes with `evaluate_formula`, which I haven't loaded yet. I'll load it.
+CALL ToolSearch {"query":"select:mcp__warpcad__evaluate_formula,mcp__warpcad__define_variable,mcp__warpcad__define_formula,mcp__warpcad__bind_param","max_results":4}
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__evaluate_formula"},{"type":"tool_reference","tool_name":"mcp__warpcad__define_variable"},{"type":"tool_reference","tool_name":"mcp__warpcad__define_formula"},{"type":"tool_reference","tool_name":"mcp__warpcad__bind_param"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Base.width"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":40,\"formula\":\"Housing.Base.width\",\"stored\":\"#group-prmvni-5.Base.width\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Base\",\"quantity\":\"width\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Base.depth"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":40,\"formula\":\"Housing.Base.depth\",\"stored\":\"#group-prmvni-5.Base.depth\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Base\",\"quantity\":\"depth\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Base.height"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":10,\"formula\":\"Housing.Base.height\",\"stored\":\"#group-prmvni-5.Base.height\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Base\",\"quantity\":\"height\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.width"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":10,\"formula\":\"Housing.Pin.width\",\"stored\":\"#group-prmvni-5.Pin.width\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"width\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.depth"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":10,\"formula\":\"Housing.Pin.depth\",\"stored\":\"#group-prmvni-5.Pin.depth\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"depth\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.height"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":20,\"formula\":\"Housing.Pin.height\",\"stored\":\"#group-prmvni-5.Pin.height\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"height\"}]}}</document_data>"}]
+TEXT The pin is a 10 × 10 × 20 mm post, and `Base` is a 40 × 40 × 10 mm block. I need their Z ranges and centres to see how they meet.
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Base.min.z"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":5,\"formula\":\"Housing.Base.min.z\",\"stored\":\"#group-prmvni-5.Base.min.z\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Base\",\"quantity\":\"min.z\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Base.max.z"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":15,\"formula\":\"Housing.Base.max.z\",\"stored\":\"#group-prmvni-5.Base.max.z\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Base\",\"quantity\":\"max.z\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.min.z"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":10,\"formula\":\"Housing.Pin.min.z\",\"stored\":\"#group-prmvni-5.Pin.min.z\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"min.z\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.max.z"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":30,\"formula\":\"Housing.Pin.max.z\",\"stored\":\"#group-prmvni-5.Pin.max.z\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"max.z\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.center.x"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":0,\"formula\":\"Housing.Pin.center.x\",\"stored\":\"#group-prmvni-5.Pin.center.x\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"center.x\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"Housing.Pin.center.y"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":0,\"formula\":\"Housing.Pin.center.y\",\"stored\":\"#group-prmvni-5.Pin.center.y\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-prmvni-5\",\"body\":\"Housing\",\"part\":\"Pin\",\"quantity\":\"center.y\"}]}}</document_data>"}]
+TEXT Here's what the geometry shows:
+
+- `Base` is 40 × 40 × 10 mm, spanning Z 5–15, and already has a pocket for the pin.
+- `Pin` is 10 × 10 × 20 mm, spanning Z 10–30, centred on the origin. Its lower 5 mm sit inside the pocket, so the pin is the part that goes in (A) and `Base` is the part it goes into (B).
+
+Per the skill, I'll open the pocket with a cutter that is the pin's shape grown by 0.2 mm per side. Enlarging all axes by 0.4 mm also opens the pocket floor by 0.2 mm, which is the clearance on the pin's bottom face. I'll cut only the `Base` part, so the `Pin` part is not cut.
+CALL mcp__warpcad__apply_records {"prompt":"add 0.2 mm clearance to the group called Housing","request":"add 0.2 mm clearance to the group called Housing","rationale":"Open a 0.2 mm per-side gap around the Pin where it enters the Base pocket, so the printed pin slides in.","steps":[{"create":{"op":"primitive.cuboid","positionMm":[0,0,10],"params":{"size":[10,10,20]}}},{"operate":{"op":"modify.enlarge","operands":[{"id":"@1"}],"params":{"deltaMm":[0.4,0.4,0.4]}}},{"operate":{"op":"boolean.subtract","operands":[{"id":"group-prmvn...
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"create\",\"bodyId\":\"cuboid-v5eshn-6\",\"recordIds\":[\"cuboid-v5eshn-6\"]},{\"batchStep\":2,\"tool\":\"operate\",\"bodyId\":\"cuboid-v5eshn-6\",\"recordIds\":[\"enlarge-v5eshn-7\"]},{\"batchStep\":3,\"tool\":\"operate\",\"bodyId\":\"bool-v5eshn-8\",\"recordIds\":[\"bool-v5eshn-8\"]}],\"scene\":{\"count\":1,\"bodies\":[{\"id\":\"bool-v5eshn-8\",\"name\":\"Subtract 2\",\"op\":\"boolean.subtract\",\"boundsMm\":[[-20,-20,5],[20,20,15]],\"sizeMm\":[40,40,10],\"color\":null,\"p...
+TEXT The write went through, but the result is wrong. The scene now has one body, `Subtract 2`, with no parts, and the `Pin` is gone. The `pieces` restriction on the group did not keep the unselected part. Undo isn't available over MCP, so I'll rebuild the housing from what's left: the cut `Base` and a fresh pin at the same position, assembled into a group with the original part names.
+CALL mcp__warpcad__apply_records {"request":"add 0.2 mm clearance to the group called Housing","rationale":"Repair: the last subtract dropped the Pin part. Restore a 10 x 10 x 20 mm Pin at the original spot and regroup it with the cut Base as Base and Pin.","steps":[{"create":{"op":"primitive.cuboid","positionMm":[0,0,10],"params":{"size":[10,10,20]}}},{"operate":{"op":"group.assemble","operands":[{"id":"bool-v5eshn-8"},{"id":"@1"}],"params":{"names":["Base","Pin"]}}}]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"create\",\"bodyId\":\"cuboid-v5eshn-9\",\"recordIds\":[\"cuboid-v5eshn-9\"]},{\"batchStep\":2,\"tool\":\"operate\",\"bodyId\":\"group-v5eshn-10\",\"recordIds\":[\"group-v5eshn-10\"]}],\"scene\":{\"count\":1,\"bodies\":[{\"id\":\"group-v5eshn-10\",\"name\":\"Group 1\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}]}],\"rolledBack\":null,\"...
+TEXT The housing is back as one group with `Base` and `Pin` parts. Next I'll read the sizes back and check the History.
+CALL mcp__warpcad__evaluate_formula {"formula":"Group 1.Pin.width + Group 1.Base.width"}
+  RESULT <document_data source="project" label="tool_result">{"error":"a number runs straight into something else at character 9"}</document_data>
+CALL mcp__warpcad__get_timeline {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"rollbackAt\":null,\"rows\":[{\"step\":1,\"id\":\"cuboid-prmvni-1\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 1\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":2,\"id\":\"cuboid-prmvni-2\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 2\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":3,\"id\":\"bool-prmvni-3\",\"op\":\"boolean.subtract\",\"label\":\"Subtract\",\"origin\":\"mcp\",\"...
+CALL mcp__warpcad__evaluate_formula {"formula":"#group-v5eshn-10.Pin.width"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":10,\"formula\":\"[Group 1].Pin.width\",\"stored\":\"#group-v5eshn-10.Pin.width\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-v5eshn-10\",\"body\":\"Group 1\",\"part\":\"Pin\",\"quantity\":\"width\"}]}}</document_data>"}]
+CALL mcp__warpcad__evaluate_formula {"formula":"#group-v5eshn-10.Base.width"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"value\":40,\"formula\":\"[Group 1].Base.width\",\"stored\":\"#group-v5eshn-10.Base.width\",\"reads\":{\"variables\":[],\"parts\":[{\"bodyId\":\"group-v5eshn-10\",\"body\":\"Group 1\",\"part\":\"Base\",\"quantity\":\"width\"}]}}</document_data>"}]
+CALL mcp__warpcad__record_response {"response":"Added a 0.2 mm per-side clearance to the pin's pocket in the Housing group, but my first attempt deleted the Pin and I rebuilt it, so the result is not the original group.\n\nWhat changed:\n- The Base pocket is now 10.4 × 10.4 mm (cut by a 10 × 10 × 20 mm cutter grown 0.2 mm per side). The pin is 10 × 10 mm, so the gap is 0.2 mm per side. The cutter also opens the pocket floor by 0.2 mm, so the pin has a 0.2 mm gap underneath.\n- The first subtract (step 8) dropped the Pin part from...
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-v5eshn-1\",\"id\":\"reply-v5eshn-4\",\"text\":\"Added a 0.2 mm per-side clearance to the pin's pocket in the Housing group, but my first attempt deleted the Pin and I rebuilt it, so the result is not the original group.\\n\\nWhat changed:\\n- The Base pocket is now 10.4 × 10.4 mm (cut by a 10 × 10 × 20 mm cutter grown 0.2 mm per side). The pin is 10 × 10 mm, so the gap is 0.2 mm per side. The cutter also opens the pocket floor by 0.2 mm, so the pin has a 0.2 mm gap underneath.\\...
+TEXT The 0.2 mm clearance is in place, but my first attempt deleted the pin, so I rebuilt it. The housing is not the original group anymore.
+
+`★ Insight ─────────────────────────────────────`
+- The skill's default is to cut the mating part with a copy of the inserted part grown by 2 × clearance. That only works if the inserted part can still be seen as a single body. Once `Pin` is a part inside a group, it is not addressable on its own.
+- Restricting a group operand with `pieces: "Base"` did not keep the other parts. The tool treated the group as consumed and returned a single body with no parts.
+`─────────────────────────────────────────────────`
+
+**What's in the project now**
+- `Base` is a 40 × 40 × 10 mm block (Z 5–15) with its pocket opened to 10.4 × 10.4 mm. The cutter was the pin's shape grown 0.2 mm per side, so the gap is 0.2 mm on each side and 0.2 mm under the pin.
+- `Pin` is a new 10 × 10 × 20 mm post at the original position (Z 10–30, centred on X/Y 0). I read back 10 mm wide and Base 40 mm wide.
+- The two are grouped as parts `Base` and `Pin`.
+
+**Problems to know about**
+1. **Pin was lost, then recreated.** Steps 6–8 are the failed attempt and stay in History. Their intent text is stale.
+2. **The group is named "Group 1", not "Housing".** The tools can rename parts but not the body. Rename it in the app.
+3. **Gap not checked against the pin.** Parts can't be checked individually, and the original bodies were consumed. The 10.4 mm pocket follows from the cutter's size but was not read back.
+4. **Not run:** `check_printability` and `capture_view`.
+
+The fix is in the project. The "Group 1" name and the stale History rows are yours to decide on. Tell me if you want the name changed or the failed steps removed.
+
+turns 32, cost $0.026, model claude-haiku-5-5
