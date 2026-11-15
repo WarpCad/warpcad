@@ -160,6 +160,7 @@ import {
   ownOverrideOf,
 } from '../../core/colorOverride.js'
 import { BODY_COLORS } from '../../render/mesh.js'
+import { readSceneTheme } from '../../render/theme.js'
 import { formatDeg, formatMmValue } from '../../core/units.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
@@ -187,7 +188,7 @@ const emit = defineEmits(['sheet-change', 'claim-sheet'])
 const SWIPE_DISMISS_PX = 36
 
 const selection = useSelectionStore()
-const { resolved: theme } = useTheme()
+const { resolved: theme, scheme } = useTheme()
 const described = useSelectedBody()
 const documentStore = useDocumentStore()
 const hiddenPartVisibility = useHiddenPartVisibilityStore()
@@ -570,8 +571,22 @@ const recipeColor = computed(() => body.value?.recipeColor)
  * arbitrary grey.
  */
 function defaultBodyColor() {
-  return (theme.value === 'light' ? BODY_COLORS.light : BODY_COLORS.dark).body
+  return themeBodyColor.value
 }
+
+/**
+ * `--body` for the painted theme, read once per theme change (`useTheme` writes `<html data-theme>`
+ * before `resolved` moves, so the read sees the new theme). Falls back to the scheme's palette where
+ * no stylesheet applies (unit tests) or the token is not a plain colour.
+ */
+const themeBodyColor = computed(() => {
+  void theme.value
+  try {
+    return readSceneTheme(getComputedStyle(document.documentElement), scheme.value).body
+  } catch {
+    return (scheme.value === 'light' ? BODY_COLORS.light : BODY_COLORS.dark).body
+  }
+})
 
 /** The swatch's `#rrggbb`: the live pick while the picker is open, else the truth. */
 const colorSwatchHex = computed(() => {

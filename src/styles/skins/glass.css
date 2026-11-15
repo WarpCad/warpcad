@@ -1,0 +1,302 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Glass: panels of frosted, refracting glass floating over a colour wallpaper, in the manner of
+ * Apple's glass interfaces. Real backdrop blur, a bright rim along the top edge of every pane,
+ * capsule controls, a sliding-thumb segmented control, and a blurred scrim.
+ *
+ * A style; see the header of `kids.css` for how styles work.
+ */
+
+/* This style's tile in the Help sheet (`HelpSheet.vue`). */
+.theme-swatch--glass {
+  --swatch-ground: radial-gradient(60% 90% at 15% 20%, #5b8cff, transparent), radial-gradient(60% 90% at 85% 30%, #ff7ac3, transparent), radial-gradient(60% 90% at 60% 100%, #36e0c2, transparent), #dfe7f5;
+  --swatch-panel: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.35));
+  --swatch-edge: 1px solid rgba(255, 255, 255, 0.8);
+  --swatch-radius: 999px;
+  --swatch-shadow: inset 0 1px 0 #ffffff, 0 4px 12px rgba(20, 30, 80, 0.2);
+  --swatch-ink: #14141a;
+  --swatch-accent: #0064d2;
+  --swatch-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+}
+
+:root[data-theme='glass'] {
+  color-scheme: light;
+  --glass-fill: linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.26));
+  --glass-rim: rgba(255, 255, 255, 0.75);
+  --glass-blur: blur(26px) saturate(190%);
+  --glass-depth:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 22px rgba(255, 255, 255, 0.18),
+    0 14px 44px rgba(20, 30, 80, 0.22);
+
+  --surface-0: #dfe7f5;
+  --surface-1: rgba(255, 255, 255, 0.55);
+  --surface-2: rgba(255, 255, 255, 0.7);
+  --surface-glass: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.6);
+  --border-strong: rgba(255, 255, 255, 0.8);
+  --text-1: #14141a;
+  --text-2: #32323a;
+  --text-3: #4a4a55;
+  --accent: #0064d2;
+  --accent-contrast: #ffffff;
+  --axis-x: #d92d20;
+  --axis-y: #248a3d;
+  --scene-background: #eef2f8;
+  --scene-grid-minor: #d5dbe6;
+  --scene-grid-major: #a9b3c4;
+  --body: #5c8fd9;
+  --body-selected: #c96a00;
+  --body-secondary: #00736e;
+  --body-ghost: #c96a00;
+  --body-hover: #9b3fd1;
+  --snap-guide: #e0115f;
+  --accent-secondary: var(--body-secondary);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
+  --sketch-stroke: #4a48c8;
+  --danger: #c4001a;
+  --warn: #8a3f00;
+  --scrim: rgba(20, 30, 70, 0.18);
+  --overlay-drop: rgba(20, 30, 60, 0.2);
+  --shadow-overlay: var(--glass-depth);
+  --shadow-popover: var(--glass-depth);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 600;
+  --focus-ring: 3px solid rgba(0, 100, 210, 0.55);
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* The wallpaper. Glass is only glass when there is something behind it. */
+  body {
+    background:
+      radial-gradient(38% 46% at 12% 16%, #5b8cff 0, transparent 72%),
+      radial-gradient(42% 48% at 88% 10%, #ff7ac3 0, transparent 72%),
+      radial-gradient(46% 52% at 72% 92%, #36e0c2 0, transparent 72%),
+      radial-gradient(42% 48% at 16% 94%, #ffb45c 0, transparent 72%),
+      radial-gradient(30% 34% at 50% 48%, #b68cff 0, transparent 75%),
+      var(--surface-0);
+    background-attachment: fixed;
+  }
+
+  .sb-surface,
+  .modal,
+  .popover,
+  .sheet,
+  .base-toast {
+    border: 1px solid var(--glass-rim);
+    background: var(--glass-fill);
+    box-shadow: var(--glass-depth);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .modal {
+    gap: 14px;
+    padding: 22px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.42));
+  }
+
+  .modal__title {
+    font-size: 19px;
+    letter-spacing: -0.01em;
+  }
+
+  .modal__backdrop {
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    backdrop-filter: blur(10px) saturate(120%);
+  }
+
+  /* Controls are capsules of thinner glass. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .icon-button--bordered,
+  .icon-button--primary {
+    border: 1px solid var(--glass-rim);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.4));
+    font-weight: 500;
+    box-shadow:
+      inset 0 1px 0 #ffffff,
+      0 1px 2px rgba(20, 30, 80, 0.14),
+      0 8px 20px rgba(20, 30, 80, 0.12);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    backdrop-filter: blur(14px) saturate(180%);
+    transition:
+      scale var(--duration-fast) var(--ease-standard),
+      filter var(--duration-fast) var(--ease-standard);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger) {
+    padding: 0 20px;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled),
+  .icon-button--bordered:hover:not(:disabled),
+  .icon-button--primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):active:not(:disabled),
+  .icon-button--bordered:active:not(:disabled),
+  .icon-button--primary:active:not(:disabled) {
+    scale: 0.95;
+  }
+
+  /* Tinted glass: the colour is inside the pane, the rim and sheen stay white. */
+  .base-button--primary:not(.base-button--quiet),
+  .icon-button--primary,
+  .icon-button--bordered.icon-button--active {
+    border-color: rgba(255, 255, 255, 0.45);
+    background: linear-gradient(180deg, rgba(74, 163, 255, 0.95), rgba(0, 100, 210, 0.88));
+    color: #ffffff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -6px 12px rgba(0, 60, 150, 0.35),
+      0 8px 22px rgba(0, 100, 210, 0.45);
+  }
+
+  .base-button--danger:not(.base-button--quiet) {
+    border-color: rgba(255, 255, 255, 0.45);
+    background: linear-gradient(180deg, rgba(255, 110, 120, 0.92), rgba(196, 0, 26, 0.86));
+    color: #ffffff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 8px 22px rgba(196, 0, 26, 0.35);
+  }
+
+  .base-button--active:not(.base-button--quiet, .base-button--link) {
+    border-color: var(--glass-rim);
+    background: linear-gradient(180deg, rgba(190, 220, 255, 0.9), rgba(140, 190, 255, 0.6));
+  }
+
+  /* Fields are wells: glass pressed in rather than raised. */
+  .text-input,
+  .number-field,
+  .select-input {
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.34);
+    box-shadow:
+      inset 0 2px 5px rgba(20, 30, 80, 0.16),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .text-input:focus,
+  .number-field:focus,
+  .select-input:focus {
+    outline: 3px solid rgba(0, 100, 210, 0.4);
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  /* A recessed track with a raised thumb. */
+  .segmented {
+    gap: 0;
+    padding: 3px;
+    border-radius: 999px;
+    background: rgba(90, 100, 130, 0.18);
+    box-shadow:
+      inset 0 1px 3px rgba(20, 30, 80, 0.2),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .segmented__option {
+    min-height: calc(var(--tap) - 6px);
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    transition: background var(--duration-base) var(--ease-standard);
+  }
+
+  .segmented__option[aria-checked='true'] {
+    background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.78));
+    font-weight: 600;
+    box-shadow:
+      inset 0 1px 0 #ffffff,
+      0 2px 8px rgba(20, 30, 80, 0.22);
+  }
+
+  .base-chip {
+    border-color: var(--glass-rim);
+    background: rgba(255, 255, 255, 0.42);
+    color: var(--text-1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .base-chip--danger {
+    color: var(--danger);
+  }
+
+  .base-chip__dot {
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  .list-row {
+    border-radius: 14px;
+  }
+
+  .list-row--selected {
+    background: linear-gradient(180deg, rgba(74, 163, 255, 0.34), rgba(0, 100, 210, 0.22));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .base-banner--strip,
+  .base-banner--dock {
+    padding: 6px 10px 6px 16px;
+    border: 1px solid var(--glass-rim);
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3));
+    box-shadow: var(--glass-depth);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .base-banner--strip.base-banner--warn {
+    border-left: 1px solid var(--glass-rim);
+    background: linear-gradient(135deg, rgba(255, 214, 140, 0.7), rgba(255, 255, 255, 0.3));
+  }
+
+  .base-banner--box {
+    border-color: rgba(255, 255, 255, 0.7);
+    border-radius: 14px;
+    background: rgba(255, 214, 140, 0.4);
+  }
+
+  .section-heading {
+    color: var(--text-2);
+    letter-spacing: 0.04em;
+  }
+
+  /* The operations toolbar (`OperationsToolbar.vue`) draws its own buttons. */
+  .ops {
+    border: 1px solid var(--glass-rim);
+    background: var(--glass-fill);
+    box-shadow: var(--glass-depth);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .ops__btn {
+    border: 1px solid var(--glass-rim);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.4));
+    box-shadow: inset 0 1px 0 #ffffff, 0 4px 12px rgba(20, 30, 80, 0.1);
+  }
+
+  /* The navigation cluster over the 3D view (`NavigationChrome.vue`) is sized to leave the grid readout
+     beside it clear, so it keeps its own geometry and only takes this style's look. */
+  .chrome .base-button.chrome__mode {
+    min-width: 0;
+    margin: 0;
+    padding: 0 8px;
+    letter-spacing: 0.02em;
+  }
+}

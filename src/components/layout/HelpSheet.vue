@@ -35,7 +35,7 @@ import ExternalLink from '../controls/ExternalLink.vue'
 import IconButton from '../controls/IconButton.vue'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
-import { THEME_PREFERENCES } from '../../stores/settings.js'
+import { THEME_MODES, THEME_STYLES } from '../../stores/settings.js'
 
 const help = useHelpStore()
 const update = useAppUpdateStore()
@@ -66,15 +66,19 @@ const closeButton = ref(null)
 /** The visible words of the three theme segments. */
 const THEME_LABELS = { system: 'System', dark: 'Dark', light: 'Light' }
 
+/** The visible words of the style tiles (`src/styles/skins/`). */
+const STYLE_LABELS = { kids: 'Kids', glass: 'Glass', deco: 'Art Deco', minimal: 'Minimal', blueprint: 'Blueprint', pixel: 'Pixel' }
+
 /**
  * A picture's dark twin is a `<source class="help-pic-dark">`, keyed to the system scheme in the
  * built page. The reader's chosen theme can disagree with the system, so here the source is
- * switched on the resolved theme instead (`TODO/ui-113`): `all` under Dark, `not all` under Light.
+ * switched on the resolved theme's scheme instead (`TODO/ui-113`): `all` under a dark theme, `not all`
+ * under a light one.
  */
 watch(
-  [() => theme.resolved.value, html],
+  [() => theme.scheme.value, html],
   () => {
-    const dark = theme.resolved.value === 'dark'
+    const dark = theme.scheme.value === 'dark'
     content.value?.querySelectorAll('source.help-pic-dark').forEach((el) => el.setAttribute('media', dark ? 'all' : 'not all'))
   },
   { flush: 'post', immediate: true },
@@ -357,7 +361,7 @@ onBeforeUnmount(() => {
             <div v-if="state === 'ready'" class="help__theme" role="group" aria-labelledby="help-theme-label" data-testid="help-theme">
               <span id="help-theme-label" class="help__theme-label">Theme</span>
               <button
-                v-for="choice in THEME_PREFERENCES"
+                v-for="choice in THEME_MODES"
                 :key="choice"
                 type="button"
                 class="help__theme-btn"
@@ -367,6 +371,27 @@ onBeforeUnmount(() => {
               >
                 {{ THEME_LABELS[choice] }}
               </button>
+            </div>
+            <!-- The styles (`src/styles/skins/`): a whole look, fixed to light or dark. Picking one releases the
+                 mode above; picking a mode releases the style. Each swatch is drawn by its style's own file. -->
+            <div v-if="state === 'ready'" class="help__styles" role="group" aria-labelledby="help-style-label" data-testid="help-style">
+              <span id="help-style-label" class="help__theme-label">Style</span>
+              <div class="help__styles-grid">
+                <button
+                  v-for="style in THEME_STYLES"
+                  :key="style"
+                  type="button"
+                  class="help__style-btn"
+                  :aria-pressed="theme.preference.value === style ? 'true' : 'false'"
+                  :data-testid="`help-theme-${style}`"
+                  @click="theme.setPreference(style)"
+                >
+                  <span class="theme-swatch" :class="`theme-swatch--${style}`" aria-hidden="true">
+                    <span class="theme-swatch__panel">Aa<span class="theme-swatch__accent" /></span>
+                  </span>
+                  <span class="help__style-name">{{ STYLE_LABELS[style] }}</span>
+                </button>
+              </div>
             </div>
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
@@ -441,6 +466,88 @@ onBeforeUnmount(() => {
 .help__theme-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.help__styles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--text-2);
+  font-size: var(--text-size-md);
+}
+
+.help__styles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 420px;
+}
+
+.help__style-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: var(--tap);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: var(--text-size-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.help__style-btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--text-1);
+}
+
+.help__style-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.help__style-name {
+  text-align: center;
+}
+
+/* A thumbnail of the style: its ground, one of its panels, a word in its type and a dot of its accent.
+   The `--swatch-*` values are set per style in `src/styles/skins/*.css`, so a tile looks like its style
+   whichever theme is painted around it. */
+.theme-swatch {
+  display: grid;
+  place-items: center;
+  height: 46px;
+  overflow: hidden;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--swatch-ground);
+}
+
+.theme-swatch__panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: var(--swatch-edge);
+  border-radius: var(--swatch-radius);
+  background: var(--swatch-panel);
+  color: var(--swatch-ink);
+  font-family: var(--swatch-font);
+  font-size: var(--text-size-lg);
+  line-height: 1.2;
+  box-shadow: var(--swatch-shadow);
+}
+
+.theme-swatch__accent {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--swatch-radius);
+  background: var(--swatch-accent);
 }
 
 .help__version {

@@ -11,11 +11,55 @@ in the existing component folders, themes are System, Dark and Light chosen in t
 |---|---|---|
 | The palette, type sizes, spacing steps, radii, durations | `src/styles/base.css` | Raw values with no meaning. Every other layer reads these. |
 | What a role means (`--surface-0`, `--text-1`, `--accent`, `--z-modal`, `--text-size-sm`, `--scene-background`) | `src/styles/semantic.css` | Role names stay stable, so no component changes. |
-| One theme's look | `src/styles/themes/dark.css`, `src/styles/themes/light.css` | Each redefines the same set of roles. A new theme is a third file plus an `@import` in `src/styles/index.css`. |
+| One theme's look | `src/styles/themes/dark.css`, `src/styles/themes/light.css` | Each redefines the same set of roles. A new theme is a third file plus an `@import` in `src/styles/index.css`. For a look that goes past tokens, see Styles below. |
 | Reduced motion | `src/styles/reset.css` | One rule zeroes `--duration-1` and `--duration-2`. Looping spinners and the tier crossfade carry their own handling. |
 | Which theme is active, and the choice offered to the user | `src/composables/useTheme.js`, `src/stores/settings.js` | `useTheme` is the only reader of `prefers-color-scheme`. It writes `<html data-theme>`. |
 | The 3D view's colours | the `--scene-*`, `--axis-*` and body tokens in the theme files; `src/render/theme.js` maps them | The renderer reads the tokens once per theme change, never per frame. `src/render/theme.spec.js` holds the JS fallback equal to the CSS. |
 | How buttons, fields, dialogs, toasts, chips look | the base components in `src/components/controls/`, `display/` and `layout/` (`BaseButton`, `IconButton`, `TextInput`, `NumberField`, `BaseDialog`, `BaseToast`, `BaseChip` and the rest) | Restyling one restyles it everywhere it is used. |
+
+## Styles
+
+Besides the two base themes there are six **styles**: `kids`, `glass`, `deco`, `minimal`, `blueprint` and `pixel`, one file
+each in `src/styles/skins/`, imported by `src/main.js` through `src/styles/skins/index.css` (and by Storybook, whose Theme
+menu and `Themes/Showcase` story show them). The user picks one under Help → Style; the end-user page is
+[`docs/help.md`](../help.md#styles).
+
+A style is more than a theme. A theme only redefines tokens; a style also restyles the base components by class name
+(button shape, borders, textures, ornament, type), because recolouring alone gave six versions of the same interface. Every
+rule in a style file is nested under its own `:root[data-theme='<name>']`, so it applies only while that style is chosen.
+The one exception is the top-level `.theme-swatch--<name>` rule, which draws the style's tile in the Help sheet.
+
+| To change | Edit |
+|---|---|
+| A style's look | its file in `src/styles/skins/` |
+| The list of styles, their order | `THEME_STYLES` in `src/stores/settings.js`, `STYLE_LABELS` in `HelpSheet.vue`, `skins/index.css` |
+| Whether a style is light or dark | `THEME_SCHEMES` in `src/composables/useTheme.js` and the file's `color-scheme`; keep them in step |
+| A style's Help tile | the `.theme-swatch--<name>` rule at the top of its file |
+
+How it fits the rest:
+
+- **`useTheme`**: `resolved` is the painted theme's name (`'dark'`, `'light'` or a style) and is what `<html data-theme>`
+  carries; `scheme` is its brightness. The Help pictures and the renderer's fallback palette read `scheme`. `onChange`
+  fires on any change of name, so a switch between two dark themes still recolours the 3D view.
+- **The 3D view** reads each style's `--scene-*` and body tokens like any theme's, so each must stay a plain `#rrggbb`.
+- **Dense clusters keep their geometry.** A style's button padding must not grow the navigation cluster over the grid
+  readout at phone width, so each file restores `.chrome__mode`'s own sizing.
+- **Fonts.** The CSP allows fonts from `'self'` only, so the display faces the styles depend on are bundled from
+  Fontsource: Fredoka (Kids), Chewy (Kids headings), Limelight (Art Deco titles), Architects Daughter (Blueprint) and
+  Silkscreen (Pixel labels). Chosen 2026-11-15 by the owner; `OFL-1.1` was added to `npm run licenses` for them (Chewy is
+  Apache-2.0). Each face is fetched only when first drawn and is not precached. The other faces the stacks name
+  (Josefin Sans, Instrument Serif, Inter, IBM Plex Mono) are used only where installed; their system fallbacks carry those
+  styles well enough. Storybook loads the same bundled files, so it previews what the app shows.
+
+  | Option | Why not |
+  |---|---|
+  | Fontsource packages (chosen) | Versioned, licence in each package's metadata, so `npm run licenses` and the third-party notices see it. Repo: 6.3k stars, 44 open issues, pushed 2026-11-09; packages 5.3.0 of 2026-07. |
+  | Google Fonts stylesheet | Blocked by the CSP (`font-src 'self' data:`), and a request to a third party on every load. |
+  | Hand-copied `.woff2` files under `public/` | No version or licence record; an update means re-downloading by hand. |
+  | No web fonts | Pixel and Blueprint lose the lettering their look depends on. |
+
+- **No specs of their own.** The guard and the token specs cover `src/styles/` as before; nothing checks a style's
+  contrast or that it defines every themed token. The style files were checked by hand for both when written.
 
 ## The three hand-copied values
 

@@ -49,9 +49,14 @@
     "mcp:add": "node scripts/mcp-add.mjs",
     "mcp:install": "npm --prefix mcp ci",
     "mcp:licenses": "npm --prefix mcp run licenses",
-    "licenses": "npx --yes license-checker@25.0.1 --production --excludePrivatePackages --onlyAllow \"MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;BlueOak-1.0.0;MIT-0;CC0-1.0;(MIT OR CC0-1.0);MPL-2.0;CC-BY-4.0\" --summary"
+    "licenses": "npx --yes license-checker@25.0.1 --production --excludePrivatePackages --onlyAllow \"MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;BlueOak-1.0.0;MIT-0;CC0-1.0;(MIT OR CC0-1.0);MPL-2.0;CC-BY-4.0;OFL-1.1\" --summary"
   },
   "dependencies": {
+    "@fontsource-variable/fredoka": "5.3.0",
+    "@fontsource/architects-daughter": "5.3.0",
+    "@fontsource/chewy": "5.3.0",
+    "@fontsource/limelight": "5.3.0",
+    "@fontsource/silkscreen": "5.3.0",
     "@jscad/modeling": "2.13.0",
     "@jscad/obj-serializer": "2.1.23",
     "@jscad/stl-serializer": "2.1.23",

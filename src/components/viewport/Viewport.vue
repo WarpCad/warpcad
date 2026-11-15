@@ -213,8 +213,8 @@ const canvasEl = ref(/** @type {HTMLCanvasElement | null} */ (null))
  * for the desktop Ctrl/Cmd-drag path below.
  */
 const dragMode = ref('orbit')
-/** The resolved theme, from the one module that decides it (`TODO/ui-113`). */
-const { resolved: theme } = useTheme()
+/** The resolved theme's brightness, from the one module that decides it (`TODO/ui-113`): the fallback palette's key. */
+const { scheme: theme } = useTheme()
 const webglError = ref('')
 /**
  * `TODO/render-006`: where the view stands after the browser released its WebGL context, and how

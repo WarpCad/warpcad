@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /** @type {import('@storybook/vue3-vite').StorybookConfig} */
 const config = {
-  stories: ['../src/**/*.stories.@(js|ts)'],
+  stories: ['../src/**/*.stories.@(js|ts)', './*.stories.js'],
   framework: {
     name: '@storybook/vue3-vite',
     // vue-docgen-api (the framework default) is deprecated as of Storybook 10;

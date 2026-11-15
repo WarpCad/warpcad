@@ -1,0 +1,418 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Pixel: a 16-colour console. Everything sits on a 4px grid: no curves, no blur, no easing.
+ * Borders are notched at the corners the way sprites round them, controls are bevelled slabs that
+ * invert when pressed, the dialog is a window with a title bar, the scrim is a dither, the toast
+ * is a role-playing game's message box, and a blinking arrow marks what the pointer is on.
+ *
+ * A style; see the header of `kids.css` for how styles work.
+ */
+
+@keyframes pixel-blink {
+  50% { opacity: 0; }
+}
+
+/* This style's tile in the Help sheet (`HelpSheet.vue`). */
+.theme-swatch--pixel {
+  --swatch-ground: conic-gradient(#1a1c2c 25%, #20233a 0 50%, #1a1c2c 0 75%, #20233a 0) 0 0 / 6px 6px;
+  --swatch-panel: #333c57;
+  --swatch-edge: 0;
+  --swatch-radius: 0;
+  --swatch-shadow: 0 -3px 0 #0b0c14, 0 3px 0 #0b0c14, -3px 0 0 #0b0c14, 3px 0 0 #0b0c14, inset -3px -3px 0 #1a1c2c, inset 3px 3px 0 #566c86;
+  --swatch-ink: #ffcd75;
+  --swatch-accent: #a7f070;
+  --swatch-font: 'Silkscreen', ui-monospace, Menlo, monospace;
+}
+
+:root[data-theme='pixel'] {
+  color-scheme: dark;
+  --px-black: #0b0c14;
+  --px-night: #1a1c2c;
+  --px-slate: #333c57;
+  --px-steel: #566c86;
+  --px-fog: #94b0c2;
+  --px-white: #f4f4f4;
+  --px-gold: #ffcd75;
+  --px-orange: #ef7d57;
+  --px-red: #b13e53;
+  --px-plum: #5d275d;
+  --px-lime: #a7f070;
+  --px-green: #38b764;
+  --px-teal: #257179;
+  --px-navy: #29366f;
+  --px-blue: #3b5dc9;
+  --px-sky: #41a6f6;
+  --px-cyan: #73eff7;
+  /* A 4px outline made of four offset copies of the box, which leaves each corner notched. */
+  --px-outline: 0 -4px 0 0 var(--px-black), 0 4px 0 0 var(--px-black), -4px 0 0 0 var(--px-black), 4px 0 0 0 var(--px-black);
+
+  --surface-0: #1a1c2c;
+  --surface-1: #333c57;
+  --surface-2: #566c86;
+  --surface-glass: rgba(51, 60, 87, 0.92);
+  --border: #566c86;
+  --border-strong: #94b0c2;
+  --text-1: #f4f4f4;
+  --text-2: #c2d2de;
+  --text-3: #94b0c2;
+  --accent: #ffcd75;
+  --accent-contrast: #1a1c2c;
+  --axis-x: #ef7d57;
+  --axis-y: #38b764;
+  --scene-background: #1a1c2c;
+  --scene-grid-minor: #333c57;
+  --scene-grid-major: #566c86;
+  --body: #41a6f6;
+  --body-selected: #ffcd75;
+  --body-secondary: #a7f070;
+  --body-ghost: #ffcd75;
+  --body-hover: #b48cff;
+  --snap-guide: #ff77a8;
+  --accent-secondary: var(--body-secondary);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
+  --sketch-stroke: #73eff7;
+  --danger: #ff8a7a;
+  --warn: #ffcd75;
+  --scrim: rgba(11, 12, 20, 0.6);
+  --overlay-drop: rgba(11, 12, 20, 0.6);
+  --shadow-overlay: var(--px-outline), 12px 12px 0 0 rgba(11, 12, 20, 0.55);
+  --shadow-popover: var(--px-outline), 12px 12px 0 0 rgba(11, 12, 20, 0.55);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 0px;
+  --radius-round: 0px;
+  /* Body text stays monospace: Silkscreen is a display face, set on labels, buttons and headings below. */
+  --font: ui-monospace, Menlo, monospace;
+  --font-mono: ui-monospace, Menlo, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+  --focus-ring: 4px solid var(--px-gold);
+  --ease-standard: steps(2);
+
+  body {
+    background: conic-gradient(var(--px-night) 25%, #20233a 0 50%, var(--px-night) 0 75%, #20233a 0) 0 0 / 8px 8px;
+  }
+
+  .sb-surface,
+  .popover,
+  .sheet,
+  .modal {
+    border: 0;
+    border-radius: 0;
+    background: var(--px-slate);
+    box-shadow:
+      var(--px-outline),
+      inset -4px -4px 0 0 var(--px-night),
+      inset 4px 4px 0 0 var(--px-steel),
+      12px 12px 0 0 rgba(11, 12, 20, 0.55);
+  }
+
+  .showcase__brand {
+    color: var(--px-gold);
+    font-family: 'Silkscreen', var(--font);
+    font-size: 20px;
+    font-weight: 700;
+    text-shadow: 3px 3px 0 var(--px-black);
+  }
+
+  /* Pixel faces read a size smaller than they are set, so body text steps up. */
+  .list-row,
+  .base-banner__text,
+  .base-toast {
+    font-size: 17px;
+  }
+
+  /* A window: the head is its title bar. */
+  .modal {
+    gap: 14px;
+    padding: 14px 18px 18px;
+  }
+
+  .modal__head {
+    margin: -10px -14px 0;
+    padding: 8px 10px;
+    background: var(--px-blue);
+    box-shadow: inset 0 4px 0 var(--px-sky), inset 0 -4px 0 var(--px-navy);
+  }
+
+  .modal__head::after {
+    content: '■ ■';
+    color: var(--px-gold);
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-shadow: 2px 2px 0 var(--px-navy);
+  }
+
+  .modal__title {
+    color: var(--px-white);
+    font-family: 'Silkscreen', var(--font);
+    font-size: 14px;
+    font-weight: 400;
+    text-shadow: 2px 2px 0 var(--px-navy);
+  }
+
+  /* A 50% dither: every other pixel is black, the rest show the page. */
+  .modal__backdrop {
+    background: conic-gradient(var(--px-black) 25%, transparent 0 50%, var(--px-black) 0 75%, transparent 0) 0 0 / 4px 4px;
+  }
+
+  /* Slabs: lit from the top left, in shadow at the bottom right. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .icon-button--bordered,
+  .icon-button--primary,
+  .segmented__option {
+    --px-face: var(--px-steel);
+    --px-lit: var(--px-fog);
+    --px-shade: var(--px-slate);
+    position: relative;
+    margin: 4px;
+    border: 0;
+    border-radius: 0;
+    background: var(--px-face);
+    color: var(--px-white);
+    font-family: 'Silkscreen', var(--font);
+    font-size: var(--text-size-sm);
+    text-shadow: 2px 2px 0 var(--px-black);
+    box-shadow:
+      var(--px-outline),
+      inset -4px -4px 0 0 var(--px-shade),
+      inset 4px 4px 0 0 var(--px-lit);
+    transition: none;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger) {
+    padding: 0 22px;
+  }
+
+  /* The menu cursor. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled)::before {
+    content: '▶';
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    font-size: 8px;
+    translate: 0 -50%;
+    animation: pixel-blink 0.7s steps(1) infinite;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):active:not(:disabled),
+  .icon-button--bordered:active:not(:disabled),
+  .icon-button--primary:active:not(:disabled),
+  .segmented__option[aria-checked='true'] {
+    translate: 0 2px;
+    box-shadow:
+      var(--px-outline),
+      inset 4px 4px 0 0 var(--px-shade),
+      inset -4px -4px 0 0 var(--px-lit);
+  }
+
+  .base-button--primary:not(.base-button--quiet),
+  .icon-button--primary {
+    --px-face: var(--px-green);
+    --px-lit: var(--px-lime);
+    --px-shade: var(--px-teal);
+  }
+
+  .base-button--danger:not(.base-button--quiet) {
+    --px-face: var(--px-red);
+    --px-lit: var(--px-orange);
+    --px-shade: var(--px-plum);
+    color: var(--px-white);
+  }
+
+  .base-button--active:not(.base-button--quiet, .base-button--link),
+  .icon-button--bordered.icon-button--active,
+  .segmented__option[aria-checked='true'] {
+    --px-face: var(--px-gold);
+    --px-lit: #fff3c4;
+    --px-shade: var(--px-orange);
+    color: var(--px-night);
+    text-shadow: none;
+  }
+
+  .base-button:focus-visible,
+  .icon-button:focus-visible,
+  .segmented__option:focus-visible {
+    outline: 4px solid var(--px-gold);
+    outline-offset: 6px;
+  }
+
+  .segmented {
+    gap: 6px;
+  }
+
+  /* A terminal line: black, green text, sunk into the panel. */
+  .text-input,
+  .number-field,
+  .select-input {
+    margin: 4px;
+    border: 0;
+    border-radius: 0;
+    background: var(--px-black);
+    color: var(--px-lime);
+    caret-color: var(--px-lime);
+    font-size: 17px;
+    box-shadow:
+      var(--px-outline),
+      inset 4px 4px 0 0 #000000;
+  }
+
+  .text-input:focus,
+  .number-field:focus,
+  .select-input:focus {
+    outline: none;
+    box-shadow:
+      0 -4px 0 0 var(--px-gold),
+      0 4px 0 0 var(--px-gold),
+      -4px 0 0 0 var(--px-gold),
+      4px 0 0 0 var(--px-gold),
+      inset 4px 4px 0 0 #000000;
+  }
+
+  .field-label {
+    color: var(--px-fog);
+    font-family: 'Silkscreen', var(--font);
+    font-size: var(--text-size-2xs);
+  }
+
+  .section-heading {
+    color: var(--px-gold);
+    font-family: 'Silkscreen', var(--font);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-shadow: 2px 2px 0 var(--px-black);
+  }
+
+  .section-heading::before {
+    content: '◆ ';
+    color: var(--px-orange);
+  }
+
+  /* Chips are item tags; the tone is the frame colour. */
+  .base-chip {
+    --px-tag: var(--px-fog);
+    margin: 2px;
+    padding: 3px 8px;
+    border: 0;
+    border-radius: 0;
+    background: var(--px-night);
+    color: var(--px-white);
+    font-family: 'Silkscreen', var(--font);
+    font-size: var(--text-size-2xs);
+    box-shadow: 0 -2px 0 0 var(--px-tag), 0 2px 0 0 var(--px-tag), -2px 0 0 0 var(--px-tag), 2px 0 0 0 var(--px-tag);
+  }
+
+  .base-chip--accent { --px-tag: var(--px-gold); }
+  .base-chip--secondary { --px-tag: var(--px-lime); }
+  .base-chip--danger { --px-tag: var(--danger); color: var(--danger); }
+  .base-chip--warn { --px-tag: var(--px-orange); }
+
+  .base-chip__dot {
+    border-radius: 0;
+  }
+
+  .base-chip__dot--pulse {
+    animation: pixel-blink 0.8s steps(1) infinite;
+  }
+
+  .list-row {
+    position: relative;
+  }
+
+  .list-row--selected {
+    background: var(--px-blue);
+    color: var(--px-white);
+    box-shadow: inset 0 4px 0 var(--px-sky), inset 0 -4px 0 var(--px-navy);
+  }
+
+  .list-row--selected::after {
+    content: '◀';
+    align-self: center;
+    margin-right: 10px;
+    color: var(--px-gold);
+    font-size: 10px;
+    animation: pixel-blink 0.7s steps(1) infinite;
+  }
+
+  .base-banner--strip,
+  .base-banner--dock {
+    padding: 6px 10px 6px 14px;
+    border: 0;
+    background: var(--px-navy);
+    box-shadow: var(--px-outline), inset 0 4px 0 var(--px-blue);
+  }
+
+  .base-banner--strip.base-banner--warn {
+    border-left: 8px solid var(--px-gold);
+    background: var(--px-plum);
+    box-shadow: var(--px-outline), inset 0 4px 0 var(--px-red);
+  }
+
+  .base-banner--box {
+    border: 4px dashed var(--px-gold);
+    background: var(--px-night);
+  }
+
+  /* The message box: black, with a white frame inside a black one. */
+  .base-toast {
+    padding: 10px 14px;
+    border: 0;
+    background: var(--px-black);
+    color: var(--px-white);
+    box-shadow:
+      0 -4px 0 0 var(--px-white),
+      0 4px 0 0 var(--px-white),
+      -4px 0 0 0 var(--px-white),
+      4px 0 0 0 var(--px-white),
+      0 -8px 0 0 var(--px-black),
+      0 8px 0 0 var(--px-black),
+      -8px 0 0 0 var(--px-black),
+      8px 0 0 0 var(--px-black);
+  }
+
+  /* The operations toolbar (`OperationsToolbar.vue`) draws its own buttons. */
+  .ops {
+    border: 0;
+    border-radius: 0;
+    background: var(--px-slate);
+    box-shadow: var(--px-outline), inset -4px -4px 0 0 var(--px-night), inset 4px 4px 0 0 var(--px-steel);
+  }
+
+  .ops__btn {
+    margin: 4px;
+    border: 0;
+    border-radius: 0;
+    background: var(--px-steel);
+    color: var(--px-white);
+    box-shadow: var(--px-outline), inset -4px -4px 0 0 var(--px-slate), inset 4px 4px 0 0 var(--px-fog);
+  }
+
+  /* The navigation cluster over the 3D view (`NavigationChrome.vue`) is sized to leave the grid readout
+     beside it clear, so it keeps its own geometry and only takes this style's look. The outline is
+     drawn as box-shadow outside the box, so a 2px margin keeps neighbours from overlapping. */
+  .chrome .base-button.chrome__mode {
+    min-width: 0;
+    padding: 0 4px;
+    letter-spacing: 0;
+  }
+
+  .chrome .icon-button,
+  .chrome .base-button {
+    margin: 2px;
+  }
+}
+
+/* The blinking cursors are decoration; the selection and hover still show without them. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='pixel'] {
+    .base-button::before,
+    .base-chip__dot--pulse,
+    .list-row--selected::after {
+      animation: none;
+    }
+  }
+}

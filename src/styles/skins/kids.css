@@ -1,0 +1,345 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Kids ("Toybox"): a cartoon. Thick ink outlines, crayon fills, buttons that sit on a hard ledge
+ * and squash when pressed, stickers that tilt, a rainbow dialog title, polka-dot paper.
+ *
+ * A style, chosen under Help → Style. Unlike the two base themes (`src/styles/themes/`), which only
+ * redefine tokens, a style also restyles the base components by class name: that is what gives it a
+ * shape of its own. Every rule is nested under its own `:root[data-theme]`, so nothing here applies
+ * until `composables/useTheme.js` writes that name. The top-level `.theme-swatch--*` rule is the
+ * exception: it draws the style's tile in the Help sheet whatever theme is painted.
+ *
+ * Fonts: the display faces a style names first are bundled (`skins/index.css`) where the style depends
+ * on them; the rest are used only where installed. Every stack ends in a system face.
+ */
+
+@keyframes kids-wiggle {
+  0%, 100% { rotate: -2deg; }
+  50% { rotate: 2deg; }
+}
+
+/* This style's tile in the Help sheet (`HelpSheet.vue`). */
+.theme-swatch--kids {
+  --swatch-ground: radial-gradient(circle, #ffd9ec 0 4px, transparent 5px) 0 0 / 18px 18px, #fff4d6;
+  --swatch-panel: #ffffff;
+  --swatch-edge: 3px solid #2b1a5e;
+  --swatch-radius: 999px;
+  --swatch-shadow: 0 3px 0 #2b1a5e;
+  --swatch-ink: #2b1a5e;
+  --swatch-accent: #ffd23f;
+  --swatch-font: 'Fredoka Variable', ui-rounded, 'Arial Rounded MT Bold', 'Chalkboard SE', 'Comic Sans MS', system-ui, sans-serif;
+}
+
+:root[data-theme='kids'] {
+  color-scheme: light;
+  --kids-ink: #2b1a5e;
+  --kids-sun: #ffd23f;
+  --kids-sky: #5cc8ff;
+  --kids-coral: #ff8a80;
+  --kids-mint: #7ee8b5;
+  --kids-grape: #c9a7ff;
+
+  --surface-0: #fff4d6;
+  --surface-1: #ffffff;
+  --surface-2: #fff9e8;
+  --surface-glass: rgba(255, 255, 255, 0.88);
+  --border: #d9c8ff;
+  --border-strong: #2b1a5e;
+  --text-1: #2b1a5e;
+  --text-2: #54428c;
+  --text-3: #6f5fa3;
+  --accent: #1863cc;
+  --accent-contrast: #ffffff;
+  --axis-x: #e53935;
+  --axis-y: #2e9e44;
+  --scene-background: #fff3c4;
+  --scene-grid-minor: #f2dc8a;
+  --scene-grid-major: #d9b84a;
+  --body: #2f8fec;
+  --body-selected: #f07c00;
+  --body-secondary: #0a7a56;
+  --body-ghost: #f07c00;
+  --body-hover: #8b3ff0;
+  --snap-guide: #e600c8;
+  --accent-secondary: var(--body-secondary);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
+  --sketch-stroke: #0086b8;
+  --danger: #d81e1e;
+  --warn: #935400;
+  --scrim: rgba(92, 200, 255, 0.6);
+  --overlay-drop: rgba(43, 26, 94, 0.3);
+  --shadow-overlay: 0 8px 0 var(--kids-ink);
+  --shadow-popover: 0 10px 0 var(--kids-ink);
+  --radius-sm: 16px;
+  --radius-md: 22px;
+  --radius-lg: 28px;
+  --tap: 48px;
+  --tap-compact: 42px;
+  --font: 'Fredoka Variable', ui-rounded, 'Arial Rounded MT Bold', 'Chalkboard SE', 'Comic Sans MS', system-ui, sans-serif;
+  --weight-regular: 500;
+  --weight-medium: 600;
+  --weight-bold: 700;
+  --focus-ring: 4px solid var(--kids-sun);
+  --ease-standard: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  body {
+    background:
+      radial-gradient(circle, #ffd9ec 0 7px, transparent 8px) 0 0 / 56px 56px,
+      radial-gradient(circle, #cfeeff 0 5px, transparent 6px) 28px 28px / 56px 56px,
+      radial-gradient(circle, #d8f7c9 0 4px, transparent 5px) 28px 0 / 56px 56px,
+      var(--surface-0);
+  }
+
+  .sb-surface,
+  .popover,
+  .sheet {
+    border: 3px solid var(--kids-ink);
+    border-radius: 28px;
+    box-shadow: 0 8px 0 var(--kids-ink);
+  }
+
+  /* Buttons: a slab on a ledge. Hover lifts and tilts it, a press squashes it onto the ledge. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .icon-button--bordered,
+  .icon-button--primary,
+  .segmented__option {
+    border: 3px solid var(--kids-ink);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--kids-ink);
+    font-weight: 600;
+    box-shadow: 0 5px 0 var(--kids-ink);
+    transition:
+      translate var(--duration-fast) var(--ease-standard),
+      rotate var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger) {
+    padding: 0 22px;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled),
+  .icon-button--bordered:hover:not(:disabled),
+  .icon-button--primary:hover:not(:disabled) {
+    translate: 0 -2px;
+    rotate: -2deg;
+    border-color: var(--kids-ink);
+    color: var(--kids-ink);
+    box-shadow: 0 7px 0 var(--kids-ink);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):active:not(:disabled),
+  .icon-button--bordered:active:not(:disabled),
+  .icon-button--primary:active:not(:disabled),
+  .segmented__option[aria-checked='true'] {
+    translate: 0 4px;
+    rotate: 0deg;
+    box-shadow: 0 1px 0 var(--kids-ink);
+  }
+
+  .base-button--primary:not(.base-button--quiet),
+  .icon-button--primary {
+    background: var(--kids-sun);
+  }
+
+  .base-button--danger:not(.base-button--quiet) {
+    background: var(--kids-coral);
+  }
+
+  .base-button--active:not(.base-button--quiet, .base-button--link),
+  .icon-button--bordered.icon-button--active {
+    border-color: var(--kids-ink);
+    background: var(--kids-mint);
+    color: var(--kids-ink);
+  }
+
+  .segmented {
+    gap: 8px;
+    padding-bottom: 5px;
+  }
+
+  .segmented__option[aria-checked='true'] {
+    border-color: var(--kids-ink);
+    background: var(--kids-grape);
+  }
+
+  .text-input,
+  .number-field,
+  .select-input {
+    border: 3px solid var(--kids-ink);
+    border-radius: 16px;
+    background: #ffffff;
+    font-weight: 600;
+    box-shadow: inset 0 4px 0 rgba(43, 26, 94, 0.1);
+  }
+
+  .text-input:focus,
+  .number-field:focus,
+  .select-input:focus {
+    outline: 4px solid var(--kids-sun);
+    background: #fffbe0;
+  }
+
+  .field-label {
+    color: var(--kids-ink);
+    font-size: var(--text-size-md);
+    font-weight: 700;
+  }
+
+  .section-heading {
+    color: #e0338a;
+    font-family: 'Chewy', var(--font);
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+
+  .section-heading::before {
+    content: '★ ';
+    color: #ffb400;
+  }
+
+  /* Chips are stickers: outlined, filled, stuck on slightly crooked. */
+  .base-chip {
+    padding-block: 3px;
+    border: 2px solid var(--kids-ink);
+    background: #ffffff;
+    color: var(--kids-ink);
+    font-weight: 600;
+    rotate: -2deg;
+  }
+
+  .base-chip:nth-of-type(even) {
+    rotate: 2deg;
+  }
+
+  .base-chip--secondary { background: #c8f7dc; }
+  .base-chip--accent { background: #cfe6ff; }
+  .base-chip--danger { background: #ffd6d1; }
+  .base-chip--warn { background: #fff0a8; }
+
+  .base-chip__dot {
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--kids-ink);
+  }
+
+  .base-chip__dot--pulse {
+    animation: kids-wiggle 0.6s ease-in-out infinite;
+    border-radius: 3px;
+  }
+
+  .list-row {
+    border-radius: 14px;
+    font-weight: 600;
+  }
+
+  .list-row--selected {
+    background: #ffe66d;
+    box-shadow: inset 0 0 0 3px var(--kids-ink);
+  }
+
+  .base-banner--strip,
+  .base-banner--dock {
+    padding: 6px 10px 10px 16px;
+    border: 3px solid var(--kids-ink);
+    border-radius: 20px;
+    background: #cfe6ff;
+  }
+
+  .base-banner--strip.base-banner--warn {
+    border-left: 3px solid var(--kids-ink);
+    background: repeating-linear-gradient(-45deg, #fff0a8 0 14px, #ffe066 14px 28px);
+    font-weight: 600;
+  }
+
+  .base-banner--box {
+    border: 3px dashed var(--kids-ink);
+    border-radius: 16px;
+    background: #fff0a8;
+  }
+
+  .base-toast {
+    border: 3px solid var(--kids-ink);
+    box-shadow: 0 6px 0 var(--kids-ink);
+    font-weight: 600;
+    rotate: -1deg;
+  }
+
+  .showcase__brand {
+    color: #e0338a;
+    font-family: 'Chewy', var(--font);
+    font-size: 28px;
+    font-weight: 400;
+  }
+
+  .modal {
+    gap: 14px;
+    padding: 22px;
+    border: 4px solid var(--kids-ink);
+    border-radius: 32px;
+    box-shadow: 0 12px 0 var(--kids-ink);
+  }
+
+  .modal__title {
+    background: linear-gradient(90deg, #e53935, #f07c00 25%, #2e9e44 50%, #1863cc 75%, #8b3ff0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-family: 'Chewy', var(--font);
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .modal__backdrop {
+    background:
+      radial-gradient(circle, rgba(255, 255, 255, 0.5) 0 6px, transparent 7px) 0 0 / 40px 40px,
+      var(--scrim);
+  }
+
+  /* The operations toolbar (`OperationsToolbar.vue`) draws its own buttons. */
+  .ops {
+    border: 3px solid var(--kids-ink);
+    border-radius: 24px;
+    box-shadow: 0 6px 0 var(--kids-ink);
+  }
+
+  .ops__btn {
+    border: 3px solid var(--kids-ink);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--kids-ink);
+    font-weight: 600;
+    box-shadow: 0 4px 0 var(--kids-ink);
+  }
+
+  .ops__btn:disabled {
+    border-style: dashed;
+    box-shadow: none;
+  }
+
+  /* The navigation cluster over the 3D view (`NavigationChrome.vue`) is sized to leave the grid readout
+     beside it clear, so it keeps its own geometry and only takes this style's look. */
+  .chrome .base-button.chrome__mode {
+    min-width: 0;
+    margin: 0;
+    padding: 0 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .chrome {
+    --tap: 44px;
+    --tap-compact: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='kids'] .base-chip__dot--pulse {
+    animation: none;
+  }
+}

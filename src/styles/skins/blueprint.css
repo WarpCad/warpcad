@@ -1,0 +1,397 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Blueprint: the whole interface drawn by hand on a cyanotype sheet. A ruled grid behind
+ * everything, hand-lettered capitals, boxes whose edges overshoot at the corners the way a
+ * draughtsman's lines do, hatching for anything filled, fields that are dimension lines with end
+ * ticks, and a dialog that is a drawing sheet with a title block along its bottom edge.
+ *
+ * A style; see the header of `kids.css` for how styles work.
+ */
+
+/* This style's tile in the Help sheet (`HelpSheet.vue`). */
+.theme-swatch--blueprint {
+  --swatch-ground: linear-gradient(rgba(219, 232, 255, 0.18) 1px, transparent 1px) 0 0 / 10px 10px, linear-gradient(90deg, rgba(219, 232, 255, 0.18) 1px, transparent 1px) 0 0 / 10px 10px, #0d2f6b;
+  --swatch-panel: repeating-linear-gradient(45deg, rgba(219, 232, 255, 0.2) 0 1px, transparent 1px 5px);
+  --swatch-edge: 1.5px solid #dbe8ff;
+  --swatch-radius: 0;
+  --swatch-shadow: none;
+  --swatch-ink: #f2f7ff;
+  --swatch-accent: #ffe066;
+  --swatch-font: 'Architects Daughter', 'Bradley Hand', 'Segoe Print', 'Comic Sans MS', cursive;
+}
+
+:root[data-theme='blueprint'] {
+  color-scheme: dark;
+  --bp-line: #dbe8ff;
+  --bp-pencil: #ffe066;
+  --bp-sheet: #0d2f6b;
+  --bp-weight: 1.5px;
+  --bp-hatch: repeating-linear-gradient(45deg, rgba(219, 232, 255, 0.3) 0 1.5px, transparent 1.5px 7px);
+  --bp-hatch-pencil: repeating-linear-gradient(45deg, rgba(255, 224, 102, 0.4) 0 1.5px, transparent 1.5px 7px);
+
+  --surface-0: #0d2f6b;
+  --surface-1: #103575;
+  --surface-2: #184694;
+  --surface-glass: rgba(18, 58, 128, 0.85);
+  --border: #5d8ad0;
+  --border-strong: #dbe8ff;
+  --text-1: #f2f7ff;
+  --text-2: #c3d6f5;
+  --text-3: #9dbbe8;
+  --accent: #ffe066;
+  --accent-contrast: #0d2f6b;
+  --axis-x: #ff8a80;
+  --axis-y: #8ef0a6;
+  --scene-background: #0f3576;
+  --scene-grid-minor: #1f4c97;
+  --scene-grid-major: #5d8ad0;
+  --body: #dbe8ff;
+  --body-selected: #ffb347;
+  --body-secondary: #5ff0d0;
+  --body-ghost: #ffb347;
+  --body-hover: #d9a6ff;
+  --snap-guide: #ff7ad9;
+  --accent-secondary: var(--body-secondary);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
+  --sketch-stroke: #7fe3ff;
+  --danger: #ffa59b;
+  --warn: #ffd08a;
+  --scrim: rgba(4, 16, 40, 0.66);
+  --overlay-drop: rgba(4, 16, 40, 0.5);
+  --shadow-overlay: none;
+  --shadow-popover: none;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --font: 'Architects Daughter', 'Bradley Hand', 'Segoe Print', 'Comic Sans MS', cursive;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --weight-regular: 400;
+  --weight-medium: 400;
+  --weight-bold: 400;
+  --focus-ring: 2px dashed var(--bp-pencil);
+  --scene-light-sky: #dbe8ff;
+  --scene-light-ground: #0d2f6b;
+  --scene-light-fill: #8fb3ea;
+
+  /* The sheet: a heavy line every 100px, a light one every 20px. */
+  body {
+    background-color: var(--bp-sheet);
+    background-image:
+      linear-gradient(rgba(219, 232, 255, 0.2) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(219, 232, 255, 0.2) 1px, transparent 1px),
+      linear-gradient(rgba(219, 232, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(219, 232, 255, 0.07) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    letter-spacing: 0.04em;
+  }
+
+  /*
+   * Overshooting corners. The box has no border: `::before` draws the top and bottom edges and
+   * runs 7px past each side, `::after` draws the left and right edges and runs 7px past the top
+   * and bottom, so the lines cross at every corner.
+   */
+  .sb-surface,
+  .base-toast,
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .segmented__option {
+    position: relative;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .sb-surface::before,
+  .base-toast::before,
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger)::before,
+  .segmented__option::before {
+    content: '';
+    position: absolute;
+    inset: 0 -7px;
+    border-block: var(--bp-weight) solid currentColor;
+    pointer-events: none;
+  }
+
+  .sb-surface::after,
+  .base-toast::after,
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger)::after,
+  .segmented__option::after {
+    content: '';
+    position: absolute;
+    inset: -7px 0;
+    border-inline: var(--bp-weight) solid currentColor;
+    pointer-events: none;
+  }
+
+  .sb-surface {
+    background: rgba(13, 47, 107, 0.55);
+    color: var(--bp-line);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .segmented__option {
+    color: var(--bp-line);
+    font-size: var(--text-size-md);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled),
+  .segmented__option:hover {
+    background: var(--bp-hatch);
+  }
+
+  /* Pressed: the box is inked in solid. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):active:not(:disabled) {
+    background: var(--bp-line);
+    color: var(--bp-sheet);
+  }
+
+  /* Primary is drawn in pencil yellow and hatched, like a sectioned face. */
+  .base-button--primary:not(.base-button--quiet),
+  .segmented__option[aria-checked='true'] {
+    background: var(--bp-hatch-pencil);
+    color: var(--bp-pencil);
+    box-shadow: none;
+  }
+
+  .base-button--danger:not(.base-button--quiet) {
+    color: var(--danger);
+  }
+
+  .base-button--active:not(.base-button--quiet, .base-button--link) {
+    background: var(--bp-hatch);
+  }
+
+  .segmented {
+    gap: 16px;
+  }
+
+  /* Icon buttons are callout balloons. */
+  .icon-button--bordered,
+  .icon-button--primary {
+    border: var(--bp-weight) solid var(--bp-line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--bp-line);
+  }
+
+  .icon-button--primary,
+  .icon-button--bordered.icon-button--active {
+    border-color: var(--bp-pencil);
+    background: var(--bp-hatch-pencil);
+    color: var(--bp-pencil);
+  }
+
+  /* A field is a dimension line: a rule with a tick at each end, the value written above it. */
+  .text-input,
+  .number-field,
+  .select-input {
+    border: 0;
+    border-bottom: var(--bp-weight) solid var(--bp-line);
+    border-radius: 0;
+    background:
+      linear-gradient(var(--bp-line), var(--bp-line)) left bottom / 1.5px 12px no-repeat,
+      linear-gradient(var(--bp-line), var(--bp-line)) right bottom / 1.5px 12px no-repeat,
+      rgba(4, 16, 40, 0.22);
+    color: var(--bp-pencil);
+    font-family: var(--font-mono);
+    font-size: var(--text-size-lg);
+    letter-spacing: 0.06em;
+  }
+
+  .text-input:focus,
+  .number-field:focus,
+  .select-input:focus {
+    outline: 2px dashed var(--bp-pencil);
+    outline-offset: 3px;
+  }
+
+  .field-label {
+    color: var(--text-2);
+    font-size: var(--text-size-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* A heading with a dashed leader running out to the margin. */
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--bp-line);
+    font-size: var(--text-size-lg);
+    letter-spacing: 0.16em;
+  }
+
+  .section-heading::before {
+    content: '';
+    width: 9px;
+    height: 9px;
+    border: var(--bp-weight) solid var(--bp-pencil);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--bp-sheet), 0 0 0 4.5px var(--bp-pencil);
+    margin-inline: 5px 4px;
+  }
+
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    border-top: var(--bp-weight) dashed rgba(219, 232, 255, 0.55);
+  }
+
+  /* Chips are balloons; the dot is a revision triangle. */
+  .base-chip {
+    border: var(--bp-weight) solid var(--bp-line);
+    background: transparent;
+    color: var(--bp-line);
+    font-family: var(--font-mono);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .base-chip--accent { border-color: var(--bp-pencil); background: var(--bp-hatch-pencil); color: var(--bp-pencil); }
+  .base-chip--secondary { border-color: var(--body-secondary); color: var(--body-secondary); }
+  .base-chip--danger { border-color: var(--danger); color: var(--danger); }
+
+  .base-chip__dot {
+    width: 10px;
+    height: 9px;
+    border-radius: 0;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+
+  .list-row {
+    border-bottom: 1px dashed rgba(219, 232, 255, 0.4);
+  }
+
+  .list-row--selected {
+    background: var(--bp-hatch);
+    box-shadow: inset 0 0 0 var(--bp-weight) var(--bp-line);
+  }
+
+  /* A general note, as written in the margin of a drawing. */
+  .base-banner--strip,
+  .base-banner--dock {
+    padding: 6px 10px;
+    border: var(--bp-weight) dashed var(--bp-line);
+    background: rgba(13, 47, 107, 0.55);
+  }
+
+  .base-banner--strip.base-banner--warn {
+    border: var(--bp-weight) dashed var(--bp-pencil);
+    background: rgba(13, 47, 107, 0.55);
+  }
+
+  .base-banner--strip::before {
+    content: 'NOTE:';
+    color: var(--bp-pencil);
+    letter-spacing: 0.14em;
+  }
+
+  .base-banner--box {
+    border: var(--bp-weight) dashed var(--warn);
+    background: transparent;
+  }
+
+  .base-toast {
+    padding: 10px 16px;
+    background: var(--bp-sheet);
+    color: var(--bp-line);
+    text-transform: uppercase;
+  }
+
+  /* The dialog is a drawing sheet: a doubled border, and a title block along the bottom. */
+  .modal,
+  .popover,
+  .sheet {
+    border: 2px solid var(--bp-line);
+    background-color: var(--bp-sheet);
+    background-image:
+      linear-gradient(rgba(219, 232, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(219, 232, 255, 0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+    outline: 1px solid var(--bp-line);
+    outline-offset: 5px;
+  }
+
+  .showcase__brand {
+    font-size: 24px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .modal {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .modal__head {
+    padding-bottom: 10px;
+    border-bottom: var(--bp-weight) solid var(--bp-line);
+  }
+
+  .modal__title {
+    font-size: 20px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .modal__title::before {
+    content: 'TITLE';
+    display: block;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.24em;
+  }
+
+  .modal::after {
+    content: 'DWG WC-001   ·   SCALE 1:1   ·   UNITS MM   ·   REV A   ·   SHEET 1 OF 1';
+    margin: 4px -18px -18px;
+    padding: 7px 18px;
+    overflow: hidden;
+    border-top: var(--bp-weight) solid var(--bp-line);
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    white-space: pre;
+  }
+
+  /* The operations toolbar (`OperationsToolbar.vue`) draws its own buttons. */
+  .ops {
+    border: var(--bp-weight) solid var(--bp-line);
+    border-radius: 0;
+    background: rgba(13, 47, 107, 0.7);
+  }
+
+  .ops__btn {
+    border: var(--bp-weight) solid var(--bp-line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--bp-line);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ops__btn:hover:not(:disabled) {
+    background: var(--bp-hatch);
+  }
+
+  .ops__btn:disabled {
+    border-style: dashed;
+  }
+
+  /* The navigation cluster over the 3D view (`NavigationChrome.vue`) is sized to leave the grid readout
+     beside it clear, so it keeps its own geometry and only takes this style's look. */
+  .chrome .base-button.chrome__mode {
+    min-width: 0;
+    margin: 0;
+    padding: 0 8px;
+    letter-spacing: 0.02em;
+  }
+}

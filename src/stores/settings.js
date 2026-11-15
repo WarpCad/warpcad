@@ -46,13 +46,24 @@ const EXPORT_FORMAT_KEY = 'warpcad.exportFormat'
 /** The one `ai.model` setting (`TODO/ai-004`); the id list and default live in `ai/models.js`. */
 const AI_MODEL_KEY = 'warpcad.ai.model'
 
-/** The theme preference (`TODO/ui-113`): `'system' | 'dark' | 'light'`. */
+/** The theme preference (`TODO/ui-113`): a mode (`'system' | 'dark' | 'light'`) or a style (`'kids'`, `'deco'`, …). */
 const THEME_KEY = 'warpcad.theme'
 
-/** @typedef {'system' | 'dark' | 'light'} ThemePreference */
+/** @typedef {'system' | 'dark' | 'light'} ThemeMode */
+/** @typedef {'kids' | 'glass' | 'deco' | 'minimal' | 'blueprint' | 'pixel'} ThemeStyle */
+/** @typedef {ThemeMode | ThemeStyle} ThemePreference */
 
-/** The preferences the Help sheet offers, in display order. System is the default. */
-export const THEME_PREFERENCES = Object.freeze(/** @type {ThemePreference[]} */ (['system', 'dark', 'light']))
+/** The three modes, the Help sheet's segmented row, in display order. System is the default. */
+export const THEME_MODES = Object.freeze(/** @type {ThemeMode[]} */ (['system', 'dark', 'light']))
+
+/**
+ * The styles (`src/styles/skins/`): a whole look, not only a palette. Each is fixed to one scheme
+ * (`THEME_SCHEMES` in `composables/useTheme.js`), so the device's light or dark setting no longer applies.
+ */
+export const THEME_STYLES = Object.freeze(/** @type {ThemeStyle[]} */ (['kids', 'glass', 'deco', 'minimal', 'blueprint', 'pixel']))
+
+/** Every preference that can be stored. */
+export const THEME_PREFERENCES = Object.freeze(/** @type {ThemePreference[]} */ ([...THEME_MODES, ...THEME_STYLES]))
 
 /** @param {unknown} value @returns {value is ThemePreference} */
 function isThemePreference(value) {
@@ -232,7 +243,7 @@ export const useSettingsStore = defineStore('settings', () => {
    * Remember the theme preference (`TODO/ui-113`). `composables/useTheme.js` turns it into the
    * resolved theme; an unknown value is ignored, not stored.
    *
-   * @param {string} value `'system'`, `'dark'` or `'light'`.
+   * @param {string} value one of `THEME_PREFERENCES`.
    * @returns {void}
    */
   function setTheme(value) {

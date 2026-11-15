@@ -89,6 +89,36 @@ device's look for an instant before your choice is applied.
 
 ![The Theme control at the bottom of the Help sheet: System, Dark and Light, with System selected](./screenshots/help-theme-control.png)
 
+## Styles
+
+A style changes more than the colours: buttons, panels, lettering and the 3D view's grid all take a
+different look. There are six:
+
+| Style | Look |
+|---|---|
+| **Kids** | Cream paper, bold outlines, chunky rounded buttons that press down |
+| **Glass** | Frosted, see-through panels over the 3D view |
+| **Art Deco** | Black and gold, angled corners, a sunburst behind each panel |
+| **Minimal** | White, black lines and plenty of space; no boxes or shadows |
+| **Blueprint** | A blue drafting sheet with hand-drawn lines and hatching |
+| **Pixel** | A retro game console: square pixels and raised blocky buttons |
+
+To try one:
+
+1. Open **Help** (the **?** in the header).
+2. Scroll to the bottom of the sheet. Under **Style**, tap **Blueprint**. Each tile shows a small
+   preview of its style.
+3. The whole app, the 3D view included, redraws as a drafting sheet, and the Blueprint tile is
+   outlined to show it is chosen. WarpCad remembers it the next time you open it on this device.
+4. To go back, tap **System**, **Dark** or **Light** under **Theme**.
+
+Each style is either light or dark, so while one is chosen your device's light or dark setting does
+not change it. Pictures in Help use the light or dark version to match the style.
+
+The lettering comes with WarpCad. The first time you open Help, its style tiles are drawn in their own
+lettering, so that lettering downloads then; a style's full look downloads the first time you choose it.
+If either happens while you are offline, a similar built-in font stands in until you are back online.
+
 ## Offline
 
 The text of every page and its still pictures are saved on your device the first time WarpCad

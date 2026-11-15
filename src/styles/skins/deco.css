@@ -1,0 +1,408 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Art Deco: a 1920s cinema lobby. Lacquer black with brushed-gold line work, a sunburst rising
+ * behind every panel, chamfered (octagonal) buttons with a doubled frame, a marquee display face,
+ * tracked capitals, lozenge chips, and headings flanked by twin rules.
+ *
+ * A style; see the header of `kids.css` for how styles work.
+ */
+
+/* This style's tile in the Help sheet (`HelpSheet.vue`). */
+.theme-swatch--deco {
+  --swatch-ground: repeating-conic-gradient(from 90deg at 50% 0, rgba(212, 175, 55, 0.3) 0 5deg, transparent 5deg 10deg), #0b0f14;
+  --swatch-panel: #121821;
+  --swatch-edge: 1px solid #d4af37;
+  --swatch-radius: 0;
+  --swatch-shadow: 0 0 0 2px #0b0f14, 0 0 0 3px #5c4a22;
+  --swatch-ink: #f3e9d2;
+  --swatch-accent: linear-gradient(135deg, #7d5f1a, #f5d977 40%, #d4af37 60%, #7d5f1a);
+  --swatch-font: 'Limelight', 'Josefin Sans', 'Futura', 'Century Gothic', 'Gill Sans', sans-serif;
+}
+
+:root[data-theme='deco'] {
+  color-scheme: dark;
+  --deco-gold: #d4af37;
+  --deco-gold-dim: rgba(212, 175, 55, 0.4);
+  --deco-metal: linear-gradient(135deg, #7d5f1a 0%, #f5d977 30%, #d4af37 50%, #fff1b8 68%, #7d5f1a 100%);
+  --deco-panel: #121821;
+  --deco-cut: 10px;
+  --deco-octagon: polygon(
+    var(--deco-cut) 0,
+    calc(100% - var(--deco-cut)) 0,
+    100% var(--deco-cut),
+    100% calc(100% - var(--deco-cut)),
+    calc(100% - var(--deco-cut)) 100%,
+    var(--deco-cut) 100%,
+    0 calc(100% - var(--deco-cut)),
+    0 var(--deco-cut)
+  );
+  /* Rays fanning down from the top centre, fading into the panel. */
+  --deco-sunburst:
+    linear-gradient(180deg, transparent 0, var(--deco-panel) 170px),
+    repeating-conic-gradient(from 90deg at 50% 0, rgba(212, 175, 55, 0.17) 0 4deg, transparent 4deg 8deg), var(--deco-panel);
+
+  --surface-0: #0b0f14;
+  --surface-1: #121821;
+  --surface-2: #1b2430;
+  --surface-glass: rgba(18, 24, 33, 0.86);
+  --border: #5c4a22;
+  --border-strong: #b8934a;
+  --text-1: #f3e9d2;
+  --text-2: #cbb98f;
+  --text-3: #9c8d66;
+  --accent: #d4af37;
+  --accent-contrast: #14100a;
+  --axis-x: #d0604a;
+  --axis-y: #4fae88;
+  --scene-background: #10161e;
+  --scene-grid-minor: #2e2a1f;
+  --scene-grid-major: #6b5a2e;
+  --body: #b9c4cf;
+  --body-selected: #e8b53a;
+  --body-secondary: #3fb59a;
+  --body-ghost: #e8b53a;
+  --body-hover: #b58ad6;
+  --snap-guide: #ff5fa8;
+  --accent-secondary: var(--body-secondary);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
+  --sketch-stroke: #6fc3df;
+  --danger: #ec6f5c;
+  --warn: #e8853a;
+  --scrim: rgba(0, 0, 0, 0.68);
+  --overlay-drop: rgba(0, 0, 0, 0.45);
+  --shadow-overlay: 0 0 0 4px #0b0f14, 0 0 0 5px #5c4a22, 0 14px 36px rgba(0, 0, 0, 0.6);
+  --shadow-popover: 0 0 0 4px #0b0f14, 0 0 0 5px #5c4a22, 0 16px 48px rgba(0, 0, 0, 0.65);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 0px;
+  --font: 'Josefin Sans', 'Futura', 'Century Gothic', 'Gill Sans', 'Trebuchet MS', sans-serif;
+  --weight-regular: 400;
+  --weight-medium: 600;
+  --weight-bold: 600;
+  --focus-ring: 3px double var(--accent);
+  --scene-light-sky: #ffe9b8;
+  --scene-light-ground: #1b2430;
+  --scene-light-fill: #c9b27a;
+
+  /* Scalloped fans, the wallpaper of every deco lobby. */
+  body {
+    --deco-fan: radial-gradient(
+      circle at 50% 100%,
+      transparent 0 12px,
+      rgba(212, 175, 55, 0.13) 12px 13px,
+      transparent 13px 19px,
+      rgba(212, 175, 55, 0.13) 19px 20px,
+      transparent 20px 26px,
+      rgba(212, 175, 55, 0.2) 26px 28px,
+      transparent 28px
+    );
+    background:
+      var(--deco-fan) 0 0 / 56px 28px,
+      var(--deco-fan) 28px 14px / 56px 28px,
+      var(--surface-0);
+  }
+
+  .sb-surface,
+  .modal,
+  .popover,
+  .sheet {
+    border: 1px solid var(--border-strong);
+    border-radius: 0;
+    background: var(--deco-sunburst);
+  }
+
+  .showcase__brand {
+    background: var(--deco-metal);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-family: 'Limelight', var(--font);
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .modal {
+    gap: 16px;
+    padding: 26px;
+  }
+
+  .modal__head {
+    position: relative;
+    justify-content: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--deco-gold-dim);
+  }
+
+  /* A diamond set into the rule under the title. */
+  .modal__head::after {
+    content: '◆';
+    position: absolute;
+    bottom: -9px;
+    left: 50%;
+    padding: 0 10px;
+    background: var(--deco-panel);
+    color: var(--deco-gold);
+    font-size: 12px;
+    line-height: 18px;
+    translate: -50%;
+  }
+
+  .modal__title {
+    background: var(--deco-metal);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-family: 'Limelight', var(--font);
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  /*
+   * Chamfered buttons. `clip-path` would cut a border off at the corners, so the gold edge is the
+   * button's own background and `::before` is the dark face laid 1.5px inside it. `::after` is the
+   * second, inner line of the frame.
+   */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .icon-button--bordered,
+  .icon-button--primary,
+  .segmented__option {
+    position: relative;
+    isolation: isolate;
+    border: 0;
+    border-radius: 0;
+    background: var(--deco-metal);
+    clip-path: var(--deco-octagon);
+    color: var(--text-1);
+    font-size: var(--text-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger) {
+    padding: 2px 24px 0;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger)::before,
+  .icon-button--bordered::before,
+  .icon-button--primary::before,
+  .segmented__option::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 1.5px;
+    background: var(--deco-panel);
+    clip-path: var(--deco-octagon);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger)::after,
+  .segmented__option::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 5px;
+    border: 1px solid var(--deco-gold-dim);
+    pointer-events: none;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled)::before,
+  .icon-button--bordered:hover:not(:disabled)::before,
+  .segmented__option:hover::before {
+    background: #2a2413;
+  }
+
+  /* A clipped element's outline is clipped with it, so focus thickens the inner line instead. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):focus-visible,
+  .segmented__option:focus-visible {
+    outline: none;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):focus-visible::after,
+  .segmented__option:focus-visible::after {
+    border: 2px solid #fff1b8;
+  }
+
+  /* The primary action is solid brushed gold. */
+  .base-button--primary:not(.base-button--quiet),
+  .icon-button--primary,
+  .icon-button--bordered.icon-button--active,
+  .segmented__option[aria-checked='true'] {
+    color: var(--accent-contrast);
+    box-shadow: none;
+  }
+
+  .base-button--primary:not(.base-button--quiet)::before,
+  .icon-button--primary::before,
+  .icon-button--bordered.icon-button--active::before,
+  .segmented__option[aria-checked='true']::before,
+  .base-button--primary:not(.base-button--quiet):hover:not(:disabled)::before {
+    background: var(--deco-metal);
+  }
+
+  .base-button--primary:not(.base-button--quiet)::after,
+  .segmented__option[aria-checked='true']::after {
+    border-color: rgba(20, 16, 10, 0.55);
+  }
+
+  .base-button--primary:not(.base-button--quiet):hover:not(:disabled) {
+    filter: brightness(1.12);
+  }
+
+  .base-button--danger:not(.base-button--quiet) {
+    background: var(--danger);
+    color: var(--danger);
+  }
+
+  .base-button--danger:not(.base-button--quiet)::after {
+    border-color: rgba(236, 111, 92, 0.4);
+  }
+
+  .base-button--active:not(.base-button--quiet, .base-button--link) {
+    color: var(--deco-gold);
+  }
+
+  .base-button--compact,
+  .icon-button--compact,
+  .icon-button--tap {
+    --deco-cut: 8px;
+  }
+
+  .segmented {
+    gap: 4px;
+  }
+
+  /* Fields: a dark inlay with a gold footing. */
+  .text-input,
+  .number-field,
+  .select-input {
+    border: 0;
+    border-bottom: 2px solid var(--deco-gold);
+    border-radius: 0;
+    background: rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.05em;
+    box-shadow: inset 0 1px 0 var(--deco-gold-dim);
+  }
+
+  .text-input:focus,
+  .number-field:focus,
+  .select-input:focus {
+    outline: none;
+    border-bottom-color: #fff1b8;
+    background: rgba(212, 175, 55, 0.1);
+  }
+
+  .field-label {
+    gap: 6px;
+    color: var(--text-2);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  /* ═══ HEADING ═══ */
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+    color: var(--deco-gold);
+    font-weight: 400;
+    letter-spacing: 0.34em;
+  }
+
+  .section-heading::before,
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    height: 4px;
+    border-block: 1px solid var(--deco-gold-dim);
+  }
+
+  /* Lozenges, pointed at both ends. */
+  .base-chip {
+    padding: 4px 16px 2px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(212, 175, 55, 0.2);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+    color: var(--text-1);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .base-chip--secondary { background: rgba(63, 181, 154, 0.26); }
+  .base-chip--danger { background: rgba(236, 111, 92, 0.24); }
+
+  .base-chip__dot {
+    border-radius: 0;
+    rotate: 45deg;
+  }
+
+  .list-row {
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    letter-spacing: 0.04em;
+  }
+
+  .list-row--selected {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.32), transparent 85%);
+    box-shadow: inset 3px 0 0 var(--deco-gold);
+  }
+
+  .base-banner--strip,
+  .base-banner--dock {
+    padding-block: 6px;
+    border-block: 1px solid var(--border-strong);
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.04));
+    letter-spacing: 0.04em;
+  }
+
+  .base-banner--box {
+    border-radius: 0;
+    border-style: double;
+    border-width: 3px;
+  }
+
+  .base-toast {
+    border-color: var(--border-strong);
+    background: var(--deco-panel);
+    font-size: var(--text-size-sm);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* The operations toolbar (`OperationsToolbar.vue`) draws its own buttons. */
+  .ops {
+    border: 1px solid var(--border-strong);
+    border-radius: 0;
+    background: var(--deco-sunburst);
+  }
+
+  .ops__btn {
+    border: 1px solid var(--border-strong);
+    border-radius: 0;
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 0 3px var(--deco-panel), inset 0 0 0 4px var(--deco-gold-dim);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* The navigation cluster over the 3D view (`NavigationChrome.vue`) is sized to leave the grid readout
+     beside it clear, so it keeps its own geometry and only takes this style's look. */
+  .chrome .base-button.chrome__mode {
+    min-width: 0;
+    margin: 0;
+    padding: 0 8px;
+    letter-spacing: 0.02em;
+    --deco-cut: 6px;
+  }
+}

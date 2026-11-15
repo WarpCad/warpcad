@@ -1,0 +1,336 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * Modern minimal ("Editorial"): a printed page. No boxes, no shadows, no corners. Structure comes
+ * from rules, white space and type: large serif titles, small tracked capitals for labels, fields
+ * that are a single line, buttons that are an underline until hovered, when ink floods up from it.
+ *
+ * A style; see the header of `kids.css` for how styles work.
+ */
+
+/* This style's tile in the Help sheet (`HelpSheet.vue`). */
+.theme-swatch--minimal {
+  --swatch-ground: #ffffff;
+  --swatch-panel: transparent;
+  --swatch-edge: 0;
+  --swatch-radius: 0;
+  --swatch-shadow: inset 0 -1px 0 #0a0a0a;
+  --swatch-ink: #0a0a0a;
+  --swatch-accent: #0a0a0a;
+  --swatch-font: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+}
+
+:root[data-theme='minimal'] {
+  color-scheme: light;
+  --min-ink: #0a0a0a;
+  --min-serif: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+
+  --surface-0: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.92);
+  --border: #e5e5e5;
+  --border-strong: #a3a3a3;
+  --text-1: #0a0a0a;
+  --text-2: #525252;
+  --text-3: #6b6b6b;
+  --accent: #0a0a0a;
+  --accent-contrast: #ffffff;
+  --axis-x: #dc2626;
+  --axis-y: #15803d;
+  --scene-background: #f5f5f5;
+  --scene-grid-minor: #e5e5e5;
+  --scene-grid-major: #a3a3a3;
+  --body: #8f97a3;
+  --body-selected: #ea580c;
+  --body-secondary: #2563eb;
+  --body-ghost: #ea580c;
+  --body-hover: #7c3aed;
+  --snap-guide: #db2777;
+  --accent-secondary: var(--body-secondary);
+  --hover-highlight: var(--body-hover);
+  --role-moving: var(--body-selected);
+  --role-target: var(--body-secondary);
+  --sketch-stroke: #0369a1;
+  --danger: #dc2626;
+  --warn: #b45309;
+  --scrim: rgba(255, 255, 255, 0.86);
+  --overlay-drop: rgba(0, 0, 0, 0.2);
+  --shadow-overlay: none;
+  --shadow-popover: none;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 0px;
+  --font: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 600;
+  --focus-ring: 1px solid var(--min-ink);
+  --scene-light-sky: #ffffff;
+  --scene-light-ground: #d4d4d4;
+  --scene-light-fill: #e5e5e5;
+
+  /* A panel is a section of the page under a rule, not a box. */
+  .sb-surface {
+    padding: 28px 0;
+    border: 0;
+    border-top: 1px solid var(--min-ink);
+    background: transparent;
+  }
+
+  .showcase {
+    gap: 0;
+  }
+
+  .showcase__cols {
+    gap: 56px;
+  }
+
+  .showcase__card {
+    gap: 22px;
+  }
+
+  .showcase__brand {
+    font-family: var(--min-serif);
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  .modal,
+  .popover,
+  .sheet {
+    border: 1px solid var(--min-ink);
+  }
+
+  .modal {
+    gap: 28px;
+    padding: 44px;
+  }
+
+  .modal__title {
+    font-family: var(--min-serif);
+    font-size: 40px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  /* An underline that fills with ink from the bottom. */
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger),
+  .icon-button--bordered,
+  .icon-button--primary {
+    border: 0;
+    background: transparent;
+    color: var(--min-ink);
+    box-shadow: inset 0 -1px 0 var(--min-ink);
+    transition:
+      box-shadow var(--duration-base) var(--ease-standard),
+      color var(--duration-base) var(--ease-standard);
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger) {
+    min-width: 0;
+    padding: 0 14px;
+    font-size: var(--text-size-xs);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled),
+  .icon-button--bordered:hover:not(:disabled),
+  .icon-button--primary:hover:not(:disabled) {
+    color: #ffffff;
+    box-shadow: inset 0 -52px 0 var(--min-ink);
+  }
+
+  .base-button--primary:not(.base-button--quiet),
+  .icon-button--primary,
+  .icon-button--bordered.icon-button--active {
+    color: #ffffff;
+    box-shadow: inset 0 -52px 0 var(--min-ink);
+  }
+
+  .base-button--primary:not(.base-button--quiet):hover:not(:disabled),
+  .icon-button--primary:hover:not(:disabled) {
+    color: var(--min-ink);
+    box-shadow: inset 0 -1px 0 var(--min-ink), inset 0 1px 0 var(--min-ink), inset 1px 0 0 var(--min-ink), inset -1px 0 0 var(--min-ink);
+  }
+
+  .base-button--danger:not(.base-button--quiet) {
+    color: var(--danger);
+    box-shadow: inset 0 -1px 0 var(--danger);
+  }
+
+  .base-button--danger:not(.base-button--quiet):hover:not(:disabled) {
+    box-shadow: inset 0 -52px 0 var(--danger);
+  }
+
+  .base-button--active:not(.base-button--quiet, .base-button--link) {
+    box-shadow: inset 0 -3px 0 var(--min-ink);
+  }
+
+  .base-button:focus-visible,
+  .icon-button:focus-visible {
+    outline-offset: 4px;
+  }
+
+  /* A field is one line to write on. */
+  .text-input,
+  .number-field,
+  .select-input {
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--border-strong);
+    background: transparent;
+    font-size: 17px;
+    transition: border-color var(--duration-base) var(--ease-standard);
+  }
+
+  .text-input:focus,
+  .number-field:focus,
+  .select-input:focus {
+    outline: none;
+    border-bottom-color: var(--min-ink);
+    box-shadow: 0 1px 0 var(--min-ink);
+  }
+
+  .field-label {
+    gap: 0;
+    color: var(--text-3);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* Text tabs. The choice is a heavier word over a rule. */
+  .segmented {
+    gap: 24px;
+  }
+
+  .segmented__option {
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-3);
+    font-size: var(--text-size-lg);
+  }
+
+  .segmented__option[aria-checked='true'] {
+    color: var(--min-ink);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 var(--min-ink);
+  }
+
+  .section-heading {
+    margin-bottom: 4px;
+    color: var(--min-ink);
+    font-family: var(--min-serif);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+
+  /* A chip is a caption: a dot and a few tracked capitals. */
+  .base-chip {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-2);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .base-chip--danger {
+    color: var(--danger);
+  }
+
+  .base-chip__dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .list-row {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .list-row--selected {
+    background: transparent;
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--min-ink);
+  }
+
+  .base-banner--strip,
+  .base-banner--dock {
+    padding: 10px 0 10px 16px;
+    border: 0;
+    border-left: 2px solid var(--min-ink);
+    background: transparent;
+  }
+
+  .base-banner--strip.base-banner--warn {
+    border-left: 2px solid var(--warn);
+    background: transparent;
+  }
+
+  .base-banner--box {
+    border: 0;
+    border-left: 2px solid var(--warn);
+    background: transparent;
+  }
+
+  /* The one inverted element on the page. */
+  .base-toast {
+    border: 0;
+    background: var(--min-ink);
+    color: #ffffff;
+    font-size: var(--text-size-sm);
+    letter-spacing: 0.02em;
+  }
+
+  .base-toast .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger) {
+    color: #ffffff;
+    box-shadow: inset 0 -1px 0 #ffffff;
+  }
+
+  .base-toast .base-button:not(.base-button--quiet, .base-button--link, .base-button--link-danger):hover:not(:disabled) {
+    color: var(--min-ink);
+    box-shadow: inset 0 -52px 0 #ffffff;
+  }
+
+  /* The operations toolbar (`OperationsToolbar.vue`) draws its own buttons. */
+  .ops {
+    border: 0;
+    border-top: 1px solid var(--min-ink);
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .ops__btn {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: inset 0 -1px 0 var(--border-strong);
+    font-size: var(--text-size-2xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .ops__btn:hover:not(:disabled) {
+    color: #ffffff;
+    box-shadow: inset 0 -52px 0 var(--min-ink);
+  }
+
+  /* The navigation cluster over the 3D view (`NavigationChrome.vue`) is sized to leave the grid readout
+     beside it clear, so it keeps its own geometry and only takes this style's look. */
+  .chrome .base-button.chrome__mode {
+    min-width: 0;
+    margin: 0;
+    padding: 0 8px;
+    letter-spacing: 0.02em;
+  }
+}

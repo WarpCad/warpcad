@@ -1,0 +1,24 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/*
+ * The styles, chosen under Help → Style (`src/composables/useTheme.js`, `THEME_STYLES` in
+ * `src/stores/settings.js`). Imported by `main.js` after the token layers, and by Storybook's
+ * preview. Each file keys every rule on its own `:root[data-theme]`, so the order here does not matter.
+ *
+ * The display faces the styles name, bundled from Fontsource (SIL Open Font License, Chewy Apache-2.0)
+ * because the CSP allows no font host. Each `@font-face` here only registers a face: a browser fetches the
+ * file the first time text in that face is drawn, so a user who never picks a style downloads none of them.
+ * The PWA precache takes no font files (`vite.config.js`), so offline a face shows only once it has been
+ * seen online, and until then the style's system fallback is drawn.
+ */
+@import '@fontsource-variable/fredoka/wght.css';
+@import '@fontsource/chewy/400.css';
+@import '@fontsource/limelight/400.css';
+@import '@fontsource/architects-daughter/400.css';
+@import '@fontsource/silkscreen/400.css';
+@import '@fontsource/silkscreen/700.css';
+@import './kids.css';
+@import './glass.css';
+@import './deco.css';
+@import './minimal.css';
+@import './blueprint.css';
+@import './pixel.css';

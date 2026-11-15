@@ -2,6 +2,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import './styles/index.css'
+// The styles (Help → Style). Separate from the token layers, which hold no component rules.
+import './styles/skins/index.css'
 import AppView from './views/AppView.vue'
 import { startPwa } from './pwa.js'
 import { useTheme } from './composables/useTheme.js'
