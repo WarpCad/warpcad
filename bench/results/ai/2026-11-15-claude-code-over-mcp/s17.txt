@@ -1,0 +1,36 @@
+# s17
+
+Claude Code over MCP, not the in-app Assistant. System prompt differs from the in-app Assistant's (Claude Code's own, plus the server instructions and warpcad://guide), so a pass is evidence about the tools, not about the chat panel. Client: Claude Code 2.1.322, claude -p --model haiku (claude-haiku-5-5), owner subscription, no API key. Tool results cut at 600 characters.
+
+INIT model claude-haiku-5-5
+CALL ToolSearch {"query":"select:mcp__warpcad__record_prompt,mcp__warpcad__list_ops,mcp__warpcad__describe_scene,mcp__warpcad__create,mcp__warpcad__apply_records,mcp__warpcad__operate,mcp__warpcad__measure,mcp__warpcad__check_printability,mcp__warpcad__check_clearance,mcp__warpcad__record_response,ReadMcpResourceTo
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__record_prompt"},{"type":"tool_reference","tool_name":"mcp__warpcad__list_ops"},{"type":"tool_reference","tool_name":"mcp__warpcad__describe_scene"},{"type":"tool_reference","tool_name":"mcp__warpcad__create"},{"type":"tool_reference","tool_name":"mcp__warpcad__apply_records"},{"type":"tool_reference","tool_name":"mcp__warpcad__operate"},{"type":"tool_reference","tool_name":"mcp__warpcad__measure"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_printability"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_clearance"},{"t
+CALL mcp__warpcad__record_prompt {"prompt":"Use the sketch tool to create an airfoil for a model plane wing, create the wing then the rest of the model so I can 3D print it."}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-d6riuh-1\",\"text\":\"Use the sketch tool to create an airfoil for a model plane wing, create the wing then the rest of the model so I can 3D print it.\",\"truncated\":false},\"appended\":{\"file\":\"s17.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"warpcad://guide"}
+  RESULT {"contents":[{"uri":"warpcad://guide","mimeType":"text/markdown","text":"# WarpCad modelling guide\nYou are driving a WarpCad project from outside the app, over MCP. The tools are the ones in your tool list; each write is saved in the project's History with the design intent you give it.\nBesides rationale, every write tool takes request: the user's own words for what they asked, as received. Pass it on every write. Call record_prompt first with that request, before any write.\nWhen you finish, call record_response with your final message — including every problem you met: a deviation from the
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":0,\"bodies\":[],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+CALL ToolSearch {"query":"select:AskUserQuestion","max_results":1}
+  RESULT No matching deferred tools found
+CALL mcp__warpcad__record_response {"response":"I haven't built anything yet. Before I place the wing I need one number: the wingspan, in mm (for example 600 mm for a trainer-sized model, or 1000 mm for a larger one). The span decides whether the wing fits the printer and how it splits into pieces, and I have no sensible default for 
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-d6riuh-1\",\"id\":\"reply-d6riuh-1\",\"text\":\"I haven't built anything yet. Before I place the wing I need one number: the wingspan, in mm (for example 600 mm for a trainer-sized model, or 1000 mm for a larger one). The span decides whether the wing fits the printer and how it splits into pieces, and I have no sensible default for it.\\n\\nUnless you say otherwise, I'll use these defaults:\\n- Airfoil: NACA 2412 (a common, forgiving model-plane section; 2% camber, 12% thick), 
+TEXT I haven't built anything yet, because I need one number first: the wingspan in mm. For example, 600 mm for a trainer-sized model or 1000 mm for a larger one. The span decides whether the wing fits your printer and how it splits into pieces, and I have no sensible default for it.
+
+Unless you say otherwise, I'll use:
+- **Airfoil:** NACA 2412 (2% camber, 12% thick), chord about 120 mm.
+- **Printer:** 220 × 220 × 250 mm bed, 0.4 mm nozzle, 1.2 mm minimum wall.
+
+Reply with the span, and tell me if you want a different airfoil or bed size. I'll then build the wing, then the rest of the model, and check each part with the printability and clearance tools.
+
+The `AskUserQuestion` tool isn't available in this session, so I asked in plain text.
+RESULT_MSG success turns 7 cost 0.012017499999999999 err false 
+ I haven't built anything yet, because I need one number first: the wingspan in mm. For example, 600 mm for a trainer-sized model or 1000 mm for a larger one. The span decides whether the wing fits your printer and how it splits into pieces, and I have no sensible default for it.
+
+Unless you say otherwise, I'll use:
+- **Airfoil:** NACA 2412 (2% camber, 12% thick), chord about 120 mm.
+- **Printer:** 220 × 220 × 250 mm bed, 0.4 mm nozzle, 1.2 mm minimum wall.
+
+Reply with the span, and tell me if you want a different airfoil or bed size. I'll then build the wing, then the rest of the model, and check each part with the printability and clearance tools.
+
+The `AskUserQuestion` tool isn't available in this session, so I asked in plain text.

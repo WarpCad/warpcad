@@ -1,0 +1,60 @@
+# s18
+
+Claude Code over MCP, not the in-app Assistant. System prompt differs from the in-app Assistant's (Claude Code's own, plus the server instructions and warpcad://guide), so a pass is evidence about the tools, not about the chat panel. Client: Claude Code 2.1.322, claude -p --model haiku (claude-haiku-5-5), owner subscription, no API key. Tool results cut at 600 characters.
+
+INIT model claude-haiku-5-5
+CALL Read {"file_path":"~/src/@WarpCad/warpcad/e2e/fixtures/drawing-board-85x56.png"}
+  RESULT [{"type":"image","source":{"type":"base64","data":"iVBORw0KGgoAAAANSUhEUgAABLAAAAOECAIAAAA+D1+tAAAQAElEQVR4nOzdB5gcdd0H8Ln03ntIQoCEDoaOImABpCOE3qSJIChdUQQpIlIEpAtIF5AAoQqhvSCISOjSAiGN9N773fu7nbCud5fLXRq5nc/nuWefudnZ2dnZ2Zn/d35TGpSVlSUAAABkT70EAACATBIIAQAAMkogBAAAyCiBEAAAIKMEQgAAgIwSCAEAADJKIAQAAMgogRAAACCjBEIAAICMEggBAAAySiAEAADIKIEQAAAgowRCAACAjBIIAQAAMkogBAAAyCiBEAAAIKPq//a3v01Wu4ULFw4bNmzcuHH169dv2rRpUlxW7qdbsGDB0KFDp06d2qJFixhhsmarW1NbjZkzZ3722WfxceKDlJSUJNRSaWnpqFGjRo8eHT+BRo0aJavSrFmzPv/88+nTpzfKSVh55s2b9+WXX8b3GN3NmjWryW9h4sSJX3zxRfz8Y/hkuSxevDjWnyNGjIgfYIykXj07LleC+EnG9xhztaysrIZfZWWLF
+CALL ToolSearch {"query":"select:mcp__warpcad__record_prompt,mcp__warpcad__list_ops,mcp__warpcad__describe_scene,mcp__warpcad__apply_records,mcp__warpcad__create,mcp__warpcad__operate,mcp__warpcad__record_response,mcp__warpcad__measure,mcp__warpcad__check_printability,mcp__warpcad__check_clearance,ReadMcpResourceTo
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__record_prompt"},{"type":"tool_reference","tool_name":"mcp__warpcad__list_ops"},{"type":"tool_reference","tool_name":"mcp__warpcad__describe_scene"},{"type":"tool_reference","tool_name":"mcp__warpcad__apply_records"},{"type":"tool_reference","tool_name":"mcp__warpcad__create"},{"type":"tool_reference","tool_name":"mcp__warpcad__operate"},{"type":"tool_reference","tool_name":"mcp__warpcad__record_response"},{"type":"tool_reference","tool_name":"mcp__warpcad__measure"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_printability"},{"t
+CALL mcp__warpcad__record_prompt {"prompt":"Here is a drawing of a raspberry pi 7 create a group object to be added to the library. The drawing is the image file ~/src/@WarpCad/warpcad/e2e/fixtures/drawing-board-85x56.png (read it with the Read tool)."}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-cvtdwv-1\",\"text\":\"Here is a drawing of a raspberry pi 7 create a group object to be added to the library. The drawing is the image file ~/src/@WarpCad/warpcad/e2e/fixtures/drawing-board-85x56.png (read it with the Read tool).\",\"truncated\":false},\"appended\":{\"file\":\"s18.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"warpcad://guide"}
+  RESULT {"contents":[{"uri":"warpcad://guide","mimeType":"text/markdown","text":"# WarpCad modelling guide\nYou are driving a WarpCad project from outside the app, over MCP. The tools are the ones in your tool list; each write is saved in the project's History with the design intent you give it.\nBesides rationale, every write tool takes request: the user's own words for what they asked, as received. Pass it on every write. Call record_prompt first with that request, before any write.\nWhen you finish, call record_response with your final message — including every problem you met: a deviation from the
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":0,\"bodies\":[],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+CALL mcp__warpcad__list_ops {"ops":["kit.board","primitive.cuboid","primitive.cylinder"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"create\":[{\"op\":\"kit.board\",\"label\":\"Board\",\"kind\":\"composite\",\"operandCount\":0,\"params\":{\"type\":\"object\",\"properties\":{\"width\":{\"type\":\"number\",\"description\":\"Width, in millimetres.\"},\"height\":{\"type\":\"number\",\"description\":\"Height, in millimetres.\"},\"cornerRadius\":{\"type\":\"number\",\"description\":\"Corner radius, in millimetres.\"}},\"required\":[],\"additionalProperties\":false},\"defaults\":{\"width\":40,\"height\":30,\"cornerRadius\":3}},{\"op\":\"primitive.cu
+CALL mcp__warpcad__apply_records {"request":"Here is a drawing of a raspberry pi 7 create a group object to be added to the library. The drawing is the image file ~/src/@WarpCad/warpcad/e2e/fixtures/drawing-board-85x56.png (read it with the Read tool).","rationale":"Board group from the WC-85 drawing: 85×56×1.6 mm pla
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"create\",\"bodyId\":\"cuboid-cvtdwv-1\",\"recordIds\":[\"cuboid-cvtdwv-1\"]},{\"batchStep\":2,\"tool\":\"create\",\"bodyId\":\"cylinder-cvtdwv-2\",\"recordIds\":[\"cylinder-cvtdwv-2\"]},{\"batchStep\":3,\"tool\":\"create\",\"bodyId\":\"cylinder-cvtdwv-3\",\"recordIds\":[\"cylinder-cvtdwv-3\"]},{\"batchStep\":4,\"tool\":\"create\",\"bodyId\":\"cylinder-cvtdwv-4\",\"recordIds\":[\"cylinder-cvtdwv-4\"]},{\"batchStep\":5,\"tool\":\"create\",\"bodyId\":\"cylinder-cvtdwv-5\",\"re
+CALL mcp__warpcad__check_printability {"ids":["group-cvtdwv-10"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"heuristic\":\"Heuristic checks, not a guarantee: walls were sampled with 4000 rays, so a feature narrower than the sample spacing can be missed; fit is checked on axis-aligned orientations only; overhangs and supports are not checked. Slice it before trusting it.\",\"settings\":{\"buildVolumeMm\":[220,220,250],\"minWallMm\":1.2,\"nozzleMm\":0.4},\"bodies\":[{\"id\":\"group-cvtdwv-10\",\"name\":\"Group 1\",\"sizeMm\":[87,56,4.6],\"watertight\":true,\"openEdges\":0,\"thinnestWallMm\":1.6,\"thinnestAtMm\":[-42.4388
+CALL mcp__warpcad__measure {"ids":["group-cvtdwv-10"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"bodies\":[{\"id\":\"group-cvtdwv-10\",\"name\":\"Group 1\",\"boundsMm\":[[-42.5,-28,0],[44.5,28,4.6]],\"sizeMm\":[87,56,4.6],\"volumeMm3\":9914.291044,\"surfaceAreaMm2\":10730.502377,\"centerOfMassMm\":[8.307714,-0.425749,1.341461]}]}</document_data>"}]
+CALL mcp__warpcad__record_response {"response":"Built a group from the WC-85 drawing: group-cvtdwv-10 (\"Group 1\" in the scene), with parts Board, USB-A 1, USB-A 2 and Ethernet.\n\n- Board: 85 × 56 × 1.6 mm plate, underside on Z = 0, centred on X/Y origin. Four Ø2.7 × through holes at X = -39 / 19 and Y = ±24.5 (58 × 49 mm pattern, 
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-cvtdwv-1\",\"id\":\"reply-cvtdwv-2\",\"text\":\"Built a group from the WC-85 drawing: group-cvtdwv-10 (\\\"Group 1\\\" in the scene), with parts Board, USB-A 1, USB-A 2 and Ethernet.\\n\\n- Board: 85 × 56 × 1.6 mm plate, underside on Z = 0, centred on X/Y origin. Four Ø2.7 × through holes at X = -39 / 19 and Y = ±24.5 (58 × 49 mm pattern, 3.5 mm from edges).\\n- USB-A 1: 17 × 13 × 3 mm envelope at X 27.5–44.5, Y 13–26, resting on the board top.\\n- USB-A 2: 17 × 13 × 3 mm envelo
+TEXT I built the group in the WarpCad project as `group-cvtdwv-10` (shown as "Group 1"). It is not yet in the library: this MCP session can only write to the open project, so you'll need to add it from the app.
+
+The drawing is labelled "WC-85, fictional board, not a real product", not a Raspberry Pi 7, so I modelled it as drawn. The group has four parts:
+
+- **Board:** 85 × 56 × 1.6 mm plate, underside on Z = 0, centred on the origin. Four Ø2.7 mm through-holes at X = −39 / 19 and Y = ±24.5 (the 58 × 49 mm pattern, 3.5 mm from the edges).
+- **USB-A 1:** 17 × 13 × 3 mm envelope at X 27.5–44.5, Y 13–26.
+- **USB-A 2:** 17 × 13 × 3 mm envelope at X 27.5–44.5, Y −5–8.
+- **Ethernet:** 21 × 16 × 3 mm envelope at X 23.5–44.5, Y −26 to −10.
+
+The connectors overhang the board edge by 2 mm, as drawn. Overall bounds are X −42.5 to 44.5, Y −28 to 28, Z 0 to 4.6 mm.
+
+Checks: watertight with no open edges, no errors or warnings, thinnest wall 1.6 mm, and it fits the 220 × 220 × 250 mm build volume as placed.
+
+Decisions and limits:
+- **Connector height:** the drawing doesn't dimension it. I took 3 mm from the side view, which is an estimate. Real connectors are likely taller, so adjust if you have the datasheet.
+- **Connector shape:** they are plain box envelopes, not detailed connectors.
+- **Group name:** the group is "Group 1". The tools here can't rename the group itself, only its parts, so rename it in the app before adding it to the library.
+RESULT_MSG success turns 11 cost 0.018378940000000003 err false 
+ I built the group in the WarpCad project as `group-cvtdwv-10` (shown as "Group 1"). It is not yet in the library: this MCP session can only write to the open project, so you'll need to add it from the app.
+
+The drawing is labelled "WC-85, fictional board, not a real product", not a Raspberry Pi 7, so I modelled it as drawn. The group has four parts:
+
+- **Board:** 85 × 56 × 1.6 mm plate, underside on Z = 0, centred on the origin. Four Ø2.7 mm through-holes at X = −39 / 19 and Y = ±24.5 (the 58 × 49 mm pattern, 3.5 mm from the edges).
+- **USB-A 1:** 17 × 13 × 3 mm envelope at X 27.5–44.5, Y 13–26.
+- **USB-A 2:** 17 × 13 × 3 mm envelope at X 27.5–44.5, Y −5–8.
+- **Ethernet:** 21 × 16 × 3 mm envelope at X 23.5–44.5, Y −26 to −10.
+
+The connectors overhang the board edge by 2 mm, as drawn. Overall bounds are X −42.5 to 44.5, Y −28 to 28, Z 0 to 4.6 mm.
+
+Checks: watertight with no open edges, no errors or warnings, thinnest wall 1.6 mm, and it fits the 220 × 220 × 250 mm build volume as placed.
+
+Decisions and limits:
+- **Connector height:** the drawing doesn't dimension it. I took 3 mm from the side view, which is an estimate. Real connectors are likely taller, so adjust if you have the datasheet.
+- **Connector shape:** they are plain box envelopes, not detailed connectors.
+- **Group name:** the group is "Group 1". The tools here can't rename the group itself, only its parts, so rename it in the app before adding it to the library.

@@ -1,0 +1,32 @@
+# ai022
+
+Claude Code over MCP, not the in-app Assistant. System prompt differs from the in-app Assistant's (Claude Code's own, plus the server instructions and warpcad://guide), so a pass is evidence about the tools, not about the chat panel. Client: Claude Code 2.1.322, claude -p --model haiku (claude-haiku-5-5), owner subscription, no API key. Tool results cut at 600 characters.
+
+INIT model claude-haiku-5-5
+CALL ToolSearch {"query":"select:mcp__warpcad__record_prompt,mcp__warpcad__describe_scene,mcp__warpcad__list_ops,mcp__warpcad__operate,mcp__warpcad__measure,mcp__warpcad__check_clearance,mcp__warpcad__record_response","max_results":10}
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__record_prompt"},{"type":"tool_reference","tool_name":"mcp__warpcad__describe_scene"},{"type":"tool_reference","tool_name":"mcp__warpcad__list_ops"},{"type":"tool_reference","tool_name":"mcp__warpcad__operate"},{"type":"tool_reference","tool_name":"mcp__warpcad__measure"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_clearance"},{"type":"tool_reference","tool_name":"mcp__warpcad__record_response"}]
+CALL ListMcpResourcesTool {}
+  RESULT [{"name":"scene","title":"Scene","uri":"warpcad://scene","description":"Every body in the project file: id, name, op, bounds and size in mm, colour, parts — what describe_scene returns.","mimeType":"text/plain","server":"warpcad"},{"name":"op-catalogue","title":"Operation catalogue","uri":"warpcad://op-catalogue","description":"What can be created and which operations exist, with operand counts, params and defaults — what list_ops returns.","mimeType":"text/plain","server":"warpcad"},{"name":"op-catalogue-summary","title":"Operation catalogue (summary)","uri":"warpcad://op-catalogue/summary","
+CALL mcp__warpcad__record_prompt {"prompt":"Snap Block A onto Block B using the outside+ orientation along z, and tell me which side of Block B it lands on (the + side or the - side)."}
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-duzjqs-1\",\"text\":\"Snap Block A onto Block B using the outside+ orientation along z, and tell me which side of Block B it lands on (the + side or the - side).\",\"truncated\":false},\"appended\":{\"file\":\"snap.ndjson\",\"rows\":[]}}</document_data>"}]
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":2,\"bodies\":[{\"id\":\"block-a\",\"name\":\"Block A\",\"op\":\"primitive.cuboid\",\"boundsMm\":[[-10,-10,0],[10,10,10]],\"sizeMm\":[20,20,10],\"color\":null,\"parts\":[]},{\"id\":\"block-b\",\"name\":\"Block B\",\"op\":\"primitive.cuboid\",\"boundsMm\":[[50,-10,0],[70,10,10]],\"sizeMm\":[20,20,10],\"color\":null,\"parts\":[]}],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+CALL ToolSearch {"query":"select:ReadMcpResourceTool","max_results":1}
+  RESULT [{"type":"tool_reference","tool_name":"ReadMcpResourceTool"}]
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"warpcad://guide"}
+  RESULT {"contents":[{"uri":"warpcad://guide","mimeType":"text/markdown","text":"# WarpCad modelling guide\nYou are driving a WarpCad project from outside the app, over MCP. The tools are the ones in your tool list; each write is saved in the project's History with the design intent you give it.\nBesides rationale, every write tool takes request: the user's own words for what they asked, as received. Pass it on every write. Call record_prompt first with that request, before any write.\nWhen you finish, call record_response with your final message — including every problem you met: a deviation from the
+CALL mcp__warpcad__operate {"op":"group.snap","operands":[{"id":"block-a"},{"id":"block-b"}],"params":{"axes":"z","orientation":"outside+"},"rationale":"Snap Block A flush onto Block B along z, outside+ orientation","request":"Snap Block A onto Block B using the outside+ orientation along z, and tell me which side of Block B 
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"operate\",\"bodyId\":\"block-a\",\"recordIds\":[\"snap-duzjqs-1\"]}],\"scene\":{\"count\":2,\"bodies\":[{\"id\":\"block-a\",\"name\":\"Block A\",\"op\":\"primitive.cuboid\",\"boundsMm\":[[-10,-10,-10],[10,10,0]],\"sizeMm\":[20,20,10],\"color\":null,\"parts\":[]},{\"id\":\"block-b\",\"name\":\"Block B\",\"op\":\"primitive.cuboid\",\"boundsMm\":[[50,-10,0],[70,10,10]],\"sizeMm\":[20,20,10],\"color\":null,\"parts\":[]}],\"rolledBack\":null,\"inactiveBodies\":[]},\"appended\":{
+CALL mcp__warpcad__record_response {"response":"Snapped Block A onto Block B with group.snap, axes z, orientation outside+. Block A now lands on Block B's − side (the − side along z). Block A moved from z 0–10 to z −10–0, so its top face (z = 0) meets Block B's bottom face (z = 0). X and Y were not changed: Block A stays at x −10–10,
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-duzjqs-1\",\"id\":\"reply-duzjqs-2\",\"text\":\"Snapped Block A onto Block B with group.snap, axes z, orientation outside+. Block A now lands on Block B's − side (the − side along z). Block A moved from z 0–10 to z −10–0, so its top face (z = 0) meets Block B's bottom face (z = 0). X and Y were not changed: Block A stays at x −10–10, y −10–10, and Block B stays at x 50–70, y −10–10, so the two blocks do not touch sideways.\\n\\n**Problems met**\\n- None. The snap ran as requeste
+TEXT Block A lands on the **− side** of Block B.
+
+I snapped Block A onto Block B with `group.snap`, axes z, orientation outside+. The scene reads back Block A at z −10 to 0, with its top face meeting Block B's bottom face at z = 0. Block B stays at z 0 to 10.
+
+The two blocks are still side by side in x (A at x −10 to 10, B at x 50 to 70), so they do not touch sideways. The snap changed only the z position of Block A.
+RESULT_MSG success turns 9 cost 0.00652912 err false 
+ Block A lands on the **− side** of Block B.
+
+I snapped Block A onto Block B with `group.snap`, axes z, orientation outside+. The scene reads back Block A at z −10 to 0, with its top face meeting Block B's bottom face at z = 0. Block B stays at z 0 to 10.
+
+The two blocks are still side by side in x (A at x −10 to 10, B at x 50 to 70), so they do not touch sideways. The snap changed only the z position of Block A.

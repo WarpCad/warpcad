@@ -1,0 +1,40 @@
+# s17c
+
+Claude Code over MCP, not the in-app Assistant. System prompt differs from the in-app Assistant's (Claude Code's own, plus the server instructions and warpcad://guide), so a pass is evidence about the tools, not about the chat panel. Client: Claude Code 2.1.322, claude -p --model haiku (claude-haiku-5-5), owner subscription, no API key. Tool results cut at 600 characters.
+
+INIT model claude-haiku-5-5
+CALL mcp__warpcad__operate {"op":"modify.fit","operands":[{"id":"sketch-j5okmi-1"}],"params":{"sizeMm":[0,480,0]},"request":"Make the wing 20% longer: span 400 mm to 480 mm.","rationale":"Span 400 to 480 mm (+20%), chord and thickness unchanged"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"operate\",\"bodyId\":\"sketch-j5okmi-1\",\"recordIds\":[\"fit-erisgk-8\"]}],\"scene\":{\"count\":4,\"bodies\":[{\"id\":\"sketch-j5okmi-1\",\"name\":\"Sketch 1\",\"op\":\"primitive.sketch\",\"boundsMm\":[[-60,-240,36],[60,240,50.584324]],\"sizeMm\":[120,480,14.584324],\"color\":null,\"parts\":[]},{\"id\":\"cuboid-j5okmi-5\",\"name\":\"Cube 1\",\"op\":\"primitive.cuboid\",\"boundsMm\":[[-100,-18,0],[100,18,36]],\"sizeMm\":[200,36,36],\"color\":null,\"parts\":[]},{\"id\":\"cub
+CALL mcp__warpcad__operate {"op":"modify.splitWithJoint","operands":[{"id":"sketch-j5okmi-1"}],"params":{"axis":"y","offsetMm":160,"joint":"dowel","jointOptions":{"sizeMm":4,"stock":"printed"},"names":["Wing A","Wing B"]},"request":"Split the 480 mm wing so each piece fits the 220 mm bed.","rationale":"First cut at Y = -80: 2
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"operate\",\"bodyId\":\"sketch-j5okmi-1\",\"recordIds\":[\"split-erisgk-9\"]}],\"scene\":{\"count\":4,\"bodies\":[{\"id\":\"sketch-j5okmi-1\",\"name\":\"Sketch 1\",\"op\":\"primitive.sketch\",\"boundsMm\":[[-60,-240,36],[60,240,50.584324]],\"sizeMm\":[120,480,14.584324],\"color\":null,\"parts\":[{\"name\":\"Wing A\",\"hidden\":false},{\"name\":\"Wing B\",\"hidden\":false},{\"name\":\"Wing key 1\",\"hidden\":false},{\"name\":\"Wing key 2\",\"hidden\":false}]},{\"id\":\"cuboid
+CALL mcp__warpcad__operate {"op":"modify.splitWithJoint","operands":[{"id":"sketch-j5okmi-1"}],"params":{"axis":"y","offsetMm":320,"joint":"dowel","jointOptions":{"sizeMm":4,"stock":"printed"},"names":["Wing B","Wing C"]},"request":"Split the 480 mm wing so each piece fits the 220 mm bed.","rationale":"Second cut at Y = +80: 
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"operate\",\"bodyId\":\"sketch-j5okmi-1\",\"recordIds\":[\"split-erisgk-10\"]}],\"scene\":{\"count\":4,\"bodies\":[{\"id\":\"sketch-j5okmi-1\",\"name\":\"Sketch 1\",\"op\":\"primitive.sketch\",\"boundsMm\":[[-60,-240,36],[60,240,50.584324]],\"sizeMm\":[120,480,14.584324],\"color\":null,\"parts\":[{\"name\":\"Wing A\",\"hidden\":false},{\"name\":\"Wing B\",\"hidden\":false},{\"name\":\"Wing C\",\"hidden\":false},{\"name\":\"Wing key 1\",\"hidden\":false},{\"name\":\"Wing key 
+CALL mcp__warpcad__check_printability {"ids":["sketch-j5okmi-1"],"buildVolumeMm":[220,220,250],"minWallMm":1.2,"nozzleMm":0.4}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"heuristic\":\"Heuristic checks, not a guarantee: walls were sampled with 3999 rays, so a feature narrower than the sample spacing can be missed; fit is checked on axis-aligned orientations only; overhangs and supports are not checked. Slice it before trusting it.\",\"settings\":{\"buildVolumeMm\":[220,220,250],\"minWallMm\":1.2,\"nozzleMm\":0.4},\"bodies\":[{\"id\":\"sketch-j5okmi-1\",\"name\":\"Sketch 1\",\"sizeMm\":[120,480,14.584324],\"watertight\":true,\"openEdges\":0,\"thinnestWallMm\":0.0046,\"thinnestAtMm
+CALL mcp__warpcad__measure {"ids":["sketch-j5okmi-1"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"bodies\":[{\"id\":\"sketch-j5okmi-1\",\"name\":\"Sketch 1\",\"boundsMm\":[[-60,-240,36],[60,240,50.584324]],\"sizeMm\":[120,480,14.584324],\"volumeMm3\":564608.085917,\"surfaceAreaMm2\":122172.519556,\"centerOfMassMm\":[-9.8572,0,42.958417]}]}</document_data>"}]
+CALL mcp__warpcad__record_prompt {"prompt":"make the wing 20% longer"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-erisgk-1\",\"text\":\"make the wing 20% longer\",\"truncated\":false},\"appended\":{\"file\":\"s17.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL mcp__warpcad__record_response {"response":"The wing span is now 480 mm, up from 400 mm (+20%). Chord (120 mm) and thickness (14.6 mm) are unchanged.\n\nBecause 480 mm halves would be 240 mm, too long for the 220 mm bed, I split the wing into three pieces of 160 mm each: Wing A (y −240 to −80), Wing B (y −80 to 80) and Wing C (y 
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-erisgk-1\",\"id\":\"reply-erisgk-11\",\"text\":\"The wing span is now 480 mm, up from 400 mm (+20%). Chord (120 mm) and thickness (14.6 mm) are unchanged.\\n\\nBecause 480 mm halves would be 240 mm, too long for the 220 mm bed, I split the wing into three pieces of 160 mm each: Wing A (y −240 to −80), Wing B (y −80 to 80) and Wing C (y 80 to 240). Each joint is a printed 4 mm dowel (four dowels in total).\\n\\nChecks:\\n- Wing body: 120 × 480 × 14.6 mm, watertight, volume about 
+TEXT The wing span is now 480 mm, up from 400 mm (+20%). The chord (120 mm) and thickness (14.6 mm) are unchanged.
+
+A 480 mm wing would split into 240 mm halves, which are too long for your 220 mm bed. I split it into three pieces of 160 mm each: Wing A, Wing B and Wing C. Each joint is a printed 4 mm dowel, four in total.
+
+- **Wing body:** 120 × 480 × 14.6 mm, watertight, about 565 cm³ (up from 471).
+- **Printability:** the checker still reports the whole 480 mm group as too large for the bed. The three pieces are each 160 mm, so they fit, but the checker only sees the group.
+- **Trailing edge:** the sharp edge is still below the 0.4 mm nozzle at five points, as before. I haven't fixed it.
+- **Weight:** the wing is still solid, now roughly 0.7 kg of PLA at 100% infill, which is heavy for a 480 mm model.
+
+The first attempt, a scale-to-size on the wing, removed the earlier split, so I re-split the wing into three pieces. The project record has the full details.
+RESULT_MSG success turns 8 cost 0.037059150000000006 err false 
+ The wing span is now 480 mm, up from 400 mm (+20%). The chord (120 mm) and thickness (14.6 mm) are unchanged.
+
+A 480 mm wing would split into 240 mm halves, which are too long for your 220 mm bed. I split it into three pieces of 160 mm each: Wing A, Wing B and Wing C. Each joint is a printed 4 mm dowel, four in total.
+
+- **Wing body:** 120 × 480 × 14.6 mm, watertight, about 565 cm³ (up from 471).
+- **Printability:** the checker still reports the whole 480 mm group as too large for the bed. The three pieces are each 160 mm, so they fit, but the checker only sees the group.
+- **Trailing edge:** the sharp edge is still below the 0.4 mm nozzle at five points, as before. I haven't fixed it.
+- **Weight:** the wing is still solid, now roughly 0.7 kg of PLA at 100% infill, which is heavy for a 480 mm model.
+
+The first attempt, a scale-to-size on the wing, removed the earlier split, so I re-split the wing into three pieces. The project record has the full details.

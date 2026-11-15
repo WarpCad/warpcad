@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage (third pass)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** No product code changed. Eight `claude -p --model haiku` runs (`claude-haiku-5-5`) and two fetch-only Haiku agents; results and transcripts in `bench/results/ai/2026-11-15-claude-code-over-mcp.md`. `docs-029` #1 OK; `ai-022` #1 tool half passed; `ai-014` #1 Issue (filed `ai-040`: `describe_scene` does not show bindings, 0 of 3 runs used `set_variable`); `ai-010` #1-#3 and `ai-008` #1 answered for the tool route, the in-app half stays in VERIFY.md. Scale, overlay and Save-to-library tools are browser-only, so scenario 18 over MCP covers reading and building only. Haiku only, one to three runs per case.
 
 ## Problem
 
