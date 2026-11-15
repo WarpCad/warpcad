@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
-import { KNOWN_ORIGINS, originChipText } from './origin.js'
+import { KNOWN_ORIGINS, originActorText, originChipText } from './origin.js'
 
 describe('originChipText — the History origin chip never echoes file text (TODO/ai-009)', () => {
   it('names the origins this build writes', () => {
@@ -19,5 +19,18 @@ describe('originChipText — the History origin chip never echoes file text (TOD
     for (const hostile of ['</span><img src=x onerror=alert(1)>', 'you (verified)', 'x'.repeat(10_000), 'MCP', ' mcp', '']) {
       expect(originChipText(hostile)).toBe('via another program')
     }
+  })
+})
+
+describe('originActorText — who added a step, in words a person reads (TODO/ui-125)', () => {
+  it('names each origin this build writes, and one fixed phrase for anything else', () => {
+    expect(originActorText('local')).toBe('you')
+    expect(originActorText('ai')).toBe('the AI assistant')
+    expect(originActorText('mcp')).toBe('an MCP agent')
+    expect(originActorText('webmcp')).toBe('a browser agent')
+    expect(originActorText('programmatic')).toBe('a script')
+    expect(originActorText('remote')).toBe('a shared copy')
+    expect(originActorText('merge')).toBe('a merged copy')
+    for (const hostile of ['</span><img src=x>', 'you (verified)', '']) expect(originActorText(hostile)).toBe('another program')
   })
 })

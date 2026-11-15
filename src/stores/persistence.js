@@ -263,6 +263,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const savedAt = ref(0)
   /** Transient message over the resting text; cleared by its own timer. */
   const notice = ref('')
+  /** The current notice is a refusal of something the user just did (`announceRefusal`): an alert, not a status. */
+  const noticeIsRefusal = ref(false)
   /** What the file layer can honestly do now; refreshed after each Save (`TODO/io-008`). */
   const fileCapabilities = ref(deps.files.capabilities)
   /** Persistent, until the next success or a dismissal. */
@@ -362,6 +364,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
    */
   function showNotice(text, ms) {
     if (noticeTimer !== null) clearTimeout(noticeTimer)
+    noticeIsRefusal.value = false
     notice.value = text
     noticeTimer = setTimeout(() => {
       notice.value = ''
@@ -372,6 +375,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   function clearNotice() {
     if (noticeTimer !== null) clearTimeout(noticeTimer)
     noticeTimer = null
+    noticeIsRefusal.value = false
     notice.value = ''
   }
 
@@ -456,6 +460,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (errorMessage.value) return 'error'
     if (loadWarning.value) return 'error'
     if (diskChange.value !== null || mayHaveChanged.value) return 'warn'
+    if (noticeIsRefusal.value && notice.value) return 'warn'
     if (autosaveState.value === 'saving') return 'saving'
     if (gistBehind.value >= 0) return gistBehind.value === 0 ? 'saved' : 'idle'
     if (autosaveState.value === 'saved') return 'saved'
@@ -1203,6 +1208,18 @@ export const usePersistenceStore = defineStore('persistence', () => {
   }
 
   /**
+   * Put the refusal of an action the user just took on the status surface (`TODO/ui-125`: header
+   * Undo refused because another origin's step builds on it). Like {@link announce} but read out as
+   * an alert, and shown a little longer, since it is a sentence that says what to do next.
+   *
+   * @param {string} text
+   */
+  function announceRefusal(text) {
+    showNotice(text, REFUSED_NOTICE_MS)
+    noticeIsRefusal.value = true
+  }
+
+  /**
    * `TODO/io-021`: the open project was just written to its gist — called by `useGistPublish`
    * after the field is set, so the version counted from already includes that field change.
    *
@@ -1217,6 +1234,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
     autosaveState,
     savedAt,
     notice,
+    noticeIsRefusal,
+    announceRefusal,
     errorMessage,
     loadWarning,
     loading,

@@ -28,11 +28,12 @@
  * there is nothing to read here yet — that task adds the condition to
  * `disabled`, rather than this one inventing a flag nothing sets.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 
 import IconButton from '../controls/IconButton.vue'
 import { isTextEntry } from '../../composables/textEntry.js'
 import { useDocumentStore } from '../../stores/document.js'
+import { usePersistenceStore } from '../../stores/persistence.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
@@ -54,24 +55,23 @@ const undoDisabled = computed(() => !documentStore.canUndo || timeline.previewin
 const redoDisabled = computed(() => !documentStore.canRedo || timeline.previewing || sketchEditor.active)
 
 /**
- * The refusal from the last attempt, if it was refused.
- *
- * Section 19, point 4: undoing a local step that a remote step depends on is
- * refused *by name* rather than deleting someone else's work. Nothing in the app
- * can produce a non-local record today — there is no MCP surface and no hosted
- * pull — so this region is unreachable in practice until `io-002` exists; it is
- * wired now because the alternative is a `catch` that swallows the message, and
- * "never silent" is the rule. `ui-033`'s shared `save-status` chip is where this
- * belongs once that one status surface exists.
+ * Where a refusal goes: the header's save-status chip, the app's one status surface
+ * (`TODO/ui-125`; before it, a second red text block in this component that squeezed the hint).
+ * Section 19, point 4: undoing a local step that a non-local step depends on is refused *by name*
+ * rather than deleting someone else's work, and the chip says so as an alert.
  */
-const refusal = ref('')
+const persistence = usePersistenceStore()
 
 /** @param {'undo' | 'redo'} action */
 function run(action) {
   const result = action === 'undo' ? documentStore.undo() : documentStore.redo()
   // `TODO/data-010`/`ui-062`: an Undo that *dropped* its step (a merge has since removed or
   // revised its rows) succeeded without changing anything — the note says why it left the list.
-  refusal.value = result.ok ? (result.note ?? '') : (result.message ?? '')
+  if (result.ok) {
+    if (result.note) persistence.announce(result.note)
+  } else if (result.message) {
+    persistence.announceRefusal(result.message)
+  }
 }
 
 // `isTextEntry` lives in `composables/textEntry.js`, shared with the Delete shortcut
@@ -141,9 +141,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     >
       <span aria-hidden="true">↷</span>
     </IconButton>
-    <p v-if="refusal" class="history__refusal" role="alert" data-testid="history-refusal">
-      {{ refusal }}
-    </p>
   </div>
 </template>
 
@@ -159,12 +156,5 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .history .history__button {
   font-size: var(--text-size-2xl);
   line-height: 1;
-}
-
-.history__refusal {
-  margin: 0;
-  max-width: 240px;
-  font-size: var(--text-size-xs);
-  color: var(--danger);
 }
 </style>

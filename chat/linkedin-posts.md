@@ -4241,3 +4241,19 @@ The drive on a real build caught something the unit test could not: a thin 31 ×
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** registry.spec.js (Twist 90, 0, -90, 360 and the refused count); drove the production build on Chromium and WebKit, 97.8% of the untwisted volume against 27% before
 **To Add:** none
+
+## 2026-11-15T14:30:00Z — ui-125: an error message written for the program, not the person
+
+**Post:** I placed a cube in WarpCad by hand, had a browser agent move it, then pressed Undo. The app did the right thing and refused, because the agent's step builds on mine. What it said was `document.undo: "cuboid-oprfjy-1-move-oprfjy-2", added via webmcp, depends on "Place Cube 1" — suppress or edit it first`, in a red block that squeezed the hint out of the header while the status chip next to it still read "Saved".
+
+Nothing in that sentence was wrong, and none of it was written for a person. It named a record id, led with an internal function name, and did not say where to go. It now reads "Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on it. Open History to suppress that step first.", built from the same labels the History panel shows, and it appears in the status chip as an alert. On a phone, where the chip is a dot, it opens as a panel under the header.
+
+The old text was also load-bearing for tests, so the error keeps a machine-readable code that callers can match instead of parsing the sentence. Checked in a real browser at laptop and phone width, and in Chromium, Firefox and WebKit.
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(ui): the Undo refusal says what to do, in the status chip (TODO/ui-125)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** history.spec.js and origin.spec.js; e2e/undo-refusal.e2e.js on all nine engine-viewport projects; production build driven at 1440x900 and 390x844
+**To Add:** none

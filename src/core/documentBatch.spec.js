@@ -249,7 +249,7 @@ for (const restorableSteps of [50, 0]) {
         const snapshot = state(doc)
         const version = doc.version
 
-        expect(() => doc.undo()).toThrow(/depends on/)
+        expect(() => doc.undo()).toThrow(/builds on it/)
         expect(state(doc)).toEqual(snapshot)
         expect(doc.version).toBeGreaterThanOrEqual(version)
         expect(/** @type {any} */ (doc.recordOf('sphere')).params.diameter).toBe(20)

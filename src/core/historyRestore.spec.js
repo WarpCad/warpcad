@@ -250,7 +250,7 @@ describe('the fold is still the path whenever anything was written since the ste
     document.append({ id: 'their-move', op: 'fake.move', target: 'mine', supersedes: 'mine', params: { by: 2 } }, { origin: 'mcp' })
     const before = JSON.stringify(document.timeline())
 
-    expect(() => document.undo()).toThrow(/depends on "Place mine"/)
+    expect(() => document.undo()).toThrow(/Can't undo Place mine: a step added by .* builds on it/)
     expect(JSON.stringify(document.timeline())).toBe(before)
     expect(document.canUndo()).toBe(true)
   })

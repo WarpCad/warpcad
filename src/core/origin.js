@@ -33,6 +33,35 @@ export function originChipText(origin) {
 }
 
 /**
+ * Who added a step, as a noun phrase for a sentence (`Can't undo Place Cube 1: a step added by
+ * a browser agent (…) builds on it`, `TODO/ui-125`). Constrained like {@link originChipText}: a file's
+ * own origin string is never echoed.
+ *
+ * @param {string} origin As the entry carries it.
+ * @returns {string}
+ */
+export function originActorText(origin) {
+  switch (origin) {
+    case 'local':
+      return 'you'
+    case 'ai':
+      return 'the AI assistant'
+    case 'mcp':
+      return 'an MCP agent'
+    case 'webmcp':
+      return 'a browser agent'
+    case 'programmatic':
+      return 'a script'
+    case 'remote':
+      return 'a shared copy'
+    case 'merge':
+      return 'a merged copy'
+    default:
+      return 'another program'
+  }
+}
+
+/**
  * Who a conflict reason says made the row a flagged step lost to (`TODO/data-010`'s
  * `conflicts with step N (<label>, …)`; `TODO/data-013`).
  *

@@ -45,6 +45,7 @@ import { DISK_CHANGED_TEXT, usePersistenceStore } from '../stores/persistence.js
  * @returns {{
  *   text: import('vue').ComputedRef<string>,
  *   tone: import('vue').ComputedRef<StatusTone>,
+ *   refusal: import('vue').ComputedRef<boolean>,
  * }}
  */
 export function useStatusSurface() {
@@ -98,5 +99,7 @@ export function useStatusSurface() {
   return {
     text: computed(() => resolved.value.text),
     tone: computed(() => resolved.value.tone),
+    /** The text shown is the refusal of an action the user just took (`TODO/ui-125`): read out as an alert. */
+    refusal: computed(() => persistence.noticeIsRefusal && persistence.notice !== '' && resolved.value.text === persistence.notice),
   }
 }

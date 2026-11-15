@@ -606,7 +606,7 @@ describe('local Undo after a merge', () => {
     other.mergeFrom(human.mergeState(), MERGE)
     other.append({ id: 'their-move', op: 'transform.translate', target: 'mine', supersedes: 'mine', params: { vector: [0, 3, 0] } }, ai)
     human.mergeFrom(other.mergeState(), MERGE)
-    expect(() => human.undo()).toThrow(/depends on "Place Mine"/)
+    expect(() => human.undo()).toThrow(/Can't undo Place Mine: a step added by .* builds on it/)
     expect(human.canUndo()).toBe(true)
   })
 })

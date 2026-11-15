@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-019 drive of data-003 #2
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** The refusal is built in `src/core/document.js` from both steps' History labels and a plain-words
+> origin (`originActorText` in `src/core/origin.js`): `Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on
+> it. Open History to suppress that step first.` The error carries `code: 'undo-blocked'`, `step`, `blocker` and `blockerOrigin`; nothing else
+> in the tree matched the old text (grep of `src/`, `mcp/`, `e2e/`, `docs/`: only unit specs and `docs/undo-redo.md`, all updated), and the AI
+> tool registry has no undo tool. `HistoryControls` now sends it to `persistence.announceRefusal`, so the save-status chip shows it as
+> `role="alert"` for 12 s in a wrapped panel under the header (at every width; fixed under the header on a phone). The old
+> `history-refusal` block is gone. Spec: `e2e/undo-refusal.e2e.js`.
 
 ## Problem
 

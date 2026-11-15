@@ -183,8 +183,18 @@ describe('undo/redo — the local user’s own edits, and only those', () => {
 
     // Point 4 of the contract: refuse, naming the blocking step — never delete
     // someone else's work and never leave a hole in the log.
-    expect(() => document.undo()).toThrow(/Nudged/)
-    expect(() => document.undo()).toThrow(/programmatic/)
+    // Worded from the History labels and a plain-words origin, not record ids (`TODO/ui-125`).
+    expect(() => document.undo()).toThrow(
+      /^Can't undo Place Box 1: a step added by a script \(.+\) builds on it\. Open History to suppress that step first\.$/
+    )
+    expect(() => document.undo()).not.toThrow(/document\.undo|mcp-move|programmatic/)
+    // Machine-readable for callers that match on it, without parsing the sentence.
+    try {
+      document.undo()
+    } catch (error) {
+      expect(/** @type {any} */ (error).code).toBe('undo-blocked')
+      expect(/** @type {any} */ (error).blockerOrigin).toBe('programmatic')
+    }
     // And the refusal changed nothing.
     expect(document.records.map((record) => record.id)).toEqual(['a', 'mcp-move'])
     expect(document.bodies()).toHaveLength(1)

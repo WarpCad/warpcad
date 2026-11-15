@@ -946,6 +946,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `testing-032` | Drive the VERIFY.md model-behaviour rows through Claude Code over MCP (`claude -p --model haiku`, owner subscription, no key). Eight runs: `docs-029` #1 OK (two fresh fetch-only agents found the tool names), `ai-022` #1 and `ai-010` #1-#3 and `ai-008` #1 answered for the tool route and left open for the in-app half, `ai-014` #1 Issue (0 of 3 runs called `set_variable`: `describe_scene` hides the binding, filed `ai-040`). Transcripts in `bench/results/ai/2026-11-15-claude-code-over-mcp.md`. | M |
 | ✅ `ui-124` | The navigation chrome no longer covers the grid scale readout at a window about 650 px wide: from 641 px up, when the canvas is under 380 px wide the pad folds to its 38 px toggle (the form the phone's raised pad uses) through a container query on the viewport. Filed 2026-11-14 from the `testing-017` sweep. [`done/ui-124`](done/ui-124-nav-chrome-covers-scale-readout-at-650px.md) | Finding | — | 1, 4 (tablet width, driven at 650, 660 and 820 px) |
 | ✅ `core-083` | A sketch's Linear Twist now takes its steps from the resolution (at most 3° a step) when Twist steps is left at 1, so Twist 90 on 30 × 16 × 30 mm reads 14 091 mm³, not 3 820; a count below the floor is refused. Docs and the Extrude panel say what Twist steps does | Finding | 9 |
+| ✅ `ui-125` | The header's Undo refusal now reads `Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on it. Open History to suppress that step first.`, from History labels and a plain-words origin and not a record id, and shows as an alert in the save-status chip (a wrapped panel under the header) instead of a second red block that squeezed the hint. The error carries `code: 'undo-blocked'`. Filed 2026-11-14 from `testing-019` | Finding | — | none |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1379,5 +1380,6 @@ convention going forward.
 | `ui-124` | 2026-11-15 06:14 | ~21m (one container query, one new spec, the 1440-390-1440 sweep on three engines) |
 | `testing-039` | 2026-11-15 07:02 | ~45m (one new spec, a shared snapshot helper, three mutation checks, a pair run and a nine-project run of about 29m) |
 | `core-083` | 2026-11-15 14:35 | ~32m (RED first, one kernel change plus a step-angle ceiling found by measuring, a pair run, three engines of drive, regenerated two docs pictures, one finding filed) |
+| `ui-125` | 2026-11-15 14:24 | ~30m (RED first on four unit specs and one e2e, one core message and the chip's refusal panel, a pair run, nine projects of the new spec, a two-width drive) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

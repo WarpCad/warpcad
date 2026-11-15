@@ -93,8 +93,15 @@ saved copy rather than relying on Undo.
 **Undo only ever takes back your own changes.** If a change was made by something other
 than you at the keyboard — an AI assistant driving the model, or a change pulled in from
 shared storage — pressing Undo will never silently remove it. Those changes are visible in
-the model's history like any other, and if one depends on a change of yours, WarpCad tells
-you so by name instead of quietly leaving a hole:
-`"Step 7", added via programmatic, depends on "Move Cube 1" — suppress or edit it first`.
+the model's history like any other. If one of them builds on a change of yours, Undo refuses
+and says so in the status chip at the top right, in words rather than step ids: you place a cube
+by hand, a browser agent then moves it, and you press Undo. The cube stays put, Undo stays
+available, and the chip shows
+
+`Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on it. Open History to suppress that step first.`
+
+Open **History**, find the agent's `Move Cube 1` step, and suppress it (see
+[History](timeline.md)); Undo then works on your own step again. The message stays
+for about twelve seconds, and on a phone it appears as a panel under the header.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

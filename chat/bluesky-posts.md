@@ -2939,3 +2939,14 @@ A 30 × 16 mm rectangle twisted 90° in WarpCad read 3 820 mm³ instead of 14 40
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** registry.spec.js; production build drive on Chromium and WebKit (97.8% of untwisted volume)
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** fix(ui): the Undo refusal says what to do, in the status chip (TODO/ui-125)
+
+Undo refused because an agent's step builds on yours, and said `document.undo: "cuboid-oprfjy-1-move-oprfjy-2"...`. Now: "Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on it. Open History to suppress that step first." In the status chip, as an alert.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** history.spec.js; undo-refusal.e2e.js on Chromium, Firefox and WebKit at three widths
+**To Add:** none

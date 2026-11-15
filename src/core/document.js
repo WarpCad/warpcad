@@ -501,7 +501,7 @@ import { counterOfId, createClock, createProjectId, createReplicaId } from './re
 import { compareKeys, insertTag, keysBetween } from './merge/positionKey.js'
 import { LEGACY_STAMP, highestCounter } from './merge/state.js'
 import { diffStates, liveOrder, mergeStates, relatedness, resolveRollback } from './merge/merge.js'
-import { conflictAttribution } from './origin.js'
+import { conflictAttribution, originActorText } from './origin.js'
 import {
   REPEAT_LINEAGE_OPS,
   REPEAT_OP,
@@ -4051,11 +4051,19 @@ export function createDocument(options = {}) {
       if (stepRecords.has(entry.record)) continue
       for (const referenced of referencedIdsOf(entry.record)) {
         if (!undoneIds.has(referenced)) continue
-        const blocker = entry.record.name ?? entry.record.id ?? entry.record.op
-        throw new Error(
-          `document.undo: "${blocker}", added via ${entry.origin}, depends on ` +
-            `"${step.label}" — suppress or edit it first`
+        // Words a person reads: the History labels of both steps and who added the blocker, not a
+        // record id (`TODO/ui-125`). `code` and the fields keep the reason machine-readable.
+        const error = /** @type {Error & { code: string, step: string, blocker: string, blockerOrigin: string }} */ (
+          new Error(
+            `Can't undo ${step.label}: a step added by ${originActorText(entry.origin)} ` +
+              `(${labelFor([entry.record])}) builds on it. Open History to suppress that step first.`
+          )
         )
+        error.code = 'undo-blocked'
+        error.step = step.label
+        error.blocker = entry.record.id ?? ''
+        error.blockerOrigin = entry.origin
+        throw error
       }
     }
   }

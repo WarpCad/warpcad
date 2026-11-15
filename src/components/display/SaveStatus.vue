@@ -26,6 +26,12 @@
  *
  * **Errors are `role="alert"`, everything else `role="status"`** — a persistent
  * "Not saved" must interrupt, "Saved · 14:02" must not.
+ *
+ * **A refusal is an alert too, and wraps** (`TODO/ui-125`): when header Undo is refused because
+ * another origin's step builds on it, the sentence (`Can't undo Place Cube 1: a step added by a
+ * browser agent (Move Cube 1) builds on it. Open History to suppress that step first.`) is the chip's
+ * text for a few seconds. It is far longer than the chip's 280px ellipsis, and at phone width the
+ * chip is only a dot, so while it shows the text sits in a wrapped panel under the chip, at every width.
  */
 import { computed } from 'vue'
 
@@ -38,6 +44,7 @@ const menu = useFileMenuStore()
 const persistence = usePersistenceStore()
 
 const isError = computed(() => surface.tone.value === 'error')
+const isRefusal = computed(() => surface.refusal.value)
 /** The disk-change state is what the chip shows (not outranked by an error). */
 const isDiskChange = computed(() => !isError.value && persistence.diskNeedsAnswer)
 const isButton = computed(() => isError.value || isDiskChange.value)
@@ -58,10 +65,10 @@ const title = computed(() => {
   <component
     :is="isButton ? 'button' : 'div'"
     class="save-status"
-    :class="[`save-status--${surface.tone.value}`, { 'save-status--button': isButton }]"
+    :class="[`save-status--${surface.tone.value}`, { 'save-status--button': isButton, 'save-status--refusal': isRefusal }]"
     :type="isButton ? 'button' : undefined"
-    :role="isError ? 'alert' : isButton ? undefined : 'status'"
-    :aria-live="isError ? 'assertive' : 'polite'"
+    :role="isError || isRefusal ? 'alert' : isButton ? undefined : 'status'"
+    :aria-live="isError || isRefusal ? 'assertive' : 'polite'"
     :aria-label="surface.text.value"
     :title="title"
     :data-tone="surface.tone.value"
@@ -147,7 +154,46 @@ const title = computed(() => {
   border-radius: 2px;
 }
 
+/* A refusal: the sentence in a wrapped panel under the chip (the chip itself keeps its dot). The
+   selector chain beats the phone rule that visually hides the text. */
+.save-status--refusal {
+  position: relative;
+}
+
+.save-status.save-status--refusal .save-status__text {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: var(--z-toast);
+  width: min(320px, calc(100vw - 28px));
+  height: auto;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  clip: auto;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  box-shadow: var(--shadow-overlay);
+  font-size: var(--text-size-sm);
+  line-height: 1.35;
+}
+
 @media (max-width: 640px) {
+  /* Phone: the chip is not at the header's right edge (the Assistant menu follows it), so an
+     anchor to the chip would run off the left of a 390px screen; pin the panel under the header
+     with the same 14px gutter instead. */
+  .save-status.save-status--refusal .save-status__text {
+    position: fixed;
+    top: calc(52px + var(--layout-safe-top));
+    right: calc(14px + var(--layout-safe-right));
+    left: calc(14px + var(--layout-safe-left));
+    width: auto;
+  }
+
   .save-status {
     /* The dot alone, in a 20px slot: the text is visually hidden below, not removed. */
     width: 20px;

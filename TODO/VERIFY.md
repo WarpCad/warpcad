@@ -51,6 +51,14 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-125 — Undo refusal in the save-status chip (2026-11-15 14:30)
+
+The refusal panel sits a fixed 52px + `--layout-safe-top` under the top of the screen on a phone. Measured at 390x844 in Chromium and WebKit, but not on a real notched iPhone, where the header height depends on the safe-area inset.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On a notched iPhone (or the iOS Simulator), place a cube, have an agent move it, press Undo: the panel sits just under the header and covers none of the Undo/Redo buttons | Open | |
+
 ### ai-035 — WarpCad skills over MCP, driven with Claude Code as the client (2026-11-15 05:49)
 
 Seven `claude -p --model haiku` runs (`claude-haiku-5-5`, owner subscription, no API key) against scratch project files; transcripts in `bench/results/ai/2026-11-15-skills-over-mcp/`, summary in `bench/results/ai/2026-11-15-skills-over-mcp.md`. Claude Code over MCP, not the in-app Assistant. The first `add-clearances` draft lost a group's other part (fixed in the skill text and re-driven); the rows below are what a single Haiku run cannot settle.
