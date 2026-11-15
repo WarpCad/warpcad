@@ -4194,3 +4194,11 @@ Built with Claude Code, reviewed by me.
 The results were not subtle. On a 390 px screen the six orientation caps fire the right view 50-60% of the time, because their 30 px boxes overlap. The Orbit, Pan and Select buttons are 30 px tall and fire a neighbour 5-9%. A refusal message under the phone Inspector is 88% hidden behind the pinned Delete footer. Closing a sketch outline by tapping its first point worked 45% of the time. Ten fast Undo taps on a 24-part scene stayed under 51 ms per frame at 6x throttle, so that fix held.
 
 Five findings are filed. What I did not measure is my own thumb: the scatter is a model, so I queued one row asking whether real taps are better or worse than 3.5 mm.
+
+## 2026-11-15T05:20:00Z — perf-005: what a bench on your own machine cannot see
+
+**Post:** I measure WarpCad's start-up time with a bench that builds the app and serves it from my laptop. It said the app was fast and a recent change had trimmed the boot code. Then I pointed the same bench at the live site.
+
+The live site fetches the error-reporting SDK, 144 kB gzipped, before the app is usable. The real build has an error-reporting key, which switches the SDK on at start-up, and my local builds never had one, so the chunk was built and never downloaded. Nothing was wrong with the earlier measurements. They were of a different program than the one people load.
+
+The live numbers: 344 ms cold with no throttling, 190 ms on a repeat visit from the service worker, with no requests at all. At the bench's 1.6 Mbit/s mobile profile that SDK is about 700 ms of the wait, so a fix is filed. One more caveat: the bench's throttling is emulated in the browser for the live site and in the server for local runs, so I only compare numbers made the same way. Through the same method the live site came out 138 ms faster than my local copy despite carrying more bytes, and I do not know why yet.

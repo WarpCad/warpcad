@@ -72,6 +72,11 @@
  *   node bench/bundle-load.mjs --build baseline=dist --build split=/tmp/split/dist --runs 7
  *   node bench/bundle-load.mjs --engines chromium --profiles none --runs 3   # a quick look
  *   node bench/bundle-load.mjs --runs 7 --json /tmp/load.json                # every sample
+ *   node bench/bundle-load.mjs --url https://app.warpcad.com/ --runs 7        # the deployed build
+ *       # no local build or server; Chromium only. Network (latency + bandwidth) and CPU
+ *       # throttling go through the DevTools Protocol with the same numbers as below, so the
+ *       # profile's 150 ms is ADDED to the real round trip; counts come from the browser
+ *       # (encoded body bytes, requests the service worker or cache answered are dropped)
  *   node bench/bundle-load.mjs --check --build baseline=dist --build split=/tmp/split/dist
  *       # no timing: each build loads with no errors, its deferred surfaces open, and it
  *       # reloads offline from the service worker (see `checkBuild`)
@@ -94,29 +99,21 @@ import { dirname, join, resolve } from 'node:path'
 import { writeFileSync } from 'node:fs'
 import { chromium, firefox, webkit } from '@playwright/test'
 import { preview } from 'vite'
+import { parseArgs } from './bundle-load-args.mjs'
 
-const args = process.argv.slice(2)
-/** @param {string} flag @param {string} [fallback] */
-const option = (flag, fallback) => {
-  const index = args.indexOf(flag)
-  return index === -1 ? fallback : args[index + 1]
-}
-/** @param {string} flag @returns {string[]} every value of a repeatable flag */
-const options = (flag) => args.flatMap((arg, index) => (arg === flag ? [args[index + 1]] : []))
-
-const RUNS = Number(option('--runs', '7'))
+const CONFIG = parseArgs(process.argv.slice(2))
+const RUNS = CONFIG.runs
 /** Unrecorded rounds per engine and profile first: a fresh browser's first navigation is slow
  * (~330 ms against ~205 ms cold in a first try), which would always land on the first build. */
-const WARMUP = Number(option('--warmup', '1'))
-const ENGINES = (option('--engines', 'chromium,firefox,webkit') ?? '').split(',')
-const PROFILES = (option('--profiles', 'none,slow4g,slow4g-cpu4') ?? '').split(',')
-const JSON_OUT = option('--json')
+const WARMUP = CONFIG.warmup
+const ENGINES = CONFIG.engines
+const PROFILES = CONFIG.profiles
+const JSON_OUT = CONFIG.json
 /** `--check`: no timing; prove each build works (see `checkBuild`). */
-const CHECK = args.includes('--check')
-const BUILDS = (options('--build').length > 0 ? options('--build') : ['baseline=dist']).map((spec) => {
-  const [name, dir] = spec.split('=')
-  return { name, dist: resolve(dir) }
-})
+const CHECK = CONFIG.check
+const BUILDS = CONFIG.builds
+/** `--url`: measure this deployed origin instead of local builds (`TODO/perf-005`). */
+const REMOTE_URL = CONFIG.url
 
 const VIEWPORT = { width: 1440, height: 900 }
 const LATENCY_MS = 150
@@ -147,7 +144,8 @@ const link = { next: 0 }
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
 
 /**
- * @typedef {{ url: string, start: number, end: number, status: number, wire: number, encoding: string, sw: boolean }} Hit
+ * @typedef {{ url: string, start: number, end: number, status: number, wire: number, encoding: string, sw: boolean, raw?: number }} Hit
+ * (`raw` is the decoded body size, set only for deployed builds, where there is no `dist/` to measure)
  */
 
 /**
@@ -352,7 +350,7 @@ function tally(hits, dist) {
     jsRequests: js.length,
     jsWireKb: js.reduce((sum, hit) => sum + hit.wire, 0) / 1000,
     // A 304 transfers no body: only a 200 counts toward the uncompressed JS that was sent.
-    jsRawKb: js.filter((hit) => hit.status === 200).reduce((sum, hit) => sum + diskSize(dist, hit.url), 0) / 1000,
+    jsRawKb: js.filter((hit) => hit.status === 200).reduce((sum, hit) => sum + (hit.raw ?? diskSize(dist, hit.url)), 0) / 1000,
     jsUrls: js.map((hit) => `${hit.status} ${hit.url.split('?')[0]}`),
   }
 }
@@ -390,6 +388,12 @@ async function measuredLoad(page, url, hits, dist) {
   await page.waitForFunction(() => /** @type {any} */ (window).__bundleLoad?.usable != null, null, { timeout: USABLE_TIMEOUT_MS, polling: 50 })
   // What the page asked the server for, from the navigation until the bench saw usable (±one
   // 50 ms poll). The worker's own traffic in that window is reported with the install instead.
+  // Deployed mode reads sizes from the browser asynchronously, so let requests already started
+  // finish recording (at most 2 s) before they are counted; a local server logs synchronously.
+  if (REMOTE_URL) {
+    const until = performance.now() + 2000
+    while (performance.now() < until && hits.some((hit) => !hit.sw && hit.end === 0)) await sleep(20)
+  }
   const counted = tally(hits.filter((hit) => !hit.sw), dist)
   const marks = await page.evaluate(() => /** @type {any} */ (window).__bundleLoad)
   const controlled = await page.evaluate(() => Boolean(navigator.serviceWorker?.controller))
@@ -530,12 +534,90 @@ async function checkBuild(browser, target) {
   return { build: target.name, steps, errors }
 }
 
+/**
+ * Deployed mode (`--url`): logs the context's same-origin requests into `hits`, the way
+ * `meterPlugin` does for a local server. There is no server to meter, so the numbers come from
+ * the browser: Playwright's request events and `request.sizes()` (encoded body bytes, the wire
+ * size after gzip or brotli). A response the service worker answered, or the HTTP cache did, is
+ * dropped: it did not cross the network, which is the same rule the local server gets for free.
+ * Requests the worker itself makes carry `serviceWorker()` and are flagged `sw`.
+ *
+ * @param {import('@playwright/test').BrowserContext} context
+ * @param {Hit[]} hits
+ * @param {string} origin the deployed URL, with a trailing slash
+ */
+function collectRemote(context, hits, origin) {
+  const prefix = new URL(origin).origin
+  /** @type {Map<import('@playwright/test').Request, Hit>} */
+  const open = new Map()
+  context.on('request', (request) => {
+    if (!request.url().startsWith(prefix)) return
+    const parsed = new URL(request.url())
+    /** @type {Hit} */
+    const hit = { url: parsed.pathname + parsed.search, start: performance.now(), end: 0, status: 0, wire: 0, encoding: '', sw: request.serviceWorker() !== null }
+    open.set(request, hit)
+    hits.push(hit)
+  })
+  context.on('requestfinished', async (request) => {
+    const hit = open.get(request)
+    if (!hit) return
+    open.delete(request)
+    try {
+      const response = await request.response()
+      hit.status = response?.status() ?? 0
+      hit.encoding = (await response?.headerValue('content-encoding')) ?? ''
+      if (response?.fromServiceWorker()) {
+        hits.splice(hits.indexOf(hit), 1)
+        return
+      }
+      hit.wire = (await request.sizes()).responseBodySize
+      if (hit.url.split('?')[0].endsWith('.js') && hit.status === 200) hit.raw = (await response.body()).length
+    } catch {
+      // A response that cannot be read (a redirect, a closed page) stays counted with what it has.
+    }
+    hit.end = performance.now()
+  })
+  context.on('requestfailed', (request) => {
+    const hit = open.get(request)
+    if (!hit) return
+    open.delete(request)
+    hit.end = performance.now()
+  })
+}
+
+/**
+ * Applies a profile's latency and bandwidth. Local mode switches the in-server `throttle`;
+ * deployed mode asks Chromium to emulate the same numbers (`Network.emulateNetworkConditions`:
+ * `latencyMs` added to each request's real round trip, `bytesPerMs` as a download cap, 0 for off).
+ *
+ * @param {import('@playwright/test').CDPSession | null} cdp
+ * @param {number} latencyMs
+ * @param {number} bytesPerMs
+ */
+async function applyThrottle(cdp, latencyMs, bytesPerMs) {
+  throttle.latencyMs = latencyMs
+  throttle.bytesPerMs = bytesPerMs
+  if (cdp) {
+    await cdp.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: latencyMs,
+      downloadThroughput: bytesPerMs === 0 ? -1 : bytesPerMs * 1000,
+      uploadThroughput: bytesPerMs === 0 ? -1 : bytesPerMs * 1000,
+    })
+  }
+}
+
 async function main() {
   for (const build of BUILDS) {
     if (!existsSync(join(build.dist, 'index.html'))) throw new Error(`${build.dist} has no index.html: build it first`)
   }
-  /** @type {{ name: string, dist: string, url: string, hits: Hit[], server: import('vite').PreviewServer, entry: string }[]} */
+  /** @type {{ name: string, dist: string, url: string, hits: Hit[], server: import('vite').PreviewServer | null, entry: string }[]} */
   const servers = []
+  if (REMOTE_URL) {
+    const html = await (await fetch(REMOTE_URL)).text()
+    const entry = /<script[^>]+type="module"[^>]+src="([^"]+)"/.exec(html)?.[1] ?? '?'
+    servers.push({ name: 'deployed', dist: '', url: REMOTE_URL, hits: [], server: null, entry })
+  }
   for (const [index, build] of BUILDS.entries()) {
     /** @type {Hit[]} */
     const hits = []
@@ -555,7 +637,7 @@ async function main() {
 
   console.log(`# bundle-load — ${new Date().toISOString()}`)
   console.log(`machine: ${machine()}`)
-  console.log(`viewport ${VIEWPORT.width}×${VIEWPORT.height}, runs ${RUNS}, builds: ${servers.map((s) => `${s.name}=${s.dist} (${s.entry})`).join(', ')}`)
+  console.log(`viewport ${VIEWPORT.width}×${VIEWPORT.height}, runs ${RUNS}, builds: ${servers.map((s) => `${s.name}=${REMOTE_URL ? s.url : s.dist} (${s.entry})`).join(', ')}${REMOTE_URL ? ' [deployed: network and CPU throttling via CDP, not in the server]' : ''}`)
 
   if (CHECK) {
     let failed = false
@@ -569,7 +651,7 @@ async function main() {
       }
       await browser.close()
     }
-    for (const target of servers) await target.server.close()
+    for (const target of servers) await target.server?.close()
     process.exitCode = failed ? 1 : 0
     return
   }
@@ -593,27 +675,24 @@ async function main() {
           const context = await browser.newContext({ viewport: VIEWPORT })
           await context.addInitScript(installProbe)
           const page = await context.newPage()
-          if (profile.cpu !== 1) {
-            const cdp = await context.newCDPSession(page)
-            await cdp.send('Emulation.setCPUThrottlingRate', { rate: profile.cpu })
-          }
+          const cdp = profile.cpu !== 1 || REMOTE_URL ? await context.newCDPSession(page) : null
+          if (cdp && profile.cpu !== 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: profile.cpu })
+          if (REMOTE_URL) collectRemote(context, target.hits, REMOTE_URL)
+          const netCdp = REMOTE_URL ? cdp : null
           const base = { build: target.name, engine: engineName, version: browser.version(), profile: profileName, run }
           try {
-            throttle.latencyMs = profile.latencyMs
-            throttle.bytesPerMs = profile.bytesPerMs
+            await applyThrottle(netCdp, profile.latencyMs, profile.bytesPerMs)
             const cold = await measuredLoad(page, target.url, target.hits, target.dist)
             if (record) samples.push({ ...base, cache: 'cold', ...cold })
 
-            throttle.latencyMs = 0
-            throttle.bytesPerMs = 0
+            await applyThrottle(netCdp, 0, 0)
             const worker = await waitForWorker(page)
             await settle(target.hits, 500)
             // Everything the worker fetched since the navigation: its script, Workbox, the precache.
             const install = tally(target.hits.filter((hit) => hit.sw), target.dist)
             if (record) samples.push({ ...base, cache: 'install', worker, ...install, marks: {}, errors: [] })
 
-            throttle.latencyMs = profile.latencyMs
-            throttle.bytesPerMs = profile.bytesPerMs
+            await applyThrottle(netCdp, profile.latencyMs, profile.bytesPerMs)
             const repeat = await measuredLoad(page, target.url, target.hits, target.dist)
             if (record) samples.push({ ...base, cache: repeat.controlled ? 'repeat-sw' : 'repeat-http', ...repeat })
             process.stdout.write(
@@ -632,7 +711,7 @@ async function main() {
     }
     await browser.close()
   }
-  for (const target of servers) await target.server.close()
+  for (const target of servers) await target.server?.close()
 
   // Report: one table per profile; medians (min–max) of the timings, medians of the counts.
   for (const profileName of PROFILES) {
@@ -670,7 +749,7 @@ async function main() {
   for (const line of skipped) console.log(`skipped: ${line}`)
   const firstCold = samples.filter((sample) => sample.cache === 'cold' && sample.run === 0 && sample.profile === PROFILES[0])
   for (const sample of firstCold) console.log(`\n${sample.engine}/${sample.build} cold JS requests until usable:\n  ${sample.jsUrls.join('\n  ')}`)
-  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ machine: machine(), viewport: VIEWPORT, builds: BUILDS, samples, skipped }, null, 2))
+  if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ machine: machine(), viewport: VIEWPORT, builds: BUILDS, url: REMOTE_URL, samples, skipped }, null, 2))
 }
 
 await main()

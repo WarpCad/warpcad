@@ -6,8 +6,15 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** `bench/bundle-load.mjs --url <origin>` measures one deployed build, Chromium only.
+> There is no server to pace, so Chromium emulates the same profiles through the DevTools Protocol (150 ms added to the real
+> round trip, 200 kB/s, 4x CPU), and request counts and bytes come from Playwright's request events. Argument parsing moved to
+> `bench/bundle-load-args.mjs` (the bench runs `main()` on import) with `bench/bundle-load-args.spec.js`. Local mode is unchanged
+> and reproduced. Results: `bench/results/2026-11-15-perf-005.md`. `perf-002` #1 is `OK`. The run found that the deploy loads the
+> Sentry SDK before usable: filed as `perf-006`. The bench has no `--help` flag; its header comment is the usage text.
 
 ## Problem
 

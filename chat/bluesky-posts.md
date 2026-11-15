@@ -2892,3 +2892,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 200 scattered taps per target, Chromium touch emulation at 390x844 (WebKit and 820 px tablet at 100), production build; bench/results/2026-11-15-testing-031.md
 **To Add:** none
+
+## 2026-11-15T05:20:00Z — perf-005: the live site loads an error reporter before you can use it
+
+**Post:** I pointed my load-time bench at the real deployed WarpCad instead of a local build. Cold start is 344 ms with no throttling, and a repeat visit is 190 ms from the service worker with zero requests. But the live site fetches a 144 kB (gzipped) error-reporting SDK before the app is usable, and my local runs never saw it because they had no key set. One finding filed.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `bench/bundle-load.mjs --url https://app.warpcad.com/ --runs 7`, Chromium 153, 7 runs per cell; the localhost run through the same code path reproduces local mode's byte counts; bench/results/2026-11-15-perf-005.md
+**To Add:** none
