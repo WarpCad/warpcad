@@ -4202,3 +4202,11 @@ Five findings are filed. What I did not measure is my own thumb: the scatter is 
 The live site fetches the error-reporting SDK, 144 kB gzipped, before the app is usable. The real build has an error-reporting key, which switches the SDK on at start-up, and my local builds never had one, so the chunk was built and never downloaded. Nothing was wrong with the earlier measurements. They were of a different program than the one people load.
 
 The live numbers: 344 ms cold with no throttling, 190 ms on a repeat visit from the service worker, with no requests at all. At the bench's 1.6 Mbit/s mobile profile that SDK is about 700 ms of the wait, so a fix is filed. One more caveat: the bench's throttling is emulated in the browser for the live site and in the server for local runs, so I only compare numbers made the same way. Through the same method the live site came out 138 ms faster than my local copy despite carrying more bytes, and I do not know why yet.
+
+## 2026-11-15T05:55:00Z — ai-035: what driving a skill showed that its tests did not
+
+**Post:** WarpCad's MCP server now offers skills, the Skills Over MCP extension: short written workflows that an AI client reads only when a request matches. The first two are adding a clearance gap to a group of parts that must fit together, and building a printable enclosure around a part or board.
+
+The unit and protocol specs passed on the first try. Then I connected Claude Code, asked it to add 0.2 mm clearance to a group called Housing, and watched. It read the skill before changing anything, followed it, and deleted one of the two parts: cutting into a part of a group uses up the whole group in this tool set. It noticed, rebuilt the part, and told me. A second draft sent it to a tool that does not show what the draft promised, so it stopped and asked an unneeded question. The third draft works for box-shaped parts and says so for anything else. The enclosure skill needed no change: it measured a 0.2 mm gap to the board and a 1.37 mm thinnest wall.
+
+Two caveats. The runs used the cheapest Claude model, so they are a floor, and the 0.2 mm default clearance is my call, not a tested figure. A separate finding lists eight tool gaps the skills work around, such as no way to name a body.

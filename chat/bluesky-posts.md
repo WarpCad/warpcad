@@ -2901,3 +2901,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** `bench/bundle-load.mjs --url https://app.warpcad.com/ --runs 7`, Chromium 153, 7 runs per cell; the localhost run through the same code path reproduces local mode's byte counts; bench/results/2026-11-15-perf-005.md
 **To Add:** none
+
+## 2026-11-15T05:55:00Z — ai-035: skills over MCP, and the first one lost a part
+
+**Post:** WarpCad's MCP server now serves skills: written workflows an AI client loads only when the job needs them. First two: add a clearance gap to a group of parts, and build an enclosure around a part. I drove Claude Code at both. The enclosure run measured a 0.2 mm gap. The clearance skill's first draft deleted a part of the group, and the model said so and rebuilt it. Fixed, driven again.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #MCP #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 7 headless `claude -p --model haiku` runs on scratch files, transcripts in bench/results/ai/2026-11-15-skills-over-mcp.md
+**To Add:** none
