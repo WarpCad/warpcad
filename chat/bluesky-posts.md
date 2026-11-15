@@ -2910,3 +2910,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 7 headless `claude -p --model haiku` runs on scratch files, transcripts in bench/results/ai/2026-11-15-skills-over-mcp.md
 **To Add:** none
+
+## 2026-11-15T06:15:00Z — ui-124: two overlays that were 10 px short of fitting
+
+**Post:** Sweeping WarpCad's window from 1440 px down to 390 and back in 10 px steps, one band was wrong: at about 650 px the navigation pad covered the first letter of the grid scale readout, by 10 px. The canvas was too narrow for both. Under 380 px of canvas the pad now folds to a 38 px toggle and opens on a tap. The sweep is now a spec, on three engines.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** e2e/nav-chrome-scale-readout.e2e.js (650 and 660 px plus the 1440-390-1440 sweep, Chromium, Firefox, WebKit); driven by hand at 650, 660 and 820 px
+**To Add:** none

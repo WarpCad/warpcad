@@ -498,6 +498,26 @@ const STEPS = Object.freeze([
   }
 }
 
+/* TODO/ui-124. The tablet form (641px and up) can leave the canvas too narrow for the expanded
+   pad (193px, left) and the grid scale readout (163px, right) side by side: they overlapped by
+   ~10px at a 650px window. Under 380px of canvas the cluster folds to its one toggle, the form the
+   phone's raised cluster uses, and a tap expands it. A container query, not a window `@media`: it is
+   the canvas that is short of room, and the Inspector and Library tracks move with the window.
+   Below 641px the rules above already own the phone. */
+@media (min-width: 641px) {
+  @container viewport (max-width: 380px) {
+    .chrome .chrome__expand {
+      display: grid;
+    }
+
+    .chrome:not(.chrome--expanded) .chrome__body,
+    .chrome:not(.chrome--expanded) .chrome__pad,
+    .chrome:not(.chrome--expanded) .chrome__zoom {
+      display: none;
+    }
+  }
+}
+
 @media (max-width: 640px) {
   .chrome--raised .chrome__expand {
     display: grid;

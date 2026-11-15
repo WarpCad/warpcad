@@ -57,12 +57,12 @@ the umbrella `ui-111` closed last. Rows 21–34 drive the parked VERIFY.md check
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
+| [Findings](#findings-open-rows) | 44 queued + 5 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then `testing-039` from `testing-017` (`ui-124` closed), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
-| 39 | ▶ Ready | `FIND` | [`ui-124`](FIND-ui-124-nav-chrome-covers-scale-readout-at-650px.md) Stop the navigation chrome covering the grid scale readout at about 650 px wide | sonnet |
 | 40 | ▶ Ready | `FIND` | [`testing-039`](FIND-testing-039-graduate-overlay-and-gizmo-engine-checks-to-a-spec.md) Graduate the hand-checked Show hidden parts overlay and move-arrow colour checks into a three-engine e2e spec | sonnet |
 | 41 | ▶ Ready | `FIND` | [`core-083`](FIND-core-083-sketch-linear-twist-collapses-at-default-steps.md) Make a sketch's Linear twist take its steps from the resolution, so Twist 90 is not a folded solid | sonnet |
 | 42 | ▶ Ready | `FIND` | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) Word the Undo refusal from step labels and show it in the save-status chip | sonnet |
@@ -166,7 +166,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ▶ Ready (Next up row 36) |
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
-| [`ui-124`](FIND-ui-124-nav-chrome-covers-scale-readout-at-650px.md) Stop the navigation chrome covering the grid scale readout at about 650 px wide | finding | low | sonnet | ▶ Ready (Next up row 39) |
 | [`testing-039`](FIND-testing-039-graduate-overlay-and-gizmo-engine-checks-to-a-spec.md) Graduate the hand-checked Show hidden parts overlay and move-arrow colour checks into a three-engine e2e spec | finding | low | sonnet | ▶ Ready (Next up row 40) |
 | [`core-083`](FIND-core-083-sketch-linear-twist-collapses-at-default-steps.md) A sketch's Linear twist at the default one twist step folds the solid | finding | medium | sonnet | ▶ Ready (Next up row 41) |
 | [`ui-125`](FIND-ui-125-undo-refusal-message-leaks-internals.md) The Undo refusal message leaks internals and is not in the save-status chip | finding | low | sonnet | ▶ Ready (Next up row 42) |
@@ -358,7 +357,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
 | `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
-| `ui-124` | The navigation chrome covers the left 10 px of the grid scale readout at a window about 650 px wide. Filed 2026-11-14 from the `testing-017` sweep | Finding | — | 1, 4 (tablet width) |
 | `testing-039` | Graduate the hand-checked Show hidden parts overlay and move-arrow colour checks into a three-engine e2e spec. Filed 2026-11-14 from `testing-017` | Finding | — | none |
 | `core-083` | A sketch's Linear Twist at the default one twist step folds the solid (30 × 16 × 30 mm at Twist 90 reads 3 820 mm³, not 14 400). Filed 2026-11-14 from `testing-019` | Finding | — | 9 |
 | `ui-125` | The header's Undo refusal leaks `document.undo:` and a record id, and sits beside the save-status chip instead of in it. Filed 2026-11-14 from `testing-019` | Finding | — | none |
@@ -482,7 +480,6 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 45 queued + 5 held | The runner's queue: test health, independent fixes, `perf-004` and `ui-108`, the VERIFY.md drives, three follow-ups the closed theme chain filed (`ui-122`, `ui-123`, `testing-038`), then two from `testing-017` (`ui-124`, `testing-039`), then two from `testing-020` (`ui-126`, `testing-040`), then `io-031` from `testing-023`, then five wording and chrome findings from the `testing-029` cold-read panel (`docs-036`, `ui-127`, `ui-128`, `ui-129`, `ai-039`). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri-held) | 21 held | `build-019`, `build-018`, `testing-011`, `build-020`, `io-026`, `testing-035`, `build-030`, and 14 rows from the 2026-11-13 native audit (`build-031`–`build-038`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`). Nothing native is pushed yet (owner, 2026-11-13). |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-017 viewport sweep
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15), option 1.** From 641 px up (the tablet forms; the phone rules own 640 and below), when the
+> viewport container is under 380 px wide the navigation chrome folds to its 38 px expand toggle, the form the phone's raised
+> pad already uses, and a tap on it opens the pad. It is a container query in `NavigationChrome.vue` only; `Grid.vue` and
+> `Viewport.vue` were not touched (`Viewport.vue` already declares the `viewport` size container). Chosen over stacking the
+> readout (option 2) or dropping its legend (option 3) because it fixes the cause (the canvas is too narrow for both) and keeps
+> the readout whole. Cost: in a 641-690 px window the pad is one tap further away. New spec `e2e/nav-chrome-scale-readout.e2e.js`
+> (650 and 660 px, the 1440-390-1440 sweep, collapsed-toggle reach) on the three laptop-size projects.
 
 ## Problem
 

@@ -4210,3 +4210,11 @@ The live numbers: 344 ms cold with no throttling, 190 ms on a repeat visit from 
 The unit and protocol specs passed on the first try. Then I connected Claude Code, asked it to add 0.2 mm clearance to a group called Housing, and watched. It read the skill before changing anything, followed it, and deleted one of the two parts: cutting into a part of a group uses up the whole group in this tool set. It noticed, rebuilt the part, and told me. A second draft sent it to a tool that does not show what the draft promised, so it stopped and asked an unneeded question. The third draft works for box-shaped parts and says so for anything else. The enclosure skill needed no change: it measured a 0.2 mm gap to the board and a 1.37 mm thinnest wall.
 
 Two caveats. The runs used the cheapest Claude model, so they are a floor, and the 0.2 mm default clearance is my call, not a tested figure. A separate finding lists eight tool gaps the skills work around, such as no way to name a body.
+
+## 2026-11-15T06:15:00Z — ui-124: the bug that lived in a 20 px band
+
+**Post:** A few days ago I swept WarpCad's window from 1440 px to 390 and back in 10 px steps, in three browser engines, and checked that none of four overlays touched another. Every width held except one band, roughly 645 to 664 px: the navigation pad, anchored left, drew over the left edge of the grid scale readout, anchored right. The first letter of its "Grid" label was hidden. No button was covered, which is why nobody had noticed.
+
+Each overlay was fine alone. The canvas at that width was 360 px, and the two needed 388. The fix is a container query: under 380 px of canvas the pad folds to its 38 px toggle, the form the phone already used, and a tap opens it. I tried to keep the pad reachable without a keyboard, so I checked the toggle is at tap size and that orbit and zoom still work through it.
+
+The cost is that at those widths the pad is one tap further away. I also wrote the sweep itself as a permanent spec, so the next overlay added to the canvas has to fit at all 210 widths, not just the three I had been testing.
