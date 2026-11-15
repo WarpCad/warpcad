@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { test, expect } from '@playwright/test'
+import { changedPixels, snapshotCanvas } from './support/canvasSnapshot.js'
 
 /**
  * Hide and show from the Inspector's Objects list (`TODO/ui-089`), driven against `/` — the
@@ -213,65 +214,6 @@ async function showObjectList(page) {
 /** @param {import('@playwright/test').Page} page */
 const nextFrames = (page) =>
   page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-
-/**
- * Photograph the WebGL canvas alone (every overlay hidden) into page memory under `key`.
- * `visibility`, not `display`, so nothing reflows between snapshots.
- *
- * @param {import('@playwright/test').Page} page
- * @param {string} key
- */
-async function snapshotCanvas(page, key) {
-  await nextFrames(page)
-  const handle = await page.addStyleTag({
-    content: '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}',
-  })
-  try {
-    const png = await page.getByTestId('viewport-canvas').screenshot()
-    await page.evaluate(
-      async ({ b64, key }) => {
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
-        const surface = new OffscreenCanvas(bitmap.width, bitmap.height)
-        const context = surface.getContext('2d')
-        context.drawImage(bitmap, 0, 0)
-        window.__canvasSnaps = window.__canvasSnaps ?? {}
-        window.__canvasSnaps[key] = context.getImageData(0, 0, bitmap.width, bitmap.height)
-      },
-      { b64: png.toString('base64'), key },
-    )
-  } finally {
-    await handle.evaluate((node) => node.remove())
-  }
-}
-
-/**
- * How many pixels differ visibly between two stored snapshots.
- *
- * @param {import('@playwright/test').Page} page
- * @param {string} a
- * @param {string} b
- * @returns {Promise<number>}
- */
-function changedPixels(page, a, b) {
-  return page.evaluate(
-    ({ a, b }) => {
-      const first = window.__canvasSnaps[a]
-      const second = window.__canvasSnaps[b]
-      if (first.width !== second.width || first.height !== second.height) return -1
-      let changed = 0
-      for (let index = 0; index < first.data.length; index += 4) {
-        const delta =
-          Math.abs(first.data[index] - second.data[index]) +
-          Math.abs(first.data[index + 1] - second.data[index + 1]) +
-          Math.abs(first.data[index + 2] - second.data[index + 2])
-        if (delta > 24) changed += 1
-      }
-      return changed
-    },
-    { a, b },
-  )
-}
 
 /**
  * Steps 1 of the docs example: drop a Cube, Enlarge it by 50 mm on Y (40 → 90), and Split it

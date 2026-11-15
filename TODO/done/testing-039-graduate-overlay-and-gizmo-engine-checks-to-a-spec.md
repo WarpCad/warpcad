@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from testing-017
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-15.** `e2e/gizmo-overlay-pixels.e2e.js` (new) holds both parts. Part 1 runs on all nine projects: the toggle-off comparison for the canvas and for the visible viewport with overlays on screen, and Subtract with the bolt's `tap` against a one-pixel resize and back. Part 2 runs at laptop width on all three engines in both colour schemes: red/green/blue dominance at the centre of each shaft and cone and a lit-versus-dark luminance spread across each. `snapshotCanvas` and `changedPixels` moved to `e2e/support/canvasSnapshot.js` (with a new `snapshotVisibleViewport`) and the three specs that carried a copy import it; `object-visibility` now also switches off overlay filters while it photographs, as the other two always did. Mutation checks: a toggle-off that keeps the overlay, an X shaft painted with Y's gradient, and flat (unshaded) gradients each turned the spec red. The Bolt is consumed by the Subtract, so its toggle disappears; the spec asserts that.
 
 ## Problem
 

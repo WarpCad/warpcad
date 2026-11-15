@@ -2919,3 +2919,12 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** e2e/nav-chrome-scale-readout.e2e.js (650 and 660 px plus the 1440-390-1440 sweep, Chromium, Firefox, WebKit); driven by hand at 650, 660 and 820 px
 **To Add:** none
+
+## 2026-11-15T07:02:00Z — testing-039: two hand checks that became a spec
+
+**Post:** Twice I checked by hand that WarpCad's "Show hidden parts" toggle leaves no ghost behind and that the move arrows stay red, green and blue with a lit and a dark side. Twice is the rule for turning it into a test. It now is one: pixel counts before and after the toggle, with and without the overlays on screen, then Subtract and a forced redraw, plus colour samples across every arrow. Chromium, Firefox and WebKit.
+**Links:** [Repo](<repo-url>)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** e2e/gizmo-overlay-pixels.e2e.js; broke the toggle-off, swapped an axis gradient and flattened the shading to watch it go red
+**To Add:** none

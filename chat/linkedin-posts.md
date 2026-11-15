@@ -4218,3 +4218,11 @@ Two caveats. The runs used the cheapest Claude model, so they are a floor, and t
 Each overlay was fine alone. The canvas at that width was 360 px, and the two needed 388. The fix is a container query: under 380 px of canvas the pad folds to its 38 px toggle, the form the phone already used, and a tap opens it. I tried to keep the pad reachable without a keyboard, so I checked the toggle is at tap size and that orbit and zoom still work through it.
 
 The cost is that at those widths the pad is one tap further away. I also wrote the sweep itself as a permanent spec, so the next overlay added to the canvas has to fit at all 210 widths, not just the three I had been testing.
+
+## 2026-11-15T07:02:00Z — testing-039: a test that has to be able to fail
+
+**Post:** Two checks in WarpCad's manual queue had been driven by hand twice: that turning "Show hidden parts" off leaves the 3D view exactly as it was, and that the move arrows keep their red, green and blue and a lit and a dark flank. My own rule says a check done twice becomes a spec on every browser engine, so I wrote one.
+
+The part I care about is whether it can fail. A test that has only ever passed proves little, so I broke the app three ways and ran it: a toggle-off that leaves the overlay drawn, an X arrow painted with the Y gradient, and arrows with the shading flattened. Each turned it red. The first version of the arrow check passed the flat-shading break by accident, because a stray pixel at the shaft's edge looked like a dark flank. I narrowed the samples to the inside of the shaft and it caught it.
+
+It runs on Chromium, Firefox and WebKit. The picture comparison takes the part of the viewport a person sees, with the gizmo and scale readout on screen, not only the bare canvas, which is what the older spec measured. The snapshot helper that three specs had each copied now lives in one shared file.

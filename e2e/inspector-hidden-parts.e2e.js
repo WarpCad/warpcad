@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { test, expect } from '@playwright/test'
+import { changedPixels, snapshotCanvas } from './support/canvasSnapshot.js'
 
 /**
  * The Inspector's **Show hidden parts** toggle (`TODO/ui-047`), now inside the **Parts**
@@ -112,76 +113,6 @@ function sceneBodies(page) {
       id: node.getAttribute('data-body-id') ?? '',
       op: node.getAttribute('data-body-op') ?? '',
     })),
-  )
-}
-
-/**
- * Photograph the WebGL canvas alone (every overlay hidden) into page memory under `key`.
- *
- * The Inspector is hidden too: at phone width its bottom sheet is drawn over the canvas's
- * box, so an element screenshot of the canvas would otherwise photograph the sheet — and
- * `.check()` on the toggle scrolls that sheet when `ui-051`'s pinned Delete row covers the
- * toggle, which read as thousands of "canvas" pixels changing when the 3D view had not.
- * `visibility`, not `display`, so nothing reflows between snapshots.
- *
- * `filter` and `backdrop-filter` are switched off on the hidden overlays too (`TODO/render-007`):
- * Firefox still paints a `visibility:hidden` SVG element's CSS `drop-shadow`, so the selection
- * gizmo's Z arm (`.tgizmo__arm`, `Gizmo.vue`) left two faint grey bars in every Firefox snapshot,
- * straight over the bolt's shank — and they were repainted a pixel apart from one snapshot to the
- * next. That was the whole "remnant" this spec kept failing on: the WebGL canvas's own pixels were
- * identical before and after (0 changed), and so was a snapshot with the gizmo `display:none`.
- * Neither property affects layout, so the no-reflow rule above still holds.
- */
-async function snapshotCanvas(page, key) {
-  const handle = await page.addStyleTag({
-    content:
-      '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}' +
-      '[data-testid=viewport] > :not(canvas),[data-testid=viewport] > :not(canvas) *{filter:none !important;backdrop-filter:none !important}',
-  })
-  try {
-    const png = await page.getByTestId('viewport-canvas').screenshot()
-    await page.evaluate(
-      async ({ b64, key }) => {
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
-        const surface = new OffscreenCanvas(bitmap.width, bitmap.height)
-        const context = surface.getContext('2d')
-        context.drawImage(bitmap, 0, 0)
-        window.__canvasSnaps = window.__canvasSnaps ?? {}
-        window.__canvasSnaps[key] = context.getImageData(0, 0, bitmap.width, bitmap.height)
-      },
-      { b64: png.toString('base64'), key },
-    )
-  } finally {
-    await handle.evaluate((node) => node.remove())
-  }
-}
-
-/**
- * How many pixels differ visibly between two stored snapshots.
- *
- * @param {import('@playwright/test').Page} page
- * @param {string} a
- * @param {string} b
- * @returns {Promise<number>}
- */
-function changedPixels(page, a, b) {
-  return page.evaluate(
-    ({ a, b }) => {
-      const first = window.__canvasSnaps[a]
-      const second = window.__canvasSnaps[b]
-      if (first.width !== second.width || first.height !== second.height) return -1
-      let changed = 0
-      for (let index = 0; index < first.data.length; index += 4) {
-        const delta =
-          Math.abs(first.data[index] - second.data[index]) +
-          Math.abs(first.data[index + 1] - second.data[index + 1]) +
-          Math.abs(first.data[index + 2] - second.data[index + 2])
-        if (delta > 24) changed += 1
-      }
-      return changed
-    },
-    { a, b },
   )
 }
 

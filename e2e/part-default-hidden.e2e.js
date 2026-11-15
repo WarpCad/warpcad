@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 
 import { closeLibrary, isPhone, openLibrary, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
+import { changedPixels, snapshotCanvas } from './support/canvasSnapshot.js'
 
 /**
  * The Inspector's **Hidden by default** checkbox (`TODO/ui-093`), driven against `/` with a real
@@ -65,63 +66,6 @@ async function boundsOf(page, name) {
 
 /** The extent along each axis. @param {number[]} b */
 const extent = (b) => [b[3] - b[0], b[4] - b[1], b[5] - b[2]]
-
-/**
- * Photograph the WebGL canvas alone into page memory (see `inspector-hidden-parts.e2e.js`).
- *
- * `filter` and `backdrop-filter` are switched off on the hidden overlays as well (`TODO/testing-016`,
- * the same cause as `TODO/render-007`): Firefox keeps painting a `visibility:hidden` SVG element's
- * CSS `drop-shadow`, so the selection gizmo's Z arm (`.tgizmo__arm`, `Gizmo.vue`) left two faint grey
- * bars over the group in every Firefox snapshot, drawn a different length from one snapshot to the
- * next. That was up to 57 "changed" pixels on firefox-tablet while the WebGL pixels were identical.
- * Neither property affects layout, so nothing reflows between snapshots.
- */
-async function snapshotCanvas(page, key) {
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-  const handle = await page.addStyleTag({
-    content:
-      '[data-testid=viewport] > :not(canvas),[data-testid=inspector]{visibility:hidden !important}' +
-      '[data-testid=viewport] > :not(canvas),[data-testid=viewport] > :not(canvas) *{filter:none !important;backdrop-filter:none !important}',
-  })
-  try {
-    const png = await page.getByTestId('viewport-canvas').screenshot()
-    await page.evaluate(
-      async ({ b64, key }) => {
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
-        const surface = new OffscreenCanvas(bitmap.width, bitmap.height)
-        const context = surface.getContext('2d')
-        context.drawImage(bitmap, 0, 0)
-        window.__canvasSnaps = window.__canvasSnaps ?? {}
-        window.__canvasSnaps[key] = context.getImageData(0, 0, bitmap.width, bitmap.height)
-      },
-      { b64: png.toString('base64'), key },
-    )
-  } finally {
-    await handle.evaluate((node) => node.remove())
-  }
-}
-
-/** How many pixels differ visibly between two stored snapshots. */
-function changedPixels(page, a, b) {
-  return page.evaluate(
-    ({ a, b }) => {
-      const first = window.__canvasSnaps[a]
-      const second = window.__canvasSnaps[b]
-      if (first.width !== second.width || first.height !== second.height) return -1
-      let changed = 0
-      for (let index = 0; index < first.data.length; index += 4) {
-        const delta =
-          Math.abs(first.data[index] - second.data[index]) +
-          Math.abs(first.data[index + 1] - second.data[index + 1]) +
-          Math.abs(first.data[index + 2] - second.data[index + 2])
-        if (delta > 24) changed += 1
-      }
-      return changed
-    },
-    { a, b },
-  )
-}
 
 /**
  * Poll a fresh canvas against a stored one until the difference is on the right side of a count.
