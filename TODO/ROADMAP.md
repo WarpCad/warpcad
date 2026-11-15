@@ -65,19 +65,18 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 11 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, three follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 10 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, three follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 27 queued (26 ready, 1 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Parked: `perf-004` (owner question). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
-| 67 | ▶ Ready | `M19` | [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build | sonnet |
-| 68 | ⏳ Waits on 67 | `M19` | [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) Let the native bundle's CSP allow Help and the Tauri bridge | sonnet |
-| 69 | ⏳ Waits on 67 | `M19` | [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process | sonnet |
-| 70 | ⏳ Waits on 67 | `M19` | [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) Scope Mac and Windows file access to `Documents/WarpCad` | sonnet |
-| 71 | ⏳ Waits on 67 | `M19` | [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: Wi-Fi address only, request size cap, the unencrypted-token sentence | opus |
-| 72 | ⏳ Waits on 67 | `M19` | [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS, checked by a test | sonnet |
-| 73 | ⏳ Waits on 67 | `M19` | [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme | sonnet |
-| 74 | ⏳ Waits on 67–69 | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 75 | ⏳ Waits on 67 | `M19` | [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Correct the 12 native TODO, README and roadmap lines that contradict the repository | sonnet |
+| 68 | ▶ Ready | `M19` | [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) Let the native bundle's CSP allow Help and the Tauri bridge | sonnet |
+| 69 | ▶ Ready | `M19` | [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process | sonnet |
+| 70 | ▶ Ready | `M19` | [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) Scope Mac and Windows file access to `Documents/WarpCad` | sonnet |
+| 71 | ▶ Ready | `M19` | [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: Wi-Fi address only, request size cap, the unencrypted-token sentence | opus |
+| 72 | ▶ Ready | `M19` | [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS, checked by a test | sonnet |
+| 73 | ▶ Ready | `M19` | [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme | sonnet |
+| 74 | ⏳ Waits on 68–69 | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
+| 75 | ▶ Ready | `M19` | [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Correct the 12 native TODO, README and roadmap lines that contradict the repository | sonnet |
 | 76 | ⏳ Waits on 68 | `M19` | [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers agree | sonnet |
-| 77 | ⏳ Waits on 67 | `M19` | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` | opus |
+| 77 | ▶ Ready | `M19` | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` | opus |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
@@ -196,20 +195,19 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
 | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
-| [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build (M19) | finding | high | sonnet | ▶ Ready (Next up row 67) |
-| [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge (M19) | finding | high | sonnet | ⏳ Waits on 67 (Next up row 68) |
-| [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process, instead of a blank screen (M19) | finding | high | sonnet | ⏳ Waits on 67 (Next up row 69) |
-| [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) On Mac and Windows the page can read and delete anything in the user's Documents folder (M19) | finding | high | sonnet | ⏳ Waits on 67 (Next up row 70) |
-| [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted (M19) | finding | medium | opus | ⏳ Waits on 67 (Next up row 71) |
-| [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS for the native app, checked by a test (M19) | finding | medium | sonnet | ⏳ Waits on 67 (Next up row 72) |
-| [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme (M19) | finding | medium | sonnet | ⏳ Waits on 67 (Next up row 73) |
-| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | ⏳ Waits on 67–69 (Next up row 74) |
+| [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge (M19) | finding | high | sonnet | ▶ Ready (Next up row 68) |
+| [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process, instead of a blank screen (M19) | finding | high | sonnet | ▶ Ready (Next up row 69) |
+| [`io-029`](../../warpcad-native/TODO/M19-io-029-desktop-file-scope-is-the-whole-documents-folder.md) On Mac and Windows the page can read and delete anything in the user's Documents folder (M19) | finding | high | sonnet | ▶ Ready (Next up row 70) |
+| [`ai-036`](../../warpcad-native/TODO/M19-ai-036-mcp-listener-hardening.md) MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted (M19) | finding | medium | opus | ▶ Ready (Next up row 71) |
+| [`build-034`](../../warpcad-native/TODO/M19-build-034-one-version-and-one-minimum-os.md) One version number and one minimum OS for the native app, checked by a test (M19) | finding | medium | sonnet | ▶ Ready (Next up row 72) |
+| [`ui-121`](../../warpcad-native/TODO/M19-ui-121-native-status-bar-and-launch-colour-follow-the-theme.md) The iOS status bar and launch screen follow the theme (M19) | finding | medium | sonnet | ▶ Ready (Next up row 73) |
+| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | ⏳ Waits on 68–69 (Next up row 74) |
 | [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers say the same thing (M19) | finding | high | sonnet | ⏳ Waits on 68 (Next up row 76) |
-| [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` (M19) | finding | high | opus | ⏳ Waits on 67 (Next up row 77) |
+| [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` (M19) | finding | high | opus | ▶ Ready (Next up row 77) |
 | [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: entitlements, hardened runtime, signing, notarized or Mac App Store build (M19) | feature | medium | sonnet | Held (native) |
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
-| [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Native TODO files, README and roadmap text that contradict the repository (12 lines) (M19) | finding | low | sonnet | ⏳ Waits on 67 (Next up row 75) |
+| [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Native TODO files, README and roadmap text that contradict the repository (12 lines) (M19) | finding | low | sonnet | ▶ Ready (Next up row 75) |
 | [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
 | [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
 | [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5) | feature | medium | sonnet | Deferred 2026-11-07 |
@@ -294,17 +292,16 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `build-031` | Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build. **First**: every row below assumes `main` holds the release work | Finding | — | none |
-| `build-032` | The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge. Two repositories; confirm on the Mac shell first | Finding | `build-031` | none (Mac shell + simulator) |
-| `build-033` | Reload the app when iOS kills its web content process, instead of a blank screen. Mac and simulator only | Finding | `build-031` | none (Mac shell + simulator) |
-| `io-029` | On Mac and Windows the page can read and delete anything in the user's Documents folder: scope it to `Documents/WarpCad`. Two repositories | Finding | `build-031` | none (Mac shell) |
-| `ai-036` | MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted. Two repositories for the sheet's sentence. Opus | Finding | `build-031` | none |
-| `build-034` | One version number and one minimum OS (iOS and iPadOS 26.0, macOS 26.0, decided 2026-11-13), checked by a test | Finding | `build-031` | none |
-| `ui-121` | The iOS status bar and launch screen follow the theme. Check on the simulator first; it may already be fine | Finding | `build-031` | none (simulator) |
-| `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | `build-031`, `build-032`, `build-033` | 28 (local build) |
-| `docs-035` | Native TODO files, README and roadmap text that contradict the repository (12 lines). Text only | Finding | `build-031` | none |
+| `build-032` | The native bundle ships the web page's CSP, which allows neither Help nor the Tauri bridge. Two repositories; confirm on the Mac shell first | Finding | — | none (Mac shell + simulator) |
+| `build-033` | Reload the app when iOS kills its web content process, instead of a blank screen. Mac and simulator only | Finding | — | none (Mac shell + simulator) |
+| `io-029` | On Mac and Windows the page can read and delete anything in the user's Documents folder: scope it to `Documents/WarpCad`. Two repositories | Finding | — | none (Mac shell) |
+| `ai-036` | MCP listener: bind only the Wi-Fi address, cap request size, say the token is not encrypted. Two repositories for the sheet's sentence. Opus | Finding | — | none |
+| `build-034` | One version number and one minimum OS (iOS and iPadOS 26.0, macOS 26.0, decided 2026-11-13), checked by a test | Finding | — | none |
+| `ui-121` | The iOS status bar and launch screen follow the theme. Check on the simulator first; it may already be fine | Finding | — | none (simulator) |
+| `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | `build-032`, `build-033` | 28 (local build) |
+| `docs-035` | Native TODO files, README and roadmap text that contradict the repository (12 lines). Text only | Finding | — | none |
 | `build-035` | Crash reporting, the privacy manifest and the store privacy answers say the same thing (Sentry on, decided 2026-11-13). Before `build-020` | Finding | `build-032`, `core-082` | none |
-| `io-030` | Give projects a `.warpcad` extension; stop claiming every `.ndjson` (decided 2026-11-13; a format change in both repositories). Opus | Finding | `build-031` | 10, 28 |
+| `io-030` | Give projects a `.warpcad` extension; stop claiming every `.ndjson` (decided 2026-11-13; a format change in both repositories). Opus | Finding | — | 10, 28 |
 
 **Still held** (a list, so the runner cannot pick them up). Each contacts something outside this Mac, or waits on a row that does:
 
@@ -499,7 +496,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 27 queued + 5 held | 26 ready for `/run-todos`; `perf-004` parked on an owner question; `testing-026`–`028`, `testing-033`, `ai-041` held. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 11 queued + 10 held | Queued (local, never pushed): `build-031`–`build-035`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `io-026`, `testing-011`, `testing-035`. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 10 queued + 10 held | Queued (local, never pushed): `build-032`–`build-035`, `io-029`, `io-030`, `ai-036`, `ui-121`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |
