@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-020 drive of ui-084 #2 and #3
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-15.** `e2e/library-rail-touch.e2e.js`, two tests, `chromium-tablet` only (skipped elsewhere by design). Timed reads are immediate (`locator.count()`), because `toHaveCount` retries for 5 s and hid a late callout in the first mutation check. The keyframe name is matched by prefix: the production build suffixes it with a hash. No product code changed.
 
 ## Problem
 

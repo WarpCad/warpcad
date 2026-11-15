@@ -4257,3 +4257,22 @@ The old text was also load-bearing for tests, so the error keeps a machine-reada
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** history.spec.js and origin.spec.js; e2e/undo-refusal.e2e.js on all nine engine-viewport projects; production build driven at 1440x900 and 390x844
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** test(e2e): the Library rail's long-press and save pulse on a real clock (TODO/testing-040)
+
+Fake timers prove that a timer is set. They do not prove a browser, a real finger and a CSS animation agree with it. The Library rail had two timed behaviours covered only that way: hold a tile for half a second and it names itself; save a part and its new tile pulses for about a second.
+
+Both had been checked by hand with real touch and real timers (name at 522 ms, pulse set 105 ms after the tap, cleared 900 ms later). That is now a spec: no name at 300 ms, a name at 700, gone about two seconds after release, no body placed by a long-press, and one `library-tile-pulse` animation on the new My parts tile, in view the whole time, finishing inside 1.1 s.
+
+A timing spec that flakes is worse than none, so the tolerances are wide, and it ran ten times in a row without a miss. One thing the mutation check taught me: Playwright's `toHaveCount` retries for five seconds, so my first version waited out a deliberately late callout and passed. The timed reads are immediate now, and slowing the press, the linger or the pulse each turns it red. It runs on Chromium at tablet width only, because that is where the rail and a trusted touch both exist.
+
+---
+
+**Date:** 2026-11-15
+**Commit:** test(e2e): the Library rail's long-press and save pulse on a real clock (TODO/testing-040)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** e2e/library-rail-touch.e2e.js, 10 of 10 over five repeats on chromium-tablet; three timing mutations each went red
+**To Add:** none

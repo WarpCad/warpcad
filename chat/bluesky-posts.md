@@ -2950,3 +2950,14 @@ Undo refused because an agent's step builds on yours, and said `document.undo: "
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** history.spec.js; undo-refusal.e2e.js on Chromium, Firefox and WebKit at three widths
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** test(e2e): the Library rail's long-press and save pulse on a real clock (TODO/testing-040)
+
+Two Library rail behaviours were only tested with fake timers: the long-press that names a tile (500 ms) and the pulse on a freshly saved part (900 ms). Now a spec holds a real finger down on a tablet-width rail: no name at 300 ms, a name at 700, gone about 2 s after release, and one CSS pulse that ends inside 1.1 s.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** e2e/library-rail-touch.e2e.js, 10 of 10 over five repeats; slowed the press to 1500 ms, the linger to 4 s and the pulse to 2 s, and each went red
+**To Add:** none
