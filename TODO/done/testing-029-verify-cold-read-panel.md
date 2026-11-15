@@ -6,8 +6,30 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage (third pass)
 depends: []
-status: open
+status: done
 ---
+
+## What shipped
+
+Verification only; no product code and no docs text changed. 16 fresh agents, two per batch (A and B, no shared context, no repository
+access): 10 on haiku (docs media frames, docs and UI wording read as text, error strings) and 6 on sonnet (a 390x844 touch drive and a
+1440x900 drive of the production build, served with `npm run build` and `vite preview` on port 4290, stopped afterwards). All 43 rows
+were put to the panel. Settling rule applied:
+
+- **24 Issue** (both agreed): the tour hole, subtract-order labels, re-link GIF, Align button names, Rotation X step, Pi-move wording
+  (`FIND-docs-036`); Repeat lines, Inspector note, Bolt summary, BOM line (`FIND-ui-127`); Share in File, ✥ toggle, bind buttons, Edit variable,
+  mixed eye, clearance cue, connector and Align icons (`FIND-ui-128`); fillet, field and broken-row messages, replica ids (`FIND-ui-129`);
+  origin chip, stale refusal, conflict strip (`FIND-ai-039`).
+- **4 OK**: `docs-014` #4, `docs-013` #3, `docs-012` #3, `docs-006` #1.
+- **15 left Open** (listed here): six where A and B disagreed (`docs-020` #1, `docs-014` #3, `docs-013` #2, `ai-008` #6, `ui-039` #1, `ui-012` #1);
+  five not reachable (`core-050` #1: the Variables panel has no max field; `core-075` stage 2 #2: a butterfly could not be placed at 390 px;
+  `ai-003` #3: no note icon without a step that has intent; `ai-007` #1 and #2: no `capture_view` PNG, the `warpcad` MCP server did not
+  connect and no key was used); four real-device halves (`ui-027` #1, `ui-086` #1, `ui-046` #1, `core-075` stage 3 #3), each with its
+  emulated cold-read half recorded and the real-device half left Open.
+
+Caveats: GIF rows were judged from 6 to 8 sampled frames with time stamps, so pace is inferred; wording rows `ui-027` #2, `ui-029` #2,
+`ai-008`/`ai-009`/`ai-012`/`ai-017` and the Repeat strings were judged from the strings, not the live panel. No wording was changed in the
+same run: each fix touches several quoted copies and specs, so it went into the findings.
 
 ## Problem
 
