@@ -51,6 +51,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-033 — The iOS shell survives its web view being killed (2026-11-15 22:40)
+
+The shell now registers its own handler for the system killing the web content process: one reload per 5 s, and a second kill inside that window is left alone. Driven in the iOS 27.2 simulator with a real `kill -9` of the WebContent process (foreground, backgrounded, and two kills 0.4 s apart); what a real iPad does under memory pressure after 15 minutes in the background is not driven, and belongs to `testing-037`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the iPad with a heavy project open and the saved indicator showing, background the app for 15 minutes and return: the project is there with no tap, and History lists what you placed. | Open | |
+| 2 | On the iPad, if iOS kills the web content a second time within a few seconds of a reload, the window stays as it is (dark, empty); closing the app from the switcher and reopening brings the project back. | Open | |
+| 3 | The Align pop-up help screenshot (`help.e2e.js:148`) fails on firefox-phone on `main` with or without this task. Decide whether to refresh that baseline or fix the Help sheet's layout. | Open | |
+
 ### build-032 — Help in the native shell under its one policy (2026-11-15 22:09)
 
 The native page's own CSP tag is gone, so the shell's header is the only policy. WebKit under both policies showed Help refused before and loading with its pictures after, but the real WKWebView inspector cannot be driven unattended, so the shell itself was not looked at. Scenario 28 needs the device and is driven in `testing-037`.

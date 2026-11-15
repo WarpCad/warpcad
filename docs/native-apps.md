@@ -126,6 +126,13 @@ Nothing needs to be reinstalled.
 The backup copy is written after each save, and again when the app goes to the background. It is
 not a second project to manage: it always holds the same project the editor has open.
 
+If iOS ends the app's web content to free memory (most often while the app is in the background),
+WarpCad reloads the page by itself and your project comes back from the same saved copy, with no
+tap needed. Only the undo history is lost, so keep working as you were and use **History** to see
+what you placed. If the page fails again within a few seconds of reloading, WarpCad leaves the
+window as it is instead of reloading in a loop; close the app from the app switcher and open it
+again, and your project is still there.
+
 ![The restore toast on a phone, *Restored your last session from the app's backup copy.*, above the two parts it brought back.](./screenshots/native-restore-toast.png)
 
 ## Mac
