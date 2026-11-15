@@ -51,6 +51,16 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-032 — Help in the native shell under its one policy (2026-11-15 22:09)
+
+The native page's own CSP tag is gone, so the shell's header is the only policy. WebKit under both policies showed Help refused before and loading with its pictures after, but the real WKWebView inspector cannot be driven unattended, so the shell itself was not looked at. Scenario 28 needs the device and is driven in `testing-037`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | In the macOS shell (`npm run mac:dev`) and then on the iPad: File, Help opens with its pictures and the web inspector console shows no `Refused to connect` or `Refused to load the image` line | Open | |
+| 2 | With Wi-Fi off, Help shows "Help needs a connection"; after Wi-Fi returns, **Retry** loads it | Open | |
+| 3 | The Tauri bridge no longer logs a fall-back to `postMessage` (a raw-body file write, Save, is the case that would be slower) | Open | |
+
 ### ui-125 — Undo refusal in the save-status chip (2026-11-15 14:30)
 
 The refusal panel sits a fixed 52px + `--layout-safe-top` under the top of the screen on a phone. Measured at 390x844 in Chromium and WebKit, but not on a real notched iPhone, where the header height depends on the safe-area inset.

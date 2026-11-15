@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { PREVIEW_TRANSPORT_MARKER } from '../src/ai/bridge/previewTransport.js'
+import { NATIVE_WEB_ONLY_FILES } from './native-build.mjs'
 
 /** Strings that exist in a bundle only when a development-only flag was on. */
 export const DEV_ONLY_MARKERS = ['__e2eImport', PREVIEW_TRANSPORT_MARKER]
@@ -41,6 +42,30 @@ export function findBundledHelp(dir) {
   return existsSync(join(dir, 'help'))
 }
 
+/**
+ * `TODO/build-032`: the native bundle must carry no CSP `<meta>` tag. The browser would enforce it
+ * beside the shell's own policy, and the page's, written for the web host, blocks Help and the
+ * Tauri bridge.
+ *
+ * @param {string} dir A build folder.
+ * @returns {boolean} True when `dir/index.html` has a `Content-Security-Policy` meta tag.
+ */
+export function findPageCsp(dir) {
+  const file = join(dir, 'index.html')
+  if (!existsSync(file)) return false
+  return /<meta\b[^>]*http-equiv\s*=\s*["']Content-Security-Policy["']/i.test(readFileSync(file, 'utf8'))
+}
+
+/**
+ * `TODO/build-032`: files the web site serves and the native app never reads.
+ *
+ * @param {string} dir A build folder.
+ * @returns {string[]} The names from {@link NATIVE_WEB_ONLY_FILES} that `dir` contains.
+ */
+export function findWebOnlyFiles(dir) {
+  return NATIVE_WEB_ONLY_FILES.filter((name) => existsSync(join(dir, name)))
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2)
   const noHelp = args.includes('--no-help')
@@ -59,5 +84,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error(`${dir}/help exists: the native build must ship no Help (TODO/ui-119).`)
     process.exit(1)
   }
-  console.log(`${dir}: no development-only code in the bundle${noHelp ? ', and no bundled Help' : ''}`)
+  if (noHelp && findPageCsp(dir)) {
+    console.error(`${dir}/index.html still has a Content-Security-Policy <meta> tag: the shell's policy must be the only one (TODO/build-032).`)
+    process.exit(1)
+  }
+  const webOnly = noHelp ? findWebOnlyFiles(dir) : []
+  if (webOnly.length > 0) {
+    console.error(`${dir} carries web-only files the app never reads: ${webOnly.join(', ')} (TODO/build-032).`)
+    process.exit(1)
+  }
+  console.log(`${dir}: no development-only code in the bundle${noHelp ? ', and no bundled Help, page policy or web-only files' : ''}`)
 }

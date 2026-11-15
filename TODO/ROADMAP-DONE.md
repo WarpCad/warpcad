@@ -813,6 +813,7 @@ first five rows below.
 
 | id | Title | Area | Depends | Demo |
 |---|---|---|---|---|
+| ✅ `build-032` | The native bundle no longer ships the web page's CSP `<meta>` tag, so the shell's header is the only policy and Help and its pictures can load from `app.warpcad.com`. Reproduced in WebKit under both policies before and after; guarded by `assert-release-bundle.mjs dist-native` and a Rust config test; `CNAME`, `llms-full.txt` and the social-preview files left out of `dist-native/`. The real-shell check is owed to `testing-037` | Finding | — | none (WebKit two-policy reproduction; the iOS app itself is `testing-037`) |
 | ✅ `build-031` | The `build-019` release work now lives on `warpcad-native` `main`, not the throwaway probe branch, and `scripts/ios-release.sh` refuses to validate or upload unless the native branch is `main` with a clean tree, the web repository is clean (and, for upload, pushed), no probe or THROWAWAY text is in the shipped sources, and `npm run check` passes. `--check` reports the same findings; `--install` prints the branch and dirty state. Only the probe's camera string stays on `probe/io-026`. Nothing pushed. Filed 2026-11-13 from the native audit. [`done/build-031`](../../warpcad-native/TODO/done/build-031-land-build-019-work-on-main-and-guard-the-release-script.md) | Finding | — | none (no app code changed) |
 | ✅ `ui-120` | The header, tab bar, Library rail, Inspector and navigation chrome read the device safe-area insets (`viewport-fit=cover`, `--layout-safe-*` variables); the notch and home-indicator hypothesis still needs a simulator or device check | UI | `build-017` | 1 (phone chrome clears faked iPhone 15 insets; device check open) |
 | ✅ `render-006` | Restore the 3D view after a lost WebGL context: `webglcontextrestored` rebuilds the GPU state, and a **Restore view** fallback after 3 s rebuilds the renderer on the same canvas. Shipped in the web app (commit `a2f241b`); the real WKWebView loss check stays open under `testing-011` step 4 | Finding | `build-017` | 1 (force a loss, the view comes back, undo still works) |
@@ -1391,5 +1392,7 @@ convention going forward.
 | `ai-038` | 2026-11-15 15:33 | ~18m (RED first on four new specs, an ended-session sweep in mcp/liveHttp.js, a pair run, the live-bridge specs on chromium-laptop, `lsof` measurement of a live `claude -p`, four `--model haiku` drives) |
 | `io-031` | 2026-11-15 16:25 | Sonnet half ~45m, Opus half not timed (full unit run, a pair run and the export and import specs on chromium-laptop and webkit-laptop, a CuraEngine re-run of the table, scenarios 11 and 26 driven, two follow-up findings) |
 | `build-031` | 2026-11-15 21:52 | ~40m (RED first on the probe branch, guard in ios-release.sh checked in a throwaway probe worktree, native `npm run check`, web unit and a pair run) |
+| `build-032` | 2026-11-15 22:09 | ~25m (WebKit two-policy reproduction before and after, RED first, native `npm run check`, full unit and a pair run) |
+
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

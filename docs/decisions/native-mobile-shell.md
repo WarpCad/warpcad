@@ -610,6 +610,23 @@ Run at pull-in time for `build-017`, as the library-decisions rule requires. Che
 
 The flag is set in `warpcad-native/src-tauri/tauri.conf.json` and guarded by the Rust test `the_window_uses_the_https_scheme_and_must_never_change`. Under the https scheme Tauri's custom protocols (IPC included) are `https://<name>.localhost`, so the CSP's `connect-src` lists `https://ipc.localhost`. **Unverified until a Windows or Android build is inspected:** that `location.origin` is `https://tauri.localhost`, `window.isSecureContext` is `true`, `indexedDB` opens, the evaluation worker starts, and `shell_info` answers over IPC. Record the result here.
 
+**One policy for the native page, decided 2026-11-15 (`build-032`).** A browser enforces every Content-Security-Policy it is given, so only what **both** allow gets through. The shell sends `app.security.csp` from `tauri.conf.json` as a header; the web `index.html` also carries a `<meta http-equiv="Content-Security-Policy">`, which the native build copied unchanged. That tag allowed neither `https://app.warpcad.com` (Help, from `ui-119`) nor `ipc:`.
+
+*What was observed, and how.* The WKWebView inspector cannot be driven unattended, so the check was reproduced in a real engine instead: `dist-native/` served over HTTP with the shell's `app.security.csp` sent as a response header (the page's own meta tag left in), loaded in Playwright **WebKit** at 1440 by 900, the Help sheet opened from the File menu, and `app.warpcad.com/help/*` answered by a network route so the request leaves the page only if both policies allow it.
+
+| | Before (meta tag kept) | After (meta tag removed) |
+|---|---|---|
+| Help sheet | "Help needs a connection. Everything else in WarpCad works offline. Retry" | Help text shown, no error |
+| Console | `Refused to connect to https://app.warpcad.com/help/index.json because it does not appear in the connect-src directive of the Content Security Policy.` (and the same for `getting-started.html`) | no CSP line |
+| `securitypolicyviolation` events | 2, both `connect-src` | none |
+| Help pictures | none reachable | all 6 on the first page loaded (`https://app.warpcad.com/help/img/...`) |
+
+The `ipc:` half was not observed: the `ipc://localhost` fall-back to `postMessage` needs the real bridge. The meta tag no longer blocks it, which is the part this task changes.
+
+*The fix.* In `--mode native` the page's meta tag is removed (`stripCspMeta` in `scripts/native-build.mjs`, run by a post-order `transformIndexHtml` step), so the shell's header is the only policy. Removing is safer than rewriting: two copies of one policy drift, which is this bug. The web build keeps its tag, since GitHub Pages cannot send headers. Guards: `scripts/assert-release-bundle.mjs dist-native --no-help` fails if the tag is back or if a web-only file is present, and the Rust test `the_shell_policy_allows_help_and_stays_strict` keeps `https://app.warpcad.com` in `connect-src` and `img-src`, `ipc:` and `https://ipc.localhost` in `connect-src`, `script-src 'self'`, and no `*` or `'unsafe-eval'`. `CNAME`, `llms-full.txt` and the social-preview files are also left out of `dist-native/`.
+
+*Still owed.* In the real shell (`npm run mac:dev`, then the iPad): Help opens with its pictures, Wi-Fi off shows the offline message, and Retry works once Wi-Fi returns. That is `testing-037`.
+
 ---
 
 ## Rejection table

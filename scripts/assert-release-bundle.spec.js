@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { PREVIEW_TRANSPORT_MARKER } from '../src/ai/bridge/previewTransport.js'
-import { findBundledHelp, findDevOnlyMarkers } from './assert-release-bundle.mjs'
+import { findBundledHelp, findDevOnlyMarkers, findPageCsp, findWebOnlyFiles } from './assert-release-bundle.mjs'
 
 /** @type {string[]} */
 const dirs = []
@@ -54,5 +54,36 @@ describe('findBundledHelp (TODO/ui-119)', () => {
     mkdirSync(join(dir, 'help'))
     writeFileSync(join(dir, 'help', 'index.json'), '{}')
     expect(findBundledHelp(dir)).toBe(true)
+  })
+})
+
+describe('findPageCsp (TODO/build-032)', () => {
+  it('passes a native index.html with no policy meta tag', () => {
+    const dir = fixture({ 'app.js': 'ok' })
+    writeFileSync(join(dir, 'index.html'), '<html><head><meta charset="UTF-8" /></head></html>')
+    expect(findPageCsp(dir)).toBe(false)
+  })
+
+  it('reports an index.html that still carries the web page policy', () => {
+    const dir = fixture({ 'app.js': 'ok' })
+    writeFileSync(
+      join(dir, 'index.html'),
+      '<meta\n http-equiv="Content-Security-Policy"\n content="default-src \'self\'" />',
+    )
+    expect(findPageCsp(dir)).toBe(true)
+  })
+})
+
+describe('findWebOnlyFiles (TODO/build-032)', () => {
+  it('lists the web-only files a native build still carries', () => {
+    const dir = fixture({ 'app.js': 'ok' })
+    writeFileSync(join(dir, 'CNAME'), 'app.warpcad.com')
+    writeFileSync(join(dir, 'llms-full.txt'), 'x')
+    writeFileSync(join(dir, 'index.html'), '')
+    expect(findWebOnlyFiles(dir).sort()).toEqual(['CNAME', 'llms-full.txt'])
+  })
+
+  it('passes a clean build', () => {
+    expect(findWebOnlyFiles(fixture({ 'app.js': 'ok' }))).toEqual([])
   })
 })

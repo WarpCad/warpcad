@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -12,7 +13,7 @@ import { warpcadNotices } from './scripts/vite-plugin-notices.mjs'
 import { manifestIcons } from './scripts/app-icons.mjs'
 import { addConnectSrc, connectHostFromDsn, sentryBuildOptions } from './scripts/sentry-build.mjs'
 import { addAnalyticsSources, measurementId } from './scripts/analytics-build.mjs'
-import { devFlagDefines, helpBaseDefine, shellTarget } from './scripts/native-build.mjs'
+import { devFlagDefines, helpBaseDefine, removeWebOnlyFiles, shellTarget, stripCspMeta } from './scripts/native-build.mjs'
 
 /**
  * The dev server only. `index.html`'s Content-Security-Policy is the production policy; `vite
@@ -125,6 +126,30 @@ function analyticsSources() {
   }
 }
 
+/**
+ * `TODO/build-032`: the native build's one Content-Security-Policy is the shell's header
+ * (`warpcad-native/src-tauri/tauri.conf.json`), so this drops the page's `<meta>` copy, and drops
+ * the web-only files from `public/`. Both are no-ops outside `--mode native`.
+ *
+ * @returns {import('vite').Plugin}
+ */
+function nativeBundleCleanup() {
+  /** @type {import('vite').ResolvedConfig | null} */
+  let resolved = null
+  return {
+    name: 'warpcad-native-bundle-cleanup',
+    apply: 'build',
+    configResolved(config) {
+      resolved = config
+    },
+    // `post`: after the Sentry and analytics steps above, which read the tag they extend.
+    transformIndexHtml: { order: 'post', handler: (html) => stripCspMeta(html, resolved?.mode ?? '') },
+    closeBundle() {
+      if (resolved?.mode === 'native') removeWebOnlyFiles(resolve(resolved.root, resolved.build.outDir))
+    },
+  }
+}
+
 /** Hidden source maps exist only when `SENTRY_AUTH_TOKEN` is set; the workflow uploads and deletes them. */
 const SENTRY = sentryBuildOptions(process.env)
 
@@ -171,6 +196,7 @@ export default defineConfig(({ command, mode }) => ({
     devContentSecurityPolicy(),
     sentryConnectSrc(),
     analyticsSources(),
+    nativeBundleCleanup(),
     versionMeta(),
     // `TODO/ai-012`: Claude Code edits the open tab, under `npm run dev` only (`apply: 'serve'`;
     // `vite build` output carries nothing of it). MCP at /mcp, the tab over the HMR socket.
