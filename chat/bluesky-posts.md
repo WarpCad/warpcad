@@ -2972,3 +2972,14 @@ Two Library rail behaviours were only tested with fake timers: the long-press th
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** scripts/dev-server-host.spec.js starts the real dev server and asks 127.0.0.1, localhost and [::1]; red before the fix
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/ai-038
+
+A one-shot Claude Code run that finished normally still counted as connected to WarpCad for up to five minutes, so the next one was refused as "ambiguous". The live bridge now drops a client once its connections are gone, and a second client that is really running is still refused. #MCP #CAD Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** mcp/liveHttp.spec.js (red, then green; a live second client is still refused); four `claude -p --model haiku` drives against the dev bridge: three back-to-back clean exits all served, two concurrent clients both refused
+**To Add:** none

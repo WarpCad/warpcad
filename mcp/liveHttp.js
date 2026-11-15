@@ -32,6 +32,19 @@ import { GUIDE_ANNOTATIONS, GUIDE_URI, registerPromptHandlers } from './server.j
 /** How long a session may be silent before the bridge stops counting it (see `createLiveHttpHandler`). */
 export const SESSION_IDLE_MS = 5 * 60_000
 
+/**
+ * How long a session whose connections are all gone (every socket that carried one of its requests
+ * has closed, and no stream is open) may stay silent before the bridge stops counting it
+ * (`TODO/ai-038`). A headless `claude -p` that exits normally sends no DELETE but its sockets die.
+ * The window is a grace period for a client that reconnects between calls; a client with an open
+ * socket or stream is never ended by it. (A live `claude -p` holds two to four connections open for
+ * as long as it runs, and none once it has exited, measured with `lsof` in `TODO/ai-038`.)
+ */
+export const SESSION_ENDED_MS = 5_000
+
+/** How often the host sweeps for ended sessions with no request arriving, so the chip clears itself. */
+export const SWEEP_EVERY_MS = 2_000
+
 /** `TODO/ai-026`: moved to the framework-free `src/ai/bridge/mcpSurface.js`, which the native app's page also uses. */
 export { LIVE_SERVER_INSTRUCTIONS, liveToolResult }
 
@@ -126,6 +139,7 @@ async function writeResponse(res, response, req) {
     headers[key] = value
   })
   res.writeHead(response.status, headers)
+  res.flushHeaders()
   if (response.body === null) {
     res.end()
     return
@@ -168,23 +182,30 @@ function refuse(res, status, message) {
  * @param {number} [options.idleMs] A session with no request for this long is closed. A client that
  *   dies without sending the protocol's DELETE would otherwise stay counted forever, and the
  *   one-client rule would then refuse every later call.
+ * @param {number} [options.endedMs] A session with no open socket or stream, silent for this long, is closed
+ *   (`TODO/ai-038`). A client that is still connected is never closed by this, only by `idleMs`.
+ * @param {number} [options.sweepEveryMs] Period of the background sweep.
  * @returns {{ handle: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>, close: () => Promise<void> }}
  */
-export function createLiveHttpHandler({ bridge, allow, log = () => {}, now = Date.now, idleMs = SESSION_IDLE_MS }) {
-  /** @type {Map<string, { transport: WebStandardStreamableHTTPServerTransport, server: Server, lastSeen: number }>} */
+export function createLiveHttpHandler({ bridge, allow, log = () => {}, now = Date.now, idleMs = SESSION_IDLE_MS, endedMs = SESSION_ENDED_MS, sweepEveryMs = SWEEP_EVERY_MS }) {
+  /** @type {Map<string, { transport: WebStandardStreamableHTTPServerTransport, server: Server, lastSeen: number, sockets: Set<import('node:net').Socket>, inflight: number }>} */
   const sessions = new Map()
 
   /** Close every session that has been quiet for `idleMs`, before the next request is routed. */
   function sweepIdle() {
     const cutoff = now() - idleMs
     for (const [id, entry] of sessions) {
-      if (entry.lastSeen > cutoff) continue
+      const ended = entry.sockets.size === 0 && entry.inflight === 0 && entry.lastSeen <= now() - endedMs
+      if (entry.lastSeen > cutoff && !ended) continue
       sessions.delete(id)
       bridge.closeLink(id)
-      log(`session ${id.slice(0, 8)}: closed after ${Math.round(idleMs / 1000)}s without a request`)
+      log(ended ? `session ${id.slice(0, 8)}: closed, its connection ended without a DELETE` : `session ${id.slice(0, 8)}: closed after ${Math.round(idleMs / 1000)}s without a request`)
       void entry.server.close().catch(() => {})
     }
   }
+
+  const timer = setInterval(sweepIdle, sweepEveryMs)
+  timer.unref()
 
   return {
     async handle(req, res) {
@@ -219,9 +240,18 @@ export function createLiveHttpHandler({ bridge, allow, log = () => {}, now = Dat
           })
           const server = createLiveServer(bridge, () => transport.sessionId)
           await server.connect(transport)
-          entry = { transport, server, lastSeen: now() }
+          entry = { transport, server, lastSeen: now(), sockets: new Set(), inflight: 0 }
         }
         entry.lastSeen = now()
+        const live = entry
+        const socket = req.socket
+        live.sockets.add(socket)
+        live.inflight += 1
+        socket.once('close', () => live.sockets.delete(socket))
+        res.once('close', () => {
+          live.inflight -= 1
+          live.lastSeen = now()
+        })
         await writeResponse(res, await entry.transport.handleRequest(request), req)
       } catch (error) {
         log(`a /mcp request failed: ${error instanceof Error ? error.message : String(error)}`)
@@ -230,6 +260,7 @@ export function createLiveHttpHandler({ bridge, allow, log = () => {}, now = Dat
       }
     },
     async close() {
+      clearInterval(timer)
       for (const [id, { server }] of sessions) {
         sessions.delete(id)
         bridge.closeLink(id)

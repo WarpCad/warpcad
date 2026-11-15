@@ -932,7 +932,16 @@ by making the tab the only writer and the AI its client.
    would stay counted until the dev server restarts. The dev host therefore closes a session that
    has sent no request for five minutes (`SESSION_IDLE_MS`, swept on the next request); a client
    that is merely quiet reconnects on its next call (the transport answers 404 and MCP clients
-   re-initialize).
+   re-initialize). *Amended `ai-038`, 2026-11-15:* a headless `claude -p` that exits normally
+   also sends no DELETE, so the next one-shot client was refused as ambiguous for five minutes.
+   Of the options weighed (a sweep on a timer, a short "recent request" window, closing on the
+   socket ending, rewording the refusal) the host takes two: it tracks each session's open sockets
+   and open response streams, and ends a session that has **none of either** and has been silent for
+   `SESSION_ENDED_MS` (5 s, the reconnect grace; a live `claude -p` was measured holding 2 to 4 connections open for its whole run and none after exit); and it sweeps every 2 s, so the header chip
+   clears without waiting for a request. A client with an open socket or an SSE stream still counts
+   (second live client still refused); a "last request in the last minute" rule was rejected because
+   a live client mid-turn can be quiet longer than that. The five-minute `SESSION_IDLE_MS` remains
+   the backstop. The refusal wording is unchanged.
 6. **Caps, trust and data rules unchanged** (Decision 7); no subscription token is read,
    stored or sent (Decision 10 point 3).
 

@@ -428,9 +428,12 @@ ambiguous, close the second client or tab (see below).
   ends when the tab closes; **Until turned off** remains active until manually revoked or the tab
   closes. Expiry, turning access off, or a tab reload revokes the route. If more than one MCP
   client or enabled tab makes routing ambiguous, WarpCad refuses calls until only one remains.
-- **A client that vanishes stops counting.** A client that quits cleanly is dropped at once. One that
-  crashes or loses its connection is dropped after five minutes without a request, so it cannot
-  block every later call. A client that is merely quiet reconnects on its next call.
+- **A client that vanishes stops counting.** A client that sends the protocol's close is dropped at
+  once. One that exits or is killed without it (a one-shot `claude -p` run, say) is dropped about 5 to 7
+  seconds after its connection ends, so the next `claude -p` started ten seconds later is not
+  refused as "more than one client". A client whose connection is still open is never dropped by this,
+  and one that holds its connection open but goes silent is dropped after five minutes without a
+  request. A client that is merely quiet reconnects on its next call.
 - **Where the control is.** On a laptop, **Live MCP access…** sits beside **Key and model…** in the
   Assistant panel. On a phone it is the **⇄** button in the header, left of **Assistant**, hidden on a
   hosted copy. On a tablet it is on the Assistant's no-key sheet (the half-height panel keeps room

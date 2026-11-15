@@ -52,7 +52,7 @@ the full history is in git.*
 **Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or iPad (it
 should work now)." The 11 local M19 rows (67–77) are back in the queue and run first; every row that uploads, publishes or
 waits on one stays held. Rows that collide with another session's uncommitted edits in this repository (`ui-108`, `ui-122`,
-`ui-123`, `testing-038`, `ui-126`, `ai-038`) are parked ⚠ until those edits are committed, and the stash-on-failure rule in
+`ui-123`, `testing-038`, `ui-126`) are parked ⚠ until those edits are committed, and the stash-on-failure rule in
 `TODO/BUDGET.md` now stashes only the failed task's own paths.
 
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
@@ -65,7 +65,7 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 11 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, three follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 27 queued (20 ready, 7 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives and the cold-read panel filed. Parked: `perf-004` (owner question); `ui-108`, `ui-122`, `ui-123`, `testing-038`, `ui-126`, `ai-038` (another session's uncommitted edits). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
+| [Findings](#findings-open-rows) | 26 queued (20 ready, 6 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives and the cold-read panel filed. Parked: `perf-004` (owner question); `ui-108`, `ui-122`, `ui-123`, `testing-038`, `ui-126` (another session's uncommitted edits). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
 | 67 | ▶ Ready | `M19` | [`build-031`](../../warpcad-native/TODO/M19-build-031-land-build-019-work-on-main-and-guard-the-release-script.md) Move the release work off the probe branch onto `main`; the release script refuses a probe or dirty build | sonnet |
 | 68 | ⏳ Waits on 67 | `M19` | [`build-032`](../../warpcad-native/TODO/M19-build-032-native-bundle-carries-the-web-csp.md) Let the native bundle's CSP allow Help and the Tauri bridge | sonnet |
 | 69 | ⏳ Waits on 67 | `M19` | [`build-033`](../../warpcad-native/TODO/M19-build-033-recover-when-the-web-content-process-is-killed.md) Reload the app when iOS kills its web content process | sonnet |
@@ -83,7 +83,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 37 | ⚠ Parked 2026-11-15: another session has uncommitted edits in the theme and skin styles; unpark when they are committed | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ⚠ Parked 2026-11-15: another session has uncommitted edits in .storybook/; unpark when they are committed | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 43 | ⚠ Parked 2026-11-15: another session has uncommitted edits in Viewport.vue; unpark when they are committed | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
-| 46 | ⚠ Parked 2026-11-15: another session has uncommitted edits in mcp/liveHttp.js, where its fix is half-written; unpark when they are committed | `FIND` | [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) Stop a client that exited normally from blocking the next one as "ambiguous" for five minutes | sonnet |
 | 47 | ▶ Ready | `FIND` | [`io-031`](FIND-io-031-cut-dense-scan-exports-open-edges.md) Close the open edges a Subtract leaves in a dense imported scan's STL export | opus |
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
@@ -183,7 +182,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ⚠ Parked (Next up row 37): another session's edits |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ⚠ Parked (Next up row 38): another session's edits |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ⚠ Parked (Next up row 43): another session's edits |
-| [`ai-038`](FIND-ai-038-clean-client-exit-leaves-the-live-session-counted.md) A client that exits normally leaves its live MCP session counted, so the next client is refused as ambiguous for up to five minutes | finding | low | sonnet | ⚠ Parked (Next up row 46): another session's edits |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
@@ -378,7 +376,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | ⚠ `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | ⚠ `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | ⚠ `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
-| ⚠ `ai-038` | A client that exits without DELETE blocks the next live MCP client as ambiguous for up to five minutes. Filed 2026-11-14 from the `testing-022` drive of `ai-023` #2 | Finding | — | 25 |
 | `io-031` | A Subtract cut in a dense imported scan (32k triangles and up) exports an STL with open edges that Cura warns about. Filed 2026-11-14 from the testing-023 drive of `io-009` #2 | Finding | — | 11, 26 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |

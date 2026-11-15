@@ -4293,3 +4293,18 @@ The production preview server had been fixed for this already; the dev server ha
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** scripts/dev-server-host.spec.js (red, then green); claude mcp get warpcad reads Connected; live pairing e2e 3 of 3 on the dev server
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/ai-038
+
+When Claude Code runs headless (`claude -p`) it exits without sending the protocol's close message, so WarpCad's live bridge kept counting the finished client as connected. The next client, started within a minute, was refused with "more than one MCP client is connected", and the header chip read `ambiguous` with nothing running.
+
+The bridge now watches each session's connections. A session with no open socket and no open stream, silent for five seconds, stops counting, and a two-second sweep clears the chip without waiting for another request. A client that is still connected counts as before, so two live clients are still refused; I checked that by starting two at once. I measured a live `claude -p` with `lsof`: it holds two to four connections for its whole run and none after exit, which is why a five-second grace is enough. A client that holds no connection between calls would be dropped after that window, which is the cost of the rule. #MCP #CAD #OpenSource
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** mcp/liveHttp.spec.js (red, then green, including a live second client still refused); `lsof` on a running `claude -p`; three back-to-back clean exits served and two concurrent clients refused, with `claude -p --model haiku`
+**To Add:** none

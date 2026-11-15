@@ -6,8 +6,21 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-022 drive of ai-023 #2 and acceptance 25
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-15).** Option 3 (close on the connection ending) plus option 1 (sweep on a timer). `mcp/liveHttp.js`
+> tracks, per session, the sockets that carried its requests and the responses still open (an SSE stream is an open response). A
+> session with no open socket and no open response that has been silent for `SESSION_ENDED_MS` (5 s) stops counting; a 2 s
+> unref'd sweep clears the chip with no request arriving. The five-minute `SESSION_IDLE_MS` stays as the backstop, and the
+> refusal wording is unchanged (a second live client is still told to disconnect, which is then true). Option 2 (a one-minute
+> "recent request" window) was rejected: a live client mid-turn can be quiet longer than that. Measured with `lsof`: a live
+> `claude -p` holds 2 to 4 connections to the endpoint for its whole run and none after it exits, which is why a 5 s grace is
+> enough. `writeResponse` now flushes headers so an SSE stream is visible to the client at once. Drives: back-to-back clean
+> exits all served; `kill -9` then a second client 2 s later accepted once its first call came 7 s after the kill; two concurrent
+> clients both refused as ambiguous. Side effect: the testing-022 expectation "second client refused at +14 s after kill -9" no
+> longer holds by design (it is refused only inside the 5 s grace).
+
 
 ## Problem
 
