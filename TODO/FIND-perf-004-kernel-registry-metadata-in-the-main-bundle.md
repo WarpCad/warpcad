@@ -42,6 +42,8 @@ vendor split makes 5 initial JS files instead of 1). Removing code is the safe d
 L. Touches the architecture rule on kernel/worker boundaries; confirm the metadata/implementation
 boundary with the user first.
 
+**Decided 2026-11-13:** approve the registry split as written (metadata module for the main thread, implementations for the workers only, direct `evaluate` callers routed through the worker RPC). No reason beyond the recommendation was given.
+
 ## Testing
 
 - Unit: registry metadata module imports nothing from `@jscad/modeling` (a spec that checks its

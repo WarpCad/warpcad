@@ -98,4 +98,6 @@ M.
 - Acceptance scenarios: none re-driven (no behaviour change). If any snapshot differs, drive 1 and 7
   at all three viewports before accepting it.
 
+**Decided 2026-11-13:** the `import-3mf-align.dark.gif` overage (2.56 MB regenerated vs the 2.25 MB limit in `scripts/docs-gifs.mjs`) is fixed by recompressing that one GIF (lower fps or width, through a scoped movies directory so other GIFs are not rewritten). The budget stays at 2.25 MB. No reason beyond the recommendation was given. Not yet implemented.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

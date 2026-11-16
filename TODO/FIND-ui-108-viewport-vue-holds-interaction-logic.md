@@ -72,6 +72,8 @@ fix: a moved function is reviewed by diffing it against the original.
 
 L (multi-session; six extractions).
 
+**Decided 2026-11-13:** keep parked and run by hand later, as its own session after the theme chain, starting with extraction 1 (`src/render/bodyMeshes.js`). Re-measure `Viewport.vue` first: it was 2,528 lines on this date, not the 4,198 quoted above. No reason beyond the recommendation was given.
+
 ## Testing
 
 - A `.spec.js` beside each new controller, covering the cases the component could never unit-test:

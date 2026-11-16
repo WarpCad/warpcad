@@ -119,4 +119,10 @@ Not UI-touching (verification only).
 
 - **Page**: n/a, unless a drive shows `docs/save-load.md`'s iOS sentences are wrong.
 
+**Probed 2026-11-13 (iPhone 17e, iOS 27.2 simulator):** Settings › Apps › Safari › Advanced shows no Web Inspector and no Remote Automation switch (a blank gap sits between JavaScript and Feature Flags, where the settings bundle's `Developer.plist` places them). `com.apple.webinspectord` already has `RemoteInspectorEnabled = 1`. Writing a guessed `RemoteAutomationEnabled` key did not help, and `safaridriver` still answers *Could not find any session hosts*. Only iOS 27.2 runtimes are installed. The toggle is not reachable on this runtime, so this task needs a different route (a real iPhone, or `simctl`-only checks) or an older runtime.
+
+**Probed again 2026-11-13, after the owner updated Safari to 27.2:** with the iPhone 17e booted, `RemoteAutomationEnabled` and `RemoteInspectorEnabled` both set in `com.apple.webinspectord`, and the device name and platform version pinned in the capabilities, `safaridriver` still answers *Could not find any session hosts*. Its `--diagnose` log shows only the request and the 500. Xcode 27 has no standalone Simulator app. Cause not found.
+
+**Deferred 2026-11-13:** how to get testing-027 unblocked (simctl-only rework, or another route) — parked, no decision yet.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

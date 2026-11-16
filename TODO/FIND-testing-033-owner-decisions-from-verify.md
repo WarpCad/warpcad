@@ -144,4 +144,6 @@ Not UI-touching.
 
 - **Page**: n/a (follow-ups name their own pages).
 
+**Deferred 2026-11-13:** when to run this — parked to a dedicated session with the owner (`/fix-todo testing-033`), no date set.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
