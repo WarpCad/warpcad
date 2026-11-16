@@ -98,6 +98,7 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 66 | ▶ Ready | `FIND` | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable | sonnet |
 | 67 | ▶ Ready | `FIND` | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a sub-30-micrometre flat-face cleanup | opus |
 | 68 | ▶ Ready | `FIND` | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) Close the one 1.4 micrometre four-face edge left in the 96k cut's STL export | opus |
+| 78 | ▶ Ready | `FIND` | [`testing-042`](FIND-testing-042-help-from-align-baselines-stale.md) Refresh the help-from-align screenshots, stale since the Align docs page gained text | sonnet |
 
 ---
 
@@ -228,6 +229,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | finding | medium | sonnet | ▶ Ready (Next up row 64) |
 | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Cura still prints "Mesh has overlapping faces!" for a dense scan with a Subtract cut, though the STL is closed | finding | low | opus | ▶ Ready (Next up row 67) |
 | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) One 1.4 micrometre edge shared by four triangles remains in the 96k cut's STL export | finding | low | opus | ▶ Ready (Next up row 68) |
+| [`testing-042`](FIND-testing-042-help-from-align-baselines-stale.md) The help-from-align screenshots are stale since the Align docs page gained text | finding | medium | sonnet | ▶ Ready (Next up row 78) |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
@@ -381,6 +383,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Filed 2026-11-15 by `perf-005` | Finding | — | 1 |
 | `io-032` | Cura prints "Mesh has overlapping faces!" for a Subtract cut in a dense imported scan (32k triangles and up) though the STL is closed at 1e-5 mm: a 17 micrometre band in a flat face. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | `io-033` | One 1.4 micrometre edge used by four triangles remains in the 96k scan's cut STL export. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
+| `testing-042` | The help-from-align screenshots are stale since `docs/snap-align.md` gained text in `e376b5da`; red on firefox-phone and firefox-tablet, so pair runs do not advance. Filed 2026-11-16 from the `ui-121` and `build-034` runs | Finding | — | none |
 
 ---
 
