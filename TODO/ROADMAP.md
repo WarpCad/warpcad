@@ -65,10 +65,9 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 4 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 3 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 27 queued (26 ready, 1 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Parked: `perf-004` (owner question). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
 | 74 | ⚠ Parked 2026-11-16: waits for the owner at the iPad; unpark when the owner says so | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 75 | ▶ Ready | `M19` | [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Correct the 12 native TODO, README and roadmap lines that contradict the repository | sonnet |
 | 76 | ▶ Ready | `M19` | [`build-035`](../../warpcad-native/TODO/M19-build-035-sentry-and-the-privacy-manifest-match-the-decision.md) Crash reporting, the privacy manifest and the store privacy answers agree | sonnet |
 | 77 | ▶ Ready | `M19` | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` | opus |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
@@ -141,7 +140,7 @@ yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the 
   submission itself is yours.
   - **Decided 2026-11-07 (in `build-020`):** paid app at one price, age rating 4+. Help GIFs fetched from the web, not bundled. **Decided 2026-11-07:** the app loads all Help from the web and ships none of it (prose licence option (b)). Still open: the price amount and countries, and the Part 6 legal review.
 
-**Decided 2026-11-12:** no workflows run on GitHub. `warpcad-native` gets no remote for now (the question of where to push it is closed by this), and `build-027` keeps only its local half: the `npm run check` script and the `deny.toml` fix. Owner reason: "I don't want any workflows running on github." Not decided: whether to delete the existing `warpcad-native/.github/workflows/windows.yml`, which cannot run without a remote, and whether a local `pre-push` hook should stand in for CI.
+**Decided 2026-11-12:** no workflows run on GitHub. `warpcad-native` gets no remote for now (the question of where to push it is closed by this), and `build-027` keeps only its local half: the `npm run check` script and the `deny.toml` fix. Owner reason: "I don't want any workflows running on github." ~~Not decided: whether to delete the existing `warpcad-native/.github/workflows/windows.yml`, which cannot run without a remote~~ Moot 2026-11-16: `warpcad-native` has no `.github/` directory on any branch, so there is nothing to delete. Still not decided: whether a local `pre-push` hook should stand in for CI.
 
 **Decided 2026-11-12:** push the 20 unpushed commits on `main` after a full unit run and a full e2e run are green on the current HEAD and the three uncommitted doc edits (`TROUBLESHOOTING.md`, `docs/decisions/release.md`, `docs/native-apps.md`) are committed. Pushing still needs the owner's go-ahead at the moment of the push. No reason beyond the recommendation was given.
 
@@ -197,7 +196,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
 | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token for loopback peers on iOS and Android (M19) | finding | medium | opus | Held (native) |
-| [`docs-035`](../../warpcad-native/TODO/M19-docs-035-native-todo-and-roadmap-text-out-of-date.md) Native TODO files, README and roadmap text that contradict the repository (12 lines) (M19) | finding | low | sonnet | ▶ Ready (Next up row 75) |
 | [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
 | [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
 | [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5) | feature | medium | sonnet | Deferred 2026-11-07 |
@@ -253,7 +251,7 @@ under [Deferred](#open-work-outside-any-milestone).
 > and ends by **moving every native-app TODO (`build-018`–`build-020`, `render-006`, `io-014`, `io-015`, `ai-025`,
 > `ai-026`, `testing-011`) into `warpcad-native/TODO/`**; this section then shrinks to a pointer to
 > `~/src/@WarpCad/warpcad-native/TODO/ROADMAP.md`. The rows below keep their iOS wording until that move; the
-> per-platform follow-ups (macOS notarization, Android Play, Windows signing, per-OS credentials) are filed there.
+> per-platform follow-ups are filed there, since 2026-11-13: `build-036` (macOS), `build-037` (Android, Play) and `build-038` (Windows).
 
 Added 2026-10-24 at the owner's request, scheduled first. The owner's goal is a native iOS app, working and ready to
 publish, this weekend. It is built with **Tauri 2**, overriding the Capacitor recommendation in
@@ -264,7 +262,7 @@ commit. The new repository has no pre-push gate of its own; its gates are `cargo
 (`build-017`).
 
 Playwright cannot drive a WKWebView inside an app. Each row's `*.e2e.js` runs at `/` with a fake Tauri boundary
-(`e2e/fixtures/nativeShell.js`, `build-017`), and each row is checked on the macOS shell and the iOS simulator, which need no signing. **The iPhone checks for
+(`e2e/fixtures/nativeShell.js`, `build-017`), and each row is checked on the macOS shell and the iOS simulator, which need no signing. **The device checks for
 `render-006`, `io-014`, `io-015`, `ai-025` and `ai-026` are all in scenario 28** (`testing-011`, steps 3–9), so those
 rows close without a device.
 Scenario 28 (`testing-011`) is the one acceptance check only the device can pass.
@@ -284,7 +282,6 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | ⚠ `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | — | 28 (local build) |
-| `docs-035` | Native TODO files, README and roadmap text that contradict the repository (12 lines). Text only | Finding | — | none |
 | `build-035` | Crash reporting, the privacy manifest and the store privacy answers say the same thing (Sentry on, decided 2026-11-13). Before `build-020` | Finding | `core-082` | none |
 | `io-030` | Give projects a `.warpcad` extension; stop claiming every `.ndjson` (decided 2026-11-13; a format change in both repositories). Opus | Finding | — | 10, 28 |
 
@@ -307,12 +304,15 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 1. **On this Mac, no signing:** `build-017` → `render-006` → `io-015` → `ai-025` → `ai-026` (and `build-024`, done 2026-11-12). Each is checked on the macOS shell and the
    iOS simulator. `render-006` and `ai-025` do not depend on each other.
 2. **The signing gate (owner):** the setup listed in `build-019` and in Next up row 7.
-3. **On the iPhone:** `build-019` (first install, from TestFlight) → `build-018` (measure it; a contradicting
+3. **On the iPad, then the iPhone (reordered 2026-11-13):** the first install is the local build over the
+   cable, `testing-037` (**stop for the owner at the iPad**), before any push or upload. The GitHub push follows,
+   then `build-019` (the upload, from TestFlight) → `build-018` (measure it; a contradicting
    answer files a finding against rows 2–6) → `testing-011` (**stop for the five-minute free-form pass**) →
    `build-020` (**stop for the owner's legal review and Submit**). `io-026` comes after that, as a 1.1 feature.
+   The order of the gates is in `warpcad-native/TODO/RELEASE-CHECKLIST.md`.
 
 **If time runs short**, the cut line that still gives a publishable app is: `build-017`, `render-006`,
-then the signing gate, `build-019`, `build-018`, `testing-011` (with steps 7 and 8 marked not driven) and
+then the signing gate, `testing-037` (the local install on the iPad), `build-019`, `build-018`, `testing-011` (with steps 7 and 8 marked not driven) and
 `build-020`. `io-015`, `ai-025` and `ai-026` can follow in a 1.1 update.
 
 ### M18 — Launch (owner steps only)
@@ -426,7 +426,7 @@ The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`
 - Held rows: the 11 M19 rows that leave this Mac and five findings, in [Held](#held--not-run-by-run-todos).
 - **M19 free-form pass:** `testing-037` (row 74) is the owner's iPad pass on a local build; the loop stops for it.
 - **Free-form passes:** none owed. The 2026-10-17 decision records the M5–M10, M12, M16 and M17 passes as done.
-  The next one falls due when the next milestone completes. M19's is taken inside `testing-011`, on the iPhone.
+  The next one falls due when the next milestone completes. M19's is `testing-037` on the iPad (row 74), then `testing-011` on the iPad and the iPhone.
 
 ---
 
@@ -483,7 +483,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 27 queued + 5 held | 26 ready for `/run-todos`; `perf-004` parked on an owner question; `testing-026`–`028`, `testing-033`, `ai-041` held. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 4 queued + 11 held | Queued (local, never pushed): `build-035`, `io-030`, `testing-037`, `docs-035`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 3 queued + 11 held | Queued (local, never pushed): `build-035`, `io-030`, `testing-037`. Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |

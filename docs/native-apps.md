@@ -41,8 +41,8 @@ The app shows its own version in **Help**, on the line that reads *WarpCad 1.17.
   between the two takes a project file: in the browser, **File ▾ → Download copy** (or the save
   item your browser shows) writes one, and **File ▾ → Open…** reads one.
 - **Your projects are files in the Files app** (iPhone and iPad). **File ▾ → Save** writes the
-  project to WarpCad's folder, **On My iPhone › WarpCad**, and saves over the same file each
-  time; **Open…** lists those projects and **Browse…** picks one from iCloud Drive. See
+  project to WarpCad's folder (**On My iPad › WarpCad** on an iPad, **On My iPhone › WarpCad** on an
+  iPhone), and saves over the same file each time; **Open…** lists those projects and **Browse…** picks one from iCloud Drive. See
   [Saving in the iOS app](save-load.md#in-the-ios-app). Exports go to the **Exports** folder
   beside them: see [Exporting in the iOS app](export.md#in-the-ios-app).
 - **No analytics.** The app does not load Google Analytics. See
