@@ -10,6 +10,23 @@ app as in a browser at the same screen width.
 > published, the only way to get one is to build it yourself (see
 > [Building the apps yourself](#building-the-apps-yourself) below).
 
+## System requirements
+
+| Device | Needs |
+|---|---|
+| iPhone and iPad | **iOS or iPadOS 26.0 or later** |
+| Mac | **macOS 26.0 or later** |
+
+WarpCad supports the current major version of each system and the one before it, so the
+minimum moves up by one when Apple ships the next major release. Android and Windows have no
+minimum listed yet; they are not released.
+
+To check your iPhone or iPad, open **Settings**, tap **General**, then **About**, and read
+**iOS Version** (iPadOS on an iPad). On a Mac, choose the Apple menu, then **About This Mac**,
+and read the macOS version under the name. If it says 25 or lower, update the system first.
+The app shows its own version in **Help**, on the line that reads *WarpCad 1.17.0 (abc1234)
+· macOS app 1.17.0*: both numbers are the web app's version.
+
 ## How the app differs from the web app
 
 - **It works offline from the first launch.** The whole web app is bundled inside the

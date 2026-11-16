@@ -51,6 +51,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-034 — One version and one minimum OS for the native shell (2026-11-16 00:25)
+
+The version and the 26.0 minimum are checked by `cargo test` and were seen in the built Mac `.app` (`CFBundleShortVersionString` 1.17.0, `LSMinimumSystemVersion` 26.0) and the iOS 27.2 simulator build (launches at v1.17.0, Mach-O `minos` 26.0). The Keychain library (Swift target iOS 26.0) did get, set, get across two processes, delete and get against the simulator's Keychain with a dummy value. Three things were not run: the minimum-version runtime does not exist on this Mac, there is no Simulator.app to tap with, and Help is not clickable unattended.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | **iOS 26.0 runtime.** Install it (Xcode, Settings, Components, iOS 26.0 simulator runtime, or `xcodebuild -downloadPlatform iOS -buildVersion 26.0`), create an iPhone on it, run `npm run ios:dev -- "<that iPhone>"`: the app launches with the Keychain library loaded, places a cube, and shows no linker "built for newer iOS" warning. | Open | |
+| 2 | **Key sheet on a simulator or device, by tapping.** Assistant, paste a dummy key, Save, force-quit, relaunch: the key is still there (the `ai-025` repro, through the real page; the Keychain round trip itself passed through the library). | Open | |
+| 3 | **Help line.** Open Help in the built Mac app and the iOS app: the version line reads `WarpCad 1.17.0 (<commit>) · <platform> app 1.17.0`, the same number twice. | Open | |
+| 4 | **MCP version.** Connect an MCP client to the Mac app's in-app server: `initialize` reports `warpcad-native` 1.17.0. | Open | |
+| 5 | **DMG.** `npm run mac:build` finished the `.app` but the DMG step timed out waiting on Finder (an AppleScript `-1712`); retry it with a Finder window available. | Open | |
+
 ### ai-036 — The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change (2026-11-15 23:50)
 
 `src-tauri/src/mcp/host_tests.rs` already drives real sockets: the bound addresses are `127.0.0.1` plus the Wi-Fi address and never `0.0.0.0`, a 2 MiB body and a chunked body are refused (413, 411) and an address change switches the Wi-Fi half off. `e2e/native-mcp.e2e.js` covers the sheet against the fake shell. What an unattended run cannot do is reach the app from another machine or change the iPad's network.

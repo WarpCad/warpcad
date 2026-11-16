@@ -68,6 +68,26 @@ The `licenses` scripts used `--excludePackages "warpcad@0.0.0"` to skip the app 
 bump would have made that pattern stale and failed CI on the release commit, so both scripts now use
 `--excludePrivatePackages` (the app and `mcp/` are `private`).
 
+## One version for the shell
+
+The native shell (`warpcad-native`) has the web app's version, not one of its own.
+`scripts/sync-version.mjs` reads `version` from this repository's `package.json` and writes it
+into the shell's `package.json`, `src-tauri/Cargo.toml` and `Cargo.lock`, `tauri.conf.json`, and the
+iOS `project.yml` and `Info.plist` (`TODO/build-034`). The shell's build scripts (`npm run mac:build`,
+`android:build`, `win:build`, `ios:build`) run it first, `scripts/build-web.mjs` runs it again, and
+`ios-release.sh` refuses to validate or upload while the committed files are behind. A test in
+`src-tauri/src/lib.rs` fails if any of them disagrees, and, where this repository sits beside the
+shell, if the shell's version is not this one. The Help version line, the MCP server's reported
+version and the store listing therefore all read the same number. Android takes its `versionName`
+and `versionCode` from `tauri.properties`, which the Tauri CLI writes from `tauri.conf.json`;
+`versionCode` gets its own monotonic counter when the first Play Store upload is prepared.
+
+The minimum OS version follows the same rule of one place: `bundle.iOS.minimumSystemVersion` and
+`bundle.macOS.minimumSystemVersion` in `tauri.conf.json`, which `build.rs` reads for the Keychain
+library's Swift target. The owner's rule (2026-11-13) is the current major release and the one
+before it, so the minimum is 26.0 while iOS 27 is current, and it moves when iOS 28 ships (a line in
+the shell's `TODO/RELEASE-CHECKLIST.md` says to re-check it).
+
 ## The iOS build number
 
 `CFBundleShortVersionString` is this repository's `package.json` version. `CFBundleVersion` is a
