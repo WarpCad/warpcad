@@ -9,6 +9,16 @@ depends: []
 status: open
 ---
 
+> **Progress (partial, still open).** Steps 1–5a shipped in earlier commits, and step 5b plus part of
+> step 6 ship in the commit that adds `src/render/pointerGestures.js` and `src/render/sketchPreview.js`.
+> `Viewport.vue` is 1,712 lines, with 1,415 script lines (target under 600), and it no longer imports
+> three.js. Still to extract, each a separate no-behaviour-change commit: the overlay and annotation
+> sync (`syncAnnotations`), `syncSketchPaths` and its keys, `dropTarget`, `frameLoadedContent`, the
+> context-lost and restore handling, `onSketchChainKey`, the watchers (move into a `useViewport*`
+> composable), and the reactive overlay declarations. `pointerGestures.js` (938 lines) is over the
+> ~600-line guide; picking and the marquee are the natural split. Re-run acceptance 1, 4, 6, 7 and 9
+> and closed findings ui-012, ui-013, sketch-006, ui-049 before the final step.
+
 ## Problem
 
 `src/components/viewport/Viewport.vue` is 4,198 lines: a 191-line template, an 89-line style block
