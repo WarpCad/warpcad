@@ -70,6 +70,7 @@ Rust gates pass (a cargo test parses both plists). The rest needs the device: th
 
 | # | Check | Status | Notes |
 |---|---|---|---|
+| 0 | Physical iPad (Socrates, release build): opened a `.warpcad` file in WarpCad; it loaded. Launch confirmed by the owner | OK | Owner report 2026-11-16. Labels, Mail/iCloud, share sheet and Safari still open |
 | 1 | Simulator: put `x.warpcad`, `y.ndjson` and `log.ndjson` (three lines of log JSON) in Files. `x.warpcad` shows as "WarpCad project" and opens on a tap; `y.ndjson` offers Open in WarpCad from the share sheet; `log.ndjson` is no longer labelled "WarpCad project" | Open | |
 | 2 | Simulator: open a `.warpcad` and a `.ndjson` from a Mail attachment and from iCloud Drive; both reach the page (`take_opened_files`) | Open | |
 | 3 | iPad, owner present, local build over the cable: the same three files, plus io-034's reproduction (Open in lists WarpCad with the app closed and open) | Open | |
