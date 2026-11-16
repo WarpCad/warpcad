@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-121 — The iOS status bar and launch screen follow the theme (2026-11-16 00:50)
+
+The simulator matrix was driven with the in-app choice written into the web view's storage, because there was no way to tap in the simulator. The real tap path and the static launch frame are not covered by an acceptance scenario.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the iPhone or iPad, with the device in Dark, open Help, tap **Light** (then **Minimal**, then **System**): the clock and battery turn dark at once, and back to light on System | Open | |
+| 2 | Cold-launch with the device in Light: the launch frame is light grey, not dark, before the app draws (the asset catalog has both variants; the frame was not captured) | Open | |
+
 ### build-034 — One version and one minimum OS for the native shell (2026-11-16 00:25)
 
 The version and the 26.0 minimum are checked by `cargo test` and were seen in the built Mac `.app` (`CFBundleShortVersionString` 1.17.0, `LSMinimumSystemVersion` 26.0) and the iOS 27.2 simulator build (launches at v1.17.0, Mach-O `minos` 26.0). The Keychain library (Swift target iOS 26.0) did get, set, get across two processes, delete and get against the simulator's Keychain with a dummy value. Three things were not run: the minimum-version runtime does not exist on this Mac, there is no Simulator.app to tap with, and Help is not clickable unattended.

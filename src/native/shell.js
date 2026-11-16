@@ -195,3 +195,30 @@ export async function openExternal(url, global = /** @type {BridgeGlobal} */ (/*
   if (parsed.protocol !== 'https:') throw new Error(`cannot open "${url}": only https links leave the app`)
   await invoke(OPEN_URL_COMMAND, { url: parsed.href }, global)
 }
+
+/** The command the shell registers to set the app's light or dark override (`TODO/ui-121`). */
+export const SET_THEME_COMMAND = 'set_theme'
+
+/**
+ * The one literal the shell is told for a theme preference (`TODO/ui-121`). The shell takes only
+ * `system`, `light` or `dark`: System is sent as `system` so the status bar follows the device, and
+ * every other preference (a mode or a style) as the brightness it paints (`useTheme`'s `scheme`).
+ *
+ * @param {string} preference the user's choice: `system`, `dark`, `light` or a style name
+ * @param {'dark' | 'light'} scheme the brightness the painted theme has
+ * @returns {'system' | 'light' | 'dark'}
+ */
+export function nativeThemeMode(preference, scheme) {
+  return preference === 'system' ? 'system' : scheme
+}
+
+/**
+ * Tells the shell the app's theme so the iOS status bar follows it. Rejects without a bridge.
+ *
+ * @param {'system' | 'light' | 'dark'} mode
+ * @param {BridgeGlobal} [global] the global object to read the bridge from
+ * @returns {Promise<unknown>}
+ */
+export function setNativeTheme(mode, global = /** @type {BridgeGlobal} */ (/** @type {unknown} */ (globalThis))) {
+  return invoke(SET_THEME_COMMAND, { theme: mode }, global)
+}

@@ -87,6 +87,14 @@ Pictures in Help follow the theme you chose, not the device's setting.
 When you start WarpCad with a theme that differs from your device's, the first frame can show the
 device's look for an instant before your choice is applied.
 
+In the iPhone and iPad app the clock, battery and signal icons at the top of the screen follow the
+look too. Open **Help**, tap **Light** (or a light style such as **Minimal**) under **Theme** or
+**Style**, and they turn dark so they stay readable on the light header; tap **Dark** and they turn
+light again. **System** hands the choice back to your device. The launch screen, shown before WarpCad
+has started, follows your device's setting only, so if you chose a look that differs from your
+device's, one frame of the device's colour shows at launch. This status bar has no picture here,
+because the screenshots of this page come from a browser, which has no status bar to draw.
+
 ![The Theme control at the bottom of the Help sheet: System, Dark and Light, with System selected](./screenshots/help-theme-control.png)
 
 ## Styles

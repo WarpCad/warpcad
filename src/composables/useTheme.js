@@ -21,6 +21,7 @@
 
 import { computed, ref, watch } from 'vue'
 
+import { isNativeShell, nativeThemeMode, probeShell, setNativeTheme } from '../native/shell.js'
 import { THEME_MODES, THEME_PREFERENCES, THEME_STYLES, useSettingsStore } from '../stores/settings.js'
 
 /** @typedef {import('../stores/settings.js').ThemePreference} ThemePreference */
@@ -61,6 +62,8 @@ let onQueryChange = null
 let stopWatch = null
 /** @type {((value: string) => void) | null} */
 let setter = null
+/** The last literal sent to the native shell, so a repeat is not sent again. @type {string | null} */
+let sentToShell = null
 
 /**
  * The brightness of a resolved theme.
@@ -91,12 +94,29 @@ function resolve(preference) {
   return systemTheme()
 }
 
+/**
+ * Inside a native shell, tell it the theme (`TODO/ui-121`) so the iOS status bar follows the app:
+ * `system`, or the painted theme's scheme. Sent only when it changes; a failure is ignored (an older
+ * shell has no such command).
+ */
+function syncShell() {
+  if (!isNativeShell(probeShell())) return
+  const mode = nativeThemeMode(preferenceRef?.value ?? 'system', scheme.value)
+  if (mode === sentToShell) return
+  sentToShell = mode
+  setNativeTheme(mode).catch(() => {})
+}
+
 /** Recompute `resolved`, write it to the root element and tell the listeners if it moved. */
 function apply() {
   const next = resolve(preferenceRef?.value)
   if (typeof document !== 'undefined') document.documentElement.dataset.theme = next
-  if (next === resolved.value) return
+  if (next === resolved.value) {
+    syncShell()
+    return
+  }
   resolved.value = next
+  syncShell()
   for (const listener of [...listeners]) listener(next)
 }
 
@@ -131,6 +151,7 @@ export function stopTheme() {
   onQueryChange = null
   preferenceRef = null
   setter = null
+  sentToShell = null
   listeners.clear()
   resolved.value = 'dark'
 }

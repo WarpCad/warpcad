@@ -183,6 +183,7 @@ function installInPage(commands, createFs, desktop) {
  */
 export async function installNativeShell(page, options = {}) {
   const table = {
+    set_theme: null,
     shell_info: { platform: options.platform ?? 'ios', version: options.version ?? '1.13.0' },
     ...options.commands,
   }

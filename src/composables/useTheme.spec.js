@@ -181,3 +181,67 @@ describe('useTheme', () => {
     expect(new Set(media.state.queries)).toEqual(new Set(['(prefers-color-scheme: light)']))
   })
 })
+
+/**
+ * `TODO/ui-121`: inside a native shell the theme is also told to the shell (`set_theme`), as `system`,
+ * `light` or `dark`; a style is sent as its scheme. Nothing is sent on the web.
+ */
+describe('useTheme and the native shell', () => {
+  /** @type {ReturnType<typeof vi.fn>} */
+  let invoke
+
+  /** @param {boolean} native */
+  function bootNative(native, light = false) {
+    boot(light)
+    invoke = vi.fn(() => Promise.resolve(null))
+    if (native) vi.stubGlobal('__TAURI_INTERNALS__', { invoke })
+  }
+  const sent = () => invoke.mock.calls.filter((c) => c[0] === 'set_theme').map((c) => c[1].theme)
+
+  it('sends system at start, and nothing on the web', () => {
+    bootNative(true)
+    useTheme()
+    expect(sent()).toEqual(['system'])
+    bootNative(false)
+    useTheme()
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('sends the mode the user chose, and system again when they return to System', () => {
+    bootNative(true)
+    const theme = useTheme()
+    theme.setPreference('light')
+    theme.setPreference('dark')
+    theme.setPreference('system')
+    expect(sent()).toEqual(['system', 'light', 'dark', 'system'])
+  })
+
+  it('does not send when the device flips while the preference is System', () => {
+    bootNative(true)
+    useTheme()
+    media.flip(true)
+    media.flip(false)
+    expect(sent()).toEqual(['system'])
+  })
+
+  it('maps a style to its scheme, and sends nothing for a switch between styles of one scheme', () => {
+    bootNative(true)
+    const theme = useTheme()
+    theme.setPreference('kids') // light
+    theme.setPreference('minimal') // light
+    theme.setPreference('glass') // light
+    theme.setPreference('deco') // dark
+    theme.setPreference('pixel') // dark
+    theme.setPreference('light')
+    expect(sent()).toEqual(['system', 'light', 'dark', 'light'])
+  })
+
+  it('survives a bridge that rejects', async () => {
+    bootNative(true)
+    invoke.mockRejectedValue(new Error('no such command'))
+    const theme = useTheme()
+    expect(() => theme.setPreference('light')).not.toThrow()
+    await nextTick()
+  })
+})
+

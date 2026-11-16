@@ -3,6 +3,8 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { installNativeShell } from './fixtures/nativeShell.js'
+
 /**
  * `TODO/ui-113`: the user chooses System, Dark or Light in the Help sheet's footer, the whole app
  * repaints at once (panels and the 3D view), and the choice is remembered. Against the real app at `/`.
@@ -42,7 +44,7 @@ async function openHelp(page) {
 /**
  * Pick a segment in the Help footer.
  * @param {import('@playwright/test').Page} page
- * @param {'system' | 'dark' | 'light'} choice
+ * @param {'system' | 'dark' | 'light' | 'kids' | 'minimal' | 'deco' | 'blueprint'} choice
  */
 async function choose(page, choice) {
   const button = page.getByTestId(`help-theme-${choice}`)
@@ -163,5 +165,52 @@ test.describe('theme switch on a light system', () => {
     await page.emulateMedia({ colorScheme: 'light' })
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
     await expectPainted(page, 'dark')
+  })
+})
+
+/**
+ * `TODO/ui-121`: inside the native shell the theme is told to the shell as `system`, `light` or `dark`
+ * (a style as its scheme), so the iOS status bar follows the app. The fake shell records each call.
+ * On the web nothing is sent (see `useTheme.spec.js`).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<string[]>}
+ */
+const themeCalls = (page) =>
+  page.evaluate(() => /** @type {any} */ (window).__nativeShell.calls.filter((/** @type {{ cmd: string }} */ c) => c.cmd === 'set_theme').map((/** @type {{ args: { theme: string } }} */ c) => c.args.theme))
+
+test.describe('theme switch inside the native shell', () => {
+  test.use({ colorScheme: 'dark' })
+
+  test('the shell is told System, then each mode, and a light and a dark style by their scheme', async ({ page }, testInfo) => {
+    await installNativeShell(page, { platform: 'ios' })
+    await openApp(page)
+    await expect.poll(() => themeCalls(page)).toEqual(['system'])
+    await openHelp(page)
+
+    await choose(page, 'light')
+    await expect.poll(() => themeCalls(page)).toEqual(['system', 'light'])
+
+    await choose(page, 'kids') // a light style: the scheme is unchanged, so nothing more is sent
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'kids')
+    await choose(page, 'minimal')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'minimal')
+    expect(await themeCalls(page)).toEqual(['system', 'light'])
+    await snapshot(page, testInfo, 'native-light-style')
+
+    await choose(page, 'blueprint') // a dark style
+    await expect.poll(() => themeCalls(page)).toEqual(['system', 'light', 'dark'])
+    await snapshot(page, testInfo, 'native-dark-style')
+
+    await choose(page, 'system')
+    await expect.poll(() => themeCalls(page)).toEqual(['system', 'light', 'dark', 'system'])
+  })
+
+  test('the web build sends nothing', async ({ page }) => {
+    await openApp(page)
+    await openHelp(page)
+    await choose(page, 'light')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    expect(await page.evaluate(() => '__nativeShell' in window)).toBe(false)
   })
 })

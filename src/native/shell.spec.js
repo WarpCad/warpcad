@@ -2,6 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  nativeThemeMode,
+  setNativeTheme,
   SHELL_INFO_COMMAND,
   invoke,
   isNativeShell,
@@ -199,5 +201,26 @@ describe('openExternal (TODO/build-029)', () => {
 
   it('rejects when there is no bridge', async () => {
     await expect(openExternal('https://example.com/', {})).rejects.toThrow(/needs the native shell/)
+  })
+})
+
+describe('setNativeTheme and nativeThemeMode (TODO/ui-121)', () => {
+  it('sends System as system, and anything else as its scheme', () => {
+    expect(nativeThemeMode('system', 'dark')).toBe('system')
+    expect(nativeThemeMode('light', 'light')).toBe('light')
+    expect(nativeThemeMode('dark', 'dark')).toBe('dark')
+    expect(nativeThemeMode('kids', 'light')).toBe('light')
+    expect(nativeThemeMode('blueprint', 'dark')).toBe('dark')
+  })
+
+  it('invokes set_theme with the one literal', async () => {
+    const calls = /** @type {any[]} */ ([])
+    const global = { __TAURI_INTERNALS__: { invoke: async (/** @type {string} */ cmd, /** @type {any} */ args) => void calls.push([cmd, args]) } }
+    await setNativeTheme('light', global)
+    expect(calls).toEqual([['set_theme', { theme: 'light' }]])
+  })
+
+  it('rejects without a bridge', async () => {
+    await expect(setNativeTheme('dark', {})).rejects.toThrow(/native shell/)
   })
 })
