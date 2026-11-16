@@ -285,6 +285,12 @@ closed row moves out of it:
 
 1. Remove the row from its open table in `TODO/ROADMAP.md`, and from **All open
    work** and **Next up** if it is listed there.
+   Row numbers in **Next up** are the ids other rows' `⏳ Waits on N` cells point at, so
+   deleting row N leaves those cells stale. In the same diff, search both tables for
+   `Waits on` and drop N from every cell that names it (a range like `11–19` becomes
+   `14–19`). A cell left with no number becomes `▶ Ready`. Do this for the Findings
+   table's `(Next up row …)` copies too. Confirm with `npm run roadmap:check`, which
+   fails on any `Waits on` cell naming a row that is no longer in Next up.
 2. Add the row to the matching milestone section in `TODO/ROADMAP-DONE.md`
    (create the section, with the table header, if the milestone has none yet),
    with the id cell prefixed `✅ `, e.g. `| ✅ `core-005` | Extrude | M |`. If the
