@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Stays its own menu (ui-122): only three menus exist (this and two Library pop-outs), and they differ in anchoring and focus handling, so a BaseMenu has not earned its place. -->
 <script setup>
 /**
  * The header bar's **File ▾** menu (`TODO/ui-033`) — the one control surface for saving,

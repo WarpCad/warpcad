@@ -21,6 +21,7 @@
 import { computed, ref } from 'vue'
 
 import NumberField from '../controls/NumberField.vue'
+import SegmentedToggle from '../controls/SegmentedToggle.vue'
 import { DEFAULT_AIRFOIL_POINTS, DEFAULT_ELLIPSE_POINTS } from '../../sketch/curves.js'
 import { isClosed } from '../../sketch/profile.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
@@ -95,21 +96,14 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 
 <template>
   <div class="curve" data-testid="sketch-curve-sheet" :data-kind="kind">
-    <div class="curve__kinds" role="radiogroup" aria-label="Curve">
-      <button
-        v-for="entry in KINDS"
-        :key="entry.id"
-        type="button"
-        role="radio"
-        class="curve__kind"
-        :class="{ 'curve__kind--on': kind === entry.id }"
-        :aria-checked="kind === entry.id"
-        :data-testid="`sketch-curve-kind-${entry.id}`"
-        @click="selectKind(entry.id)"
-      >
-        {{ entry.label }}
-      </button>
-    </div>
+    <SegmentedToggle
+      class="curve__kinds"
+      label="Curve"
+      testid="sketch-curve-kind"
+      :model-value="kind"
+      :options="KINDS.map((entry) => ({ value: entry.id, label: entry.label }))"
+      @update:model-value="selectKind"
+    />
 
     <form v-if="kind === 'naca4'" class="curve__fields" @submit.prevent="place">
       <label class="curve__field">
@@ -160,29 +154,6 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.curve__kinds {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.curve__kind {
-  min-height: var(--tap);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
-  font-size: var(--text-size-sm);
-  cursor: pointer;
-}
-
-.curve__kind--on {
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: var(--weight-medium);
 }
 
 .curve__fields {

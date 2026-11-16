@@ -3,7 +3,7 @@
 Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMAP-DONE.md). This file is the source
 `/run-todos` reads for order, and the table `/fix-todo` edits when a task opens, closes or changes priority.
 
-**Snapshot:** 2026-11-15. Counts are in the [Status summary](#status-summary) at the foot of this file.
+**Snapshot:** 2026-11-16. Counts are in the [Status summary](#status-summary) at the foot of this file.
 
 > **What do I run next?** `/run-todos` runs **two tables, top to bottom: [M19](#m19--native-ios-app-tauri), then
 > [Findings](#findings-open-rows)**. Together they are in the same order as [Next up](#next-up--recommended-todos). M19 rows
@@ -65,13 +65,12 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 2 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 1 queued, run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 27 queued (26 ready, 1 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Parked: `perf-004` (owner question). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
-| 74 | ⚠ Parked 2026-11-16: waits for the owner at the iPad; unpark when the owner says so | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
+| 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 77 | ▶ Ready | `M19` | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` | opus |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
-| 36 | ▶ Ready | `FIND` | [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | sonnet |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 43 | ▶ Ready | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
@@ -172,7 +171,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 |---|---|---|---|---|
 | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Keep the kernel's implementations out of the main-thread bundle (split the op registry's metadata from its code) | finding | low | opus | ▶ Ready (Next up row 9) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
-| [`ui-122`](FIND-ui-122-adopt-base-frames-and-segmented-toggle.md) Move the hand-built sheets, popouts and segmented pickers onto the base components | finding | low | sonnet | ▶ Ready (Next up row 36) |
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
@@ -188,7 +186,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
 | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
-| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | ⚠ Parked (Next up row 74): waits for the owner at the iPad |
+| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | Closed 2026-11-16 by owner decision: partly run, 8 checks to be filed as rows |
 | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` (M19) | finding | high | opus | ▶ Ready (Next up row 77) |
 | [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: entitlements, hardened runtime, signing, notarized or Mac App Store build (M19) | feature | medium | sonnet | Held (native) |
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
@@ -270,6 +268,10 @@ order to run them, and the gates for the iPad test, the GitHub push and each sto
 [`RELEASE-CHECKLIST.md`](../../warpcad-native/TODO/RELEASE-CHECKLIST.md). **The owner reordered M19 the same day:** the first device install is a
 local build over the cable (`testing-037`), then GitHub, then App Store Connect. That supersedes the "Order" list below.
 
+> **Decided 2026-11-16 (owner):** "I'm at the ipad now." `testing-037` (the local iPad pass) is unparked and ready. Its install and
+> checklist run are for a `/fix-todo testing-037` session with the owner present; the pass ran that day (22 of 33 checks passed; 3 failed, filed as `build-040`, `io-034` and `ai-043`; 8 not run).
+> **Decided 2026-11-16 (owner):** close now, file the rest. `testing-037` is out of the runner's queue. Its `status:` field closes through `/fix-todo testing-037`. The 8 unrun checks (D4, E6, F2 to F5, G, H) are to be filed as their own rows, not yet filed.
+>
 > **Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or
 > iPad (it should work now)." So the local rows below are back in the runner's queue: Gate 0 of
 > [`RELEASE-CHECKLIST.md`](../../warpcad-native/TODO/RELEASE-CHECKLIST.md), the local iPad pass (`testing-037`) and three
@@ -279,7 +281,7 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| ⚠ `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | — | 28 (local build) |
+| `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | — | 28 (local build) |
 | `io-030` | Give projects a `.warpcad` extension; stop claiming every `.ndjson` (decided 2026-11-13; a format change in both repositories). Opus | Finding | — | 10, 28 |
 
 **Still held** (a list, so the runner cannot pick them up). Each contacts something outside this Mac, or waits on a row that does:
@@ -291,6 +293,9 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 - [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1). **Held:** needs the device (probe branch `probe/io-026`, runbook `PROBE-io-026.md`).
 - [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views. **Held:** needs a person driving the macOS shell's web view (Playwright cannot) and publishes a real gist.
 - [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1). **Held:** waits on `build-019` and publishes a hosted file with the team ID.
+- [`build-040`](../../warpcad-native/TODO/M19-build-040-help-has-no-version-line-on-the-ipad.md) Help has no version line on the iPad (Gate 1 check A2). **Held:** filed 2026-11-16; the owner has not ranked it yet.
+- [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Files does not offer WarpCad for `.ndjson` on the iPad (Gate 1 check C4). **Held:** filed 2026-11-16; same root cause as `io-030`, so it waits for that.
+- [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Live MCP access does not start on the iPad (Gate 1 check F1). **Held:** filed 2026-11-16; needs a device re-check, and F2 to F5 are blocked by it.
 - [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: sandbox entitlements, hardened runtime, signing, Mac App Store build. **Held:** Decided 2026-11-13: Mac App Store; after the iOS submission.
 - [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing. **Held:** After the iOS submission; needs a Play account.
 - [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store. **Held:** After the iOS submission; needs a Windows machine.
@@ -355,7 +360,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | ⚠ `perf-004` | Split the op registry's metadata from its code, so about 380 kB of kernel leaves the main bundle | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Filed 2026-11-14 when `ui-111` closed | Finding | — | 1, 4, 7, 9 |
 | `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
@@ -480,7 +484,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 27 queued + 5 held | 26 ready for `/run-todos`; `perf-004` parked on an owner question; `testing-026`–`028`, `testing-033`, `ai-041` held. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 2 queued + 11 held | Queued (local, never pushed): `io-030`, `testing-037` (parked until the owner is at the iPad). Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 1 queued + 11 held | Queued (local, never pushed): `io-030`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |

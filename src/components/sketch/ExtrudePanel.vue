@@ -11,6 +11,7 @@
 import { computed } from 'vue'
 
 import NumberField from '../controls/NumberField.vue'
+import SegmentedToggle from '../controls/SegmentedToggle.vue'
 import { EXTRUSION_METHODS } from '../../sketch/profile.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
@@ -68,28 +69,28 @@ function valueOf(key) {
   const value = /** @type {Record<string, unknown>} */ (editor.draft.extrusion)[key]
   return typeof value === 'number' ? value : null
 }
+
+/** The method picker's options: a method with a problem is disabled unless it is the current one. */
+const methodOptions = computed(() =>
+  EXTRUSION_METHODS.map((name) => ({
+    value: name,
+    label: METHODS[name].label,
+    title: editor.methodProblems[name] || METHODS[name].picture,
+    disabled: Boolean(editor.methodProblems[name]) && method.value !== name,
+  })),
+)
 </script>
 
 <template>
   <div class="extrude" data-testid="sketch-extrude-panel" :data-method="method">
-    <div class="extrude__methods" role="radiogroup" aria-label="Extrusion method">
-      <button
-        v-for="name in EXTRUSION_METHODS"
-        :key="name"
-        type="button"
-        role="radio"
-        class="extrude__method"
-        :class="{ 'extrude__method--on': method === name }"
-        :aria-checked="method === name"
-        :disabled="Boolean(editor.methodProblems[name]) && method !== name"
-        :title="editor.methodProblems[name] || METHODS[name].picture"
-        :data-testid="`sketch-method-${name}`"
-        :data-reason="editor.methodProblems[name]"
-        @click="editor.setMethod(name)"
-      >
-        {{ METHODS[name].label }}
-      </button>
-    </div>
+    <SegmentedToggle
+      class="extrude__methods"
+      label="Extrusion method"
+      testid="sketch-method"
+      :model-value="method"
+      :options="methodOptions"
+      @update:model-value="editor.setMethod"
+    />
     <p class="extrude__picture" data-testid="sketch-method-picture">{{ METHODS[method].picture }}</p>
     <p v-if="methodReason" class="extrude__reason" data-testid="sketch-method-reason">{{ methodReason }}</p>
     <p v-if="method === 'outline'" class="extrude__note">Solid and Hole are ignored here — every closed outline becomes a wall.</p>
@@ -126,35 +127,6 @@ function valueOf(key) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.extrude__methods {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.extrude__method {
-  min-height: var(--tap-compact);
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
-  font-size: var(--text-size-sm);
-  cursor: pointer;
-}
-
-.extrude__method--on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: var(--weight-medium);
-}
-
-.extrude__method:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .extrude__picture,

@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Its aria-pressed buttons stay hand-built (ui-122): independent icon toggles, not a single-choice row. -->
 <script setup>
 /**
  * The Sketch toolbar — mounted only while the sketch editor is open (`TODO/sketch-001`).

@@ -51,6 +51,58 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-122 — Three sketch pickers moved onto SegmentedToggle (2026-11-16 17:24 UTC)
+
+The Curve kind, Extrusion method and Solid/Hole rows now use `SegmentedToggle`. Their look changed on purpose (surface-2 background, accent ring, 6px gap, not the old filled accent), and they gained roving tabindex and arrow-key selection that the hand-built rows lacked. No e2e spec covers keyboard use of these rows, and the ui-115 keyboard repro was not driven, so both checks belong here.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Keyboard: in the Sketch toolbar's Extrude panel and the inspector's Solid/Hole row, Tab onto the row, then Arrow keys move the selection and Enter or Space commits it; the disabled method (when it has a problem) is skipped. | Open | |
+| 2 | Feel: the three adopted rows read as the segmented style on a phone and a tablet, with tap targets at tap size. | Open | |
+
+
+### testing-037 — Gate 1 pass on Socrates (iPad Pro 11-inch, M2), release build of native 379f038 + web 49bab03 (2026-11-16)
+
+Installed with `ios-release.sh --install "Socrates"` and launched by hand (the first launch was refused while the iPad was locked). The owner ran the checks on the device; I recorded the results and the simulator drive. Not run: section G (needs the `probe/build-018` build), D4 (overnight), E6 (spends the owner's tokens), H (free-form, deferred). F2 to F5 were not run because F1 failed. Gate 1 is not passed; the FAIL rows need TODO files before it can be.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| A2 | Help version line (`WarpCad <version> (<commit>) · iOS app <version>`) | Issue | No version line in the Help popup on Socrates. The header shows `v1.17.0 · 49bab03` on the simulator. Needs a TODO. |
+| A3 | Rotate portrait, landscape, upside-down | OK | PASS (owner). |
+| A4 | Split View at half and one-third width | OK | PASS (owner). |
+| A5 | System Light and Dark, in-app Light and Dark styles | OK | PASS (owner). |
+| A6 | Keyboard shortcuts (Cmd+Z, Cmd+Shift+Z, Cmd+S, Shift-click, Cmd+Option+N) and pointer | OK | PASS (owner). |
+| B1 | Drag Cube and Sphere in by finger | OK | PASS (owner). The simulator also committed a cube by drag. |
+| B2 | Finger orbit, pan, zoom, on-screen pad, view cube | OK | PASS (owner). |
+| B3 | Gizmo and Inspector fields agree; keyboard does not cover the field | OK | PASS (owner). |
+| B4 | Subtract disabled with one object, enabled with two | OK | PASS (owner). The simulator also showed the toolbar gating; in the Objects list, ticking a row's checkbox adds it. |
+| B5 | Apple Pencil | OK | PASS (owner). |
+| C1 | Save as `gate-1`; file in On My iPad > WarpCad | OK | PASS (owner). |
+| C2 | Force-quit, relaunch; project comes back; in File > Open | OK | PASS (owner). |
+| C3 | Export STL in WarpCad > Exports; opens in another app | OK | PASS (owner). |
+| C4 | Open `gate-1.ndjson` from Files in WarpCad, closed and open | Issue | WarpCad is not offered as an app to open the file. Related to `io-030` (file-type claims). Needs a TODO. |
+| C5 | iCloud project: edit, force-quit, relaunch, Save (record only) | OK | Recorded by owner: the edit survived. |
+| C6 | Import STL or 3MF into My parts and place it | OK | PASS (owner). |
+| D1 | Switch away 1, 5, 15 minutes | OK | PASS (owner). |
+| D2 | Lock 5 minutes mid-edit | OK | PASS (owner). |
+| D3 | Heavy project, background 15 minutes | OK | PASS (owner). |
+| D4 | Overnight relaunch | Open | Deferred by owner. |
+| E1 | Help pictures load | OK | PASS (owner). |
+| E2 | Airplane mode Help: "Help needs a connection", Retry | OK | PASS (owner). |
+| E3 | External link opens Safari, app stays put | OK | PASS (owner). |
+| E4 | Share sheet: Copy link pastes; Send opens the sheet | OK | PASS (owner). |
+| E5 | GitHub token survives relaunch | OK | PASS (owner). |
+| E6 | Anthropic key survives relaunch (optional, spends tokens) | Open | Deferred by owner. |
+| F1 | Live MCP access on: Wi-Fi address, token, `claude mcp add` line | Issue | FAIL (owner): it did not work on Socrates. Needs a TODO. Whether a Local Network prompt appeared was not recorded. |
+| F2 | Paste on Mac; 20 mm cylinder lands; Undo removes it | Open | Not run: blocked by F1. |
+| F3 | `curl` with no token and a wrong token: 401 both | Open | Not run: blocked by F1. |
+| F4 | Lock 60 s mid-request: agent told the call may not have landed | Open | Not run: blocked by F1. |
+| F5 | Access off, ask from Mac: refused | Open | Not run: blocked by F1. |
+| G | Measurements (`probe/build-018`) | Open | Not run: needs the probe build. |
+| H | Five-minute free-form pass | Open | Deferred by owner. |
+
+Simulator notes (iPad Pro 11-inch M5, synthetic taps, not hardware): tapping a second object in the viewport replaces the selection instead of adding to it; adding a second object worked through the Objects list checkbox. Confirm that is intended. The cube was brown when selected and blue-grey after, with its colour swatch reading "Default"; not yet confirmed as selection tint. The second Library button placed a cylinder, not a sphere, so the sphere was not checked in the simulator.
+
 ### build-035 — Crash reporting, the privacy manifest and the store answers agree (2026-11-16 02:56)
 
 The release build now reports web-view crashes (owner decision), and everything that says so is wired and tested: the CSP host, the DSN requirement, the manifest. What this run could not do, on purpose: read a real DSN, send an event, run `ios:release` (it talks to App Store Connect and reads the Keychain), or scan a signed archive.
@@ -2701,5 +2753,15 @@ draw their buttons with `BaseButton`. Four looks changed on purpose and are a ju
 | 2 | Toast and banner buttons lost their hover/focus accent border; the shared focus ring replaces it. Visible on a keyboard Tab in Firefox and Safari? | Open | |
 | 3 | The Assistant's three height buttons and Watch keep square corners and 8 px padding through a parent selector. At 390 px does the header row still wrap the same way? | Open | |
 | 4 | The Show all toggle on a long reply is now an underlined link. Reads as a link, not a stray label? | Open | |
+
+### mcp-001 — Live MCP: "add a cube and a sphere" blocked by the single-client guard (2026-11-16)
+
+The WarpCad live MCP server at `192.168.0.93:5184/mcp` (app `warpcad-native` 1.17.0) answered HTTP 200 and opened a session, but refused every call, including `record_prompt` and the read-only `list_ops`, with "more than one MCP client or enabled WarpCad tab is connected". Nothing was added to the project. The session's `warpcad` MCP server also failed to connect at startup (ECONNREFUSED), so the tools were never loaded and the calls were sent as raw JSON-RPC over curl. `resources/read` for `warpcad://guide` returned method-not-found, so the guide was not read. The cuboid and sphere parameters were not checked against the server.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | With only one client and one enabled WarpCad tab connected, the server accepts `record_prompt`. Then add a cuboid and a sphere, read back the scene, and confirm both appear. | open | Retry after disconnecting the extra client or tab. Confirm the `primitive.cuboid` and `primitive.sphere` parameters with `list_ops` first. |
+| 2 | Does the session's `warpcad` MCP server connect at startup, or does it stay ECONNREFUSED while the endpoint answers? | open | The endpoint answered 200 when probed directly. Check the connection when the session starts. |
+| 3 | Security: the bearer token for this server was pasted into a chat transcript, and a GitHub personal access token sits in plain text in `~/.zshenv`. | open | Rotate both if the chat or the dotfile has been shared. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

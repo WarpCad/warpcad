@@ -6,8 +6,17 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 when the theme umbrella (ui-111) closed
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-16).** Three hand-built segmented pickers moved onto `SegmentedToggle`: the curve kind row
+> in `sketch/CurveSheet.vue`, the method row in `sketch/ExtrudePanel.vue`, and the Solid/Hole row in
+> `sketch/SketchProfileFields.vue`. Their `data-testid`s are kept. The rest were decided and left as they are, each with a
+> one-line comment at the top of the file saying why: `HelpSheet`, `UserPartMenu`, the three menus (`FileMenu` and the two
+> Library popouts, no `BaseMenu`), `NavigationChrome`, `SketchToolbar`, `SlicePanel`, `TimelineToggle`, `SplitSheet`, and the
+> two native-radio popovers. Not done, deliberately: the Inspector tabs and the roughly 26 `.…btn` rules, which stay open for
+> a follow-up. The three adopted rows now look like `SegmentedToggle` (surface-2 background, accent ring, 6px gap), not the
+> old filled accent, and they gained roving tabindex and arrow-key selection.
 
 ## Problem
 

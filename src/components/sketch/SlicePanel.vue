@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Its aria-pressed slice buttons stay hand-built (ui-122): a list of slice tabs with per-slice controls, not a SegmentedToggle row. -->
 <script setup>
 /**
  * The Slices panel (`TODO/sketch-001`): the sketch's stack of outlines at different

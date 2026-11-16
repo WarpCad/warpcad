@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Its aria-pressed buttons stay hand-built (ui-122): they are icon toggles in a floating cluster (and a preset picker), not a labelled single-choice row, so SegmentedToggle's radio model does not fit. -->
 <script setup>
 /**
  * On-screen orbit / pan / zoom controls.

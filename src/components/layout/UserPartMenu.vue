@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Stays its own component (ui-122): one file owns a menu plus two dialogs that are bottom action sheets with 48px items below 641px and have a clear and a dimmed backdrop; BaseDialog/BaseSheet carry none of that. -->
 <script setup>
 /**
  * A My parts row's ⋯ menu (`TODO/ui-055`): **Rename**, **Duplicate**, **Export part file** and

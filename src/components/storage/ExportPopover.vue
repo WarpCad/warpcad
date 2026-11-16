@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Its radiogroups stay hand-built (ui-122): native radio inputs inside a form (scope, format), not a segmented button row. -->
 <script setup>
 /**
  * The Export popover (`TODO/ui-034`) — opened by **File ▾ → Export…** and driven entirely by

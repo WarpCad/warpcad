@@ -18,12 +18,19 @@ import { computed, ref, watch } from 'vue'
 
 import BaseButton from '../controls/BaseButton.vue'
 import NumberField from '../controls/NumberField.vue'
+import SegmentedToggle from '../controls/SegmentedToggle.vue'
 import { isClosed } from '../../sketch/profile.js'
 import { describeCurve } from '../../sketch/curves.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
 
 const editor = useSketchEditorStore()
 const profile = computed(() => editor.selectedProfile)
+
+/** The Solid / Hole picker's options. */
+const ROLE_OPTIONS = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'hole', label: 'Hole' },
+]
 
 const KIND_LABELS = Object.freeze({ circle: 'Circle', rect: 'Rectangle', polygon: 'Polygon', polyline: 'Outline' })
 
@@ -179,21 +186,14 @@ function blurTarget(event) {
       <p class="profile__kind" data-testid="inspector-sketch-profile-kind">
         {{ KIND_LABELS[profile.kind] }} · {{ profile.role === 'hole' ? 'Hole' : 'Solid' }}
       </p>
-      <div class="profile__roles" role="radiogroup" aria-label="Outline role">
-        <button
-          v-for="role in ['solid', 'hole']"
-          :key="role"
-          type="button"
-          role="radio"
-          class="profile__role"
-          :class="{ 'profile__role--on': profile.role === role }"
-          :aria-checked="profile.role === role"
-          :data-testid="`inspector-sketch-role-${role}`"
-          @click="setRole(role)"
-        >
-          {{ role === 'hole' ? 'Hole' : 'Solid' }}
-        </button>
-      </div>
+      <SegmentedToggle
+        class="profile__roles"
+        label="Outline role"
+        testid="inspector-sketch-role"
+        :model-value="profile.role"
+        :options="ROLE_OPTIONS"
+        @update:model-value="setRole"
+      />
       <dl v-if="fields.length > 0" class="profile__fields">
         <template v-for="field in fields" :key="`${field.key}-${field.index ?? ''}`">
           <dt>
@@ -343,29 +343,6 @@ function blurTarget(event) {
   font-size: var(--text-size-lg);
   font-weight: var(--weight-medium);
   color: var(--text-1);
-}
-
-.profile__roles {
-  display: flex;
-  gap: 4px;
-}
-
-.profile__role {
-  min-height: var(--tap-compact);
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-2);
-  font-size: var(--text-size-sm);
-  cursor: pointer;
-}
-
-.profile__role--on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: var(--weight-medium);
 }
 
 .profile__fields {

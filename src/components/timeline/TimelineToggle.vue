@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Stays hand-built (ui-122): a single on/off toggle, not a single-choice row. -->
 <script setup>
 /**
  * The header bar's **History** toggle (`TODO/ui-032`).

@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Its connector-kind radiogroup stays hand-built (ui-122): each option holds an SVG glyph and an aria-label, which SegmentedToggle's text-only options cannot carry. -->
 <script setup>
 /**
  * The Split sheet (`TODO/io-007`) — **Split…** in the Operations toolbar opens it on the one

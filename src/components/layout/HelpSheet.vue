@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Stays its own frame (ui-122): routes by hash, runs a Back stack and sits above BaseDialog at z 50/51, which BaseDialog cannot express. -->
 <script setup>
 /**
  * The in-app Help sheet (`TODO/ui-061`), mounted once in `AppView.vue`.

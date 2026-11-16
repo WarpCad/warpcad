@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Stays its own pop-out (ui-122): a non-modal rail pop-out with the shared openPopout slot; not a BasePopover or BaseDialog case, and too few menus to justify a BaseMenu. -->
 <script setup>
 /**
  * The section pop-out (`TODO/ui-081`): what a tap on a section launcher opens in the Library's
