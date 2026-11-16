@@ -63,24 +63,24 @@ describe('withProjectId', () => {
 
 describe('shareFileName', () => {
   it('makes a readable project file name from a title', () => {
-    expect(shareFileName('Phone stand')).toBe('Phone stand.ndjson')
+    expect(shareFileName('Phone stand')).toBe('Phone stand.warpcad')
   })
 
   it('replaces path separators, reserved and control characters, and leading dots (hostile titles)', () => {
-    expect(shareFileName('../../etc/passwd')).toBe('etc-passwd.ndjson')
-    expect(shareFileName('a\\b:c*d?"e<f>g|h')).toBe('a-b-c-d-e-f-g-h.ndjson')
-    expect(shareFileName('line\nbreak\u0000')).toBe('line-break-.ndjson')
-    expect(shareFileName('.hidden')).toBe('hidden.ndjson')
+    expect(shareFileName('../../etc/passwd')).toBe('etc-passwd.warpcad')
+    expect(shareFileName('a\\b:c*d?"e<f>g|h')).toBe('a-b-c-d-e-f-g-h.warpcad')
+    expect(shareFileName('line\nbreak\u0000')).toBe('line-break-.warpcad')
+    expect(shareFileName('.hidden')).toBe('hidden.warpcad')
   })
 
   it('cuts a very long title and falls back when nothing is left', () => {
-    expect(shareFileName('x'.repeat(10_000))).toBe(`${'x'.repeat(80)}.ndjson`)
-    expect(shareFileName('   ')).toBe('warpcad-project.ndjson')
-    expect(shareFileName('///')).toBe('warpcad-project.ndjson')
+    expect(shareFileName('x'.repeat(10_000))).toBe(`${'x'.repeat(80)}.warpcad`)
+    expect(shareFileName('   ')).toBe('warpcad-project.warpcad')
+    expect(shareFileName('///')).toBe('warpcad-project.warpcad')
   })
 
   it('keeps emoji and right-to-left text', () => {
-    expect(shareFileName('Stand 📱')).toBe('Stand 📱.ndjson')
-    expect(shareFileName('حامل الهاتف')).toBe('حامل الهاتف.ndjson')
+    expect(shareFileName('Stand 📱')).toBe('Stand 📱.warpcad')
+    expect(shareFileName('حامل الهاتف')).toBe('حامل الهاتف.warpcad')
   })
 })

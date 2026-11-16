@@ -354,21 +354,25 @@ const cubeAndSphereText = (page) =>
   })
 
 /**
- * Put a gist straight into the fake, as someone else's publish would have.
+ * Put a gist straight into the fake, as someone else's publish would have. By default it is one
+ * published before `TODO/io-035`, with a legacy `phone-stand.ndjson`: every test that opens it is
+ * also legacy-gist coverage.
  *
  * @param {ReturnType<typeof newFake>} fake
  * @param {string} text
  * @param {string} description
+ * @param {Record<string, string>} [files] the gist's files, when not the default pair
+ * @param {string} [revision]
  */
-function seedGist(fake, text, description = 'Phone stand') {
+function seedGist(fake, text, description = 'Phone stand', files = undefined, revision = 'a'.repeat(40)) {
   const id = 'c0ffee00c0ffee00c0ffee00c0ffee00'.slice(0, 32)
   fake.gists.set(id, {
     id,
     public: false,
     description,
     owner: 'someone-else',
-    files: { 'phone-stand.ndjson': text, 'README.md': '# Phone stand\n' },
-    revisions: ['a'.repeat(40)],
+    files: files ?? { 'phone-stand.ndjson': text, 'README.md': '# Phone stand\n' },
+    revisions: [revision],
     updatedAt: new Date().toISOString(),
   })
   return id
@@ -441,7 +445,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     expect(gist?.public).toBe(false)
     expect(gist?.owner).toBe(LOGIN)
     // Exactly two files: the project (named by the sheet's Name, `Untitled` for a never-saved project) and its README.
-    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'untitled.ndjson'])
+    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'untitled.warpcad'])
     const readme = gist?.files['README.md'] ?? ''
     for (const name of names) expect(readme).toContain(name)
     expect(readme).toContain(`https://app.warpcad.com/#/gist/${id}`)
@@ -662,6 +666,30 @@ test.describe('store and share a project as a GitHub gist', () => {
     }
   })
 
+  test('14. a gist published before .warpcad still opens; one holding both opens project.warpcad (io-035)', async ({ page }) => {
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const text = await cubeAndSphereText(page)
+
+    // Published by an older WarpCad: its only project file is phone-stand.ndjson.
+    const id = seedGist(fake, text)
+    await page.goto(`/#/gist/${id}`)
+    await expect(page.getByTestId('shared-view')).toHaveAttribute('data-state', 'ready')
+    await expect(page.getByTestId('shared-title')).toHaveText('Phone stand')
+    await expectBodyCount(page, 2)
+
+    // project.warpcad and a stale project.ndjson side by side: the .warpcad one is read.
+    const oneCube = '{"id":"stale-1","op":"primitive.cuboid","name":"Stale","params":{"size":[5,5,5],"center":[0,0,2.5]}}\n'
+    seedGist(fake, text, 'Phone stand', { 'project.ndjson': oneCube, 'project.warpcad': text, 'README.md': '# Phone stand\n' }, 'b'.repeat(40))
+    // A fresh tab, as a person opening the link would: the first open has consumed this tab's hash.
+    const viewer = await page.context().newPage()
+    await openApp(viewer, fake, `/#/gist/${id}`)
+    await expect(viewer.getByTestId('shared-view')).toHaveAttribute('data-state', 'ready')
+    await expectBodyCount(viewer, 2)
+    await viewer.close()
+  })
+
   test('6. a rate-limited read and a deleted gist each say so in plain words, with Start WarpCad', async ({ page }, info) => {
     const fake = newFake()
     await openApp(page, fake)
@@ -771,7 +799,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     const id = /** @type {string} */ (copied).slice(-32)
     const gist = fake.gists.get(id)
     expect(gist?.description).toBe('Fan Duct')
-    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'fan-duct.ndjson'])
+    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'fan-duct.warpcad'])
     expect(gist?.files['README.md']).toContain('# Fan Duct')
 
     // Rename in the same sheet and update: the gist follows the Name, and the old file goes.
@@ -781,7 +809,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
     const renamed = fake.gists.get(id)
     expect(renamed?.description).toBe('Desk stand')
-    expect(Object.keys(renamed?.files ?? {}).sort()).toEqual(['README.md', 'desk-stand.ndjson'])
+    expect(Object.keys(renamed?.files ?? {}).sort()).toEqual(['README.md', 'desk-stand.warpcad'])
     expect(renamed?.files['README.md']).toContain('# Desk stand')
   })
 

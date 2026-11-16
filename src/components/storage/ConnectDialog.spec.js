@@ -92,7 +92,7 @@ describe('ConnectDialog', () => {
     expect(token.getAttribute('autocapitalize')).toBe('none')
     expect(token.getAttribute('autocorrect')).toBe('off')
     expect(token.getAttribute('spellcheck')).toBe('false')
-    expect(q('hosted-path').value).toBe('warpcad-project.ndjson')
+    expect(q('hosted-path').value).toBe('warpcad-project.warpcad')
   })
 
   it('Connect is disabled until there is a token and a repository', async () => {

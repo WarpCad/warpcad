@@ -68,7 +68,7 @@ bar is crowded, it shows just the light (screen readers still read out the words
 |---|---|---|
 | Grey | **Autosave on** | Nothing to save yet — you haven't changed anything |
 | Amber ring | **Saving…** | A change was just made and is about to be stored |
-| Amber ring | **Opening warpcad-project.ndjson…** | A file (or a repository copy) is being opened — see [While a file is opening](#while-a-file-is-opening) |
+| Amber ring | **Opening warpcad-project.warpcad…** | A file (or a repository copy) is being opened — see [While a file is opening](#while-a-file-is-opening) |
 | Amber ring | **Restoring your last session…** | Your model is being rebuilt as the page opens |
 | Green dot | **Saved · 14:02** | Your latest change is stored, at that time |
 | Green dot | **Restored your last session** | Your model was just reopened from where you left off |
@@ -167,11 +167,23 @@ what is selected.
 
 ### Saving a file you can keep — and what the item is called
 
-A project file is a plain text file named `warpcad-project.ndjson`. It holds the same steps
+A project file is a plain text file named `warpcad-project.warpcad`. It holds the same steps
 autosave keeps, so it opens on any device, and it is what you hand to somebody else. To show a
 project to someone who doesn't use WarpCad, send a link instead: **Share**, then **Send…** or
 **Copy link** ([Sharing a project by link](sharing.md)). They tap it and see the model, with nothing
 to open or install.
+
+**Example.** Choose **File ▾ → Save As…**, type `bracket`, press **Save**. The file is
+`bracket.warpcad`. To open a project saved before November 2026, choose **File ▾ → Open…** and
+pick `bracket.ndjson`; it opens the same way.
+
+#### Projects saved as `.ndjson`
+
+Before November 2026 WarpCad named project files `.ndjson`. The inside of the file has not
+changed, only the name: **Open…** reads both, and nothing renames a file you already have. A
+project you open from `bracket.ndjson` keeps that name when you **Save** it; **Save As…** is where
+you get `bracket.warpcad`. In the iOS and Mac apps, the **Open…** list shows both kinds side by
+side.
 
 What the item is *called* depends on your browser, because browsers differ in what a web page
 may do:
@@ -181,7 +193,7 @@ may do:
   **Save As…** always asks.
 - **On every other browser — Firefox, Safari, and all phones and tablets, including Chrome on
   Android —** you get one item, **Download copy**. It downloads a fresh file every time, named
-  with the date and time (`warpcad-project-20260921-1402.ndjson`) so copies don't overwrite
+  with the date and time (`warpcad-project-20260921-1402.warpcad`) so copies don't overwrite
   each other. It is never called "Save", because it doesn't save over anything. This isn't a
   limit of WarpCad: those browsers don't let a web page write to a file on your device
   directly. On an iPhone or iPad the file lands wherever Safari's downloads go, usually the
@@ -193,8 +205,8 @@ downloads a local file — it never sends anything over the network, whether or 
 connected to a repository.
 
 After you choose it the status line tells you what happened: **Saved to
-warpcad-project.ndjson · 14:02** where the browser can save in place, or **Download started:
-warpcad-project-20260921-1402.ndjson** where it can only download (it says "started" because a
+warpcad-project.warpcad · 14:02** where the browser can save in place, or **Download started:
+warpcad-project-20260921-1402.warpcad** where it can only download (it says "started" because a
 browser can't confirm a download finished). Cancelling the file picker is not an error, and
 says nothing.
 
@@ -204,20 +216,20 @@ A few browsers — the editor's built-in browser is one — offer **Save** and *
 then refuse to write the file when you pick a place for it. Nothing is lost: WarpCad hands you
 a downloaded copy from the same click instead, and says so in the status line:
 
-![The status line reading: This browser won't save in place. A copy was downloaded instead: warpcad-project-20260921-1402.ndjson. An empty file named bracket.ndjson may have been left where you chose to save; you can delete it.](./screenshots/save-refused-notice.png)
+![The status line reading: This browser won't save in place. A copy was downloaded instead: warpcad-project-20260921-1402.warpcad. An empty file named bracket.warpcad may have been left where you chose to save; you can delete it.](./screenshots/save-refused-notice.png)
 
 Two things to know:
 
 - **An empty file may be left behind.** Choosing a place in the picker already created the
   file, before the browser refused the write, and WarpCad can't delete it. It has the name you
-  typed (`bracket.ndjson` above) and nothing in it. The downloaded copy is the real one; delete
+  typed (`bracket.warpcad` above) and nothing in it. The downloaded copy is the real one; delete
   the empty file so it isn't mistaken for your project.
 - **From then on the menu says Download copy.** **Save As…** disappears and every save is a
   new downloaded file, until you reload the page.
 
 **Try it:** in such a browser, choose **File ▾ → Save**, pick a folder and a name, and confirm.
 The status line shows "A copy was downloaded instead", and your browser's downloads list has
-`warpcad-project-…ndjson`. Open that file with **File ▾ → Open…** to check your work is in it.
+`warpcad-project-….warpcad`. Open that file with **File ▾ → Open…** to check your work is in it.
 
 ### Opening a file
 
@@ -233,9 +245,9 @@ The status line shows "A copy was downloaded instead", and your browser's downlo
    until you do something else.
 4. While WarpCad rebuilds the model from the file, the **File** button shows a small
    spinning ring and **Opening…**, and the status line says **Opening
-   warpcad-project.ndjson…** — see [While a file is opening](#while-a-file-is-opening).
+   warpcad-project.warpcad…** — see [While a file is opening](#while-a-file-is-opening).
 5. If it is good, the model appears, the view moves to show all of it, nothing is selected,
-   any history preview is ended, and the status line says **Opened warpcad-project.ndjson · 5
+   any history preview is ended, and the status line says **Opened warpcad-project.warpcad · 5
    steps**.
 
 ![The Replace the project? question that File, Open asks before the file picker, with Cancel and Replace buttons](./screenshots/replace-confirm-dialog.png)
@@ -243,7 +255,7 @@ The status line shows "A copy was downloaded instead", and your browser's downlo
 Opening a file can't be undone — undo and redo both start empty, like a reload — which is
 exactly why the question comes first.
 
-![Choosing File, Open on an empty scene, picking a project file, and the saved cube and cylinder appearing with the status line reading Opened warpcad-project.ndjson · 2 steps](./media/open-project.gif)
+![Choosing File, Open on an empty scene, picking a project file, and the saved cube and cylinder appearing with the status line reading Opened warpcad-project.warpcad · 2 steps](./media/open-project.gif)
 
 ### Merging another copy instead of replacing
 
@@ -345,13 +357,13 @@ instead of making a new copy each time.
 **Try it:**
 
 1. Drag a **Cube** into the view. Tap **File ▾ → Save**. The first time, a sheet asks for a
-   name: type `bracket` and tap **Save**. The status line reads **Saved to bracket.ndjson**.
-2. Open the **Files** app and tap **Browse → On My iPhone → WarpCad**. `bracket.ndjson` is there.
+   name: type `bracket` and tap **Save**. The status line reads **Saved to bracket.warpcad**.
+2. Open the **Files** app and tap **Browse → On My iPhone → WarpCad**. `bracket.warpcad` is there.
 3. Back in WarpCad, move the cube and tap **File ▾ → Save** again. Nothing asks this time, and
-   the same file updates. There is still one `bracket.ndjson` in the folder, not two.
+   the same file updates. There is still one `bracket.warpcad` in the folder, not two.
 4. To open a project from iCloud Drive, tap **File ▾ → Open… → Browse…** and pick it.
 
-![The Open sheet in the iPhone app: two projects in WarpCad's folder, bracket.ndjson and phone stand.ndjson, each with the date it was saved, above Cancel and Browse… buttons](./screenshots/native-open-sheet.png)
+![The Open sheet in the iPhone app: two projects in WarpCad's folder, bracket.warpcad and phone stand.warpcad, each with the date it was saved, above Cancel and Browse… buttons](./screenshots/native-open-sheet.png)
 
 What each item does in the app:
 
@@ -359,8 +371,9 @@ What each item does in the app:
   asks for a name first. If the name is already used by another project, the sheet says so and
   asks again, so another project is never overwritten.
 - **Save As…** asks for a new name and saves there. Later Saves go to the new file.
-- **Open…** shows a sheet listing the projects in WarpCad's folder, newest first. Tap one to
-  open it. If the open project has steps, WarpCad asks before replacing it, as everywhere else.
+- **Open…** shows a sheet listing the projects in WarpCad's folder, newest first, both
+  `.warpcad` files and ones saved earlier as `.ndjson`. Tap one to open it. If the open project
+  has steps, WarpCad asks before replacing it, as everywhere else.
 - **Browse…**, at the bottom of that sheet, opens the system file picker, so you can pick a
   project from iCloud Drive or another app's folder. WarpCad reads that file once, as a copy.
   The status line says **Opened a copy — Save writes to WarpCad's folder**, and the next Save
@@ -372,7 +385,7 @@ you come back to the app, as Chromium on a desktop does, and the merge summary o
 merge**. A copy opened through **Browse…** cannot be read again, so for one of those you get the
 line described in [When WarpCad can't see the file change](#when-warpcad-cant-see-the-file-change)
 instead.
-If a Save cannot be written, the status line says **Couldn't save bracket.ndjson** with the reason.
+If a Save cannot be written, the status line says **Couldn't save bracket.warpcad** with the reason.
 The app never falls back to a download.
 
 Exports go to a folder of their own: see [Exporting your model](export.md#in-the-ios-app). After
@@ -406,8 +419,9 @@ A **fine-grained personal access token**, created at
 
 1. **File ▾ → Connect repository…** A dialog opens.
 2. Paste the token, type the repository as `owner/repo` (for example
-   `janecoder/enclosure-parts`), and leave the path as `warpcad-project.ndjson` unless you
-   want the file somewhere else in the repository.
+   `janecoder/enclosure-parts`), and leave the path as `warpcad-project.warpcad` unless you
+   want the file somewhere else in the repository. A repository you connected before November
+   2026 keeps the `warpcad-project.ndjson` it already has.
 3. Press **Connect**. WarpCad checks the token against GitHub **before** storing anything,
    so a typo or an expired token is rejected there and then, with the reason: *GitHub
    rejected this token*, *Repository not found, or the token has no access to it*, *This
@@ -415,7 +429,7 @@ A **fine-grained personal access token**, created at
    again in N minutes*.
 4. If the repository has no project file yet, that is not an error: you will see *No
    project file yet — the first Save to owner/repo will create it*.
-   ![The Connect repository dialog with the token field filled in (shown as dots), the repository janecoder/enclosure-parts and the default path warpcad-project.ndjson](./screenshots/hosted-connect-dialog.png)
+   ![The Connect repository dialog with the token field filled in (shown as dots), the repository janecoder/enclosure-parts and the default path warpcad-project.warpcad](./screenshots/hosted-connect-dialog.png)
 5. The dialog now says **Token saved in this browser** and offers **Done** and **Replace
    token**. It never shows the token again. A small dot appears on the **File** button to show
    the connection, and the menu now offers the rest of the hosted group:

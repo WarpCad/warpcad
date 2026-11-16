@@ -27,6 +27,7 @@
  */
 
 import { invoke, loadShellDetails, probeShell } from './shell.js'
+import { PROJECT_EXTENSION, PROJECT_EXTENSIONS, isProjectFileName, projectExtensionOf, stripProjectExtension } from '../core/projectFile.js'
 import { UserFacingError } from '../core/userError.js'
 
 /** `BaseDirectory.Document` in `@tauri-apps/api/path`: `$DOCUMENT`, the app's Documents folder on iOS. */
@@ -62,17 +63,17 @@ export async function projectFolderPrefix(global) {
 /** The folder under Documents every export goes to. */
 export const EXPORTS_FOLDER = 'Exports'
 
-/** A WarpCad project's extension. */
-export const PROJECT_EXTENSION = '.ndjson'
-
-/** What the document picker offers: the same list the web's `<input accept>` uses (`fileSystem.js`). */
-const PICKER_FILTERS = [{ name: 'WarpCad project', extensions: ['ndjson', 'json', 'txt'] }]
+/**
+ * What the document picker offers: the same list the web's `<input accept>` uses (`fileSystem.js`):
+ * the saved extension, the legacy ones (`TODO/io-035`), and `json` and `txt`.
+ */
+const PICKER_FILTERS = [{ name: 'WarpCad project', extensions: [...PROJECT_EXTENSIONS.map((extension) => extension.slice(1)), 'json', 'txt'] }]
 
 /** @typedef {import('./shell.js').BridgeGlobal & { navigator?: { userAgent?: string, maxTouchPoints?: number } }} FilesGlobal */
 
 /**
  * @typedef {object} ProjectEntry
- * @property {string} name the file name in Documents, `bracket.ndjson`
+ * @property {string} name the file name in Documents, `bracket.warpcad` (or a legacy `bracket.ndjson`)
  * @property {number} lastModified epoch ms
  */
 
@@ -120,17 +121,17 @@ function isPlainName(name) {
 }
 
 /**
- * The project file name for what the user typed: trimmed, with {@link PROJECT_EXTENSION} added if
- * missing. `null` for a name that is empty, hidden (a leading dot) or reaches outside the folder.
+ * The project file name for what the user typed: trimmed, with `.warpcad` added unless it already
+ * ends in a project extension (a typed legacy `.ndjson` is kept, not renamed; `TODO/io-035`).
+ * `null` for a name that is empty, hidden (a leading dot) or reaches outside the folder.
  *
- * @param {string} input `bracket`, `bracket.ndjson`
+ * @param {string} input `bracket`, `bracket.warpcad`, `bracket.ndjson`
  * @returns {string | null}
  */
 export function projectFileNameFor(input) {
   const trimmed = input.trim()
-  const name = trimmed.toLowerCase().endsWith(PROJECT_EXTENSION) ? trimmed : `${trimmed}${PROJECT_EXTENSION}`
-  if (!isPlainName(trimmed) || name === PROJECT_EXTENSION) return null
-  return name
+  if (!isPlainName(trimmed)) return null
+  return isProjectFileName(trimmed) ? trimmed : `${trimmed}${PROJECT_EXTENSION}`
 }
 
 /**
@@ -189,7 +190,7 @@ async function writeAtomic(command, path, bytes, global, tempId, baseDir = DOCUM
 /**
  * Save a project to `Documents/<name>` atomically.
  *
- * @param {string} name a plain file name, `bracket.ndjson`
+ * @param {string} name a plain file name, `bracket.warpcad`
  * @param {string} text the project's NDJSON
  * @param {FilesGlobal} [global]
  * @param {string} [tempId] the temp file's unique part; tests pin it
@@ -241,7 +242,8 @@ export async function projectExists(name, global = /** @type {FilesGlobal} */ (g
 }
 
 /**
- * The projects in Documents, newest first: visible `.ndjson` files only (no folders, no temp files).
+ * The projects in Documents, newest first: visible `.warpcad` files and legacy `.ndjson` ones
+ * (`TODO/io-035`), and nothing else (no folders, no temp files).
  *
  * @param {FilesGlobal} [global]
  * @returns {Promise<ProjectEntry[]>}
@@ -257,7 +259,7 @@ export async function listProjects(global = /** @type {FilesGlobal} */ (globalTh
   const names = entries
     .filter((entry) => entry.isFile === true && typeof entry.name === 'string')
     .map((entry) => /** @type {string} */ (entry.name))
-    .filter((name) => isPlainName(name) && name.toLowerCase().endsWith(PROJECT_EXTENSION))
+    .filter((name) => isPlainName(name) && isProjectFileName(name))
   const listed = await Promise.all(names.map(async (name) => ({ name, ...(await statProjectFile(name, global)) })))
   return listed.sort((a, b) => b.lastModified - a.lastModified || a.name.localeCompare(b.name))
 }
@@ -357,7 +359,7 @@ export async function readPickedFile(path, global = /** @type {FilesGlobal} */ (
  */
 
 /**
- * The files the shell received from open-URL events (a `.ndjson` tapped in the Files app or Mail)
+ * The files the shell received from open-URL events (a `.warpcad` or `.ndjson` tapped in the Files app or Mail)
  * since the last call, oldest first. Empty, not an error, for a shell without the command.
  *
  * @param {FilesGlobal} [global]
@@ -381,7 +383,9 @@ export async function takeOpenedFiles(global = /** @type {FilesGlobal} */ (globa
  * Make an opened file one of the app's own projects and return its name in Documents. A file
  * already there is used where it is; one from elsewhere is read and **copied** in (the inbox Mail
  * leaves an attachment in cannot be written, and iCloud Drive is out of scope), under its own name
- * or the next free one (`bracket 2.ndjson`), so an existing project is never overwritten.
+ * or the next free one (`bracket 2.warpcad`), so an existing project is never overwritten. The copy
+ * keeps the file's own project extension, a legacy `.ndjson` included (`TODO/io-035`); a name with
+ * no project extension gets `.warpcad`.
  *
  * @param {OpenedFile} opened
  * @param {FilesGlobal} [global]
@@ -390,9 +394,10 @@ export async function takeOpenedFiles(global = /** @type {FilesGlobal} */ (globa
 export async function importOpenedFile(opened, global = /** @type {FilesGlobal} */ (globalThis)) {
   if (opened.path === null) return opened.name
   const text = await readPickedFile(opened.path, global)
-  const stem = opened.name.toLowerCase().endsWith(PROJECT_EXTENSION) ? opened.name.slice(0, -PROJECT_EXTENSION.length) : opened.name
+  const stem = stripProjectExtension(opened.name)
+  const extension = projectExtensionOf(opened.name) ?? PROJECT_EXTENSION
   for (let n = 1; n < 1000; n += 1) {
-    const name = `${stem}${n === 1 ? '' : ` ${n}`}${PROJECT_EXTENSION}`
+    const name = `${stem}${n === 1 ? '' : ` ${n}`}${extension}`
     if (await projectExists(name, global)) continue
     await writeProjectFile(name, text, global)
     return name

@@ -23,6 +23,8 @@
  * @module core/shareCopy
  */
 
+import { PROJECT_EXTENSION } from './projectFile.js'
+
 const STATE_KIND = 'project-state'
 
 /**
@@ -83,7 +85,7 @@ export function withProjectId(records, id) {
   })
 }
 
-/** The longest file name stem {@link shareFileName} produces, before `.ndjson`. */
+/** The longest file name stem {@link shareFileName} produces, before `.warpcad`. */
 const FILE_STEM_MAX = 80
 
 /**
@@ -93,7 +95,7 @@ const FILE_STEM_MAX = 80
  * replaced, and it is cut to a sane length. Falls back to `warpcad-project`.
  *
  * @param {string} name
- * @returns {string} e.g. `Phone stand.ndjson`.
+ * @returns {string} e.g. `Phone stand.warpcad` ({@link PROJECT_EXTENSION}, `TODO/io-035`).
  */
 export function shareFileName(name) {
   const stem = String(name)
@@ -104,5 +106,5 @@ export function shareFileName(name) {
     .replace(/^[.\s-]+/, '')
     .slice(0, FILE_STEM_MAX)
     .trim()
-  return `${stem === '' ? 'warpcad-project' : stem}.ndjson`
+  return `${stem === '' ? 'warpcad-project' : stem}${PROJECT_EXTENSION}`
 }

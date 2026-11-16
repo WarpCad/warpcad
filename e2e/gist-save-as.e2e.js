@@ -179,7 +179,7 @@ test.describe('save a project as a GitHub gist from File ▾', () => {
     expect(writes(fake)[0]).toBe('POST /gists')
     const [id] = [...fake.gists.keys()]
     expect(fake.gists.get(id)?.public).toBe(false)
-    expect(Object.keys(fake.gists.get(id)?.files ?? {}).sort()).toEqual(['README.md', 'desk-bracket.ndjson'])
+    expect(Object.keys(fake.gists.get(id)?.files ?? {}).sort()).toEqual(['README.md', 'desk-bracket.warpcad'])
     expect(writes(fake)).toEqual(['POST /gists', `PATCH /gists/${id}`])
 
     // Copy link, in the toast.
@@ -202,7 +202,7 @@ test.describe('save a project as a GitHub gist from File ▾', () => {
     expect(writes(fake)).toEqual(['POST /gists', `PATCH /gists/${id}`, `PATCH /gists/${id}`])
     expect(fake.gists.size).toBe(1)
     const gist = fake.gists.get(id)
-    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'desk-bracket.ndjson'])
+    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'desk-bracket.warpcad'])
     expect(projectFileOf(gist)?.text).toContain('primitive.cylinder')
     await expectChip(page, /^Saved to gist · \d\d:\d\d$/)
     // Every write carried the gist token, and only to the gist API.

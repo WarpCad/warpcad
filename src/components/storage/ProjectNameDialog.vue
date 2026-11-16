@@ -7,7 +7,7 @@
  * - **Precondition**: running in the native app (`persistence.fileCapabilities.mode === 'native-app'`)
  *   and `fileMenu.nameRequest` set.
  * - **Trigger**: File ▾ → Save (no file yet) or Save As…, or Ctrl/Cmd+S.
- * - **Feedback**: the sheet closes and the chip reads `Saved to <name>.ndjson · 14:05`. A name
+ * - **Feedback**: the sheet closes and the chip reads `Saved to <name>.warpcad · 14:05`. A name
  *   already taken by another project stays in the sheet with the reason (`file-name-error`).
  *
  * A bottom sheet at phone width, lifted by the keyboard (`BaseDialog`'s `sheet`). Names only; the

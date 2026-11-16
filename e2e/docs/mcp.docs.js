@@ -17,7 +17,7 @@ import { settle, shot } from './support.js'
  * the OS picker. Laptop, Chromium only.
  */
 
-const NAME = 'bracket.ndjson'
+const NAME = 'bracket.warpcad'
 const BRACKET = '{"id":"bracket","op":"primitive.cuboid","name":"Bracket","params":{"size":[30,10,20],"center":[0,0,13]}}\n'
 const mcpRequire = createRequire(join(process.cwd(), 'mcp', 'package.json'))
 const { Client } = mcpRequire('@modelcontextprotocol/client')
@@ -48,10 +48,10 @@ async function addBasePlate(file) {
 const FAKE_NATIVE = () => {
   const handle = {
     kind: 'file',
-    name: 'bracket.ndjson',
+    name: 'bracket.warpcad',
     async getFile() {
       const disk = await window.__diskRead()
-      return new File([disk.text], 'bracket.ndjson', { type: 'text/plain', lastModified: disk.lastModified })
+      return new File([disk.text], 'bracket.warpcad', { type: 'text/plain', lastModified: disk.lastModified })
     },
     async createWritable() {
       throw new DOMException('docs media never writes', 'NotAllowedError')

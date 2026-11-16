@@ -40,6 +40,7 @@ import { getCurrentScope, onScopeDispose, toRaw } from 'vue'
 import { isGistLink, parseGistHash } from '../core/gistLink.js'
 import { gistFailureOf, plainGistDescription } from '../core/gistMessages.js'
 import { parseNdjson } from '../core/ndjson.js'
+import { stripProjectExtension } from '../core/projectFile.js'
 import { parseProject } from '../core/project.js'
 import { decodeShareLink, isShareLink } from '../core/shareLink.js'
 import { useDocumentStore } from '../stores/document.js'
@@ -171,7 +172,7 @@ export async function openGistLink(hash, { env, share, gist, restored, liveGist 
     return
   }
   const description = plainGistDescription(read.description)
-  const name = description || plainGistDescription(read.fileName.replace(/\.ndjson$/, ''))
+  const name = description || plainGistDescription(stripProjectExtension(read.fileName))
   const own = id !== null && isOwnLink(id, liveGist(), gist)
   if (!share.show(token, { ok: true, records, name, note: '' })) {
     gist.failLink(generation, 'unreadable')

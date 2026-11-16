@@ -438,11 +438,27 @@ describe('readGist — no token, one fixed file rule, capped', () => {
     expect(await readGist({ id: ID, fetch: fetchImpl })).toMatchObject({ text: PROJECT, fileName: 'project.ndjson' })
   })
 
+  /** @param {string} content */
+  const file = (content) => ({ size: content.length, truncated: false, content })
+
+  it.each([
+    ['the single .warpcad file', { 'phone-stand.warpcad': file(PROJECT), 'README.md': file('#') }, 'phone-stand.warpcad'],
+    ['the single legacy .ndjson file', { 'phone-stand.ndjson': file(PROJECT), 'README.md': file('#') }, 'phone-stand.ndjson'],
+    ['project.warpcad over project.ndjson', { 'project.ndjson': file('OLD'), 'project.warpcad': file(PROJECT) }, 'project.warpcad'],
+    ['project.warpcad among two .warpcad files', { 'a.warpcad': file('A'), 'project.warpcad': file(PROJECT) }, 'project.warpcad'],
+    ['project.ndjson when a .warpcad and it are there and no project.warpcad', { 'a.warpcad': file('A'), 'project.ndjson': file(PROJECT) }, 'project.ndjson'],
+  ])('takes %s (TODO/io-035)', async (_label, files, fileName) => {
+    const fetchImpl = fakeFetch([{ url: gistUrl, answer: response({ body: gistBody({ files }) }) }])
+    expect(await readGist({ id: ID, fetch: fetchImpl })).toMatchObject({ text: PROJECT, fileName })
+  })
+
   it.each([
     ['an empty gist', {}, 'empty'],
     ['a gist with only a README', { 'README.md': { size: 1, truncated: false, content: '#' } }, 'no-project-file'],
-    ['a gist with no .ndjson file', { 'notes.txt': { size: 1, truncated: false, content: 'x' }, 'project.json': { size: 2, truncated: false, content: '{}' } }, 'no-project-file'],
+    ['a gist with no project file', { 'notes.txt': { size: 1, truncated: false, content: 'x' }, 'project.json': { size: 2, truncated: false, content: '{}' } }, 'no-project-file'],
     ['two .ndjson files and no project.ndjson', { 'a.ndjson': { size: 1, truncated: false, content: 'a' }, 'b.ndjson': { size: 1, truncated: false, content: 'b' } }, 'ambiguous'],
+    ['two .warpcad files and no project.warpcad', { 'a.warpcad': file('a'), 'b.warpcad': file('b') }, 'ambiguous'],
+    ['one of each and neither named project', { 'a.warpcad': file('a'), 'b.ndjson': file('b') }, 'ambiguous'],
   ])('refuses %s with its own kind', async (_label, files, kind) => {
     const fetchImpl = fakeFetch([{ url: gistUrl, answer: response({ body: gistBody({ files }) }) }])
     const error = await rejectionOf(() => readGist({ id: ID, fetch: fetchImpl }))

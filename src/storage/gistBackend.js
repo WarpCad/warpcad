@@ -31,7 +31,8 @@
  *
  * `readGist` returns the project file's **text** and nothing parsed: Stage 2 runs it through
  * the same load path as **Open…**, so every existing validator applies. The file is chosen by a
- * fixed rule — the single `*.ndjson`, else `project.ndjson`, else refuse — and every other
+ * fixed rule — the single project file (`*.warpcad`, or a legacy `*.ndjson`), else
+ * `project.warpcad`, else `project.ndjson`, else refuse (`TODO/io-035`) — and every other
  * file, the README included, is ignored, never interpreted. The size is capped at `io-016`'s
  * decompressed cap before anything is returned, on the reported size and again on the bytes.
  *
@@ -39,6 +40,7 @@
  */
 
 import { GIST_RAW_HOST, isGistId, isGistRawUrl } from '../core/gistLink.js'
+import { LEGACY_PROJECT_EXTENSIONS, PROJECT_EXTENSION, isProjectFileName } from '../core/projectFile.js'
 import { MAX_DECOMPRESSED_BYTES } from '../core/shareLink.js'
 import { GITHUB_API_ORIGIN, HostedError, classifyGitHubFailure, githubHeaders, isWellFormedToken } from './hostedBackend.js'
 
@@ -53,8 +55,11 @@ export const PROBE_GIST_ID = '0'.repeat(32)
 /** Largest project file read from a gist, in bytes (`io-016`'s decompressed cap). */
 export const MAX_GIST_PROJECT_BYTES = MAX_DECOMPRESSED_BYTES
 
-/** The file chosen when a gist holds several `.ndjson` files. */
-export const GIST_PROJECT_FILE = 'project.ndjson'
+/**
+ * The file chosen when a gist holds several project files, in order of preference: the saved
+ * extension's `project.warpcad`, then the legacy `project.ndjson` (`TODO/io-035`).
+ */
+export const GIST_PROJECT_FILES = Object.freeze([PROJECT_EXTENSION, ...LEGACY_PROJECT_EXTENSIONS].map((extension) => `project${extension}`))
 
 const MAX_FILES = 10
 const MAX_DESCRIPTION_CHARS = 1000
@@ -84,7 +89,7 @@ const MESSAGES = {
   invalid: 'That request is not valid',
   empty: 'That gist is empty',
   'no-project-file': 'That gist has no WarpCad project file',
-  ambiguous: 'That gist has more than one project file and none is named project.ndjson',
+  ambiguous: 'That gist has more than one project file and none is named project.warpcad or project.ndjson',
   'too-large': 'That project is too large to open',
   'untrusted-host': 'That gist points somewhere WarpCad will not read from',
 }
@@ -412,7 +417,9 @@ export async function deleteGist({ token, id, fetch: injected }) {
 }
 
 /**
- * The project file's name by the fixed rule: the single `*.ndjson`, else `project.ndjson`.
+ * The project file's name by the fixed rule: the single project file of either extension
+ * (`*.warpcad` or a legacy `*.ndjson`); with several, `project.warpcad`, then `project.ndjson`;
+ * otherwise refuse rather than guess (`TODO/io-035`).
  *
  * @param {Record<string, unknown>} files
  * @returns {string}
@@ -420,10 +427,11 @@ export async function deleteGist({ token, id, fetch: injected }) {
 function chooseProjectFile(files) {
   const names = Object.keys(files)
   if (names.length === 0) throw fail('empty')
-  const projects = names.filter((name) => name.endsWith('.ndjson'))
+  const projects = names.filter(isProjectFileName)
   if (projects.length === 1) return projects[0]
   if (projects.length === 0) throw fail('no-project-file')
-  if (projects.includes(GIST_PROJECT_FILE)) return GIST_PROJECT_FILE
+  const preferred = GIST_PROJECT_FILES.find((name) => projects.includes(name))
+  if (preferred !== undefined) return preferred
   throw fail('ambiguous')
 }
 

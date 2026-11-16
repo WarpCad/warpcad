@@ -17,6 +17,7 @@
  * @module core/gistLink
  */
 
+import { PROJECT_EXTENSION } from './projectFile.js'
 import { SHARE_HOST } from './shareLink.js'
 
 /** The route prefix, as it appears in `location.hash`. */
@@ -129,7 +130,7 @@ export function isGitHubLogin(value) {
   return typeof value === 'string' && LOGIN_PATTERN.test(value)
 }
 
-/** Longest slug {@link gistFileName} produces, before `.ndjson`. */
+/** Longest slug {@link gistFileName} produces, before `.warpcad`. */
 export const MAX_GIST_SLUG_CHARS = 60
 /** The file name when a project's name leaves nothing usable. */
 const FALLBACK_SLUG = 'project'
@@ -137,7 +138,7 @@ const FALLBACK_SLUG = 'project'
 const RAW_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_-]+)+$/
 
 /**
- * The project file's name inside a published gist, `<project-slug>.ndjson` (`TODO/io-017`).
+ * The project file's name inside a published gist, `<project-slug>.warpcad` (`TODO/io-017`, `TODO/io-035`).
  *
  * The project's name is the user's own text — emoji, right-to-left scripts, slashes, anything —
  * and a gist file name ends up in a URL path, so the slug keeps only what needs no encoding:
@@ -147,7 +148,7 @@ const RAW_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_-]+)+$/
  * path, never a dot file, never `..`.
  *
  * @param {string} name The project's name.
- * @returns {string} e.g. `phone-stand.ndjson`.
+ * @returns {string} e.g. `phone-stand.warpcad`.
  */
 export function gistFileName(name) {
   const text = typeof name === 'string' ? name : ''
@@ -160,7 +161,7 @@ export function gistFileName(name) {
     .replace(/^-|-$/g, '')
     .slice(0, MAX_GIST_SLUG_CHARS)
     .replace(/-$/, '')
-  return `${slug === '' ? FALLBACK_SLUG : slug}.ndjson`
+  return `${slug === '' ? FALLBACK_SLUG : slug}${PROJECT_EXTENSION}`
 }
 
 /**

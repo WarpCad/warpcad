@@ -44,7 +44,7 @@ test.beforeAll(() => mkdirSync(SNAPSHOT_DIR, { recursive: true }))
 const TOKEN = 'github_pat_E2E_UI_SENTINEL_not_a_real_token'
 const OWNER = 'warpcad-test'
 const REPO = 'parts'
-const PATH = 'warpcad-project.ndjson'
+const PATH = 'warpcad-project.warpcad'
 const LABEL = `${OWNER}/${REPO}`
 
 /** @param {import('@playwright/test').TestInfo} info */
@@ -75,7 +75,7 @@ const FORCE_FALLBACK = () => {
  * exercised end to end without an OS dialog.
  */
 const FAKE_NATIVE = () => {
-  const disk = { text: null, name: null, pickerCalls: 0, openCalls: 0, cancelNext: false, openText: '' }
+  const disk = { text: null, name: null, pickerCalls: 0, openCalls: 0, cancelNext: false, openText: '', saveOptions: null, openOptions: null }
   Object.defineProperty(window, '__fsa', { value: disk, configurable: true })
   const handleFor = (name) => ({
     name,
@@ -99,19 +99,23 @@ const FAKE_NATIVE = () => {
   })
   Object.defineProperty(window, 'showSaveFilePicker', {
     configurable: true,
-    value: async () => {
+    value: async (options) => {
       disk.pickerCalls += 1
+      // What the app asked the picker for (`TODO/io-035`: the name it suggests, the types it offers).
+      disk.saveOptions = { suggestedName: options?.suggestedName ?? null, accept: options?.types?.[0]?.accept ?? null }
       if (disk.cancelNext) {
         disk.cancelNext = false
         throw new DOMException('The user aborted a request.', 'AbortError')
       }
-      return handleFor('warpcad-project.ndjson')
+      // The user keeps the suggested name, as most do.
+      return handleFor(options?.suggestedName ?? 'untitled')
     },
   })
   Object.defineProperty(window, 'showOpenFilePicker', {
     configurable: true,
-    value: async () => {
+    value: async (options) => {
       disk.openCalls += 1
+      disk.openOptions = { accept: options?.types?.[0]?.accept ?? null }
       return [handleFor('picked-project.ndjson')]
     },
   })
@@ -504,7 +508,7 @@ test.describe('Download copy and Open… (the fallback path — real download an
     const downloading = page.waitForEvent('download')
     await page.getByTestId('file-save').click()
     const download = await downloading
-    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.ndjson$/)
+    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.warpcad$/)
     const text = readFileSync(await download.path(), 'utf8')
     expect(text.split('\n').filter(Boolean)[0]).toContain('"id":"seed-1"')
     expect(text).toContain('"id":"seed-2"')
@@ -523,7 +527,7 @@ test.describe('Download copy and Open… (the fallback path — real download an
     const downloading = page.waitForEvent('download')
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+S' : 'Control+S')
     const download = await downloading
-    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.ndjson$/)
+    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.warpcad$/)
   })
 
   test('Open… on a non-empty scene confirms first (Cancel changes nothing), then Replace opens the chooser and loads the file', async ({
@@ -575,6 +579,31 @@ test.describe('Download copy and Open… (the fallback path — real download an
     await chooser.setFiles({ name: 'p.ndjson', mimeType: 'text/plain', buffer: Buffer.from(CUBE_LINE) })
     await expectBodyCount(page, 1)
     await expect(page.getByTestId('save-status')).toContainText('Opened p.ndjson · 1 step')
+  })
+
+  test('Open… reads a .warpcad project and a legacy .ndjson one alike, and the chooser accepts both (TODO/io-035)', async ({ page }) => {
+    await openFileMenu(page)
+    const firstChooser = page.waitForEvent('filechooser')
+    await page.getByTestId('file-open').click()
+    const chooser = await firstChooser
+    // The accept list: both project extensions, plus the text/plain catch-all iOS honours for a
+    // type no installed app declares (`docs/decisions/interaction-model-qa.md` Q16).
+    const accept = (await chooser.element().getAttribute('accept'))?.split(',') ?? []
+    expect(accept).toEqual(expect.arrayContaining(['.warpcad', '.ndjson', 'text/plain']))
+    await chooser.setFiles(join(process.cwd(), 'e2e/fixtures/bracket.warpcad'))
+    await expectBodyCount(page, 2)
+    await expect(page.getByTestId('save-status')).toContainText('Opened bracket.warpcad · 2 steps')
+
+    // A project saved before November 2026 opens the same way.
+    await openFileMenu(page)
+    await page.getByTestId('file-open').click()
+    const secondChooser = page.waitForEvent('filechooser')
+    await page.getByTestId('file-open-confirm-replace').click()
+    await (await secondChooser).setFiles(join(process.cwd(), 'e2e/fixtures/rounded-cube-group.ndjson'))
+    await expect(page.getByTestId('save-status')).toContainText('Opened rounded-cube-group.ndjson · 3 steps')
+    const ids = await page.$$eval('[data-testid="scene-bodies"] li', (nodes) => nodes.map((n) => n.getAttribute('data-body-id')))
+    expect(ids).not.toContain('base-1')
+    expect(ids).not.toContain('upright-1')
   })
 
   test('New (TODO/ui-054) on an EMPTY scene starts at once with no confirm; on content it asks, and Replace empties the scene', async ({
@@ -835,10 +864,13 @@ test.describe('Save / Save As… (the native File System Access path, against a 
     await expect(page.getByTestId('file-save-as')).toHaveText(/^\s*Save As…\s*$/)
 
     await page.getByTestId('file-save').click()
-    await expect(page.getByTestId('save-status')).toContainText(/Saved to warpcad-project\.ndjson · \d\d:\d\d/)
+    await expect(page.getByTestId('save-status')).toContainText(/Saved to warpcad-project\.warpcad · \d\d:\d\d/)
     let disk = await page.evaluate(() => ({ ...window.__fsa }))
     expect(disk.pickerCalls).toBe(1)
     expect(disk.text).toContain('"id":"seed-1"')
+    // TODO/io-035: Save suggests a .warpcad name, and the picker's type keeps legacy .ndjson beside it.
+    expect(disk.saveOptions.suggestedName).toBe('warpcad-project.warpcad')
+    expect(disk.saveOptions.accept['application/x-ndjson']).toEqual(['.warpcad', '.ndjson'])
 
     // Change the scene, Save again: written to the SAME handle, no second picker.
     await addCube(page, 'extra-1')
@@ -869,7 +901,7 @@ test.describe('Save / Save As… (the native File System Access path, against a 
     await seedCubes(page, 1)
     await openFileMenu(page)
     await page.getByTestId('file-save').click()
-    await expect(page.getByTestId('save-status')).toContainText(/Saved to warpcad-project\.ndjson/)
+    await expect(page.getByTestId('save-status')).toContainText(/Saved to warpcad-project\.warpcad/)
     expect((await page.evaluate(() => ({ ...window.__fsa }))).pickerCalls).toBe(1)
 
     // Cancel: nothing touched.
@@ -918,6 +950,9 @@ test.describe('Save / Save As… (the native File System Access path, against a 
     await page.getByTestId('file-open-confirm-replace').click()
     await expect(page.getByTestId('save-status')).toContainText('Opened picked-project.ndjson · 1 step')
     await expectBodyCount(page, 1)
+    // TODO/io-035: Open offers .warpcad and keeps legacy .ndjson.
+    const opened = await page.evaluate(() => window.__fsa.openOptions)
+    expect(opened.accept['application/x-ndjson']).toEqual(['.warpcad', '.ndjson'])
   })
 })
 
@@ -975,7 +1010,7 @@ test.describe('a browser that offers the picker but refuses the write falls back
     const downloading = page.waitForEvent('download')
     await page.getByTestId('file-save').click()
     const download = await downloading
-    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.ndjson$/)
+    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.warpcad$/)
     const text = readFileSync(await download.path(), 'utf8')
     expect(text).toContain('"id":"seed-1"')
     expect(text).toContain('"id":"seed-2"')

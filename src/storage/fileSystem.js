@@ -48,16 +48,21 @@
  * @module storage/fileSystem
  */
 
+import { LEGACY_PROJECT_EXTENSIONS, PROJECT_EXTENSION, PROJECT_MIME } from '../core/projectFile.js'
 import { listProjects, pickFile, projectExists, projectFileNameFor, readPickedFile, readProjectFile, statProjectFile, writeProjectFile } from '../native/files.js'
 import { isNativeShell, probeShell } from '../native/shell.js'
 import { downloadBytes } from './download.js'
 
-/** The FSA picker's accepted types, and the `<input accept>` list — see {@link ACCEPT_ATTRIBUTE}. */
+/**
+ * The FSA picker's accepted types, and the `<input accept>` list — see {@link ACCEPT_ATTRIBUTE}.
+ * `.warpcad` first, so Save As… suggests it; legacy `.ndjson` under the same NDJSON type, so Open
+ * still offers every project saved before `TODO/io-035`.
+ */
 const PICKER_TYPES = [
   {
     description: 'WarpCad project',
     accept: {
-      'application/x-ndjson': ['.ndjson'],
+      [PROJECT_MIME]: [PROJECT_EXTENSION, ...LEGACY_PROJECT_EXTENSIONS],
       'application/json': ['.json'],
       'text/plain': ['.txt'],
     },
@@ -68,15 +73,15 @@ const PICKER_TYPES = [
  * The hidden `<input type=file accept>`.
  *
  * iOS greys out any file whose type the picker does not recognise, and it does
- * not recognise `.ndjson`. Accepting `.json`, `.txt` and `text/plain` as well as
- * the native extension is what keeps a saved project selectable on an iPad
- * (`docs/decisions/interaction-model-qa.md` §10, Q16).
+ * not recognise `.ndjson` — nor `.warpcad` in the browser, where no installed app
+ * declares it (the native app's declaration does not reach Safari's picker).
+ * Accepting `.json`, `.txt` and `text/plain` as well as the project extensions is
+ * what keeps a saved project selectable on an iPad
+ * (`docs/decisions/interaction-model-qa.md` §10, Q16; `TODO/io-035`).
  */
-export const ACCEPT_ATTRIBUTE = '.ndjson,.json,.txt,text/plain,application/x-ndjson,application/json'
+export const ACCEPT_ATTRIBUTE = [PROJECT_EXTENSION, ...LEGACY_PROJECT_EXTENSIONS, '.json', '.txt', 'text/plain', PROJECT_MIME, 'application/json'].join(',')
 
-const MIME = 'application/x-ndjson'
 const BASE_NAME = 'warpcad-project'
-const EXTENSION = '.ndjson'
 
 /**
  * @typedef {object} FileCapabilities
@@ -137,7 +142,7 @@ export function formatFileStamp(date) {
 
 /**
  * The file name to offer. The fallback gets a timestamp because the browser
- * would otherwise dedupe to `warpcad-project (3).ndjson`, which is
+ * would otherwise dedupe to `warpcad-project (3).warpcad`, which is
  * indistinguishable from the previous copy and worse in a phone's Files app.
  *
  * @param {'native-app' | 'native' | 'fallback'} mode
@@ -146,8 +151,8 @@ export function formatFileStamp(date) {
  */
 export function projectFileName(mode, date = new Date()) {
   return mode !== 'fallback'
-    ? `${BASE_NAME}${EXTENSION}`
-    : `${BASE_NAME}-${formatFileStamp(date)}${EXTENSION}`
+    ? `${BASE_NAME}${PROJECT_EXTENSION}`
+    : `${BASE_NAME}-${formatFileStamp(date)}${PROJECT_EXTENSION}`
 }
 
 /**
@@ -320,7 +325,7 @@ export function createFileStorage(env = globalThis) {
     // The one download implementation, shared with Export… (`storage/download.js`). A download
     // cannot be confirmed to have landed, only started — the caller's wording ("Download
     // started") must reflect that.
-    const result = downloadBytes(text, name, MIME, env)
+    const result = downloadBytes(text, name, PROJECT_MIME, env)
     return result.ok ? { ok: true, mode: 'fallback', name } : result
   }
 

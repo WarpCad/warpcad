@@ -89,6 +89,7 @@ import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 import { ReplayRejection } from '../core/document.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
 import { ProjectFormatError, parseProject, serializeProject } from '../core/project.js'
+import { stripProjectExtension } from '../core/projectFile.js'
 import { createAutosaver } from '../storage/autosave.js'
 import { createFileStorage, projectFileName } from '../storage/fileSystem.js'
 import { createIndexedDbBackend } from '../storage/indexeddb.js'
@@ -175,13 +176,15 @@ export function afterNextPaint() {
 }
 
 /**
- * A file name as a project name: the extension dropped (`phone-stand.ndjson` → `phone-stand`).
+ * A file name as a project name: the extension dropped (`phone-stand.warpcad` and a legacy
+ * `phone-stand.ndjson` → `phone-stand`; `TODO/io-035`), and `.json` or `.txt`, which Open also takes.
  *
  * @param {string} name
  * @returns {string}
  */
 function nameOfFile(name) {
-  return name.replace(/\.(ndjson|json|txt)$/i, '')
+  const stem = stripProjectExtension(name)
+  return stem === name ? name.replace(/\.(json|txt)$/i, '') : stem
 }
 
 /** What a load that has no painted frame to wait for waits on: the next microtask. */

@@ -66,7 +66,7 @@ function fakeFiles(mode = 'fallback') {
     nextOpen: /** @type {any} */ (null),
     async save(text) {
       files.saved.push(text)
-      return files.nextSave ?? { ok: true, mode, name: 'warpcad-project-20260919-1402.ndjson' }
+      return files.nextSave ?? { ok: true, mode, name: 'warpcad-project-20260919-1402.warpcad' }
     },
     async open() {
       return files.nextOpen
@@ -401,19 +401,19 @@ describe('usePersistenceStore', () => {
       const result = await persistence.saveFile()
       expect(result.ok).toBe(true)
       expect(files.saved).toEqual([serializeProject(documentStore.raw)])
-      expect(persistence.chipText).toBe('Download started: warpcad-project-20260919-1402.ndjson')
+      expect(persistence.chipText).toBe('Download started: warpcad-project-20260919-1402.warpcad')
       await vi.advanceTimersByTimeAsync(6100)
       expect(persistence.chipText).not.toMatch(/Download started/)
     })
 
     it('says "Saved to <name>" on the native path', async () => {
       const files = fakeFiles('native')
-      files.nextSave = { ok: true, mode: 'native', name: 'warpcad-project.ndjson' }
+      files.nextSave = { ok: true, mode: 'native', name: 'warpcad-project.warpcad' }
       setPersistenceDependencies({ backend: fakeBackend(), files })
       const persistence = usePersistenceStore()
       await persistence.start()
       await persistence.saveFile()
-      expect(persistence.chipText).toBe('Saved to warpcad-project.ndjson · 14:02')
+      expect(persistence.chipText).toBe('Saved to warpcad-project.warpcad · 14:02')
     })
 
     it('a refused in-place write that fell back to a download is a notice naming both files, not an error (io-008)', async () => {
@@ -421,16 +421,16 @@ describe('usePersistenceStore', () => {
       files.nextSave = {
         ok: true,
         mode: 'fallback',
-        name: 'warpcad-project-20260919-1402.ndjson',
-        refusedName: 'chamfer error.ndjson',
+        name: 'warpcad-project-20260919-1402.warpcad',
+        refusedName: 'chamfer error.warpcad',
       }
       setPersistenceDependencies({ backend: fakeBackend(), files })
       const persistence = usePersistenceStore()
       await persistence.start()
       await persistence.saveFile()
       expect(persistence.errorMessage).toBe('')
-      expect(persistence.notice).toContain('warpcad-project-20260919-1402.ndjson')
-      expect(persistence.notice).toContain('chamfer error.ndjson')
+      expect(persistence.notice).toContain('warpcad-project-20260919-1402.warpcad')
+      expect(persistence.notice).toContain('chamfer error.warpcad')
       expect(persistence.notice).toMatch(/empty/i)
     })
 
@@ -442,7 +442,7 @@ describe('usePersistenceStore', () => {
       expect(persistence.fileCapabilities.mode).toBe('native')
       files.save = async () => {
         files.capabilities = fakeFiles('fallback').capabilities
-        return { ok: true, mode: 'fallback', name: 'a.ndjson', refusedName: 'b.ndjson' }
+        return { ok: true, mode: 'fallback', name: 'a.warpcad', refusedName: 'b.warpcad' }
       }
       await persistence.saveFile()
       expect(persistence.fileCapabilities).toMatchObject({ saveLabel: 'Download copy', saveAsLabel: null })
@@ -462,13 +462,13 @@ describe('usePersistenceStore', () => {
 
     it('a write failure is a persistent error that names the file', async () => {
       const files = fakeFiles('native')
-      files.nextSave = { ok: false, error: 'NotAllowedError: permission revoked', name: 'warpcad-project.ndjson' }
+      files.nextSave = { ok: false, error: 'NotAllowedError: permission revoked', name: 'warpcad-project.warpcad' }
       setPersistenceDependencies({ backend: fakeBackend(), files })
       const persistence = usePersistenceStore()
       await persistence.start()
       await persistence.saveFile()
       expect(persistence.chipTone).toBe('error')
-      expect(persistence.chipText).toMatch(/warpcad-project\.ndjson/)
+      expect(persistence.chipText).toMatch(/warpcad-project\.warpcad/)
       expect(persistence.chipText).toMatch(/permission revoked/)
     })
   })
@@ -525,6 +525,22 @@ describe('usePersistenceStore', () => {
       expect(documentStore.canUndo).toBe(false)
       expect(files.adopted).toHaveLength(1)
       expect(persistence.chipText).toBe('Opened theirs.ndjson · 2 steps')
+    })
+
+    it.each([
+      ['theirs.warpcad', 'theirs'],
+      ['theirs.ndjson', 'theirs'],
+      ['Theirs.WARPCAD', 'Theirs'],
+      ['theirs.json', 'theirs'],
+      ['theirs.txt', 'theirs'],
+    ])('names the project after the opened file %s without its extension (TODO/io-035)', async (name, projectName) => {
+      const files = fakeFiles('native')
+      files.nextOpen = { ok: true, name, text: twoCubeText(), handle: {} }
+      setPersistenceDependencies({ backend: fakeBackend(), files })
+      const persistence = usePersistenceStore()
+      await persistence.start()
+      await persistence.openFile()
+      expect(persistence.projectName).toBe(projectName)
     })
 
     it('an opened file is autosaved as the new current document', async () => {

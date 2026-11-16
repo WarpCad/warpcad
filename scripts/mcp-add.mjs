@@ -5,7 +5,7 @@
  * Code, using paths this script works out rather than ones a person has to edit.
  *
  * The command it replaces — `claude mcp add warpcad -- node ~/src/WarpCad/mcp/server.js
- * ~/parts/bracket.ndjson` — only worked if the person correctly rewrote two paths a static page
+ * ~/parts/bracket.warpcad` — only worked if the person correctly rewrote two paths a static page
  * cannot know. Pasted as shown it registered a server that exits at once, which Claude Code
  * reports as `CONNECTION_CLOSED`. This resolves `mcp/server.js` from its own location and the
  * project file against the folder `npm run` was invoked from, creates the file if it is missing
@@ -38,7 +38,7 @@ import { createDocument } from '../src/core/document.js'
 import { serializeProject } from '../src/core/project.js'
 import { ProjectFileError, loadProjectText } from '../mcp/projectFile.js'
 
-const USAGE = 'usage: npm run mcp:add -- <project-file.ndjson>   or   npm run mcp:add -- --dev   or   npm run mcp:add -- --preview'
+const USAGE = 'usage: npm run mcp:add -- <project-file.warpcad>   or   npm run mcp:add -- --dev   or   npm run mcp:add -- --preview'
 /** The Vite dev server's live-bridge endpoint (`vite.config.js`: port 5183, strict). */
 const DEV_URL = 'http://127.0.0.1:5183/mcp'
 /** The preview server's live endpoint (`vite.config.js`: port 4173, strict; `mcp/livePreview.js`). */
@@ -102,7 +102,7 @@ function registerLive(url, mode) {
       'Access is off by default; any local MCP client that reaches the loopback endpoint may call',
       'while the lease is enabled. Turn it off when you are done.',
       '',
-      `To go back to editing a closed project file: npm run mcp:add -- <project-file.ndjson>`,
+      `To go back to editing a closed project file: npm run mcp:add -- <project-file.warpcad>`,
       '',
     ].join('\n')
   )

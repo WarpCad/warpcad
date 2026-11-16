@@ -131,9 +131,12 @@ kept in iCloud Drive, opens the same way.
 **Try it:**
 
 1. In the Files app, open **On My iPad → WarpCad** (**On My iPhone → WarpCad** on a phone).
-2. Touch and hold `bracket.ndjson`, choose **Share**, then **Open in WarpCad**.
-3. The project opens, and the chip reads `Opened bracket.ndjson` followed by its number of steps,
-   for example `Opened bracket.ndjson · 3 steps`.
+2. Tap `bracket.warpcad`.
+3. The project opens, and the chip reads `Opened bracket.warpcad` followed by its number of steps,
+   for example `Opened bracket.warpcad · 3 steps`.
+4. For a project saved before November 2026, touch and hold `bracket.ndjson`, choose **Share**,
+   then **Open in WarpCad**. It opens the same way and keeps its name when you **Save** it;
+   **File ▾ → Save As…** gives it the `.warpcad` name.
 
 ## Where your work is kept
 
@@ -176,16 +179,16 @@ release. The Help version line ends in `macOS app` and the app's version.
 
 **Where your projects are kept.** **File ▾ → Save** writes the project to a **WarpCad** folder
 inside your Documents folder, `~/Documents/WarpCad`, and makes the folder the first time you
-save. Exports go to `~/Documents/WarpCad/Exports`. **Open…** lists the `.ndjson` projects in
-`~/Documents/WarpCad` only, not the rest of Documents, and the app cannot read, change or delete
-anything else in Documents. To open a project kept somewhere else, such as your Desktop, choose
+save. Exports go to `~/Documents/WarpCad/Exports`. **Open…** lists the projects in
+`~/Documents/WarpCad` only (`.warpcad` files, and `.ndjson` ones saved before November 2026), not
+the rest of Documents, and the app cannot read, change or delete anything else in Documents. To open a project kept somewhere else, such as your Desktop, choose
 **Browse…** in the Open sheet and pick the file yourself.
 
 **Try it:**
 
 1. Drag **Cube** from the Library into the view, then choose **File ▾ → Save**, type `bracket`
-   and press **Save**. The status line says *Saved to bracket.ndjson*.
-2. In Finder, open **Documents**. A **WarpCad** folder is there, and `bracket.ndjson` is inside it.
+   and press **Save**. The status line says *Saved to bracket.warpcad*.
+2. In Finder, open **Documents**. A **WarpCad** folder is there, and `bracket.warpcad` is inside it.
 3. Choose **File ▾ → Export**, tick **STL** and press **Export**. The status line says
    *Saved to Documents › WarpCad › Exports › …*, and the file is in `WarpCad/Exports`.
 

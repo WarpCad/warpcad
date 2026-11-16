@@ -64,7 +64,7 @@
  * system document picker. Cancelling the sheet after a confirmed replace loses nothing, because
  * nothing is replaced until a file is chosen.
  *
- * A `.ndjson` tapped in the Files app or Mail reaches the app through the shell's open-URL queue
+ * A `.warpcad` (or legacy `.ndjson`) tapped in the Files app or Mail reaches the app through the shell's open-URL queue
  * ({@link openInbound}): it is copied into Documents if it lives elsewhere, then goes through
  * {@link requestOpenShared}, so a copy of the open project asks **Merge their changes** or **Open
  * theirs instead** (`ui-062`), anything to lose asks **Replace the project?**, and an empty

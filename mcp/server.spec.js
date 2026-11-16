@@ -695,7 +695,7 @@ describe('the command line', () => {
   it('prints its usage without a file', () => {
     const run = spawnSync(process.execPath, [SERVER], { encoding: 'utf8', timeout: 10_000 })
     expect(run.status).toBe(2)
-    expect(run.stderr).toContain('usage: node mcp/server.js <project-file.ndjson>')
+    expect(run.stderr).toContain('usage: node mcp/server.js <project-file.warpcad>')
   })
 })
 

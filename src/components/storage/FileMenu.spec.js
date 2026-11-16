@@ -43,7 +43,7 @@ function fakeFiles(mode) {
     opens: 0,
     async save(text, options) {
       this.saves.push(options)
-      return { ok: true, mode, name: 'warpcad-project.ndjson' }
+      return { ok: true, mode, name: 'warpcad-project.warpcad' }
     },
     async open() {
       this.opens += 1
@@ -142,7 +142,7 @@ describe('FileMenu — Save as gist… (TODO/io-021)', () => {
       createGist: vi.fn(async () => ({ id: GIST_ID, revision: '1'.repeat(40), url: '', rawUrls: {} })),
       updateGist: vi.fn(async () => ({ id: GIST_ID, revision: '2'.repeat(40), url: '', rawUrls: {} })),
       deleteGist: vi.fn(),
-      readGist: vi.fn(async () => ({ id: GIST_ID, description: 'Bracket', text: '', revision: '2'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })),
+      readGist: vi.fn(async () => ({ id: GIST_ID, description: 'Bracket', text: '', revision: '2'.repeat(40), updatedAt: null, fileName: 'bracket.warpcad' })),
     }
     setGistDependencies({
       backend: gistBackend,

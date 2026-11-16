@@ -53,6 +53,7 @@ import { parseProject, serializeProject } from '../core/project.js'
 import { createAutoPusher } from '../storage/autoPush.js'
 import {
   DEFAULT_HOSTED_PATH,
+  LEGACY_HOSTED_PATH,
   EXPLICIT_COMMIT_MESSAGE,
   HostedError,
   autoPushCommitMessage,
@@ -685,7 +686,7 @@ export const useHostedStore = defineStore('hosted', () => {
           repository.value = {
             owner: stored.owner,
             repo: stored.repo,
-            path: stored.path ?? DEFAULT_HOSTED_PATH,
+            path: stored.path ?? LEGACY_HOSTED_PATH,
           }
           lastSha.value = stored.sha ?? null
           pushedHash.value = stored.pushedHash ?? ''

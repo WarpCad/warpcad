@@ -36,7 +36,7 @@ import { join } from 'node:path'
 const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'mcp-merge-snapshots')
 test.beforeAll(() => mkdirSync(SNAPSHOT_DIR, { recursive: true }))
 
-const NAME = 'bracket.ndjson'
+const NAME = 'bracket.warpcad'
 const REQUEST = 'add a 20 mm sphere beside the bracket'
 const BRACKET = '{"id":"bracket","op":"primitive.cuboid","name":"Bracket","params":{"size":[30,10,20],"center":[0,0,13]}}\n'
 /** A different project that reuses the id `bracket` for another body. */
@@ -86,10 +86,10 @@ const addSphere = (/** @type {string} */ file) =>
 const FAKE_NATIVE = () => {
   const handle = {
     kind: 'file',
-    name: 'bracket.ndjson',
+    name: 'bracket.warpcad',
     async getFile() {
       const disk = await window.__diskRead()
-      return new File([disk.text], 'bracket.ndjson', { type: 'text/plain', lastModified: disk.lastModified })
+      return new File([disk.text], 'bracket.warpcad', { type: 'text/plain', lastModified: disk.lastModified })
     },
     async createWritable() {
       let buffer = ''
@@ -258,7 +258,7 @@ test('the server adds a sphere while a move is unsaved here: focus merges it, a 
   // Save writes the merged project — and the server then reads a file with both changes.
   await openFileMenu(page)
   await page.getByTestId('file-save').click()
-  await expect(page.getByTestId('save-status')).toHaveAttribute('aria-label', /^Saved to bracket\.ndjson/)
+  await expect(page.getByTestId('save-status')).toHaveAttribute('aria-label', /^Saved to bracket\.warpcad/)
   await expect(page.getByTestId('disk-change')).toHaveCount(0)
   await expect.poll(() => readFileSync(file, 'utf8')).toContain('transform.translate')
   const written = readFileSync(file, 'utf8')
@@ -352,7 +352,7 @@ test('a different project in the file still asks: the dialog says why, Save asks
 
   await page.getByTestId('disk-change-overwrite').click()
   await expect(dialog).toHaveCount(0)
-  await expect(page.getByTestId('save-status')).toHaveAttribute('aria-label', /^Saved to bracket\.ndjson/)
+  await expect(page.getByTestId('save-status')).toHaveAttribute('aria-label', /^Saved to bracket\.warpcad/)
   await expect.poll(() => readFileSync(file, 'utf8')).toBe(BRACKET)
 })
 
@@ -367,9 +367,9 @@ test('a file broken on disk is refused by name on Reload, and the project is lef
   writeFileSync(file, text.slice(0, BRACKET.length + 25)) // a copy cut off mid-line
 
   await focusBack(page)
-  await expect(page.getByTestId('disk-change-reason')).toContainText("Couldn't read bracket.ndjson: line 2 is not valid JSON")
+  await expect(page.getByTestId('disk-change-reason')).toContainText("Couldn't read bracket.warpcad: line 2 is not valid JSON")
   await page.getByTestId('disk-change-reload').click()
-  await expect(page.getByTestId('save-status')).toHaveAttribute('aria-label', /^Couldn't open bracket\.ndjson: line 2 is not valid JSON/)
+  await expect(page.getByTestId('save-status')).toHaveAttribute('aria-label', /^Couldn't open bracket\.warpcad: line 2 is not valid JSON/)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
 })
 

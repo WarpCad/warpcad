@@ -163,9 +163,9 @@ describe('isGistLink', () => {
 
 describe('gistFileName — the project file\'s name in the gist (Stage 2)', () => {
   it('slugs a plain name: lowercase, ASCII, hyphens for runs of anything else', () => {
-    expect(gistFileName('Phone stand')).toBe('phone-stand.ndjson')
-    expect(gistFileName('  Phone   Stand  v2!! ')).toBe('phone-stand-v2.ndjson')
-    expect(gistFileName('Café Crème')).toBe('cafe-creme.ndjson')
+    expect(gistFileName('Phone stand')).toBe('phone-stand.warpcad')
+    expect(gistFileName('  Phone   Stand  v2!! ')).toBe('phone-stand-v2.warpcad')
+    expect(gistFileName('Café Crème')).toBe('cafe-creme.warpcad')
   })
 
   it.each([
@@ -175,27 +175,27 @@ describe('gistFileName — the project file\'s name in the gist (Stage 2)', () =
     ['only right-to-left text', 'מעמד לטלפון'],
     ['only punctuation', '../..//\\'],
     ['not text', /** @type {any} */ (null)],
-  ])('falls back to project.ndjson for %s', (_label, name) => {
-    expect(gistFileName(name)).toBe('project.ndjson')
+  ])('falls back to project.warpcad for %s', (_label, name) => {
+    expect(gistFileName(name)).toBe('project.warpcad')
   })
 
   it('keeps the ASCII part of a mixed name and drops emoji, RTL and bidi controls', () => {
-    expect(gistFileName('Stand 📱 for Dad')).toBe('stand-for-dad.ndjson')
-    expect(gistFileName('Desk \u202Egnp.exe')).toBe('desk-gnp-exe.ndjson')
-    expect(gistFileName('Stand מעמד')).toBe('stand.ndjson')
+    expect(gistFileName('Stand 📱 for Dad')).toBe('stand-for-dad.warpcad')
+    expect(gistFileName('Desk \u202Egnp.exe')).toBe('desk-gnp-exe.warpcad')
+    expect(gistFileName('Stand מעמד')).toBe('stand.warpcad')
   })
 
   it('never yields a path, a dot file or a name that needs encoding', () => {
     for (const hostile of ['../../etc/passwd', '..', '.hidden', 'a/b\\c', 'name?x=1#frag', '<script>alert(1)</script>', 'C:\\Windows', '%2e%2e%2f']) {
       const name = gistFileName(hostile)
-      expect(name).toMatch(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.ndjson$/)
+      expect(name).toMatch(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.warpcad$/)
       expect(encodeURIComponent(name)).toBe(name)
     }
   })
 
   it('caps the slug length and never ends it on a hyphen', () => {
     const name = gistFileName('word '.repeat(100))
-    const stem = name.slice(0, -'.ndjson'.length)
+    const stem = name.slice(0, -'.warpcad'.length)
     expect(stem.length).toBeLessThanOrEqual(MAX_GIST_SLUG_CHARS)
     expect(stem.endsWith('-')).toBe(false)
   })
@@ -203,8 +203,8 @@ describe('gistFileName — the project file\'s name in the gist (Stage 2)', () =
 
 describe('gistRawFileUrl — the README\'s revision-free raw link (Stage 2)', () => {
   it('builds https://gist.githubusercontent.com/<login>/<id>/raw/<file>, which isGistRawUrl accepts', () => {
-    const url = gistRawFileUrl('octocat', ID32, 'phone-stand.ndjson')
-    expect(url).toBe(`https://gist.githubusercontent.com/octocat/${ID32}/raw/phone-stand.ndjson`)
+    const url = gistRawFileUrl('octocat', ID32, 'phone-stand.warpcad')
+    expect(url).toBe(`https://gist.githubusercontent.com/octocat/${ID32}/raw/phone-stand.warpcad`)
     expect(isGistRawUrl(url)).toBe(true)
     // No pinned revision: a sha segment between raw/ and the file would freeze the link.
     expect(url).not.toMatch(/\/raw\/[0-9a-f]{40}\//)

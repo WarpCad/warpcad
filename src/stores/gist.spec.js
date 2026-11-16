@@ -67,7 +67,7 @@ function fakeBackend(overrides = {}) {
     createGist: vi.fn(async () => ({ id: ID, revision: 'a'.repeat(40), url: `https://gist.github.com/${ID}`, rawUrls: {} })),
     updateGist: vi.fn(async () => ({ id: ID, revision: 'b'.repeat(40), url: `https://gist.github.com/${ID}`, rawUrls: {} })),
     deleteGist: vi.fn(async () => {}),
-    readGist: vi.fn(async () => ({ id: ID, description: '', text: '', revision: 'a'.repeat(40), updatedAt: null, fileName: 'p.ndjson' })),
+    readGist: vi.fn(async () => ({ id: ID, description: '', text: '', revision: 'a'.repeat(40), updatedAt: null, fileName: 'p.warpcad' })),
     ...overrides,
   }
 }
@@ -75,7 +75,7 @@ function fakeBackend(overrides = {}) {
 const files = /** @type {any} */ ({
   capabilities: { mode: 'fallback', canSaveInPlace: false, saveLabel: 'Download copy', saveAsLabel: null, openLabel: 'Open…' },
   currentName: null,
-  save: async () => ({ ok: true, mode: 'fallback', name: 'x.ndjson' }),
+  save: async () => ({ ok: true, mode: 'fallback', name: 'x.warpcad' }),
   open: async () => ({ ok: false, cancelled: true }),
   adopt() {},
   forgetHandle() {},

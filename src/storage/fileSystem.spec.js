@@ -174,13 +174,31 @@ describe('file names', () => {
 
   it('uses the plain name on the native path and a timestamped one on the fallback', () => {
     const date = new Date(2026, 8, 19, 14, 2)
-    expect(projectFileName('native', date)).toBe('warpcad-project.ndjson')
-    expect(projectFileName('fallback', date)).toBe('warpcad-project-20260919-1402.ndjson')
+    expect(projectFileName('native', date)).toBe('warpcad-project.warpcad')
+    expect(projectFileName('fallback', date)).toBe('warpcad-project-20260919-1402.warpcad')
   })
 
   it('offers an accept list iOS will not grey the file out under', () => {
-    for (const token of ['.ndjson', '.json', '.txt', 'text/plain']) {
-      expect(ACCEPT_ATTRIBUTE).toContain(token)
+    const tokens = ACCEPT_ATTRIBUTE.split(',')
+    // `.warpcad` is what Save writes, `.ndjson` is every project saved before it (TODO/io-035), and
+    // `text/plain` is the catch-all iOS honours for a type no installed app declares.
+    for (const token of ['.warpcad', '.ndjson', '.json', '.txt', 'text/plain']) {
+      expect(tokens).toContain(token)
+    }
+  })
+})
+
+describe('the File System Access picker types (TODO/io-035)', () => {
+  it('Save As offers .warpcad first, and Open accepts .warpcad and legacy .ndjson under the NDJSON MIME type', async () => {
+    const { env, showSaveFilePicker, showOpenFilePicker } = nativeEnv()
+    const storage = createFileStorage(env)
+    await storage.save('x', { saveAs: true })
+    await storage.open()
+    for (const options of [showSaveFilePicker.mock.calls[0][0], showOpenFilePicker.mock.calls[0][0]]) {
+      const [type] = options.types
+      expect(type.accept['application/x-ndjson']).toEqual(['.warpcad', '.ndjson'])
+      expect(type.accept['application/json']).toEqual(['.json'])
+      expect(type.accept['text/plain']).toEqual(['.txt'])
     }
   })
 })
@@ -194,10 +212,10 @@ describe('fallback Save — <a download> on a Blob (the primary path on phones a
     expect(result).toEqual({
       ok: true,
       mode: 'fallback',
-      name: 'warpcad-project-20260919-1402.ndjson',
+      name: 'warpcad-project-20260919-1402.warpcad',
     })
     const anchor = dom.created.find((node) => node.tag === 'a')
-    expect(anchor.download).toBe('warpcad-project-20260919-1402.ndjson')
+    expect(anchor.download).toBe('warpcad-project-20260919-1402.warpcad')
     expect(anchor.href).toBe('blob:fake/1')
     expect(anchor.clicked).toBe(true)
     expect(urls.created[0].parts).toEqual(['{"op":"a"}\n'])
@@ -298,7 +316,7 @@ describe('native Save / Open — File System Access (desktop Chromium only)', ()
 
     const result = await storage.save('the log\n', { saveAs: true })
     expect(showSaveFilePicker).toHaveBeenCalledOnce()
-    expect(showSaveFilePicker.mock.calls[0][0]).toMatchObject({ suggestedName: 'warpcad-project.ndjson' })
+    expect(showSaveFilePicker.mock.calls[0][0]).toMatchObject({ suggestedName: 'warpcad-project.warpcad' })
     expect(written.chunks).toEqual(['the log\n'])
     expect(written.closed).toBe(1)
     expect(result).toEqual({ ok: true, mode: 'native', name: 'chosen.ndjson' })
@@ -377,7 +395,7 @@ describe('native Save / Open — File System Access (desktop Chromium only)', ()
       expect(result).toEqual({
         ok: true,
         mode: 'fallback',
-        name: 'warpcad-project-20260919-1402.ndjson',
+        name: 'warpcad-project-20260919-1402.warpcad',
         refusedName: 'chamfer error.ndjson',
       })
       expect(dom.dom.created.filter((node) => node.tag === 'a')).toHaveLength(1)
@@ -598,18 +616,18 @@ describe('native-app mode (TODO/io-014)', () => {
   })
 
   it('offers a plain default name for the name sheet', () => {
-    expect(projectFileName('native-app')).toBe('warpcad-project.ndjson')
+    expect(projectFileName('native-app')).toBe('warpcad-project.warpcad')
   })
 
-  it('the first Save writes Documents/<name>.ndjson; the second overwrites the same file, never a copy', async () => {
+  it('the first Save writes Documents/<name>.warpcad; the second overwrites the same file, never a copy', async () => {
     const { env, fs } = appEnv()
     const storage = createFileStorage(env)
     expect(storage.currentName).toBeNull()
-    await expect(storage.save('one\n', { name: 'bracket' })).resolves.toEqual({ ok: true, mode: 'native-app', name: 'bracket.ndjson' })
-    expect(storage.currentName).toBe('bracket.ndjson')
-    await expect(storage.save('two\n')).resolves.toEqual({ ok: true, mode: 'native-app', name: 'bracket.ndjson' })
-    expect(fs.documents()).toEqual(['bracket.ndjson'])
-    expect(fs.text('bracket.ndjson')).toBe('two\n')
+    await expect(storage.save('one\n', { name: 'bracket' })).resolves.toEqual({ ok: true, mode: 'native-app', name: 'bracket.warpcad' })
+    expect(storage.currentName).toBe('bracket.warpcad')
+    await expect(storage.save('two\n')).resolves.toEqual({ ok: true, mode: 'native-app', name: 'bracket.warpcad' })
+    expect(fs.documents()).toEqual(['bracket.warpcad'])
+    expect(fs.text('bracket.warpcad')).toBe('two\n')
     expect(env.showSaveFilePicker).not.toHaveBeenCalled()
   })
 
@@ -624,19 +642,19 @@ describe('native-app mode (TODO/io-014)', () => {
     const { env, fs } = appEnv()
     const storage = createFileStorage(env)
     await storage.save('one', { name: 'bracket' })
-    await expect(storage.save('two', { saveAs: true, name: 'bracket v2' })).resolves.toMatchObject({ ok: true, name: 'bracket v2.ndjson' })
+    await expect(storage.save('two', { saveAs: true, name: 'bracket v2' })).resolves.toMatchObject({ ok: true, name: 'bracket v2.warpcad' })
     await storage.save('three')
-    expect(fs.text('bracket.ndjson')).toBe('one')
-    expect(fs.text('bracket v2.ndjson')).toBe('three')
+    expect(fs.text('bracket.warpcad')).toBe('one')
+    expect(fs.text('bracket v2.warpcad')).toBe('three')
   })
 
   it('a new name that is already taken is refused, and the existing file is not overwritten', async () => {
     const { env, fs } = appEnv()
-    fs.put('bracket.ndjson', 'someone else’s')
+    fs.put('bracket.warpcad', 'someone else’s')
     const result = await createFileStorage(env).save('mine', { name: 'bracket' })
-    expect(result).toMatchObject({ ok: false, exists: true, name: 'bracket.ndjson' })
+    expect(result).toMatchObject({ ok: false, exists: true, name: 'bracket.warpcad' })
     expect(result.error).toMatch(/already/)
-    expect(fs.text('bracket.ndjson')).toBe('someone else’s')
+    expect(fs.text('bracket.warpcad')).toBe('someone else’s')
   })
 
   it('a name that is not a plain file name is refused before anything is written', async () => {
@@ -651,10 +669,10 @@ describe('native-app mode (TODO/io-014)', () => {
     const { env, fs } = appEnv()
     const dom = { createElement: vi.fn(), body: { appendChild: vi.fn() } }
     env.document = dom
-    fs.fail('plugin:fs|write_text_file', 'forbidden path: .bracket.ndjson.tmp')
+    fs.fail('plugin:fs|write_text_file', 'forbidden path: .bracket.warpcad.tmp')
     const storage = createFileStorage(env)
     const result = await storage.save('x', { name: 'bracket' })
-    expect(result).toEqual({ ok: false, error: 'forbidden path: .bracket.ndjson.tmp', name: 'bracket.ndjson' })
+    expect(result).toEqual({ ok: false, error: 'forbidden path: .bracket.warpcad.tmp', name: 'bracket.warpcad' })
     expect(dom.createElement).not.toHaveBeenCalled()
     expect(storage.capabilities.mode).toBe('native-app')
     // A failed first save leaves no Save target behind.
@@ -671,7 +689,7 @@ describe('native-app mode (TODO/io-014)', () => {
     ])
   })
 
-  it('opening one of its projects reads it, and adopting it makes Save write back to it', async () => {
+  it('opening one of its projects reads it, and adopting it makes Save write back to it: a legacy .ndjson keeps its name', async () => {
     const { env, fs } = appEnv()
     fs.put('bracket.ndjson', 'v1\n')
     const storage = createFileStorage(env)
@@ -711,14 +729,14 @@ describe('native-app mode (TODO/io-014)', () => {
     const { env, fs } = appEnv()
     const storage = createFileStorage(env)
     await storage.save('v1\n', { name: 'bracket' })
-    const first = fs.mtime('bracket.ndjson')
-    expect(await storage.readCurrent({ lastModified: first })).toEqual({ ok: true, name: 'bracket.ndjson', text: '', lastModified: first })
-    fs.put('bracket.ndjson', 'v1\nv2\n')
+    const first = fs.mtime('bracket.warpcad')
+    expect(await storage.readCurrent({ lastModified: first })).toEqual({ ok: true, name: 'bracket.warpcad', text: '', lastModified: first })
+    fs.put('bracket.warpcad', 'v1\nv2\n')
     expect(await storage.readCurrent({ lastModified: first })).toEqual({
       ok: true,
-      name: 'bracket.ndjson',
+      name: 'bracket.warpcad',
       text: 'v1\nv2\n',
-      lastModified: fs.mtime('bracket.ndjson'),
+      lastModified: fs.mtime('bracket.warpcad'),
     })
   })
 
@@ -727,7 +745,7 @@ describe('native-app mode (TODO/io-014)', () => {
     const storage = createFileStorage(env)
     await storage.save('v1\n', { name: 'bracket' })
     fs.fail('plugin:fs|stat', 'No such file or directory (os error 2)')
-    expect(await storage.readCurrent()).toEqual({ ok: false, error: 'No such file or directory (os error 2)', name: 'bracket.ndjson' })
+    expect(await storage.readCurrent()).toEqual({ ok: false, error: 'No such file or directory (os error 2)', name: 'bracket.warpcad' })
   })
 
   it('forgetHandle makes the next Save ask for a name again', async () => {

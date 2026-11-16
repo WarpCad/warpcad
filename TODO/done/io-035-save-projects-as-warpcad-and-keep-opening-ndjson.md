@@ -6,8 +6,11 @@ priority: high
 model: opus
 milestone: M19
 depends: [io-036]
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-16 (`io-035`).** Save writes `name.warpcad` through one constant (`src/core/projectFile.js`); Open reads `.warpcad` and `.ndjson`. Gist choice: one project file of either extension; with several, `project.warpcad` then `project.ndjson`. Gist Update keeps a legacy `<slug>.ndjson` name, so its raw URL holds. `nativeMirror.js` and the seven `.ndjson` fixtures are deliberately unchanged. Owed by hand, not claimed: scenarios 10, 22, 23, 28, the closed-finding repros, the iPad Safari check (queued in `TODO/VERIFY.md`). Docs media: the screenshots were regenerated; `open-project.gif` is still stale and needs a scoped regeneration.
+
 
 > Split 2026-11-16 from [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md)
 > (owner decision 2026-11-13: shape 2, a `.warpcad` extension). This is the web half. The native half,

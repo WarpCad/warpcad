@@ -23,7 +23,7 @@ limits, and mark what they add in History. With your own API key, you can also t
 
 | Way in | What it needs | Where it works | Changes appear |
 |---|---|---|---|
-| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 24+, a saved `.ndjson` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
+| **Claude Code on a project file** (this page) | Claude Code, a WarpCad checkout with Node.js 24+, a saved `.warpcad` file | Any computer. Chrome or Edge merge the changes into the open project when you switch back; other browsers use **File ▾ → Merge file…** | In the file, marked **via mcp** |
 | **[Live mode](#live-mode-an-mcp-agent-edits-the-project-you-have-open)** | An MCP client and WarpCad running under `npm run dev` or as a preview build (`VITE_LIVE_BRIDGE=1`); access explicitly enabled in WarpCad | Any browser on the same computer as the local MCP client | In the open tab as they land, marked **via mcp** |
 | **[Browser agents (WebMCP)](webmcp.md)** | Chrome with the WebMCP flag, and an agent that runs in the browser | Any copy of WarpCad, hosted or local, on desktop Chrome | In the open tab as they land, marked **via webmcp** |
 
@@ -45,7 +45,8 @@ limits, and mark what they add in History. With your own API key, you can also t
 You need a WarpCad checkout (see [Run it yourself](../README.md#run-it-yourself) for how to
 clone it) with Node.js 24 or newer, [Claude Code](https://claude.com/claude-code) installed, and
 a project saved as a file. In the app, **File ▾ → Save** (or **Download copy**) writes a
-`.ndjson` file.
+`.warpcad` file. A project saved before November 2026 as `.ndjson` works the same way: the server
+reads and writes whatever file you give it.
 
 1. Install the dependencies, once, from the WarpCad folder you cloned. The server uses the app's
    own code, so it needs both installs:
@@ -59,10 +60,10 @@ a project saved as a file. In the app, **File ▾ → Save** (or **Download copy
    the path to `mcp/server.js` itself:
 
    ```sh
-   npm run mcp:add -- bracket.ndjson
+   npm run mcp:add -- bracket.warpcad
    ```
 
-   It creates `bracket.ndjson` if it doesn't exist, replaces any earlier `warpcad` registration,
+   It creates `bracket.warpcad` if it doesn't exist, replaces any earlier `warpcad` registration,
    and prints the two absolute paths it registered. Then start Claude Code in any folder and type
    `/mcp`: `warpcad` should say *connected*. If it says `CONNECTION_CLOSED`, run
    `claude mcp get warpcad` and check both paths exist; running `npm run mcp:add` again fixes a
@@ -73,7 +74,7 @@ a project saved as a file. In the app, **File ▾ → Save** (or **Download copy
    Claude reads the scene, places a 3 mm plate and tells you which History row it added (for
    example *row 2, Place Cube 1*).
 
-4. Open `bracket.ndjson` in WarpCad (**File ▾ → Open…**). If it was already open in Chrome or
+4. Open `bracket.warpcad` in WarpCad (**File ▾ → Open…**). If it was already open in Chrome or
    Edge, just switch back to the WarpCad window: the new step is merged in and a note says
    **Merged 1 step from Claude Code**. The step is in **History**, marked **via mcp**. Tap the
    note icon on the row to see *add a 3 mm base plate under the bracket*, the request that made
@@ -170,7 +171,7 @@ a resource called `warpcad://guide`. Claude is told to read it before its first 
 client that doesn't read it on its own, attach it by hand: in Claude Code, type
 `@warpcad:warpcad://guide` at the start of a message.
 
-**Example: a cube with a hole.** Run `npm run mcp:add -- bracket.ndjson`, start Claude Code in the
+**Example: a cube with a hole.** Run `npm run mcp:add -- bracket.warpcad`, start Claude Code in the
 WarpCad folder, and ask *a 40 mm cube with a 10 mm hole straight through it*. Claude places the
 cube on the grid, cuts the hole with a Subtract, measures the result and tells you its size. You
 don't have to tell it the units or which shape is kept.
@@ -200,7 +201,7 @@ first message. Other MCP clients show the same prompts in their own menus.
 | `/mcp__warpcad__build <request>` | Builds what you describe: looks first, asks once if a deciding size is missing, builds, checks, and reports the sizes it read back. Your words are saved as each step's design intent. |
 | `/mcp__warpcad__check-print [body]` | Measures and print-checks every body (or the one you name) against the printer defaults (0.4 mm nozzle, 220 × 220 × 250 mm bed), and changes nothing. |
 
-**Example.** With WarpCad registered (`npm run mcp:add -- bracket.ndjson`), type
+**Example.** With WarpCad registered (`npm run mcp:add -- bracket.warpcad`), type
 `/mcp__warpcad__build a 60 × 40 × 3 mm plate with four M3 clearance holes 5 mm in from each corner`
 in Claude Code. Claude builds the plate, measures it, runs a print check, and tells you the hole
 diameter it used. Then type `/mcp__warpcad__check-print` to check every body without changing
@@ -227,7 +228,7 @@ The server's instructions name both addresses, so Claude knows they exist before
 or press fit and 0.4 mm for a sliding fit, which are the usual defaults for an FDM printer. It has no default for
 resin or CNC, and asks. The gap is per side: a 10 mm peg in a socket with 0.2 mm clearance has a 10.4 mm hole.
 
-**Example.** Connect Claude Code to a project (`npm run mcp:add -- bracket.ndjson`) that holds a group called
+**Example.** Connect Claude Code to a project (`npm run mcp:add -- bracket.warpcad`) that holds a group called
 Housing, made of two parts that go together. Type `add 0.2 mm clearance to the group called Housing`. Claude
 reads `skill://add-clearances/SKILL.md` first, then works pair by pair: it measures each pair of parts with
 `check_clearance`, cuts the gap into the part that is printed (lengths in millimetres, Z up), and measures
@@ -270,7 +271,7 @@ What you see:
 
 - **A note** (**Merged 1 step from Claude Code**) with **Undo merge**. When some of the steps came
   from somewhere other than Claude Code it names the file instead, for example **Merged 2 steps
-  from bracket.ndjson**.
+  from bracket.warpcad**.
 - **A yellow strip** when you and Claude changed the same step in ways that can't both be kept,
   for example you moved a cube and Claude filleted it. **Show** opens the step in History. See
   [What a conflict is](merging.md#what-a-conflict-is).
@@ -317,7 +318,7 @@ reach the loopback endpoint may read and change the open project.
     `mcp:add -- --dev` prints the registration details for the live endpoint at
     `http://127.0.0.1:5183/mcp`. Use those details to register WarpCad with your MCP client. It
     replaces a closed-file registration: one at a time. To go back, run
-    `npm run mcp:add -- <project-file.ndjson>`.
+    `npm run mcp:add -- <project-file.warpcad>`.
 
 2. Open WarpCad at `http://localhost:5183` in a browser on this computer.
 
@@ -545,7 +546,7 @@ claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "A
   of calls less than a minute apart, and you raise it from **Limit:** in the Assistant panel.
 - **A refused change leaves the file untouched**, byte for byte.
 - **Writes are all-or-nothing.** The server writes a new copy beside the file and then swaps it in,
-  so the file is never left half-written. A lock file (`bracket.ndjson.lock`, there only while a
+  so the file is never left half-written. A lock file (`bracket.warpcad.lock`, there only while a
   write is happening) stops two servers on the same file from overwriting each other, and if the app saves the file
   while a change is running, the server reads it again and redoes the change on top.
 
@@ -595,16 +596,16 @@ unchanged keeps its bytes.
 
 Every message names the file and says that nothing was written to it.
 
-- **Can't open bracket.ndjson: line 4 is not valid JSON — this is not a WarpCad project file.**
+- **Can't open bracket.warpcad: line 4 is not valid JSON — this is not a WarpCad project file.**
   The file was cut off or edited by hand. The server refuses it, and so would the app. Restore a
   good copy (your autosave, or a copy in a [GitHub repository](save-load.md)).
-- **Can't open bracket.ndjson: This project was saved by a newer WarpCad. Update the app to open
+- **Can't open bracket.warpcad: This project was saved by a newer WarpCad. Update the app to open
   it. The file was not changed.** Update your WarpCad checkout (`git pull`, then `npm install`
   and `npm run mcp:install`).
-- **Another WarpCad MCP server (process 1234) is writing bracket.ndjson…** Another server was in
+- **Another WarpCad MCP server (process 1234) is writing bracket.warpcad…** Another server was in
   the middle of a write for more than ten seconds. Try again. A lock left behind by a server that
   crashed is cleared automatically.
-- **bracket.ndjson changed on disk while this call ran.** The app or another program kept saving
+- **bracket.warpcad changed on disk while this call ran.** The app or another program kept saving
   the file during that change, three times in a row. Nothing was written; ask again. (A single
   save during a change is no problem: the server reads the file again and redoes the change on
   top of it.)

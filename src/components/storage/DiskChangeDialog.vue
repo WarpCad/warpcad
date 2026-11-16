@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * "bracket.ndjson changed on disk and can't be merged" — the question asked only where there is
+ * "bracket.warpcad changed on disk and can't be merged" — the question asked only where there is
  * nothing safe to do automatically (`TODO/ai-009`, `TODO/io-010`; `stores/persistence.js`). A
  * changed copy of *this* project is merged in without asking (`ui-062`'s toast or banner).
  *

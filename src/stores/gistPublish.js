@@ -74,6 +74,7 @@ import { gistFailureOf, gistMessage, plainGistDescription } from '../core/gistMe
 import { gistReadme } from '../core/gistReadme.js'
 import { relatedness } from '../core/merge/merge.js'
 import { parseProject, serializeProject } from '../core/project.js'
+import { stripProjectExtension } from '../core/projectFile.js'
 import { responseTextOf } from '../core/prompt.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
 import { displayFormulaOf, isFormula, variablesOf } from '../core/variables.js'
@@ -363,7 +364,10 @@ export function createGistPublisher(options = {}) {
     // Read after the merge: what is published is the merged project.
     const text = serializeProject(toRaw(documentStore.raw))
     const name = choice.name ?? (plainGistDescription(remote.description) || persistence.projectName)
-    const fileName = gistFileName(name)
+    // A gist published before `TODO/io-035` holds `<slug>.ndjson`: an Update under the same name
+    // keeps that file (and its raw URL) rather than renaming it to `.warpcad`.
+    const slugFile = gistFileName(name)
+    const fileName = stripProjectExtension(remote.fileName) === stripProjectExtension(slugFile) ? remote.fileName : slugFile
     const publishedAt = now()
     /** @type {Record<string, string | null>} */
     const files = {

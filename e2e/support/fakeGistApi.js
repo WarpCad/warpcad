@@ -279,12 +279,13 @@ export function watchEscapes(page, fake) {
 }
 
 /**
- * The project file a fake gist holds (the single `*.ndjson`), or `null`.
+ * The project file a fake gist holds (the single `*.warpcad`, or a legacy `*.ndjson`; `TODO/io-035`),
+ * or `null`.
  *
  * @param {FakeGist | undefined} gist
  */
 export function projectFileOf(gist) {
   if (!gist) return null
-  const name = Object.keys(gist.files).find((file) => file.endsWith('.ndjson'))
+  const name = Object.keys(gist.files).find((file) => /\.(warpcad|ndjson)$/i.test(file))
   return name === undefined ? null : { name, text: gist.files[name] }
 }

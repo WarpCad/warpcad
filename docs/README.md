@@ -144,7 +144,7 @@ nothing to install. The home page, **https://warpcad.com**, links every page her
   kept (this browser only, never in a project file), **Forget key**, choosing a model, and what
   each failure message means.
 - [Driving WarpCad from Claude Code (the MCP server)](mcp.md) — `npm install` and `npm run mcp:install`,
-  then `npm run mcp:add -- bracket.ndjson`: Claude Code reads and
+  then `npm run mcp:add -- bracket.warpcad`: Claude Code reads and
   adds steps to a project file with the Assistant's tools, and the steps arrive in History marked
   **via mcp** with your request. Also: how the app **merges** them into a project you have open
   (and which browsers can do it, versus **Merge file…**), the dialog for a different project,

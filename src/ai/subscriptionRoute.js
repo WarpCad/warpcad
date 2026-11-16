@@ -14,4 +14,4 @@
  * folder it is run in, then runs `claude mcp add` itself (`TODO/ai-016`). The previous constant was
  * a raw `claude mcp add` with two placeholder paths, which registered a server that exited at once.
  */
-export const MCP_ADD_COMMAND = 'npm run mcp:add -- my-part.ndjson'
+export const MCP_ADD_COMMAND = 'npm run mcp:add -- my-part.warpcad'

@@ -692,6 +692,20 @@ describe('useHostedStore', () => {
   })
 
   describe('restore and disconnect', () => {
+    it('a stored connection keeps the path it was made with (TODO/io-035)', async () => {
+      credentials.records.set('hosted-git', { token: TOKEN, owner: 'octo', repo: 'parts', path: 'parts/shelf.ndjson' })
+      const hosted = useHostedStore()
+      await hosted.start()
+      expect(hosted.repository).toEqual({ owner: 'octo', repo: 'parts', path: 'parts/shelf.ndjson' })
+    })
+
+    it('a stored connection with no path predates .warpcad, so it restores the .ndjson default (TODO/io-035)', async () => {
+      credentials.records.set('hosted-git', { token: TOKEN, owner: 'octo', repo: 'parts' })
+      const hosted = useHostedStore()
+      await hosted.start()
+      expect(hosted.repository).toEqual({ owner: 'octo', repo: 'parts', path: 'warpcad-project.ndjson' })
+    })
+
     it('restores the connection on start and schedules one push when the local copy is ahead', async () => {
       credentials.records.set('hosted-git', {
         token: TOKEN,

@@ -60,8 +60,9 @@ function back() {
     </p>
     <pre class="route__command" data-testid="ai-subscription-command">{{ MCP_ADD_COMMAND }}</pre>
     <p class="route__note">
-      <code>my-part.ndjson</code> is the project file: use any name, and it is created if it doesn't
-      exist. Then type <code>/mcp</code> in Claude Code to see <em>warpcad</em> connected. The steps
+      <code>my-part.warpcad</code> is the project file: use any name, and it is created if it doesn't
+      exist. A project saved as <code>.ndjson</code> works too. Then type <code>/mcp</code> in Claude
+      Code to see <em>warpcad</em> connected. The steps
       it adds appear in History marked <em>via mcp</em>. The full walk-through is
       <code>docs/mcp.md</code>.
     </p>

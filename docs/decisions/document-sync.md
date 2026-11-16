@@ -148,6 +148,37 @@ mutate the document outside it.
   537 characters after 1 000 inserts. Merging and ordering two 5 000-entry states takes about
   2 ms (Node, M-series laptop).
 
+### As built: `io-035` (2026-11-16), the project file is `name.warpcad`
+
+The format above is unchanged; only the file's name is. `.ndjson` is a general format that
+WarpCad does not own, so the native app could not claim it as its own file type
+(`warpcad-native`'s `io-030` and `io-036`).
+
+- **The extension.** Save writes `name.warpcad`. The bytes inside are the NDJSON this record
+  describes. `src/core/projectFile.js` holds the extension (`PROJECT_EXTENSION`), the legacy list
+  (`LEGACY_PROJECT_EXTENSIONS = ['.ndjson']`) and the two tests on a name
+  (`isProjectFileName`, `stripProjectExtension`). Every path that names a project file reads
+  them: Save and Save As in the browser and the native app, the native Documents list, a
+  published gist (`gistFileName`), **Send the file** (`shareFileName`), and a new hosted
+  connection's default path (`DEFAULT_HOSTED_PATH`).
+- **The legacy-read rule.** Open reads `.warpcad` and `.ndjson` alike, in every path: the file
+  picker and `<input accept>`, the native Open list, a file tapped in Files or Mail, and a gist.
+  Nothing renames a user's file. A project opened from `bracket.ndjson` and saved in place stays
+  `bracket.ndjson`; Save As… suggests `bracket.warpcad`. A gist published as `<slug>.ndjson`
+  keeps that file on Update under the same name, and a stored hosted connection keeps the path
+  it was made with. A gist holding several project files is read by this precedence: the single
+  project file of either extension, else `project.warpcad`, else `project.ndjson`, else refused
+  as ambiguous.
+- **The MIME type stays `application/x-ndjson`** for downloads and the File System Access
+  picker. The native app's exported `com.warpcad.project` type has no MIME tag of its own
+  (`io-036`), so there is no second string to keep in step.
+- **Unchanged on purpose: the native app's internal copies.** `src/storage/nativeMirror.js`
+  writes `autosave.ndjson` and `library/<id>.ndjson` under Application Support. They are app
+  data, never shown in the Files app and never opened by a person, so they keep `.ndjson`. Do
+  not "fix" them to `.warpcad`: a later restore reads those exact names.
+- **MCP.** The server takes any path and never checks the extension, so `npm run mcp:add --
+  bracket.ndjson` keeps working; usage text and examples say `.warpcad`.
+
 ## Options compared
 
 Library numbers re-checked on **2026-10-12** (npm registry and GitHub API, same method as

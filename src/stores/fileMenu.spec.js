@@ -41,7 +41,7 @@ function fakeFiles() {
     opens: 0,
     async save(text, options) {
       this.saves.push({ text, options })
-      return { ok: true, mode: 'fallback', name: 'warpcad-project-20260921-1002.ndjson' }
+      return { ok: true, mode: 'fallback', name: 'warpcad-project-20260921-1002.warpcad' }
     },
     async open() {
       this.opens += 1
@@ -339,7 +339,7 @@ describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
       createGist: vi.fn(async () => ({ id: ID, revision: REV1, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
       updateGist: vi.fn(async () => ({ id: ID, revision: REV2, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
       deleteGist: vi.fn(async () => {}),
-      readGist: vi.fn(async () => ({ id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })),
+      readGist: vi.fn(async () => ({ id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' })),
     }
   }
 
@@ -425,7 +425,7 @@ describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
     const menu = useFileMenuStore()
     menu.requestSaveAsGist()
     await menu.saveAsGist({ name: 'Bracket', public: false })
-    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: '', revision: REV2, updatedAt: null, fileName: 'bracket.ndjson' })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: '', revision: REV2, updatedAt: null, fileName: 'bracket.warpcad' })
     gistBackend.updateGist.mockClear()
     gistBackend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
     useDocumentStore().append(cube('cube-2'))
@@ -438,7 +438,7 @@ describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
     expect(gistBackend.createGist).toHaveBeenCalledTimes(1)
     // The gist keeps its title: the name it was created under, not the never-saved project's ''.
     expect(gistBackend.updateGist.mock.calls[0][0]).toMatchObject({ id: ID, description: 'Bracket' })
-    expect(Object.keys(gistBackend.updateGist.mock.calls[0][0].files).sort()).toEqual(['README.md', 'bracket.ndjson'])
+    expect(Object.keys(gistBackend.updateGist.mock.calls[0][0].files).sort()).toEqual(['README.md', 'bracket.warpcad'])
     await vi.waitFor(() => expect(gistField().lastRevision).toBe(REV3))
     expect(menu.gistSaveToast).toEqual({ text: 'Saved to gist: Bracket', link: `https://app.warpcad.com/#/gist/${ID}` })
   })
@@ -465,18 +465,18 @@ describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
     menu.requestSaveAsGist()
     await menu.saveAsGist({ name: 'Bracket', public: false })
     // Another device opened the gist, added a step and updated it.
-    const parsed = parseProject(gistBackend.createGist.mock.calls[0][0].files['bracket.ndjson'])
+    const parsed = parseProject(gistBackend.createGist.mock.calls[0][0].files['bracket.warpcad'])
     const phone = createDocument({ foldCache: null })
     phone.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
     phone.append(cube('cube-phone'), { origin: 'local' })
-    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: serializeProject(phone), revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: serializeProject(phone), revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.warpcad' })
     gistBackend.updateGist.mockClear()
     gistBackend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
     useDocumentStore().append(cube('cube-2'))
 
     menu.requestSaveAsGist()
     await vi.waitFor(() => expect(gistBackend.updateGist).toHaveBeenCalledTimes(1))
-    const written = parseProject(gistBackend.updateGist.mock.calls[0][0].files['bracket.ndjson']).entries.map((entry) => entry.record.id)
+    const written = parseProject(gistBackend.updateGist.mock.calls[0][0].files['bracket.warpcad']).entries.map((entry) => entry.record.id)
     expect(written.sort()).toEqual(['cube-1', 'cube-2', 'cube-phone'])
     await vi.waitFor(() => expect(gistField().lastRevision).toBe(REV3))
     expect(menu.gistSaveError).toBe('')
@@ -490,7 +490,7 @@ describe('useFileMenuStore — Save as gist (TODO/io-021)', () => {
     await menu.saveAsGist({ name: 'Bracket', public: false })
     const stranger = createDocument({ foldCache: null })
     stranger.append({ id: 'ball-1', op: 'primitive.sphere', name: 'Ball', params: { diameter: 30, center: [0, 0, 15] } }, { origin: 'local' })
-    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: serializeProject(stranger), revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.ndjson' })
+    gistBackend.readGist.mockResolvedValue({ id: ID, description: 'Bracket', text: serializeProject(stranger), revision: 'f'.repeat(40), updatedAt: null, fileName: 'bracket.warpcad' })
     gistBackend.updateGist.mockClear()
 
     menu.requestSaveAsGist()

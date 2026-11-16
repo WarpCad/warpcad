@@ -6,7 +6,7 @@
  * file open merges the server's writes in (`TODO/io-010`).
  *
  * ```sh
- * npm run mcp:add -- bracket.ndjson   # from the WarpCad folder; works out the paths and registers it
+ * npm run mcp:add -- bracket.warpcad   # from the WarpCad folder; works out the paths and registers it
  * ```
  *
  * A thin transport, per `docs/decisions/ai-partner.md` decision 1: the tools are
@@ -303,7 +303,7 @@ export function unusablePath(path) {
   return null
 }
 
-const USAGE = 'usage: node mcp/server.js <project-file.ndjson>'
+const USAGE = 'usage: node mcp/server.js <project-file.warpcad>'
 
 /**
  * @param {string[]} argv `process.argv.slice(2)`.

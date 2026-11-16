@@ -38,6 +38,7 @@ import { ref, toRaw, watch } from 'vue'
 
 import { createDocument } from '../core/document.js'
 import { serializeNdjson } from '../core/ndjson.js'
+import { PROJECT_MIME } from '../core/projectFile.js'
 import { parseProject } from '../core/project.js'
 import { createProjectId } from '../core/replica.js'
 import { projectIdOfRecords, shareFileName, withProjectId } from '../core/shareCopy.js'
@@ -57,8 +58,6 @@ import { useTimelineStore } from './timeline.js'
  * @typedef {'off' | 'opening' | 'ready' | 'incomplete'} SharePhase
  */
 
-/** What the project file MIME type is everywhere else (`storage/fileSystem.js`). */
-const PROJECT_MIME = 'application/x-ndjson'
 
 /**
  * Fold project text into a throwaway document, the way `mergeStateOfProject` does for a merge.

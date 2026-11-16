@@ -51,6 +51,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-035 — Save as name.warpcad, keep opening .ndjson (2026-11-16 18:39)
+
+Typecheck, unit (9659/9659) and the pair e2e run (firefox-laptop + webkit-phone) are green, and the docs screenshots were regenerated for the .warpcad names. The rest needs the running app driven by hand, or the owner's iPad.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Acceptance scenario 10 (save, reload, nothing changed): Save As suggests `.warpcad`; reload shows the same file | Open | |
+| 2 | Acceptance scenario 22 (merge a copy) and 23 (Claude Code edits the open file via `npm run mcp:add -- x.warpcad`) | Open | |
+| 3 | Acceptance scenario 28 on the iPad: Save in the app, then the file shows as a WarpCad project in Files (needs io-036's device pass too) | Open | |
+| 4 | Closed-finding repros io-016 (Send the file), io-017 and io-020 (gist project file name), io-021 (Save as gist), native io-014 (Mail attachment, iCloud file opened in place), each with a `.warpcad` and an `.ndjson` | Open | |
+| 5 | iPad Safari (PWA, not the app): Open… can select a `.warpcad` file (ACCEPT_ATTRIBUTE). WebKit's accept list was checked by spec; the greying-out cannot be reproduced in Playwright | Open | |
+| 6 | `npm run docs:gifs` regenerates `open-project.gif` (stale, recorded from an older save-load spec) in a scoped movies directory, not the whole set | Open | |
+
 ### io-036 — iOS declares .warpcad and imports .ndjson (2026-11-16 17:47)
 
 Rust gates pass (a cargo test parses both plists). The rest needs the device: the simulator and the iPad are the only proof of Files labels, Mail and iCloud opens, and scenario 28.

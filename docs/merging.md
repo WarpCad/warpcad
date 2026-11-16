@@ -21,7 +21,7 @@ taken back out with **Undo merge**.
 6. If a step shows a red **broken** chip reading *conflicts with step 6*, open it in History
    and either edit it or suppress it (see [What a conflict is](#what-a-conflict-is) below).
 
-![The strip under the top bar reading Merged 1 step from bracket-copy.ndjson, with an Undo merge button, above a cube and the cylinder that came from the other copy](./screenshots/merging-toast.png)
+![The strip under the top bar reading Merged 1 step from bracket-copy.warpcad, with an Undo merge button, above a cube and the cylinder that came from the other copy](./screenshots/merging-toast.png)
 
 ## When Claude Code edits the file you have open
 
@@ -31,13 +31,13 @@ when you switch back to its window and does the same merge by itself, with the s
 **Undo merge**. The strip then names the source **Claude Code** when every step that came in was
 Claude's, and the file's name otherwise.
 
-**Example.** Open `bracket.ndjson` in Chrome and move the cube without saving. In Claude Code say
+**Example.** Open `bracket.warpcad` in Chrome and move the cube without saving. In Claude Code say
 *add a 20 mm sphere on top of the cube*, then click back into WarpCad: the sphere appears, the
 cube stays where you moved it, and the strip reads **Merged 1 step from Claude Code**.
 
 **In Safari, Firefox, or on a phone** WarpCad can't look at the file again, so it can't notice.
 Choose **File ▾ → Merge file…** and pick the project file instead: the strip reads **Merged 1 step
-from bracket.ndjson**. See [Working on a project you have open](mcp.md#working-on-a-project-you-have-open).
+from bracket.warpcad**. See [Working on a project you have open](mcp.md#working-on-a-project-you-have-open).
 
 **Merge file…** sits directly under **Open…** in the File menu and opens the same file picker.
 The new steps show up in [History](timeline.md) like any others. A step that came from another
@@ -47,13 +47,13 @@ program, such as the AI assistant, keeps its `via …` label.
 
 The strip counts **History rows**, the same steps you see in the History list:
 
-- **Merged 3 steps from bracket-copy.ndjson**: three new steps came in.
-- **Merged 3 steps from bracket-copy.ndjson (1 added, 1 changed, 1 removed)**: one new step, one
+- **Merged 3 steps from bracket-copy.warpcad**: three new steps came in.
+- **Merged 3 steps from bracket-copy.warpcad (1 added, 1 changed, 1 removed)**: one new step, one
   step the other copy edited, suppressed or moved, and one step the other copy deleted.
-- **Merged a rollback point from bracket-copy.ndjson**: the other copy only moved its
+- **Merged a rollback point from bracket-copy.warpcad**: the other copy only moved its
   [rollback point](timeline.md#parking-at-an-earlier-point-roll-back). A copy that only changed a
   setting says which one, for example **Merged the standing instructions from …**.
-- **bracket-copy.ndjson has nothing this project doesn't already have**: nothing changed, and
+- **bracket-copy.warpcad has nothing this project doesn't already have**: nothing changed, and
   there is nothing to undo.
 
 The same sentence also appears in the status line at the right of the top bar, and in the first
@@ -72,10 +72,10 @@ when you select it the reason is printed under it: **conflicts with step 6 (Move
 That means the step was built for a version of the cube that step 6 has since changed.
 
 When any step conflicts, a yellow strip shows up in place of the usual one and stays until
-you close it: **Merged 4 steps from bracket-copy.ndjson — 2 steps conflicted**, with **Show** and
+you close it: **Merged 4 steps from bracket-copy.warpcad — 2 steps conflicted**, with **Show** and
 **Undo merge**.
 
-![The yellow strip reading Merged 1 step from bracket-copy.ndjson — 1 step conflicted, with Show and Undo merge, and the History list open with the Fillet Top (+Z) 4 mm on Cube 1 row selected, its red broken chip and the reason conflicts with step 2 (Move Cube 1)](./screenshots/merging-conflict.png)
+![The yellow strip reading Merged 1 step from bracket-copy.warpcad — 1 step conflicted, with Show and Undo merge, and the History list open with the Fillet Top (+Z) 4 mm on Cube 1 row selected, its red broken chip and the reason conflicts with step 2 (Move Cube 1)](./screenshots/merging-conflict.png)
 
 ### Fixing a conflicted step
 
@@ -146,7 +146,7 @@ another program) made is named with **via ai** (or **via mcp**) after the label,
 
 Nothing changes in any of these cases:
 
-- **bracket-v2.ndjson is a different project. Merge only works between copies of the same
+- **bracket-v2.warpcad is a different project. Merge only works between copies of the same
   project.** The file isn't a copy of the project you have open. To combine two separate
   projects, open one of them and rebuild what you need from the other.
   A project gets its own identity the first time you change it, and every copy of it carries

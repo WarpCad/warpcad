@@ -23,7 +23,7 @@
  * come from it. Every `@` in the data is broken (`&#64;`) so a mention notifies nobody.
  *
  * What is deliberately **not** here: standing instructions (they are rules for a model, not a
- * reader's brief) and intent text. They are in the `.ndjson` the owner chose to publish, but the
+ * reader's brief) and intent text. They are in the project file the owner chose to publish, but the
  * README is the part that gets skimmed and indexed. {@link GistReadmeInput} has no field that
  * could hold them, and the function reads only the fields it names. The conversation is here
  * only as the owner decided (`docs/decisions/gist-storage.md`): the request and the reply, and

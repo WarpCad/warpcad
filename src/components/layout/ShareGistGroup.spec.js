@@ -69,7 +69,7 @@ beforeEach(() => {
     createGist: vi.fn(async () => ({ id: ID, revision: REV1, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
     updateGist: vi.fn(async () => ({ id: ID, revision: REV2, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
     deleteGist: vi.fn(async () => {}),
-    readGist: vi.fn(async () => ({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })),
+    readGist: vi.fn(async () => ({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' })),
   }
   setGistDependencies({ backend, credentials: memoryCredentials() })
   setPersistenceDependencies({
@@ -77,7 +77,7 @@ beforeEach(() => {
     files: {
       capabilities: { mode: 'fallback', canSaveInPlace: false, saveLabel: 'Download copy', saveAsLabel: null, openLabel: 'Open…' },
       currentName: null,
-      save: async () => ({ ok: true, mode: 'fallback', name: 'a.ndjson' }),
+      save: async () => ({ ok: true, mode: 'fallback', name: 'a.warpcad' }),
       open: async () => ({ ok: false, cancelled: true }),
       adopt() {},
       forgetHandle() {},
@@ -189,7 +189,7 @@ describe('ShareGistGroup', () => {
     await flush()
     q('share-gist-publish').click()
     await flush()
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' })
     backend.updateGist.mockResolvedValueOnce({ id: ID, revision: '3'.repeat(40), url: '', rawUrls: {} })
     q('share-gist-update').click()
     await flush()
@@ -198,7 +198,7 @@ describe('ShareGistGroup', () => {
 
     const stranger = createDocument({ foldCache: null })
     stranger.append({ id: 'ball-1', op: 'primitive.sphere', name: 'Ball', params: { diameter: 30, center: [0, 0, 15] } }, { origin: 'local' })
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: serializeProject(stranger), revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: serializeProject(stranger), revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.warpcad' })
     const calls = backend.updateGist.mock.calls.length
     q('share-gist-update').click()
     await flush()
@@ -212,12 +212,12 @@ describe('ShareGistGroup', () => {
     await flush()
     q('share-gist-publish').click()
     await flush()
-    const projectFile = (call) => Object.entries(call.files).find(([name, text]) => name.endsWith('.ndjson') && typeof text === 'string')[1]
+    const projectFile = (call) => Object.entries(call.files).find(([name, text]) => name.endsWith('.warpcad') && typeof text === 'string')[1]
     const parsed = parseProject(projectFile(backend.createGist.mock.calls[0][0]))
     const phone = createDocument({ foldCache: null })
     phone.loadEntries(parsed.entries, parsed.rollbackAt, parsed.resolution, parsed)
     phone.append({ id: 'phone-1', op: 'primitive.sphere', name: 'Knob', params: { diameter: 8, center: [0, 30, 4] } }, { origin: 'local' })
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: serializeProject(phone), revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: serializeProject(phone), revision: '9'.repeat(40), updatedAt: null, fileName: 'phone-stand.warpcad' })
     backend.updateGist.mockResolvedValueOnce({ id: ID, revision: '3'.repeat(40), url: '', rawUrls: {} })
 
     q('share-gist-update').click()

@@ -19,8 +19,8 @@ test.describe('docs media: files in the iOS app', () => {
     await openApp(page)
     await page.evaluate(() => {
       const fs = /** @type {any} */ (window).__nativeShell.fs
-      fs.put('phone stand.ndjson', '\n')
-      fs.put('bracket.ndjson', '\n')
+      fs.put('phone stand.warpcad', '\n')
+      fs.put('bracket.warpcad', '\n')
     })
     await page.getByTestId('file-menu-button').click()
     await page.getByTestId('file-open').click()

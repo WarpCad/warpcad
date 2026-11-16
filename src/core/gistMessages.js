@@ -102,7 +102,7 @@ const OPEN = {
   'not-found': `${CANT_BE_FOUND} It may have been deleted, or the link may be wrong.`,
   empty: `${CANT_BE_FOUND} The gist is empty.`,
   'no-project-file': `${CANT_BE_FOUND} The gist has no WarpCad project in it.`,
-  ambiguous: `${CANT_BE_FOUND} The gist holds more than one project and none is named project.ndjson.`,
+  ambiguous: `${CANT_BE_FOUND} The gist holds more than one project and none is named project.warpcad or project.ndjson.`,
   unreadable: `${CANT_BE_OPENED} It may be damaged, or made by a newer WarpCad.`,
   malformed: `${CANT_BE_OPENED} GitHub's answer could not be read.`,
   'too-large': 'This shared project is too large to open.',

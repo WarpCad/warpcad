@@ -38,14 +38,23 @@ function shell({ platform = 'ios', userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone 
 }
 
 describe('project file names', () => {
-  it('adds the extension to a typed name and keeps one that has it', () => {
-    expect(projectFileNameFor('bracket')).toBe('bracket.ndjson')
+  it('adds .warpcad to a typed name and keeps one that has it (TODO/io-035)', () => {
+    expect(projectFileNameFor('bracket')).toBe('bracket.warpcad')
+    expect(projectFileNameFor('bracket.warpcad')).toBe('bracket.warpcad')
+    expect(projectFileNameFor('Bracket.WARPCAD')).toBe('Bracket.WARPCAD')
+    expect(projectFileNameFor('  phone stand  ')).toBe('phone stand.warpcad')
+  })
+
+  it('keeps a typed legacy .ndjson rather than renaming it', () => {
     expect(projectFileNameFor('bracket.ndjson')).toBe('bracket.ndjson')
-    expect(projectFileNameFor('  phone stand  ')).toBe('phone stand.ndjson')
+  })
+
+  it('adds .warpcad to any other extension the user typed', () => {
+    expect(projectFileNameFor('bracket.json')).toBe('bracket.json.warpcad')
   })
 
   it('refuses a name that is empty, hidden, or reaches outside the folder', () => {
-    for (const bad of ['', '   ', '.ndjson', '.hidden', '..', '../escape', 'a/b', 'a\\b']) {
+    for (const bad of ['', '   ', '.warpcad', '.ndjson', '.hidden', '..', '../escape', 'a/b', 'a\\b']) {
       expect(projectFileNameFor(bad), bad).toBeNull()
     }
   })
@@ -142,16 +151,28 @@ describe('readProjectFile, statProjectFile and listProjects', () => {
 
   it('lists Documents’ projects newest first, leaving out folders, temp files and other files', async () => {
     const { fs, global } = shell()
-    fs.put('old.ndjson', 'a')
+    fs.put('old.warpcad', 'a')
     fs.put('notes.txt', 'b')
-    fs.put('.bracket.ndjson.x.tmp', 'c')
+    fs.put('.bracket.warpcad.x.tmp', 'c')
     fs.put('Exports/part.stl', 'd')
-    fs.put('new.ndjson', 'e')
+    fs.put('new.warpcad', 'e')
     const list = await listProjects(global)
     expect(list).toEqual([
-      { name: 'new.ndjson', lastModified: fs.mtime('new.ndjson') },
-      { name: 'old.ndjson', lastModified: fs.mtime('old.ndjson') },
+      { name: 'new.warpcad', lastModified: fs.mtime('new.warpcad') },
+      { name: 'old.warpcad', lastModified: fs.mtime('old.warpcad') },
     ])
+  })
+
+  it('lists legacy .ndjson projects beside .warpcad ones, and nothing else (TODO/io-035)', async () => {
+    const { fs, global } = shell()
+    fs.put('legacy.ndjson', 'a')
+    fs.put('data.json', 'b')
+    fs.put('.hidden.warpcad', 'c')
+    fs.put('.legacy.ndjson.x.tmp', 'd')
+    fs.put('notes.warpcad.txt', 'e')
+    fs.put('current.warpcad', 'f')
+    const names = (await listProjects(global)).map((entry) => entry.name)
+    expect(names).toEqual(['current.warpcad', 'legacy.ndjson'])
   })
 
   it('lists nothing in an empty folder', async () => {
@@ -219,7 +240,7 @@ describe('pickFile and readPickedFile — Browse… through tauri-plugin-dialog'
     const [cmd, args] = invoke.mock.calls[0]
     expect(cmd).toBe('plugin:dialog|open')
     expect(args.options).toMatchObject({ multiple: false, directory: false })
-    expect(args.options.filters[0].extensions).toEqual(expect.arrayContaining(['ndjson', 'json', 'txt']))
+    expect(args.options.filters[0].extensions).toEqual(['warpcad', 'ndjson', 'json', 'txt'])
   })
 
   it('a dismissed dialog is null, not an error', async () => {
@@ -275,13 +296,29 @@ describe('takeOpenedFiles and importOpenedFile — a project tapped in the Files
 
   it('a copy never overwrites a project of the same name: it takes the next free name', async () => {
     const { fs, global } = shell()
+    fs.put('bracket.warpcad', 'mine')
+    fs.put('bracket 2.warpcad', 'also mine')
+    fs.queueOpened({ name: 'bracket.warpcad', path: '/iCloud/bracket.warpcad' }, 'theirs')
+    const [entry] = await takeOpenedFiles(global)
+    await expect(importOpenedFile(entry, global)).resolves.toBe('bracket 3.warpcad')
+    expect(fs.text('bracket.warpcad')).toBe('mine')
+    expect(fs.text('bracket 3.warpcad')).toBe('theirs')
+  })
+
+  it('a legacy .ndjson copied in keeps its own extension, numbered the same way (TODO/io-035)', async () => {
+    const { fs, global } = shell()
     fs.put('bracket.ndjson', 'mine')
-    fs.put('bracket 2.ndjson', 'also mine')
     fs.queueOpened({ name: 'bracket.ndjson', path: '/iCloud/bracket.ndjson' }, 'theirs')
     const [entry] = await takeOpenedFiles(global)
-    await expect(importOpenedFile(entry, global)).resolves.toBe('bracket 3.ndjson')
-    expect(fs.text('bracket.ndjson')).toBe('mine')
-    expect(fs.text('bracket 3.ndjson')).toBe('theirs')
+    await expect(importOpenedFile(entry, global)).resolves.toBe('bracket 2.ndjson')
+    expect(fs.text('bracket 2.ndjson')).toBe('theirs')
+  })
+
+  it('a copied file that is not named as a project gets .warpcad', async () => {
+    const { fs, global } = shell()
+    fs.queueOpened({ name: 'bracket.txt', path: '/var/mobile/Documents/Inbox/bracket.txt' }, 'mailed\n')
+    const [entry] = await takeOpenedFiles(global)
+    await expect(importOpenedFile(entry, global)).resolves.toBe('bracket.txt.warpcad')
   })
 })
 

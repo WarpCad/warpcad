@@ -52,7 +52,7 @@ test.describe('docs media: merging', () => {
     const chooserEvent = page.waitForEvent('filechooser')
     await page.getByTestId('file-merge').click()
     const chooser = await chooserEvent
-    await chooser.setFiles({ name: 'bracket-copy.ndjson', mimeType: 'text/plain', buffer: Buffer.from(text) })
+    await chooser.setFiles({ name: 'bracket-copy.warpcad', mimeType: 'text/plain', buffer: Buffer.from(text) })
   }
 
   test('merging-toast still', async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe('docs media: merging', () => {
     await appendHere(page, MOVE)
     await mergeFile(page, theirs)
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
-    await expect(page.getByTestId('merge-toast-text')).toHaveText('Merged 1 step from bracket-copy.ndjson')
+    await expect(page.getByTestId('merge-toast-text')).toHaveText('Merged 1 step from bracket-copy.warpcad')
     await expect(page.getByTestId('merge-undo')).toBeVisible()
     await shot(page, 'merging-toast.png')
   })
@@ -73,7 +73,7 @@ test.describe('docs media: merging', () => {
     const theirs = await otherCopy(page, [FILLET])
     await appendHere(page, MOVE)
     await mergeFile(page, theirs)
-    await expect(page.getByTestId('merge-banner-text')).toHaveText('Merged 1 step from bracket-copy.ndjson — 1 step conflicted')
+    await expect(page.getByTestId('merge-banner-text')).toHaveText('Merged 1 step from bracket-copy.warpcad — 1 step conflicted')
     await page.getByTestId('merge-banner-show').click()
     await expect(page.getByTestId('timeline-panel')).toBeVisible()
     await expect(page.getByTestId('timeline-broken-reason')).toHaveText('conflicts with step 2 (Move Cube 1)')

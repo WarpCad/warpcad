@@ -26,7 +26,7 @@ const SNAPSHOT_DIR = join(process.cwd(), 'test-results', 'ai-subscription-snapsh
 test.beforeAll(() => mkdirSync(SNAPSHOT_DIR, { recursive: true }))
 test.skip(({ browserName }) => browserName !== 'chromium', 'clipboard grants are Chromium-only')
 
-const COMMAND = 'npm run mcp:add -- my-part.ndjson'
+const COMMAND = 'npm run mcp:add -- my-part.warpcad'
 const KEY = 'sk-ant-api03-E2ESUBSENTINEL-0123456789-abcdefghij'
 
 const CORS = {

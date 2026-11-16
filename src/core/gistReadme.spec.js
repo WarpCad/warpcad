@@ -24,7 +24,7 @@ import {
  */
 
 const ID = '0123456789abcdef0123456789abcdef'
-const RAW = `https://gist.githubusercontent.com/octo/${ID}/raw/phone-stand.ndjson`
+const RAW = `https://gist.githubusercontent.com/octo/${ID}/raw/phone-stand.warpcad`
 const AT = Date.UTC(2026, 9, 27, 14, 5, 59)
 
 /** @param {Partial<import('./gistReadme.js').GistReadmeInput>} [over] */
@@ -36,7 +36,7 @@ function input(over = {}) {
     publishedAt: AT,
     id: ID,
     rawUrl: RAW,
-    fileName: 'phone-stand.ndjson',
+    fileName: 'phone-stand.warpcad',
     ...over,
   }
 }
@@ -53,7 +53,7 @@ describe('gistReadme — the template', () => {
         '',
         '- 4 bodies: Base, Back plate, Lip, Cable notch',
         '- Last published 2026-10-27 14:05 UTC',
-        `- Project file: [phone\\-stand\\.ndjson](<${RAW}>)`,
+        `- Project file: [phone\\-stand\\.warpcad](<${RAW}>)`,
         '',
         'Made with WarpCad. This page is generated; edits are overwritten when the project is published again.',
         '',
@@ -219,7 +219,7 @@ describe('gistReadme — how this was made (the prompts)', () => {
         '',
         '- 4 bodies: Base, Back plate, Lip, Cable notch',
         '- Last published 2026-10-27 14:05 UTC',
-        `- Project file: [phone\\-stand\\.ndjson](<${RAW}>)`,
+        `- Project file: [phone\\-stand\\.warpcad](<${RAW}>)`,
         '',
         '## How this was made',
         '',

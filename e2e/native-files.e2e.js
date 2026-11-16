@@ -128,9 +128,9 @@ test('Save names a file once and then saves in place; Open… lists it; Export w
   await page.getByTestId('file-name-input').fill('bracket')
   await page.getByTestId('file-name-save').click()
   await expect(nameDialog).toHaveCount(0)
-  await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.ndjson')
-  expect(await nativeDocuments(page)).toEqual(['bracket.ndjson'])
-  const first = await nativeFileText(page, 'bracket.ndjson')
+  await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.warpcad')
+  expect(await nativeDocuments(page)).toEqual(['bracket.warpcad'])
+  const first = await nativeFileText(page, 'bracket.warpcad')
   expect(first).toContain('primitive.cuboid')
 
   // Move it and Save again: the same file is updated, not a second one, and nothing is asked.
@@ -138,8 +138,8 @@ test('Save names a file once and then saves in place; Open… lists it; Export w
   await openFileMenu(page)
   await page.getByTestId('file-save').click()
   await expect(page.getByTestId('file-name-dialog')).toHaveCount(0)
-  await expect.poll(() => nativeFileText(page, 'bracket.ndjson')).not.toBe(first)
-  expect(await nativeDocuments(page)).toEqual(['bracket.ndjson'])
+  await expect.poll(() => nativeFileText(page, 'bracket.warpcad')).not.toBe(first)
+  expect(await nativeDocuments(page)).toEqual(['bracket.warpcad'])
 
   // Open… asks before replacing, then lists the app's own projects with Browse… beside them.
   await openFileMenu(page)
@@ -149,7 +149,7 @@ test('Save names a file once and then saves in place; Open… lists it; Export w
   await expect(sheet).toBeVisible()
   const rows = page.getByTestId('file-open-row')
   await expect(rows).toHaveCount(1)
-  await expect(rows.first()).toContainText('bracket.ndjson')
+  await expect(rows.first()).toContainText('bracket.warpcad')
   await expect(page.getByTestId('file-open-browse')).toBeVisible()
   // Rows are tap-sized and the sheet never scrolls sideways.
   const row = await rows.first().boundingBox()
@@ -158,7 +158,7 @@ test('Save names a file once and then saves in place; Open… lists it; Export w
   await page.screenshot({ path: join(SNAPSHOT_DIR, `open-sheet-${info.project.name}.png`) })
   await rows.first().click()
   await expect(sheet).toHaveCount(0)
-  await expect(page.getByTestId('save-status')).toContainText('Opened bracket.ndjson')
+  await expect(page.getByTestId('save-status')).toContainText('Opened bracket.warpcad')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
 
   // Export STL: a real file in Documents/Exports, and the chip says where to find it.
@@ -176,7 +176,7 @@ test('Save names a file once and then saves in place; Open… lists it; Export w
   // which word is chosen is pinned by `src/native/files.spec.js`.
   const escaped = stlName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   await expect(page.getByTestId('save-status')).toContainText(new RegExp(`Saved to Files › On My iP(?:hone|ad) › WarpCad › Exports › ${escaped}`))
-  expect(await nativeDocuments(page)).toEqual(['Exports/' + stlName, 'bracket.ndjson'].sort())
+  expect(await nativeDocuments(page)).toEqual(['Exports/' + stlName, 'bracket.warpcad'].sort())
 
   expect(await downloads.all()).toEqual([])
 })
@@ -214,8 +214,8 @@ test('Browse… opens a file from elsewhere as a copy: the header says so, and S
   await expect(page.getByTestId('file-name-dialog')).toBeVisible()
   await expect(page.getByTestId('file-name-input')).toHaveValue('shelf')
   await page.getByTestId('file-name-save').click()
-  await expect(page.getByTestId('save-status')).toContainText('Saved to shelf.ndjson')
-  expect(await nativeDocuments(page)).toEqual(['shelf.ndjson'])
+  await expect(page.getByTestId('save-status')).toContainText('Saved to shelf.warpcad')
+  expect(await nativeDocuments(page)).toEqual(['shelf.warpcad'])
   expect(await downloads.all()).toEqual([])
 })
 
@@ -227,12 +227,12 @@ test('io-008 in the app: a refused write says so and never falls back to a downl
   // The autosave mirrors its backup with `write_text_file` 500 ms after the edit. Wait for that
   // backup to land first, or it takes the one-shot fault below instead of the Save (`TODO/io-008`).
   await expect.poll(async () => Object.keys(await nativeAppData(page))).toContain('autosave.ndjson')
-  await failNativeCommand(page, 'plugin:fs|write_text_file', 'forbidden path: .bracket.ndjson.tmp')
+  await failNativeCommand(page, 'plugin:fs|write_text_file', 'forbidden path: .bracket.warpcad.tmp')
   await openFileMenu(page)
   await page.getByTestId('file-save').click()
   await page.getByTestId('file-name-input').fill('bracket')
   await page.getByTestId('file-name-save').click()
-  await expect(page.getByTestId('save-status')).toContainText("Couldn't save bracket.ndjson")
+  await expect(page.getByTestId('save-status')).toContainText("Couldn't save bracket.warpcad")
   expect(await nativeDocuments(page)).toEqual([])
   expect(await downloads.all()).toEqual([])
 })
@@ -240,7 +240,7 @@ test('io-008 in the app: a refused write says so and never falls back to a downl
 test('a name that is already taken is refused in the sheet, and the other project is not overwritten', async ({ page }, info) => {
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
-  await page.evaluate(() => /** @type {any} */ (window).__nativeShell.fs.put('bracket.ndjson', 'someone else\n'))
+  await page.evaluate(() => /** @type {any} */ (window).__nativeShell.fs.put('bracket.warpcad', 'someone else\n'))
   await placeBox(page, info)
   await openFileMenu(page)
   await page.getByTestId('file-save').click()
@@ -248,7 +248,7 @@ test('a name that is already taken is refused in the sheet, and the other projec
   await page.getByTestId('file-name-save').click()
   await expect(page.getByTestId('file-name-error')).toContainText('already')
   await expect(page.getByTestId('file-name-dialog')).toBeVisible()
-  expect(await nativeFileText(page, 'bracket.ndjson')).toBe('someone else\n')
+  expect(await nativeFileText(page, 'bracket.warpcad')).toBe('someone else\n')
 })
 
 /**
@@ -297,6 +297,49 @@ test('a project tapped in Mail is copied into WarpCad’s folder, opened, and be
   expect(await downloads.all()).toEqual([])
 })
 
+test('a project saved before .warpcad is listed beside new ones, opens, and saves in place under its old name (TODO/io-035)', async ({ page }) => {
+  const downloads = await watchDownloads(page)
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+  const text = await twoBoxProject(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
+  // One project saved by an older WarpCad, one by this one, and a file that is not a project.
+  await page.evaluate((text) => {
+    const fs = /** @type {any} */ (window).__nativeShell.fs
+    fs.put('legacy.ndjson', text)
+    fs.put('notes.txt', 'not a project\n')
+    fs.put('current.warpcad', text)
+  }, text)
+
+  await openFileMenu(page)
+  await page.getByTestId('file-open').click()
+  const rows = page.getByTestId('file-open-row')
+  await expect(rows).toHaveCount(2)
+  await expect(page.getByTestId('file-open-sheet')).toContainText('legacy.ndjson')
+  await expect(page.getByTestId('file-open-sheet')).toContainText('current.warpcad')
+  await expect(page.getByTestId('file-open-sheet')).not.toContainText('notes.txt')
+  await rows.filter({ hasText: 'legacy.ndjson' }).click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  await expect(page.getByTestId('save-status')).toContainText('Opened legacy.ndjson')
+
+  // Save writes back to the same file: nothing renames it to .warpcad behind the user's back.
+  await openFileMenu(page)
+  await page.getByTestId('file-save').click()
+  await expect(page.getByTestId('file-name-dialog')).toHaveCount(0)
+  await expect(page.getByTestId('save-status')).toContainText('Saved to legacy.ndjson')
+  expect(await nativeDocuments(page)).toEqual(['current.warpcad', 'legacy.ndjson', 'notes.txt'])
+
+  // Save As… is where the new extension is offered.
+  await openFileMenu(page)
+  await page.getByTestId('file-save-as').click()
+  await expect(page.getByTestId('file-name-input')).toHaveValue('legacy')
+  await page.getByTestId('file-name-input').fill('legacy v2')
+  await page.getByTestId('file-name-save').click()
+  await expect(page.getByTestId('save-status')).toContainText('Saved to legacy v2.warpcad')
+  expect(await nativeDocuments(page)).toEqual(['current.warpcad', 'legacy v2.warpcad', 'legacy.ndjson', 'notes.txt'])
+  expect(await downloads.all()).toEqual([])
+})
+
 test('a copy of the open project tapped in the Files app asks to merge, as a re-sent share does (ui-062)', async ({ page }, info) => {
   await page.goto('/')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
@@ -305,18 +348,18 @@ test('a copy of the open project tapped in the Files app asks to merge, as a re-
   await page.getByTestId('file-save').click()
   await page.getByTestId('file-name-input').fill('bracket')
   await page.getByTestId('file-name-save').click()
-  await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.ndjson')
-  const saved = await nativeFileText(page, 'bracket.ndjson')
+  await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.warpcad')
+  const saved = await nativeFileText(page, 'bracket.warpcad')
 
   await page.evaluate(
-    (text) => /** @type {any} */ (window).__nativeShell.fs.queueOpened({ name: 'bracket.ndjson', path: '/iCloud/bracket.ndjson' }, text),
+    (text) => /** @type {any} */ (window).__nativeShell.fs.queueOpened({ name: 'bracket.warpcad', path: '/iCloud/bracket.warpcad' }, text),
     saved,
   )
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))
   await expect(page.getByTestId('file-open-confirm-merge')).toBeVisible()
   // The copy went in beside the open project's file, never over it.
-  expect(await nativeDocuments(page)).toEqual(['bracket 2.ndjson', 'bracket.ndjson'])
-  expect(await nativeFileText(page, 'bracket.ndjson')).toBe(saved)
+  expect(await nativeDocuments(page)).toEqual(['bracket 2.warpcad', 'bracket.warpcad'])
+  expect(await nativeFileText(page, 'bracket.warpcad')).toBe(saved)
 })
 
 test.describe('on a Mac or a PC (TODO/io-029): everything lives in Documents/WarpCad, never loose in Documents', () => {
@@ -334,8 +377,8 @@ test.describe('on a Mac or a PC (TODO/io-029): everything lives in Documents/War
     await page.getByTestId('file-save').click()
     await page.getByTestId('file-name-input').fill('bracket')
     await page.getByTestId('file-name-save').click()
-    await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.ndjson')
-    expect((await nativeDocuments(page)).sort()).toEqual(['WarpCad/bracket.ndjson', 'stray.ndjson'])
+    await expect(page.getByTestId('save-status')).toContainText('Saved to bracket.warpcad')
+    expect((await nativeDocuments(page)).sort()).toEqual(['WarpCad/bracket.warpcad', 'stray.ndjson'])
 
     // Open… lists the WarpCad folder only.
     await openFileMenu(page)
@@ -343,7 +386,7 @@ test.describe('on a Mac or a PC (TODO/io-029): everything lives in Documents/War
     await page.getByTestId('file-open-confirm-replace').click()
     const rows = page.getByTestId('file-open-row')
     await expect(rows).toHaveCount(1)
-    await expect(rows.first()).toContainText('bracket.ndjson')
+    await expect(rows.first()).toContainText('bracket.warpcad')
     await page.screenshot({ path: join(SNAPSHOT_DIR, `open-sheet-mac-${info.project.name}.png`) })
     await rows.first().click()
     await expect(page.getByTestId('file-open-sheet')).toHaveCount(0)
@@ -361,7 +404,7 @@ test.describe('on a Mac or a PC (TODO/io-029): everything lives in Documents/War
     await openFileMenu(page)
     await page.getByTestId('file-open').click()
     await page.getByTestId('file-open-confirm-replace').click()
-    await queueNativePick(page, '/Users/me/Desktop/shelf.ndjson', await nativeFileText(page, 'WarpCad/bracket.ndjson') ?? '')
+    await queueNativePick(page, '/Users/me/Desktop/shelf.ndjson', await nativeFileText(page, 'WarpCad/bracket.warpcad') ?? '')
     await page.getByTestId('file-open-browse').click()
     await expect(page.getByTestId('save-status')).toContainText('Opened a copy')
 

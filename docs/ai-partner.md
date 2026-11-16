@@ -45,10 +45,10 @@ Assistant in WarpCad can't run on it. What a subscription *does* cover is **Clau
 Claude Code can drive WarpCad through its [MCP server](mcp.md).
 
 1. Tap **Assistant** in the top bar. With no key stored, the key sheet opens.
-2. Tap **Use my Claude subscription…**. The sheet shows one command, `npm run mcp:add -- my-part.ndjson`.
+2. Tap **Use my Claude subscription…**. The sheet shows one command, `npm run mcp:add -- my-part.warpcad`.
 3. Tap **Copy**. The sheet says **Copied**.
 4. Run the command once in a terminal, from the folder you cloned WarpCad into. Replace
-   `my-part.ndjson` with the project file you want Claude Code to edit; it is created if it
+   `my-part.warpcad` with the project file you want Claude Code to edit; it is created if it
    doesn't exist, and the script fills in every other path. Then start Claude Code in any folder
    and type `/mcp`: `warpcad` should say *connected*.
 5. Start Claude Code there, tap **Copy starter for Claude Code** back in WarpCad (under *Then, in

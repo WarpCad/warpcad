@@ -35,7 +35,7 @@ test.describe('docs media: saving, opening, hosted storage', () => {
   const OWNER = 'janecoder'
   const REPO = 'enclosure-parts'
   const LABEL = `${OWNER}/${REPO}`
-  const PATH = 'warpcad-project.ndjson'
+  const PATH = 'warpcad-project.warpcad'
   const CUBE_LINE =
     '{"id":"remote-cube","op":"primitive.cuboid","name":"Remote Cube","params":{"size":[40,40,40],"center":[0,0,20]}}\n'
   const SECOND_LINE =
@@ -279,7 +279,7 @@ test.describe('docs media: saving, opening, hosted storage', () => {
       Object.defineProperty(window, 'showSaveFilePicker', {
         configurable: false,
         value: async () => ({
-          name: 'bracket.ndjson',
+          name: 'bracket.warpcad',
           async createWritable() {
             throw new DOMException('The request is not allowed by the user agent', 'NotAllowedError')
           },
@@ -296,7 +296,7 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     await downloading
     const chip = page.getByTestId('save-status')
     await expect(chip).toContainText('A copy was downloaded instead')
-    await expect(chip).toContainText('An empty file named bracket.ndjson may have been left')
+    await expect(chip).toContainText('An empty file named bracket.warpcad may have been left')
     // Pin the timestamp in the downloaded name, in place, like the clock elsewhere in this file.
     await page.evaluate(() => {
       const root = document.querySelector('[data-testid="save-status"]')
@@ -435,7 +435,7 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     await press(page, 'file-open')
     const chooser = await chooserEvent
     await chooser.setFiles({
-      name: 'warpcad-project.ndjson',
+      name: 'warpcad-project.warpcad',
       mimeType: 'text/plain',
       buffer: Buffer.from(
         [
@@ -447,7 +447,7 @@ test.describe('docs media: saving, opening, hosted storage', () => {
     })
     // The scene appears, and the chip says what it opened.
     await bodyCount(page, 2)
-    await expect(page.getByTestId('save-status')).toContainText('Opened warpcad-project.ndjson · 2 steps')
+    await expect(page.getByTestId('save-status')).toContainText('Opened warpcad-project.warpcad · 2 steps')
     await page.waitForTimeout(1800)
     await endMovie(page, 'open-project', { fps: 8, width: 600 })
   })

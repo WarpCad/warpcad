@@ -8,7 +8,7 @@
  *   A project with content was confirmed first (`file-open-confirm`), so the sheet replaces nothing
  *   until a file is chosen.
  * - **Trigger**: File ▾ → Open… (or Ctrl/Cmd+O).
- * - **Feedback**: a row opens that project (`Opened bracket.ndjson · 3 steps` on the chip), and a
+ * - **Feedback**: a row opens that project (`Opened bracket.warpcad · 3 steps` on the chip), and a
  *   later Save writes back to it. **Browse…** opens the system document picker; a file picked
  *   there is a copy, and the chip says so.
  *

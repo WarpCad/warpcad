@@ -439,7 +439,7 @@ test.describe('the file mechanism (functions ui-033 will call, real browser down
     }
   })
 
-  test('fallback: Download copy delivers the project as a timestamped .ndjson, and Open reads it back', async ({
+  test('fallback: Download copy delivers the project as a timestamped .warpcad, and Open reads it back', async ({
     page,
   }) => {
     await openLibrary(page)
@@ -460,7 +460,7 @@ test.describe('the file mechanism (functions ui-033 will call, real browser down
     })
     expect(saved.mode).toBe('fallback')
     expect(saved.result.ok).toBe(true)
-    expect(saved.result.name).toMatch(/^warpcad-project-\d{8}-\d{4}\.ndjson$/)
+    expect(saved.result.name).toMatch(/^warpcad-project-\d{8}-\d{4}\.warpcad$/)
 
     const download = await downloading
     expect(download.suggestedFilename()).toBe(saved.result.name)
@@ -516,7 +516,7 @@ test.describe('the file mechanism (functions ui-033 will call, real browser down
       void persistence.saveFile()
     })
     const download = await downloading
-    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.ndjson$/)
+    expect(download.suggestedFilename()).toMatch(/^warpcad-project-\d{8}-\d{4}\.warpcad$/)
     await expect(page.getByTestId('save-status-text')).toHaveText(/^Download started: warpcad-project-/)
   })
 

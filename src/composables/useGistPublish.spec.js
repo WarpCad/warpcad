@@ -58,7 +58,7 @@ function fakeBackend() {
     createGist: vi.fn(async () => ({ id: ID, revision: REV1, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
     updateGist: vi.fn(async () => ({ id: ID, revision: REV2, url: `https://gist.github.com/${ID}`, rawUrls: {} })),
     deleteGist: vi.fn(async () => {}),
-    readGist: vi.fn(async () => ({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })),
+    readGist: vi.fn(async () => ({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' })),
   }
 }
 
@@ -70,7 +70,7 @@ function fakeFiles() {
     currentName: null,
     async save(text) {
       layer.saved.push(text)
-      return { ok: true, mode: 'fallback', name: 'phone-stand.ndjson' }
+      return { ok: true, mode: 'fallback', name: 'phone-stand.warpcad' }
     },
     open: async () => ({ ok: false, cancelled: true }),
     adopt() {},
@@ -186,7 +186,7 @@ describe('publish — the two calls', () => {
     const created = backend.createGist.mock.calls[0][0]
     expect(created.token).toBe(TOKEN)
     expect(created.public).toBe(false)
-    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'phone-stand.ndjson'])
+    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'phone-stand.warpcad'])
     // The placeholder has no id yet, so no Open in WarpCad link.
     expect(created.files['README.md']).not.toContain('Open in WarpCad')
     expect(created.files['README.md']).toContain('# Phone stand')
@@ -197,7 +197,7 @@ describe('publish — the two calls', () => {
     expect(Object.keys(patched.files)).toEqual(['README.md'])
     const readme = patched.files['README.md']
     expect(readme).toContain(`[Open in WarpCad](${gistLink(ID)})`)
-    const raw = `https://gist.githubusercontent.com/octocat/${ID}/raw/phone-stand.ndjson`
+    const raw = `https://gist.githubusercontent.com/octocat/${ID}/raw/phone-stand.warpcad`
     expect(isGistRawUrl(raw)).toBe(true)
     expect(readme).toContain(`(<${raw}>)`)
     expect(readme).toContain('- Last published 2026-10-28 14:05 UTC')
@@ -222,7 +222,7 @@ describe('publish — the two calls', () => {
     const { scope, api } = mount()
     await api.publish()
     expect(typeof downloaded).toBe('string')
-    expect(backend.createGist.mock.calls[0][0].files['phone-stand.ndjson']).toBe(downloaded)
+    expect(backend.createGist.mock.calls[0][0].files['phone-stand.warpcad']).toBe(downloaded)
     scope.stop()
   })
 
@@ -335,7 +335,7 @@ describe('the README carries the minimum', () => {
       expect(readme).not.toContain(TOKEN)
     }
     // The owner chose to publish the whole project: the file itself still carries them.
-    expect(created.files['phone-stand.ndjson']).toContain('SECRET-STANDING-INSTRUCTIONS')
+    expect(created.files['phone-stand.warpcad']).toContain('SECRET-STANDING-INSTRUCTIONS')
     expect(created.description).not.toContain('SECRET')
     scope.stop()
   })
@@ -353,7 +353,7 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     buildProject()
     const mounted = mount()
     await mounted.api.publish()
-    const gistText = backend.createGist.mock.calls[0][0].files['phone-stand.ndjson']
+    const gistText = backend.createGist.mock.calls[0][0].files['phone-stand.warpcad']
     backend.createGist.mockClear()
     backend.updateGist.mockClear()
     backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
@@ -362,7 +362,7 @@ describe('update — the gist is read first, and merged in when it changed (io-0
   }
 
   /** The gist as another device left it: `text` at {@link THEIRS}. @param {string} text */
-  const theirGist = (text) => ({ id: ID, description: 'Phone stand', text, revision: THEIRS, updatedAt: null, fileName: 'phone-stand.ndjson' })
+  const theirGist = (text) => ({ id: ID, description: 'Phone stand', text, revision: THEIRS, updatedAt: null, fileName: 'phone-stand.warpcad' })
 
   const PHONE_ROW = { id: 'phone-1', op: 'primitive.sphere', name: 'Knob', params: { diameter: 8, center: [0, 30, 4] } }
 
@@ -375,9 +375,9 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     const patched = backend.updateGist.mock.calls[0][0]
     expect(patched.id).toBe(ID)
     expect(patched.token).toBe(TOKEN)
-    expect(Object.keys(patched.files).sort()).toEqual(['README.md', 'phone-stand.ndjson'])
+    expect(Object.keys(patched.files).sort()).toEqual(['README.md', 'phone-stand.warpcad'])
     // Exactly what Download copy would have written at that moment.
-    expect(patched.files['phone-stand.ndjson']).toBe(expected)
+    expect(patched.files['phone-stand.warpcad']).toBe(expected)
     expect(patched.files['README.md']).toContain('3 bodies: Base, Back plate, Lip')
     expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV3, name: 'Phone stand' })
     expect(toRaw(useDocumentStore().raw).gist().lastRevision).toBe(REV3)
@@ -405,9 +405,9 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     expect(idsAtPatch).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1'])
     expect(backend.updateGist).toHaveBeenCalledTimes(1)
     const patched = backend.updateGist.mock.calls[0][0]
-    expect(idsOf(patched.files['phone-stand.ndjson'])).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1'])
+    expect(idsOf(patched.files['phone-stand.warpcad'])).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1'])
     // Exactly the merged project, serialised after the merge (Download copy's bytes at that moment).
-    expect(patched.files['phone-stand.ndjson']).toBe(textAtPatch)
+    expect(patched.files['phone-stand.warpcad']).toBe(textAtPatch)
     expect(patched.files['README.md']).toContain('4 bodies')
     // The merge said what came in, with Undo merge — the strip every merge shows.
     expect(useMergeStore().notice).toMatchObject({ kind: 'toast', text: 'Merged 1 step from the gist', undoable: true })
@@ -476,7 +476,7 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     const again = await api.update()
     expect(again).toMatchObject({ ok: true, revision: REV3 })
     expect(backend.updateGist).toHaveBeenCalledTimes(1)
-    expect(idsOf(backend.updateGist.mock.calls[0][0].files['phone-stand.ndjson'])).toContain('fillet-1')
+    expect(idsOf(backend.updateGist.mock.calls[0][0].files['phone-stand.warpcad'])).toContain('fillet-1')
     scope.stop()
   })
 
@@ -525,7 +525,7 @@ describe('update — the gist is read first, and merged in when it changed (io-0
   it('a cached read of a revision this session wrote earlier is not someone else\'s change: no merge', async () => {
     const { scope, api, gistText } = await published()
     // GitHub can serve a read up to 60 s old: the create's revision, not the README patch's.
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: gistText, revision: REV1, updatedAt: null, fileName: 'phone-stand.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: gistText, revision: REV1, updatedAt: null, fileName: 'phone-stand.warpcad' })
     expect((await api.update()).ok).toBe(true)
     expect(backend.updateGist).toHaveBeenCalledTimes(1)
     expect(useMergeStore().notice).toBeNull()
@@ -537,8 +537,29 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     usePersistenceStore().projectName = 'Desk stand'
     await api.update()
     const patched = backend.updateGist.mock.calls[0][0]
+    expect(patched.files['phone-stand.warpcad']).toBeNull()
+    expect(typeof patched.files['desk-stand.warpcad']).toBe('string')
+    scope.stop()
+  })
+
+  it('a gist published before .warpcad keeps its .ndjson file on Update under the same name (TODO/io-035)', async () => {
+    const { scope, api } = await published()
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })
+    await api.update()
+    const patched = backend.updateGist.mock.calls[0][0]
+    expect(Object.keys(patched.files).sort()).toEqual(['README.md', 'phone-stand.ndjson'])
+    expect(patched.files['README.md']).toContain('raw/phone-stand.ndjson')
+    scope.stop()
+  })
+
+  it('a legacy .ndjson gist renamed on Update moves to a .warpcad file and removes the old one', async () => {
+    const { scope, api } = await published()
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })
+    usePersistenceStore().projectName = 'Desk stand'
+    await api.update()
+    const patched = backend.updateGist.mock.calls[0][0]
     expect(patched.files['phone-stand.ndjson']).toBeNull()
-    expect(typeof patched.files['desk-stand.ndjson']).toBe('string')
+    expect(typeof patched.files['desk-stand.warpcad']).toBe('string')
     scope.stop()
   })
 
@@ -632,7 +653,7 @@ describe('nothing is uploaded on its own', () => {
     await new Promise((resolve) => setTimeout(resolve, 700))
     const text = serializeProject(toRaw(documentStore.raw))
     expect(text).toContain(ID)
-    await persistence.openText(text, 'phone-stand.ndjson')
+    await persistence.openText(text, 'phone-stand.warpcad')
 
     // A fresh app restoring the same session.
     setActivePinia(createPinia())
@@ -667,7 +688,7 @@ describe('the Share sheet\'s name is the gist\'s title (io-020)', () => {
 
     const created = backend.createGist.mock.calls[0][0]
     expect(created.description).toBe('Fan Duct')
-    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'fan-duct.ndjson'])
+    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'fan-duct.warpcad'])
     expect(created.files['README.md']).toContain('# Fan Duct')
     expect(backend.updateGist.mock.calls[0][0].files['README.md']).toContain('# Fan Duct')
     scope.stop()
@@ -681,13 +702,13 @@ describe('the Share sheet\'s name is the gist\'s title (io-020)', () => {
     backend.updateGist.mockClear()
     backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
     // The gist as GitHub has it: the file the publish above created.
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'fan-duct.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: '', text: '', revision: REV2, updatedAt: null, fileName: 'fan-duct.warpcad' })
 
     await api.update({ name: 'Desk stand' })
     const patched = backend.updateGist.mock.calls[0][0]
     expect(patched.description).toBe('Desk stand')
-    expect(patched.files['fan-duct.ndjson']).toBeNull()
-    expect(typeof patched.files['desk-stand.ndjson']).toBe('string')
+    expect(patched.files['fan-duct.warpcad']).toBeNull()
+    expect(typeof patched.files['desk-stand.warpcad']).toBe('string')
     expect(patched.files['README.md']).toContain('# Desk stand')
     scope.stop()
   })
@@ -712,12 +733,12 @@ describe('File ▾ → Save to gist (io-021): an update with no name keeps the g
     await api.publish({ name: 'Fan Duct' })
     backend.updateGist.mockClear()
     backend.updateGist.mockResolvedValue({ id: ID, revision: REV3, url: '', rawUrls: {} })
-    backend.readGist.mockResolvedValueOnce({ id: ID, description: 'Fan Duct', text: '', revision: REV2, updatedAt: null, fileName: 'fan-duct.ndjson' })
+    backend.readGist.mockResolvedValueOnce({ id: ID, description: 'Fan Duct', text: '', revision: REV2, updatedAt: null, fileName: 'fan-duct.warpcad' })
 
     const result = await api.update()
     const patched = backend.updateGist.mock.calls[0][0]
     expect(patched.description).toBe('Fan Duct')
-    expect(Object.keys(patched.files).sort()).toEqual(['README.md', 'fan-duct.ndjson'])
+    expect(Object.keys(patched.files).sort()).toEqual(['README.md', 'fan-duct.warpcad'])
     expect(result).toMatchObject({ ok: true, name: 'Fan Duct' })
     scope.stop()
   })
@@ -765,7 +786,7 @@ describe('publish — how this was made (the prompts)', () => {
 
     expect(backend.createGist.mock.calls[0][0].files['README.md']).not.toContain('How this was made')
     expect(backend.updateGist.mock.calls[0][0].files['README.md']).not.toContain('How this was made')
-    expect(backend.createGist.mock.calls[0][0].files['phone-stand.ndjson']).toContain('a fan duct')
+    expect(backend.createGist.mock.calls[0][0].files['phone-stand.warpcad']).toContain('a fan duct')
     scope.stop()
   })
 
@@ -815,7 +836,7 @@ describe('publish — the project brief', () => {
       const { scope, api } = mount()
       if (path === 'update') {
         await api.publish()
-        backend.readGist.mockResolvedValue({ id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.ndjson' })
+        backend.readGist.mockResolvedValue({ id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' })
         await api.update()
       } else {
         await api.publish()

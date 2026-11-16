@@ -45,6 +45,7 @@ import ShareGistGroup from './ShareGistGroup.vue'
 import { useGistPublish } from '../../composables/useGistPublish.js'
 import { parseNdjson } from '../../core/ndjson.js'
 import { serializeProject } from '../../core/project.js'
+import { PROJECT_MIME } from '../../core/projectFile.js'
 import { shareFileName } from '../../core/shareCopy.js'
 import { DEFAULT_SHARE_NAME, encodeShareLink } from '../../core/shareLink.js'
 import { saveBytes } from '../../storage/download.js'
@@ -227,7 +228,7 @@ async function copy() {
  * app written to `Documents/Exports/` instead (`TODO/io-014`).
  */
 async function sendFile() {
-  const result = await saveBytes(serializeProject(toRaw(documentStore.raw)), shareFileName(shareName.value), 'application/x-ndjson')
+  const result = await saveBytes(serializeProject(toRaw(documentStore.raw)), shareFileName(shareName.value), PROJECT_MIME)
   if (!result.ok) {
     problem.value = `Couldn't save the file: ${result.error}`
     return

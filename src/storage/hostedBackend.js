@@ -53,11 +53,20 @@
  * @module storage/hostedBackend
  */
 
+import { LEGACY_PROJECT_EXTENSIONS, PROJECT_EXTENSION } from '../core/projectFile.js'
+
 /** The only origin a token is ever sent to. */
 export const GITHUB_API_ORIGIN = 'https://api.github.com'
 
-/** The project file's default path in the repository. */
-export const DEFAULT_HOSTED_PATH = 'warpcad-project.ndjson'
+/** The project file's default path in the repository for a new connection (`TODO/io-035`). */
+export const DEFAULT_HOSTED_PATH = `warpcad-project${PROJECT_EXTENSION}`
+
+/**
+ * The default path before `TODO/io-035`. A stored connection always records its path, so this is
+ * only the restore fallback for one that somehow has none: it was made when the default was
+ * `.ndjson`, and the file in that repository still is.
+ */
+export const LEGACY_HOSTED_PATH = `warpcad-project${LEGACY_PROJECT_EXTENSIONS[0]}`
 
 /** Commit messages (`docs/decisions/interaction-model-qa.md` §11). */
 export const EXPLICIT_COMMIT_MESSAGE = 'WarpCad: save'
