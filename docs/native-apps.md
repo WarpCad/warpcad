@@ -120,6 +120,21 @@ tap **Enable access**. To reach it from a computer on the same Wi-Fi, turn on **
 this Wi-Fi** and copy the command the sheet shows. It works while WarpCad is open on screen.
 [From the iOS app](mcp.md#from-the-ios-app) gives the steps and says which agents can connect.
 
+### Open in WarpCad
+
+WarpCad projects are `.warpcad` files. In the Files app they show as **WarpCad project**, and
+tapping one opens it in WarpCad. Projects saved before the `.warpcad` name, as `.ndjson` files,
+still open: WarpCad is offered for them in the share sheet, but it doesn't claim them, so a
+`.ndjson` file from another app isn't labelled a WarpCad project. A file sent to you in Mail, or
+kept in iCloud Drive, opens the same way.
+
+**Try it:**
+
+1. In the Files app, open **On My iPad → WarpCad** (**On My iPhone → WarpCad** on a phone).
+2. Touch and hold `bracket.ndjson`, choose **Share**, then **Open in WarpCad**.
+3. The project opens, and the chip reads `Opened bracket.ndjson` followed by its number of steps,
+   for example `Opened bracket.ndjson · 3 steps`.
+
 ## Where your work is kept
 
 In the iPhone and iPad app, your open project and your My parts are kept in two places on the

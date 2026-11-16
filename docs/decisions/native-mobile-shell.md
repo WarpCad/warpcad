@@ -38,6 +38,33 @@ Store upload with no workaround, or the `build-018` probe shows a WebGL or stora
 Tauri's WebView setup that Capacitor's (Question 1, "WebContent process killed") handles and Tauri
 does not.
 
+**Addendum, 2026-11-16: the iOS file types (`io-036`).** `io-014` exported `com.warpcad.project` for
+the extension `ndjson` and the MIME type `application/x-ndjson`, at rank `Owner`. That labelled every
+`.ndjson` on the device a WarpCad project, although NDJSON is a general format. Following Apple's rule
+(export only the types the app defines, import the rest), `warpcad-native`'s `Info.ios.plist` and its
+merged copy now declare two types:
+
+| Type | Declared as | Tags | Conforms to | Document type, rank |
+|---|---|---|---|---|
+| `com.warpcad.project`, "WarpCad project" | `UTExportedTypeDeclarations` | extension `warpcad` only; **no MIME tag** | `public.text`, `public.data` | `Editor`, `Owner` |
+| `org.ndjson.ndjson`, "NDJSON file" | `UTImportedTypeDeclarations` | extension `ndjson`, MIME `application/x-ndjson` | `public.text`, `public.data` | `Editor`, `Alternate` |
+
+- **Imported identifier.** No Apple-defined UTI exists for NDJSON, so the identifier is
+  `org.ndjson.ndjson`: reverse-DNS of the format's own name (`ndjson.org`, the NDJSON spec), not
+  under `com.warpcad.`. If another app imports the same name with the same tags, the two declarations
+  agree instead of competing. `Alternate` keeps **Open in WarpCad** in the share sheet for projects
+  saved before `io-035` without WarpCad naming or taking over other apps' files.
+- **No WarpCad MIME string.** A WarpCad-owned MIME type would be an unregistered `vnd.` or `x-`
+  name that no server sends, so iOS gains nothing from it: files are typed by extension. `io-035`
+  therefore keeps `application/x-ndjson` (the content, which is still NDJSON) for downloads and the
+  File System Access picker. If a WarpCad MIME string is ever registered, both repositories adopt it
+  together.
+- **Out of scope here.** macOS, Windows and Android declare no file type yet (`tauri.conf.json`
+  has no `fileAssociations`). When `build-036` to `build-038` add them, they use the same split:
+  `.warpcad` as WarpCad's own type, `.ndjson` as an alternate handler only.
+- A `cargo test` in `src-tauri/src/lib.rs` fails if either plist exports `ndjson`, if the `ndjson`
+  rank stops being `Alternate`, or if the two plists disagree.
+
 ---
 
 **The question.** What is the right way to turn the WarpCad PWA into an iOS and Android app that

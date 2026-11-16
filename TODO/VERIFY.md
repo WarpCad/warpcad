@@ -51,6 +51,17 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### io-036 — iOS declares .warpcad and imports .ndjson (2026-11-16 17:47)
+
+Rust gates pass (a cargo test parses both plists). The rest needs the device: the simulator and the iPad are the only proof of Files labels, Mail and iCloud opens, and scenario 28.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Simulator: put `x.warpcad`, `y.ndjson` and `log.ndjson` (three lines of log JSON) in Files. `x.warpcad` shows as "WarpCad project" and opens on a tap; `y.ndjson` offers Open in WarpCad from the share sheet; `log.ndjson` is no longer labelled "WarpCad project" | Open | |
+| 2 | Simulator: open a `.warpcad` and a `.ndjson` from a Mail attachment and from iCloud Drive; both reach the page (`take_opened_files`) | Open | |
+| 3 | iPad, owner present, local build over the cable: the same three files, plus io-034's reproduction (Open in lists WarpCad with the app closed and open) | Open | |
+| 4 | Acceptance scenario 28 step 9 and the inbound-file steps, on the iPad | Open | |
+
 ### ui-122 — Three sketch pickers moved onto SegmentedToggle (2026-11-16 17:24 UTC)
 
 The Curve kind, Extrusion method and Solid/Hole rows now use `SegmentedToggle`. Their look changed on purpose (surface-2 background, accent ring, 6px gap, not the old filled accent), and they gained roving tabindex and arrow-key selection that the hand-built rows lacked. No e2e spec covers keyboard use of these rows, and the ui-115 keyboard repro was not driven, so both checks belong here.
