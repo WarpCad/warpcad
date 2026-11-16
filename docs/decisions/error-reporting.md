@@ -147,6 +147,29 @@ production `connect-src` by a build-only Vite plugin. Consequences:
   that crossed the kernel worker boundary as plain data; `errorReporting.spec.js` greps `src/` so a new
   plain `Error` interpolating a name fails the suite. (`TODO/core-082`.)
 
+### The native app (`TODO/build-035`, owner decision 2026-11-07, confirmed 2026-11-13: on)
+
+The release build of the iPhone and iPad app reports the way the hosted app does: the same
+`errorReporting.js`, the same scrubbing, the same DSN rule. What the shell adds:
+
+- **The CSP host.** The native bundle has no CSP meta tag (`TODO/build-032`), so the shell's policy in
+  `src-tauri/tauri.conf.json` decides, and that file names no Sentry host. `scripts/release-config.mjs`
+  (in `warpcad-native`) reads `VITE_SENTRY_DSN`, takes its host with this repository's own
+  `connectHostFromDsn`, and prints a `--config` patch with the complete policy plus that one host.
+  `ios-release.sh` passes it to `cargo tauri ios build`. Same rule as the web build: one exact host, never
+  a wildcard, a malformed DSN is an error (here it stops the release, not just the report).
+- **A release cannot build without a DSN.** `ios-release.sh` refuses validate and upload with none, so the
+  privacy manifest cannot declare crash data the build never sends, nor the reverse. `--install` (the
+  owner's own device) never looks the DSN up and never reports. The DSN comes from the environment or the
+  macOS Keychain (`warpcad-sentry-dsn`), like the team ID.
+- **The manifest.** `PrivacyInfo.xcprivacy` declares `NSPrivacyCollectedDataTypeCrashData`: not linked, not
+  tracking, purpose app functionality. A Rust test (`the_privacy_manifest_declares_the_crash_data_the_release_build_reports`)
+  holds it, and the committed CSP, to this.
+- **What is not covered.** `@sentry/vue` sees errors in the web view. It does not see a Rust panic or iOS
+  killing the web content process (`TODO/build-033` reloads it and says nothing).
+- **Not verified here.** No real DSN was read and no event was sent when this was built. The check
+  "throw an error in the Mac shell and see one event arrive, with no project text in it" is in `TODO/VERIFY.md`.
+
 ### Bundle cost
 
 Measured with `npm run build` (Vite 8), main chunk `dist/assets/index-*.js`, with no DSN and no

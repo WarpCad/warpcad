@@ -29,6 +29,26 @@ Google Analytics. A copy you build or run yourself has no ID and sends nothing.
 - **Nothing is sent from your own machine.** `npm run dev`, a local preview, `localhost`, a page
   served over plain `http`, and automated test browsers all skip it.
 
+## Crash reports, in the iPhone and iPad app
+
+The app you install from the App Store sends a **crash report** to Sentry when something in its
+screens breaks (an error the app did not expect). The App Store's privacy label for it reads
+**Crash data, not linked to your identity, used for app functionality**.
+
+| A report contains | A report never contains |
+|---|---|
+| The error's code or short message, the file and line where it happened, the app's version and commit, and your system and web view versions | Your projects, their names, their parts or your file names; anything you type; your Assistant API key; the part of an address after `#`; a name or account |
+
+- **Only problems in the app's screens are reported.** A crash in the app's native shell itself, or
+  iOS closing the app to free memory, is not.
+- **There is no switch for it inside the app in this version.** The hosted web app and a build
+  you make yourself send nothing unless they were built with a Sentry address.
+- **Names are removed before sending.** An error message that quotes a body, part or file name is
+  reported by its fixed code, and any text that looks like an API key makes the report be dropped.
+
+To see what the build does, ask for the app's privacy details: in the App Store, open **WarpCad**,
+scroll to **App Privacy** and tap **See Details**. It lists **Diagnostics: Crash Data**, **Not Linked to You**.
+
 ## Opting out
 
 Any one of these stops the page view being sent:

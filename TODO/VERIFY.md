@@ -51,6 +51,18 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### build-035 — Crash reporting, the privacy manifest and the store answers agree (2026-11-16 02:56)
+
+The release build now reports web-view crashes (owner decision), and everything that says so is wired and tested: the CSP host, the DSN requirement, the manifest. What this run could not do, on purpose: read a real DSN, send an event, run `ios:release` (it talks to App Store Connect and reads the Keychain), or scan a signed archive.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Put the real DSN where the release script reads it (`VITE_SENTRY_DSN`, or Keychain item `warpcad-sentry-dsn`, account `warpcad`). `npm run ios:release -- --check` then says `Sentry DSN set`, and with no DSN set it lists the DSN as missing | Open | |
+| 2 | Mac shell built the release way (`VITE_SENTRY_DSN=<real> node scripts/release-config.mjs --build 1` gives the patch; pass it to `cargo tauri build --config`): in the web inspector console throw `setTimeout(() => { throw new Error('build-035 check') })`. One event reaches Sentry, with no project text, no file name and no `#` fragment in it | Open | |
+| 3 | Gate 3 of `TODO/RELEASE-CHECKLIST.md`: after `ios:release` validates the signed archive, App Store Connect raises no privacy-manifest warning, and re-running the `nm -u` command from the manifest's comment on the archive's binary finds no category the manifest lacks | Open | |
+| 4 | App Store Connect, App Privacy: answer **Crash Data** collected, **not linked to you**, **not used for tracking**, purpose **App Functionality**, to match `PrivacyInfo.xcprivacy` and `docs/privacy.md` | Open | |
+
+
 ### ui-121 — The iOS status bar and launch screen follow the theme (2026-11-16 00:50)
 
 The simulator matrix was driven with the in-app choice written into the web view's storage, because there was no way to tap in the simulator. The real tap path and the static launch frame are not covered by an acceptance scenario.
