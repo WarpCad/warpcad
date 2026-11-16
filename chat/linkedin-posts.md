@@ -4325,3 +4325,147 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** src/core/kernel/watertightDense.spec.js (generated scans, red then green); bench/results/2026-11-15-io-031.md (CuraEngine 5.13.0 before and after, open-edge counts, timing); the cut exported through File > Export on Chromium and WebKit, 0 open edges of 41,442
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/build-031
+
+The script that builds WarpCad for the App Store could have shipped a throwaway experiment. It checked that the signing team and the API key existed, and nothing else. The release work was also sitting uncommitted on top of a branch marked "never merged", so one careless checkout could have lost it.
+
+I moved the release work onto main and left only the experiment's camera permission string on the probe branch. The script now refuses to validate or upload, and says why, unless the native repo is on main with a clean tree, the web repo has no uncommitted changes (and, for an upload, is pushed, so the commit shown in Help exists on GitHub), no "probe" text is in the shipped Rust or the permissions file, and the Rust checks pass. A dry run reports the same findings without building anything.
+
+Run on the probe branch, the dry run now names the branch, both dirty trees and four probe lines. One thing to keep in mind: the guard is strict on purpose, and it flagged an innocent comment containing the word "probe", which I reworded rather than loosening the check.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** npm run ios:release -- --check on probe/io-026 (refused, exit 1) and on main with dirty trees (refused); bash -n clean; npm run check green on main (fmt, clippy, 45 tests, cargo deny)
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/build-032
+
+A browser enforces every Content-Security-Policy it is given, so only what all of them allow gets through. WarpCad's iOS app had two: the shell's own, which had been updated to let Help load from app.warpcad.com, and the web page's, copied into the native build unchanged, which knew nothing about it. The result would have been a Help sheet saying it needs a connection on a perfectly good connection, and pictures that never load.
+
+I could not drive the real web view's inspector unattended, so I reproduced it in WebKit: the native bundle served with the shell's policy as a response header and the page's own tag left in. Before, the console printed "Refused to connect to https://app.warpcad.com/help/index.json". After removing the tag in the native build only, Help loads with its pictures and nothing is blocked. I removed the tag rather than rewriting it, because two copies of one policy drift, which is the bug. The web build keeps its tag, since GitHub Pages cannot send headers.
+
+Two guards keep it fixed: the release-bundle check fails if the tag comes back, and a Rust test keeps Help's host, the bridge and a strict script policy in the shell's. The real-shell check (Help online, offline, Retry) is still owed to my iPad pass.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** WebKit repro before and after (violations: 2 connect-src, then none); assert-release-bundle and native-build specs; native npm run check green (46 tests)
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/build-033
+
+The audit said my iOS app would show a blank window when iOS kills its web content under memory pressure. I read the source first: Tauri already reloads the page by default, so the premise was half wrong, and the only thing that had ever left a window blank was my own probe branch, whose logging-only handler replaced the default with nothing.
+
+What the default lacks is a brake. It reloads on every kill, so a page that dies on load would reload forever, and an MCP call in flight when the page died would never get an answer. The shell now registers its own handler: one reload, a second kill within five seconds is left alone, and the call in flight is dropped with the existing message. The decision is a pure function with a unit test.
+
+I drove it in the iOS simulator with a real kill of the WebContent process: a foreground kill, one while the app was in the background, and two kills 0.4 s apart. The control build without my handler reloaded too, which is how I found the default. A kill after 15 minutes in the background on the iPad is still owed to my iPad pass.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** simulator kill -9 of the WebContent process, handler build and control build compared through the WebKit log (dispatchProcessDidTerminate then reload; the guarded second kill had no reload); native npm run check green (51 tests)
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/io-029
+
+I found a permission mistake in my own native app before it had a single user. The iPhone app's file access is limited to a folder that belongs to the app. I had given the Mac and Windows apps the same rule, but there the same words mean the person's own Documents folder, so a script running in the page could have listed, read, overwritten or deleted anything in it. That script is not fully trusted: the app shows help text fetched from the network, and opens shared projects.
+
+The fix is a separate permission file for desktop that names only Documents/WarpCad, and a page that puts every project and export in that folder. Three Rust tests hold it: one fails if a desktop permission ever grants Documents, Home, Desktop or Downloads; one builds the real file scope from the file and checks that Documents itself and a stray file in it are refused. There was no desktop release yet, so nothing needed migrating.
+
+Not driven: the real Mac window and the iOS simulator, because the system file dialogs are not something I click through unattended. Those checks are in my verification queue.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Rust tests including the real tauri fs scope; files.spec.js 49 tests; native-files e2e across Chromium, Firefox and WebKit at phone, tablet and laptop; native npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/ai-036
+
+My iPad app can host an MCP endpoint so Claude Code on another computer can edit the open project. I narrowed it today. The audit had found nothing broken: the token check, the host check and the refusal of web pages all held. What it found was what a mistake elsewhere would expose.
+
+The server bound every network interface, so with "Allow devices on this Wi-Fi" on, the port was also open on cellular and on a hotspot. It now binds the device itself plus the one Wi-Fi address. It re-reads that address when you return to the app and every 30 seconds, and if the network changes it switches the Wi-Fi half off with a message and does not turn it back on by itself, because a new network is not one you have decided to trust. Requests over 1 MiB are refused before they are parsed; I measured the largest realistic call at about 160 KiB first.
+
+I did not add TLS. A self-signed certificate would teach people to turn off certificate checks in their agent, so the sheet says plainly that the token travels unencrypted and to use it on a home network.
+
+Not done: requiring the token for other apps on the same iPad. That waits on a device check of whether anything legitimate connects that way. Checking from a second computer and moving the iPad between networks is in my verification queue.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 39 Rust tests on real sockets, 18 web specs, native-mcp e2e on two projects, native npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-16
+**Commit:** TODO/build-034
+
+The native shell of WarpCad said version 1.13.0 in four files while the web app inside it was 1.17.0. The Mac, Android and Windows builds shipped that mismatch. The iOS release script overrode it, so the one platform I had been checking was the one that was right.
+
+The Help line and the in-app MCP server also reported different numbers, and three files disagreed about the oldest iOS the app supports: 15, 17 or unset, depending on which file you asked.
+
+Now a small script copies the web version into six places before every build, the release script refuses to build while they are behind, and the MCP server reports the same version Help does. The minimum OS is written once, in the Tauri config, and the build script that compiles the Keychain library reads it from there. I chose the current and previous major release, so iOS, iPadOS and macOS 26 while 27 is current. Four Rust tests fail if any file drifts, and they were red on the old numbers first.
+
+Not done: running on an iOS 26 simulator. I only have 27.2 installed, so the minimum-version run is in my verification queue. On 27.2 the app launched and the Keychain library stored, read back and deleted a dummy value.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 4 Rust tests red first then green, native npm run check green, built Mac app Info.plist reads 1.17.0 and minimum 26.0, simulator launch and Keychain round trip on iOS 27.2
+**To Add:** none
+
+---
+
+**Date:** 2026-11-16
+**Commit:** TODO/ui-121
+
+When WarpCad got a light theme, the iPhone app's status bar stayed white. White clock and battery on a near-white header meant you could not read the time. The iPad was already fine, because iPadOS ignores the setting that broke the iPhone.
+
+Following the system's light or dark setting took one changed value and a second launch-screen colour. A theme chosen inside the app is harder: Tauri's `set_theme` is documented as unsupported on iOS, so I wrote a 20-line Swift function that sets the windows' interface style, called through one command that accepts only `system`, `light` or `dark`. The page sends the scheme of whichever theme is painted, so a light style such as Minimal counts as light.
+
+I checked it on iPhone and iPad simulators across system light and dark against app System, Light, Dark, a light style and a dark style. All 20 screenshots have a readable clock; the old iPhone build measured a contrast of 6 out of 255 in light. Not fixable: the launch screen is static, so someone who overrides the system sees one frame of the system's colour. The docs say so.
+
+Not done: I could not tap the in-app control in the simulator, so I wrote the saved preference into the web view's storage instead. A tap on real hardware is in my verification queue.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Rust and web unit tests, theme-switch e2e on six projects, 20 simulator screenshots measured for contrast, native npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-16
+**Commit:** TODO/build-035
+
+My iOS app's privacy statement and its behaviour had drifted apart. I had decided crash reporting would be on. The privacy manifest, which App Review reads as a legal statement, said no data was collected. And the app's security policy named no Sentry host, so a report would have been blocked on a working connection.
+
+A static config file cannot know which Sentry region a project uses, so the policy is not edited there. A small script takes the committed policy, adds the one host named by the build's Sentry address and hands the complete result to the build. The release script now refuses to validate or upload without that address, so the manifest can never promise crash data the build never sends. The manifest declares crash data, not linked to identity, not used for tracking.
+
+The part that took the most care was the list of Apple's required-reason APIs. Reading the static library gave a misleading answer, because Rust's standard library only resolves at the final link, and selector names like systemUptime sit in dead binding code. Scanning the linked app binary found two categories in use: file timestamps and, through Rust's elapsed-time clock, the system boot time. Disk space, keyboards and UserDefaults are not called. The scan command is in the manifest so it can be re-run.
+
+Not done: I never read the real Sentry address or sent an event, and the signed archive is scanned at the upload gate. Those checks are in my verification queue.
+
+Built with Claude Code, reviewed by me.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Rust test and 7 node tests, red first; native npm run check green (71 tests); required-reason scan of two linked app binaries that agree
+**To Add:** none

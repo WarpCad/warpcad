@@ -2994,3 +2994,91 @@ Cut a cube out of a 30,000-triangle scan in WarpCad and the exported STL used to
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** src/core/kernel/watertightDense.spec.js (generated scans, red then green); bench/results/2026-11-15-io-031.md (CuraEngine before and after, open-edge counts); STL exported through File > Export on Chromium and WebKit, 0 open edges of 41,442
 **To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/build-031
+
+The iOS release script could have uploaded a probe build to TestFlight: it checked the team and the API key and nothing else. It now refuses unless the native repo is on main with a clean tree, the web repo is clean and pushed, no probe text is in the shipped sources, and the Rust checks pass. Nothing was pushed or uploaded.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** npm run ios:release -- --check refused on probe/io-026 (branch, dirty trees, probe text named) and on main with dirty trees; npm run check green on main (45 tests)
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/build-032
+
+The iOS app's Help would have said "needs a connection" on a working connection: the page carried its own security policy beside the shell's, and the browser enforces both. The native build now drops the page's copy, so the shell's is the only one. Reproduced in WebKit before and after.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** WebKit under both policies: Refused to connect to app.warpcad.com before, Help text and pictures with no violations after; web and native unit specs and npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/build-033
+
+Turns out my iOS app already reloaded itself when iOS killed its web view, because Tauri does that by default. What it lacked was a brake: a page that crashes on load would reload forever, and an MCP call in flight would never be told. Now it reloads once per five seconds and tells the agent.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** kill -9 of the WebContent process in the iOS 27.2 simulator: reloaded in the foreground and in the background, and a second kill 0.4 s later was left alone; native npm run check green (51 tests)
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/io-029
+
+My Mac and Windows apps could have listed, read and deleted every file in your Documents folder: the permission I copied from the iOS app, where Documents is the app's own, covers your whole folder on a desktop. It is now just Documents/WarpCad, and a Rust test fails if anyone widens it again.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** three Rust tests (capability files, plus the real fs scope refusing Documents itself), 49 unit tests in files.spec.js, and native-files e2e on nine engine-viewport projects; native npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-15
+**Commit:** TODO/ai-036
+
+When you let another computer drive my iPad app over Wi-Fi, the server was listening on every network the device has, cellular and hotspot included. It now listens on the Wi-Fi address and the device itself, and nothing else. It also refuses any request over 1 MiB, and says on screen that the token travels unencrypted.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 39 Rust tests on real sockets (bound addresses, 413, 411, an address change), 18 web specs, native-mcp e2e on two projects; native npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-16
+**Commit:** TODO/build-034
+
+The Mac, Android and Windows builds of my CAD app said they were version 1.13.0 around a 1.17.0 web app, and the iOS build had three different answers for the oldest OS it supports. There is now one version, copied from the web app by a script before every build, and one minimum, iOS and macOS 26, written in a single config file that the build and the Xcode files are tested against.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 4 new Rust tests, red on the old mismatch first; native npm run check green; the built Mac app reads 1.17.0 and 26.0; the Keychain library ran on the iOS simulator
+**To Add:** none
+
+---
+
+**Date:** 2026-11-16
+**Commit:** TODO/ui-121
+
+In the light theme my iPhone app's clock and battery were white on a near-white header, so you couldn't read the time. The fix was one setting for following the system, plus a new command so a theme chosen inside the app moves the status bar too. Tauri's own window theme call does nothing on iOS, so a 20-line Swift file sets it instead. Checked on iPhone and iPad simulators in 20 combinations, readable in all.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Rust and web unit tests, theme-switch e2e on six projects, 20 simulator screenshots measured for glyph-to-header contrast (206 to 255, was 6 on the old iPhone build); native npm run check green
+**To Add:** none
+
+---
+
+**Date:** 2026-11-16
+**Commit:** TODO/build-035
+
+Three files in my iOS app disagreed about crash reporting: the decision said on, the privacy manifest said no data collected, and the security policy would have blocked the reports anyway. Now the release script refuses to build without a Sentry address, adds only that one host to the policy, and the manifest declares crash data. A test fails if they drift apart.
+
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Rust test and 7 node tests, red first; native npm run check green; required-reason APIs found by scanning a linked app binary
+**To Add:** none
