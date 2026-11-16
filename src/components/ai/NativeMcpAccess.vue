@@ -11,6 +11,9 @@
  *   ends every connected session. If the device has no Wi-Fi address the host says so here.
  *
  * The address and token are the server's, never project text. They wrap rather than scroll.
+ * The server is plain HTTP, so the sheet says the token crosses the Wi-Fi unencrypted
+ * (`ai-connect-lan-unencrypted`, `TODO/ai-036`), before the switch is turned on. If the device
+ * changes network the host sends a new endpoint and the address here follows it.
  */
 import { computed } from 'vue'
 
@@ -45,6 +48,7 @@ function toggle(event) {
       <span>Allow devices on this Wi-Fi</span>
     </label>
     <p class="lan__note">Lets an agent on another computer on this Wi-Fi connect, with the token below. Off by default.</p>
+    <p class="lan__note" data-testid="ai-connect-lan-unencrypted">The address and token are sent unencrypted, so turn this on only on a network you trust: at home, not a café or conference.</p>
     <p v-if="chat.nativeMcp.lanError" class="lan__note" role="alert" data-testid="ai-connect-lan-error">{{ chat.nativeMcp.lanError }}</p>
     <template v-if="shown">
       <dl class="lan__values">

@@ -51,6 +51,19 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-036 — The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change (2026-11-15 23:50)
+
+`src-tauri/src/mcp/host_tests.rs` already drives real sockets: the bound addresses are `127.0.0.1` plus the Wi-Fi address and never `0.0.0.0`, a 2 MiB body and a chunked body are refused (413, 411) and an address change switches the Wi-Fi half off. `e2e/native-mcp.e2e.js` covers the sheet against the fake shell. What an unattended run cannot do is reach the app from another machine or change the iPad's network.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Mac shell (`npm run mac:dev`) or the iPad: enable access, turn on **Allow devices on this Wi-Fi**. From a second computer on that Wi-Fi: `curl -i http://<address>:5184/mcp -X POST -H 'Content-Type: application/json' -d '{}'` gets 401 without the token. | Open | |
+| 2 | Same, with `-H "Authorization: Bearer <token>"` and a small valid `initialize` body: the request gets past the gate (not 401, not 413). | Open | |
+| 3 | Same, with the token and a 2 MiB body (`head -c 2097152 /dev/zero \| tr '\0' a`): the reply is `413`. With `-H 'Transfer-Encoding: chunked'` it is `411`. | Open | |
+| 4 | On the iPad with access and the Wi-Fi switch on, move to a different Wi-Fi network and return to WarpCad: **Allow devices on this Wi-Fi** is off and the sheet says the address changed. The old address no longer answers. Turn it on again: the new address shows and answers. | Open | |
+| 5 | With the Wi-Fi switch on, turn Wi-Fi off on the iPad (cellular on) and return to WarpCad: the switch is off with a message, and the cellular address does not answer. | Open | |
+| 6 | The sheet shows the sentence that the address and token are sent unencrypted, under the switch, readable at phone width without horizontal scrolling. | Open | |
+
 ### io-029 — Mac and Windows keep files in Documents/WarpCad (2026-11-15 23:20)
 
 The scope change is proven by three Rust tests (the real `tauri::scope::fs::Scope` built from `desktop.json` refuses `~/Documents` itself, a loose file in it and a `..` escape) and by `e2e/native-files.e2e.js` against the fake bridge. What an unattended run could not do is drive the real Mac window (macOS file dialogs and the Documents access prompt are never clicked through) or tap through the iOS simulator, so these are owed. Use a throwaway file name in `~/Documents`, not a real document.

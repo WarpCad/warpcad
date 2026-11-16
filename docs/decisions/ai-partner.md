@@ -967,7 +967,9 @@ kept, and so are `mcp/bridge.js`'s off, expired and ambiguous sentences and the 
 2. **Loopback by default.** The listener binds `127.0.0.1`. The page's own origin never calls `/mcp`,
    so any `Origin` is refused (403); `Host` must name the server's address and port (403 otherwise:
    DNS rebinding).
-3. **Allow devices on this Wi-Fi** (off by default, only while a lease is on) binds every address and
+3. **Allow devices on this Wi-Fi** (off by default, only while a lease is on) adds a second socket on the
+   device's one Wi-Fi address (`ai-036`, 2026-11-15; never `0.0.0.0`, so cellular, VPN, hotspot and tethering
+   interfaces stay closed; a failed Wi-Fi bind is reported as `lan_error` and loopback stays up) and
    requires `Authorization: Bearer <token>` from any peer that is not loopback (401 otherwise). The
    check reads the socket's peer address, not `Host`, so a device on the LAN cannot skip the token by
    naming `127.0.0.1`. The token is 256 bits from the OS random source, compared in constant time
@@ -977,6 +979,22 @@ kept, and so are `mcp/bridge.js`'s off, expired and ambiguous sentences and the 
    `applicationWillResignActive` and reopens on return only while the lease is live; sessions are
    kept in between. The Mac app keeps serving while another app is in front, because that is where
    the agent runs.
+   *Address changes (`ai-036`).* The Wi-Fi address is re-read on `resume` and on each 30 s sweep. **Owner
+   decision 2026-11-15:** a *changed* address is handled like a lost one. The Wi-Fi half switches off with its
+   own message (`MOVED_WIFI`) and never reopens by itself, because a new network is not trusted by default;
+   the user turns it on again. The host emits `warpcad-mcp-endpoint` so the sheet updates. Two sockets rather
+   than one rebind-on-change keeps the rule simple and the old address from ever matching.
+   *Size cap (`ai-036`).* A request over **1 MiB** is refused 413, a body with any `Transfer-Encoding` 411, and
+   a non-digit `Content-Length` 400, before it is parsed. Measured: the largest realistic `tools/call` is about
+   160 KiB (a 4096-point outline) and the model's output limit bounds a call at about 0.5 MiB, so 1 MiB leaves
+   headroom; real clients (Claude Code's fetch, rmcp's reqwest) always send `Content-Length`, so 411 breaks
+   none. rmcp's own `max_request_body_bytes` (4 MiB by default) is lowered to the same cap.
+   *No TLS.* A self-signed certificate would need the user to disable verification in the client, which
+   teaches the wrong habit; the sheet and `docs/mcp.md` say the token is unencrypted and to use a trusted
+   network instead.
+   *Deferred (`ai-036` item 5, filed as `ai-042`).* On iOS and Android loopback still needs no token. Requiring
+   it under `cfg(mobile)` waits on `build-018` item 10, which records whether any legitimate loopback client
+   exists on a phone.
 5. **No Bonjour**, no fork per remote turn, no background execution, no outbound relay (`ai-019`).
 
 **Agents.** Built for the agents known to work: an MCP client on the same Mac (the Mac app, at

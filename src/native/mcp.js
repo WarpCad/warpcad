@@ -34,6 +34,12 @@ export const NATIVE_MCP_EVENT = 'warpcad-mcp-host'
 /** The Tauri event saying the app came back from the background with a client connected. */
 export const NATIVE_MCP_PAUSED_EVENT = 'warpcad-mcp-paused'
 
+/**
+ * The Tauri event carrying an endpoint the host changed on its own (`TODO/ai-036`): the device's
+ * Wi-Fi address moved (the new address) or went away (no address, and `lanError` says why).
+ */
+export const NATIVE_MCP_ENDPOINT_EVENT = 'warpcad-mcp-endpoint'
+
 /** The only commands the page calls on the host. */
 export const MCP_COMMANDS = Object.freeze({ setAccess: 'mcp_set_access', reply: 'mcp_reply', rotateToken: 'mcp_rotate_token' })
 
@@ -169,7 +175,11 @@ export function createNativeLink({ global = defaultGlobal(), surface, onEndpoint
   return {
     on(event, handler) {
       if (event !== BRIDGE_EVENT) return
-      ready = Promise.all([listenNative(NATIVE_MCP_EVENT, handler, global), listenNative(NATIVE_MCP_PAUSED_EVENT, () => onPaused(), global)]).catch((error) =>
+      ready = Promise.all([
+        listenNative(NATIVE_MCP_EVENT, handler, global),
+        listenNative(NATIVE_MCP_PAUSED_EVENT, () => onPaused(), global),
+        listenNative(NATIVE_MCP_ENDPOINT_EVENT, (payload) => onEndpoint(readEndpoint(payload)), global),
+      ]).catch((error) =>
         onError(error instanceof Error ? error.message : String(error))
       )
     },

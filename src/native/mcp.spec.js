@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { unwrapDocumentData } from '../ai/documentData.js'
 import {
   MCP_COMMANDS,
+  NATIVE_MCP_ENDPOINT_EVENT,
   NATIVE_MCP_EVENT,
   NATIVE_MCP_PAUSED_EVENT,
   claudeCodeCommand,
@@ -48,10 +49,11 @@ function fakeBridge(answers = {}) {
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe('the native MCP host commands (ai-026)', () => {
-  it('names the three commands the page may call and the two events it listens to', () => {
+  it('names the three commands the page may call and the three events it listens to', () => {
     expect(MCP_COMMANDS).toEqual({ setAccess: 'mcp_set_access', reply: 'mcp_reply', rotateToken: 'mcp_rotate_token' })
     expect(NATIVE_MCP_EVENT).toBe('warpcad-mcp-host')
     expect(NATIVE_MCP_PAUSED_EVENT).toBe('warpcad-mcp-paused')
+    expect(NATIVE_MCP_ENDPOINT_EVENT).toBe('warpcad-mcp-endpoint')
   })
 
   it('subscribes through Tauri’s event plugin, as @tauri-apps/api does, without importing it', async () => {
@@ -85,8 +87,8 @@ describe('createNativeLink: the live bridge’s second transport', () => {
     link.on('warpcad:bridge', () => {})
     link.send('warpcad:bridge', { type: 'hello' })
     await flush()
-    expect(bridge.calls.map((c) => c.cmd)).toEqual(['plugin:event|listen', 'plugin:event|listen', 'mcp_set_access'])
-    expect(bridge.calls[2].args).toMatchObject({ lease: 'off', lan: false })
+    expect(bridge.calls.map((c) => c.cmd)).toEqual(['plugin:event|listen', 'plugin:event|listen', 'plugin:event|listen', 'mcp_set_access'])
+    expect(bridge.calls[3].args).toMatchObject({ lease: 'off', lan: false })
   })
 
   it('sends a lease with the Wi-Fi choice and the page’s surface, and reports the endpoint', async () => {
@@ -120,7 +122,7 @@ describe('createNativeLink: the live bridge’s second transport', () => {
     link.send('warpcad:bridge', { type: 'result', id: '4', result: {} })
     link.send('warpcad:bridge', { type: 'access', lease: 'forever' })
     await flush()
-    expect(bridge.calls.map((c) => c.cmd)).toEqual(['plugin:event|listen', 'plugin:event|listen'])
+    expect(bridge.calls.map((c) => c.cmd)).toEqual(['plugin:event|listen', 'plugin:event|listen', 'plugin:event|listen'])
   })
 
   it('passes the paused event on', async () => {
@@ -131,5 +133,19 @@ describe('createNativeLink: the live bridge’s second transport', () => {
     await flush()
     bridge.emit(NATIVE_MCP_PAUSED_EVENT, {})
     expect(onPaused).toHaveBeenCalledTimes(1)
+  })
+
+  it('passes an endpoint the host found on its own (ai-036: the Wi-Fi address changed or went away) to onEndpoint', async () => {
+    const bridge = fakeBridge()
+    const endpoints = /** @type {any[]} */ ([])
+    const link = createNativeLink({ global: bridge.global, surface: async () => ({ instructions: '', tools: [], writers: [] }), onEndpoint: (e) => endpoints.push(e) })
+    link.on('warpcad:bridge', () => {})
+    await flush()
+    bridge.emit(NATIVE_MCP_ENDPOINT_EVENT, { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://10.0.0.7:5184/mcp', token: 'ab', lanError: null })
+    bridge.emit(NATIVE_MCP_ENDPOINT_EVENT, { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: null, token: null, lanError: 'gone' })
+    expect(endpoints).toEqual([
+      { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://10.0.0.7:5184/mcp', token: 'ab', lanError: '' },
+      { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: 'gone' },
+    ])
   })
 })

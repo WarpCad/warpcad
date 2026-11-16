@@ -484,6 +484,16 @@ claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "A
 
 ![The Live MCP access sheet in the iPhone app with 1 hour enabled and Allow devices on this Wi-Fi turned on: the address http://192.168.1.20:5184/mcp, the token, and the Copy address, Copy token, Copy Claude Code command and New token buttons.](./screenshots/native-mcp-sheet.png)
 
+### Moving to a different network
+
+1. At home, turn on **Allow devices on this Wi-Fi**, copy the command and run it on your Mac. The
+   agent works.
+2. Take the iPad to a friend's house and join their Wi-Fi, then open WarpCad again.
+3. The switch is off and the sheet reads that the Wi-Fi address changed. Your Mac's old command no
+   longer reaches the iPad.
+4. If you trust this network, turn **Allow devices on this Wi-Fi** on again. The sheet shows the
+   new address; tap **Copy Claude Code command** and run it again on the computer.
+
 ### How it behaves in the app
 
 - **It works while WarpCad is open on screen.** iOS pauses an app in the background, so the app
@@ -493,8 +503,21 @@ claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "A
   background* for a few seconds when you return.
 - **This device only, unless you say otherwise.** With **Allow devices on this Wi-Fi** off, the
   endpoint answers only on the device itself (`127.0.0.1`). Turned on, it also answers on the
-  device's Wi-Fi address, and every request from another device must carry the token. The switch is
-  off by default, and you can only turn it on while access is enabled.
+  device's one Wi-Fi address (and on no other network, such as cellular or a hotspot), and every
+  request from another device must carry the token. The switch is off by default, and you can only
+  turn it on while access is enabled.
+- **The address and token are sent unencrypted.** The endpoint is plain HTTP, so anyone who can
+  capture traffic on that Wi-Fi can read the token and edit the open project. Turn the switch on
+  only on a network you trust: your home, not a café or a conference. There is no HTTPS, because a
+  self-signed certificate would mean turning off certificate checks in your agent, which is a bad
+  habit to learn.
+- **It does not follow you to another network.** The app checks the Wi-Fi address when you return
+  to it and every 30 seconds. If you move to a different network, or lose Wi-Fi, it switches
+  **Allow devices on this Wi-Fi** off and the sheet says why. A new network isn't trusted by
+  default, so the app never turns it back on by itself.
+- **Requests are capped at 1 MiB.** A larger request is refused (HTTP 413), and so is one sent
+  without a length (chunked, HTTP 411). Real agents send a length, and the biggest call WarpCad
+  accepts is far under the cap.
 - **The token.** It's 64 characters, random, and new each time the app starts. **New token** makes
   another one and ends every connected session; an agent then needs the new command. Anyone with the
   token on your Wi-Fi can edit the open project while the lease lasts, so share it only with your
