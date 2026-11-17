@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `testing-044` | Drove the 51 VERIFY.md rows an agent can settle, in two sittings: app checks by mouse and keyboard at three widths and three engines, `claude -p` on the subscription (Haiku and Sonnet), the live bridge (scenario 25 whole, with the gizmo drag and the held Library drag), a docs fix in `docs/user-library.md`, the WebMCP trial dates in `docs/webmcp.md`, the iOS 26.0 runtime, and the open-project GIFs. Seven cold-read rows became owner questions (Q10 to Q17) and three new findings were filed (`core-085`, `ui-142`, `ui-143`); two on-screen rows went to `testing-028` | Finding | — | 6, 7, 9, 10, 22, 23, 25 |
 | ✅ `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Three pickers moved onto `SegmentedToggle` (curve kind, extrude method, Solid/Hole); the rest kept with a one-line reason at the top of each file | Finding | — | 1, 4, 7, 9 |
 | ✅ `testing-039` | The hand-checked Show hidden parts and move-arrow colour rows are now a spec: `e2e/gizmo-overlay-pixels.e2e.js` checks that toggling off leaves the canvas and the visible view (overlays on) under 40 changed pixels, that Subtract with the bolt's `tap` matches a forced redraw, and that X, Y and Z shafts and cones stay red, green and blue with a lit and a dark flank in both colour schemes. The canvas-snapshot helper is shared in `e2e/support/canvasSnapshot.js`. Filed 2026-11-14 from `testing-017`. [`done/testing-039`](done/testing-039-graduate-overlay-and-gizmo-engine-checks-to-a-spec.md) | Finding | — | none (`render-007` and `ui-021` / `ui-048` repros re-run by the spec on all three engines) |
 | ✅ `ai-035` | WarpCad skills over MCP (SEP-2640): `add-clearances` and `create-enclosure` served from `mcp/skills/` by `skills/list`, `skills/get` and `skill://` resources, no SDK bump; driven with Claude Code (`claude -p --model haiku`, 7 runs), which found and fixed a group-of-parts defect in the first skill draft. `FIND-ai-041` files the tool gaps | Finding | — | ✅ done (no acceptance scenario; `testing-022` live-bridge specs and `ai-028` MCP drive re-run) |
@@ -1417,6 +1418,7 @@ convention going forward.
 | `io-035` | 2026-11-16 18:39 | not timed (Step 3 start not recorded) |
 | `io-030` | 2026-11-17 00:13 | not timed (Step 3 start not recorded) |
 | `ai-041` | 2026-11-17 04:01 | 1h08m |
+| `testing-044` | 2026-11-17 17:10 | ~2h (two sittings; part 2 about 1h25m) |
 
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

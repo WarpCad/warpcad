@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 0 now, 79 being drafted | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 2 now (Q16, Q17), 79 being drafted | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 6 | 38 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -86,6 +86,34 @@ The 79 decisions from `testing-033` join this section, grouped, as the runner dr
 **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q16 · Does a `capture_view` picture read well enough, and is the Bolt's single colour misleading? (`ai-007` #1 and #2)
+
+**Question:** Keep `capture_view` as it is (faint grid, one colour per body), or change it?
+
+**Background:** Look at `TODO/owner-media/testing-044-ai-007.png`, a real `capture_view` (iso, 768 x 576) of an M10 hex bolt, 40 mm long, and a 30 x 30 x 20 mm block, made 2026-11-17 over the live bridge. Row #1: the grid shows only as faint lines toward the far edge of the frame and nothing under the bodies; the bodies read plainly, with shaded faces, so the model can tell what it built and roughly where. Row #2: the Bolt is drawn in one blue, while on screen its head and thread are two greys; a picture of a composite loses the recipe's per-part colours. The model uses the picture to judge shape and placement, and measures with `measure` and `describe_body` for sizes, so neither looks harmful.
+
+**Options:**
+- **Keep it, change nothing (Recommended):** both are cosmetic for the model's job; the cost of drawing the grid heavier is a busier picture, and per-part colours need the capture path to read recipe colours.
+- **File a follow-up:** draw the grid a little heavier, and draw a composite's per-part colours. An S-size task each.
+
+**If deferred:** nothing changes; `ai-007` #1 and #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q17 · Does the History note icon read as "why this step exists"? (`ai-003` #3)
+
+**Question:** Is the small document icon at the end of a History row clear enough without its tooltip?
+
+**Background:** Look at `TODO/owner-media/testing-044-ai-003.png`: History with two steps, *Cube 1 — placed* (made by hand) and *Sphere 1 — placed* (made over MCP). Only the second has the icon, a small page with lines, after the `via mcp` chip. That the hand-made row has none is by design: the icon is drawn only when a step carries design intent (the request and the model's reason). The tooltip, and the screen-reader label, read *Why this step exists*, but touch has no hover. The `via mcp` chip beside it already says the step came from an agent.
+
+**Options:**
+- **Keep the icon (Recommended):** the glyph is a conventional "note" and sits next to the `via mcp` chip, which gives it its context; the row expands on tap and shows the words.
+- **Add a visible word:** *Why* next to the icon, on touch widths at least. An S-size task.
+
+**If deferred:** nothing changes; `ai-003` #3 stays `Owner`.
+
+**Answer:** question
 
 ---
 
@@ -265,9 +293,9 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 #### M20 · Pi camera models against the real cameras
 
-`core-015` #1 · 5 min · filed 2026-09-13 · **waits on:** testing-044 regenerates the side-by-side pictures
+`core-015` #1 · 5 min · filed 2026-09-13
 
-**Steps:** 1. Open the side-by-side images the runner lists in this item (V1 left, WarpCad right) for camera v1, v2, HQ. 2. Compare against what you know of the boards.
+**Steps:** 1. Open `TODO/owner-media/testing-044-core-015-pi-cameras.png` (V1's own snapshot left, the WarpCad render right, for camera v1, v2 and HQ; regenerated 2026-11-17, light theme, Home view, so the right side includes the app's controls; WarpCad hides V1's red keep-out blocks and paints the uncoloured HQ parts in the default blue where V1 is grey). 2. Compare against what you know of the boards.
 
 **Pass if:** Sensor, lens barrel, ribbon and mount read as the right parts in the right places.
 
@@ -275,9 +303,9 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 #### M21 · Pi boards against the real boards
 
-`core-014` #1 · 5 min · filed 2026-09-13 · **waits on:** testing-044 regenerates the side-by-side pictures
+`core-014` #1 · 5 min · filed 2026-09-13
 
-**Steps:** 1. Open the side-by-sides for Pi 2/B+, 3 and 4. 2. Compare against a real board or your memory of one.
+**Steps:** 1. Open `TODO/owner-media/testing-044-core-014-pi-boards.png` (V1's own snapshot left, the WarpCad render right, for Pi 2/B+, 3 and 4; regenerated 2026-11-17, light theme, Home view, so the right side includes the app's controls). 2. Compare against a real board or your memory of one.
 
 **Pass if:** Connectors read as the right parts in the right places.
 

@@ -9,6 +9,11 @@ are the same ones the in-app [Assistant](ai-partner.md) and [Claude Code](mcp.md
 WebMCP is **experimental**. Today only Chrome supports it, behind a flag, on desktop. In any
 other browser nothing changes: WarpCad doesn't show the control and doesn't register anything.
 
+Chrome also runs WebMCP as an *origin trial* from Chrome 149 to Chrome 156 (Chrome's own "Intent to
+Experiment", Blink-dev). A trial feature is switched on for ordinary visitors of a site only when that
+site sends a trial token, and WarpCad doesn't, so the flag below is how you turn it on yourself. The
+trial ends with Chrome 156; no calendar date is published beyond that milestone.
+
 ## Set it up in Chrome
 
 You need Chrome, an agent that runs in the browser, and WarpCad open on a secure page. These

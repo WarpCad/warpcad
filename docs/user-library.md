@@ -85,10 +85,11 @@ has is left as it is.
 A saved part is fixed: the sheet has no sizes to tick. To get a different size, get the scene to
 the size you want, then save it again under a new name.
 
-1. Drag a copy of the part in, or build the shape again: for a standoff, a **Cylinder** whose
-   **Height** you set to `20` in the Inspector, grouped with whatever else it needs.
-2. Select the finished group (or the placed copy, if you changed it) so it is the one selected
-   body.
+1. Build the shape again at the size you want: for a standoff, drag in a **Cube** and a
+   **Cylinder**, set the Cylinder's **Height** to `20` in the Inspector, and **Group** them. (A
+   placed copy of a saved part cannot be resized: its Parameters section is empty, and only
+   Move, Rotate and Color change. Start from fresh shapes, as here.)
+2. Select the finished group so it is the one selected body.
 3. Tap **To library**, type **Standoff 20 mm** and tap **Save**.
 
 **Standoff 20 mm** is a new row in My parts. Standoff itself is unchanged, and so are any copies of
