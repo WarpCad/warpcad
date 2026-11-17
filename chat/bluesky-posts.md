@@ -3127,3 +3127,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 14 unit tests → src/composables/useViewportDropTarget.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T20:30:00Z — ui-108 slice 6: WebGL context recovery out of Viewport.vue
+
+**Post:** What WarpCad's 3D view does when the browser takes the GPU away (stop drawing, wait, rebuild, or restore onto a fresh canvas) is now its own module with ten unit tests that run without a GPU. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ten unit tests → src/render/contextHandlers.spec.js, vitest this session
+**To Add:** none

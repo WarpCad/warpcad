@@ -9,14 +9,14 @@ depends: []
 status: open
 ---
 
-> **Progress (partial, still open).** Slice 5: the Library drop target (`contains`, `preview`, `clearPreview`, `commit`) moved to `src/composables/useViewportDropTarget.js` with 14 unit tests. Slice 4: `frameLoadedContent` (frame the camera on a loaded document) moved to `src/render/frameContent.js` with 5 unit tests. Slice 3: `onSketchChainKey` (the Line chain's Esc, Enter and Backspace rules, and the Esc that stands down Set scale and Auto-trace) moved to `src/render/sketchChainKeys.js` with 7 unit tests; the text-entry test is injected. Slice 2: `syncSketchPaths` and its nine change-detection keys moved to `src/render/sketchPathSync.js` (7 unit tests); `Viewport.vue` keeps a one-line forwarding wrapper. Re-measure line counts before the next slice, then drop `syncSketchPaths` from the list below. Slice 1: overlay and annotation sync (`syncOverlay`'s camera mirror,
+> **Progress (partial, still open).** Slice 6: the context-lost, restore and **Restore view** handling moved to `src/render/contextHandlers.js` with 10 unit tests. Slice 5: the Library drop target (`contains`, `preview`, `clearPreview`, `commit`) moved to `src/composables/useViewportDropTarget.js` with 14 unit tests. Slice 4: `frameLoadedContent` (frame the camera on a loaded document) moved to `src/render/frameContent.js` with 5 unit tests. Slice 3: `onSketchChainKey` (the Line chain's Esc, Enter and Backspace rules, and the Esc that stands down Set scale and Auto-trace) moved to `src/render/sketchChainKeys.js` with 7 unit tests; the text-entry test is injected. Slice 2: `syncSketchPaths` and its nine change-detection keys moved to `src/render/sketchPathSync.js` (7 unit tests); `Viewport.vue` keeps a one-line forwarding wrapper. Re-measure line counts before the next slice, then drop `syncSketchPaths` from the list below. Slice 1: overlay and annotation sync (`syncOverlay`'s camera mirror,
 > `syncAnnotations`, `syncCutPlane`) moved to `src/render/overlaySync.js`, uncommitted until the
 > commit that adds it. Hand checks still open are in `TODO/VERIFY.md` under ui-108 slice 1.
 > Steps 1–5a shipped in earlier commits, and step 5b plus part of
 > step 6 ship in the commit that adds `src/render/pointerGestures.js` and `src/render/sketchPreview.js`.
 > `Viewport.vue` is 1,712 lines, with 1,415 script lines (target under 600), and it no longer imports
 > three.js. Still to extract, each a separate no-behaviour-change commit: the
-> context-lost and restore handling, the watchers (move into a `useViewport*`
+> watchers (move into a `useViewport*`
 > composable), and the reactive overlay declarations. `pointerGestures.js` (938 lines) is over the
 > ~600-line guide; picking and the marquee are the natural split. Re-run acceptance 1, 4, 6, 7 and 9
 > and closed findings ui-012, ui-013, sketch-006, ui-049 before the final step.

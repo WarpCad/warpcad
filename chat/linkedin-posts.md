@@ -4526,3 +4526,14 @@ The hit test asks the document what is on top of the pointer as well as checking
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 14 unit tests and their cases → src/composables/useViewportDropTarget.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T20:30:00Z — ui-108 slice 6: WebGL context recovery out of Viewport.vue
+
+**Post:** When a browser drops WebGL, for instance in a background tab, WarpCad's 3D view stops drawing, waits, and then either rebuilds on the same canvas or offers Restore view. The handlers for that moved out of the viewport component into src/render/contextHandlers.js.
+
+The GPU calls and the canvas remount are passed in, so ten unit tests cover loss, restore, a Restore view that reuses the canvas, one that needs a fresh canvas, one that fails, one that throws, and a second press while one is running. A real context-restore e2e spec still passes on all three engines. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ten unit tests → vitest this session; context-restore spec on chromium, firefox and webkit → e2e partial run this session, 0 failed
+**To Add:** none

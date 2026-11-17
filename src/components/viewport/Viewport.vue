@@ -77,7 +77,8 @@ import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
-import { createViewport, rebuildGpuResources } from '../../render/scene.js'
+import { createViewport } from '../../render/scene.js'
+import { createContextHandlers } from '../../render/contextHandlers.js'
 import { createContextRecovery } from '../../render/contextRecovery.js'
 import { applyViewVisibility } from '../../render/mesh.js'
 import { readSceneTheme, sceneThemeOf } from '../../render/theme.js'
@@ -797,88 +798,27 @@ const frameLoadedContent = createFrameContent({
 // --- lifecycle ------------------------------------------------------------
 
 /**
- * The browser released the GPU (`TODO/render-006`): a background tab, a backgrounded iOS app, a
- * driver reset. `preventDefault` is what allows the context to be restored at all.
- *
- * @param {Event} event
+ * The WebGL context-lost and restore handlers (`TODO/render-006`, `TODO/ui-108`):
+ * `src/render/contextHandlers.js`. **Restore view** gives the canvas a fresh element through
+ * `canvasKey` when the old context stays lost.
  */
-function onContextLost(event) {
-  event.preventDefault()
-  // The assistant's capture_view renders through this context: with it gone, the agent stops
-  // offering the tool rather than offering one that fails (`TODO/ai-007`).
-  setViewportCapture(null)
-  if (rafId) cancelAnimationFrame(rafId)
-  rafId = 0
-  // Ignored unless drawing: a repeat event during the wait must not cut it short.
-  contextRecovery.lost()
-}
-
-/**
- * The browser handed the context back. three.js's own handler, registered on the canvas before
- * this one, has already reset its internal state; `rebuildGpuResources` marks what it re-uploads.
- */
-function onContextRestored() {
-  if (!viewport) return
-  if (rebuildGpuResources(viewport.renderer, viewport.graph.scene) === null) return
-  resumeDrawing()
-}
-
-/** Back to drawing: the banner goes, capture_view comes back, and the first frame is scheduled. */
-function resumeDrawing() {
-  if (!viewport) return
-  contextRecovery.restored()
-  setViewportCapture(createOffscreenCapture({ renderer: viewport.renderer, graph: viewport.graph }))
-  // Re-applies the size (a fresh canvas starts at 300×150) and schedules the frame.
-  measure()
-}
-
-/** @param {HTMLCanvasElement | null | undefined} canvas */
-function attachContextListeners(canvas) {
-  canvas?.addEventListener('webglcontextlost', onContextLost)
-  canvas?.addEventListener('webglcontextrestored', onContextRestored)
-}
-
-/** @param {HTMLCanvasElement | null | undefined} canvas */
-function detachContextListeners(canvas) {
-  canvas?.removeEventListener('webglcontextlost', onContextLost)
-  canvas?.removeEventListener('webglcontextrestored', onContextRestored)
-}
-
-let restoring = false
-
-/**
- * **Restore view** (`TODO/render-006`): dispose the renderer and draw the same scene graph through
- * a fresh one. On the same canvas if its context is alive again, otherwise on a new canvas
- * element, since a canvas whose context stays lost can never give out another. Never a page
- * reload: the document, both undo stacks, the selection, the camera and the kernel worker are
- * untouched.
- */
-async function onRestoreView() {
-  if (!viewport || restoring) return
-  restoring = true
-  let ok = false
-  try {
-    detachContextListeners(canvasEl.value)
-    if (viewport.isContextLost()) {
-      canvasKey.value += 1
-      await nextTick()
-    }
-    const canvas = canvasEl.value
-    if (canvas) {
-      // three's listeners go on in the renderer's constructor, ahead of the app's, as on mount.
-      viewport.replaceRenderer(canvas)
-      attachContextListeners(canvas)
-      ok = !viewport.isContextLost()
-    }
-  } catch {
-    ok = false
-    attachContextListeners(canvasEl.value)
-  } finally {
-    restoring = false
-  }
-  if (ok) resumeDrawing()
-  else contextRecovery.attemptFailed()
-}
+const contextHandlers = createContextHandlers({
+  viewport: () => viewport,
+  canvas: () => canvasEl.value,
+  recovery: contextRecovery,
+  cancelFrame: () => {
+    if (rafId) cancelAnimationFrame(rafId)
+    rafId = 0
+  },
+  measure: () => measure(),
+  remountCanvas: async () => {
+    canvasKey.value += 1
+    await nextTick()
+  },
+})
+const attachContextListeners = contextHandlers.attach
+const detachContextListeners = contextHandlers.detach
+const onRestoreView = contextHandlers.restoreView
 
 /** One token read per theme change, after `useTheme` has set `<html data-theme>`. */
 function onThemeChange() {
