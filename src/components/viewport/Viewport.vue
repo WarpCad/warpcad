@@ -65,6 +65,7 @@ import {
   updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
 import { createGizmoDrag } from '../../render/gizmoDrag.js'
+import { createFrameContent } from '../../render/frameContent.js'
 import { createSketchChainKeys } from '../../render/sketchChainKeys.js'
 import { createSketchPathSync } from '../../render/sketchPathSync.js'
 import { createOverlaySync } from '../../render/overlaySync.js'
@@ -78,7 +79,7 @@ import { createOrbitCamera } from '../../render/camera.js'
 import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
 import { createViewport, rebuildGpuResources } from '../../render/scene.js'
 import { createContextRecovery } from '../../render/contextRecovery.js'
-import { applyViewVisibility, drawnBoundsOf } from '../../render/mesh.js'
+import { applyViewVisibility } from '../../render/mesh.js'
 import { readSceneTheme, sceneThemeOf } from '../../render/theme.js'
 import { announcedColor, announcedPartColors, createBodyCounts, createBodyMeshes } from '../../render/bodyMeshes.js'
 import { createPlacementGhost } from '../../render/placementGhost.js'
@@ -857,42 +858,19 @@ const dropTarget = {
 // --- chrome + gizmo input (same camera model as the drags above) ----------
 
 /**
- * Frame the camera on everything in the document (`TODO/io-001`).
- *
- * Runs when a whole document is *loaded* — an autosave restore or an Open —
- * never on an edit. A loaded project whose geometry sits outside the default view
- * would otherwise read as an empty scene, and a user who had panned away before
- * reloading would reopen the app to what looks like lost work
- * (`interaction-model-qa.md` §10). Orientation is kept; only target and distance
- * move. Reads the summaries' plain `bounds`, so no geometry is touched.
- *
- * `TODO/ui-089`: a project that comes back with things hidden is framed on what is still
- * drawn, measured from the geometry; with nothing drawn at all, on everything, as before.
+ * Frame the camera on everything in the document when a whole document is loaded (`TODO/io-001`,
+ * `TODO/ui-089`): `src/render/frameContent.js`. The live document, as before; only the Shared view
+ * (`TODO/io-016`) frames what is on screen, the watched project. Any other preview (a Split
+ * sheet's pieces) must not change the framing.
  */
-function frameLoadedContent() {
-  // The live document, as before; only the Shared view (`TODO/io-016`) frames what is on screen,
-  // the watched project. Any other preview (a Split sheet's pieces) must not change the framing.
-  const summaries = props.presentation ? announcedBodies.value : documentStore.bodies
-  if (summaries.length === 0) return
-  if (summaries.some((body) => body.viewHidden || body.viewHiddenParts)) {
-    const drawn = drawnBoundsOf(props.presentation ? renderSource().bodies() : documentStore.raw.bodies())
-    if (drawn !== null) {
-      orbit.frameBounds(drawn[0], drawn[1], heightPx > 0 ? widthPx / heightPx : 1)
-      scheduleRender()
-      return
-    }
-  }
-  const min = [Infinity, Infinity, Infinity]
-  const max = [-Infinity, -Infinity, -Infinity]
-  for (const body of summaries) {
-    for (let axis = 0; axis < 3; axis += 1) {
-      min[axis] = Math.min(min[axis], body.bounds[0][axis])
-      max[axis] = Math.max(max[axis], body.bounds[1][axis])
-    }
-  }
-  orbit.frameBounds(min, max, heightPx > 0 ? widthPx / heightPx : 1)
-  scheduleRender()
-}
+const frameLoadedContent = createFrameContent({
+  orbit,
+  summaries: () => (props.presentation ? announcedBodies.value : documentStore.bodies),
+  rawBodies: () => (props.presentation ? renderSource().bodies() : documentStore.raw.bodies()),
+  widthPx: () => widthPx,
+  heightPx: () => heightPx,
+  scheduleRender: () => scheduleRender(),
+})
 
 // --- lifecycle ------------------------------------------------------------
 

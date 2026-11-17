@@ -3109,3 +3109,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** seven unit tests, key rules → src/render/sketchChainKeys.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T19:40:00Z — ui-108 slice 4: camera framing out of Viewport.vue
+
+**Post:** The code that points WarpCad's camera at a project you just opened or restored now lives in its own module, with five unit tests that include the case where you hid parts before saving. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** five unit tests → src/render/frameContent.spec.js, vitest this session
+**To Add:** none

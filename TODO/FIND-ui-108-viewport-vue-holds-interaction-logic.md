@@ -9,7 +9,7 @@ depends: []
 status: open
 ---
 
-> **Progress (partial, still open).** Slice 3: `onSketchChainKey` (the Line chain's Esc, Enter and Backspace rules, and the Esc that stands down Set scale and Auto-trace) moved to `src/render/sketchChainKeys.js` with 7 unit tests; the text-entry test is injected. Slice 2: `syncSketchPaths` and its nine change-detection keys moved to `src/render/sketchPathSync.js` (7 unit tests); `Viewport.vue` keeps a one-line forwarding wrapper. Re-measure line counts before the next slice, then drop `syncSketchPaths` from the list below. Slice 1: overlay and annotation sync (`syncOverlay`'s camera mirror,
+> **Progress (partial, still open).** Slice 4: `frameLoadedContent` (frame the camera on a loaded document) moved to `src/render/frameContent.js` with 5 unit tests. Slice 3: `onSketchChainKey` (the Line chain's Esc, Enter and Backspace rules, and the Esc that stands down Set scale and Auto-trace) moved to `src/render/sketchChainKeys.js` with 7 unit tests; the text-entry test is injected. Slice 2: `syncSketchPaths` and its nine change-detection keys moved to `src/render/sketchPathSync.js` (7 unit tests); `Viewport.vue` keeps a one-line forwarding wrapper. Re-measure line counts before the next slice, then drop `syncSketchPaths` from the list below. Slice 1: overlay and annotation sync (`syncOverlay`'s camera mirror,
 > `syncAnnotations`, `syncCutPlane`) moved to `src/render/overlaySync.js`, uncommitted until the
 > commit that adds it. Hand checks still open are in `TODO/VERIFY.md` under ui-108 slice 1.
 > Steps 1–5a shipped in earlier commits, and step 5b plus part of

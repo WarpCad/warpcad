@@ -4504,3 +4504,14 @@ Those rules used to be reachable only through a browser test. Now seven unit tes
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** seven unit tests → vitest this session; text-entry check injected → git diff
 **To Add:** none
+
+## 2026-11-17T19:40:00Z — ui-108 slice 4: camera framing out of Viewport.vue
+
+**Post:** When WarpCad opens or restores a project it moves the camera so the geometry is in view. That logic left the viewport component and is now src/render/frameContent.js.
+
+It frames the union of all bodies at the viewport's aspect ratio. If parts were hidden when the project was saved, it frames only what is still drawn, and falls back to everything when nothing is. Five unit tests cover those branches, plus an empty document and a viewport with no height yet. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** branches and five unit tests → src/render/frameContent.js and its spec, vitest this session
+**To Add:** none
