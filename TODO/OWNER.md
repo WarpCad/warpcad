@@ -14,7 +14,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | § | What | Items | Your time | What it unlocks |
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
-| [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 5 | ~10 min total | 39 more rows the runner can then drive |
+| [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
 | [2](#2-questions--answer-from-anywhere) | Questions | 9 now, 79 being drafted | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 5 | 38 min total | closes rows |
@@ -24,7 +24,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | [8](#8-older-device-feel-checks--see-q1) | Older device feel checks | 89 | depends on Q1 | — |
 | [9](#9-parked--not-asked) | Parked | 19 | none until reopened | — |
 
-**Next for you:** U1 (a question, 1 minute), then U2 (start a computer-use run and walk away).
+**Next for you:** Q1 (1 min, replace the 89 older device feel checks with free-form passes?).
 
 ## How answers work
 
@@ -67,83 +67,16 @@ These were sitting in VERIFY.md as `Open` but need no owner. `/run-todos` runs t
 |---|---|---|
 | [`testing-044`](FIND-testing-044-drive-agent-drivable-verify-rows.md) | Drives the rows an agent can settle: app checks by mouse and keyboard, emulated phone widths, `claude -p` on the subscription, docs fixes, closed-by-evidence rows. Also checks 11 cold-read rows against the queued wording findings (`ui-127`, `ui-128`, `ui-129`, `docs-036`) and moves them or turns them into questions here. Step 0: download the iOS 26.0 simulator runtime (`build-034` #1), and if its Safari has the Remote Automation switch, put `testing-027` (23 iOS Simulator rows) back in the queue | 40 + 11 |
 | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md), part 1 | Gathers the evidence for the 79 parked product decisions and writes a recommendation for each, as questions in §2. Only your answers are left for you | 79 decisions |
-| [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) | Gist and hosted-repo checks against real GitHub. **Waits on U1** | 9 |
-| [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) | Native dialogs, the Mac app and the iOS Simulator's own UI, driven with computer use. **Waits on U2** | 5 + 19 |
-| [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) | Desktop Safari through safaridriver. **Waits on U3** | 6 |
+| [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) | Gist and hosted-repo checks against real GitHub, with your `gh` login (U1 answered) | 9 |
+| [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) | Native dialogs, the Mac app and the iOS Simulator's own UI, driven with computer use. **Running** in the Claude desktop app (U2 done) | 5 + 19 |
+| [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) | Desktop Safari through safaridriver. U3 done; in the runner's queue | 6 |
 | Bookkeeping, decided 2026-11-17 | Commit the three filed native rows (`build-040`, `io-034`, `ai-043`) and the `testing-037` status edit in `warpcad-native`, leaving the files of unknown origin alone (`TODO/ROADMAP.md`, M19 notes) | — |
 
 ---
 
 ## 1. Unblockers — a minute each, then the runner takes over
 
-#### U1 · Let the runner use a scratch GitHub area for the gist and hosted-save checks
-
-**Question:** May the runner create, read and delete secret gists and one private scratch repository on
-your GitHub account, to run the nine gist and hosted-save checks?
-
-**Background:** WarpCad can publish a project as a GitHub gist and save to a GitHub repository. Nine checks
-need the real GitHub, not the test fake: gist titles and README rendering (`io-020`, `io-022`, `io-023`),
-"Update gist" merging edits from two devices (`io-019`), a stale hosted save merging (`io-011`), a project over
-1 MB and the two kinds of 403 (`io-002`), and the gist half of `io-035` #4. The runner would use your existing
-`gh` login, mark every gist secret, name the repository `warpcad-scratch` (private), and delete everything it
-made when the task ends.
-
-**Options:**
-- **Yes, use my gh login (Recommended):** `testing-045` joins the queue and runs unattended. Nothing is
-  public; everything it creates is listed in its commit and deleted.
-- **Yes, but with a separate token:** you make a fine-grained token (Gists read/write, one repository) and save
-  it as Keychain item `warpcad-test-github-token`. Same result, narrower access, 3 more minutes of yours.
-
-**If deferred:** the nine rows stay with you as phone and laptop checks.
-
-**Answer:** question
-
-#### U2 · Start the computer-use run in the Claude desktop app, then leave the Mac
-
-`testing-028` · 2 min to start, then 1-2 hours unattended
-
-**Steps:** 1. Save your work. Computer use moves the pointer and types, so don't use the Mac while it runs.
-2. Open the **Claude desktop app** → Code → this repository (`~/src/@WarpCad/warpcad`). 3. Type
-`/fix-todo testing-028` and approve computer use when asked. 4. Walk away.
-
-**Pass if:** it starts driving. It covers native file dialogs, private windows, the Mac app (Save into
-Documents/WarpCad, external links, Help and the console), and the iOS Simulator's own screens (Files labels,
-Mail and iCloud opens, the Key sheet, the safe area on a notched iPhone): 5 old rows plus 19 moved today.
-
-**Answer:** action
-
-#### U3 · Clear the way for safaridriver
-
-`testing-026` · 2 min
-
-**Steps:** 1. Quit Safari completely (Cmd-Q; save anything open first). 2. In Terminal run
-`sudo safaridriver --enable` and type your password (harmless if already enabled). 3. Leave Safari closed until the
-runner has had one tick.
-
-**Pass if:** Done. The runner retries a WebDriver session. If it still times out, it records that, and the six
-desktop-Safari rows come back to you as quick Mac checks.
-
-**Answer:** action
-
-#### U4 · Put the Sentry DSN in the Keychain
-
-`build-035` #1 · 2 min · filed 2026-11-16
-
-**Steps:** 1. In Terminal: `security add-generic-password -a warpcad -s warpcad-sentry-dsn -w '<your DSN>'` (the DSN is in sentry.io → Settings → Projects → WarpCad → Client Keys). 2. Run `cd ~/src/@WarpCad/warpcad-native && npm run ios:release -- --check`.
-
-**Pass if:** The check prints `Sentry DSN set`. The runner then does the Mac crash-report test (`build-035` #2) itself.
-
-**Answer:** action
-
-#### U5 · Make a fine-grained token with no Gists permission
-
-`io-017` #1 · 3 min · filed 2026-10-28
-
-**Steps:** 1. github.com → Settings → Developer settings → Fine-grained tokens → Generate. 2. Give it no permissions at all, 1-day expiry. 3. Save it in the Keychain: `security add-generic-password -a warpcad -s warpcad-test-nogist-token -w '<token>'`.
-
-**Pass if:** Done. The runner calls `PATCH /gists/000…` with it and records whether GitHub answers 403 (needed) or 404.
-
-**Answer:** action
+All five answered 2026-11-17 (see **Answered**). New ones go here.
 
 ---
 
@@ -1913,5 +1846,11 @@ Reopen any of these by telling an agent "unpark Z<n>".
 ## Answered
 
 One line per answered item, newest first: `YYYY-MM-DD · <code> · <answer> · <where it was recorded>`.
+
+- 2026-11-17 · U5 · Done (saved as `warcad-test-nogist-token`; agent copied it to `warpcad-test-nogist-token`). Probe answered 404, not 403 · `VERIFY.md` io-017 #1 Issue; filed `FIND-io-037`, Next up row 83
+- 2026-11-17 · U4 · Done (agent verified the Keychain DSN matches `SENTRY_DSN`; `--check` output unconfirmed) · `VERIFY.md` build-035 #1 OK; `FIND-testing-028`
+- 2026-11-17 · U3 · Done: Safari quit, safaridriver enabled · `FIND-testing-026`; `ROADMAP.md` Next up row 82
+- 2026-11-17 · U2 · Done: `testing-028` started in the Claude desktop app with computer use · `FIND-testing-028`, `ROADMAP.md` Held
+- 2026-11-17 · U1 · Use my gh login (secret gists, private `warpcad-scratch`) · `FIND-testing-045`; `ROADMAP.md` Next up row 81
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

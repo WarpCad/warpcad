@@ -9,8 +9,8 @@ depends: []
 status: open
 ---
 
-> **Held until the owner answers `TODO/OWNER.md` U1.** The answer says which credential to use: the owner's `gh`
-> login, or Keychain item `warpcad-test-github-token`.
+> **Decided 2026-11-17 (owner, /owner, U1):** use the owner's `gh` login. Secret gists and a private `warpcad-scratch`
+> repository only; delete everything at the end. Un-held; in the Findings queue.
 
 ## Problem
 

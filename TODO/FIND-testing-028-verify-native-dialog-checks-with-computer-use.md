@@ -9,6 +9,9 @@ depends: []
 status: open
 ---
 
+> **Started 2026-11-17 (owner, /owner, U2):** the owner launched this from the Claude desktop app with computer use. It is
+> not in the `/run-todos` queue, so the two runs never collide.
+
 ## Problem
 
 Some `TODO/VERIFY.md` rows were left for a person only because they open a native dialog or window that
@@ -36,7 +39,7 @@ Rows (entry and row number in `TODO/VERIFY.md`):
 The owner-queue triage (`TODO/OWNER.md`) moved these 19 rows here. Each needs a native window, the Safari Web
 Inspector attached to a Tauri web view, or taps inside the Simulator's own apps (Files, Mail, Settings), which only
 computer use can reach. The owner starts this task from the Claude desktop app (OWNER.md U2) and leaves the Mac.
-Rows that need the owner's Sentry DSN (`build-035` #2) wait for OWNER.md U4. If it is not done, skip that row and say so.
+`build-035` #2 can run: the DSN is in Keychain item `warpcad-sentry-dsn` (OWNER.md U4 done 2026-11-17).
 **Never stop to ask the owner mid-run:** anything that turns out to need the owner goes to `TODO/OWNER.md` in its format.
 
 | Row | Check |

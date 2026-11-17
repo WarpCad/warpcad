@@ -9,6 +9,9 @@ depends: []
 status: open
 ---
 
+> **Done 2026-11-17 (owner, /owner, U3):** Safari quit and `sudo safaridriver --enable` run; Safari confirmed closed. Un-held.
+> Run with the shell sandbox off. Earlier note:
+>
 > **2026-11-17:** the owner step is now `TODO/OWNER.md` U3 (quit Safari, `sudo safaridriver --enable`). When U3 is
 > answered Done, this task joins the Findings queue. If the session still times out, settle what you can, move the
 > rest to OWNER.md §3 as quick Mac checks with steps, and close the task. Do not hold it again.
