@@ -5,8 +5,11 @@ kind: finding
 priority: low
 model: opus
 depends: []
-status: open
+status: closed
 ---
+
+> **Closed 2026-11-17 as premise false.** The split as written would remove about 0 kB from the main bundle, not the 300 kB target, because the document fold and about ten other main-thread files still import the kernel. See the decision line under Proposed fix.
+
 
 ## Problem
 
@@ -43,6 +46,8 @@ L. Touches the architecture rule on kernel/worker boundaries; confirm the metada
 boundary with the user first.
 
 **Decided 2026-11-13:** approve the registry split as written (metadata module for the main thread, implementations for the workers only, direct `evaluate` callers routed through the worker RPC). No reason beyond the recommendation was given.
+
+**Decided 2026-11-17:** close as premise false. The 2026-11-15 run measured that the document fold runs on the main thread by recorded decision (`docs/decisions/kernel-evaluation-worker.md` slices 1–4), and about ten other main-thread files import `@jscad/modeling`, so the split as written removes about 0 kB, not the 300 kB target. No reason beyond the recommendation was given. Closed 2026-11-17 with this file's move to TODO/done/.
 
 ## Testing
 
