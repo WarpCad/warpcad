@@ -59,6 +59,8 @@ waits on one stays held. Rows that collide with another session's uncommitted ed
 (`87398c2f`, the six styles), so the rows were unparked the same day. The stash-on-failure rule in `TODO/BUDGET.md` now
 stashes only the failed task's own paths.
 
+**Decided 2026-11-17 (owner, in `/whats-next`):** commit the 7 uncommitted files (`TODO/BUDGET.md`, `TODO/OWNER.md`, `TODO/VERIFY.md`, `docs/user-library.md`, `docs/webmcp.md`, `chat/bluesky-posts.md`, `chat/linkedin-posts.md`) as bookkeeping with `/commit`, before the runner resumes. Nothing is pushed. Not yet committed. No reason beyond the recommendation was given.
+
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
 `ui-108`; the numbers of the rows that closed are gone. What is left is `ui-108` (it splits `Viewport.vue`), the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed

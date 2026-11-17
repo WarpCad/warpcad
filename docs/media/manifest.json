@@ -317,9 +317,9 @@
   "open-project.gif": {
     "spec": "e2e/docs/save-load.docs.js",
     "theme": "light",
-    "specHash": "1b3e0583ff215ed74ee609aae4d3d36b3f66f02d3b090e82c9acad6d58f75778",
-    "bytes": 860209,
-    "seconds": 8.13
+    "specHash": "07717498eef8baef4570b5d16321aad51aec8323c661ffb1f85c4d3db8cf1df5",
+    "bytes": 478539,
+    "seconds": 5.88
   },
   "save-reload-roundtrip.gif": {
     "spec": "e2e/docs/save-load.docs.js",
@@ -815,9 +815,9 @@
   "open-project.dark.gif": {
     "spec": "e2e/docs/save-load.docs.js",
     "theme": "dark",
-    "specHash": "1b3e0583ff215ed74ee609aae4d3d36b3f66f02d3b090e82c9acad6d58f75778",
-    "bytes": 640738,
-    "seconds": 6.76
+    "specHash": "07717498eef8baef4570b5d16321aad51aec8323c661ffb1f85c4d3db8cf1df5",
+    "bytes": 499644,
+    "seconds": 5.76
   },
   "orientation-gizmo-snap.dark.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",

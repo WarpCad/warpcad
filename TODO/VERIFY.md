@@ -93,7 +93,7 @@ Typecheck, unit (9659/9659) and the pair e2e run (firefox-laptop + webkit-phone)
 | 3 | Acceptance scenario 28 on the iPad: Save in the app, then the file shows as a WarpCad project in Files (needs io-036's device pass too) | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I1. |
 | 4 | Closed-finding repros io-016 (Send the file), io-017 and io-020 (gist project file name), io-021 (Save as gist), native io-014 (Mail attachment, iCloud file opened in place), each with a `.warpcad` and an `.ndjson` | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
 | 5 | iPad Safari (PWA, not the app): Open… can select a `.warpcad` file (ACCEPT_ATTRIBUTE). WebKit's accept list was checked by spec; the greying-out cannot be reproduced in Playwright | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I2. |
-| 6 | `npm run docs:gifs` regenerates `open-project.gif` (stale, recorded from an older save-load spec) in a scoped movies directory, not the whole set | Moved | 2026-11-17 (owner-queue triage): → `testing-044`. |
+| 6 | `npm run docs:gifs` regenerates `open-project.gif` (stale, recorded from an older save-load spec) in a scoped movies directory, not the whole set | OK | 2026-11-17 (`testing-044` part 2): re-recorded `open-project` only, light and dark (`save-load.docs.js`, `docs-laptop` and `docs-laptop-dark`), encoded through a scoped folder with `convertMovies`; only `open-project.gif`, `open-project.dark.gif` and `manifest.json` changed (479 and 500 kB, inside the budget). |
 
 ### io-036 — iOS declares .warpcad and imports .ndjson (2026-11-16 17:47)
 
@@ -414,7 +414,7 @@ Built by generator `npm run icons` in `warpcad-native`. Nothing was run on a sim
 |---|---|---|---|
 | 1 | iPhone and iPad home screen: the WarpCad mark is full-bleed with no ring or pre-rounded corners | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I7. |
 | 2 | Launch screen is `#10131a` with no white frame, on iPhone and iPad | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I8. |
-| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` M1. |
+| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Issue | 2026-11-17 owner, Mac: fail. The Dock tile is the stock size, but the cube mark inside fills about a third of it and floats in a dark starburst, so it reads small next to Chrome and Xcode. Screenshot `TODO/owner-media/build-023-3-dock.png`. Finding filed in warpcad-native (see OWNER.md Answered, M1). Was M1. |
 | 4 | Windows taskbar and Start menu show the tile | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` Z9. |
 
 ### ui-097 — Align target part (2026-11-06 19:03 UTC)
@@ -2696,7 +2696,7 @@ unchanged — is now covered on a standing basis by `TODO/ACCEPTANCE.md` scenari
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Right-button drag on a laptop trackpad with no physical right button.** Most trackpads synthesize a right-click via a two-finger tap/click-and-hold rather than a true held "button 2" during a drag, and some trackpad drivers only fire `button: 2` on the initial press, not on subsequent `pointermove` events during the drag. Try an actual two-finger-click-and-drag on a real Mac trackpad and a real two-button mouse and confirm both actually pan smoothly for the drag's whole duration, not just flicker into pan mode for the first frame (the constant to check is `pressButton` in `src/components/viewport/Viewport.vue`, captured once at `pointerdown`). | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` M3. |
+| 1 | **Right-button drag on a laptop trackpad with no physical right button.** Most trackpads synthesize a right-click via a two-finger tap/click-and-hold rather than a true held "button 2" during a drag, and some trackpad drivers only fire `button: 2` on the initial press, not on subsequent `pointermove` events during the drag. Try an actual two-finger-click-and-drag on a real Mac trackpad and a real two-button mouse and confirm both actually pan smoothly for the drag's whole duration, not just flicker into pan mode for the first frame (the constant to check is `pressButton` in `src/components/viewport/Viewport.vue`, captured once at `pointerdown`). | OK | 2026-11-17 owner, Mac (MacBook trackpad, no mouse): pass. Two-finger click-and-drag pans the view. Was M3. |
 
 ### ui-012 — Gizmo move/rotate ↔ numeric-field sync (2026-09-06 13:09)
 
