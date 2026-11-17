@@ -311,6 +311,36 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 **Answer:** validation
 
+#### M22 · Desktop Safari: a sideways swipe over the Library does not scroll the page
+
+`ui-085` #1 · 3 min · filed 2026-11-07
+
+**Steps:** 1. Open https://app.warpcad.com in desktop Safari at laptop width, open the Library. 2. Swipe two fingers sideways over the Library list. 3. System Settings → Appearance → Show scroll bars: **Automatically**, repeat; then **Always**, repeat. Put your setting back.
+
+**Pass if:** The page never moves sideways, with either setting.
+
+**Answer:** validation
+
+#### M23 · Desktop Safari: Combine pop-out at about 720 px
+
+`ui-082` #1 · 3 min · filed 2026-11-07
+
+**Steps:** 1. In desktop Safari drag the window to about 720 px wide. 2. Place two Cubes, select both, press **Combine ▾**. 3. Click outside the pop-out.
+
+**Pass if:** The pop-out opens under the launcher without covering the orientation triad, Union is easy to hit, and the outside click closes it.
+
+**Answer:** validation
+
+#### M24 · Safari: no white frame on a slow load
+
+`build-002` #1 · 5 min · filed 2026-10-10
+
+**Steps:** 1. Safari → Develop → Network Conditions (or Web Inspector throttling) on https://app.warpcad.com, a slow profile, hard reload. 2. Watch from navigation until the UI appears. 3. Repeat in Chrome and Firefox DevTools if you like.
+
+**Pass if:** No white frame shows between navigation and the dark UI.
+
+**Answer:** validation
+
 ---
 
 ## 4. Accounts and settings

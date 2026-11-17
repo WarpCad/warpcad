@@ -489,6 +489,16 @@ Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). 
 
 **Steps taken to resolve:** Ran `compileStyle` on the selector, saw the output, rewrote the nine child selectors.
 
+### 2026-11-17 — safaridriver times out creating a session even after `--enable`
+
+**What happened:** `testing-026` started `safaridriver -p <port>` (sandbox off) and `POST /session` with `browserName: safari`. After 30 s: `session not created: … timed out while connecting to a Safari instance … Request creation of a new automation session`, though `GET /status` answered `ready: true`. Same on 2026-11-07 and after the owner ran `sudo safaridriver --enable` and quit Safari. A `safaridriver &` started inside one tool call is killed when the call returns; run it as its own background task.
+
+**Why it happened:** not found. Safari 27.2 was running with a window, and `defaults read com.apple.Safari AllowRemoteAutomation` has no key. The usual causes are a sheet open in Safari or Remote Automation off in the Develop menu.
+
+**Fix / Prevention:** not fixed; the Safari rows became quick Mac checks (OWNER.md M22-M24). Next attempt: confirm Develop → Allow Remote Automation is ticked, quit Safari fully, then start the driver and the session within 30 s.
+
+**Steps taken to resolve:** probed on three ports with the owner's Safari left running; did not quit it.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

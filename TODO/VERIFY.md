@@ -740,7 +740,7 @@ Fixed and spec'd on Playwright WebKit; real desktop Safari with a trackpad was n
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Desktop Safari on the deployed build: a sideways two-finger swipe over the Library does nothing, with "Show scroll bars" on Automatic and on Always | Moved | Moved 2026-11-07 to `FIND-testing-026`: an AI drive can settle it. |
+| 1 | Desktop Safari on the deployed build: a sideways two-finger swipe over the Library does nothing, with "Show scroll bars" on Automatic and on Always | Owner | 2026-11-17 (`testing-026`): safaridriver could not start a session on this Mac (`session not created … timed out while connecting to a Safari instance`, 30 s, Safari 27.2, free port, sandbox off), though OWNER.md U3 was done; the same timeout as 2026-11-07. Closed as a quick Mac check → `TODO/OWNER.md` M22. |
 | 2 | The Help **?** now sits at the content edge (8px further left than before): confirm it still looks aligned with the hint | OK | 2026-11-14 (`FIND-testing-017`): measured at the Library hint row in Chromium, WebKit and Firefox. Phone 390 and laptop 1440: **Help ?** is 44x44, its right edge equals the sheet's content edge (overhang 0.00 px, was 8 px), 8 px gap to the hint, vertical centres within 0.02 px, no overlap, the sheet's `scrollWidth` equals `clientWidth` (390 and 239). The hint reads on 1 line at phone and 2 lines at laptop (the column is 239 px). **Tablet 820: N/A**, the Library is the 72 px icon rail there (`data-library-form="rail"`, `ui-079`), so neither the hint nor the Help button is rendered. Screenshots `r6-ui085-*-{phone,laptop}.png`. |
 
 ### ui-086 — Align popover: seven positions per axis (2026-10-26 07:16)
@@ -767,7 +767,7 @@ Scenarios 4 and 16 and the `ui-043`/`ui-015` repros passed with a real mouse. Wh
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real iPad in Split View (or any window about 720 px wide), tap Combine ▾ with two bodies selected: the pop-out opens under the launcher without covering the orientation triad, Union is easy to hit, and a tap outside closes it | Moved | Moved 2026-11-07 to `FIND-testing-026`: an AI drive can settle it. |
+| 1 | On a real iPad in Split View (or any window about 720 px wide), tap Combine ▾ with two bodies selected: the pop-out opens under the launcher without covering the orientation triad, Union is easy to hit, and a tap outside closes it | Owner | 2026-11-17 (`testing-026`): safaridriver could not start a session on this Mac (`session not created … timed out while connecting to a Safari instance`, 30 s, Safari 27.2, free port, sandbox off), though OWNER.md U3 was done; the same timeout as 2026-11-07. Closed as a quick Mac check → `TODO/OWNER.md` M23. |
 
 ### ui-081 — Library section launchers and section pop-out (2026-10-22 14:54 UTC)
 
@@ -2682,7 +2682,7 @@ delay doesn't reproduce a real mobile network's connection-setup latency.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Watch a real Slow-3G + 4x-CPU-throttled load in Chrome/Firefox/Safari DevTools by eye**, on a real machine, and confirm no white frame is visible between navigation and the dark UI appearing — per the TODO's own Testing section, this matters most for WebKit/Safari specifically, since this defect is very plausibly the same white-flash bug both previous attempts shipped on iPad/Safari. | Moved | Moved 2026-11-07 to `FIND-testing-026`: an AI drive can settle it. |
+| 1 | **Watch a real Slow-3G + 4x-CPU-throttled load in Chrome/Firefox/Safari DevTools by eye**, on a real machine, and confirm no white frame is visible between navigation and the dark UI appearing — per the TODO's own Testing section, this matters most for WebKit/Safari specifically, since this defect is very plausibly the same white-flash bug both previous attempts shipped on iPad/Safari. | Owner | 2026-11-17 (`testing-026`): safaridriver could not start a session on this Mac (`session not created … timed out while connecting to a Safari instance`, 30 s, Safari 27.2, free port, sandbox off), though OWNER.md U3 was done; the same timeout as 2026-11-07. Closed as a quick Mac check → `TODO/OWNER.md` M24. |
 
 ### ui-018 — Shift+left-drag or right-drag pans the viewport (2026-09-06 16:08)
 

@@ -6,9 +6,11 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage (Safari pass)
 depends: []
-status: open
+status: done
 ---
 
+> **Shipped 2026-11-17 (closed on the task's own fallback):** safaridriver still could not create a session (30 s timeout, Safari 27.2, three ports, sandbox off), so no row was driven. Three rows became quick Mac checks (`OWNER.md` M22, M23, M24); `io-010` #2 and `ui-079` #3 had been closed by the owner's Q1; `ai-012` #3 is M8. The cause is not found; see `TROUBLESHOOTING.md`.
+>
 > **Done 2026-11-17 (owner, /owner, U3):** Safari quit and `sudo safaridriver --enable` run; Safari confirmed closed. Un-held.
 > Run with the shell sandbox off. Earlier note:
 >

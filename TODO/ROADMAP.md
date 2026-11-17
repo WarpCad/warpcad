@@ -48,7 +48,7 @@ the full history is in git.*
 3. **Screws, threads and gears stay deferred**: `core-065`, `core-074`, `ui-080` and the seven M11 rows are renamed `DEFER-…`
    and listed under [Deferred](#open-work-outside-any-milestone), out of every table the runner reads.
 4. **`testing-032` runs in the loop**, with `claude -p` on the owner's subscription (`testing-022` ran the same way and is closed).
-5. **`testing-026` and `testing-027` are held** (setup still missing; see [Held](#held--not-run-by-run-todos)).
+5. **`testing-026` (closed 2026-11-17) and `testing-027` are held** (setup still missing; see [Held](#held--not-run-by-run-todos)).
 6. **`testing-033` is held** and run by hand, because its job is to ask questions. *(Superseded 2026-11-17: split. Its drafting half runs in the loop as row 80, and the asking is `/owner`.)*
 7. **Nothing native is pushed**, to GitHub or the App Store. Every M19 row is held. *(Relaxed 2026-11-15, below.)*
 
@@ -73,7 +73,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [M19](#m19--native-ios-app-tauri) | 3 queued (1 ready, 2 waiting), run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 32 queued (all ready) + 2 held + 1 running | The runner's queue after M19, led by the owner-queue rows (80-82). Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`), `ai-044` (Q3). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
-| 82 | ▶ Ready | `FIND` | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop Safari checks through safaridriver (OWNER.md U3 done; sandbox off) | sonnet |
 | 80 | ▶ Ready | `FIND` | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Part 1: draft a recommendation for each of the 79 parked decisions into `TODO/OWNER.md` | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
@@ -194,7 +193,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
-| [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | ▶ Ready (Next up row 82) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
 | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Part 1: draft a recommendation for each of the 79 parked decisions into `TODO/OWNER.md` (asking is `/owner`) | finding | medium | sonnet | ▶ Ready (Next up row 80) |
@@ -383,7 +381,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `testing-026` | Desktop Safari checks through safaridriver (6 VERIFY.md rows). Un-held 2026-11-17 by OWNER.md U3; run with the shell sandbox off | Finding | — | none |
 | `testing-033` | Part 1 only: draft the evidence and a recommendation for each of the 79 parked product decisions, written as questions in `TODO/OWNER.md` §2. Asking is `/owner`, never this row. Split 2026-11-17 | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
 | `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed. **Owner 2026-11-17 (Q2): guard radius and spacing** | Finding | — | none |
