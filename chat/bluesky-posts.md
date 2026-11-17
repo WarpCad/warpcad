@@ -3082,3 +3082,21 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Rust test and 7 node tests, red first; native npm run check green; required-reason APIs found by scanning a linked app binary
 **To Add:** none
+
+## 2026-11-16T17:25:48Z — ui-122: three sketch pickers on SegmentedToggle
+
+**Post:** WarpCad's sketch pickers (curve kind, extrude method, Solid/Hole) now share one segmented toggle component, so a restyle reaches them. Arrow keys work on them too. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** curve kind, extrude method, Solid/Hole moved to SegmentedToggle → git diff (src/components/sketch/*); arrow-key selection → TODO/done/ui-115 says SegmentedToggle renders roving tabindex; twelve kept with a comment → git diff (12 files, one-line additions)
+**To Add:** none
+
+## 2026-11-17T18:56:00Z — ui-108 slice 2: sketch outline sync out of Viewport.vue
+
+**Post:** WarpCad's 3D viewport component lost another chunk: the code that redraws sketch outlines only when something changed now lives in its own module with seven unit tests, no behaviour change. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** seven unit tests → vitest run this session; no behaviour change → sketch e2e specs green on webkit-tablet, firefox-laptop, chromium-laptop, chromium-phone this session
+**To Add:** none

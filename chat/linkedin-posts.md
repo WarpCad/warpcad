@@ -4469,3 +4469,27 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Rust test and 7 node tests, red first; native npm run check green (71 tests); required-reason scan of two linked app binaries that agree
 **To Add:** none
+
+## 2026-11-16T17:25:48Z — ui-122: three sketch pickers on SegmentedToggle
+
+**Post:** WarpCad's sketch tools had three segmented pickers, each with its own markup and CSS, so a restyle of the shared toggle never reached them. They now use the shared component, keep their test ids, and gain arrow-key selection.
+
+Twelve other candidates stay as they are, each with a one-line comment at the top of its file saying why. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** curve kind, extrude method, Solid/Hole moved to SegmentedToggle → git diff (src/components/sketch/*); arrow-key selection → TODO/done/ui-115 says SegmentedToggle renders roving tabindex; twelve kept with a comment → git diff (12 files, one-line additions)
+**To Add:** none
+
+## 2026-11-17T18:56:00Z — ui-108 slice 2: sketch outline sync out of Viewport.vue
+
+**Post:** One more slice of the viewport refactor: the function that re-projects sketch outlines, the revolve axis and the Line chain, and the nine cached values that decide whether to redraw, moved out of Viewport.vue into src/render/sketchPathSync.js.
+
+Because the cache is now private to a small module, a unit test can check that an unchanged frame redraws nothing and that a forced sync always does. The component never allowed that. The component keeps a one-line wrapper, so its watchers did not change.
+
+Seven unit tests cover it, and the sketch specs pass on WebKit, Firefox and Chromium. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** nine cached values, one-line wrapper → git diff; seven unit tests and sketch specs on three engines → test runs this session
+**To Add:** none

@@ -61,18 +61,17 @@ import {
   createRulerAnnotation,
   createMarqueeRect,
   createSketchPath,
-  updateSketchPath,
   createSnapGuideAnnotations,
   updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
 import { createGizmoDrag } from '../../render/gizmoDrag.js'
+import { createSketchPathSync } from '../../render/sketchPathSync.js'
 import { createOverlaySync } from '../../render/overlaySync.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
 import { isTextEntry } from '../../composables/textEntry.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
-import { isClosed, toPointsMm } from '../../sketch/profile.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
@@ -537,17 +536,6 @@ watch(
 
 // --- the sketch editor (TODO/sketch-001) ---------------------------------
 
-/** What the last `syncSketchPaths` drew from, so an unchanged frame redraws nothing. */
-let sketchSyncedDraft = /** @type {object | null} */ (null)
-let sketchSyncedCamera = -1
-let sketchSyncedSize = ''
-let sketchSyncedSelection = ''
-let sketchSyncedHover = ''
-let sketchSyncedSlice = -1
-let sketchSyncedVertex = -2
-let sketchSyncedHoverVertex = -2
-let sketchSyncedTool = ''
-
 /** The active slice's offset along the sketch's own Z. */
 function activeSliceZ() {
   return sketchEditor.slice?.zMm ?? 0
@@ -601,92 +589,28 @@ const pointer = createPointerGestures({
 })
 
 /**
- * Re-project the draft's outlines, if anything they depend on changed.
- *
- * Called from the render callback (camera moves) and from the draft watcher (edits).
- *
- * @param {boolean} [force]
+ * The sketch outline sync (`TODO/ui-108`): re-projects the draft's outlines, the revolve axis and
+ * the chain when something they depend on changed. `src/render/sketchPathSync.js`.
  */
-function syncSketchPaths(force = false) {
-  if (!sketchEditor.active) {
-    if (sketchPaths.length > 0) sketchPaths.splice(0)
-    sketchHandler.clear()
-    sketchAxis.visible = false
-    sketchDraftPath.visible = false
-    sketchChain.visible = false
-    sketchDraw.live.has = false
-    sketchSnapper.hide()
-    sketchSyncedDraft = null
-    return
-  }
-  const size = `${widthPx}x${heightPx}`
-  const draft = sketchEditor.draft
-  if (
-    !force &&
-    sketchSyncedDraft === draft &&
-    sketchSyncedCamera === orbit.version &&
-    sketchSyncedSize === size &&
-    sketchSyncedSelection === sketchEditor.selectedProfileId &&
-    sketchSyncedHover === sketchEditor.hoverProfileId &&
-    sketchSyncedSlice === sketchEditor.activeSlice &&
-    sketchSyncedVertex === sketchEditor.selectedVertex &&
-    sketchSyncedHoverVertex === sketchEditor.hoverVertex &&
-    sketchSyncedTool === sketchEditor.tool
-  ) {
-    return
-  }
-  sketchSyncedDraft = draft
-  sketchSyncedCamera = orbit.version
-  sketchSyncedSize = size
-  sketchSyncedSelection = sketchEditor.selectedProfileId
-  sketchSyncedHover = sketchEditor.hoverProfileId
-  sketchSyncedSlice = sketchEditor.activeSlice
-  sketchSyncedVertex = sketchEditor.selectedVertex
-  sketchSyncedHoverVertex = sketchEditor.hoverVertex
-  sketchSyncedTool = sketchEditor.tool
-  const frame = sketchEditor.frame
-  /** @type {any[]} */
-  const next = []
-  draft.slices.forEach((slice, sliceIndex) => {
-    const active = sliceIndex === sketchEditor.activeSlice
-    for (const profile of slice.profiles) {
-      const closed = isClosed(profile)
-      const points = profile.kind === 'polyline' ? profile.pointsMm : toPointsMm(profile, 64)
-      const path = updateSketchPath(orbit, frame, points, slice.zMm, closed || (profile.kind === 'polyline' && profile.closed), widthPx, heightPx, createSketchPath())
-      next.push({
-        key: `${slice.id}/${profile.id}`,
-        id: profile.id,
-        sliceIndex,
-        role: profile.role,
-        closed,
-        open: profile.kind === 'polyline' && !profile.closed,
-        active,
-        selected: active && profile.id === sketchEditor.selectedProfileId,
-        hover: active && profile.id === sketchEditor.hoverProfileId,
-        visible: path.visible,
-        d: path.d,
-        badgeX: path.maxXPx + 4,
-        badgeY: path.minYPx - 4,
-      })
-    }
-  })
-  sketchPaths.splice(0, sketchPaths.length, ...next)
-  sketchHandler.sync()
+const sketchPathSync = createSketchPathSync({
+  orbit,
+  sketchEditor,
+  paths: sketchPaths,
+  axis: sketchAxis,
+  draftPath: sketchDraftPath,
+  chain: sketchChain,
+  handler: sketchHandler,
+  draw: sketchDraw,
+  snapper: sketchSnapper,
+  referenceImage,
+  widthPx: () => widthPx,
+  heightPx: () => heightPx,
+  sliceZ: activeSliceZ,
+})
 
-  // Revolve and Helical spin around the sketch's Y axis (x = 0): draw it, dashed, long
-  // enough to read at any zoom.
-  const method = draft.extrusion.method
-  if (method === 'revolve' || method === 'helical') {
-    const reachMm = Math.max(200, (orbit.getMmPerPixel(heightPx) || 1) * heightPx)
-    const axis = updateSketchPath(orbit, frame, [[0, -reachMm], [0, reachMm]], activeSliceZ(), false, widthPx, heightPx, createSketchPath())
-    sketchAxis.visible = axis.visible
-    sketchAxis.d = axis.d
-  } else {
-    sketchAxis.visible = false
-  }
-  sketchDraw.drawChain()
-  sketchSnapper.draw()
-  referenceImage.syncOverlay()
+/** @param {boolean} [force] */
+function syncSketchPaths(force = false) {
+  sketchPathSync.sync(force)
 }
 
 /**
