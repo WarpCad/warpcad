@@ -34,6 +34,7 @@
 import { consumesOf } from './booleanConsumes.js'
 import { hasMergeableParts, planGroupMerge } from './groupMerge.js'
 import { mirrorRotationDeg } from './kernel/group.js'
+import { RENAME_OP, normalizeBodyName } from './naming.js'
 
 /** @typedef {import('./document.js').WarpDocument} WarpDocument */
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
@@ -103,6 +104,24 @@ export function booleanRecord(document, op, operands) {
     operands: operands.slice(1).map((operand) => operand.ref),
     consumes: consumesOf(document, op, operands),
   }
+}
+
+/**
+ * A body's new name: the `style.rename` record `document.renameBody` appends, built for a writer
+ * that has not appended its records yet (the AI `create` and `operate` tools, `TODO/FIND-ai-041`
+ * gap 3). Refuses a blank name, which `renameBody` reads as "clear the override".
+ *
+ * @param {WarpDocument} document
+ * @param {string} root The body's lineage-root id, which the record's id is minted from.
+ * @param {string} terminal The record currently representing the body.
+ * @param {unknown} name
+ * @returns {OpRecord}
+ */
+export function renameRecord(document, root, terminal, name) {
+  const checked = normalizeBodyName(name)
+  if (!checked.ok) throw new Error(checked.reason)
+  if (checked.name === null) throw new Error('a name must not be blank')
+  return { id: document.nextId(`${root}-rename`), op: RENAME_OP, target: terminal, supersedes: terminal, params: { name: checked.name } }
 }
 
 /**

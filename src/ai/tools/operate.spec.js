@@ -690,6 +690,56 @@ describe('group.setPartHidden — the AI can mark a part hidden by default (TODO
   })
 })
 
+describe('a boolean on part of a group keeps the other parts (TODO/FIND-ai-041 gap 1)', () => {
+  const tools = createToolRegistry()
+
+  /**
+   * Cubes 1 and 2 grouped (x −10…10 and 5…25), cube 3 left loose (x 20…40), so cube 3
+   * overlaps only part "Cube 2", by 5 mm in x.
+   *
+   * @returns {{ document: import('../../core/document.js').WarpDocument, ctx: any, group: string, cutter: string }}
+   */
+  function groupAndCutter() {
+    const { document, ids } = cubes(3)
+    const ctx = makeContext({ document })
+    const grouped = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.assemble', operands: [{ id: ids[0] }, { id: ids[1] }] }))
+    return { document, ctx, group: grouped.applied[0].bodyId, cutter: ids[2] }
+  }
+
+  it('subtract with { id: group, pieces } cuts only that part and leaves the rest of the group', () => {
+    const { document, ctx, group, cutter } = groupAndCutter()
+    const result = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'boolean.subtract', operands: [{ id: group, pieces: 'Cube 2' }, { id: cutter }] }))
+    expect(result.error).toBeUndefined()
+    const body = /** @type {any} */ (document.bodies().find((candidate) => candidate.id === result.applied[0].bodyId))
+    expect(Object.keys(body.geometry.parts ?? {}).sort()).toEqual(['Cube 1', 'Cube 2'])
+    expect(volumeOf(body.geometry.parts['Cube 1'])).toBeCloseTo(8000, 3)
+    expect(volumeOf(body.geometry.parts['Cube 2'])).toBeCloseTo(6000, 3)
+    expect(document.entries.at(-1)?.record).toMatchObject({ op: 'boolean.subtract', params: { keepParts: true } })
+  })
+
+  it('intersect and union keep the other parts the same way', () => {
+    const cut = groupAndCutter()
+    const kept = /** @type {any} */ (tools.run(cut.ctx, 'operate', { op: 'boolean.intersect', operands: [{ id: cut.group, pieces: 'Cube 2' }, { id: cut.cutter }] }))
+    const intersected = /** @type {any} */ (cut.document.bodies().find((candidate) => candidate.id === kept.applied[0].bodyId))
+    expect(volumeOf(intersected.geometry.parts['Cube 1'])).toBeCloseTo(8000, 3)
+    expect(volumeOf(intersected.geometry.parts['Cube 2'])).toBeCloseTo(2000, 3)
+
+    const join = groupAndCutter()
+    const joined = /** @type {any} */ (tools.run(join.ctx, 'operate', { op: 'boolean.union', operands: [{ id: join.group, pieces: 'Cube 2' }, { id: join.cutter }] }))
+    const united = /** @type {any} */ (join.document.bodies().find((candidate) => candidate.id === joined.applied[0].bodyId))
+    expect(volumeOf(united.geometry.parts['Cube 1'])).toBeCloseTo(8000, 3)
+    expect(volumeOf(united.geometry.parts['Cube 2'])).toBeCloseTo(14000, 3)
+  })
+
+  it('a whole-body base is unchanged: no keepParts, and a flat result', () => {
+    const { document, ctx, group, cutter } = groupAndCutter()
+    const result = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'boolean.subtract', operands: [{ id: group }, { id: cutter }] }))
+    expect(document.entries.at(-1)?.record.params).toBeUndefined()
+    const body = /** @type {any} */ (document.bodies().find((candidate) => candidate.id === result.applied[0].bodyId))
+    expect(body.geometry.parts).toBeUndefined()
+  })
+})
+
 describe('group.renamePart — the AI can name a group’s parts (TODO/ui-094)', () => {
   const tools = createToolRegistry()
 
@@ -710,5 +760,36 @@ describe('group.renamePart — the AI can name a group’s parts (TODO/ui-094)',
     expect(JSON.stringify(bad)).toMatch(/Cube 1, Lid/)
     const taken = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.renamePart', operands: [{ id: bodyId }], params: { part: 'Cube 1', to: 'Lid' } }))
     expect(JSON.stringify(taken)).toMatch(/already has a part called Lid/)
+  })
+})
+
+describe('style.rename — the AI can name a body (TODO/FIND-ai-041 gap 3)', () => {
+  const tools = createToolRegistry()
+
+  it('writes document.renameBody’s own record, under the call’s origin', () => {
+    const { document, ids } = cubes(2)
+    const twin = cubes(2).document
+    const ctx = makeContext({ document, origin: 'mcp' })
+    const grouped = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'group.assemble', operands: ids.map((id) => ({ id })) }))
+    tools.run(makeContext({ document: twin, origin: 'mcp' }), 'operate', { op: 'group.assemble', operands: ids.map((id) => ({ id })) })
+    const bodyId = grouped.applied[0].bodyId
+    const result = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'style.rename', operands: [{ id: bodyId }], params: { name: 'Enclosure' } }))
+    expect(result.error).toBeUndefined()
+    expect(result.applied[0].bodyId).toBe(bodyId)
+    expect(document.bodies().find((body) => body.id === bodyId)?.name).toBe('Enclosure')
+    twin.renameBody(bodyId, 'Enclosure', { origin: 'mcp' })
+    expect(document.entries.at(-1)?.record).toEqual(twin.entries.at(-1)?.record)
+    expect(document.entries.at(-1)?.origin).toBe('mcp')
+  })
+
+  it('refuses a blank name and a part address, and changes nothing', () => {
+    const { document, ids } = cubes(1)
+    const ctx = makeContext({ document })
+    const before = JSON.stringify(document.entries)
+    const blank = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'style.rename', operands: [{ id: ids[0] }], params: { name: ' ' } }))
+    expect(blank.reason).toMatch(/name must not be blank/)
+    const part = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'style.rename', operands: [{ id: ids[0], pieces: 'x' }], params: { name: 'Lid' } }))
+    expect(part.reason).toMatch(/cannot take a part address/)
+    expect(JSON.stringify(document.entries)).toBe(before)
   })
 })

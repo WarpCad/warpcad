@@ -35,7 +35,8 @@ import { DEFAULT_JOINT_CLEARANCE_MM, JOINT_TYPES, MAX_PLACEMENTS, PLACEMENT_KIND
 import { DOWEL_STOCKS } from '../../core/kernel/recipes/joint.dowel.js'
 import { BUTTERFLY_SIDES } from '../../core/kernel/recipes/joint.butterfly.js'
 import { MAGNET_SIZES } from '../../core/kernel/recipes/joint.magnet.js'
-import { bisectParams, booleanRecord, groupMergeRecord, groupRecord, inPlaceRecord, mirrorRecord, snapAlignRecord } from '../../core/operationRecords.js'
+import { MAX_NAME_LENGTH } from '../../core/naming.js'
+import { bisectParams, booleanRecord, groupMergeRecord, groupRecord, inPlaceRecord, mirrorRecord, renameRecord, snapAlignRecord } from '../../core/operationRecords.js'
 import { rotateRecord, translateRecord } from '../../core/transform.js'
 import { uniqueBranches } from './create.js'
 import { findBody } from './read.js'
@@ -103,7 +104,12 @@ function booleanSpec(label, description) {
     label,
     description,
     params: objectSchema({}),
-    build: (document, operands, _params, op) => booleanRecord(document, op, operands),
+    // A base named by part keeps the group's other parts (TODO/FIND-ai-041 gap 1): the
+    // kernel's `keepParts`. Without it the model's "cut the Base" silently lost the Pin.
+    build: (document, operands, _params, op) => {
+      const record = booleanRecord(document, op, operands)
+      return typeof operands[0].ref === 'object' ? { ...record, params: { keepParts: true } } : record
+    },
   }
 }
 
@@ -349,6 +355,21 @@ export const OPERATIONS = Object.freeze({
     ),
     (params) => ({ part: params.part, hidden: params.hidden })
   ),
+  // TODO/FIND-ai-041 gap 3: the Inspector's Name field, as `document.renameBody` writes it.
+  'style.rename': {
+    label: 'Rename',
+    description:
+      'Give a body a new name, as the Inspector’s Name field does (a Group made by group.assemble is "Group 1" until renamed). ' +
+      `One undoable step; the body keeps its id. At most ${MAX_NAME_LENGTH} characters; a whole body only, never a part (group.renamePart names a part).`,
+    params: objectSchema({ name: { type: 'string', description: 'The new name, e.g. "Enclosure".' } }, ['name']),
+    build: (document, operands, input, op) => {
+      try {
+        return renameRecord(document, operands[0].id, operands[0].terminal, input.name)
+      } catch (error) {
+        throw new Error(`${op}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    },
+  },
   'group.renamePart': renamePartSpec(
     'Rename a part',
     'Give one named part of a Group or a placed Library part (an imported model’s Part 1, Part 2, …) a new name. One undoable step; the part keeps its place, colour and visibility. Names are unique within the body, at most 80 characters, with no comma and not only digits. A ready-made part’s own names (a bolt’s head) cannot be changed, nor a part a Repeat uses.',
@@ -539,8 +560,6 @@ export const NOT_OFFERED = Object.freeze({
     'The bevel gear’s loft (TODO/core-045), a 2D-profile step inside gear.bevel exactly like profile.extrudeLinear. A body on screen is never a 2D profile, so there is nothing for the model to loft.',
   'style.recolor':
     'Colour is not geometry, and the UI writes it through document.setColorOverride rather than a plain append. A recolour tool is a later addition, not part of v1.',
-  'style.rename':
-    'Renaming is the human’s call from the Inspector (document.renameBody); a rename tool is a later addition, not part of v1.',
   'group.removePart':
     'Removing a part from a placed group is destructive and is the human’s call from the Inspector; not offered to the model in v1.',
   'import.mesh':

@@ -66,7 +66,7 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 3 queued (1 ready, 2 waiting), run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 26 queued (all ready) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
+| [Findings](#findings-open-rows) | 26 queued (all ready) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-044`. |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
@@ -109,7 +109,6 @@ yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the 
 - [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari behaviour checks in the iOS Simulator (34 rows). **Held:** each simulator needs Settings › Safari › Advanced › **Remote Automation** turned on first
 - [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Checks blocked on native OS dialogs and private windows, with computer use (6 rows). **Held:** needs computer use, which only the Claude desktop app has
 - [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md; ask in batches. **Held:** its whole job is asking the owner ~80 questions in batches; run it by hand with `/fix-todo testing-033`, never in the loop
-- [`ai-041`](FIND-ai-041-tool-gaps-found-writing-the-first-two-skills.md) Tool gaps found writing the first two skills (no part copy, no body rename, no offset, no per-part clearance). **Held:** eight gaps to triage with the owner, which to build as tools; filed 2026-11-15 when `ai-035` closed
 
 ---
 
@@ -177,7 +176,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
 | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the owner decisions parked in VERIFY.md, draft a recommendation for each, and ask in batches | finding | medium | sonnet | Held (owner first) |
-| [`ai-041`](FIND-ai-041-tool-gaps-found-writing-the-first-two-skills.md) Tool gaps found writing the first two skills: triage which to build as tools | finding | medium | sonnet | Held (owner first) |
+| [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (held: owner triage first) | finding | low | opus | Held (owner first) |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
 | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
 | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
@@ -479,7 +478,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 26 queued + 5 held | 26 ready for `/run-todos`; `testing-026`–`028`, `testing-033`, `ai-041` held. |
+| [Findings](#findings-open-rows) | 26 queued + 5 held | 26 ready for `/run-todos`; `testing-026`–`028`, `testing-033`, `ai-044` held. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 2 queued + 11 held | Done locally, awaiting the device pass: `io-036`, `io-035`; `io-030` closes by hand with them. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

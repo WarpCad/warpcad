@@ -1245,6 +1245,31 @@ export function mapGeometry(value, fn) {
 }
 
 /**
+ * A new group with each **named** part replaced by `fn` of itself, every other part, the
+ * holes, the names, colours and meta kept as they were (`TODO/FIND-ai-041` gap 1). What a
+ * part-keeping boolean (`params.keepParts`) does to its base: cut the Base, keep the Pin.
+ *
+ * @param {Group} group
+ * @param {string} pieces Comma-separated part names; validated as {@link combine} does.
+ * @param {(geometry: Geom3) => Geom3} fn
+ * @returns {Group}
+ */
+export function mapParts(group, pieces, fn) {
+  const named = new Set(resolvePieces(group, pieces))
+  /** @type {Record<string, Geom3>} */
+  const parts = {}
+  for (const [name, geometry] of Object.entries(group.parts)) parts[name] = named.has(name) ? fn(geometry) : geometry
+  return Object.freeze({
+    name: group.name,
+    names: group.names,
+    parts: Object.freeze(parts),
+    holes: group.holes,
+    colors: group.colors ?? NO_COLORS,
+    ...metaField(group.meta),
+  })
+}
+
+/**
  * Translate every part and hole of a group, returning a new group.
  *
  * @param {Group} group

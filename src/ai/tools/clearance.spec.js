@@ -55,3 +55,53 @@ describe('check_clearance', () => {
     expect(tools.run(makeContext({ document }), 'check_clearance', { a, b: 'nope-1' }).error).toMatch(/nope-1/)
   })
 })
+
+describe('check_clearance between parts of one group (TODO/FIND-ai-041 gap 4)', () => {
+  /**
+   * A Base cube (x −5…5) and a Pin cube (x 7…17) grouped into one body, 2 mm apart in x, and
+   * a loose Lid cube (x 19…29), 2 mm past the Pin.
+   *
+   * @returns {{ document: import('../../core/document.js').WarpDocument, group: string, lid: string }}
+   */
+  function baseAndPin() {
+    const document = createDocument()
+    const base = create(document, { op: 'primitive.cuboid', positionMm: [0, 0, 0], params: { size: [10, 10, 10] } })
+    const pin = create(document, { op: 'primitive.cuboid', positionMm: [12, 0, 0], params: { size: [10, 10, 10] } })
+    const lid = create(document, { op: 'primitive.cuboid', positionMm: [24, 0, 0], params: { size: [10, 10, 10] } })
+    const grouped = /** @type {any} */ (tools.run(makeContext({ document }), 'operate', { op: 'group.assemble', operands: [{ id: base }, { id: pin }] }))
+    return { document, group: grouped.applied[0].bodyId, lid }
+  }
+
+  it('measures the gap between two named parts of the same body', () => {
+    const { document, group } = baseAndPin()
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'check_clearance', { a: group, aPieces: 'Cube 1', b: group, bPieces: 'Cube 2' }))
+    expect(result.error).toBeUndefined()
+    expect(result.interpenetrating).toBe(false)
+    expect(result.gapMm).toBeCloseTo(2, 6)
+    expect(result.closestMm.onA[0]).toBeCloseTo(5, 6)
+    expect(result.closestMm.onB[0]).toBeCloseTo(7, 6)
+    expect(result.a).toMatchObject({ id: group, pieces: 'Cube 1' })
+    expect(result.b).toMatchObject({ id: group, pieces: 'Cube 2' })
+  })
+
+  it('a part against another whole body, and the whole body unchanged without pieces', () => {
+    const { document, group, lid } = baseAndPin()
+    const ctx = makeContext({ document })
+    const part = /** @type {any} */ (tools.run(ctx, 'check_clearance', { a: group, aPieces: 'Cube 1', b: lid }))
+    expect(part.gapMm).toBeCloseTo(14, 6)
+    const whole = /** @type {any} */ (tools.run(ctx, 'check_clearance', { a: group, b: lid }))
+    expect(whole.gapMm).toBeCloseTo(2, 6)
+    expect(whole.a.pieces).toBeUndefined()
+  })
+
+  it('refuses the same parts twice, an unknown part naming the real ones, and parts of a plain solid', () => {
+    const { document, group, lid } = baseAndPin()
+    // A fresh turn per call: a turn stops a tool after three failures in a row (limits.js).
+    /** @param {any} input @returns {string} */
+    const refusal = (input) => /** @type {any} */ (tools.run(makeContext({ document }), 'check_clearance', input)).error
+    expect(refusal({ a: group, b: group, bPieces: 'Cube 2' })).toMatch(/two different/)
+    expect(refusal({ a: group, aPieces: 'Cube 2', b: group, bPieces: 'Cube 2' })).toMatch(/two different/)
+    expect(refusal({ a: group, aPieces: 'Pin', b: lid })).toMatch(/no part named "Pin".*Cube 1, Cube 2/)
+    expect(refusal({ a: lid, aPieces: 'Cube 1', b: group })).toMatch(/has no parts/)
+  })
+})

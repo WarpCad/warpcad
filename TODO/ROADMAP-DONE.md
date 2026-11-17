@@ -964,6 +964,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `core-083` | A sketch's Linear Twist now takes its steps from the resolution (at most 3° a step) when Twist steps is left at 1, so Twist 90 on 30 × 16 × 30 mm reads 14 091 mm³, not 3 820; a count below the floor is refused. Docs and the Extrude panel say what Twist steps does | Finding | 9 |
 | ✅ `ui-125` | The header's Undo refusal now reads `Can't undo Place Cube 1: a step added by a browser agent (Move Cube 1) builds on it. Open History to suppress that step first.`, from History labels and a plain-words origin and not a record id, and shows as an alert in the save-status chip (a wrapped panel under the header) instead of a second red block that squeezed the hint. The error carries `code: 'undo-blocked'`. Filed 2026-11-14 from `testing-019` | Finding | — | none |
 | ✅ `ai-037` | The dev server now binds `127.0.0.1` (`server.host`, as `preview` does), so the endpoint `npm run mcp:add -- --dev` registers answers and `claude mcp get warpcad` reads Connected; `http://localhost:5183` still works and `::1` and the LAN are not bound. `scripts/dev-server-host.spec.js` starts the real dev server and asks it. Filed 2026-11-14 from the `testing-022` drive. [`done/ai-037`](done/ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) | Finding | — | 25 (re-driven, step 2 wording unchanged) |
+| ✅ `ai-041` | Tool gaps found writing the first two skills: a boolean on one part of a group keeps the other parts, `create` takes a name, `operate` offers `style.rename`, and `check_clearance` measures between parts of a group (gaps 1, 3 and 4). Gaps 2, 5–8 filed as `ai-044`. | finding | — | none |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
 
@@ -1415,6 +1416,7 @@ convention going forward.
 | `io-036` | 2026-11-16 17:47 | not timed (Step 3 start not recorded) |
 | `io-035` | 2026-11-16 18:39 | not timed (Step 3 start not recorded) |
 | `io-030` | 2026-11-17 00:13 | not timed (Step 3 start not recorded) |
+| `ai-041` | 2026-11-17 04:01 | 1h08m |
 
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

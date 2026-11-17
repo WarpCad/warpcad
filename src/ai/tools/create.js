@@ -37,6 +37,7 @@ import { registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { checkInput, objectSchema, paramsSchemaFor, splitRationale, vectorSchema, withRationale } from './schema.js'
 import { curvePoints } from '../../sketch/curves.js'
 import { placeReferenceImages } from './image.js'
+import { renameRecord } from '../../core/operationRecords.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
@@ -49,6 +50,9 @@ import { placeReferenceImages } from './image.js'
  * @property {string} op
  * @property {[number, number, number]} positionMm
  * @property {Record<string, any>} [params]
+ * @property {string} [name] The body's name (`TODO/FIND-ai-041` gap 3); absent, the Library's
+ *   numbered default ("Cube 1"). Written as the `style.rename` record the Inspector's rename
+ *   appends, never as `record.name`, which is also the body's key in the scene group.
  */
 
 /**
@@ -94,6 +98,23 @@ function idPrefixFor(op) {
  * @returns {BuiltStep}
  */
 export function buildCreateRecords(document, input, ops = kernelRegistry, references) {
+  const built = buildPlacementRecords(document, input, ops, references)
+  if (input.name === undefined) return built
+  // The rename continues the body from its last record: the drop, for a composite.
+  const terminal = /** @type {string} */ (built.records.at(-1)?.id)
+  return { ...built, records: [...built.records, renameRecord(document, built.bodyId, terminal, input.name)] }
+}
+
+/**
+ * {@link buildCreateRecords} without the name: the records a drag-to-place commits.
+ *
+ * @param {WarpDocument} document
+ * @param {CreateInput} input
+ * @param {Registry} ops
+ * @param {import('./image.js').ToolReferences} [references]
+ * @returns {BuiltStep}
+ */
+function buildPlacementRecords(document, input, ops, references) {
   const { op, positionMm } = input
   const entry = ops[op]
   if (!entry || entry.operandCount !== 0 || !entry.ui) throw new Error(`${op} is not something create can place`)
@@ -217,6 +238,7 @@ export function createInputSchema(ops) {
         description: 'Params for the chosen op; any omitted take the op’s defaults. Lengths in millimetres, angles in degrees.',
         anyOf: uniqueBranches(creatable.map((op) => paramsSchemaFor(op, ops).schema)),
       },
+      name: { type: 'string', description: 'Optional name for the new body, e.g. "Lid". Omitted, it is numbered like a Library drop ("Cube 1").' },
     },
     ['op', 'positionMm'],
     'One body to place.'

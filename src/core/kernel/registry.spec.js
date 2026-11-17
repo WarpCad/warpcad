@@ -2297,3 +2297,43 @@ describe('primitive.cuboid — a corner radius along one axis (TODO/core-080)', 
     expect(segmentsFor(r, policyFor('print'))).toBeGreaterThan(segmentsFor(r, policyFor('draft')))
   })
 })
+
+describe('boolean.* params.keepParts — a boolean on part of a group keeps the rest (TODO/FIND-ai-041 gap 1)', () => {
+  // A (x −1…1) and B (x 4…6) grouped; C (x 5…7) overlaps only B, by 1 mm in x.
+  const base = [
+    { id: 'a', op: 'primitive.cuboid', params: { size: [2, 2, 2] } },
+    { id: 'b', op: 'primitive.cuboid', params: { size: [2, 2, 2], center: [5, 0, 0] } },
+    { id: 'c', op: 'primitive.cuboid', params: { size: [2, 2, 2], center: [6, 0, 0] } },
+    { id: 'g', op: 'group.assemble', target: 'a', operands: ['b'], params: { names: ['A', 'B'] } },
+  ]
+
+  /**
+   * @param {Record<string, any>} cut
+   * @returns {any}
+   */
+  function valueOf(cut) {
+    return evaluate([...base, { id: 'r', op: 'boolean.subtract', ...cut }]).byId.get('r')
+  }
+
+  it('without the flag, a pieces base still folds to the flat cut it always did', () => {
+    const value = valueOf({ target: { id: 'g', pieces: 'B' }, operands: ['c'] })
+    expect(isGroup(value)).toBe(false)
+    expect(measurements.measureVolume(value)).toBeCloseTo(4, 6)
+  })
+
+  it('with the flag, only the named part is cut and the others, names and holes stay', () => {
+    const value = valueOf({ target: { id: 'g', pieces: 'B' }, operands: ['c'], params: { keepParts: true } })
+    expect(isGroup(value)).toBe(true)
+    expect(value.names).toEqual(['A', 'B'])
+    expect(measurements.measureVolume(value.parts.A)).toBeCloseTo(8, 6)
+    expect(measurements.measureVolume(value.parts.B)).toBeCloseTo(4, 6)
+  })
+
+  it('refuses the flag on a base that names no parts, a non-boolean flag, and a union naming two parts', () => {
+    expect(() => valueOf({ target: 'g', operands: ['c'], params: { keepParts: true } })).toThrow(/keepParts needs a first operand that names parts/)
+    expect(() => valueOf({ target: { id: 'g', pieces: 'B' }, operands: ['c'], params: { keepParts: 'yes' } })).toThrow(/keepParts must be true or false/)
+    expect(() =>
+      evaluate([...base, { id: 'r', op: 'boolean.union', target: { id: 'g', pieces: 'A,B' }, operands: ['c'], params: { keepParts: true } }])
+    ).toThrow(/name one part/)
+  })
+})

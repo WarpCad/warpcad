@@ -49,6 +49,7 @@ import {
   fit,
   isGroup,
   mapGeometry,
+  mapParts,
   mergeInto,
   mirror,
   partNameProblem,
@@ -233,6 +234,9 @@ import { UserFacingError } from '../userError.js'
  *   flavour of geometry an id holds (see {@link KernelGeometry}).
  *   `profile.extrudeLinear` is handed a `geom2`; an entry declaring `rawOperands` is
  *   handed {@link ResolvedOperand}s instead of geometry at all.
+ * @property {ResolvedOperand} [base] A `subPartOperands` entry that is not `rawOperands`
+ *   (the three booleans) also gets its first operand un-combined, with its `pieces`, so
+ *   `params.keepParts` can cut just the named parts and keep the rest (`TODO/FIND-ai-041`).
  * @property {import('./tessellation.js').TessellationPolicy} [policy] The design's
  *   resolution (`TODO/core-035`). A curve whose record carries no explicit `segments`
  *   takes its count from this; absent means `legacy`, the old fixed 32.
@@ -562,6 +566,32 @@ function requireAxes(axes, op) {
     )
   }
   return axes
+}
+
+/**
+ * A boolean's result when its record sets `params.keepParts` (`TODO/FIND-ai-041`): the base
+ * group with each named part run through `apply` against the other operands, the rest kept.
+ * `undefined` when the flag is off, so the caller builds the flat result it always has.
+ *
+ * @param {string} op
+ * @param {Record<string, any>} params
+ * @param {ResolvedOperand | undefined} base The first operand un-combined, from the fold.
+ * @param {Geom3[]} inputs Every operand flattened, base first.
+ * @param {(part: Geom3, others: Geom3[]) => Geom3} apply
+ * @returns {Group | undefined}
+ */
+function keepingParts(op, params, base, inputs, apply) {
+  if (params.keepParts === undefined || params.keepParts === false) return undefined
+  if (params.keepParts !== true) throw new Error(`${op}: keepParts must be true or false, got ${JSON.stringify(params.keepParts)}`)
+  if (base === undefined || base.pieces === undefined || !isGroup(base.value)) {
+    throw new Error(`${op}: keepParts needs a first operand that names parts of a group ({ id, pieces })`)
+  }
+  const named = base.pieces.split(',').map((piece) => piece.trim())
+  if (op === 'boolean.union' && named.length !== 1) {
+    throw new Error(`${op}: keepParts joins the other operands into one part, so name one part, got "${base.pieces}"`)
+  }
+  const others = inputs.slice(1)
+  return mapParts(base.value, base.pieces, (part) => apply(part, others))
 }
 
 /**
@@ -1928,16 +1958,32 @@ export const registry = Object.freeze({
   // corpus evidence behind it live on `subPartNative` itself; what matters here is
   // that it is the *family* rule, not a `subtract`-only special case, because the
   // real call sites union port clearances as readily as they subtract tap holes.
-  'boolean.union': subPartNative('2+', ({ inputs }) => booleans.union(inputs)),
+  //
+  // ### `params.keepParts`: a boolean on part of a group keeps the other parts (TODO/FIND-ai-041)
+  //
+  // Without it, a base addressed as `{ id: group, pieces: 'Base' }` is flattened to just
+  // Base and the result is one solid: the group's Pin is gone. With `keepParts: true` the
+  // result is the base group with each named part cut (or intersected) on its own and every
+  // other part, hole, colour and name untouched. A union keeping parts names one part, which
+  // the other operands join. An opt-in flag rather than a new default, so a saved document's
+  // boolean evaluates exactly as it did; the AI `operate` tool writes it whenever the base
+  // names parts. It is refused, by name, on a base that names no parts.
+  'boolean.union': subPartNative('2+', ({ inputs, params, base }) =>
+    keepingParts('boolean.union', params, base, inputs, (part, others) => booleans.union(part, ...others)) ?? booleans.union(inputs)
+  ),
 
-  'boolean.subtract': subPartNative('2+', ({ inputs }) => booleans.subtract(inputs)),
+  'boolean.subtract': subPartNative('2+', ({ inputs, params, base }) =>
+    keepingParts('boolean.subtract', params, base, inputs, (part, others) => booleans.subtract(part, ...others)) ?? booleans.subtract(inputs)
+  ),
 
   // The third of §6's Operation rows (TODO/ui-014). `subtract` and `intersect`
   // are both order-dependent in the same way — `inputs[0]` is the base, and the
   // fold puts `target` there before any `operands` (see `index.js`'s
   // `inputRefs`) — which is what lets the Operations toolbar map "first
   // selected" onto "base" without the document layer knowing about selection.
-  'boolean.intersect': subPartNative('2+', ({ inputs }) => booleans.intersect(inputs)),
+  'boolean.intersect': subPartNative('2+', ({ inputs, params, base }) =>
+    keepingParts('boolean.intersect', params, base, inputs, (part, others) => booleans.intersect(part, ...others)) ?? booleans.intersect(inputs)
+  ),
 
   // The fourth Operations-toolbar button (TODO/ui-015), placed beside the booleans
   // rather than beside `group.snap`/`group.align` below despite the shared `group.`

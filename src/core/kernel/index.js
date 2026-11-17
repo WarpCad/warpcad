@@ -474,7 +474,11 @@ export function evaluate(records, options = {}) {
       // this is the one place the wider possibility is acknowledged.
       // A `group.*` op hands back the `Group` it was given, parts intact — that is
       // what lets V1's `.snap(...).snap(...)` chain survive the fold as two records.
-      value = prebuilt ?? /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs, policy }))
+      // A flattened sub-part op (the booleans) also sees its base un-combined, so a record's
+      // `params.keepParts` can cut the named parts and keep the rest (TODO/FIND-ai-041).
+      const baseValue = acceptsPieces && !wantsRaw && inputRefs.length > 0 ? byId.get(inputRefs[0].id) : undefined
+      const base = baseValue === undefined ? undefined : { value: baseValue, pieces: inputRefs[0].pieces }
+      value = prebuilt ?? /** @type {Geom3 | Group} */ (entry.build({ params: record.params ?? {}, inputs, policy, ...(base === undefined ? {} : { base }) }))
     }
 
     /** @type {CachedBuild | undefined} */

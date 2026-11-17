@@ -51,6 +51,15 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ai-041 — tool gaps 1, 3 and 4 (2026-11-17 04:01 UTC)
+
+Two skill drives (claude -p, Haiku, subscription) passed: add-clearances on the Housing fixture (measured the Pin with evaluate_formula, cut the pocket, check_clearance reads 0.2 mm) and create-enclosure on the Pi fixture (90 calls, enclosure built). Two things were not covered by those drives.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `docs/mcp.md` around line 237 says a rebuilt group comes back "Group 1" and must be renamed in the app. That is now stale: `create` takes `name`, and `operate` offers `style.rename`. Fix the wording. | Open | |
+| 2 | The human Operations toolbar still writes the flat boolean, because `keepParts` is opt-in. Check in the app that Subtract on one part of a group keeps the others, or decide that the toolbar stays as it is. | Open | |
+
 ### ui-108 slice 1 — overlay and annotation sync out of Viewport.vue (2026-11-17 UTC)
 
 The hand drive could not reach everything the slice touches. Each open check is a one-off, and the first two would only move if a later extraction touched the same path. Filled in by hand: Status and Notes.

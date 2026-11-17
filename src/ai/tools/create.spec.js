@@ -215,3 +215,47 @@ describe('create — a sketch from a curve spec (TODO/sketch-008)', () => {
   })
 })
 
+
+describe('create — an optional name (TODO/FIND-ai-041 gap 3)', () => {
+  const tools = createToolRegistry()
+
+  it('names the body with the same style.rename record the Inspector’s rename writes', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const twin = createDocument({ replica: 'abcdef' })
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], name: '  Lid ' }))
+    expect(result.error).toBeUndefined()
+    const bodyId = result.applied[0].bodyId
+    expect(document.bodies().find((body) => body.id === bodyId)?.name).toBe('Lid')
+    expect(result.scene.bodies[0].name).toBe('Lid')
+
+    tools.run(makeContext({ document: twin }), 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0] })
+    const { record } = twin.renameBody(bodyId, 'Lid', { origin: 'ai' })
+    expect(document.entries.map((entry) => entry.record)).toEqual(twin.entries.map((entry) => entry.record))
+    expect(record.op).toBe('style.rename')
+    expect(document.entries.map((entry) => entry.origin)).toEqual(['ai', 'ai'])
+  })
+
+  it('names a composite after its drop, so the rename continues the placed body', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'hardware.bolt', positionMm: [0, 0, 0], name: 'Hinge pin' }))
+    expect(result.error).toBeUndefined()
+    const records = document.entries.map((entry) => entry.record)
+    expect(records.map((record) => record.op)).toEqual(['hardware.bolt', 'transform.translate', 'style.rename'])
+    expect(records[2]).toMatchObject({ target: records[1].id, supersedes: records[1].id, params: { name: 'Hinge pin' } })
+    expect(document.bodies().find((body) => body.id === result.applied[0].bodyId)?.name).toBe('Hinge pin')
+  })
+
+  it('without a name, writes exactly what it always did', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    tools.run(makeContext({ document }), 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0] })
+    expect(document.entries.map((entry) => entry.record.op)).toEqual(['primitive.cuboid'])
+    expect(document.bodies()[0].name).toBe('Cube 1')
+  })
+
+  it('refuses a blank name, and changes nothing', () => {
+    const document = createDocument({ replica: 'abcdef' })
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0], name: '   ' }))
+    expect(result.reason).toMatch(/name must not be blank/)
+    expect(document.entries).toHaveLength(0)
+  })
+})

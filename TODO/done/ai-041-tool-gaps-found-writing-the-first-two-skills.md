@@ -6,8 +6,11 @@ priority: low
 model: opus
 milestone: none — Findings table, filed 2026-11-15 when `ai-035` closed
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-17 (gaps 1, 3 and 4).** A boolean on part of a group keeps the other parts (`keepParts`, set by `operate` when the base names parts). `create` takes an optional `name`, and `operate` offers `style.rename`. `check_clearance` takes `aPieces` and `bPieces` to measure between parts of one group. `measure` still takes whole bodies only. Gaps 2, 5, 6, 7 and 8 were left out of this change and are filed as `TODO/FIND-ai-044-tool-gaps-left-after-ai-041.md`.
+
 
 ## Problem
 
@@ -33,7 +36,9 @@ make the skills longer and less exact than they need to be. Decide which are wor
 ## Proposed fix
 
 Do not implement here. Triage with the owner. Likely order: 1 (a part-preserving boolean, or a result that keeps the other parts), 3 (a name on `create`
-and a rename tool), 4 (a part-aware `check_clearance`). Each closed gap shortens a skill and gets a skill-text edit and a re-drive.
+and a rename tool), 4 (a part-aware `check_clearance`).
+
+**Decided 2026-11-17:** build gaps 1, 3 and 4 together as one batch. No reason beyond the recommendation was given. Gaps 2, 5, 6, 7 and 8 stay open. Each closed gap shortens a skill and gets a skill-text edit and a re-drive.
 
 ## Effort
 
