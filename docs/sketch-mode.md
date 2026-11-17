@@ -76,8 +76,8 @@ millimetres beside it.
    points, and any later drag fixes the point where you let go.
 3. Click the **first** point again to close the triangle. The first point pulses when you are
    close enough. The outline turns blue and is part of the solid.
-4. Or leave it open instead: press **Esc** or **Enter**, tap **Finish**, double-click the last
-   point, or pick another tool. An open outline is drawn in amber and is not part of the
+4. Or leave it open instead: press **Esc** or **Enter**, tap **Finish**, double-click where the last
+   point should go (the first click fixes it, the second finishes), or pick another tool. An open outline is drawn in amber and is not part of the
    solid.
 
 ![A Line outline in progress: three points fixed, the dashed live side and its length following the pointer, and the Finish and Undo point buttons in the toolbar](./screenshots/sketch-line-chain.png)

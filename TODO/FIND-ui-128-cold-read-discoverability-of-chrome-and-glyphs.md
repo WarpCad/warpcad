@@ -60,6 +60,7 @@ M.
 
 - App-level `*.e2e.js` for each changed control at phone, tablet and laptop; the rotating pair `npm run test:e2e:headless`.
 - Re-run the `ui-046`, `ui-059`, `ui-086`, `ui-089` and `ui-047` reproductions, and re-run the cold read with a fresh pair.
+- Re-check these `TODO/VERIFY.md` rows moved here by `testing-044` (2026-11-17): `core-075` stage 3 #3 (the connector kind row: is the kind caption enough?) and `ui-039` #1 (Mirror glyph next to Align, with a fresh cold-read pair).
 
 ## Interaction model
 

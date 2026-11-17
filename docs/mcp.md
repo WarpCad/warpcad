@@ -234,7 +234,7 @@ reads `skill://add-clearances/SKILL.md` first, then works pair by pair: it measu
 `check_clearance`, cuts the gap into the part that is printed (lengths in millimetres, Z up), and measures
 again. Its last message gives the clearance it used and the gap it measured for each pair. In the app's
 History, each gap is a step marked **via mcp**, so it follows the part if the part's own steps change.
-If the two parts are in a group, Claude rebuilds the group around the new gap (this works for box-shaped parts), so the group comes back named "Group 1": rename it in the app. Then type `make an enclosure around the Pi` and watch it read `skill://create-enclosure/SKILL.md`.
+If the two parts are in a group, Claude cuts the gap into the part inside the group and the group's other parts stay, so the group keeps its name and nothing needs renaming (this works for box-shaped parts). If Claude does have to build a new group, you can name it when it is made, or ask it to rename it afterwards: it offers `style.rename`, the same as the Inspector's Name field. Then type `make an enclosure around the Pi` and watch it read `skill://create-enclosure/SKILL.md`.
 
 You can also load one by hand: in Claude Code, `@warpcad:skill://add-clearances/SKILL.md` adds the skill's text
 to your message.

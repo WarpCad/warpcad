@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 9 now, 79 being drafted | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 15 now, 79 being drafted | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 5 | 38 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -245,6 +245,90 @@ split: one found it misleading, one didn't notice.
 **Answer:** question
 
 ---
+
+#### Q10 · The Scripted badge and the two Assistant GIFs (`docs-020` #1)
+
+**Question:** Should the Assistant GIFs be re-recorded and the *Scripted* badge paragraph in `docs/ai-partner.md` be rewritten in plain words?
+
+**Background:** Two cold readers (`testing-029`, 2026-11-14) disagreed. On the clips, A found them clear (prompt, built parts, check, Confirm to save readable); B found the wing's blocks do not read as a wing and the *Connected* / image notice unexplained. On the badge paragraph, A found it jargon-heavy and the *Connected* line never shown; B found it clear. None of `ui-127`, `ui-128`, `ui-129` or `docs-036` covers these two clips or this paragraph. Evidence: `TODO/VERIFY.md` row ``docs-020` #1` Notes; picture: `docs/media/ai-wing-airfoil.gif`, `docs/media/ai-drawing-to-group.gif`, `docs/screenshots/ai-chat-panel.png`. Filed 2026-11-17 by `testing-044`.
+
+**Options:**
+- **Reword the paragraph only, leave the GIFs (Recommended):** one sentence on what *Scripted* means, no re-record. Cheap and reversible.
+- **Also re-record both GIFs:** an S-size task for each.
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q11 · A maximum on a variable (`core-050` #1)
+
+**Question:** Should a variable carry a min and max that the Variables panel enforces before a value commits?
+
+**Background:** The row asked whether a refusal past a variable's max is clear before commit. Two cold readers could not test it: the panel (390 px) has Name, Kind, Value and Unit only, no min or max field, so no refusal-before-commit exists. Typing -5 into a bound variable commits and then shows *This change affects 1 item* with `primitive.cuboid: size[0] must be a positive number of millimetres, got -5` (wording is `ui-129`'s). `define_variable` over MCP already accepts `min` and `max` (see `mcp/skills/add-clearances/SKILL.md`), so the data model has them; only the panel lacks the fields. Evidence: `TODO/VERIFY.md` row ``core-050` #1` Notes; picture: none (a Variables panel at 390 px). Filed 2026-11-17 by `testing-044`.
+
+**Options:**
+- **Yes, add Min and Max fields to the Variables panel and refuse before commit (Recommended):** the model already stores them, and an agent can set them today, so a person should see and edit them.
+- **No, leave it to the AI route:** the panel stays minimal.
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q12 · Wording of the image notice (`ai-008` #6)
+
+**Question:** Reword the image notice to say the cost is billed to your own Anthropic API key?
+
+**Background:** Current text: *Image sent to Anthropic with your request, using your key. It is not sent anywhere else.* Two cold readers (`testing-029`) split: A found 'your key' undefined and the cost implied, and proposed *billed to your own Anthropic API key*; B found it clear, with the same gap. Not covered by `ui-127` or `ui-129`. Evidence: `TODO/VERIFY.md` row ``ai-008` #6` Notes; picture: none (a string in the chat panel). Filed 2026-11-17 by `testing-044`.
+
+**Options:**
+- **Use: Image sent to Anthropic with your request and billed to your own API key. It is not sent anywhere else. (Recommended):** one string, easy to revert.
+- **Keep the current wording.**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q13 · The keep-out block in `rpi-keepout.png` (`docs-014` #3)
+
+**Question:** Add a label to the keep-out block in `rpi-keepout.png` and show *Show hidden parts* in the picture?
+
+**Background:** Two cold readers (`testing-029`) disagreed: A found it clear (the Inspector names `noGoPower`, the page text explains it); B found a small 15 x 10 x 1 mm red block with no label, and *Show hidden parts* not in the screenshot, so it reads as a stray box. `docs-036` does not list this picture. Evidence: `TODO/VERIFY.md` row ``docs-014` #3` Notes; picture: `docs/screenshots/rpi-keepout.png`. Filed 2026-11-17 by `testing-044`.
+
+**Options:**
+- **Add a label to the picture and one sentence to the page (Recommended):** docs-only and small.
+- **Leave it:** the page text already explains it.
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q14 · State the result in the Fit example (`docs-013` #2)
+
+**Question:** State the resulting size (X 30, Y 20, Z 20) in the Fit example's text and in the GIF's last frame?
+
+**Background:** Two cold readers (`testing-029`) disagreed. A found the last frame (30 x 20 x 20) clear. B found Y and Z still show 40 until Fit is pressed and the page never states the result. Both suggested adding the resulting size to the text. `docs-036` does not cover it. Evidence: `TODO/VERIFY.md` row ``docs-013` #2` Notes; picture: `docs/media/resize-fit.gif`. Filed 2026-11-17 by `testing-044`.
+
+**Options:**
+- **Add the result to the page text, leave the GIF (Recommended):** one sentence; both readers asked for it.
+- **Also redo the GIF so Y and Z update visibly.**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q15 · Should the toolbar's Subtract on one part of a group keep the group's other parts? (`ai-041` #2)
+
+**Question:** The Operations toolbar's Subtract, with one part of a group ticked as the base, replaces the whole group with one boolean body and drops the group's other parts. The AI's `operate` keeps them (`keepParts`). Make the toolbar match the AI?
+
+**Background:** Driven 2026-11-17 by `testing-044` (production build, Chromium, real mouse): Cube, Cylinder and Cube grouped (volume 190,653 mm3), a fourth cube placed over `Cube 1`. Ticking `Cube 1` in the Objects list and the cube (either order) and pressing Subtract left one `boolean.subtract` body; `Cylinder 1` and `Cube 2` were gone. The kernel supports `params.keepParts` (`src/core/kernel/registry.js`, opt-in); the toolbar does not pass it. Assumed for now: the toolbar stays as it is, no code changed. Evidence: `TODO/VERIFY.md` row `ai-041` #2.
+
+**Options:**
+- **Yes, keep the siblings when the base is a group part (Recommended):** one small change in the toolbar's boolean record, plus a docs sentence in `docs/groups.md`. A person and an agent then get the same result, and nothing is silently lost (Undo still brings it back).
+- **No, leave the toolbar flat:** document that a boolean on a part consumes its group, and tell people to Ungroup first.
+
+**If deferred:** the toolbar stays as it is.
+
+**Answer:** question
 
 ## 3. Quick checks at the Mac
 

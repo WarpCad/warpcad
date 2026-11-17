@@ -9,6 +9,8 @@ depends: []
 status: open
 ---
 
+> **Progress 2026-11-17 (first sitting, kept open).** Settled in `TODO/VERIFY.md`: the two docs-033 rows, `ai-041` #1, `ui-108` #1/#3/#4/#5/#6/#7, `io-035` #1/#2, `ui-122` #1, `ai-036` #6, `ui-114` (dialog) #2/#3 and (stage 2) #3, `build-016` #3, `build-007` #1, `ai-029` #4, `build-032` #2, `ui-027` #1; `build-033` #3, `core-075` #3 and `ui-039` #1 moved to `testing-042` / `ui-128`; `ai-041` #2 and five cold-read rows are `Owner` (Q10 to Q15 in `TODO/OWNER.md`). Step 0: iOS 26.0 runtime installed; the on-screen half of `build-034` #1 and the Remote Automation toggle wait for `testing-028`; the native bookkeeping commit is done. **Still `Moved` here:** `io-035` #6, `build-034` #1 (on-screen), `ai-035` #4 and #6, `testing-032` #2, `ui-114` (dialog) #1, `ui-114` (stage 2) #1/#2/#4, `io-027` #1/#2, `core-079` #1/#2, `ui-105` #2, `perf-003` #3, `core-075` stage 2 #2, `ai-021` #4, `ai-014` #2, `ai-007` #1/#2, `ai-003` #3, `ui-034` #2, `data-003` #2, plus the core-014 and core-015 Pi side-by-sides.
+
 ## Problem
 
 The 2026-11-17 triage of all 275 `Open` rows in `TODO/VERIFY.md` found that 40 of them need no owner at all.
