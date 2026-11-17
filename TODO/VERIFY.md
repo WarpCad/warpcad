@@ -414,7 +414,7 @@ Built by generator `npm run icons` in `warpcad-native`. Nothing was run on a sim
 |---|---|---|---|
 | 1 | iPhone and iPad home screen: the WarpCad mark is full-bleed with no ring or pre-rounded corners | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I7. |
 | 2 | Launch screen is `#10131a` with no white frame, on iPhone and iPad | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I8. |
-| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Issue | 2026-11-17 owner, Mac: fail. The Dock tile is the stock size, but the cube mark inside fills about a third of it and floats in a dark starburst, so it reads small next to Chrome and Xcode. Screenshot `TODO/owner-media/build-023-3-dock.png`. Finding filed in warpcad-native (see OWNER.md Answered, M1). Was M1. |
+| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Issue | 2026-11-17 owner, Mac: fail. The Dock tile is the stock size, but the cube mark inside fills about a third of it and floats in a dark starburst, so it reads small next to Chrome and Xcode. Screenshot `TODO/owner-media/build-023-3-dock.png`. Filed as warpcad-native `TODO/M19-build-041`. Was M1. |
 | 4 | Windows taskbar and Start menu show the tile | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` Z9. |
 
 ### ui-097 — Align target part (2026-11-06 19:03 UTC)

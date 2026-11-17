@@ -16,7 +16,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
 | [2](#2-questions--answer-from-anywhere) | Questions | 0 now, 79 being drafted | ~1 min each | the follow-up work each answer files |
-| [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 63 min total | closes rows |
+| [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 6 | 38 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
@@ -24,7 +24,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | [8](#8-older-device-feel-checks) | Older device feel checks | closed (Q1) | none | — |
 | [9](#9-parked--not-asked) | Parked | 19 | none until reopened | — |
 
-**Next for you:** M1 (1 min, Mac Dock icon size), the first of the quick Mac checks.
+**Next for you:** M7 (2 min, Chrome's local-network prompt wording). M2, M4, M5 and M6 were skipped 2026-11-17.
 
 ## How answers work
 
@@ -105,7 +105,7 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 #### M4 · My parts: project-only esp8266 row on your profile
 
-`ui-096` #1 · 2 min · filed 2026-11-06
+`ui-096` #1 · 2 min · filed 2026-11-06 · **Skipped 2026-11-17**
 
 **Steps:** 1. In the browser profile you normally use for WarpCad, open Library → My parts. 2. Open ⋯ on **esp8266 feather**. 3. Read the note, then tap **Delete…**.
 
@@ -115,7 +115,7 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 #### M5 · My parts: the broken nested part on your profile
 
-`ui-095` #1 · 2 min · filed 2026-11-06
+`ui-095` #1 · 2 min · filed 2026-11-06 · **Skipped 2026-11-17**
 
 **Steps:** 1. Same browser profile. 2. Open Library → My parts. 3. Find the row with ⚠. 4. ⋯ → Delete… → Delete.
 
@@ -125,7 +125,7 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 #### M6 · Claude Code lists the WarpCad prompts
 
-`ai-029` #1 · 2 min · filed 2026-10-29
+`ai-029` #1 · 2 min · filed 2026-10-29 · **Skipped 2026-11-17**
 
 **Steps:** 1. In a Claude Code session with the `warpcad` MCP server connected (`npm run mcp:add` once), type `/`. 2. Look for `mcp__warpcad__start`, `build`, `check-print`. 3. Run `/mcp__warpcad__start` on an empty project file.
 
@@ -905,7 +905,7 @@ Reopen any of these by telling an agent "unpark Z<n>".
 One line per answered item, newest first: `YYYY-MM-DD · <code> · <answer> · <where it was recorded>`.
 
 - 2026-11-17 · M3 · Pass · VERIFY `ui-018` #1 OK
-- 2026-11-17 · M1 · Fail: the cube mark is small inside the tile · VERIFY `build-023` #3 Issue; native finding filed at sitting end
+- 2026-11-17 · M1 · Fail: the cube mark is small inside the tile · VERIFY `build-023` #3 Issue; filed warpcad-native `M19-build-041`
 - 2026-11-17 · Q15 · Keep the siblings · filed `FIND-ui-141`, Next up row 89
 - 2026-11-17 · Q14 · Add the result to the text and redo the GIF · `FIND-docs-036`; VERIFY `docs-013` #2 Moved
 - 2026-11-17 · Q13 · Label + one sentence · `FIND-docs-036`; VERIFY `docs-014` #3 Moved
