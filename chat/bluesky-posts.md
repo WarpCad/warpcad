@@ -3118,3 +3118,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** five unit tests → src/render/frameContent.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T20:00:00Z — ui-108 slice 5: Library drop target out of Viewport.vue
+
+**Post:** The code that decides whether a Library drag is over WarpCad's 3D view, and what a drop does (place a body, open the sketch editor, hand off to an import), is now its own module with 14 unit tests. One of them covers a bottom sheet sitting on top of the viewport. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 14 unit tests → src/composables/useViewportDropTarget.spec.js, vitest this session
+**To Add:** none

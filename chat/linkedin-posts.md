@@ -4515,3 +4515,14 @@ It frames the union of all bodies at the viewport's aspect ratio. If parts were 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** branches and five unit tests → src/render/frameContent.js and its spec, vitest this session
 **To Add:** none
+
+## 2026-11-17T20:00:00Z — ui-108 slice 5: Library drop target out of Viewport.vue
+
+**Post:** Dragging a part from the Library into WarpCad's 3D view runs through one object: it decides whether the pointer is over the viewport, shows the ghost, and commits the drop. That object left the viewport component and is now src/composables/useViewportDropTarget.js.
+
+The hit test asks the document what is on top of the pointer as well as checking the viewport's rectangle, because at phone width the Library is a sheet over the view. Passing that lookup in as a dependency lets a unit test cover it. Fourteen tests cover the hit test, the preview, and the commit's branches: a normal drop, an import's own placement, a Sketch row, a timeline preview and no drop point. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 14 unit tests and their cases → src/composables/useViewportDropTarget.spec.js, vitest this session
+**To Add:** none
