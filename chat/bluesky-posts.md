@@ -3136,3 +3136,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ten unit tests → src/render/contextHandlers.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T21:00:00Z — ui-108 slice 7: viewport watchers out of Viewport.vue
+
+**Post:** About twenty watchers keep WarpCad's 3D view in step with the document, selection and sketch editor. They now live in one composable, with ten unit tests that pin the order that matters: bodies sync before the camera frames them. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ten unit tests → src/composables/useViewportWatchers.spec.js, vitest this session
+**To Add:** none

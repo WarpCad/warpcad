@@ -4537,3 +4537,14 @@ The GPU calls and the canvas remount are passed in, so ten unit tests cover loss
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ten unit tests → vitest this session; context-restore spec on chromium, firefox and webkit → e2e partial run this session, 0 failed
 **To Add:** none
+
+## 2026-11-17T21:00:00Z — ui-108 slice 7: viewport watchers out of Viewport.vue
+
+**Post:** The block of Vue watchers that keeps WarpCad's 3D view in step with the document, the timeline, the selection and the sketch editor moved out of the viewport component into src/composables/useViewportWatchers.js.
+
+Order is behaviour in that block: the body sync has to run before the camera frames a loaded project, or the meshes aren't there yet. Ten unit tests now pin that, plus the hidden-parts Set (mutated in place, so the getter copies it), the Shared view framing only when asked, and what the sketch editor does when it opens and closes. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ten unit tests and their cases → src/composables/useViewportWatchers.spec.js, vitest this session
+**To Add:** none
