@@ -65,6 +65,7 @@ import {
   updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
 import { createGizmoDrag } from '../../render/gizmoDrag.js'
+import { createSketchChainKeys } from '../../render/sketchChainKeys.js'
 import { createSketchPathSync } from '../../render/sketchPathSync.js'
 import { createOverlaySync } from '../../render/overlaySync.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
@@ -987,49 +988,16 @@ function onThemeChange() {
   scheduleRender()
 }
 
-/**
- * The Line chain's keys (`TODO/sketch-006`): Esc finishes (twice in a row cancels), Enter
- * finishes, Backspace removes the last point. They act only while the Line is armed with a
- * chain live (Esc also for the "twice" window), never in a text field, and mark the event
- * handled so the app-wide Backspace-deletes-the-selection shortcut stands down.
- *
- * @param {KeyboardEvent} event
- */
-function onSketchChainKey(event) {
-  // Esc stands an armed Set scale down (`TODO/sketch-003`) — from the length field too.
-  if (sketchMode.value && sketchEditor.imageTool === 'scale' && event.key === 'Escape' && !event.repeat) {
-    event.preventDefault()
-    sketchEditor.cancelScale()
-    return
-  }
-  // …and an armed Auto-trace (`TODO/sketch-004`), keeping what it traced.
-  if (sketchMode.value && sketchEditor.imageTool === 'trace' && event.key === 'Escape' && !event.repeat) {
-    event.preventDefault()
-    sketchEditor.finishTrace()
-    return
-  }
-  if (!sketchMode.value || sketchEditor.tool !== 'line') return
-  if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return
-  if (isTextEntry(event.target)) return
-  if (event.key === 'Escape') {
-    if (event.repeat) return
-    if (sketchEditor.escapeChain() !== 'none') event.preventDefault()
-  } else if (event.key === 'Enter') {
-    // Enter on a focused button is that button's click, not "finish".
-    if (event.target instanceof HTMLElement && event.target.closest('button, a, [role="button"]')) return
-    if (!sketchEditor.chainLive) return
-    event.preventDefault()
-    sketchEditor.finishChain()
-  } else if (event.key === 'Backspace' && !event.shiftKey) {
-    if (!sketchEditor.chainLive) return
-    event.preventDefault()
-    sketchEditor.undoPoint()
-  }
-  if (event.defaultPrevented) {
+/** The sketch editor's keys (`TODO/ui-108`): `src/render/sketchChainKeys.js`. */
+const onSketchChainKey = createSketchChainKeys({
+  isSketching: () => sketchMode.value,
+  sketchEditor,
+  isTextEntry,
+  redraw: () => {
     sketchDraw.drawChain()
     scheduleRender()
-  }
-}
+  },
+})
 
 /** @type {(() => void) | null} */
 let unregisterTarget = null

@@ -3100,3 +3100,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** seven unit tests → vitest run this session; no behaviour change → sketch e2e specs green on webkit-tablet, firefox-laptop, chromium-laptop, chromium-phone this session
 **To Add:** none
+
+## 2026-11-17T19:20:00Z — ui-108 slice 3: sketch keyboard rules out of Viewport.vue
+
+**Post:** The Line tool's keyboard rules in WarpCad (Esc finishes, Enter finishes, Backspace drops a point, never inside a text field) are now their own module with seven unit tests instead of living inside the viewport component. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** seven unit tests, key rules → src/render/sketchChainKeys.spec.js, vitest this session
+**To Add:** none

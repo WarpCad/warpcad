@@ -4493,3 +4493,14 @@ Seven unit tests cover it, and the sketch specs pass on WebKit, Firefox and Chro
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** nine cached values, one-line wrapper → git diff; seven unit tests and sketch specs on three engines → test runs this session
 **To Add:** none
+
+## 2026-11-17T19:20:00Z — ui-108 slice 3: sketch keyboard rules out of Viewport.vue
+
+**Post:** The Line tool's keyboard rules moved out of the viewport component into src/render/sketchChainKeys.js: Esc finishes the chain, Esc twice cancels, Enter finishes, Backspace removes the last point, and none of it fires while you type in a field.
+
+Those rules used to be reachable only through a browser test. Now seven unit tests cover them, including the cases around modifiers, repeated keys and other tools. The text-field check is passed in rather than imported, which keeps the render layer from depending on the composables layer. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** seven unit tests → vitest this session; text-entry check injected → git diff
+**To Add:** none
