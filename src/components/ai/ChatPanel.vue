@@ -339,7 +339,7 @@ const HEIGHTS = /** @type {const} */ ([
   gap: 6px;
   padding: 6px 12px 10px;
   border-top: 1px solid var(--border-strong);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: color-mix(in srgb, var(--surface-1) 95%, transparent);
   backdrop-filter: blur(6px);
   color: var(--text-1);
@@ -381,7 +381,7 @@ const HEIGHTS = /** @type {const} */ ([
   flex: none;
   padding: 2px 8px;
   border: 1px dashed var(--warn);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--warn);
   font-size: var(--text-size-sm);
   font-weight: var(--weight-medium);
@@ -485,7 +485,7 @@ const HEIGHTS = /** @type {const} */ ([
   align-self: flex-start;
   max-width: 92%;
   padding: 6px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   font-size: var(--text-size-lg);
   line-height: 1.45;

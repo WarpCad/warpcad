@@ -3163,3 +3163,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 76 questions Q18-Q93 in seven groups, 77 VERIFY rows set to Owner → git diff (TODO/OWNER.md, TODO/VERIFY.md)
 **To Add:** none
+
+## 2026-11-17T22:40:00Z — ui-123 part 1: the style guard now covers border-radius
+
+**Post:** WarpCad's style guard now fails on a hard-coded border-radius. 34 components moved onto radius tokens, so a restyle of corner shape is one file instead of a search. Spacing is next. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 34 files changed, new style-radius rule → git diff; unit 9748 passed, e2e pair chromium-laptop + firefox-phone 1225 passed → /test run this session
+**To Add:** none

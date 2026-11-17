@@ -594,7 +594,7 @@ onBeforeUnmount(() => {
   right: 1px;
   bottom: 1px;
   padding: 0 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-1);
   border: 1px solid var(--border-strong);
   font-size: var(--text-size-2xs);
@@ -741,12 +741,12 @@ onBeforeUnmount(() => {
 }
 
 .library__swatch[data-shape='primitive.sphere'] {
-  border-radius: 50%;
+  border-radius: var(--radius-round);
 }
 
 .library__swatch[data-shape='primitive.cylinder'],
 .library__swatch[data-shape='primitive.tube'] {
-  border-radius: 40% / 18%;
+  border-radius: var(--radius-thumb);
 }
 
 /* A tube is a cylinder with a bore; at 24px the bore is what tells the two tiles apart. */
@@ -809,7 +809,7 @@ onBeforeUnmount(() => {
 
 .library__swatch[data-shape='hardware.washer'],
 .library__swatch[data-shape='hardware.bearing'] {
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background:
     radial-gradient(circle at 50% 50%, var(--surface-1) 0 34%, transparent 34%),
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
@@ -837,7 +837,7 @@ onBeforeUnmount(() => {
 .library__swatch[data-shape^='kit.'],
 .library__swatch[data-shape^='raspberrypi.'] {
   /* The default: a bare board. */
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 /* TODO/ui-084: a generic board (no brand logo) — four mounting holes in the corners. */
@@ -854,7 +854,7 @@ onBeforeUnmount(() => {
 .library__swatch[data-shape='kit.phone'] {
   width: 12px;
   margin: 0 3px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background:
     linear-gradient(var(--text-3), var(--text-3)) padding-box content-box,
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
@@ -877,7 +877,7 @@ onBeforeUnmount(() => {
 /* An anchor and a standoff are both a bored cylinder, seen end-on. */
 .library__swatch[data-shape='kit.anchor'],
 .library__swatch[data-shape='raspberrypi.hatStandoff'] {
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background:
     radial-gradient(circle at 50% 50%, var(--surface-1) 0 30%, transparent 30%),
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
@@ -917,7 +917,7 @@ onBeforeUnmount(() => {
 /* Gears (TODO/core-041, listed once ui-057 gives them `ui`; TODO/ui-084 gives them a swatch now):
    a toothed ring — a bored disc with a dashed rim. */
 .library__swatch[data-shape^='gear.'] {
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   border-style: dashed;
   border-width: 2px;
   background:
@@ -948,7 +948,7 @@ onBeforeUnmount(() => {
   flex: none;
   width: 32px;
   height: 32px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: var(--surface-1);
   object-fit: contain;
   /* The row, not the picture, is what receives the pointer that starts a placement. */
@@ -957,7 +957,7 @@ onBeforeUnmount(() => {
 }
 
 .library__swatch--part {
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border-style: dashed;
 }
 
@@ -976,7 +976,7 @@ onBeforeUnmount(() => {
   flex: none;
   width: 32px;
   height: 32px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: var(--surface-1);
   color: var(--warn);
   font-size: var(--text-size-2xl);
@@ -1002,7 +1002,7 @@ onBeforeUnmount(() => {
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--accent);
 }
 
@@ -1016,7 +1016,7 @@ onBeforeUnmount(() => {
   flex: none;
   padding: 0 6px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-size-2xs);
   line-height: 16px;
   color: var(--text-2);
@@ -1041,7 +1041,7 @@ onBeforeUnmount(() => {
 
 .library__badge {
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-size: var(--text-size-2xs);
   line-height: 16px;

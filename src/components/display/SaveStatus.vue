@@ -119,7 +119,7 @@ const title = computed(() => {
   flex: none;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--text-3);
 }
 
@@ -141,7 +141,7 @@ const title = computed(() => {
 
 .save-status--warn .save-status__dot {
   background: var(--warn);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 /* Failed: red square, and the text itself turns red. */
@@ -151,7 +151,7 @@ const title = computed(() => {
 
 .save-status--error .save-status__dot {
   background: var(--danger);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 /* A refusal: the sentence in a wrapped panel under the chip (the chip itself keeps its dot). The
@@ -174,7 +174,7 @@ const title = computed(() => {
   white-space: normal;
   text-overflow: clip;
   border: 1px solid var(--warn);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-1);
   box-shadow: var(--shadow-overlay);

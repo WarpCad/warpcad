@@ -3,7 +3,7 @@
 Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMAP-DONE.md). This file is the source
 `/run-todos` reads for order, and the table `/fix-todo` edits when a task opens, closes or changes priority.
 
-**Snapshot:** 2026-11-16. Counts are in the [Status summary](#status-summary) at the foot of this file.
+**Snapshot:** 2026-11-17. Counts are in the [Status summary](#status-summary) at the foot of this file.
 
 > **What do I run next?** `/run-todos` runs **two tables, top to bottom: [M19](#m19--native-ios-app-tauri), then
 > [Findings](#findings-open-rows)**. Together they are in the same order as [Next up](#next-up--recommended-todos). M19 rows
@@ -59,7 +59,7 @@ waits on one stays held. Rows that collide with another session's uncommitted ed
 (`87398c2f`, the six styles), so the rows were unparked the same day. The stash-on-failure rule in `TODO/BUDGET.md` now
 stashes only the failed task's own paths.
 
-**Decided 2026-11-17 (owner, in `/whats-next`):** commit the 7 uncommitted files (`TODO/BUDGET.md`, `TODO/OWNER.md`, `TODO/VERIFY.md`, `docs/user-library.md`, `docs/webmcp.md`, `chat/bluesky-posts.md`, `chat/linkedin-posts.md`) as bookkeeping with `/commit`, before the runner resumes. Nothing is pushed. Not yet committed. No reason beyond the recommendation was given.
+**Decided 2026-11-17 (owner, in `/whats-next`):** commit the 7 uncommitted files (`TODO/BUDGET.md`, `TODO/OWNER.md`, `TODO/VERIFY.md`, `docs/user-library.md`, `docs/webmcp.md`, `chat/bluesky-posts.md`, `chat/linkedin-posts.md`) as bookkeeping with `/commit`, before the runner resumes. Nothing is pushed. Committed the same day (`testing-044` step 0). No reason beyond the recommendation was given.
 
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
@@ -70,8 +70,8 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 3 queued (1 ready, 2 waiting), run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 32 queued (all ready) + 2 held + 1 running | The runner's queue after M19, led by the owner-queue rows (80-82). Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`), `ai-044` (Q3). |
+| [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
+| [Findings](#findings-open-rows) | 39 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
@@ -195,8 +195,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
-| [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
-| [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (held: owner triage first) | finding | low | opus | ▶ Ready (Next up row 84) |
+| [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
+| [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (owner 2026-11-17 Q3: build all five; first step is the split) | finding | low | opus | ▶ Ready (Next up row 84) |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
 | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
 | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
@@ -209,6 +209,11 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
 | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token for loopback peers on iOS and Android (M19) | finding | medium | opus | Held (native) |
+| [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Verify the `.warpcad` file types on a real iPad and in Safari, then scenarios 10, 22, 23, 28 (M19) | finding | medium | sonnet | Held (device) |
+| [`build-040`](../../warpcad-native/TODO/M19-build-040-help-has-no-version-line-on-the-ipad.md) Help has no version line on the iPad (M19) | finding | low | sonnet | Held (native) |
+| [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Files does not offer WarpCad for `.ndjson` on the iPad (M19) | finding | medium | sonnet | Held (native) |
+| [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Live MCP access does not start on the iPad (M19) | finding | medium | sonnet | Held (native) |
+| [`build-041`](../../warpcad-native/TODO/M19-build-041-mac-icon-mark-too-small-in-the-tile.md) The cube mark in the macOS icon reads small in the Dock (M19) | finding | low | sonnet | Held (native) |
 | [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
 | [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
 | [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5) | feature | medium | sonnet | Deferred 2026-11-07 |
@@ -289,9 +294,9 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 > checklist run are for a `/fix-todo testing-037` session with the owner present; the pass ran that day (22 of 33 checks passed; 3 failed, filed as `build-040`, `io-034` and `ai-043`; 8 not run).
 > **Decided 2026-11-16 (owner):** close now, file the rest. `testing-037` is out of the runner's queue. Its `status:` field closes through `/fix-todo testing-037`. The 8 unrun checks (D4, E6, F2 to F5, G, H) are to be filed as their own rows, not yet filed.
 >
-> **Decided 2026-11-17 (owner, in `/whats-next`):** commit the three filed rows (`build-040`, `io-034`, `ai-043`) and the `testing-037` status edit in `warpcad-native`. Leave `scripts/ios-release.sh`, the Xcode project, `Info.plist` and `src-tauri/plugins/` uncommitted: their origin is not yet known. Not committed by `/whats-next`; the commit itself is still to be made.
+> **Decided 2026-11-17 (owner, in `/whats-next`):** commit the three filed rows (`build-040`, `io-034`, `ai-043`) and the `testing-037` status edit in `warpcad-native`. Leave `scripts/ios-release.sh`, the Xcode project, `Info.plist` and `src-tauri/plugins/` uncommitted: their origin is not yet known. Committed in `warpcad-native` as `725aad7`; those four paths are still uncommitted.
 >
-> **Decided 2026-11-17 (owner, in `/whats-next`):** file the eight unrun iPad checks (D4, E6, F2 to F5, G, H) now as held rows in `warpcad-native`. Held like the other native rows: running them waits for the owner at the iPad. Row files not yet written.
+> **Decided 2026-11-17 (owner, in `/whats-next`):** file the eight unrun iPad checks (D4, E6, F2 to F5, G, H) now as held rows in `warpcad-native`. Superseded by the owner-queue triage below: no row files were written.
 >
 > **2026-11-17 (owner-queue triage):** the eight checks are items in `TODO/OWNER.md` instead of separate row files: H → I5, F2-F5 → I9-I12 (wait on `ai-043`), G → I13 (waits on the probe build), D4 → W1 (overnight), E6 → Z1 (parked, API key). The bookkeeping commit above is `testing-044` step 0.
 >
@@ -517,8 +522,8 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 32 queued + 2 held | 32 ready for `/run-todos` (the owner-queue rows 80-82 first); `testing-027` and `ai-044` held; `testing-028` running in the desktop app. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 2 queued + 11 held | Done locally, awaiting the device pass: `io-036`, `io-035`; `io-030` closes by hand with them. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
+| [Findings](#findings-open-rows) | 39 queued + 1 held | 39 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |

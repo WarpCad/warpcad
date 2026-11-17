@@ -661,7 +661,7 @@ watch(
   align-items: center;
   justify-content: center;
   border: 1.5px solid var(--border-strong);
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
   font-size: var(--text-size-sm);
   font-weight: var(--weight-bold);
   color: var(--accent-contrast);
@@ -881,7 +881,7 @@ watch(
   vertical-align: middle;
   padding: 1px 6px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-size-2xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;

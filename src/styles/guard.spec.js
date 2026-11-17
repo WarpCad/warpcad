@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Guards the rule in CLAUDE.md that colours (and z-index, font size and weight) are tokens, never literals
 // (`TODO/testing-036`). Rules live in `guardScan.js`. Violations are phased in by an allow-list of
-// nothing: the allow-list `ui-118` emptied is gone, so any violation fails. Spacing and radius are
-// deliberately not guarded yet.
+// nothing: the allow-list `ui-118` emptied is gone, so any violation fails. Radius is guarded
+// (`TODO/ui-123`); spacing is not yet.
 import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
 import { REPO_ROOT, rel, sourceFiles, surface0 } from './cssTokens.js'
@@ -49,6 +49,15 @@ describe('each rule bites, naming the file, line and fix', () => {
   it('font-size and font-weight with a number, but not a token', () => {
     expect(names(scanStyleBlocks(vue('.a { font-size: 12px; font-weight: 600; }'), defined))).toEqual(['style-font', 'style-font'])
     expect(scanStyleBlocks(vue('.a { font-size: var(--text-size-sm); font-weight: var(--weight-bold); }'), new Set(['--text-size-sm', '--weight-bold']))).toEqual([])
+  })
+
+  it('border-radius with a number, but not 0 or a token', () => {
+    const bad = '.a { border-radius: 4px; border-radius: 50%; border-radius: 12px 12px 0 0; border-top-left-radius: 3px; border-radius: calc(var(--radius-sm) - 2px); }'
+    expect(names(scanStyleBlocks(vue(bad), defined))).toEqual(Array(5).fill('style-radius'))
+    const vs = scanStyleBlocks(vue('.a { border-radius: 4px; }'), defined)
+    expect(vs[0].fix).toContain('--radius-')
+    const ok = '.a { border-radius: 0; border-radius: var(--radius-sm); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-radius: var(--radius-round); }'
+    expect(scanStyleBlocks(vue(ok), defined)).toEqual([])
   })
 
   it('a var() fallback that is not itself a var()', () => {

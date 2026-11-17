@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
 
 .library__count {
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-size: var(--text-size-xs);
   letter-spacing: 0;
@@ -525,7 +525,7 @@ onBeforeUnmount(() => {
   .library__tab-grip {
     width: 32px;
     height: 4px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     background: var(--text-3);
   }
 

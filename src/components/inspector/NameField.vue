@@ -266,7 +266,7 @@ watch(
   color: var(--text-1);
   background: var(--surface-2);
   border: 1px solid var(--accent);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .name__note {

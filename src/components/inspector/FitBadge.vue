@@ -88,7 +88,7 @@ const volumeText = computed(() => {
 .fit__badge {
   padding: 2px 8px;
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-size-xs);
   white-space: nowrap;
 }

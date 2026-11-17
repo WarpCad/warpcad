@@ -66,7 +66,7 @@ const menu = ref(false)
   min-height: 44px;
   padding: 0 10px;
   border: 1px solid var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;

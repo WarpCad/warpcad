@@ -1444,7 +1444,7 @@ watch([() => body.value?.id, colorPart], () => {
   .inspector__grip {
     width: 32px;
     height: 4px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     background: var(--text-3);
   }
 

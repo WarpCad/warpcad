@@ -824,7 +824,7 @@ function onEnumChange(event, field) {
 .params__badge {
   padding: 2px 8px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-2);
   font-size: var(--text-size-xs);
 }

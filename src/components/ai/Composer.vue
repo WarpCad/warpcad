@@ -224,7 +224,7 @@ async function onPicked(event) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   border: 1px solid var(--border-strong);
   background: var(--surface-1);
   color: var(--text-1);

@@ -78,7 +78,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
   min-width: 8px;
   border: 1px solid var(--text-2);
   border-top: none;
-  border-radius: 0 0 2px 2px;
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
 }
 
 .readout__bar-label {

@@ -4570,3 +4570,18 @@ Each is now a short question with the evidence from the row, two options and a r
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 76 questions in seven groups; three closed by evidence (ui-124, ui-075, a troubleshooting entry) → git diff
 **To Add:** none
+
+## 2026-11-17T22:40:00Z — ui-123 part 1: the style guard now covers border-radius
+
+**Post:** The style guard in WarpCad already rejected raw colours, z-index and font sizes. It now rejects a numeric border-radius too, and 34 components were moved onto the radius tokens to get there.
+
+Most values mapped straight onto existing tokens (50% and 999px). The small 1 to 5px corners snapped to one new 3px token, and one 12px top corner became 10px. A unit test proves the rule fails on a literal and passes on a token, and the tree-wide check runs with no allow-list.
+
+Spacing (about 650 padding and gap values) is the remaining half of the task.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 34 files, snapped values → git diff; 649 spacing values → TODO/FIND-ui-123 text
+**To Add:** none

@@ -110,7 +110,7 @@ const modelImport = useModelImportStore()
   height: 14px;
   border: 2px solid var(--border-strong);
   border-top-color: var(--accent);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   animation: import-spin 0.8s linear infinite;
 }
 

@@ -74,7 +74,7 @@ const assistant = useAssistantStore()
   right: 3px;
   display: flex;
   /* The ring of surface colour lifts the 14px badge off the button's border. */
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   box-shadow: 0 0 0 2px var(--surface-1);
   pointer-events: none;
 }

@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
   max-width: calc(100% - 32px);
   padding: 4px 4px 4px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-overlay);
@@ -199,6 +199,6 @@ onBeforeUnmount(() => {
 
 /* The chip's pill shape is the one thing this button keeps from its own rule. */
 .session-chip .session-chip__cancel {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 </style>

@@ -367,7 +367,7 @@ async function stop() {
   align-self: flex-start;
   padding: 3px 10px;
   border: 1px solid var(--accent-secondary);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-1);
   font-size: var(--text-size-sm);
 }

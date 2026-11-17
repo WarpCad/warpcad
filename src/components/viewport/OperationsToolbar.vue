@@ -2289,7 +2289,7 @@ onBeforeUnmount(() => closeGroup())
   right: -5px;
   min-width: 16px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-contrast);
   font-size: var(--text-size-2xs);
@@ -2354,7 +2354,7 @@ onBeforeUnmount(() => closeGroup())
 .ops__swatch {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .ops__swatch--base {

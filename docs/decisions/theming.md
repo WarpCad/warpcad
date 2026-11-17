@@ -72,9 +72,9 @@ How it fits the rest:
 ## The guard
 
 `src/styles/guard.spec.js` (rules in `src/styles/guardScan.js`) fails on a raw colour, a numeric `z-index`, a numeric
-`font-size` or `font-weight`, a `var(--x, literal)` fallback, or a `var()` naming a token nothing defines, anywhere under
-`src/` outside `src/styles/`. It is strict: there is no allow-list. Spacing (`padding`, `gap`, `margin`) and `border-radius`
-literals are not guarded, so a restyle of spacing or corner shape still needs a search across `src/components/`.
+`font-size` or `font-weight`, a numeric `border-radius` (`--radius-xs/-sm/-md/-lg/-pill/-round/-thumb`, or `0`), a `var(--x, literal)` fallback, or a `var()` naming a token nothing defines, anywhere under
+`src/` outside `src/styles/`. It is strict: there is no allow-list. Spacing (`padding`, `gap`, `margin`) literals are not guarded yet
+(`TODO/ui-123` part 2, onto `--space-1…8`), so a restyle of spacing still needs a search across `src/components/`.
 
 ## How to check a restyle
 

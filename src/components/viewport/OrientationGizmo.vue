@@ -229,7 +229,7 @@ const orientationLabel = computed(
   padding: 0;
   transform: translate(-50%, -50%);
   border: 1px solid var(--border-strong);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   /* Translucent rather than opaque (TODO/ui-025): the spoke passing underneath
      a cap stays partially visible through it instead of being fully occluded. */
   background: color-mix(in srgb, var(--surface-2) 62%, transparent);

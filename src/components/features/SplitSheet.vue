@@ -564,7 +564,7 @@ body :global(.sheet.split) {
   grid-row: 1 / span 2;
   align-self: center;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid currentColor;
   font-size: var(--text-size-xs);
   white-space: nowrap;

@@ -45,7 +45,7 @@ defineProps({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   font-size: var(--text-size-2xs);
   font-weight: var(--weight-bold);
   line-height: 1;

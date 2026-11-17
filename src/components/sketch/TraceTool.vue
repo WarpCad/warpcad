@@ -245,7 +245,7 @@ function toggleAuto() {
   height: 18px;
   border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-top-color: var(--accent);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   animation: trace-spin 0.8s linear infinite;
 }
 

@@ -853,7 +853,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   border: 2px solid currentColor;
   border-right-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   animation: file-button-spin 0.8s linear infinite;
 }
 

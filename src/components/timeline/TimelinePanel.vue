@@ -167,7 +167,7 @@ const relatedIds = computed(() => {
   flex: 1;
   height: 2px;
   background: var(--accent);
-  border-radius: 1px;
+  border-radius: var(--radius-xs);
 }
 
 .panel__marker-label {

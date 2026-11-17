@@ -525,7 +525,7 @@ onBeforeUnmount(() => {
   place-items: center;
   height: 46px;
   overflow: hidden;
-  border-radius: calc(var(--radius-sm) - 2px);
+  border-radius: var(--radius-xs);
   background: var(--swatch-ground);
 }
 
@@ -751,7 +751,7 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono);
   font-size: var(--text-size-sm);
   padding: 1px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
 }
 

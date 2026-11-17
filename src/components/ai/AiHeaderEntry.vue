@@ -205,7 +205,7 @@ onBeforeUnmount(() => {
   height: 10px;
   box-sizing: border-box;
   border: 2px solid var(--accent);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   box-shadow: 0 0 0 2px var(--surface-1);
 }
 
@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
   top: 3px;
   right: 3px;
   display: flex;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   box-shadow: 0 0 0 2px var(--surface-1);
   pointer-events: none;
 }

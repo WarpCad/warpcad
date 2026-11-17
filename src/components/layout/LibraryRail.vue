@@ -487,7 +487,7 @@ onBeforeUnmount(() => {
   width: 22px;
   height: 22px;
   border: 1px dashed var(--text-3);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: linear-gradient(140deg, var(--border-strong), var(--surface-1));
 }
 
@@ -497,7 +497,7 @@ onBeforeUnmount(() => {
   right: -4px;
   min-width: 16px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-contrast);
   font-size: var(--text-size-2xs);

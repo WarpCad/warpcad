@@ -57,7 +57,7 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   box-shadow: 0 0 0 2px var(--surface-1);
   font-size: var(--text-size-2xs);
   font-weight: var(--weight-bold);
@@ -84,7 +84,7 @@ defineProps({
 .hosted-dot--paused {
   background: var(--warn);
   color: var(--accent-contrast);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .hosted-dot--failed {

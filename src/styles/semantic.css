@@ -18,11 +18,13 @@
   --layout-safe-left: env(safe-area-inset-left, 0px);
 
   /* Shape */
+  --radius-xs: 3px;
   --radius-sm: var(--radius-1);
   --radius-md: var(--radius-2);
   --radius-lg: var(--radius-3);
   --radius-pill: 999px;
   --radius-round: 50%;
+  --radius-thumb: 40% / 18%;
 
   /* Minimum comfortable touch target; phone layout must never go below this
      for primary controls (CLAUDE.md Responsive Layout). */

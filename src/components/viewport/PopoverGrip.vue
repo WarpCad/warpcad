@@ -37,7 +37,7 @@
   cursor: grab;
   touch-action: none;
   user-select: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .popover-grip:active {
