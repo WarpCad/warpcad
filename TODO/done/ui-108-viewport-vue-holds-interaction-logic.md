@@ -6,19 +6,21 @@ priority: medium
 model: opus
 milestone: none — Findings table, filed 2026-11-10 from the architecture audit
 depends: []
-status: open
+status: done
 ---
 
-> **Progress (partial, still open).** Slice 7: the watchers moved to `src/composables/useViewportWatchers.js` (`registerViewportWatchers`, same order) with 10 unit tests. Slice 6: the context-lost, restore and **Restore view** handling moved to `src/render/contextHandlers.js` with 10 unit tests. Slice 5: the Library drop target (`contains`, `preview`, `clearPreview`, `commit`) moved to `src/composables/useViewportDropTarget.js` with 14 unit tests. Slice 4: `frameLoadedContent` (frame the camera on a loaded document) moved to `src/render/frameContent.js` with 5 unit tests. Slice 3: `onSketchChainKey` (the Line chain's Esc, Enter and Backspace rules, and the Esc that stands down Set scale and Auto-trace) moved to `src/render/sketchChainKeys.js` with 7 unit tests; the text-entry test is injected. Slice 2: `syncSketchPaths` and its nine change-detection keys moved to `src/render/sketchPathSync.js` (7 unit tests); `Viewport.vue` keeps a one-line forwarding wrapper. Re-measure line counts before the next slice, then drop `syncSketchPaths` from the list below. Slice 1: overlay and annotation sync (`syncOverlay`'s camera mirror,
-> `syncAnnotations`, `syncCutPlane`) moved to `src/render/overlaySync.js`, uncommitted until the
-> commit that adds it. Hand checks still open are in `TODO/VERIFY.md` under ui-108 slice 1.
-> Steps 1–5a shipped in earlier commits, and step 5b plus part of
-> step 6 ship in the commit that adds `src/render/pointerGestures.js` and `src/render/sketchPreview.js`.
-> `Viewport.vue` is 1,712 lines, with 1,415 script lines (target under 600), and it no longer imports
-> three.js. Still to extract, each a separate no-behaviour-change commit: the
-> reactive overlay declarations. `pointerGestures.js` (938 lines) is over the
-> ~600-line guide; picking and the marquee are the natural split. Re-run acceptance 1, 4, 6, 7 and 9
-> and closed findings ui-012, ui-013, sketch-006, ui-049 before the final step.
+> **What shipped (closed 2026-11-17).** Seven extractions, each a no-behaviour-change commit, all with unit specs:
+> body meshes, gizmo drag, placement ghost, sketch preview, pointer gestures and the sketch draw/handles (earlier commits);
+> then slice 1 `src/render/overlaySync.js`; 2 `src/render/sketchPathSync.js` (`0b276ce2`); 3 `src/render/sketchChainKeys.js`
+> (`793e368f`); 4 `src/render/frameContent.js` (`89353614`); 5 `src/composables/useViewportDropTarget.js` (`53d815ed`);
+> 6 `src/render/contextHandlers.js` (`6a5f0244`); 7 `src/composables/useViewportWatchers.js` (`0e23af74`).
+> `Viewport.vue` no longer imports three.js and is 1,261 lines (964 of script, down from 1,415; the target was under 600).
+> The target was **not** met: what is left is wiring (the reactive overlay declarations, the mount and unmount sequence and
+> small forwarding functions), and `pointerGestures.js` (938 lines) is still over its guide. That remainder is
+> `TODO/FIND-ui-144-viewport-vue-script-still-over-600-lines.md`. Closed with a full 3x3 run (5,929 passed, 2,033 skipped,
+> 1 failed: `pwa-update`'s drag test timed out in a hook, passed 36 of 36 when re-run alone, filed as `testing-046`) and the
+> acceptance scenarios 1, 3, 4, 6, 7, 9, 16 and 26 covered by their specs on every engine in that run. Hand checks are in
+> `TODO/VERIFY.md` under ui-108 slice 1.
 
 ## Problem
 

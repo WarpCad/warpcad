@@ -3145,3 +3145,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ten unit tests → src/composables/useViewportWatchers.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T21:25:00Z — ui-108 closed: Viewport.vue split into controllers
+
+**Post:** WarpCad's 3D viewport component is now mostly wiring: seven more pieces of its logic moved into their own modules with unit tests, and it no longer imports three.js. It is 1,261 lines, not the under-600 I aimed for, so the rest is filed as a follow-up. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 1,261 lines, no three.js import → git (Viewport.vue after 0e23af74); target not met → TODO/done/ui-108 note; full matrix 5,929 passed, 1 failed (not reproduced alone) → e2e run this session
+**To Add:** none

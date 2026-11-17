@@ -4548,3 +4548,14 @@ Order is behaviour in that block: the body sync has to run before the camera fra
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ten unit tests and their cases → src/composables/useViewportWatchers.spec.js, vitest this session
 **To Add:** none
+
+## 2026-11-17T21:25:00Z — ui-108 closed: Viewport.vue split into controllers
+
+**Post:** The finding that asked for WarpCad's viewport component to stop holding its own interaction logic is closed. Over seven commits the overlay sync, sketch outline sync, sketch keyboard rules, load-time camera framing, Library drop target, WebGL context recovery and the watchers moved into separate modules, each with unit specs and no behaviour change. The component no longer imports three.js.
+
+It did not reach the target. The script is 964 lines against a goal of under 600, and what is left is wiring plus a 938-line pointer-gesture module, so that is filed as a follow-up instead of forced. The closing full run across three engines and three viewports passed 5,929 tests and failed one: a PWA-update test timed out in its setup hook, passed 36 of 36 when re-run alone, and is filed with its cause still unknown. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource #Vue
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** seven slices → commits 0b276ce2, 793e368f, 89353614, 53d815ed, 6a5f0244, 0e23af74 plus the first slice; 964 script lines vs under 600 → measured this session; full matrix 5,929 passed, 1 failed, 2,033 skipped and the pwa-update re-run 36 of 36 → e2e logs this session
+**To Add:** none
