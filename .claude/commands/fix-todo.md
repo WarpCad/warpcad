@@ -9,6 +9,23 @@ Every question or confirmation below goes through `AskUserQuestion`, with the op
 `CLAUDE.md` "Asking the user" requires. Quoted wording is the question's text, not
 something to print and wait on.
 
+**Finish the task. Don't stop for what you can drive or decide yourself** (owner, 2026-11-17: "I want it to
+finish tasks and be ready for the next one, not do a little bit, ask a question that it could have driven
+itself, then go a little more"):
+
+- **Drive before asking.** A check that needs the app running, a click, a keyboard path, a phone-width
+  layout, another engine, a model run (`claude -p` on the subscription), or a simulator is yours. Use the `run`
+  skill, Playwright, Claude in Chrome or `xcrun simctl`. Only a device in the owner's hand, their sign-in or
+  secret, a printer, a wait of hours or days, or a product decision is theirs.
+- **Decide what is reversible.** If the TODO file or the code gives a recommendation, or one reading is
+  clearly the smaller and more reversible change, take it and carry on. Add the assumption to
+  `TODO/OWNER.md` §2 as a question ("Assumed X; keep it?", recommendation first) so the owner can overturn it
+  later. Stop and ask mid-task only for something irreversible or outward-facing (deleting data, publishing,
+  pushing, spending money or API tokens).
+- **Park the owner's part; finish the rest.** Anything that truly needs the owner goes to `TODO/OWNER.md` in
+  its item format (Step 9), and the task still finishes: tests, docs, retirement, commit.
+- **End by naming what's next** (Step 9, last paragraph).
+
 Trigger on requests like "fix the todo core-013", "do core-013", "implement
 ui-007", or `/fix-todo core-013`. The user will give a category-number id
 (e.g. `core-013`), not the full filename.
@@ -64,18 +81,22 @@ now seeing, or looks stale (files moved/renamed since the finding was written).
 **If this is a `ui`-category or otherwise UI-touching task, check the file's
 Testing section names a real `*.e2e.js` spec against the running app (`/`), not
 only a `.spec.js` or `.story.e2e.js`.** If it doesn't, and the capability being
-added has no other task that already owns wiring it into a view, stop and ask
-the user before proceeding — implementing it without that gate is exactly how
-a capability ends up shipped-but-unreachable (see `PREVIOUS-ATTEMPT.md`). If
-the file explicitly and correctly defers assembly to a named later task, that's
+added has no other task that already owns wiring it into a view, **write that
+part of the Testing section yourself** (the app-level `*.e2e.js` spec that
+navigates to `/` and exercises the flow, following `TODO/README.md`'s template),
+say so in the Step 2 summary and the commit, and build to it. Don't skip the gate:
+implementing without it is how a capability ends up shipped but unreachable (see
+`PREVIOUS-ATTEMPT.md`). But filling in a plan section is your job, not the owner's.
+If the file explicitly and correctly defers assembly to a named later task, that's
 fine — just don't let it default to unstated.
 
 **Same check for the Documentation section**: if this task has an Interaction
 model section, it must also have a filled-in Documentation section naming a
 `docs/<page>.md` and a concrete usage example — not "n/a" by omission. If it's
-missing or empty, stop and ask the user before proceeding, same as a missing
-e2e spec above; a control nobody can find instructions for is the same class
-of gap as one that isn't mounted (`CLAUDE.md`'s Interaction Model section).
+missing or empty, write it yourself the same way (pick the page, write the
+step-by-step example) and say so; a control nobody can find instructions for is
+the same class of gap as one that isn't mounted (`CLAUDE.md`'s Interaction Model
+section).
 
 **Same check for the Testing section's `TODO/ACCEPTANCE.md` bullet**: it must
 say which acceptance scenarios (or "none") this change could plausibly break,
@@ -345,6 +366,15 @@ call, a device-specific quirk, something this task's Testing section explicitly
 deferred. If Step 6 already exercised everything worth checking for this task, write
 nothing here rather than padding the file with a restated pass.
 
+**Drive it before you write it down.** For each check you are about to log, first try to settle it yourself
+(see "Finish the task" at the top): the `run` skill, Playwright on the other engines and viewports, Claude in
+Chrome, `claude -p`, the simulator. A row you settled is written `OK` with what you saw. Only what
+needs the owner (a device in hand, their account or secret, a printer, a wait, a product decision) is
+written as `Owner`, **and gets an item in `TODO/OWNER.md`** in the right section (§3 quick Mac check, §4
+account, §5 device session, §6 timed, §7 printer, §2 question), in that file's item format, with numbered steps
+and a "Pass if" line, never "check this". The row's Notes name the item code. Never write a row as `Open`.
+A row that another task should drive is `Moved` with that task's id.
+
 Create the file (with the header below) if it somehow doesn't exist yet:
 
 ```markdown
@@ -375,15 +405,19 @@ per completed task that has something worth logging. A one-row entry looks like:
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | <specific thing not covered by an acceptance scenario: visual/UX feel, cross-device behavior, a case this task explicitly deferred> | Open | |
+| 1 | <specific thing not covered by an acceptance scenario: visual/UX feel, cross-device behavior, a case this task explicitly deferred> | Owner | → `TODO/OWNER.md` <code>. |
 ```
 
 Add one row per thing worth checking, not one entry per thing — a task that surfaces
 several related checks is one heading with a multi-row table, not several headings.
-Leave **Status** as `Open` and **Notes** blank when writing the entry; those columns
-are filled in later, by whoever actually drives the check by hand, not by this skill.
+Status is `OK` (you drove it), `Owner` (with its OWNER.md item code) or `Moved` (with a task id). `/owner`
+fills in the owner's rows later.
 
 After the commit lands: `node scripts/todo-progress.mjs done <id>`.
+
+**Last, name what's next, in two lines, and ask nothing.** `Next up: <id> — <title>` (the first ▶ row of
+`TODO/ROADMAP.md` Next up after this one), and `Owner queue: <n> items open, <m> added by this task; next for
+you: <code> (<minutes> min)`. Inside `/run-todos`, report these to the loop instead of printing them.
 
 Only commit once the user confirms, per `/commit` Step 9 — unless this
 invocation is running from a scheduled/unattended context that was set up with

@@ -227,6 +227,9 @@ needs its outcome):
     tier — that sub-check exists only for a user invoking `/fix-todo` directly.
   - Tell it that all test runs go through `/test` (Haiku does the running; the agent only
     reads the compact report), and to follow `/test`'s escalation ladder on red.
+  - Tell it that **nobody is there to answer**. It must not stop to ask anything it can drive or decide
+    reversibly (`/fix-todo`, "Finish the task" at the top). It finishes the task, puts what truly needs the owner
+    into `TODO/OWNER.md` as items in that file's format, and reports how many items it added and their codes.
   - Tell it to report back: which files it touched, the final test output (all
     stages, not just the targeted tests), the Step 6 acceptance-scenario PASS/FAIL
     report in full, and — since Step 9's commit happens inside this agent and its own
@@ -307,6 +310,14 @@ Report to the user, in plain output (not just the Runner Log):
   proceed without it).
 - Any acceptance-scenario or regression-surface concerns surfaced during the batch,
   even if ultimately resolved before commit.
+- **What the batch added for the owner**: the `TODO/OWNER.md` item codes the agents reported, the queue's open
+  total, and its **Next for you** item with its minutes.
+- **Next up**: the id and title the next batch starts with.
+
+At a plain batch end (no milestone boundary, no failure), don't make the user steer. Schedule the next batch as
+below and ask once, with the next batch already scheduled: **Continue (Recommended)** · **Answer owner items now
+(`/owner`)** · **Explain more** · **Pause**. No answer means the scheduled batch runs. On **Answer owner items
+now**, run `/owner`; its closing prompt restarts the loop.
 
 Every question in this loop goes through `AskUserQuestion`, per `CLAUDE.md` "Asking the
 user". That is what reaches the user overnight, and a check-in nobody saw is what makes a

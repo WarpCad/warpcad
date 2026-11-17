@@ -9,6 +9,14 @@ depends: []
 status: open
 ---
 
+> **Split 2026-11-17 (owner-queue triage).** Part 1, steps 1 and 2 below (gather the evidence, draft a
+> recommendation), needs no owner and **runs in the loop** from the Findings table. Write each decision into
+> `TODO/OWNER.md` §2 as a question in that file's format (Question, Background, two Options with the recommendation
+> first, If deferred, Answer: question), grouped under one `### Q-group: <area>` heading per area. Each group's first
+> line says that `/owner` offers **Accept all recommendations** for it. Set each VERIFY.md row to `Owner` with its question
+> code. Then close this task. Part 2, asking, is `/owner questions`, never this task. Picture evidence goes to
+> `TODO/owner-media/`. Steps 2 and 3 below describe the old asking flow, which `/owner` replaces.
+
 ## Problem
 
 `TODO/VERIFY.md` is for checking that something works. About 80 of its open rows are not checks at all.

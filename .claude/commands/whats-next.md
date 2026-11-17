@@ -91,7 +91,8 @@ Collect candidates from these sources, then keep only the real questions:
    `await`, `your call`, `awaiting`, `open question`, `decision needed`, `decide` and
    `unchecked`. Open each match and read the question and the options it lists. Discard matches
    that are only narrative.
-4. **Open manual checks.** Rows in `TODO/VERIFY.md` whose Status is `Open`.
+4. **The owner queue.** `TODO/OWNER.md`: its Unblockers and Questions in full, and the counts of every other
+   section. (VERIFY.md rows are no longer left `Open`; the owner's rows are `Owner` items there.)
 5. **Stopped or blocked runs.** Anything the Runner Log or Step 2 flagged.
 6. **The repo.** Uncommitted changes, unpushed commits, or a branch that has not been merged.
 
@@ -138,7 +139,7 @@ A numbered list, most important first. For each question give:
   give the reason in one line.
 - **If deferred**, what stays stuck and which work it holds back.
 
-Show every question here. Ask about only the first one (Step 5).
+Show every question here, then ask them in order (Step 5).
 
 ---
 
@@ -156,7 +157,8 @@ The user can type any other answer through the automatic "Other" choice.
 For an owed human pass, offer these instead: **Done — record it**, **Not yet**, **Defer**,
 **Explain more**.
 
-Then stop. Do not start any other work in the same turn.
+Then keep going: after each answer is recorded (Step 6), ask the next question the same way, in the same turn,
+until the list is done or the user types `stop` in Other. Do not start any other work in the same turn.
 
 ---
 
@@ -178,7 +180,10 @@ Then stop. Do not start any other work in the same turn.
   still unknown and offer **Defer**.
 - **Free text in "Other":** treat it as the answer, and record it the same way as a chosen option.
 
-When you finish, name the next question but do not ask it. Ask it only when the user says "next".
+When the list is done (or the user stops), name what comes next in two lines and ask nothing more: **Next
+for you** (the first open item in `TODO/OWNER.md`, or "run `/owner ipad`" when a device session is due) and
+**Runner next** (the first ▶ row of Next up). Questions that live in `TODO/OWNER.md` are recorded the way
+`/owner` records them (`.claude/commands/owner.md`).
 
 ---
 

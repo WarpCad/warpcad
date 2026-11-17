@@ -86,6 +86,13 @@ How this app's operations work. Every feature spec must be consistent with these
 - **`TODO/VERIFY.md` stays short.** It logs only one-off judgment calls and device quirks
   that no acceptance scenario covers. Anything that duplicates a standing ACCEPTANCE check
   belongs there instead.
+- **`TODO/OWNER.md` is the only queue of work for the owner**, sorted quickest first (unblockers,
+  questions, quick Mac checks, accounts, device sessions, timed waits, printer). VERIFY.md is the
+  record; a row there is `OK`, `Issue`, `N/A`, `Moved` (to a task) or `Owner` (an OWNER.md item),
+  never left `Open`. `/owner` walks the queue back to back through `AskUserQuestion`.
+- **Agents finish tasks rather than stopping to ask.** Drive what can be driven, take the reversible
+  recommendation and log it as a question, park only true owner work in OWNER.md, then name the
+  next task (`.claude/commands/fix-todo.md`, "Finish the task").
 
 ## Responsive Layout
 
@@ -360,8 +367,9 @@ This project is copyleft on purpose. Full map in `LICENSING.md`.
   with `/fix-todo <id>`, or run the backlog with `/loop /run-todos`.
 - `TODO/ACCEPTANCE.md`: the named end-to-end use cases the AI drives and reports PASS/FAIL on.
 - `TODO/BUDGET.md`: the `/run-todos` batch size, check-in cadence and append-only Runner Log.
-- `TODO/VERIFY.md`: a short manual-verification queue. Appended by `/fix-todo` only for one-off
-  items not covered by ACCEPTANCE.
+- `TODO/VERIFY.md`: the record of one-off manual checks. Appended by `/fix-todo` only for items not
+  covered by ACCEPTANCE.
+- `TODO/OWNER.md`: everything waiting on the owner, with steps and a prompt per item. Walk it with `/owner`.
 - `TROUBLESHOOTING.md`: non-obvious root causes. Read before debugging, and append via
   `/troubleshoot`.
 - `docs/decisions/`: library and architecture decisions, with the data behind them.

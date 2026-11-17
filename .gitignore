@@ -33,3 +33,6 @@ test-report-for-coding-agents/
 
 # Bundle-size report written by every `vite build` (rollup-plugin-visualizer)
 stats.html
+
+# Evidence pictures for TODO/OWNER.md questions (local only)
+TODO/owner-media/

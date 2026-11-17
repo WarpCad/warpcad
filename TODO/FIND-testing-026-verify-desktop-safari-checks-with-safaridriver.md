@@ -9,6 +9,10 @@ depends: []
 status: open
 ---
 
+> **2026-11-17:** the owner step is now `TODO/OWNER.md` U3 (quit Safari, `sudo safaridriver --enable`). When U3 is
+> answered Done, this task joins the Findings queue. If the session still times out, settle what you can, move the
+> rest to OWNER.md §3 as quick Mac checks with steps, and close the task. Do not hold it again.
+
 ## Problem
 
 Playwright's WebKit is not Safari: it has no Safari scroll-bar settings, no Safari networking stack and no

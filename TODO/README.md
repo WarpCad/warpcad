@@ -249,6 +249,13 @@ the feature list alone. See `CLAUDE.md`'s Working Files section. The remaining
 now committed, see `docs/decisions/geometry-kernel.md`) needs its own Library-decisions
 pass before the roadmap can state real dependencies for it.
 
+## `TODO/OWNER.md` and `TODO/VERIFY.md`
+
+`OWNER.md` is the queue of everything only the owner can do, sorted quickest first, one item per check
+with steps, a "Pass if" line and a prompt kind (validation, question or action). `/owner` walks it.
+`VERIFY.md` is the record those items close. A task never leaves a VERIFY row `Open`, and never stops
+mid-run to ask what it could drive itself (`.claude/commands/fix-todo.md`, "Finish the task").
+
 ## `TODO/ACCEPTANCE.md` and `TODO/BUDGET.md`
 
 Also created at kickoff, alongside the roadmap — see `CLAUDE.md`'s Verification

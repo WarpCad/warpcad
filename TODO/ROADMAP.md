@@ -13,6 +13,9 @@ Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMA
 > **Filenames name the milestone, not the order.** `ls TODO` groups the backlog as `FIND-…` (the Findings table) and
 > `DEFER-…` (parked); the native `M19-…` files are in `warpcad-native/TODO/`. The ranked order lives only in Next up.
 
+> **What needs you is in [`TODO/OWNER.md`](OWNER.md)**, sorted quickest first, and `/owner` walks it. Nothing that
+> needs the owner is tracked anywhere else. Rows below that wait on one of its items say which.
+
 ## Contents
 
 - [Next up — recommended TODOs](#next-up--recommended-todos)
@@ -46,7 +49,7 @@ the full history is in git.*
    and listed under [Deferred](#open-work-outside-any-milestone), out of every table the runner reads.
 4. **`testing-032` runs in the loop**, with `claude -p` on the owner's subscription (`testing-022` ran the same way and is closed).
 5. **`testing-026` and `testing-027` are held** (setup still missing; see [Held](#held--not-run-by-run-todos)).
-6. **`testing-033` is held** and run by hand, because its job is to ask questions.
+6. **`testing-033` is held** and run by hand, because its job is to ask questions. *(Superseded 2026-11-17: split. Its drafting half runs in the loop as row 80, and the asking is `/owner`.)*
 7. **Nothing native is pushed**, to GitHub or the App Store. Every M19 row is held. *(Relaxed 2026-11-15, below.)*
 
 **Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or iPad (it
@@ -66,7 +69,9 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 3 queued (1 ready, 2 waiting), run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 26 queued (all ready) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-044`. |
+| [Findings](#findings-open-rows) | 28 queued (all ready) + 5 held | The runner's queue after M19, led by the two owner-queue rows (79, 80). Held, each waiting on one item in `TODO/OWNER.md`: `testing-045` (U1), `testing-028` (U2), `testing-026` (U3), `testing-027` (unblocks itself if `testing-044` finds the iOS 26.0 switch), `ai-044` (Q3). |
+| 79 | ▶ Ready, **run first** | `FIND` | [`testing-044`](FIND-testing-044-drive-agent-drivable-verify-rows.md) Drive the VERIFY.md rows an agent can settle; download the iOS 26.0 simulator runtime | sonnet |
+| 80 | ▶ Ready | `FIND` | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Part 1: draft a recommendation for each of the 79 parked decisions into `TODO/OWNER.md` | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
@@ -103,12 +108,13 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the held ones are listed under "Still held" in
 [M19](#m19--native-ios-app-tauri).
 
-**Findings that need the owner first:**
+**Findings that wait on one owner item** (each is in [`TODO/OWNER.md`](OWNER.md); `/owner` moves the row into the Findings table when the item is answered):
 
-- [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop-Safari checks through safaridriver (6 rows; session start still times out). **Held:** `safaridriver` is enabled and **Allow remote automation** is on, but `POST /session` still times out connecting to Safari (probed 2026-11-13, inside and outside the sandbox). Not yet diagnosed: try with Safari quit and no profile picker or modal open. Give it a Findings row once a session starts
-- [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari behaviour checks in the iOS Simulator (34 rows). **Held:** each simulator needs Settings › Safari › Advanced › **Remote Automation** turned on first
-- [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Checks blocked on native OS dialogs and private windows, with computer use (6 rows). **Held:** needs computer use, which only the Claude desktop app has
-- [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the ~80 owner decisions parked in VERIFY.md; ask in batches. **Held:** its whole job is asking the owner ~80 questions in batches; run it by hand with `/fix-todo testing-033`, never in the loop
+- [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (9 rows). **Waits on OWNER.md U1** (may the runner use a scratch GitHub area)
+- [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Native dialogs, the Mac app and the iOS Simulator's own screens, with computer use (5 + 19 rows). **Waits on OWNER.md U2**: the owner starts it from the Claude desktop app and leaves the Mac
+- [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Desktop Safari through safaridriver (6 rows). **Waits on OWNER.md U3** (quit Safari, `sudo safaridriver --enable`)
+- [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari checks in the Simulator (34 rows). iOS 27.2 simulators have no Remote Automation switch; `testing-044` step 0 tries the iOS 26.0 runtime and un-holds this row itself if the switch is there
+- [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Five AI tool gaps left after `ai-041`. **Waits on OWNER.md Q3** (which gaps to build)
 
 ---
 
@@ -168,6 +174,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
+| [`testing-044`](FIND-testing-044-drive-agent-drivable-verify-rows.md) Drive the VERIFY.md rows an agent can settle; iOS 26.0 runtime | finding | high | sonnet | ▶ Ready (Next up row 79) |
+| [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub | finding | medium | sonnet | Held (OWNER.md U1) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
@@ -175,7 +183,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) Drive the VERIFY.md desktop-Safari checks in real Safari through safaridriver | finding | medium | sonnet | Held (owner first) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
-| [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Gather the owner decisions parked in VERIFY.md, draft a recommendation for each, and ask in batches | finding | medium | sonnet | Held (owner first) |
+| [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Part 1: draft a recommendation for each of the 79 parked decisions into `TODO/OWNER.md` (asking is `/owner`) | finding | medium | sonnet | ▶ Ready (Next up row 80) |
 | [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (held: owner triage first) | finding | low | opus | Held (owner first) |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
 | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
@@ -269,6 +277,12 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 > checklist run are for a `/fix-todo testing-037` session with the owner present; the pass ran that day (22 of 33 checks passed; 3 failed, filed as `build-040`, `io-034` and `ai-043`; 8 not run).
 > **Decided 2026-11-16 (owner):** close now, file the rest. `testing-037` is out of the runner's queue. Its `status:` field closes through `/fix-todo testing-037`. The 8 unrun checks (D4, E6, F2 to F5, G, H) are to be filed as their own rows, not yet filed.
 >
+> **Decided 2026-11-17 (owner, in `/whats-next`):** commit the three filed rows (`build-040`, `io-034`, `ai-043`) and the `testing-037` status edit in `warpcad-native`. Leave `scripts/ios-release.sh`, the Xcode project, `Info.plist` and `src-tauri/plugins/` uncommitted: their origin is not yet known. Not committed by `/whats-next`; the commit itself is still to be made.
+>
+> **Decided 2026-11-17 (owner, in `/whats-next`):** file the eight unrun iPad checks (D4, E6, F2 to F5, G, H) now as held rows in `warpcad-native`. Held like the other native rows: running them waits for the owner at the iPad. Row files not yet written.
+>
+> **2026-11-17 (owner-queue triage):** the eight checks are items in `TODO/OWNER.md` instead of separate row files: H → I5, F2-F5 → I9-I12 (wait on `ai-043`), G → I13 (waits on the probe build), D4 → W1 (overnight), E6 → Z1 (parked, API key). The bookkeeping commit above is `testing-044` step 0.
+>
 > **Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or
 > iPad (it should work now)." So the local rows below are back in the runner's queue: Gate 0 of
 > [`RELEASE-CHECKLIST.md`](../../warpcad-native/TODO/RELEASE-CHECKLIST.md), the local iPad pass (`testing-037`) and three
@@ -354,8 +368,10 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| `testing-044` | Drive the 51 VERIFY.md rows an agent can settle (app checks by mouse and keyboard, emulated widths, `claude -p` on the subscription), check 11 cold-read rows against the queued wording findings, and download the iOS 26.0 simulator runtime. Filed 2026-11-17 from the owner-queue triage (`TODO/OWNER.md`) | Finding | — | 6, 7, 9, 10, 22, 23, 25 |
+| `testing-033` | Part 1 only: draft the evidence and a recommendation for each of the 79 parked product decisions, written as questions in `TODO/OWNER.md` §2. Asking is `/owner`, never this row. Split 2026-11-17 | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
+| `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed. **Goes ahead with radius only unless `TODO/OWNER.md` Q2 is answered otherwise first** | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
@@ -478,7 +494,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 26 queued + 5 held | 26 ready for `/run-todos`; `testing-026`–`028`, `testing-033`, `ai-044` held. |
+| [Findings](#findings-open-rows) | 28 queued + 5 held | 28 ready for `/run-todos` (the owner-queue rows 79 and 80 first); `testing-026`–`028`, `testing-045` and `ai-044` held, each on one `TODO/OWNER.md` item. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 2 queued + 11 held | Done locally, awaiting the device pass: `io-036`, `io-035`; `io-030` closes by hand with them. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `ai-042`, `io-026`, `testing-011`, `testing-035`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
