@@ -51,25 +51,22 @@ import RepeatSheet from './RepeatSheet.vue'
 import ModelImportStatus from './ModelImportStatus.vue'
 import PlacementSession from './PlacementSession.vue'
 import ViewportContextBanner from './ViewportContextBanner.vue'
-import { createCutPlaneAnnotation, updateCutPlaneAnnotation } from '../../render/cutPlane.js'
+import { createCutPlaneAnnotation } from '../../render/cutPlane.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import {
   createDimensionAnnotation,
-  createOrientedBox,
   createGizmoAnnotation,
   createDialAnnotation,
   createRulerAnnotation,
   createMarqueeRect,
   createSketchPath,
   updateSketchPath,
-  gizmoSizeForBounds,
   createSnapGuideAnnotations,
-  updateDimensionAnnotation,
-  updateGizmoAnnotation,
   updateSnapGuideAnnotations,
 } from '../../render/annotate.js'
 import { createGizmoDrag } from '../../render/gizmoDrag.js'
+import { createOverlaySync } from '../../render/overlaySync.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
 import { isTextEntry } from '../../composables/textEntry.js'
@@ -91,7 +88,6 @@ import { createSketchDraw } from '../../render/sketchDraw.js'
 import { createCameraNavigation } from '../../render/cameraNavigation.js'
 import { createPointerGestures } from '../../render/pointerGestures.js'
 import { createSketchPreview } from '../../render/sketchPreview.js'
-import { isBodyDrawn, isPartDrawn } from '../../core/visibility.js'
 import {
   libraryRow,
   recordsForDrop,
@@ -107,11 +103,6 @@ import { useAlignReferenceStore } from '../../stores/alignReference.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { useSettingsStore } from '../../stores/settings.js'
 import { useSketchEditorStore } from '../../stores/sketchEditor.js'
-
-/** How far clear of the solid a dimension line is drawn. */
-const DIMENSION_OFFSET_PX = 28
-/** Dimension arrowhead length. */
-const DIMENSION_ARROW_PX = 9
 
 const documentStore = useDocumentStore()
 /**
@@ -263,16 +254,6 @@ const dimensionAnnotations = reactive([
  */
 const cutPlaneAnnotation = reactive(createCutPlaneAnnotation())
 const splitSheet = useSplitSheetStore()
-
-/**
- * The selected body's own box, in its own frame (`TODO/ui-023`).
- *
- * Deliberately **not** reactive and allocated exactly once: `syncAnnotations()`
- * repoints its four fields at the description's existing arrays each frame,
- * which is a reference assignment rather than an allocation, per CLAUDE.md's
- * no-per-frame-allocation rule.
- */
-const dimensionBox = createOrientedBox()
 
 /**
  * The marquee-select rectangle's screen geometry (`TODO/ui-024`).
@@ -523,33 +504,29 @@ function renderFrame() {
   syncOverlay()
 }
 
-function syncOverlay() {
-  overlay.azimuthDeg = orbit.state.azimuthDeg
-  overlay.elevationDeg = orbit.state.elevationDeg
-  overlay.distanceMm = orbit.state.distanceMm
-  const t = orbit.state.target
-  overlay.target = `${t.x.toFixed(2)},${t.y.toFixed(2)},${t.z.toFixed(2)}`
-  overlay.mmPerPixel = orbit.getMmPerPixel(heightPx)
-  syncAnnotations()
-  syncCutPlane()
-  syncSketchPaths()
-}
+/**
+ * The camera mirror, the selection overlays and the cut plane (`TODO/ui-108`):
+ * `src/render/overlaySync.js`. The sketch paths follow it, in the same frame.
+ */
+const overlaySync = createOverlaySync({
+  orbit,
+  overlay,
+  gizmo: gizmoAnnotation,
+  dial: dialAnnotation,
+  ruler: rulerAnnotation,
+  dimensions: dimensionAnnotations,
+  cutPlane: cutPlaneAnnotation,
+  selectedBody: () => selected.value.body,
+  bodyView: (id) => bodyMeshes.get(id)?.userData.view,
+  splitSheet,
+  gizmoDrag,
+  widthPx: () => widthPx,
+  heightPx: () => heightPx,
+})
 
-/** Project the Split sheet's cut plane for the frame just drawn, or hide it. */
-function syncCutPlane() {
-  if (!splitSheet.isOpen) {
-    cutPlaneAnnotation.visible = false
-    return
-  }
-  updateCutPlaneAnnotation(
-    orbit,
-    splitSheet.previewBounds,
-    splitSheet.axisIndex,
-    splitSheet.cutMm,
-    widthPx,
-    heightPx,
-    cutPlaneAnnotation,
-  )
+function syncOverlay() {
+  overlaySync.sync()
+  syncSketchPaths()
 }
 
 // The plane moves when the sheet's numbers do, not only when the camera does.
@@ -557,89 +534,6 @@ watch(
   () => [splitSheet.isOpen, splitSheet.cutMm, splitSheet.axisIndex, splitSheet.previewBounds],
   () => scheduleRender(),
 )
-
-/**
- * Re-project the selection overlays for the frame just drawn.
- *
- * Called from the render callback rather than from a watcher, because the gizmo
- * and the dimension lines have to track the camera: an overlay that only updated
- * when the *selection* changed would slide off its own solid the moment the user
- * orbited. That is the same one-camera-two-views trap `render-001` avoided, and
- * it is why this reads the very orbit state the frame was rendered with.
- *
- * Allocates nothing: `annotate.js` writes into the structures allocated above.
- */
-function syncAnnotations() {
-  const body = selected.value.body
-  // `TODO/ui-089`: a selected body the user hid (or a drilled part they hid) has nothing on
-  // screen to attach a gizmo or dimension lines to. Allocation-free: a map lookup and a scan.
-  const view = body ? bodyMeshes.get(body.id)?.userData.view : undefined
-  const hidden = view !== undefined && (body?.subPart ? !isPartDrawn(view, body.subPart.partName) : !isBodyDrawn(view))
-  if (!body || hidden) {
-    // Nothing selected, or two or more — either way there is no single body to
-    // attach a gizmo to, and leaving the last one drawn would point at a solid
-    // the user is no longer working on.
-    gizmoAnnotation.visible = false
-    dialAnnotation.visible = false
-    rulerAnnotation.visible = false
-    for (const annotation of dimensionAnnotations) annotation.visible = false
-    return
-  }
-  if (body.subPart || body.moveRefusal) {
-    // `TODO/ui-069`: a repeat body (`moveRefusal`) is never moved on its own — its members
-    // follow their source and seed (`core-061` decision 6) — so no gizmo either; the Inspector
-    // says what to move instead.
-    // Drilled into one named part of a group (`TODO/ui-016`). The dimension
-    // lines below still draw — they *measure*, and measuring the clicked part is
-    // the point of the feature — but the gizmo does not, because it is a drag
-    // handle and there is no record a `transform.*` op could target that means
-    // "just this part". An attached gizmo here would move the whole group while
-    // the Inspector named the part, which is precisely the "gizmo and numeric
-    // fields drive the same transform" contract CLAUDE.md requires and this
-    // state cannot satisfy. See `src/core/inspector.js`'s `subPart` field.
-    gizmoAnnotation.visible = false
-  } else {
-    const [minMm, maxMm] = body.boundsMm
-    // `TODO/ui-017`: sized to the selected body's own on-screen bounding box —
-    // `overlay.mmPerPixel` is current because `syncOverlay` sets it immediately
-    // before calling here — rather than the fixed 58px/40px `ui-011` originally
-    // used, so the rings and arms always extend clear of the rendered object.
-    const { armPx, ringPx } = gizmoSizeForBounds(minMm, maxMm, overlay.mmPerPixel)
-    updateGizmoAnnotation(
-      orbit,
-      body.positionMm[0],
-      body.positionMm[1],
-      body.positionMm[2],
-      widthPx,
-      heightPx,
-      armPx,
-      ringPx,
-      gizmoAnnotation,
-    )
-  }
-  gizmoDrag.syncDial()
-  gizmoDrag.syncRuler()
-  // `TODO/ui-023`: the dimension lines measure the body's **own** box, not the
-  // world-axis shadow the gizmo above is sized against. The two genuinely want
-  // different measurements — the gizmo has to clear the tilted part's whole
-  // on-screen silhouette, while the numbers have to be the part's real size.
-  dimensionBox.minMm = body.localBoundsMm[0]
-  dimensionBox.maxMm = body.localBoundsMm[1]
-  dimensionBox.rotationDeg = body.rotationDeg
-  dimensionBox.pivotMm = body.positionMm
-  for (let axis = 0; axis < 3; axis += 1) {
-    updateDimensionAnnotation(
-      orbit,
-      dimensionBox,
-      axis,
-      widthPx,
-      heightPx,
-      DIMENSION_OFFSET_PX,
-      DIMENSION_ARROW_PX,
-      dimensionAnnotations[axis],
-    )
-  }
-}
 
 // --- the sketch editor (TODO/sketch-001) ---------------------------------
 
@@ -1351,7 +1245,7 @@ onMounted(() => {
     // Pick depth changes nothing about *which* body is selected, so it never
     // reaches the watcher above — but it does change what the overlays draw
     // (`TODO/ui-016`: the dimension lines shrink to the part, the gizmo goes).
-    // `syncAnnotations` runs from the render callback, so without this the
+    // `overlaySync.syncAnnotations` runs from the render callback, so without this the
     // gizmo would simply stay on screen until the next camera move: the exact
     // class of "it passed its own test and still looked broken" defect
     // SECOND-ATTEMPT.md is about.

@@ -51,6 +51,20 @@ into `TODO/ACCEPTANCE.md` rather than let the queue outpace anyone's attention a
 
 ## Queue
 
+### ui-108 slice 1 — overlay and annotation sync out of Viewport.vue (2026-11-17 UTC)
+
+The hand drive could not reach everything the slice touches. Each open check is a one-off, and the first two would only move if a later extraction touched the same path. Filled in by hand: Status and Notes.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Scenario 6 (group vs sub-part selection) by hand, not only by spec | Open | |
+| 2 | Scenario 7 touch navigation by hand on a touch device (this run used mouse only) | Open | |
+| 3 | Scenario 9 remainder by hand: a hole cut and a boolean on the extruded sketch | Open | |
+| 4 | ui-012 live update: Position fields change during the gizmo drag, not only after it | Open | |
+| 5 | ui-049 hover tint on a list row is visible on the 3D body (too faint to confirm at 0.5 scale) | Open | |
+| 6 | ui-013 dashed snap guides appear mid-drag from a Library row over an existing item | Open | |
+| 7 | sketch-006 Line chain: Esc finishes, double-Esc cancels, Enter finishes, double-click finishes | Open | |
+
 ### io-035 — Save as name.warpcad, keep opening .ndjson (2026-11-16 18:39)
 
 Typecheck, unit (9659/9659) and the pair e2e run (firefox-laptop + webkit-phone) are green, and the docs screenshots were regenerated for the .warpcad names. The rest needs the running app driven by hand, or the owner's iPad.
