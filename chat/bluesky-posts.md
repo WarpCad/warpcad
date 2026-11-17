@@ -3154,3 +3154,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 1,261 lines, no three.js import → git (Viewport.vue after 0e23af74); target not met → TODO/done/ui-108 note; full matrix 5,929 passed, 1 failed (not reproduced alone) → e2e run this session
 **To Add:** none
+
+## 2026-11-17T22:16:00Z — testing-033: 76 parked decisions turned into answerable questions
+
+**Post:** WarpCad had about 80 product decisions buried as "Open" rows in a verification file. Each is now a one-minute question with a recommended answer, grouped by area, so a sitting is "accept all" or overrule the odd one. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 76 questions Q18-Q93 in seven groups, 77 VERIFY rows set to Owner → git diff (TODO/OWNER.md, TODO/VERIFY.md)
+**To Add:** none

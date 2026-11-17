@@ -1007,6 +1007,7 @@ boolean-intersect volume ≈ 0 test with a wrong-phase negative control, not by 
 | ✅ `core-044` | Mesh maths (centre distance, phase, signed ratio, compatibility) and `gear.pair` | Creation | `core-041` | 1, 3, 10 |
 | ✅ `core-045` | Straight bevel gear — pitch cone, Tredgold teeth, replaces V1's faked bevel | Creation | `core-041` | 1, 3, 10 |
 | ✅ `ui-108` | `Viewport.vue`'s interaction logic moved into render controllers and composables over seven slices (overlay sync, sketch path sync, sketch keys, load framing, Library drop target, WebGL context handling, watchers), each with unit specs and no behaviour change. It no longer imports three.js, but its script is 964 lines against the under-600 target; the remainder is `ui-144` | Finding | — | 1, 3, 4, 6, 7, 9, 16, 26 |
+| ✅ `testing-033` | Part 1: 76 of the 79 parked product decisions drafted with a recommendation as `TODO/OWNER.md` questions Q18-Q93 in seven groups, their 77 VERIFY rows set to `Owner`; three settled by evidence (`ui-124`, `ui-075`, and a `TROUBLESHOOTING.md` entry). Asking is `/owner questions` | Finding | — | none |
 | `core-046` | Bevel-pair and crossed-axis placement; the `drive-wheel` four-gear train without fudge offsets | Creation | `core-044`, `core-045` | 1, 3, 10 |
 | `core-047` | Worm and worm wheel (reuses `extrudeHelical`), self-locking readout | Creation | `core-042`, `core-044` | 1, 3, 9, 10 |
 ---
@@ -1423,6 +1424,7 @@ convention going forward.
 | `testing-044` | 2026-11-17 17:10 | ~2h (two sittings; part 2 about 1h25m) |
 | `testing-026` | 2026-11-17 17:05 | ~20m (verification only: safaridriver could not start a session; three rows became owner checks) |
 | `ui-108` | 2026-11-17 21:15 | multi-session (seven slices on 2026-11-17, each verified; the closing full 3x3 run took 29m) |
+| `testing-033` | 2026-11-17 22:16 | ~3m by the machine clock, 22:13 to 22:16 (drafting from the VERIFY rows; no code, no test run) |
 
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -6,8 +6,18 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-07 from the VERIFY.md drivable-row triage (third pass)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (closed 2026-11-17).** Part 1 only; the asking is `/owner questions`, not this task. 76 of the 79 parked decisions
+> became questions Q18 to Q93 in `TODO/OWNER.md` §2, in seven `### Q-group:` sections (sketch editor; Repeat, groups and
+> parts; share, merge and the project file; AI and MCP; layout, toasts and small controls; hardware and Pi recipes;
+> snap, booleans and tests), each with the recommendation first. Their 77 VERIFY.md rows are now `Owner` with the question
+> code (Q93 covers two rows). The other three were settled by evidence and marked `N/A`: `ui-084` #4 by `ui-124`,
+> `ai-023` #3 by `ui-075`, and `core-017` #3, a fact, moved to `TROUBLESHOOTING.md`. `docs-012` #1 and the second `ui-014`
+> #1 row were already `N/A`. Recommendations come from each row's own text, the spec and task it came from and the
+> measurements in its Notes; no new screenshots were taken, so a question that cites an observation cites the one already
+> in VERIFY.md. Nothing in the code changed.
 
 > **Split 2026-11-17 (owner-queue triage).** Part 1, steps 1 and 2 below (gather the evidence, draft a
 > recommendation), needs no owner and **runs in the loop** from the Findings table. Write each decision into

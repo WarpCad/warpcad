@@ -499,6 +499,16 @@ Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). 
 
 **Steps taken to resolve:** probed on three ports with the owner's Safari left running; did not quit it.
 
+### 2026-11-17 — `fillet.js` reads the rim cross-section through `project`, which inflates it by about 6e-6 to 6e-5 mm
+
+**What happened:** Found by reading while porting `miniPiTFT`'s `display-clearance` (`core-017`, VERIFY row #3, moved here by `testing-033`). `fillet.js` reads the section through `project`, whose `unionGeom2` round-trip inflates the outline by a shape-dependent amount. That is why `display-clearance` is compared to V1 at 4 decimal places rather than the 9 every other part uses.
+
+**Why it happened:** `unionGeom2` rounds the outline as it unions it. On an inward rim the inflation lands inside the remainder and is invisible.
+
+**Fix / Prevention:** nothing to do today. If a rim operation ever needs better than a micron, or stacks outward flares so the error compounds, replace the section reader with one that does not round-trip through `unionGeom2`.
+
+**Steps taken to resolve:** none needed; recorded so the next person does not rediscover it.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

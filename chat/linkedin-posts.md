@@ -4559,3 +4559,14 @@ It did not reach the target. The script is 964 lines against a goal of under 600
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** seven slices → commits 0b276ce2, 793e368f, 89353614, 53d815ed, 6a5f0244, 0e23af74 plus the first slice; 964 script lines vs under 600 → measured this session; full matrix 5,929 passed, 1 failed, 2,033 skipped and the pwa-update re-run 36 of 36 → e2e logs this session
 **To Add:** none
+
+## 2026-11-17T22:16:00Z — testing-033: 76 parked decisions turned into answerable questions
+
+**Post:** WarpCad's verification file had grown about 80 rows that were not checks but decisions: "is this toast acceptable", "should this default change". They sat as open rows for weeks because none carried a recommendation.
+
+Each is now a short question with the evidence from the row, two options and a recommended one, in seven groups, with an Accept-all option per group. Three more turned out to be settled already by later work, so they were closed with the reference instead of asked. Nothing in the code changed. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 76 questions in seven groups; three closed by evidence (ui-124, ui-075, a troubleshooting entry) → git diff
+**To Add:** none

@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 2 now (Q16, Q17), 79 being drafted | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 78 now (Q16-Q93), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 6 | 38 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -66,7 +66,7 @@ These were sitting in VERIFY.md as `Open` but need no owner. `/run-todos` runs t
 | Task | What it does | Rows |
 |---|---|---|
 | [`testing-044`](FIND-testing-044-drive-agent-drivable-verify-rows.md) | Drives the rows an agent can settle: app checks by mouse and keyboard, emulated phone widths, `claude -p` on the subscription, docs fixes, closed-by-evidence rows. Also checks 11 cold-read rows against the queued wording findings (`ui-127`, `ui-128`, `ui-129`, `docs-036`) and moves them or turns them into questions here. Step 0: download the iOS 26.0 simulator runtime (`build-034` #1), and if its Safari has the Remote Automation switch, put `testing-027` (23 iOS Simulator rows) back in the queue | 40 + 11 |
-| [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md), part 1 | Gathers the evidence for the 79 parked product decisions and writes a recommendation for each, as questions in §2. Only your answers are left for you | 79 decisions |
+| [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md), part 1 | Done 2026-11-17: 76 decisions drafted as Q18-Q93 in §2 (three more were settled by evidence). Only your answers are left for you | 76 decisions |
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) | Gist and hosted-repo checks against real GitHub, with your `gh` login (U1 answered) | 9 |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) | Native dialogs, the Mac app and the iOS Simulator's own UI, driven with computer use. **Running** in the Claude desktop app (U2 done) | 5 + 19 |
 | [`testing-026`](FIND-testing-026-verify-desktop-safari-checks-with-safaridriver.md) | Desktop Safari through safaridriver. U3 done; in the runner's queue | 6 |
@@ -82,8 +82,7 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 
 ## 2. Questions — answer from anywhere
 
-The 79 decisions from `testing-033` join this section, grouped, as the runner drafts them. Each group offers
-**Accept all recommendations**.
+The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
@@ -112,6 +111,1098 @@ All fifteen written questions were answered 2026-11-17 (see **Answered**).
 - **Add a visible word:** *Why* next to the icon, on touch widths at least. An S-size task.
 
 **If deferred:** nothing changes; `ai-003` #3 stays `Owner`.
+
+**Answer:** question
+
+### Q-group: Sketch editor
+
+17 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q18 · Should Cancel ask before discarding a traced draft on a phone?
+
+**Question:** After Finish on a phone, should Cancel ask first when the draft holds traced outlines?
+
+**Background:** At 390 x 844 the Sketch toolbar returns over the top of the canvas (to y 223) after Finish, and a finger aimed at a top point of the traced Solid pressed Cancel and discarded the whole traced draft in one tap (`sketch-004` #3).
+
+**Options:**
+- **Ask before discarding traced outlines (Recommended):** a confirm on Cancel only when the draft holds a traced outline protects the user's work and touches nothing else. An S-size task.
+- **Frame the traced outline clear of the toolbar:** fixes the cause but changes the camera after every Finish.
+
+**If deferred:** nothing changes; `sketch-004` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q19 · Should arming Auto-trace or Set scale fold an already-open Inspector sheet on a phone?
+
+**Question:** Leave the Inspector sheet alone, or fold it when an image tool is armed?
+
+**Background:** At phone width the Slices sheet steps aside while Auto-trace or Set scale is armed (77 % reachable canvas), but an Inspector sheet that was already expanded stays up and cuts reachable canvas to 56 %, under the 69 % floor. The drive got there by a stray gesture (`sketch-004` #4).
+
+**Options:**
+- **Leave it (Recommended):** nothing shows people land in this state, and the user opened that sheet on purpose.
+- **Fold the Inspector sheet when an image tool is armed:** matches how the Slices sheet behaves. An S-size task.
+
+**If deferred:** nothing changes; `sketch-004` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q20 · Is the Slices sheet disappearing while Set scale is armed clear enough?
+
+**Question:** Keep the Slices sheet hidden while Set scale is armed, with the length field in the top banner?
+
+**Background:** The spec said the sheet "collapses to its header". The header alone measured 67 % reachable canvas against the 69 % floor, 77 % without it. The length field sits in the top banner at every size (`sketch-003` #2).
+
+**Options:**
+- **Keep it hidden (Recommended):** it is the only layout that clears the 69 % floor; the banner states what is armed.
+- **Collapse to the header as the spec said:** follows the spec but fails the floor by 2 points.
+
+**If deferred:** nothing changes; `sketch-003` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q21 · Should a reference photo have its own History row?
+
+**Question:** Keep the photo as its own History row (not editable there, suppress hides it)?
+
+**Background:** The photo shows in History as *Reference image 1400 x 1000 px*; suppressing it hides the photo and its slice says *switched off in History* (`sketch-003` #3).
+
+**Options:**
+- **Keep the row (Recommended):** it is a real document step, so hiding it would break the rule that History shows everything that changes the project.
+- **Hide photo rows from History:** less clutter, but a suppressed photo would have no way back.
+
+**If deferred:** nothing changes; `sketch-003` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q22 · Should the Sketch toolbar stop covering the top of the canvas once a Line chain is live?
+
+**Question:** Keep the growing toolbar at laptop size, or change it?
+
+**Background:** Pre-existing, found by the drive: once a Line chain is live, the Finish / Undo-point row covers the top ~50 px of the canvas, so a photo's top edge cannot be clicked until you zoom or pan (`sketch-003` #4).
+
+**Options:**
+- **Leave it for now (Recommended):** zoom and pan clear it, and `sketch-004` #3 above may change the toolbar anyway; decide both together later.
+- **File a follow-up:** grow the toolbar sideways, or open the editor with the origin lower. An S-size task.
+
+**If deferred:** nothing changes; `sketch-003` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q23 · Should a Circle's rim stop snapping to a circle it shares a centre with?
+
+**Question:** Keep the 12 px snap pull, or stop concentric circles snapping to each other's rim?
+
+**Background:** At the opening zoom 12 px is about 5 mm. Drawing the docs' tube without Shift (an r20 circle, then an r15 one from the same centre), the second circle's rim jumps onto the first until you release about 1 mm further in or turn Snap off (`sketch-007` #1).
+
+**Options:**
+- **Stop a Circle's rim snapping to a concentric circle (Recommended):** it removes the case that actually misleads and leaves the pull as is. An S-size task.
+- **Keep 12 px as it is:** no change; Shift or Snap off already works around it.
+
+**If deferred:** nothing changes; `sketch-007` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q24 · Should cancelling a Line with Esc-twice show a toast?
+
+**Question:** Add a "Line discarded" cue when the second Esc cancels a line?
+
+**Background:** A second Esc within 0.9 s of the one that finished a line cancels it, and nothing on screen says so (`sketch-006` #3). Undo point does not bring back a discarded line.
+
+**Options:**
+- **Add a short "Line discarded" toast (Recommended):** cheap, and a silent discard is the surprising kind. An XS task.
+- **Leave it:** the 0.9 s window makes an accidental double Esc unlikely.
+
+**If deferred:** nothing changes; `sketch-006` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q25 · Should Offset X/Y and Twist share one compact row in the Slices card?
+
+**Question:** Put Offset X/Y and Twist on one row so Add image and Set scale stay above the fold at laptop height?
+
+**Background:** On a 900 px tall laptop the Slices card is taller, so **Add image…** and **Set scale** sit below its fold and need a scroll inside the card (`sketch-008` #2).
+
+**Options:**
+- **Put them on one compact row (Recommended):** it recovers the height with no feature lost. An S-size task.
+- **Leave the card as it is:** the scroll inside the card works, just less discoverable.
+
+**If deferred:** nothing changes; `sketch-008` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q26 · Should the point-grab targets shrink on dense outlines?
+
+**Question:** Keep the nearest-dot grab on a 32-dot circle, or shrink the targets when dots are close?
+
+**Background:** On a ~20 mm circle at normal zoom (32 dots ~10 px apart), a near-miss inside the ring pulled a neighbouring point inward and briefly made the outline cross itself (WebKit drive). The status line said so and Simplify fixed it (`sketch-002` #2).
+
+**Options:**
+- **Leave it (Recommended):** the app says what happened and offers the fix; Undo is one tap. Revisit if a user reports it.
+- **Shrink grab targets when dots are closer than about 12 px:** prevents the near-miss. An S-size task.
+
+**If deferred:** nothing changes; `sketch-002` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q27 · Should the phone status line for a picked point be shortened?
+
+**Question:** Shorten "… 3 points · point 1 selected" so it fits on one line at 390 px?
+
+**Background:** At 390 px the status line wraps to two lines with a point picked; the toolbar is 178 px tall and reachable canvas measures exactly 69 %, the floor, with no slack (`sketch-002` #3).
+
+**Options:**
+- **Shorten the text, for example "· pt 1" (Recommended):** it gives back a line of height before the next toolbar addition. An XS task.
+- **Leave it:** it passes the floor today.
+
+**If deferred:** nothing changes; `sketch-002` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q28 · Is the Sketch row after Tube in Primitives, opening the editor on drop, right?
+
+**Question:** Keep the Sketch row after Tube, with a drop opening the editor and Cancel leaving no body?
+
+**Background:** Observed 2026-11-07 in headless Chromium at 1440 x 900: the row sits after Tube and the drop opens the editor with Done and Cancel; Cancel leaves no sketch (`sketch-001` #1).
+
+**Options:**
+- **Keep it (Recommended):** it works as described and matches the rule that geometry is placed in the 3D view.
+- **Move or rename the row:** file a follow-up with the place you want.
+
+**If deferred:** nothing changes; `sketch-001` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q29 · Do you want double-click on a sketch body to edit it?
+
+**Question:** Build double-click or double-tap as an Edit sketch shortcut?
+
+**Background:** Not built. Only the Inspector's Edit sketch exists (`sketch-001` #2).
+
+**Options:**
+- **Do not build it now (Recommended):** the Inspector control works; add the shortcut when someone asks.
+- **Build it:** a double-tap on touch collides with zoom gestures, so it needs care. An M-size task.
+
+**If deferred:** nothing changes; `sketch-001` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q30 · Is "Loft needs exactly one Solid and no Holes per slice" acceptable for v1?
+
+**Question:** Keep the v1 Loft limit (one Solid outline, no Holes per slice; cut holes afterwards with Subtract)?
+
+**Background:** This is the implementer's default from `sketch-001` (#3).
+
+**Options:**
+- **Keep it (Recommended):** a refusal is clear and Subtract covers the need.
+- **Allow Holes in a Loft:** larger kernel work; file it when a model needs it.
+
+**If deferred:** nothing changes; `sketch-001` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q31 · Should the nav chrome fold to the ✥ toggle while editing on a narrow viewport?
+
+**Question:** Keep the nav chrome folded to ✥ at narrow widths while a sketch is open, even with no sheet open?
+
+**Background:** It extends `ui-046` and is what keeps the resting editor's reachable canvas at or above 69 % (67 % to 76 % at 390 px) (`sketch-001` #4).
+
+**Options:**
+- **Keep it (Recommended):** it is the measured way to stay above the floor.
+- **Show the full chrome:** the editor would drop below the floor at 390 px.
+
+**If deferred:** nothing changes; `sketch-001` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q32 · Is the phone sheet's whole-canvas reachability of 47-57 % acceptable?
+
+**Question:** Accept the literal shortfall against 69 % with the Slices/Extrude sheet open, since the area round the origin stays 100 % reachable?
+
+**Background:** With the sheet open the phone's whole-canvas reachability is 47-57 % (tablet 64-74 %). The test asserts the area round the origin instead (`sketch-001` #5).
+
+**Options:**
+- **Accept it (Recommended):** the sheet is open on purpose and the drawing area stays reachable.
+- **Make the sheet smaller or collapsible:** a layout task for each width.
+
+**If deferred:** nothing changes; `sketch-001` #5 stay `Owner`.
+
+**Answer:** question
+
+#### Q33 · Are the sketch editor's starting defaults right?
+
+**Question:** Keep the starting defaults: Polygon 6 sides, new slice 50 mm above the highest, Linear 10 mm, Revolve 360 degrees / 32 segments, Helical pitch 10 mm x 2 turns, Outline wall 2 mm x 10 mm?
+
+**Background:** These are the implementer's defaults (`sketch-001` #6); the user changes any of them in the sheet.
+
+**Options:**
+- **Keep them (Recommended):** each is a one-line change later and none loses work.
+- **Change a default:** say which in Other.
+
+**If deferred:** nothing changes; `sketch-001` #6 stay `Owner`.
+
+**Answer:** question
+
+#### Q34 · Is it right that Undo/Redo and Delete are off while the sketch editor is open?
+
+**Question:** Keep Undo, Redo and Delete off while a sketch is open, and drop old `sketch.line` records on load with a warning?
+
+**Background:** The draft is not in the document until Done. Observed 2026-11-07: Undo and Redo are disabled while the editor is open and after Cancel. Migration on load was not tested (`sketch-001` #7).
+
+**Options:**
+- **Keep it (Recommended):** the spec said no migration, and Cancel leaves the document untouched.
+- **Migrate old sketch.line records:** a data task with no known project that needs it.
+
+**If deferred:** nothing changes; `sketch-001` #7 stay `Owner`.
+
+**Answer:** question
+
+### Q-group: Repeat, groups and parts
+
+7 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q35 · Should Repeat refuse a source with a step the Assistant or a merge added?
+
+**Question:** Keep Apply disabled when the first part has a step you did not make, or let Apply copy it?
+
+**Background:** Apply is disabled with "… has a step you didn't make … Cancel and make the part by hand" because `core-061` copies the source's whole lineage. The spec said such a step is listed under *Not part of the repeat* (`ui-069` #1).
+
+**Options:**
+- **Keep the stricter rule (Recommended):** copying a step the user never made would put it in every copy unseen.
+- **Let Apply copy it:** matches the spec wording but changes what every copy contains.
+
+**If deferred:** nothing changes; `ui-069` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q36 · Should Repeat on a Group's sub-part need a numbered name family?
+
+**Question:** Leave Repeat enabled on a Group's sub-part, which has no name family like `hole1`?
+
+**Background:** Repeat is enabled there and seeds on a member with no name family. Harmless so far (`ui-069` #4).
+
+**Options:**
+- **Leave it (Recommended):** nothing breaks and no one has asked for the rule.
+- **Require a numbered family:** refuses a case that works today.
+
+**If deferred:** nothing changes; `ui-069` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q37 · Should copies carry the Assistant's step, or only the original?
+
+**Question:** Keep "Bolt 1 keeps the Assistant's step, the copies do not"?
+
+**Background:** The spec's Problem says "let Apply copy it"; its Proposed fix and Testing say the step is left out of every copy. The second shipped (`core-063` #1).
+
+**Options:**
+- **Keep what shipped (Recommended):** it is built, tested and the safer reading.
+- **Make the copies carry it:** a behaviour change in Repeat.
+
+**If deferred:** nothing changes; `core-063` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q38 · Should the HAT's, Camera Module's and touch screens' mounting holes keep their part on Subtract, as the Pi's do?
+
+**Question:** Extend `DRILL_PARTS` to those ops?
+
+**Background:** Only the Pi keeps its part when used to Subtract; the others use their part up, as do the Ethernet jack, a `clearance-*` keep-out and a bolt's `tap`. One line per op in `src/core/kernel/registry.js` switches one on (`core-064` #1).
+
+**Options:**
+- **Extend it to the HAT, camera and touch-screen mounting holes (Recommended):** it makes mounting holes behave the same across boards. An S-size task.
+- **Leave it as is:** only the Pi behaves this way, which is inconsistent.
+
+**If deferred:** nothing changes; `core-064` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q39 · Keep Repeat refusing a source whose steps include a Subtract?
+
+**Question:** Keep the refusal ("a repeat would copy the whole of <body> once per target")?
+
+**Background:** It is not reachable from the UI today. It exists so a kept Pi cannot make Repeat add one whole extra plate per hole (`core-064` #3).
+
+**Options:**
+- **Keep it (Recommended):** it prevents a wrong result and costs nothing.
+- **Drop it:** accepts the extra-plate case.
+
+**If deferred:** nothing changes; `core-064` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q40 · Should Enlarge and Fit carry snapped parts like the Inspector's Size field does?
+
+**Question:** File a follow-up so Enlarge and Fit move snapped parts, or keep the page note?
+
+**Background:** With a lug snapped to a plate's top, Enlarge Z +16 (and Fit Z 24) left the lug at Z 8, buried in the plate; typing the same size in the Inspector's Size field moves the lug with it (`data-007`). `docs/resize-bisect.md` now says so (`docs-013` #1).
+
+**Options:**
+- **File a follow-up (Recommended):** two ways to do one action should give one result. An M-size task.
+- **Keep the page note:** cheapest; the Inspector route works.
+
+**If deferred:** nothing changes; `docs-013` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q41 · Is the popover hint enough when Mirror's plane position is blank on a symmetric shape?
+
+**Question:** Keep only the hint, or warn on commit when Mirror would add an invisible copy on top of the original?
+
+**Background:** A blank plane position on a symmetric shape adds a copy sitting exactly on the original (`ui-039` #2).
+
+**Options:**
+- **Keep the hint (Recommended):** Undo removes the copy and the result is visible in Objects.
+- **Warn on commit:** an extra step for a rare case.
+
+**If deferred:** nothing changes; `ui-039` #2 stay `Owner`.
+
+**Answer:** question
+
+### Q-group: Share, merge and the project file
+
+10 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q42 · Does a phone need a persistent "Published" indicator?
+
+**Question:** Add a dot on **File ▾** at 390 px when the project is published, or leave Share under File ▾ with no indicator?
+
+**Background:** At 390 px Share is under File ▾ and the chip is hidden, so nothing shows that a project is published (`io-017` #3).
+
+**Options:**
+- **Leave it (Recommended):** publishing is a deliberate one-off and the Share sheet shows the state when opened.
+- **Add a dot on File ▾:** a small badge; an S-size task.
+
+**If deferred:** nothing changes; `io-017` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q43 · Is the "Published. Link copied" toast covering the Share title acceptable?
+
+**Question:** Leave the toast over the sheet's Share title for about 4 s at tablet and laptop width?
+
+**Background:** The toast covers the title while it is up (`io-017` #4).
+
+**Options:**
+- **Leave it (Recommended):** it is brief and the sheet's content is untouched.
+- **Move the toast:** an S-size layout task.
+
+**If deferred:** nothing changes; `io-017` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q44 · Is the "Saved to gist" toast covering the Operations toolbar acceptable?
+
+**Question:** Leave the toast over part of the Operations toolbar (Chamfer, Enlarge) for a few seconds at 1440 px?
+
+**Background:** It sits over the toolbar for a few seconds after Save as gist (`io-021` #1).
+
+**Options:**
+- **Leave it (Recommended):** transient, and the same toast position as the other toasts.
+- **Move toasts elsewhere:** a layout change for every toast.
+
+**If deferred:** nothing changes; `io-021` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q45 · Is a banner naming whichever step lost a move-versus-fillet conflict clear enough?
+
+**Question:** Keep the banner, with the flagged step chosen by replica id when clocks tie?
+
+**Background:** When both clocks tie the flagged row is chosen by replica ids, so it can be either step on different runs (`io-010` #4).
+
+**Options:**
+- **Keep the banner (Recommended):** the banner names the step that lost, so nothing is lost silently.
+- **Prefer the local step:** deterministic, but it overrides a collaborator's edit.
+
+**If deferred:** nothing changes; `io-010` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q46 · Is the merge strip pushing the workspace down 49-70 px acceptable on a phone?
+
+**Question:** Keep the strip in the layout, or overlay it?
+
+**Background:** The strip moves the workspace down when it appears and back up when it goes (`ui-062` #1).
+
+**Options:**
+- **Keep it in the layout (Recommended):** an overlay would cover the very toolbar the user may need next, and the jump is one-off per merge.
+- **Overlay it:** no jump, but it covers content.
+
+**If deferred:** nothing changes; `ui-062` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q47 · Is a conflicted row's fix easy enough to find in History?
+
+**Question:** Leave the History action bar as it is at laptop height 900 and on a phone sheet?
+
+**Background:** The selected-row action bar is cramped at the bottom of the panel at 900 px, and on a phone sheet "Roll back to here" sits under the peek bars (`ui-062` #2).
+
+**Options:**
+- **Leave it (Recommended):** the controls are all reachable and the cramped case needs a real conflict to meet.
+- **Rework the action bar:** a layout task.
+
+**If deferred:** nothing changes; `ui-062` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q48 · Should the clean-merge strip dismiss itself?
+
+**Question:** Keep the strip until dismissed, or let a clean merge auto-dismiss after a few seconds?
+
+**Background:** The strip never times out (`ui-062` #3).
+
+**Options:**
+- **Auto-dismiss clean merges after about 8 s; keep conflicts until dismissed (Recommended):** a lingering success message reads as stale. An XS task.
+- **Keep it until dismissed:** no timer to get wrong.
+
+**If deferred:** nothing changes; `ui-062` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q49 · Is the merge section's share of a project file small enough to skip `data-012`'s tighter encoding?
+
+**Question:** Skip `data-012` (the tighter merge encoding) before `ui-062`?
+
+**Background:** Measured 2026-11-14 on your own files, saved as version 2: the merge section is 14.2 % of `fan-duct` and 15.0 % of `warpcad-project` (the two largest real projects), 18-23 % of the small ones, and 2-3 % of the three files dominated by user part definitions (`data-011` #2).
+
+**Options:**
+- **Skip it (Recommended):** about 15 % of the file does not justify a format change.
+- **Do it first:** worth it only if file size becomes a problem.
+
+**If deferred:** nothing changes; `data-011` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q50 · Should the Shared view get full-size 44 px chrome on phone and tablet?
+
+**Question:** Give the Shared view 44 px controls instead of the editor's compact 28-38 px nav pad and view box?
+
+**Background:** The Shared view reuses the editor's compact controls (`--tap-compact`). A first-time visitor with a thumb gets small targets (`io-016` #6). `CLAUDE.md` says tap targets stay at tap size.
+
+**Options:**
+- **File a follow-up (Recommended):** the Shared view is the first thing a recipient sees. An S-size task.
+- **Leave it:** the editor's compact controls already ship.
+
+**If deferred:** nothing changes; `io-016` #6 stay `Owner`.
+
+**Answer:** question
+
+#### Q51 · Is a ~15 MB extra precache acceptable on a first phone install?
+
+**Question:** Keep the Help precache, or narrow `HELP_PRECACHE_GLOBS` in `scripts/vite-plugin-help.mjs`?
+
+**Background:** First install on a phone connection downloads about 15 MB more so Help works offline (`ui-061` #3).
+
+**Options:**
+- **Keep it (Recommended):** it is one time and offline Help is the point.
+- **Narrow the precache:** smaller install, Help needs a connection.
+
+**If deferred:** nothing changes; `ui-061` #3 stay `Owner`.
+
+**Answer:** question
+
+### Q-group: AI and MCP
+
+14 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q52 · Should the History row also show the prompt?
+
+**Question:** Show the prompt in the History row, as the finding's Feedback line says, or keep the note icon only?
+
+**Background:** History rows made over MCP carry a note icon with the reason (`ai-003`, Q17 above); the finding's Feedback line also mentioned the prompt itself (`ai-031` #3).
+
+**Options:**
+- **Keep the icon only (Recommended):** a prompt in every row would crowd the list; the row expands to show it.
+- **Show the prompt in the row:** an S-size task.
+
+**If deferred:** nothing changes; `ai-031` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q53 · Does Undo AI turn looking greyed for about 1.5 s feel right?
+
+**Question:** Leave the short grey-out while the "Claude Code working" chip lingers?
+
+**Background:** It is greyed for about 1.5 s after a call (`ai-012` #4).
+
+**Options:**
+- **Leave it (Recommended):** it matches the chip, which says work is still landing.
+- **Enable it sooner:** risks undoing a half-landed turn.
+
+**If deferred:** nothing changes; `ai-012` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q54 · Is a browser-driven runner for scenario 18 worth building?
+
+**Question:** Build the runner, or rely on the live scenario?
+
+**Background:** An image needs a canvas and `capture_view` needs a GPU, so the scripted runner is not built (`ai-011` #4).
+
+**Options:**
+- **Rely on the live scenario (Recommended):** it already covers the path and the runner would need a GPU in CI.
+- **Build the runner:** an L-size task.
+
+**If deferred:** nothing changes; `ai-011` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q55 · Is the `askedOrAssumed` check good enough?
+
+**Question:** Keep the crude text check (a question mark, or the word "assume")?
+
+**Background:** It is the test used for the ambiguous and under-specified cases (`ai-011` #5).
+
+**Options:**
+- **Keep it (Recommended):** it has not misjudged a recorded case; tighten it when one fails.
+- **Write a stricter check:** a judge call per case, costing tokens.
+
+**If deferred:** nothing changes; `ai-011` #5 stay `Owner`.
+
+**Answer:** question
+
+#### Q56 · Should there be a recorder that saves a live run as a transcript?
+
+**Question:** Add a transcript recorder once a live run exists?
+
+**Background:** Transcripts are hand-written (`ai-010` #4).
+
+**Options:**
+- **Not yet (Recommended):** hand-written ones are small and reviewed; revisit when there are many.
+- **Build the recorder:** an M-size task.
+
+**If deferred:** nothing changes; `ai-010` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q57 · Should hosted references (`github:owner/repo/path`) be built?
+
+**Question:** Build read-only hosted references with `WARPCAD_GITHUB_TOKEN` for writes, or keep them deferred?
+
+**Background:** They are deferred (`ai-009` #2).
+
+**Options:**
+- **Keep them deferred (Recommended):** no current use, and a token path is outward-facing.
+- **Build them:** an L-size task.
+
+**If deferred:** nothing changes; `ai-009` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q58 · Are per-call limits over MCP acceptable, or should there be a session cap?
+
+**Question:** Keep limits per tool call rather than per user turn?
+
+**Background:** MCP limits apply per call (`ai-009` #4).
+
+**Options:**
+- **Keep per-call limits (Recommended):** the app's own AI turn already caps the turn; MCP clients drive their own loop.
+- **Add a session-level cap:** an S-size task.
+
+**If deferred:** nothing changes; `ai-009` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q59 · Is the optional `request` field the right way for intent to travel over MCP?
+
+**Question:** Keep the optional `request` field on write tools?
+
+**Background:** It is how design intent is saved with each step over MCP (`ai-009` #5).
+
+**Options:**
+- **Keep it (Recommended):** it is optional and already in use across the tools.
+- **Make it required:** would break clients that omit it.
+
+**If deferred:** nothing changes; `ai-009` #5 stay `Owner`.
+
+**Answer:** question
+
+#### Q60 · Is the reference overlay at 0.55 opacity with the grid hidden the right look?
+
+**Question:** Keep 0.55 opacity with the grid hidden for judging a match?
+
+**Background:** The overlay draws the model at 0.55 with the grid hidden (`ai-008` #3).
+
+**Options:**
+- **Keep it (Recommended):** it is legible against the model in both themes.
+- **Change the look:** say what you want in Other.
+
+**If deferred:** nothing changes; `ai-008` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q61 · Should a cancelled turn forget the scale it set?
+
+**Question:** Keep the scale for the rest of the session after a cancelled turn (the project is untouched)?
+
+**Background:** A cancelled turn keeps its scale (`ai-008` #4).
+
+**Options:**
+- **Keep it (Recommended):** the user can still see and reset it; forgetting would repeat the work.
+- **Forget on cancel:** a cancel then fully rewinds the session.
+
+**If deferred:** nothing changes; `ai-008` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q62 · Should a new message dismiss a pinned Save proposal?
+
+**Question:** Keep a pinned Save proposal until Confirm or Not now, even if you send a new message?
+
+**Background:** The proposal stays pinned (`ai-008` #5).
+
+**Options:**
+- **Keep it pinned (Recommended):** dismissing it silently could lose the proposed save.
+- **Dismiss it on a new message:** less clutter.
+
+**If deferred:** nothing changes; `ai-008` #5 stay `Owner`.
+
+**Answer:** question
+
+#### Q63 · Should the app test the saved key once on open?
+
+**Question:** Keep the hollow-ring dot ("saved, not yet checked"), or test the key when the Assistant opens?
+
+**Background:** The dot is a hollow ring until a test this visit (`ai-004` #4). A test is a real API call, and a key bills tokens.
+
+**Options:**
+- **Keep the dot, no automatic test (Recommended):** an automatic test spends the owner's tokens on every visit.
+- **Test once on open:** a clearer dot at a small token cost per visit.
+
+**If deferred:** nothing changes; `ai-004` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q64 · Do you want a Settings toggle for the always-on Library memory?
+
+**Question:** Keep the memory always on, or add a "remember" toggle?
+
+**Background:** The spec said to add a toggle only if the always-on memory surprises someone (`ui-068` #3).
+
+**Options:**
+- **Keep it always on, no toggle (Recommended):** no one has been surprised; add the toggle if someone is.
+- **Add the toggle:** an S-size task.
+
+**If deferred:** nothing changes; `ui-068` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q65 · Is the empty space under Undo AI turn in the connected column acceptable?
+
+**Question:** Leave the connected column filling its grid cell at laptop width?
+
+**Background:** The column keeps its width with empty space under Undo AI turn (`ui-071` #2).
+
+**Options:**
+- **Leave it (Recommended):** cosmetic, and narrowing it moves the chat when connecting.
+- **Narrow the column while connected:** an S-size layout task.
+
+**If deferred:** nothing changes; `ui-071` #2 stay `Owner`.
+
+**Answer:** question
+
+### Q-group: Layout, toasts and small controls
+
+14 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q66 · Should a row drag from a section pop-out suppress text selection?
+
+**Question:** Stop the pop-out text from highlighting during a row drag?
+
+**Background:** Dragging a row from the Raspberry Pi pop-out's text can highlight that text, on all three engines, during a mouse drag (`ui-081` #1).
+
+**Options:**
+- **Suppress selection during a row drag (Recommended):** the highlight is noise during a drag and the change is local. An XS task.
+- **Leave it:** cosmetic.
+
+**If deferred:** nothing changes; `ui-081` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q67 · Is dropping a model file onto the icon rail doing nothing acceptable?
+
+**Question:** Keep the rail refusing a dropped model file (the ⋯ menu is the way in)?
+
+**Background:** The labelled column accepts a dropped file; the rail does nothing (`ui-084` #6).
+
+**Options:**
+- **Keep it (Recommended):** the rail is narrow and the ⋯ menu works.
+- **Accept the drop on the rail:** an S-size task.
+
+**If deferred:** nothing changes; `ui-084` #6 stay `Owner`.
+
+**Answer:** question
+
+#### Q68 · Do you want a "face the cut" button in the Split sheet?
+
+**Question:** Add a button that turns the view square-on to the cut?
+
+**Background:** On an iPad at 820 px the Split sheet covers the orientation cube, so the face can only be turned before opening Split or by dragging (`ui-067` #1).
+
+**Options:**
+- **Not yet (Recommended):** dragging works and no one has asked.
+- **Add the button:** an S-size task.
+
+**If deferred:** nothing changes; `ui-067` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q69 · Should the offset handle hide or shrink while Place connectors is on?
+
+**Question:** Leave the 44 px offset handle at the centre of a small cut face?
+
+**Background:** It covers much of a small face until you zoom in (`ui-067` #2).
+
+**Options:**
+- **Leave it (Recommended):** 44 px is the tap size and zooming clears it.
+- **Hide or shrink it:** shrinking breaks the tap size rule.
+
+**If deferred:** nothing changes; `ui-067` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q70 · Is mouse and touch only acceptable for connector markers in v1?
+
+**Question:** Leave connector markers without a keyboard path to move or remove them?
+
+**Background:** Markers are SVG only (`ui-067` #4).
+
+**Options:**
+- **Accept it for v1 (Recommended):** the marker is placed and removed with its own button; a keyboard path can follow.
+- **Add a keyboard path now:** an S-size task.
+
+**If deferred:** nothing changes; `ui-067` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q71 · Should the sheet tab stay on a phone with an empty scene?
+
+**Question:** Keep the **+** tab visible when the scene is empty?
+
+**Background:** With an empty scene at phone width there is no sheet tab, so + is unreachable until something is placed (`ui-059` #5).
+
+**Options:**
+- **Keep the tab on an empty scene (Recommended):** a new user on a phone would otherwise have nothing to tap. An S-size task.
+- **Leave it:** the Library is reachable another way.
+
+**If deferred:** nothing changes; `ui-059` #5 stay `Owner`.
+
+**Answer:** question
+
+#### Q72 · Is committing a typed value on blur before Delete surprising?
+
+**Question:** Keep committing a typed variable value when focus leaves it, even if the next tap is Delete?
+
+**Background:** The typed value commits on blur first (`ui-059` #6).
+
+**Options:**
+- **Keep it (Recommended):** it is how every field in the app behaves, and Undo reverses it.
+- **Discard on Delete:** inconsistent with other fields.
+
+**If deferred:** nothing changes; `ui-059` #6 stay `Owner`.
+
+**Answer:** question
+
+#### Q73 · Should the save chip have a fixed width?
+
+**Question:** Give the save chip a fixed width so Undo / Redo / History do not shift about 27 px when `Saving…` becomes `Saved · hh:mm`?
+
+**Background:** The cluster is right-aligned and shifts after every edit; a click on Undo during that second can land on the gap (`docs-015` #1).
+
+**Options:**
+- **Fix the chip's width (Recommended):** a mis-tap on Undo is the worst place for a shift. An XS task.
+- **Leave it:** the shift lasts about a second.
+
+**If deferred:** nothing changes; `docs-015` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q74 · Should the Fillet refusal read as user wording?
+
+**Question:** Replace the engineering message (`modify.filletRim: the solid is not prismatic over the rim band … see the core-003 addendum`) with plain wording, and rewrite scenario 12 step 12?
+
+**Background:** Fillet Top (+Z) 4 on a cube that already has a 5 mm top chamfer is refused with the kernel's message. Scenario 12 step 12 cannot be driven as written (`docs-015` #2).
+
+**Options:**
+- **Reword the refusal and fix the step (Recommended):** a user sees this text. An S-size task.
+- **Leave the wording:** only the step is rewritten.
+
+**If deferred:** nothing changes; `docs-015` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q75 · Should the History dock be taller or resizable at laptop width?
+
+**Question:** Leave the fixed ~220 px History dock?
+
+**Background:** A five-step model needs scrolling and an open Edit form is cramped (`docs-015` #3).
+
+**Options:**
+- **Leave it (Recommended):** the dock scrolls and has not blocked a task.
+- **Make it taller or resizable:** a layout task.
+
+**If deferred:** nothing changes; `docs-015` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q76 · Does the cut plane need to be larger or brighter on a long thin bar?
+
+**Question:** Leave the cut plane as the body's cross-section?
+
+**Background:** On a long thin bar it is a small slot behind the gizmo (docs `split-sheet.png`) (`io-007` #4).
+
+**Options:**
+- **Leave it (Recommended):** it shows exactly where the cut falls.
+- **Draw a larger or brighter plane:** an S-size task.
+
+**If deferred:** nothing changes; `io-007` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q77 · Should the 45-entry Spec list be grouped on a phone?
+
+**Question:** Split the flat Spec list into `<optgroup>`s?
+
+**Background:** The list is flat with 45 entries (`core-052` #2).
+
+**Options:**
+- **Group it with `<optgroup>`s (Recommended):** a native picker shows the groups and the long list is easier to scan. An S-size task.
+- **Leave it flat:** it works today.
+
+**If deferred:** nothing changes; `core-052` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q78 · How should the Library Type dropdown show its longest label?
+
+**Question:** Fix "Wood screw, flat head" clipping to "Wood screw, fla" in the 197 px Library column?
+
+**Background:** The dropdown clips its longest labels (`core-060` #1).
+
+**Options:**
+- **Let the select show the full label (Recommended):** a clipped label hides which screw you are choosing. An XS task.
+- **Leave it:** the value is still selectable.
+
+**If deferred:** nothing changes; `core-060` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q79 · Does the Pi warning banner need to appear near Parameters too?
+
+**Question:** Leave the banner at the top of the Inspector detail view after Leave broken?
+
+**Background:** It is scrolled out of sight if you were down at Parameters when you changed the Model; the cube stays visible and History badges the row (`ui-052` #3).
+
+**Options:**
+- **Leave it (Recommended):** History also badges the row, so the problem is findable.
+- **Also show it near Parameters:** an S-size task.
+
+**If deferred:** nothing changes; `ui-052` #3 stay `Owner`.
+
+**Answer:** question
+
+### Q-group: Hardware and Pi recipes
+
+10 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q80 · Is a legacy bolt's old Spec form in the History Edit acceptable?
+
+**Question:** Leave the History Edit form showing a legacy `hardware.bolt`'s old Spec (`m10 hex`)?
+
+**Background:** Submitting writes the new Type + Size shape (`core-060` #3).
+
+**Options:**
+- **Leave it (Recommended):** it converts itself on the first edit.
+- **Convert on load:** a migration task.
+
+**If deferred:** nothing changes; `core-060` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q81 · Should the BOM show the resolved size when a bolt's Size or Fit is bound to a variable?
+
+**Question:** Show the resolved value in the BOM line?
+
+**Background:** The line reads `Bolt / screw hex × 20 mm` and drops the size because the bound value is not a string. This predates `core-060` (`core-060` #4).
+
+**Options:**
+- **Show the resolved value (Recommended):** a BOM that drops the size is not useful. An S-size task.
+- **Leave it:** the bolt is still listed.
+
+**If deferred:** nothing changes; `core-060` #4 stay `Owner`.
+
+**Answer:** question
+
+#### Q82 · Should `touchDisplay7inch`'s no-go-power marker use V1's 7 mm z-size?
+
+**Question:** Fix the `NO_GO_POWER_MM.sizeMm` z mismatch (1 mm here, 7 mm in V1)?
+
+**Background:** The mismatch is in a hidden marker (`core-033` #1).
+
+**Options:**
+- **Match V1's 7 mm (Recommended):** it removes a known difference from the original. An XS task.
+- **Keep 1 mm:** record the reason.
+
+**If deferred:** nothing changes; `core-033` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q83 · Is the `hatStandoff`'s peg-through-pad the intended solid?
+
+**Question:** Keep V1's shape, a 2.8 mm peg straddling z=0 through a 6.2 mm pad (so a spigot shows on the underside)?
+
+**Background:** It is faithfully ported and fixture-confirmed; whether a real standoff should print that way needs someone who has handled one (`core-018` #3).
+
+**Options:**
+- **Keep V1's shape (Recommended):** it is the original design and changing it needs the hardware in hand.
+- **Stand the peg on the pad:** a shape change from V1.
+
+**If deferred:** nothing changes; `core-018` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q84 · Which side moves for a second Fillet/Chamfer on a perpendicular face?
+
+**Question:** Narrow the wording ("a different face, provided the band is still prismatic") or teach the guard to accept it?
+
+**Background:** Fillet a cube's Top at r=3, then Chamfer Right (+X) at r=2: the popover refuses with "the solid is not prismatic over the rim band". The guard is correct and fails loudly, but `ui-027`'s promise is wrong as written (`core-017` #1).
+
+**Options:**
+- **Narrow the wording in `docs/fillet-chamfer.md` and `ui-027` (Recommended):** it is the smaller, reversible change and the refusal is already safe. An XS task.
+- **Teach the guard:** an L-size kernel task.
+
+**If deferred:** nothing changes; `core-017` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q85 · Is `miniPiTFT`'s outward-flared clearance the right clearance?
+
+**Question:** Keep V1's 5 mm-per-side flare over the top 5 mm until something consumes it?
+
+**Background:** It is hidden geometry that nothing renders yet (`core-017` #2).
+
+**Options:**
+- **Keep V1's number (Recommended):** nothing consumes it yet; check it against a real Mini PiTFT when an enclosure generator does.
+- **Change it now:** needs the hardware in hand.
+
+**If deferred:** nothing changes; `core-017` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q86 · Is the frozen `noGoPower` marker on `touchScreen2` a real problem on a non-stock board?
+
+**Question:** Keep the marker frozen at the stock-board offset?
+
+**Background:** It does not track the header on a non-stock board; a fix would reopen recipe nesting (`docs/decisions/composite-recipe-geometry.md` condition #2) (`core-016` #2).
+
+**Options:**
+- **Keep it frozen (Recommended):** no one has hit the problem and a fix is architectural.
+- **Reopen recipe nesting:** a large task.
+
+**If deferred:** nothing changes; `core-016` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q87 · Is `DEFAULT_MODEL = 'v3'` the right camera default?
+
+**Question:** Keep `v3` as the Camera Module default?
+
+**Background:** It was chosen as the current standard camera and so the op works with no params (`core-015` #2).
+
+**Options:**
+- **Keep v3 (Recommended):** matches how every sibling composite works with no params.
+- **Another default, or require `model`:** a one-line change in `raspberrypi.cameraModule.js`.
+
+**If deferred:** nothing changes; `core-015` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q88 · Which way should `flipTripodMount` default for the HQ camera?
+
+**Question:** Keep `flipTripodMount = false`, as in V1?
+
+**Background:** V1 gives the name but not the intent; `true` raises the tripod post relative to the mount block. Which matches a real HQ camera needs the hardware in hand (`core-015` #3).
+
+**Options:**
+- **Keep false (Recommended):** it is V1's default and a flag flips it.
+- **Default to true:** only if the hardware says so.
+
+**If deferred:** nothing changes; `core-015` #3 stay `Owner`.
+
+**Answer:** question
+
+#### Q89 · Should the Pi board render drilled?
+
+**Question:** Keep the board solid, with the four mounting holes as hidden parts only?
+
+**Background:** V1 cuts the holes through the combined board; this port carries them as hidden `hole1`-`hole4` parts because no record field reaches `addHole`. "Match V1 exactly" would also carve the micro-USB shell (`core-014` #2).
+
+**Options:**
+- **Keep it solid (Recommended):** nothing needs it drilled, and a drilled board needs its own task either way.
+- **File a task to drill it:** via a record-level hole flag or a `boolean.subtract` in the recipe.
+
+**If deferred:** nothing changes; `core-014` #2 stay `Owner`.
+
+**Answer:** question
+
+### Q-group: Snap, booleans and tests
+
+4 decisions from `testing-033`, each with the recommendation first. `/owner` offers **Accept all recommendations** for this group.
+
+#### Q90 · Should an overlapping drop snap to a face rather than centre-on-centre?
+
+**Question:** Keep the snap as it is when both solids already sit within each other's bounds?
+
+**Background:** This is a feel question about what a user means by dropping a part on top of another (`core-020` #1).
+
+**Options:**
+- **Keep it (Recommended):** no one has reported a bad snap, and the ghost shows where it lands before release.
+- **Snap to a face when overlapping:** a placement rule change.
+
+**If deferred:** nothing changes; `core-020` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q91 · Should an empty Subtract result say so?
+
+**Question:** Show a message (a toast or a refusal) when a boolean leaves a 0 x 0 x 0 body, instead of leaving it silently?
+
+**Background:** Two coincident operands, or a small solid wholly inside the one it is subtracted from, leave a zero-size body in the scene list with no error (`core-020` #2, `ui-042` #2).
+
+**Options:**
+- **Say so with a toast (Recommended):** a silent empty body is confusing and the fix is small. An S-size task.
+- **Leave it:** Undo removes the result.
+
+**If deferred:** nothing changes; `core-020` #2, `ui-042` #2 stay `Owner`.
+
+**Answer:** question
+
+#### Q92 · Is the boolean result's bounding box off by a sliver acceptable?
+
+**Question:** Leave sliver-size differences between the dimension lines and the shape after a boolean?
+
+**Background:** Dragging two cubes into rough overlap and typing a round position can leave a result whose raw bounding box differs from the visible shape by a sliver (`ui-014` #1).
+
+**Options:**
+- **Leave it (Recommended):** it is within tolerance and needs a snap or a cleanup pass to fix.
+- **File a follow-up:** a tolerance snap on operand coordinates or a sliver cleanup.
+
+**If deferred:** nothing changes; `ui-014` #1 stay `Owner`.
+
+**Answer:** question
+
+#### Q93 · Should `snap-align-operation.e2e.js`'s fixture be repositioned?
+
+**Question:** Leave the guards at `> 4` (about 90 times the 0.05 mm tolerance they protect), or move the fixture?
+
+**Background:** The guards were lowered from `> 5` because a taller phone header shifted the fixture's X separation from 5.61 mm to 4.69 mm (`data-003` #3).
+
+**Options:**
+- **Leave it until someone next touches that file (Recommended):** the guards still protect the tolerance.
+- **File a task to reposition it:** an XS task.
+
+**If deferred:** nothing changes; `data-003` #3 stay `Owner`.
 
 **Answer:** question
 
