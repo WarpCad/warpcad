@@ -110,6 +110,7 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 87 | ▶ Ready | `FIND` | [`docs-037`](FIND-docs-037-assistant-docs-scripted-badge-and-gifs.md) Reword the Scripted-badge paragraph and re-record the two Assistant GIFs (owner, Q10) | sonnet |
 | 88 | ▶ Ready | `FIND` | [`ui-140`](FIND-ui-140-variables-panel-min-and-max-fields.md) Min and Max fields in the Variables panel, refused before commit (owner, Q11) | sonnet |
 | 89 | ▶ Ready | `FIND` | [`ui-141`](FIND-ui-141-toolbar-boolean-on-a-group-part-keeps-the-other-parts.md) Keep a group's other parts when the toolbar runs a boolean on one part, like the AI path (owner, Q15) | sonnet |
+| 90 | ▶ Ready, **high** | `FIND` | [`io-038`](FIND-io-038-update-gist-from-a-second-device-within-a-minute-drops-the-first-devices-edit.md) Stop Update gist from a second device within a minute silently overwriting the first device's edit (stale unauthenticated read; found on real GitHub) | opus |
 
 ---
 
@@ -183,7 +184,8 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-044`](FIND-testing-044-drive-agent-drivable-verify-rows.md) Drive the VERIFY.md rows an agent can settle; iOS 26.0 runtime | finding | high | sonnet | ▶ Ready (Next up row 79) |
-| [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub | finding | medium | sonnet | Held (OWNER.md U1) |
+| [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
+| [`io-038`](FIND-io-038-update-gist-from-a-second-device-within-a-minute-drops-the-first-devices-edit.md) Update gist from a second device within a minute silently overwrites the first device's edit | finding | high | opus | ▶ Ready (Next up row 90) |
 | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move Viewport.vue's interaction logic into render controllers and composables | finding | medium | opus | ▶ Ready (Next up row 10) |
 | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | finding | low | sonnet | ▶ Ready (Next up row 37) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
@@ -413,6 +415,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `docs-037` | Reword the Assistant page's Scripted-badge paragraph and re-record its two GIFs (owner, OWNER.md Q10, 2026-11-17) | Finding | — | none |
 | `ui-140` | Show and edit a variable's Min and Max in the Variables panel; refuse out-of-range values before commit (owner, OWNER.md Q11, 2026-11-17) | Finding | — | variables |
 | `ui-141` | The Operations toolbar's boolean on one part of a group drops the group's other parts; set `keepParts` as the AI path does (owner, OWNER.md Q15, 2026-11-17) | Finding | — | booleans, 6 |
+| `io-038` | Update gist from a second device within 60 s drops the first device's edit with no message: the merge reads the gist unauthenticated, up to 60 s stale. Filed 2026-11-17 from the `testing-045` drive of `io-019` #1 | Finding | — | gist share, 30 |
 
 ---
 

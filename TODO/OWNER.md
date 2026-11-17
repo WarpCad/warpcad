@@ -17,7 +17,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
 | [2](#2-questions--answer-from-anywhere) | Questions | 0 now, 79 being drafted | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 63 min total | closes rows |
-| [4](#4-accounts-and-settings) | Accounts and settings | 5 | 38 min total | closes rows |
+| [4](#4-accounts-and-settings) | Accounts and settings | 6 | 38 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
 | [7](#7-at-the-printer-or-bench) | At the printer or bench | 13 | print time | closes rows |
@@ -93,33 +93,13 @@ All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
 Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
-#### M1 · Mac Dock icon size
-
-`build-023` #3 · 1 min · filed 2026-11-07
-
-**Steps:** 1. Launch the built WarpCad Mac app. 2. Look at its Dock tile and Cmd-Tab switcher tile beside Finder and Safari.
-
-**Pass if:** The tile sits in Apple's rounded grid at about the same size as stock apps.
-
-**Answer:** validation
-
 #### M2 · Claude Code attaches the WarpCad guide
 
-`ai-028` #2 · 1 min · filed 2026-10-29
+`ai-028` #2 · 1 min · filed 2026-10-29 · **Skipped 2026-11-17**
 
 **Steps:** 1. Same session. 2. Type `@warpcad:warpcad://guide` and send a message.
 
 **Pass if:** The guide is attached (it shows as an attachment and the model can quote it).
-
-**Answer:** validation
-
-#### M3 · Trackpad right-drag pans
-
-`ui-018` #1 · 1 min · filed 2026-09-06
-
-**Steps:** 1. On the MacBook trackpad (no mouse), two-finger click and hold, then drag in the view.
-
-**Pass if:** The view pans. If it does not, try Shift+drag and note in Other which worked.
 
 **Answer:** validation
 
@@ -358,6 +338,16 @@ Things only your signed-in accounts can do.
 **Pass if:** `cla` turns green, then `dco` passes.
 
 **Answer:** action
+
+#### K6 · A read-only token gets the "does not have permission" message
+
+`io-002` #2 · 4 min · filed 2026-11-17
+
+**Steps:** 1. github.com → Settings → Developer settings → Fine-grained tokens → Generate. Repository access: only one scratch repository you own; Permissions: Contents **Read-only**, nothing else. Copy it. 2. In WarpCad: File ▾ → Save to a repository…, connect that repository with this token, then Save.
+
+**Pass if:** the sheet says the token does not have permission to write to that repository and needs Contents: read and write (a 403), not "Repository not found". Say what it showed in Other. Delete the token afterwards.
+
+**Answer:** validation
 
 ---
 
@@ -914,6 +904,8 @@ Reopen any of these by telling an agent "unpark Z<n>".
 
 One line per answered item, newest first: `YYYY-MM-DD · <code> · <answer> · <where it was recorded>`.
 
+- 2026-11-17 · M3 · Pass · VERIFY `ui-018` #1 OK
+- 2026-11-17 · M1 · Fail: the cube mark is small inside the tile · VERIFY `build-023` #3 Issue; native finding filed at sitting end
 - 2026-11-17 · Q15 · Keep the siblings · filed `FIND-ui-141`, Next up row 89
 - 2026-11-17 · Q14 · Add the result to the text and redo the GIF · `FIND-docs-036`; VERIFY `docs-013` #2 Moved
 - 2026-11-17 · Q13 · Label + one sentence · `FIND-docs-036`; VERIFY `docs-014` #3 Moved

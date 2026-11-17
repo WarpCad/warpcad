@@ -582,7 +582,7 @@ The README is generated Markdown. The fake gist API proves its text, but not how
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open a published gist on github.com and read the README: the description quote, **How this was made** with its block quotes and **Reply**, and the **Variables** table (columns, the – range, the em-dash for an open range) render as a table, not raw pipes. | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
+| 1 | Open a published gist on github.com and read the README: the description quote, **How this was made** with its block quotes and **Reply**, and the **Variables** table (columns, the – range, the em-dash for an open range) render as a table, not raw pipes. | OK | 2026-11-17 (`testing-045`, real GitHub, secret gists deleted afterwards, owner login, production build, chromium-laptop): the gist page on github.com renders the README: description heading, *How this was made* with a block quote and *Reply*, and the Variables table (Name / Value / Range, `40–120 mm`, em-dash for the open range) as a real HTML table, not raw pipes. |
 | 2 | On a real iPhone in Safari, open a short link to a project that has a description: the About popup sits over the model, **View the model** dismisses it, and the header **About** button brings it back. | N/A | 2026-11-17 owner (OWNER.md Q1): superseded, closed with the other pre-November device feel checks; replaced by free-form passes (OWNER.md §5b free-form item). Was L1. |
 
 ### io-019 — Update gist merges before publishing (2026-10-29 13:32)
@@ -591,8 +591,8 @@ Driven by e2e and a scratch clash drive on Chromium and WebKit, never against re
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | With a real throwaway token, edit one published project on a laptop and a phone, tap **Update gist** on both: the second shows the merge strip then *Gist updated*, and the real gist keeps both edits (the 60 s read cache is the unknown). | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
-| 2 | After a gist merge, tap **Undo merge**, then **Update gist**: confirm the gist loses the merged rows ("take mine") and that this reads acceptably. | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
+| 1 | With a real throwaway token, edit one published project on a laptop and a phone, tap **Update gist** on both: the second shows the merge strip then *Gist updated*, and the real gist keeps both edits (the 60 s read cache is the unknown). | Issue | 2026-11-17 (`testing-045`, real GitHub, secret gists deleted afterwards, owner login, production build, chromium-laptop): with 65 s between the two Updates, the second shows *Merged 1 step from the gist* and the gist keeps all four bodies. With 3 s between them the second Update overwrites the first device's edit with no message (the unauthenticated read is up to 60 s stale). Filed `FIND-io-038`. |
+| 2 | After a gist merge, tap **Undo merge**, then **Update gist**: confirm the gist loses the merged rows ("take mine") and that this reads acceptably. | OK | 2026-11-17 (`testing-045`, real GitHub, secret gists deleted afterwards, owner login, production build, chromium-laptop): after a merge, **Undo merge** then **Update gist** leaves the gist with the three own rows, the merged one gone ("take mine"), as designed. Whether that reads acceptably is a taste call; the Undo toast gives no warning that Update will drop the merged step from the gist. |
 
 ### ui-079 — Tiered Library and Operations panels (2026-10-29 12:40)
 
@@ -628,7 +628,7 @@ GitHub's own rendering of the **How this was made** section is not something a t
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Open a gist published with a prompt on github.com: the quote renders as a quote, `@name` shows as text and does not link to a profile, and nothing else on the page changed. | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
+| 1 | Open a gist published with a prompt on github.com: the quote renders as a quote, `@name` shows as text and does not link to a profile, and nothing else on the page changed. | OK | 2026-11-17 (`testing-045`, real GitHub, secret gists deleted afterwards, owner login, production build, chromium-laptop): a prompt containing `@octocat` renders as a block quote; `@octocat` shows as text with no link to a profile (`href="https://github.com/octocat"` absent); the rest of the page is unchanged. |
 
 ### io-021 — File ▾ → Save as gist… (2026-10-28 21:19 UTC)
 
@@ -647,7 +647,7 @@ checked by hand. Scenario 30 already queues the real-account check; this row is 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | On a real gist (secret, your account): never-saved project, type *Fan Duct* in **Name**, **Publish to a gist**; then type *Desk stand* and **Update gist**. On github.com the gist title and file list show *Desk stand* and no `fan-duct` file. | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
+| 1 | On a real gist (secret, your account): never-saved project, type *Fan Duct* in **Name**, **Publish to a gist**; then type *Desk stand* and **Update gist**. On github.com the gist title and file list show *Desk stand* and no `fan-duct` file. | OK | 2026-11-17 (`testing-045`, real GitHub, secret gists deleted afterwards, owner login, production build, chromium-laptop): never-saved project, Name *Fan Duct*, Publish: gist is secret, title *Fan Duct*, files `README.md` and `fan-duct.warpcad`. Name *Desk stand*, Update gist: title *Desk stand*, files `README.md` and `desk-stand.warpcad`, no `fan-duct` file. |
 
 ### ai-027 — MCP instructions carry the working method (2026-10-28 17:52)
 
@@ -2072,8 +2072,8 @@ about the *real service's* behaviour rather than about this code. The open real-
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **A project over 1 MB, against real GitHub.** The Contents API stops returning file content above ~1 MB (`"encoding": "none"`, empty `content`), and `hostedBackend.js` follows the blob endpoint rather than reading that as an empty project — which would commit a truncated log over a real one. That branch is tested against a fake answer shaped from the docs, never against the real service. Build a log past 1 MB (a few hundred placements, or a big imported part), Save to a scratch repo, reload with site data cleared, and Load it back: does the whole model return? | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
-| 2 | **403 really is two different failures.** A missing `Contents: write` permission and a rate limit both arrive as 403, and they are told apart here by `x-ratelimit-remaining`/the body text, then reported as different messages (*"does not have permission… Contents: read and write"* vs *"Rate limited — try again in N minutes"*). Confirm against the real API with a deliberately read-only fine-grained token: is the wrong-permission message the one that appears, and is it true? | Moved | 2026-11-17 (owner-queue triage): → `testing-045` (waits on OWNER.md U1). |
+| 1 | **A project over 1 MB, against real GitHub.** The Contents API stops returning file content above ~1 MB (`"encoding": "none"`, empty `content`), and `hostedBackend.js` follows the blob endpoint rather than reading that as an empty project — which would commit a truncated log over a real one. That branch is tested against a fake answer shaped from the docs, never against the real service. Build a log past 1 MB (a few hundred placements, or a big imported part), Save to a scratch repo, reload with site data cleared, and Load it back: does the whole model return? | OK | 2026-11-17 (`testing-045`, real GitHub, owner login, scratch private repo): a 1,488,904-byte project written to `johnwebbcole/warpcad-scratch` through `createHostedClient().write` and read back through `.read`: `exists` true and the text identical, so the blob path is followed and nothing is truncated. |
+| 2 | **403 really is two different failures.** A missing `Contents: write` permission and a rate limit both arrive as 403, and they are told apart here by `x-ratelimit-remaining`/the body text, then reported as different messages (*"does not have permission… Contents: read and write"* vs *"Rate limited — try again in N minutes"*). Confirm against the real API with a deliberately read-only fine-grained token: is the wrong-permission message the one that appears, and is it true? | Owner | 2026-11-17 (`testing-045`, real GitHub, owner login, scratch private repo): the rate-limit half is the recorded 403 body in `hostedBackend.spec.js` (the real limit is not exhausted, per the task). The permission half could not be reproduced with the owner's OAuth token: a write to a repository it can only read (`octocat/Hello-World`) answers **404**, which the client reports as *Repository not found*, not 403. A token that reads but cannot write needs a fine-grained token → `TODO/OWNER.md` K6. |
 
 ### io-001 — Local persistence: IndexedDB autosave, restore and the save-status chip (2026-09-19 13:31)
 

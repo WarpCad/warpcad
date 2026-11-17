@@ -12,6 +12,15 @@ status: open
 > **Decided 2026-11-17 (owner, /owner, U1):** use the owner's `gh` login. Secret gists and a private `warpcad-scratch`
 > repository only; delete everything at the end. Un-held; in the Findings queue.
 
+> **Progress 2026-11-17 (kept open).** Driven against real GitHub in the production build (a temporary spec copied from
+> `e2e/gist-share.e2e.js` with the fake removed, deleted afterwards). Settled in VERIFY.md: `io-023` #1, `io-022` #1,
+> `io-020` #1 (OK); `io-019` #1 (**Issue**, filed `io-038`: two Updates 3 s apart lose the first edit; 65 s apart they
+> merge) and #2 (OK); `io-002` #1 (OK, 1.49 MB round trip) and #2 (rate-limit half by the unit spec; the permission half
+> needs a read-only fine-grained token, `OWNER.md` K6). All four test gists were deleted (ids in the commit message).
+> **Left:** `io-011` #1 (two-browser hosted save, UI) and `io-035` #4 (the five send/open repros). The private repository
+> `johnwebbcole/warpcad-scratch` still exists for them; delete it with `gh repo delete johnwebbcole/warpcad-scratch --yes`
+> when they are done.
+
 ## Problem
 
 Nine `TODO/VERIFY.md` rows need the real GitHub, not the e2e fake: gist titles and README rendering, "Update
