@@ -68,7 +68,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [M19](#m19--native-ios-app-tauri) | 3 queued (1 ready, 2 waiting), run first | The local native rows (owner, 2026-11-15): Gate 0 of the release checklist, the local iPad pass, two follow-ups. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 27 queued (26 ready, 1 parked) + 5 held | The runner's queue after M19: the findings the VERIFY.md drives, the cold-read panel and later tasks filed. Parked: `perf-004` (owner question). Held: `testing-026`, `testing-027`, `testing-028`, `testing-033`, `ai-041`. |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 77 | ⏳ Both halves done; close by hand (owner) (split 2026-11-16) | `M19` | [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` | opus |
 | 9 | ⚠ Parked 2026-11-15: premise false, owner decision needed (see Runner Log) | `FIND` | [`perf-004`](FIND-perf-004-kernel-registry-metadata-in-the-main-bundle.md) Split the op registry's metadata from its code (~380 kB out of the main bundle) | opus |
 | 10 | ▶ Ready | `FIND` | [`ui-108`](FIND-ui-108-viewport-vue-holds-interaction-logic.md) Move `Viewport.vue`'s interaction logic into render controllers and composables | opus |
 | 37 | ▶ Ready | `FIND` | [`ui-123`](FIND-ui-123-style-guard-spacing-radius-and-native-colour.md) Decide whether the style guard covers spacing and radius, and check the native window colour | sonnet |
@@ -114,6 +113,8 @@ yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the 
 - [`ai-041`](FIND-ai-041-tool-gaps-found-writing-the-first-two-skills.md) Tool gaps found writing the first two skills (no part copy, no body rename, no offset, no per-part clearance). **Held:** eight gaps to triage with the owner, which to build as tools; filed 2026-11-15 when `ai-035` closed
 
 ---
+
+- [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Verify the `.warpcad` file types on a real iPad and in Safari, then run the owed acceptance scenarios (10, 22, 23, 28). **Held:** a manual run; filed 2026-11-16 to close `io-035` and `io-036`.
 
 ## Decided 2026-10-24 and still waiting on you
 
@@ -187,7 +188,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
 | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | Closed 2026-11-16 by owner decision: partly run, 8 checks to be filed as rows |
-| [`io-030`](../../warpcad-native/TODO/M19-io-030-project-file-type-claims-every-ndjson.md) Give projects a `.warpcad` extension; stop claiming every `.ndjson` (M19) | finding | high | opus | ⏳ Both halves done; close by hand (owner) |
 | [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: entitlements, hardened runtime, signing, notarized or Mac App Store build (M19) | feature | medium | sonnet | Held (native) |
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
@@ -282,7 +282,6 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | — | 28 (local build) |
-| `io-030` | Give projects a `.warpcad` extension; stop claiming every `.ndjson` (decided 2026-11-13; a format change in both repositories). Split 2026-11-16 into `io-036` and `io-035`; both done 2026-11-16; close by hand. Opus | Finding | `io-035`, `io-036` | 10, 28 |
 
 **Still held** (a list, so the runner cannot pick them up). Each contacts something outside this Mac, or waits on a row that does:
 
