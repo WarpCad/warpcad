@@ -27,6 +27,8 @@ Owner decision first: does spacing belong in the guard? Options: (a) leave it, s
 spacing too, which is a very large mechanical sweep with snapshot risk. Recommendation: (b). Then, for the native colour,
 either a spec that reads the sibling repo's file when it exists, or a `warpcad-native` check against the published token value.
 
+**Decided 2026-11-17 (owner, /owner, OWNER.md Q2):** radius **and** spacing: guard both. Do radius first (58 values, mostly 50% and 999px onto the existing tokens), then spacing (649 `padding`/`gap` values) onto `--space-1…8`. Expect many snapshot diffs; list them in the commit. If the spacing sweep outgrows one tick, commit radius as part 1 and keep the task open.
+
 ## Testing
 
 - The guard spec gains tests for each new rule (a literal fails, a token passes), then runs over `src/` with no allow-list.

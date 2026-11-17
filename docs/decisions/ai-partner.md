@@ -1423,3 +1423,5 @@ when none is given, `add-clearances` defaults to 0.2 mm per side for a snug or p
 (the FDM figures), and sets no default for resin or CNC, where it asks. **Not covered:** the live server
 (`mcp/liveHttp.js`) declares no skills; `registerSkillHandlers` is exported so it can. **Tool gaps the skills work
 around** are listed in `TODO/FIND-ai-041` (no offset operation, no copy-body tool, and so on).
+
+**Decided 2026-11-17 (owner, /owner, `TODO/OWNER.md` Q4):** keep these defaults (0.2 mm per side snug or press, 0.4 mm sliding, none for resin or CNC). Revisit after the owner's printer tests in `TODO/OWNER.md` §7.

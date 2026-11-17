@@ -84,4 +84,6 @@ user's answer in step 3.
 - **Media**: none changes unless a value shown in a screenshot changes. If it does, regenerate
   with `npm run docs:media`.
 
+**Added 2026-11-17 (owner, /owner, OWNER.md Q7):** when the screw work resumes, add a head-up orientation for countersunk (flat-head) screws. Today `hardware.bolt` Flat head and Wood screw, flat head stand on the wide head at z = 0 with the thread up (VERIFY.md `core-027` #1), so cutting a countersunk hole needs a 180° rotation first.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

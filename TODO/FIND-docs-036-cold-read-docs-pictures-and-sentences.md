@@ -55,6 +55,10 @@ the docs text. Both agents agreed these do not read without help:
 
 S–M (two GIF re-records, four sentences).
 
+**Added 2026-11-17 (owner, /owner, OWNER.md Q13 and Q14):**
+- `rpi-keepout.png` (`docs-014` #3): label the red keep-out block in the picture (e.g. *Keep-out: power connector*), show **Show hidden parts** in the frame, and add one sentence on the page saying what the block is for.
+- `resize-fit.gif` and the Fit example (`docs-013` #2): state the result in the text (*X 60 → 30 makes Y and Z 40 → 20, because Keep aspect ratio applies the smallest ratio to all three*), and re-record the GIF so Y and Z visibly update. Re-record only that movie through a scoped `moviesDir`, never `npm run docs:gifs` (it rewrites every GIF).
+
 ## Testing
 
 - `npm run help:build` (docs text changes), `npm run spdx`, `e2e/docs-media.spec.js` for the pictures.

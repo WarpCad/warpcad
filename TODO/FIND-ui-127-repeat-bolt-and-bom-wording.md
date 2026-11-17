@@ -46,6 +46,8 @@ Change the five strings as above; update every quoted copy in the docs and the s
 
 S.
 
+**Added 2026-11-17 (owner, /owner, OWNER.md Q6):** the Save to library sheet says *Saves this group as a fixed part* for a single imported mesh too. When the source is one body (not a group), say *Saves this as a fixed part*. VERIFY.md `ui-107` #4.
+
 ## Testing
 
 - Unit specs above; the Repeat and BOM e2e specs on the rotating pair. Responsive: the 390 px lines wrap in two lines at most.

@@ -102,6 +102,12 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 68 | ▶ Ready | `FIND` | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) Close the one 1.4 micrometre four-face edge left in the 96k cut's STL export | opus |
 | 78 | ▶ Ready | `FIND` | [`testing-042`](FIND-testing-042-help-from-align-baselines-stale.md) Refresh the help-from-align screenshots, stale since the Align docs page gained text | sonnet |
 | 83 | ▶ Ready | `FIND` | [`io-037`](FIND-io-037-gist-token-check-accepts-a-token-with-no-gists-permission.md) Reject a gist token with no Gists permission at Connect (GitHub answers the probe 404, not 403); test token expires 2026-11-24 | sonnet |
+| 84 | ▶ Ready | `FIND` | [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Split into one row per AI tool gap (owner: build all five, Q3), then those rows run | opus |
+| 85 | ▶ Ready | `FIND` | [`ui-138`](FIND-ui-138-hover-tint-too-faint-on-light-bodies.md) Make the Objects-list hover tint clearly visible on light bodies (owner, Q8) | sonnet |
+| 86 | ▶ Ready | `FIND` | [`ui-139`](FIND-ui-139-hide-dimension-lines-during-a-rotate-drag.md) Hide the dimension lines while a rotate-ring drag is in progress (owner, Q9) | sonnet |
+| 87 | ▶ Ready | `FIND` | [`docs-037`](FIND-docs-037-assistant-docs-scripted-badge-and-gifs.md) Reword the Scripted-badge paragraph and re-record the two Assistant GIFs (owner, Q10) | sonnet |
+| 88 | ▶ Ready | `FIND` | [`ui-140`](FIND-ui-140-variables-panel-min-and-max-fields.md) Min and Max fields in the Variables panel, refused before commit (owner, Q11) | sonnet |
+| 89 | ▶ Ready | `FIND` | [`ui-141`](FIND-ui-141-toolbar-boolean-on-a-group-part-keeps-the-other-parts.md) Keep a group's other parts when the toolbar runs a boolean on one part, like the AI path (owner, Q15) | sonnet |
 
 ---
 
@@ -115,7 +121,6 @@ yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the 
 
 - [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Native dialogs, the Mac app and the iOS Simulator's own screens, with computer use (5 + 19 rows). **Running 2026-11-17** in the Claude desktop app (OWNER.md U2 done); not in the runner's queue
 - [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari checks in the Simulator (34 rows). iOS 27.2 simulators have no Remote Automation switch; `testing-044` step 0 tries the iOS 26.0 runtime and un-holds this row itself if the switch is there
-- [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Five AI tool gaps left after `ai-041`. **Waits on OWNER.md Q3** (which gaps to build)
 
 ---
 
@@ -185,7 +190,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Held (owner first) |
 | [`testing-033`](FIND-testing-033-owner-decisions-from-verify.md) Part 1: draft a recommendation for each of the 79 parked decisions into `TODO/OWNER.md` (asking is `/owner`) | finding | medium | sonnet | ▶ Ready (Next up row 80) |
-| [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (held: owner triage first) | finding | low | opus | Held (owner first) |
+| [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (held: owner triage first) | finding | low | opus | ▶ Ready (Next up row 84) |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
 | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
 | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
@@ -374,7 +379,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-026` | Desktop Safari checks through safaridriver (6 VERIFY.md rows). Un-held 2026-11-17 by OWNER.md U3; run with the shell sandbox off | Finding | — | none |
 | `testing-033` | Part 1 only: draft the evidence and a recommendation for each of the 79 parked product decisions, written as questions in `TODO/OWNER.md` §2. Asking is `/owner`, never this row. Split 2026-11-17 | Finding | — | none |
 | `ui-108` | Move `Viewport.vue`'s 3,900 lines of interaction logic into render controllers and composables. Filed 2026-11-10 from the architecture audit | Finding | — | 1, 4, 6, 7, 9 |
-| `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed. **Goes ahead with radius only unless `TODO/OWNER.md` Q2 is answered otherwise first** | Finding | — | none |
+| `ui-123` | Decide whether the style guard covers spacing and radius, and check the native window colour. Filed 2026-11-14 when `ui-111` closed. **Owner 2026-11-17 (Q2): guard radius and spacing** | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
@@ -400,6 +405,12 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `io-033` | One 1.4 micrometre edge used by four triangles remains in the 96k scan's cut STL export. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | `testing-042` | The help-from-align screenshots are stale since `docs/snap-align.md` gained text in `e376b5da`; red on firefox-phone and firefox-tablet, so pair runs do not advance. Filed 2026-11-16 from the `ui-121` and `build-034` runs | Finding | — | none |
 | `io-037` | The gist token check accepts a token with no Gists permission: `PATCH /gists/000…` answers 404 for it as for a permitted token (verified 2026-11-17, OWNER.md U5). Filed from VERIFY.md io-017 #1 | Finding | — | gist share |
+| `ai-044` | Five AI tool gaps left after `ai-041`. Owner 2026-11-17 (Q3): build all five. First step: split into one row per gap | Finding | — | none |
+| `ui-138` | Make the Objects-list hover tint clearly visible on light-blue and default bodies (ΔE00 5-8 today; owner chose to strengthen it, OWNER.md Q8, 2026-11-17) | Finding | — | 6 |
+| `ui-139` | Hide the dimension lines while a rotate-ring drag is in progress (owner, OWNER.md Q9, 2026-11-17) | Finding | — | 4 |
+| `docs-037` | Reword the Assistant page's Scripted-badge paragraph and re-record its two GIFs (owner, OWNER.md Q10, 2026-11-17) | Finding | — | none |
+| `ui-140` | Show and edit a variable's Min and Max in the Variables panel; refuse out-of-range values before commit (owner, OWNER.md Q11, 2026-11-17) | Finding | — | variables |
+| `ui-141` | The Operations toolbar's boolean on one part of a group drops the group's other parts; set `keepParts` as the AI path does (owner, OWNER.md Q15, 2026-11-17) | Finding | — | booleans, 6 |
 
 ---
 

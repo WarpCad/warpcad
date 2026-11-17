@@ -46,6 +46,8 @@ One shared `userReason()` at the display boundary that turns the known kernel me
 
 M.
 
+**Added 2026-11-17 (owner, /owner, OWNER.md Q12):** the Assistant's image notice (`src/composables/useAgent.js`) becomes: *Image sent to Anthropic with your request and billed to your own API key. It is not sent anywhere else.* VERIFY.md `ai-008` #6.
+
 ## Testing
 
 Unit tests for each message mapping; e2e for the fillet popover and the broken row at three viewports on the rotating pair. Re-run the `ui-027`,

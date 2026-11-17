@@ -25,6 +25,8 @@ status: open
 
 ## Proposed fix
 
+**Decided 2026-11-17 (owner, /owner, OWNER.md Q3):** build all five gaps (2, 5, 6, 7, 8). The runner's first step on this row: split it into one `FIND-ai-0NN` file per gap, each with its own Effort, model (gap 5 offset and gap 6 hollow-box joint are Opus) and Testing, add them to the Findings table and Next up in gap order 2, 8, 7, 6, 5, then close this file as split.
+
 Do not implement here. Triage with the owner before building, as `ai-041` did. Each closed gap shortens a skill and gets a skill-text edit and a re-drive.
 
 ## Effort
