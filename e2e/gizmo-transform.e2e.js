@@ -760,6 +760,66 @@ test('dragging a rotate ring turns the body and the Rotation fields track it liv
   expect(await sceneBodies(page)).toHaveLength(1)
 })
 
+test('in Pan mode a drag that starts on a gizmo ring pans the view and leaves the body alone (TODO/ui-126)', async ({
+  page,
+}) => {
+  await placeCube(page)
+  await openNavChrome(page)
+  const viewport = page.getByTestId('viewport')
+  await expect(page.getByTestId('gizmo-grab-ring-z')).toBeAttached()
+
+  // The first ring vertex the browser really resolves to the ring (another overlay can
+  // cover a given vertex), in page coordinates, or null when none does.
+  const ringPoint = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('[data-testid="gizmo-grab-ring-z"]')
+      const rect = document.querySelector('[data-testid="viewport"]').getBoundingClientRect()
+      const pairs = el
+        .getAttribute('points')
+        .trim()
+        .split(/\s+/)
+        .map((pair) => pair.split(',').map(Number))
+      for (const [px, py] of pairs) {
+        const x = rect.left + px
+        const y = rect.top + py
+        if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue
+        if (document.elementFromPoint(x, y) === el) return { x, y }
+      }
+      return null
+    })
+
+  // Orbit (the default): the ring owns the press.
+  const start = await ringPoint()
+  expect(start).not.toBeNull()
+  const at = /** @type {{ x: number, y: number }} */ (start)
+  const hitsRingAt = () =>
+    page.evaluate(
+      ({ x, y }) =>
+        document.elementFromPoint(x, y) === document.querySelector('[data-testid="gizmo-grab-ring-z"]'),
+      at,
+    )
+  expect(await hitsRingAt()).toBe(true)
+
+  await page.getByTestId('nav-mode-pan').click()
+  await expect(page.getByTestId('nav-mode-pan')).toHaveAttribute('aria-pressed', 'true')
+
+  const before = await viewport.getAttribute('data-camera-target')
+  const rotationBefore = await fieldNumber(page, 'inspector-rotation-z')
+  expect(await hitsRingAt()).toBe(false)
+
+  await page.mouse.move(at.x, at.y)
+  await page.mouse.down()
+  for (let i = 1; i <= 8; i++) await page.mouse.move(at.x + i * 6, at.y + i * 4)
+  await page.mouse.up()
+
+  await expect(viewport).not.toHaveAttribute('data-camera-target', before ?? '')
+  expect(await fieldNumber(page, 'inspector-rotation-z')).toBeCloseTo(rotationBefore, 6)
+
+  // Back in Orbit the ring works again. The pan moved the view, so find the ring afresh.
+  await page.getByTestId('nav-mode-orbit').click()
+  expect(await ringPoint()).not.toBeNull()
+})
+
 test('transforming one body leaves the other exactly where it was', async ({ page }) => {
   // ACCEPTANCE.md scenario 1's guarantee, restated for the mutation this task
   // adds: no cross-talk through the document fold, and no body that quietly

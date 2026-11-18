@@ -3181,3 +3181,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 627 values, 116 files → git diff; 42 drifted tests, 84 failures across nine projects → full e2e run this session
 **To Add:** none
+
+## 2026-11-18T00:15:00Z — ui-126: Pan mode no longer lets a gizmo ring turn the body
+
+**Post:** In WarpCad, a drag that started on a selected body's rotate ring turned the body even with Pan pressed. Now in Pan the gizmo handles step aside and the drag pans the view; Orbit and Select keep them. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Cube rotated -14° then -26° in Pan mode before the fix → TODO/done/ui-126 problem table; new spec green on webkit-tablet + firefox-laptop (34 passed) and chromium-phone, chromium-tablet, webkit-phone (141 passed) → test runs this session
+**To Add:** none

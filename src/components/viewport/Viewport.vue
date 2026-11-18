@@ -1097,6 +1097,7 @@ onBeforeUnmount(() => {
       :annotation="gizmoAnnotation"
       :dial="dialAnnotation"
       :ruler="rulerAnnotation"
+      :drag-mode="dragMode"
       @handle-down="onGizmoHandleDown"
       @handle-move="onGizmoHandleMove"
       @handle-up="onGizmoHandleUp"

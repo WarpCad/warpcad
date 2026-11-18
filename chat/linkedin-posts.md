@@ -4600,3 +4600,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 627 values, 44 snapped, 116 files → git diff; 42 drifted tests → full e2e run this session
 **To Add:** none
+
+## 2026-11-18T00:15:00Z — ui-126: Pan mode no longer lets a gizmo ring turn the body
+
+**Post:** With the navigation chrome set to Pan, a drag that started on a selected body's rotate ring still rotated the body and left the camera where it was. On a phone the rings sit around 57 px from the hub, so it was easy to hit by accident.
+
+The fix is one prop and one CSS rule: the gizmo now knows the drag mode, and in Pan its hit targets stop taking pointer events, so the press falls through to the canvas and pans. Orbit and Select keep the handles.
+
+The new end-to-end spec does a real hit test and a real mouse drag, because the older gizmo specs dispatch events straight at the handle and could never have seen this. It passed on WebKit tablet, Firefox laptop, and Chromium and WebKit phone. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ring ~57 px from hub on a Cube at phone width → TODO/done/ui-126; older specs dispatch at the element → e2e/gizmo-transform.e2e.js dragHandle; specs green → test runs this session
+**To Add:** none

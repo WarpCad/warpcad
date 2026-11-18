@@ -75,6 +75,12 @@ const props = defineProps({
    * `annotation`; `null` or `visible: false` draws nothing.
    */
   ruler: { type: Object, default: null },
+  /**
+   * The chrome's drag mode (`TODO/ui-126`). In `pan` the hit targets stop taking
+   * presses, so a drag that starts on a ring or arm falls through to the canvas
+   * and pans, which is what the toggle promises. Orbit and Select keep the handles.
+   */
+  dragMode: { type: String, default: 'orbit' },
 })
 
 /**
@@ -378,6 +384,7 @@ function onHandleUp(event) {
   <svg
     v-if="gizmo.visible"
     class="tgizmo"
+    :class="{ 'tgizmo--pan': dragMode === 'pan' }"
     data-testid="transform-gizmo"
     :data-origin="`${gizmo.originX.toFixed(1)},${gizmo.originY.toFixed(1)}`"
     aria-hidden="true"
@@ -609,6 +616,11 @@ function onHandleUp(event) {
   /* 22px against a 3px arm — aimable with a mouse without being a wall. */
   stroke-width: 22;
   cursor: grab;
+}
+
+/* Pan mode (TODO/ui-126): the handles step aside so the press reaches the canvas. */
+.tgizmo--pan .tgizmo__grab {
+  pointer-events: none;
 }
 
 .tgizmo__grab:active {

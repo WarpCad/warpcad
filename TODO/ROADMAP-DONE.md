@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-126` | In Pan mode the gizmo's hit targets step aside (`pointer-events: none` via a `dragMode` prop on `Gizmo.vue`), so a drag that starts on a ring or arm pans the view instead of rotating the body. Orbit and Select keep the handles | Finding | — | 7 |
 | ✅ `testing-044` | Drove the 51 VERIFY.md rows an agent can settle, in two sittings: app checks by mouse and keyboard at three widths and three engines, `claude -p` on the subscription (Haiku and Sonnet), the live bridge (scenario 25 whole, with the gizmo drag and the held Library drag), a docs fix in `docs/user-library.md`, the WebMCP trial dates in `docs/webmcp.md`, the iOS 26.0 runtime, and the open-project GIFs. Seven cold-read rows became owner questions (Q10 to Q17) and three new findings were filed (`core-085`, `ui-142`, `ui-143`); two on-screen rows went to `testing-028` | Finding | — | 6, 7, 9, 10, 22, 23, 25 |
 | ✅ `ui-123` | The style guard covers `border-radius`, `padding` and `gap` (rules `style-radius`, `style-spacing`): 34 components moved onto `--radius-*` tokens and 627 spacing values onto `--space-1…8` plus half steps `--space-4h` (10px) and `--space-5h` (14px). Off-scale values snapped to the nearest step; 83 baselines regenerated. The native window colour check already existed | Finding | — | 1, 4, 7, 9 |
 | ✅ `ui-122` | Move the hand-built sheets, popouts and segmented pickers onto the base components. Three pickers moved onto `SegmentedToggle` (curve kind, extrude method, Solid/Hole); the rest kept with a one-line reason at the top of each file | Finding | — | 1, 4, 7, 9 |
@@ -1427,5 +1428,6 @@ convention going forward.
 | `ui-108` | 2026-11-17 21:15 | multi-session (seven slices on 2026-11-17, each verified; the closing full 3x3 run took 29m) |
 | `testing-033` | 2026-11-17 22:16 | ~3m by the machine clock, 22:13 to 22:16 (drafting from the VERIFY rows; no code, no test run) |
 | `ui-123` | 2026-11-17 23:38 | ~1h18m in two parts (radius committed first; spacing sweep, a full 3x3 run that found 42 drifted baselines, regeneration and re-verification) |
+| `ui-126` | 2026-11-18 00:06 | ~25m by the machine clock (00:03 start; one spec, two fix-ups to the spec's own hit-test point) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

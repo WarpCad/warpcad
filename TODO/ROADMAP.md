@@ -75,7 +75,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
-| 43 | ▶ Ready | `FIND` | [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) Stop a Pan-mode drag that starts on a gizmo ring rotating the body | sonnet |
 | 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 | 50 | ▶ Ready | `FIND` | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | sonnet |
@@ -191,7 +190,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking Viewport.vue's script and split pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 94) |
 | [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) pwa-update drag test timed out in its hook once in the full matrix | finding | low | sonnet | ▶ Ready (Next up row 95) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
-| [`ui-126`](FIND-ui-126-pan-mode-drag-from-gizmo-ring-rotates-the-body.md) In Pan mode a touch drag that starts on a gizmo ring rotates the body instead of panning | finding | low | sonnet | ▶ Ready (Next up row 43) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
 | [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (owner 2026-11-17 Q3: build all five; first step is the split) | finding | low | opus | ▶ Ready (Next up row 84) |
@@ -385,7 +383,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
-| `ui-126` | In Pan mode a touch drag that starts on a selected body's gizmo ring rotates the body and does not pan (Cube: -14° then -26° in two drags, camera unmoved). Filed 2026-11-14 from the `testing-020` drive of `ui-062` #4 | Finding | — | 7 |
 | `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
 | `docs-036` | Fix the docs pictures and sentences two cold readers could not follow. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |

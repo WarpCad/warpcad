@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-020 drive of ui-062 #4
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** the first option. `Gizmo.vue` takes a `dragMode` prop; in `pan` the hit targets get `pointer-events: none`, so a press on a ring or arm falls through to the canvas and pans. Orbit and Select keep the handles. Pinned by a case in `e2e/gizmo-transform.e2e.js` (real `elementFromPoint` hit-test and a real mouse drag, rather than synthetic events dispatched at the handle); described in `docs/viewport-navigation.md`.
 
 ## Problem
 

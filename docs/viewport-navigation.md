@@ -26,6 +26,11 @@ Try these in order, with the app open:
    ("Pan camera up" instead of "Orbit camera up"), and dragging in the 3D view
    now slides the view sideways instead of rotating it. Tap `Orbit` to switch
    back.
+   - **In `Pan`, the move and rotate handles step aside.** With a body selected,
+     a drag that starts on one of its rings or arrows pans the view like any other
+     drag, so you can't turn the body by accident. Tap `Orbit` (or `Select`) and
+     the handles grab again. For example: select a cube, tap `Pan`, put a finger
+     on the blue ring and drag. The scene slides and the Rotation fields don't change.
    - **With a mouse, you don't have to switch modes at all just to pan for a
      moment.** Hold Shift and drag with the left mouse button, or just drag with
      the right mouse button, to pan the camera without touching the `Orbit`/`Pan`
