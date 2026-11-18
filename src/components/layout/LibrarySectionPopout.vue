@@ -83,7 +83,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
   z-index: calc(var(--z-panel) + 5);
   display: flex;
   flex-direction: column;
-  padding: 10px 12px 12px;
+  padding: var(--space-4h) var(--space-5) var(--space-5);
   overflow-x: hidden;
   overflow-y: auto;
   border: 1px solid var(--border);
@@ -129,7 +129,7 @@ const title = computed(() => props.section?.title ?? 'My parts')
 
 .library-section-popout__rows {
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;

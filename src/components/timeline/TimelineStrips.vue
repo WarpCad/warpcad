@@ -117,8 +117,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .strip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 14px;
+  gap: var(--space-4h);
+  padding: var(--space-3) var(--space-5h);
   font-size: var(--text-size-sm);
 }
 
@@ -134,7 +134,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .strip--rollback {
   flex-direction: column;
   align-items: stretch;
-  gap: 2px;
+  gap: var(--space-1);
   background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
   color: var(--text-1);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
@@ -150,7 +150,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .strip__line {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .strip__text {
@@ -167,13 +167,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .strip .strip__action {
   margin-left: auto;
   min-height: 28px;
-  padding: 4px 10px;
+  padding: var(--space-2) var(--space-4h);
   font-size: var(--text-size-sm);
 }
 
 @media (max-width: 640px) {
   .strip {
-    padding: 4px 10px;
+    padding: var(--space-2) var(--space-4h);
   }
 
   /* §18's phone rule: the rollback strip is two lines (~48px) and the preview

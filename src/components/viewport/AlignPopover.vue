@@ -409,7 +409,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 
 .align-popover__operands {
   margin: 0;
-  padding-right: 34px;
+  padding-right: var(--space-8);
   font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
@@ -424,7 +424,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 .align-popover__field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2);
   font-size: var(--text-size-xs);
   color: var(--text-2);
 }
@@ -432,7 +432,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 .align-popover__field select,
 .align-popover__field input {
   min-height: 44px;
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -474,7 +474,7 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
 /* Same neutral treatment as the toolbar's other popover errors: no danger token exists. */
 .align-popover__error {
   margin: 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);

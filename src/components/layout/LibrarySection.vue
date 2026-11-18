@@ -39,7 +39,7 @@ defineProps({
 
 .library__rows {
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;

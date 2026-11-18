@@ -124,8 +124,8 @@ const frameStyle = computed(() => ({
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: var(--space-4h);
+  padding: var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   background: var(--surface-1);
@@ -148,7 +148,7 @@ const frameStyle = computed(() => ({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* The 44px tap target overhangs the title's line instead of making the header taller, so the
@@ -177,7 +177,7 @@ const frameStyle = computed(() => ({
     transform: none;
     width: 100%;
     max-height: calc(100dvh - 24px - var(--layout-modal-keyboard));
-    padding: 14px 16px calc(14px + var(--layout-safe-bottom));
+    padding: var(--space-5h) var(--space-6) calc(var(--space-5h) + var(--layout-safe-bottom));
     border-width: 1px 0 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }

@@ -148,7 +148,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .history {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 /* The 44 px target at every width is `IconButton`'s default: a header control that shrinks below it on

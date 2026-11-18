@@ -57,7 +57,7 @@ defineProps({
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   color: var(--text-2);
@@ -67,25 +67,25 @@ defineProps({
 
 /* sizes */
 .base-chip--sm {
-  padding: 1px 6px;
+  padding: var(--space-1) var(--space-3);
   font-size: var(--text-size-2xs);
 }
 
 .base-chip--md {
-  gap: 5px;
-  padding: 2px 8px;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-4);
   font-size: var(--text-size-sm);
 }
 
 .base-chip--lg {
   min-height: 28px;
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-sm);
 }
 
 .base-chip--tap {
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-sm);
 }
 

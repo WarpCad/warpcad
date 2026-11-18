@@ -64,7 +64,7 @@ const volumeText = computed(() => {
 .fit {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .fit__bounds,
@@ -82,11 +82,11 @@ const volumeText = computed(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .fit__badge {
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border: 1px solid currentColor;
   border-radius: var(--radius-pill);
   font-size: var(--text-size-xs);

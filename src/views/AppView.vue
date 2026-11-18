@@ -450,11 +450,11 @@ function onInspectorClaim() {
      targets as well as text, and a baseline would hang them off the title's
      text baseline instead of centring them in the strip. */
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
   /* Tighter than the old 8px because the 44px controls now set the bar's height
      (~52px at phone width, up from ~30px). The cross-cutting decision calls that
      growth a deliberate cost; there is no reason to add to it with padding. */
-  padding: calc(4px + var(--layout-safe-top)) calc(14px + var(--layout-safe-right)) 4px calc(14px + var(--layout-safe-left));
+  padding: calc(var(--space-2) + var(--layout-safe-top)) calc(var(--space-5h) + var(--layout-safe-right)) var(--space-2) calc(var(--space-5h) + var(--layout-safe-left));
   border-bottom: 1px solid var(--border);
   background: var(--surface-1);
 }
@@ -470,7 +470,7 @@ function onInspectorClaim() {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .app__title {
@@ -485,7 +485,7 @@ function onInspectorClaim() {
 .app__title-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   flex-shrink: 0;
 }
 
@@ -791,16 +791,16 @@ function onInspectorClaim() {
 
 @media (max-width: 480px) {
   .app__bar {
-    padding: calc(4px + var(--layout-safe-top)) calc(6px + var(--layout-safe-right)) 4px calc(6px + var(--layout-safe-left));
-    gap: 8px;
+    padding: calc(var(--space-2) + var(--layout-safe-top)) calc(var(--space-3) + var(--layout-safe-right)) var(--space-2) calc(var(--space-3) + var(--layout-safe-left));
+    gap: var(--space-4);
   }
 
   .app__document-bar {
-    gap: 8px;
+    gap: var(--space-4);
   }
 
   .app__bar :deep(.history) {
-    gap: 8px;
+    gap: var(--space-4);
   }
 
   .app__title {

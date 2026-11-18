@@ -209,7 +209,7 @@ function close() {
 .connect__hosted {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .connect__hosted .connect__actions {
@@ -219,12 +219,12 @@ function close() {
 .connect__starter {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .connect__command {
   margin: 0;
-  padding: 10px;
+  padding: var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -239,7 +239,7 @@ function close() {
 .connect__starter-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* Stacked on a phone: each is a full-width 44px target. */
@@ -257,13 +257,13 @@ function close() {
 .connect__form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .connect__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-md);
   color: var(--text-2);
 }
@@ -272,7 +272,7 @@ function close() {
 .connect__select {
   min-height: var(--tap);
   box-sizing: border-box;
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -284,7 +284,7 @@ function close() {
 .connect__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 </style>

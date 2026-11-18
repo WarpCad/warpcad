@@ -29,7 +29,7 @@ defineEmits(['update:modelValue'])
 .text-input {
   box-sizing: border-box;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

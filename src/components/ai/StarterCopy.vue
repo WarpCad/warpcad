@@ -57,7 +57,7 @@ async function copy() {
 .starter {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .starter__note {

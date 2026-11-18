@@ -98,7 +98,7 @@ function save() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   font-size: var(--text-size-sm);
   line-height: 1.5;
   color: var(--warn);
@@ -107,20 +107,20 @@ function save() {
 .limit__form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .limit__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-md);
   color: var(--text-1);
 }
 
 .limit__input {
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -143,7 +143,7 @@ function save() {
 .limit__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .limit__warn .limit__button--inline {

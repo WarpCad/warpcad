@@ -102,7 +102,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
 <style scoped>
 .align-grid {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -139,7 +139,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
 .align-grid__rule {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   color: var(--text-2);
   font-size: var(--text-size-2xs);
   line-height: 1;
@@ -157,7 +157,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.15rem;
+  padding: 0 var(--space-1);
   font-size: var(--text-size-sm);
 }
 

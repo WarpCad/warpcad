@@ -122,7 +122,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 .save-sheet__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -130,7 +130,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 .save-sheet__input {
   box-sizing: border-box;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -154,6 +154,6 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
 
 .save-sheet__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
 }
 </style>

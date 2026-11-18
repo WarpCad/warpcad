@@ -127,9 +127,9 @@ function detach() {
 .repeat-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin-top: 10px;
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4h);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-sm);
@@ -149,7 +149,7 @@ function detach() {
 
 .repeat-info__broken {
   margin: 0;
-  padding-left: 18px;
+  padding-left: var(--space-6);
   font-size: var(--text-size-sm);
   line-height: 1.45;
   color: var(--danger);
@@ -158,7 +158,7 @@ function detach() {
 .repeat-info__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .repeat-info__error {

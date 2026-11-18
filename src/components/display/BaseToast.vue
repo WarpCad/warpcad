@@ -36,10 +36,10 @@ const interactive = computed(() => (slots.action ? 'true' : undefined))
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px 12px;
+  gap: var(--space-4) var(--space-5);
   width: max-content;
   max-width: calc(100vw - 32px);
-  padding: 8px 14px;
+  padding: var(--space-4) var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   background: var(--surface-1);
@@ -57,7 +57,7 @@ const interactive = computed(() => (slots.action ? 'true' : undefined))
 }
 
 .base-toast[data-interactive='true'] {
-  padding: 6px 6px 6px 14px;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5h);
   border-radius: var(--radius-lg);
   pointer-events: auto;
 }

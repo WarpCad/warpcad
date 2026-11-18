@@ -84,7 +84,7 @@ const title = computed(() => {
 .save-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   /* Capped, so a long refusal message truncates inside the header instead of
      pushing Undo/Redo off the right edge. The full text is in `title` and
      `aria-label`. */
@@ -93,7 +93,7 @@ const title = computed(() => {
      button (and everything left of the chip) sideways under a pointer already aimed at it
      (`TODO/testing-001`). Every routine message fits; only a long error grows past it. */
   min-width: 132px;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-3);
 }
@@ -168,7 +168,7 @@ const title = computed(() => {
   width: min(320px, calc(100vw - 28px));
   height: auto;
   margin: 4px 0 0;
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4h);
   clip: auto;
   overflow: visible;
   white-space: normal;

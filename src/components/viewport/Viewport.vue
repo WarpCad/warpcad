@@ -1249,7 +1249,7 @@ onBeforeUnmount(() => {
   left: 50%;
   max-width: min(420px, 80vw);
   margin: 0;
-  padding: 12px 14px;
+  padding: var(--space-5) var(--space-5h);
   transform: translate(-50%, -50%);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);

@@ -57,7 +57,7 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
 <style scoped>
 .base-button {
   min-height: var(--tap);
-  padding: 0 14px;
+  padding: 0 var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -74,7 +74,7 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
 
 .base-button--compact {
   min-height: var(--tap-compact);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-sm);
 }
 
@@ -124,7 +124,7 @@ defineExpose({ focus: (/** @type {FocusOptions} */ options = {}) => button.value
 .base-button--link,
 .base-button--link-danger {
   min-width: 0;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border: 0;
   background: transparent;
   color: var(--accent);

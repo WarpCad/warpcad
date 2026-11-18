@@ -47,7 +47,7 @@ const toasts = useToastsStore()
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   transform: translateX(-50%);
   /* The host never takes a tap; a toast with an action opts back in. */
   pointer-events: none;
@@ -56,7 +56,7 @@ const toasts = useToastsStore()
 .toast-host__link {
   min-width: 0;
   max-width: 100%;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

@@ -101,7 +101,7 @@ function back() {
 
 .route__command {
   margin: 0;
-  padding: 10px;
+  padding: var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -124,7 +124,7 @@ function back() {
 .route__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 </style>

@@ -81,7 +81,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px 0 12px;
+  padding: var(--space-2) var(--space-3) 0 var(--space-5);
 }
 
 .sketch-sheet__help {
@@ -104,7 +104,7 @@ const TITLES = Object.freeze({ slices: 'Slices', extrude: 'Extrude', curve: 'Cur
 
 .sketch-sheet__body {
   overflow-y: auto;
-  padding: 4px 12px 12px;
+  padding: var(--space-2) var(--space-5) var(--space-5);
 }
 
 /* Narrow viewport: a full-width bottom sheet, capped at 24% of the viewport so the drawing

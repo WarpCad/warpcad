@@ -153,21 +153,21 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 .curve {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .curve__fields {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 0;
 }
 
 .curve__field {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   font-size: var(--text-size-xs);
   color: var(--text-2);
 }
@@ -175,7 +175,7 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 .curve__field input {
   width: 72px;
   min-height: var(--tap);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -193,7 +193,7 @@ const invalid = (field) => (errorField.value === field ? 'true' : 'false')
 
 .curve__go {
   min-height: var(--tap);
-  padding: 0 12px;
+  padding: 0 var(--space-5);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   background: var(--surface-1);

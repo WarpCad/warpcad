@@ -1043,14 +1043,14 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__color-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .inspector__swatch {
   flex: none;
   width: 44px;
   height: 44px;
-  padding: 2px;
+  padding: var(--space-1);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -1077,7 +1077,7 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__hidden-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-height: 44px;
   font-size: var(--text-size-sm);
   color: var(--text-1);
@@ -1103,7 +1103,7 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__objects-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 44px;
   margin: 0;
   padding: 0;
@@ -1141,14 +1141,14 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__objects-hidden {
   margin: 0;
-  padding: 0 0 2px;
+  padding: 0 0 var(--space-1);
   font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .inspector__objects-show-all {
   min-height: var(--tap);
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border: none;
   background: transparent;
   color: var(--accent);
@@ -1170,7 +1170,7 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__objects-chevron {
   margin-left: auto;
-  padding-right: 8px;
+  padding-right: var(--space-4);
   font-size: var(--text-size-md);
   transition: transform var(--duration-fast) ease;
 }
@@ -1197,9 +1197,9 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__sheet {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-height: 0;
-  padding: 10px 12px 14px;
+  padding: var(--space-4h) var(--space-5) var(--space-5h);
   overflow-y: auto;
 }
 
@@ -1222,7 +1222,7 @@ watch([() => body.value?.id, colorPart], () => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   margin-bottom: 4px;
   font-size: var(--text-size-xs);
   color: var(--text-3);
@@ -1238,7 +1238,7 @@ watch([() => body.value?.id, colorPart], () => {
   /* A real tap target at phone width without a button's usual chrome — this
      reads as a breadcrumb, not as a fifth control competing with the toolbar. */
   min-height: 28px;
-  padding: 4px 2px;
+  padding: var(--space-2) var(--space-1);
   border: none;
   background: none;
   color: var(--accent);
@@ -1272,14 +1272,14 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__section {
   margin-top: 10px;
-  padding-top: 8px;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
 
 
 .inspector__fields {
   display: grid;
-  gap: 6px 8px;
+  gap: var(--space-3) var(--space-4);
   margin: 0;
 }
 
@@ -1291,7 +1291,7 @@ watch([() => body.value?.id, colorPart], () => {
 .inspector__value {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0 0 2px;
 }
 
@@ -1302,13 +1302,13 @@ watch([() => body.value?.id, colorPart], () => {
      the fixed-em version clipping its own numbers. */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .inspector__component {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -1324,7 +1324,7 @@ watch([() => body.value?.id, colorPart], () => {
   /* 34px keeps a field a real tap target at phone width without turning the
      panel into a wall of chrome (Responsive Layout). */
   min-height: 34px;
-  padding: 4px 6px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -1376,7 +1376,7 @@ watch([() => body.value?.id, colorPart], () => {
  */
 .inspector__error {
   margin: 8px 0 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -1393,7 +1393,7 @@ watch([() => body.value?.id, colorPart], () => {
 
 .inspector__prompts-chevron {
   margin-left: auto;
-  padding-right: 8px;
+  padding-right: var(--space-4);
   font-size: var(--text-size-title);
 }
 
@@ -1428,9 +1428,9 @@ watch([() => body.value?.id, colorPart], () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-4);
     min-height: 44px;
-    padding: 6px 12px;
+    padding: var(--space-3) var(--space-5);
     border: none;
     background: transparent;
     color: var(--text-1);

@@ -54,17 +54,17 @@ const menu = ref(false)
   flex: 1;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .chip__name {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   max-width: 100%;
   min-height: 44px;
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--accent);
   border-radius: var(--radius-pill);
   background: var(--surface-2);
@@ -120,8 +120,8 @@ const menu = ref(false)
   display: flex;
   flex-basis: 100%;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -136,7 +136,7 @@ const menu = ref(false)
 
 .chip__item {
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

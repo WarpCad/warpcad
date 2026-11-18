@@ -397,7 +397,7 @@ function apply() {
 
 .repair__intro {
   margin: 0;
-  padding: 0 0 8px;
+  padding: 0 0 var(--space-4);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -415,8 +415,8 @@ function apply() {
 
 .repair__row {
   display: grid;
-  gap: 6px;
-  padding: 10px 0;
+  gap: var(--space-3);
+  padding: var(--space-4h) 0;
   border-top: 1px solid var(--border);
 }
 
@@ -424,7 +424,7 @@ function apply() {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 10px;
+  gap: var(--space-2) var(--space-4h);
 }
 
 .repair__name {
@@ -460,7 +460,7 @@ function apply() {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .repair__field-label {
@@ -474,7 +474,7 @@ function apply() {
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -492,8 +492,8 @@ function apply() {
 .repair__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 0 0;
+  gap: var(--space-4);
+  padding: var(--space-5) 0 0;
   border-top: 1px solid var(--border);
 }
 
@@ -501,7 +501,7 @@ function apply() {
    (the frame is `BaseDialog`'s bottom sheet, lifted above the keyboard). */
 .repair--sheet .repair__field {
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .repair--sheet .repair__btn {

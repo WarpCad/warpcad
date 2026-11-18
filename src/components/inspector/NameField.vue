@@ -221,7 +221,7 @@ watch(
 .name__row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   min-height: var(--tap);
 }
 
@@ -259,7 +259,7 @@ watch(
   box-sizing: border-box;
   width: 100%;
   min-height: var(--tap);
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   /* 16px: below it iOS zooms the page on focus and pushes the viewport off-screen. */
   font-size: var(--text-size-xl);
   font-family: inherit;

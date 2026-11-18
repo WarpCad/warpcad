@@ -399,8 +399,8 @@ function cancel() {
   min-height: var(--tap);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4h);
   border: 0;
   border-left: 3px solid transparent;
   background: transparent;
@@ -463,7 +463,7 @@ function cancel() {
 
 .row__chips {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -490,7 +490,7 @@ function cancel() {
 
 .row__broken-reason {
   margin: 0;
-  padding: 0 10px 6px 13px;
+  padding: 0 var(--space-4h) var(--space-3) var(--space-5);
   font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--danger);
@@ -501,8 +501,8 @@ function cancel() {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  padding: 0 10px 8px 13px;
+  gap: var(--space-2);
+  padding: 0 var(--space-4h) var(--space-4) var(--space-5);
 }
 
 .intent__text {
@@ -518,22 +518,22 @@ function cancel() {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 0 10px 8px 13px;
+  gap: var(--space-2);
+  padding: 0 var(--space-4h) var(--space-4) var(--space-5);
 }
 
 /* Buttons here are `BaseButton`s; the strip only lays them out. */
 .edit {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 0 10px 10px 13px;
+  gap: var(--space-3);
+  padding: 0 var(--space-4h) var(--space-4h) var(--space-5);
 }
 
 .edit__field {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .edit__label {
@@ -544,7 +544,7 @@ function cancel() {
 
 .edit__vector {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .edit__input {
@@ -552,7 +552,7 @@ function cancel() {
   min-width: 0;
   /* Tap size on every field (TODO/ui-102 measured the axis select at 34px and 23px on WebKit). */
   min-height: 44px;
-  padding: 4px 6px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -578,6 +578,6 @@ function cancel() {
 
 .edit__buttons {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 </style>

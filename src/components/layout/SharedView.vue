@@ -177,7 +177,7 @@ async function closeAbout() {
 .shared__head {
   grid-area: head;
   min-width: 0;
-  padding: 10px 16px 8px;
+  padding: var(--space-4h) var(--space-6) var(--space-4);
   border-bottom: 1px solid var(--border);
   background: var(--surface-1);
 }
@@ -249,8 +249,8 @@ async function closeAbout() {
   grid-area: actions;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 16px calc(10px + var(--layout-safe-bottom));
+  gap: var(--space-3);
+  padding: var(--space-4h) var(--space-6) calc(var(--space-4h) + var(--layout-safe-bottom));
   border-top: 1px solid var(--border);
   background: var(--surface-1);
 }
@@ -271,8 +271,8 @@ async function closeAbout() {
   width: min(440px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px 16px;
+  gap: var(--space-5);
+  padding: var(--space-7) var(--space-6);
   text-align: center;
 }
 
@@ -300,7 +300,7 @@ async function closeAbout() {
   }
 
   .shared__head {
-    padding: 12px 24px;
+    padding: var(--space-5) var(--space-7);
   }
 
   .shared__actions {
@@ -309,7 +309,7 @@ async function closeAbout() {
     justify-content: flex-end;
     flex-wrap: wrap;
     max-width: 520px;
-    padding: 12px 24px;
+    padding: var(--space-5) var(--space-7);
     border-top: 0;
     border-bottom: 1px solid var(--border);
   }

@@ -134,8 +134,8 @@ function commit(field, value) {
 .sketch-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 0;
+  gap: var(--space-3);
+  padding: var(--space-4h) 0;
   border-top: 1px solid var(--border);
 }
 
@@ -152,7 +152,7 @@ function commit(field, value) {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-2) var(--space-4);
   margin: 0;
   font-size: var(--text-size-sm);
   color: var(--text-2);
@@ -172,7 +172,7 @@ function commit(field, value) {
 .sketch-body__input {
   width: 100%;
   min-height: 36px;
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

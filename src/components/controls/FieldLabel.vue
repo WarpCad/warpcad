@@ -21,13 +21,13 @@ defineProps({
 .field-label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
 .field-label--small {
-  gap: 3px;
+  gap: var(--space-2);
   font-size: var(--text-size-xs);
 }
 </style>

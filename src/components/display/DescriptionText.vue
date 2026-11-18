@@ -52,7 +52,7 @@ const blocks = computed(() => parseDescription(props.text))
 .description {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   font-size: var(--text-size-lg);
   line-height: 1.5;
   color: var(--text-1);
@@ -65,11 +65,11 @@ const blocks = computed(() => parseDescription(props.text))
 }
 
 .description__list {
-  padding-left: 20px;
+  padding-left: var(--space-7);
 }
 
 .description__code {
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

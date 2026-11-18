@@ -126,7 +126,7 @@ const methodOptions = computed(() =>
 .extrude {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .extrude__picture,
@@ -146,7 +146,7 @@ const methodOptions = computed(() =>
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-2) var(--space-4);
   margin: 0;
 }
 
@@ -163,7 +163,7 @@ const methodOptions = computed(() =>
   width: 100%;
   max-width: 120px;
   min-height: var(--tap-compact);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

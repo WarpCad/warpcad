@@ -82,7 +82,7 @@ function modified(epochMs) {
 .open-sheet__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0 0 10px;
   padding: 0;
   list-style: none;
@@ -94,10 +94,10 @@ function modified(epochMs) {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-1);
   width: 100%;
   min-height: max(44px, var(--tap));
-  padding: 6px 10px;
+  padding: var(--space-3) var(--space-4h);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -127,14 +127,14 @@ function modified(epochMs) {
 .open-sheet__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 
 .open-sheet__button {
   min-width: 96px;
   min-height: var(--tap);
-  padding: 0 14px;
+  padding: 0 var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

@@ -40,7 +40,7 @@ const assistant = useAssistantStore()
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .connect-entry--wide-only {

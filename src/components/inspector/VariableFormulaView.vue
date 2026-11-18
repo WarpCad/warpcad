@@ -78,14 +78,14 @@ function save() {
 .vformula {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .vformula__value {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .vformula__number {
@@ -101,7 +101,7 @@ function save() {
 
 .vformula__text {
   min-height: 44px;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -117,7 +117,7 @@ function save() {
 
 .vformula__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .vformula__text:focus-visible {

@@ -54,7 +54,7 @@ const open = ref(true)
 .bom__bar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   width: 100%;
   min-height: var(--tap);
   padding: 0;
@@ -97,7 +97,7 @@ const open = ref(true)
 
 .bom__list {
   margin: 0;
-  padding: 4px 0;
+  padding: var(--space-2) 0;
   list-style: none;
 }
 
@@ -105,8 +105,8 @@ const open = ref(true)
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  padding: 3px 0;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
   font-size: var(--text-size-md);
   color: var(--text-1);
 }

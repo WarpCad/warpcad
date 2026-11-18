@@ -143,8 +143,8 @@ function commitRename() {
 .vrow {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 0;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--border);
   list-style: none;
 }
@@ -154,7 +154,7 @@ function commitRename() {
 .vrow__rename {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -184,7 +184,7 @@ function commitRename() {
   flex: 1;
   min-width: 0;
   min-height: 44px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -200,7 +200,7 @@ function commitRename() {
 .vrow__check {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-height: 44px;
   font-size: var(--text-size-md);
 }
@@ -219,7 +219,7 @@ function commitRename() {
 
 .vrow__menu {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .vrow[data-pending='true'] .vrow__input {

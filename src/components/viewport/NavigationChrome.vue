@@ -295,8 +295,8 @@ const STEPS = Object.freeze([
   bottom: calc(12px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -329,14 +329,14 @@ const STEPS = Object.freeze([
 
 .chrome__modes {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .chrome .chrome__mode {
   flex: 1;
   min-width: 0;
   min-height: 32px;
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-sm);
 }
 
@@ -358,8 +358,8 @@ const STEPS = Object.freeze([
   margin-bottom: 6px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   min-width: 220px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -370,14 +370,14 @@ const STEPS = Object.freeze([
 
 .chrome .chrome__preset {
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-sm);
 }
 
 .chrome__row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .chrome__pad {
@@ -386,13 +386,13 @@ const STEPS = Object.freeze([
     '. up .'
     'left center right'
     '. down .';
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .chrome__zoom {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .chrome .chrome__btn {
@@ -410,7 +410,7 @@ const STEPS = Object.freeze([
 .chrome[data-chrome-tier='compact'] {
   left: calc(8px + var(--layout-safe-left));
   bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
-  padding: 4px;
+  padding: var(--space-2);
 }
 
 .chrome[data-chrome-tier='compact'] .chrome__btn {
@@ -442,7 +442,7 @@ const STEPS = Object.freeze([
   .chrome {
     left: calc(8px + var(--layout-safe-left));
     bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
-    padding: 4px;
+    padding: var(--space-2);
   }
 
   .chrome .chrome__btn {

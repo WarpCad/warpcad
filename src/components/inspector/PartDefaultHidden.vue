@@ -77,14 +77,14 @@ function onChange(/** @type {Event} */ event) {
 .default-hidden {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .default-hidden__toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-height: 44px;
   font-size: var(--text-size-sm);
   color: var(--text-1);

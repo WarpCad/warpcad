@@ -100,15 +100,15 @@ function submit() {
 .vadd {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 0;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
 }
 
 .vadd__field,
 .vadd__check {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -121,7 +121,7 @@ function submit() {
 
 .vadd__input {
   min-height: 44px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -132,7 +132,7 @@ function submit() {
 
 .vadd__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .vadd__input:focus-visible {

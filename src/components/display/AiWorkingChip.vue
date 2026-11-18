@@ -50,7 +50,7 @@ const detail = computed(() => {
 @media (max-width: 640px) {
   .ai-working.base-chip {
     min-height: 20px;
-    padding: 0 6px;
+    padding: 0 var(--space-3);
   }
 
   .ai-working__text {

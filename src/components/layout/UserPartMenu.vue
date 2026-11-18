@@ -252,8 +252,8 @@ useOverlayStack(
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px;
+  gap: var(--space-2);
+  padding: var(--space-4h);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-1);
@@ -270,7 +270,7 @@ useOverlayStack(
   max-height: 80dvh;
   overflow-y: auto;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding-bottom: calc(10px + var(--layout-safe-bottom));
+  padding-bottom: calc(var(--space-4h) + var(--layout-safe-bottom));
 }
 
 .umenu__title,
@@ -319,7 +319,7 @@ useOverlayStack(
 .udialog__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -327,7 +327,7 @@ useOverlayStack(
 .udialog__input {
   box-sizing: border-box;
   min-height: 48px;
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -339,7 +339,7 @@ useOverlayStack(
 
 .udialog__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   margin-top: 6px;
 }
 
@@ -351,7 +351,7 @@ useOverlayStack(
     bottom: auto;
     width: 200px;
     border-radius: var(--radius-lg);
-    padding-bottom: 10px;
+    padding-bottom: var(--space-4h);
   }
 
   .umenu__item--close {
@@ -370,7 +370,7 @@ useOverlayStack(
     width: min(340px, calc(100vw - 32px));
     transform: translate(-50%, -50%);
     border-radius: var(--radius-lg);
-    padding-bottom: 10px;
+    padding-bottom: var(--space-4h);
   }
 }
 </style>

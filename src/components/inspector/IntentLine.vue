@@ -59,11 +59,11 @@ watch(
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-3);
   width: 100%;
   min-height: var(--tap);
   margin: 0;
-  padding: 4px 0;
+  padding: var(--space-2) 0;
   border: 0;
   background: transparent;
   color: var(--text-2);

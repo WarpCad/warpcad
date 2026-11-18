@@ -164,11 +164,11 @@ watch(
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 0 0 6px;
+  padding: 0 0 var(--space-3);
   color: var(--text-2);
   font-size: var(--text-size-sm);
   line-height: 1.45;
@@ -209,7 +209,7 @@ watch(
 .reply__form {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   width: 100%;
 }
 
@@ -217,7 +217,7 @@ watch(
   box-sizing: border-box;
   width: 100%;
   min-height: 8em;
-  padding: 8px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -235,14 +235,14 @@ watch(
 .reply__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* Wraps rather than scrolling sideways at 390 px; each button stays a 44 px target. */
 .reply__edits {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 </style>

@@ -89,12 +89,12 @@ const emit = defineEmits({
   z-index: calc(var(--z-canvas-overlay) + 1);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   box-sizing: border-box;
   width: max-content;
   min-width: 168px;
   max-width: 232px;
-  padding: 6px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   /* Opaque, no blur: `.ops` already has a `backdrop-filter`, and a nested one renders
@@ -124,7 +124,7 @@ const emit = defineEmits({
 
 .ops-group__heading {
   margin: 0;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   font-size: var(--text-size-xs);
   font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
@@ -134,7 +134,7 @@ const emit = defineEmits({
 
 .ops-group__list {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -143,10 +143,10 @@ const emit = defineEmits({
 .ops-group__member {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--tap-compact);
-  padding: 4px 10px;
+  padding: var(--space-2) var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -169,7 +169,7 @@ const emit = defineEmits({
 .ops-group__text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-1);
   min-width: 0;
 }
 

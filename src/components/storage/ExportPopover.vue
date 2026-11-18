@@ -291,7 +291,7 @@ function sizeLabel(bytes) {
   box-sizing: border-box;
   width: 100%;
   height: var(--tap);
-  padding: 0 28px 0 8px;
+  padding: 0 var(--space-7) 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -313,9 +313,9 @@ function sizeLabel(bytes) {
 .export__row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
   min-height: var(--tap);
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--text-size-lg);
   line-height: 1.3;
@@ -355,7 +355,7 @@ function sizeLabel(bytes) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   font-size: var(--text-size-md);
   text-align: center;
   color: var(--text-2);
@@ -400,7 +400,7 @@ function sizeLabel(bytes) {
 
 .export__note {
   margin: 6px 0 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   font-size: var(--text-size-sm);
@@ -421,7 +421,7 @@ function sizeLabel(bytes) {
 
 .export__error {
   margin: 8px 0 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   font-size: var(--text-size-sm);
@@ -440,14 +440,14 @@ function sizeLabel(bytes) {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   font-size: var(--text-size-sm);
 }
 
 .export__piece {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 8px;
+  gap: var(--space-1) var(--space-4);
 }
 
 .export__piece-name {
@@ -465,7 +465,7 @@ function sizeLabel(bytes) {
 
 .export__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   margin-top: 10px;
 }
 

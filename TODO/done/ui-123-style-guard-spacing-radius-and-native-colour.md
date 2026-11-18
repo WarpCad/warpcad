@@ -6,7 +6,7 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 when the theme umbrella (ui-111) closed
 depends: []
-status: open
+status: done
 ---
 
 ## Problem
@@ -29,7 +29,7 @@ either a spec that reads the sibling repo's file when it exists, or a `warpcad-n
 
 **Decided 2026-11-17 (owner, /owner, OWNER.md Q2):** radius **and** spacing: guard both. Do radius first (58 values, mostly 50% and 999px onto the existing tokens), then spacing (649 `padding`/`gap` values) onto `--space-1…8`. Expect many snapshot diffs; list them in the commit. If the spacing sweep outgrows one tick, commit radius as part 1 and keep the task open.
 
-**Progress 2026-11-17, part 1 (radius) shipped; part 2 (spacing) still open.** `style-radius` rule added to `guardScan.js` with a bite test; 34 `.vue` files now use `--radius-*` tokens. New tokens `--radius-xs` (3px, absorbs 1–5px) and `--radius-thumb` (40% / 18%) in `semantic.css`. Snapped values: 1/2/4/5px → 3px (xs), 12px top corners → 10px (md), `calc(sm - 2px)` → xs. The native-colour check already existed in `guard.spec.js`. Pair run green (chromium-laptop + firefox-phone), no snapshot diffs. Remaining: the 649 `padding`/`gap` values onto `--space-1…8` and a `style-spacing` rule.
+**Shipped 2026-11-17 in two commits.** Part 2: `style-spacing` rule; 627 `padding`/`gap` values onto `--space-1…8` plus `--space-4h` (10px) and `--space-5h` (14px); 44 off-scale values snapped (OWNER.md Q94); a full 3x3 run found 42 drifted tests (4 layout specs, about 38 docs stills), regenerated and re-verified (`help-from-align` and `help-from-popup` needed a one-worker regeneration). Part 1: `style-radius` rule added to `guardScan.js` with a bite test; 34 `.vue` files now use `--radius-*` tokens. New tokens `--radius-xs` (3px, absorbs 1–5px) and `--radius-thumb` (40% / 18%) in `semantic.css`. Snapped values: 1/2/4/5px → 3px (xs), 12px top corners → 10px (md), `calc(sm - 2px)` → xs. The native-colour check already existed in `guard.spec.js`. Pair run green (chromium-laptop + firefox-phone), no snapshot diffs.
 
 ## Testing
 

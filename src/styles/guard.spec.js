@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Guards the rule in CLAUDE.md that colours (and z-index, font size and weight) are tokens, never literals
 // (`TODO/testing-036`). Rules live in `guardScan.js`. Violations are phased in by an allow-list of
-// nothing: the allow-list `ui-118` emptied is gone, so any violation fails. Radius is guarded
-// (`TODO/ui-123`); spacing is not yet.
+// nothing: the allow-list `ui-118` emptied is gone, so any violation fails. Radius, padding and gap are guarded
+// (`TODO/ui-123`); margin is not.
 import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
 import { REPO_ROOT, rel, sourceFiles, surface0 } from './cssTokens.js'
@@ -58,6 +58,15 @@ describe('each rule bites, naming the file, line and fix', () => {
     expect(vs[0].fix).toContain('--radius-')
     const ok = '.a { border-radius: 0; border-radius: var(--radius-sm); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-radius: var(--radius-round); }'
     expect(scanStyleBlocks(vue(ok), defined)).toEqual([])
+  })
+
+  it('padding and gap with a number, but not 0 or a token', () => {
+    const bad = '.a { padding: 8px 12px; gap: 4px; row-gap: 2px; padding-left: 0.5rem; padding-bottom: calc(12px + var(--layout-safe-bottom)); }'
+    expect(names(scanStyleBlocks(vue(bad), defined))).toEqual(Array(5).fill('style-spacing'))
+    const vs = scanStyleBlocks(vue('.a { gap: 4px; }'), defined)
+    expect(vs[0].fix).toContain('--space-')
+    const ok = '.a { padding: 0 var(--space-4); gap: var(--space-2); padding-bottom: calc(var(--space-5) + var(--layout-safe-bottom)); margin: 4px; }'
+    expect(scanStyleBlocks(vue(ok), new Set([...defined, '--space-4', '--space-2', '--space-5']))).toEqual([])
   })
 
   it('a var() fallback that is not itself a var()', () => {

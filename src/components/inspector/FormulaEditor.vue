@@ -87,7 +87,7 @@ async function onInsert(reference) {
 .feditor {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -95,7 +95,7 @@ async function onInsert(reference) {
   box-sizing: border-box;
   width: 100%;
   min-height: 44px;
-  padding: 8px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -110,7 +110,7 @@ async function onInsert(reference) {
 .feditor__row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -134,7 +134,7 @@ async function onInsert(reference) {
   flex: none;
   min-width: 44px;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-5);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

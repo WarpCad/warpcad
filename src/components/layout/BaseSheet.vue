@@ -131,9 +131,9 @@ const frameStyle = computed(() => ({
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--space-5);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-1);
@@ -146,7 +146,7 @@ const frameStyle = computed(() => ({
   bottom: var(--layout-sheet-keyboard);
   left: 0;
   max-height: calc(86dvh - var(--layout-sheet-keyboard));
-  padding-bottom: calc(12px + var(--layout-safe-bottom));
+  padding-bottom: calc(var(--space-5) + var(--layout-safe-bottom));
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
@@ -155,7 +155,7 @@ const frameStyle = computed(() => ({
   right: 0;
   bottom: 0;
   width: min(var(--layout-sheet-width), 100vw);
-  padding-bottom: calc(12px + var(--layout-safe-bottom));
+  padding-bottom: calc(var(--space-5) + var(--layout-safe-bottom));
   border-width: 0 0 0 1px;
 }
 
@@ -163,7 +163,7 @@ const frameStyle = computed(() => ({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* The 44px target overhangs the title line rather than growing the header. */
@@ -185,7 +185,7 @@ const frameStyle = computed(() => ({
     left: auto;
     width: min(var(--layout-sheet-width), calc(100vw - 32px));
     max-height: calc(100dvh - var(--layout-sheet-top) - 32px);
-    padding-bottom: 12px;
+    padding-bottom: var(--space-5);
     border-radius: var(--radius-lg);
   }
 }

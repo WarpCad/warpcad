@@ -288,8 +288,8 @@ function onSides(value) {
   max-width: calc(100% - 24px - 150px);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--accent);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -302,12 +302,12 @@ function onSides(value) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .sketch-toolbar__group {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -315,7 +315,7 @@ function onSides(value) {
    stays is this bar's density (12 px type, 10 px padding), the one state look `BaseButton` has no
    prop for (`aria-expanded`: a panel is open, so the button takes the accent), and the Done accent. */
 .sketch-toolbar .sketch-toolbar__btn {
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-sm);
 }
 
@@ -344,7 +344,7 @@ function onSides(value) {
 .sketch-toolbar .sketch-toolbar__btn--snap {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-2);
 }
 
 .sketch-toolbar__btn--snap:not([aria-pressed='true']) .sketch-toolbar__icon {
@@ -365,7 +365,7 @@ function onSides(value) {
 .sketch-toolbar__sides {
   width: 52px;
   min-height: var(--tap);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -375,7 +375,7 @@ function onSides(value) {
 
 .sketch-toolbar__status {
   margin: 0;
-  padding: 0 2px;
+  padding: 0 var(--space-1);
   font-size: var(--text-size-xs);
   line-height: 1.35;
   color: var(--text-3);
@@ -383,7 +383,7 @@ function onSides(value) {
 
 .sketch-toolbar__selection {
   margin: 0;
-  padding: 0 2px;
+  padding: 0 var(--space-1);
   font-size: var(--text-size-sm);
   line-height: 1.35;
   font-weight: var(--weight-medium);
@@ -405,21 +405,21 @@ function onSides(value) {
   .sketch-toolbar {
     top: 8px;
     left: 8px;
-    gap: 2px;
-    padding: 4px 6px;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
     /* The orientation gizmo sizes itself by the *window*, so at the tablet reference it is
        still its full ~130px inside a 390px viewport — leave room for that one. */
     max-width: calc(100% - 16px - 150px);
   }
 
   .sketch-toolbar__row {
-    gap: 4px;
+    gap: var(--space-2);
   }
 
   .sketch-toolbar .sketch-toolbar__btn {
     min-height: var(--tap-compact);
     min-width: var(--tap-compact);
-    padding: 0 7px;
+    padding: 0 var(--space-3);
     font-size: var(--text-size-xs);
   }
 

@@ -336,8 +336,8 @@ const HEIGHTS = /** @type {const} */ ([
   max-height: calc(100dvh - var(--layout-kb-inset) - 60px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px 12px 10px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) var(--space-4h);
   border-top: 1px solid var(--border-strong);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: color-mix(in srgb, var(--surface-1) 95%, transparent);
@@ -372,14 +372,14 @@ const HEIGHTS = /** @type {const} */ ([
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  row-gap: 4px;
+  gap: var(--space-4);
+  row-gap: var(--space-2);
   min-height: var(--tap);
 }
 
 .chat__scripted {
   flex: none;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border: 1px dashed var(--warn);
   border-radius: var(--radius-pill);
   color: var(--warn);
@@ -408,14 +408,14 @@ const HEIGHTS = /** @type {const} */ ([
 }
 
 .chat__heights .chat__height {
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border-radius: 0;
 }
 
 /* `TODO/ai-017`: a 44px toggle; the accent when it is on, like the height buttons. */
 .chat__head .chat__watch {
   flex: none;
-  padding: 0 8px;
+  padding: 0 var(--space-4);
 }
 
 /* At phone width the status line holds the title, the status, Watch, three heights and Close:
@@ -443,14 +443,14 @@ const HEIGHTS = /** @type {const} */ ([
 .chat__model {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   flex-wrap: wrap;
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
 
 .chat__model .chat__link {
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
 }
 
 .chat__warn {
@@ -467,7 +467,7 @@ const HEIGHTS = /** @type {const} */ ([
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .chat__empty,
@@ -484,7 +484,7 @@ const HEIGHTS = /** @type {const} */ ([
 .chat__bubble {
   align-self: flex-start;
   max-width: 92%;
-  padding: 6px 10px;
+  padding: var(--space-3) var(--space-4h);
   border-radius: var(--radius-md);
   background: var(--surface-2);
   font-size: var(--text-size-lg);
@@ -505,21 +505,21 @@ const HEIGHTS = /** @type {const} */ ([
 .chat__bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .chat__undo,
 .chat__bar .chat__chip,
 .chat__notice .chat__chip {
-  padding: 0 12px;
+  padding: 0 var(--space-5);
 }
 
 .chat__limit-stop {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 0;
 }
 

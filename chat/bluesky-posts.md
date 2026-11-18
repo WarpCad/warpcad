@@ -3172,3 +3172,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 34 files changed, new style-radius rule → git diff; unit 9748 passed, e2e pair chromium-laptop + firefox-phone 1225 passed → /test run this session
 **To Add:** none
+
+## 2026-11-17T23:40:00Z — ui-123 part 2: the style guard now covers padding and gap
+
+**Post:** WarpCad's style guard now rejects hard-coded padding and gap. 627 values across 116 components moved onto the spacing scale, with two half steps so the common 10px and 14px did not move. A full 3x3 browser run caught 42 drifted screenshots, all regenerated. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 627 values, 116 files → git diff; 42 drifted tests, 84 failures across nine projects → full e2e run this session
+**To Add:** none

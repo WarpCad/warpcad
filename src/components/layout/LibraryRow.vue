@@ -479,7 +479,7 @@ onBeforeUnmount(() => {
   /* `minmax(0, 1fr)`, not the implicit auto track: a variant select with a long option
      ("Galaxy S25 Ultra") must shrink to the panel rather than push the row wider than it. */
   grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 /* The variant control (ui-031). Indented under its row and visibly quieter than
@@ -489,8 +489,8 @@ onBeforeUnmount(() => {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-left: 28px;
+  gap: var(--space-4);
+  padding-left: var(--space-7);
 }
 
 .library__choice-label {
@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
      would cost 12 rows' worth of height in a 46vh phone sheet. Still comfortably
      above the ~24px a native select needs to be tappable. */
   min-height: 32px;
-  padding: 2px 6px;
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-1);
@@ -531,7 +531,7 @@ onBeforeUnmount(() => {
 /* The drag row plus its ↺ Reset (ui-068), side by side; the button is 44 x 44 at the right edge. */
 /* The row shell is `ListRow`; this is the gap between the drag button and its Reset. */
 .library__line {
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .library__line .library__row {
@@ -567,7 +567,7 @@ onBeforeUnmount(() => {
 /* What the next drag will place, in the Bill of materials' words (ui-068). Wraps under the label. */
 .library__remembered {
   margin: 0;
-  padding-left: 28px;
+  padding-left: var(--space-7);
   font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-2);
@@ -582,7 +582,7 @@ onBeforeUnmount(() => {
 .library__only-project {
   grid-column: 1 / -1;
   margin: 0;
-  padding-left: 28px;
+  padding-left: var(--space-7);
   font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--warn);
@@ -593,7 +593,7 @@ onBeforeUnmount(() => {
   position: absolute;
   right: 1px;
   bottom: 1px;
-  padding: 0 3px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--surface-1);
   border: 1px solid var(--border-strong);
@@ -606,11 +606,11 @@ onBeforeUnmount(() => {
 .library__row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
   width: 100%;
   /* 44px keeps the row a real tap target at phone width (Responsive Layout). */
   min-height: 44px;
-  padding: 6px 10px;
+  padding: var(--space-3) var(--space-4h);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-2);
@@ -715,7 +715,7 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: calc(var(--z-panel) + 6);
   transform: translateY(-50%);
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -858,7 +858,7 @@ onBeforeUnmount(() => {
   background:
     linear-gradient(var(--text-3), var(--text-3)) padding-box content-box,
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
-  padding: 2px 1px 3px;
+  padding: var(--space-1) var(--space-1) var(--space-2);
 }
 
 .library__swatch--tile[data-shape='kit.phone'] {
@@ -871,7 +871,7 @@ onBeforeUnmount(() => {
   background:
     linear-gradient(var(--surface-1), var(--surface-1)) padding-box content-box,
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
-  padding: 4px;
+  padding: var(--space-2);
 }
 
 /* An anchor and a standoff are both a bored cylinder, seen end-on. */
@@ -904,7 +904,7 @@ onBeforeUnmount(() => {
   background:
     linear-gradient(var(--text-3), var(--text-3)) padding-box content-box,
     linear-gradient(140deg, var(--border-strong), var(--surface-1));
-  padding: 3px;
+  padding: var(--space-2);
 }
 
 /* A fan: a round hub in a square shroud. */
@@ -929,7 +929,7 @@ onBeforeUnmount(() => {
 .library__item--user {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .library__item--has-reset {
@@ -1014,7 +1014,7 @@ onBeforeUnmount(() => {
 
 .library__tag {
   flex: none;
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   font-size: var(--text-size-2xs);
@@ -1028,8 +1028,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
-  padding-left: 28px;
+  gap: var(--space-2) var(--space-4);
+  padding-left: var(--space-7);
   font-size: var(--text-size-xs);
   color: var(--text-3);
 }
@@ -1040,7 +1040,7 @@ onBeforeUnmount(() => {
 }
 
 .library__badge {
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-size: var(--text-size-2xs);

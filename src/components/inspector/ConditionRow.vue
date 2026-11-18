@@ -182,7 +182,7 @@ function remove() {
 <style scoped>
 .condition {
   margin-top: 10px;
-  padding-top: 8px;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
 
@@ -196,7 +196,7 @@ function remove() {
 .condition__source {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0 0 6px;
   font-size: var(--text-size-sm);
   color: var(--text-2);
@@ -204,7 +204,7 @@ function remove() {
 
 .condition__select {
   min-height: 44px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -220,9 +220,9 @@ function remove() {
 .condition__edit {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: var(--space-2) var(--space-5);
   margin: 0 0 6px;
-  padding: 4px 0;
+  padding: var(--space-2) 0;
   border: 0;
 }
 
@@ -235,14 +235,14 @@ function remove() {
 .condition__option {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 44px;
   font-size: var(--text-size-md);
 }
 
 .condition__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .condition__error {

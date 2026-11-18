@@ -106,8 +106,8 @@ const relatedIds = computed(() => {
 .panel__bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4h);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
 }
@@ -134,7 +134,7 @@ const relatedIds = computed(() => {
 
 .panel__empty {
   margin: 0;
-  padding: 16px 12px;
+  padding: var(--space-6) var(--space-5);
   color: var(--text-3);
   font-size: var(--text-size-sm);
 }
@@ -154,8 +154,8 @@ const relatedIds = computed(() => {
 .panel__marker {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 10px;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-4h);
   color: var(--accent);
   font-size: var(--text-size-2xs);
   letter-spacing: 0.05em;

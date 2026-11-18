@@ -150,9 +150,9 @@ watch(
 .resolution__row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
   min-height: var(--tap);
-  padding: 4px;
+  padding: var(--space-2);
   border-radius: var(--radius-sm);
   cursor: pointer;
   touch-action: manipulation;
@@ -200,7 +200,7 @@ watch(
 
 .resolution__note {
   margin: 6px 0 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 14%, var(--surface-1));
   font-size: var(--text-size-sm);

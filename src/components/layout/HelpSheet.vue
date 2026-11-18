@@ -425,7 +425,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 10px;
+  gap: 0 var(--space-4h);
   margin-top: 8px;
   color: var(--text-2);
   font-size: var(--text-size-md);
@@ -436,7 +436,7 @@ onBeforeUnmount(() => {
   min-width: var(--tap);
   min-height: var(--tap);
   max-width: 120px;
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   background: transparent;
   color: var(--text-2);
@@ -472,7 +472,7 @@ onBeforeUnmount(() => {
 .help__styles {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin-top: 12px;
   color: var(--text-2);
   font-size: var(--text-size-md);
@@ -481,7 +481,7 @@ onBeforeUnmount(() => {
 .help__styles-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
   max-width: 420px;
 }
 
@@ -489,9 +489,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: var(--space-2);
   min-height: var(--tap);
-  padding: 4px;
+  padding: var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -532,8 +532,8 @@ onBeforeUnmount(() => {
 .theme-swatch__panel {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   border: var(--swatch-edge);
   border-radius: var(--swatch-radius);
   background: var(--swatch-panel);
@@ -555,7 +555,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--space-2) var(--space-4h);
   margin-top: 8px;
   color: var(--text-2);
   font-size: var(--text-size-md);
@@ -590,8 +590,8 @@ onBeforeUnmount(() => {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px 4px 10px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4h);
   border-bottom: 1px solid var(--border);
 }
 
@@ -609,7 +609,7 @@ onBeforeUnmount(() => {
 /* Layout only: the header's text buttons keep their side padding and header type size (the Help
    screenshots are taken with it); the look is `BaseButton`'s. */
 .help__nav {
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   font-size: var(--text-size-md);
 }
 
@@ -629,7 +629,7 @@ onBeforeUnmount(() => {
   flex: none;
   width: 230px;
   overflow-y: auto;
-  padding: 8px;
+  padding: var(--space-4);
   border-right: 1px solid var(--border);
   background: var(--surface-0);
 }
@@ -642,7 +642,7 @@ onBeforeUnmount(() => {
 
 .help__contents a {
   display: block;
-  padding: 8px 8px;
+  padding: var(--space-4) var(--space-4);
   border-radius: var(--radius-sm);
   color: var(--text-2);
   font-size: var(--text-size-md);
@@ -661,7 +661,7 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 4px 16px 24px;
+  padding: var(--space-2) var(--space-6) var(--space-7);
 }
 
 .help__status {
@@ -675,7 +675,7 @@ onBeforeUnmount(() => {
 
 .help__footer {
   margin-top: 24px;
-  padding-top: 10px;
+  padding-top: var(--space-4h);
   border-top: 1px solid var(--border);
   color: var(--text-2);
   font-size: var(--text-size-sm);
@@ -709,7 +709,7 @@ onBeforeUnmount(() => {
 .help__content :deep(h2) {
   font-size: var(--text-size-xl);
   margin: 24px 0 8px;
-  padding: 2px 6px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   border-left: 3px solid transparent;
   scroll-margin-top: 8px;
@@ -731,7 +731,7 @@ onBeforeUnmount(() => {
 
 .help__content :deep(ul),
 .help__content :deep(ol) {
-  padding-left: 22px;
+  padding-left: var(--space-7);
 }
 
 .help__content :deep(a) {
@@ -750,13 +750,13 @@ onBeforeUnmount(() => {
 .help__content :deep(code) {
   font-family: var(--font-mono);
   font-size: var(--text-size-sm);
-  padding: 1px 4px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-xs);
   background: var(--surface-2);
 }
 
 .help__content :deep(pre) {
-  padding: 10px;
+  padding: var(--space-4h);
   overflow-x: auto;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -768,7 +768,7 @@ onBeforeUnmount(() => {
 }
 
 .help__content :deep(blockquote) {
-  padding: 2px 12px;
+  padding: var(--space-1) var(--space-5);
   border-left: 3px solid var(--border-strong);
   color: var(--text-2);
 }
@@ -786,7 +786,7 @@ onBeforeUnmount(() => {
 
 .help__content :deep(th),
 .help__content :deep(td) {
-  padding: 5px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
@@ -844,7 +844,7 @@ onBeforeUnmount(() => {
   }
 
   .help__scroll {
-    padding: 4px 12px 24px;
+    padding: var(--space-2) var(--space-5) var(--space-7);
   }
 }
 </style>

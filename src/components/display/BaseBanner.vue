@@ -43,7 +43,7 @@ defineProps({
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--space-2) var(--space-4h);
   color: var(--text-1);
 }
 
@@ -59,7 +59,7 @@ defineProps({
 .base-banner__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   margin-left: auto;
 }
 
@@ -70,7 +70,7 @@ defineProps({
 /* strip and dock: full width, in flow */
 .base-banner--strip,
 .base-banner--dock {
-  padding: 2px 8px 2px 14px;
+  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-5h);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
 }
 
@@ -79,8 +79,8 @@ defineProps({
 }
 
 .base-banner--dock {
-  padding-top: 4px;
-  padding-bottom: max(4px, var(--layout-safe-bottom));
+  padding-top: var(--space-2);
+  padding-bottom: max(var(--space-2), var(--layout-safe-bottom));
   border-top: 1px solid var(--border);
 }
 
@@ -100,16 +100,16 @@ defineProps({
 
 @media (max-width: 480px) {
   .base-banner--strip {
-    padding-left: 10px;
+    padding-left: var(--space-4h);
   }
 }
 
 /* box: the Inspector's inline banner */
 .base-banner--box {
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 8px 0 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--warn);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 12%, transparent);

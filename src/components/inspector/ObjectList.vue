@@ -590,14 +590,14 @@ watch(
 
 .list__count {
   margin: 0;
-  padding: 2px 0 4px;
+  padding: var(--space-1) 0 var(--space-2);
   font-size: var(--text-size-xs);
   color: var(--text-3);
 }
 
 .list__note {
   margin: 0;
-  padding: 0 0 6px;
+  padding: 0 0 var(--space-3);
   font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
@@ -609,7 +609,7 @@ watch(
 
 .list__empty {
   margin: 0;
-  padding: 8px 0;
+  padding: var(--space-4) 0;
   color: var(--text-3);
   font-size: var(--text-size-sm);
 }
@@ -688,8 +688,8 @@ watch(
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 1px;
-  padding: 4px 8px 4px 2px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-1);
   border: none;
   background: transparent;
   color: var(--text-1);
@@ -762,7 +762,7 @@ watch(
 
 .row--inactive {
   width: 100%;
-  padding: 4px 10px 4px var(--tap);
+  padding: var(--space-2) var(--space-4h) var(--space-2) var(--tap);
   opacity: 0.7;
 }
 
@@ -816,7 +816,7 @@ watch(
    part is picked exactly the way a body is. The left rule ties them to their parent. */
 .parts {
   margin: 0;
-  padding: 0 0 0 16px;
+  padding: 0 0 0 var(--space-6);
   list-style: none;
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-2) 60%, var(--surface-1));
@@ -853,7 +853,7 @@ watch(
      so the name wraps at its spaces and hyphens and the `hidden` pill flows after it. A flex row
      let the pill squeeze the name to one letter per line in a narrow panel. */
   display: block;
-  padding: 0 10px 0 2px;
+  padding: 0 var(--space-4h) 0 var(--space-1);
   border: none;
   background: transparent;
   color: var(--text-1);
@@ -879,7 +879,7 @@ watch(
   display: inline-block;
   margin-left: 8px;
   vertical-align: middle;
-  padding: 1px 6px;
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   font-size: var(--text-size-2xs);

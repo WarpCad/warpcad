@@ -217,14 +217,14 @@ watch(
 .prompts-view__head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-height: var(--tap);
   border-bottom: 1px solid var(--border);
 }
 
 .prompts-view__back {
   min-height: var(--tap);
-  padding: 0 8px 0 0;
+  padding: 0 var(--space-4) 0 0;
   border: 0;
   background: transparent;
   color: var(--accent);
@@ -246,7 +246,7 @@ watch(
 .prompts-view__filter {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   min-width: 0;
   color: var(--text-2);
@@ -263,7 +263,7 @@ watch(
 .prompts-view__show-all {
   flex: 0 0 auto;
   min-height: var(--tap);
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border: 0;
   background: transparent;
   color: var(--accent);

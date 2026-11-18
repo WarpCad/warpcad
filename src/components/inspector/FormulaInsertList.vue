@@ -104,12 +104,12 @@ function choose(quantity) {
 .finsert {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /* The inline box under the formula; the phone sheet's frame is `BaseSheet`'s. */
 .finsert--inline {
-  padding: 8px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -118,7 +118,7 @@ function choose(quantity) {
 .finsert__head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .finsert__title {
@@ -133,7 +133,7 @@ function choose(quantity) {
 .finsert__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -149,7 +149,7 @@ function choose(quantity) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
   width: 100%;
   overflow-wrap: anywhere;
 }

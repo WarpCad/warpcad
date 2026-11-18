@@ -326,7 +326,7 @@ function blurTarget(event) {
 .profile {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .profile__heading {
@@ -349,7 +349,7 @@ function blurTarget(event) {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-2) var(--space-4);
   margin: 0;
   font-size: var(--text-size-sm);
   color: var(--text-2);
@@ -362,7 +362,7 @@ function blurTarget(event) {
 .profile__input {
   width: 100%;
   min-height: 36px;
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -393,7 +393,7 @@ function blurTarget(event) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }

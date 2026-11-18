@@ -199,7 +199,7 @@ function commit() {
 
 .group-merge__title {
   margin: 0;
-  padding-right: 34px;
+  padding-right: var(--space-8);
   font-size: var(--text-size-md);
   font-weight: var(--weight-bold);
   color: var(--text-1);
@@ -210,7 +210,7 @@ function commit() {
 .group-merge__rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -221,8 +221,8 @@ function commit() {
 .group-merge__row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-bottom: 8px;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--border);
 }
 
@@ -242,7 +242,7 @@ function commit() {
 .group-merge__check {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-height: var(--tap);
   font-size: var(--text-size-sm);
   color: var(--text-1);
@@ -258,7 +258,7 @@ function commit() {
 .group-merge__field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2);
   font-size: var(--text-size-xs);
   color: var(--text-2);
 }
@@ -266,7 +266,7 @@ function commit() {
 /* 16 px: anything smaller makes iOS zoom the page when the field takes focus. */
 .group-merge__field input {
   min-height: var(--tap);
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -285,7 +285,7 @@ function commit() {
 
 .group-merge__error {
   margin: 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -297,7 +297,7 @@ function commit() {
 
 .group-merge__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .group-merge__check input:focus-visible,

@@ -124,7 +124,7 @@ async function onPicked(event) {
 .composer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .composer__pending {
@@ -136,7 +136,7 @@ async function onPicked(event) {
 .composer__row {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /*
@@ -155,7 +155,7 @@ async function onPicked(event) {
   min-width: 0;
   min-height: var(--tap);
   box-sizing: border-box;
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -180,7 +180,7 @@ async function onPicked(event) {
 
 .composer__attachments {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;

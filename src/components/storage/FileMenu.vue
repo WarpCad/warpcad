@@ -813,8 +813,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0 10px;
+  gap: var(--space-2);
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -840,7 +840,7 @@ onBeforeUnmount(() => {
 .file-button__pending {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   color: var(--accent);
   font-size: var(--text-size-sm);
 }
@@ -882,7 +882,7 @@ onBeforeUnmount(() => {
   position: fixed;
   box-sizing: border-box;
   overflow-y: auto;
-  padding: 6px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-1);
@@ -892,7 +892,7 @@ onBeforeUnmount(() => {
 
 .file-menu__status {
   margin: 0;
-  padding: 8px 10px 6px;
+  padding: var(--space-4) var(--space-4h) var(--space-3);
   font-size: var(--text-size-sm);
   line-height: 1.35;
   color: var(--text-2);
@@ -909,7 +909,7 @@ onBeforeUnmount(() => {
 
 .file-menu__note {
   margin: 0 4px 4px;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 14%, var(--surface-1));
   font-size: var(--text-size-xs);
@@ -922,8 +922,8 @@ onBeforeUnmount(() => {
   min-height: var(--tap);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px;
+  gap: var(--space-4);
+  padding: 0 var(--space-4h);
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -964,8 +964,8 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: center;
   gap: 0;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
 }
 
 .file-menu__reason {
@@ -993,7 +993,7 @@ onBeforeUnmount(() => {
 .file-menu__divider {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 6px 4px 2px;
   font-size: var(--text-size-xs);
   letter-spacing: 0.06em;
@@ -1015,7 +1015,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .file-button {
-    padding: 0 8px;
+    padding: 0 var(--space-4);
   }
 
   /* The header is tight at phone width: the spinner stays, the word moves to the label. */

@@ -347,9 +347,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: 0;
-  padding: 8px 0 12px;
+  padding: var(--space-4) 0 var(--space-5);
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -358,7 +358,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .library-rail__toggle {
@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
 .library-rail__tiles {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -415,7 +415,7 @@ onBeforeUnmount(() => {
 .library-rail__launchers {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 6px 0 0;
   padding: 0;
   list-style: none;
@@ -425,7 +425,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   width: 60px;
   padding: 0;
   border: none;
@@ -496,7 +496,7 @@ onBeforeUnmount(() => {
   top: -4px;
   right: -4px;
   min-width: 16px;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-contrast);
@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
   z-index: calc(var(--z-panel) + 4);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   width: 220px;
   max-width: calc(100vw - var(--layout-library-width) - 24px);
   /* Informational: never in the way of the Operations toolbar underneath. */
@@ -521,7 +521,7 @@ onBeforeUnmount(() => {
 
 .library-rail__callout {
   margin: 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   background: var(--surface-glass);

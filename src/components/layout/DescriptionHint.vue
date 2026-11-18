@@ -45,7 +45,7 @@ function edit() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-2) var(--space-4);
   min-width: 0;
 }
 

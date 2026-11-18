@@ -126,12 +126,12 @@ function onLinkLeave(event) {
 .prompt-link {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   width: 100%;
   max-width: 100%;
   min-height: var(--tap);
   margin: 0;
-  padding: 0 2px;
+  padding: 0 var(--space-1);
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;

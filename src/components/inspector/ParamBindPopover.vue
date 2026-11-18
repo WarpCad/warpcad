@@ -153,12 +153,12 @@ function create() {
 .bind {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /* The inline box under the field; the phone sheet's frame is `BaseSheet`'s. */
 .bind--inline {
-  padding: 8px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -173,7 +173,7 @@ function create() {
 .bind__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -206,7 +206,7 @@ function create() {
 .bind__new {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .bind__label {
@@ -216,7 +216,7 @@ function create() {
 
 .bind__input {
   min-height: 44px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -227,7 +227,7 @@ function create() {
 
 .bind__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .bind__empty {

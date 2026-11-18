@@ -86,7 +86,7 @@ defineProps({
 .ref-overlay__badge {
   position: absolute;
   transform: translate(0, 4px);
-  padding: 1px 6px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 30%, var(--surface-1));
   color: var(--text-1);

@@ -83,6 +83,9 @@
   --space-6: 16px;
   --space-7: 24px;
   --space-8: 32px;
+  /* Half steps, for the 10px and 14px the layouts already use. */
+  --space-4h: 10px;
+  --space-5h: 14px;
 
   /* Type scale */
   --font-size-1: 10px;

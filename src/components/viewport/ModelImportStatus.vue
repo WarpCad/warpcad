@@ -76,9 +76,9 @@ const modelImport = useModelImportStore()
 .import-status__line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 0;
-  padding: 4px 4px 4px 12px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -90,7 +90,7 @@ const modelImport = useModelImportStore()
 }
 
 .import-status__line[data-testid='model-import-notice'] {
-  padding: 8px 12px;
+  padding: var(--space-4) var(--space-5);
 }
 
 .import-status__line--error {

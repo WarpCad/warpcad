@@ -68,7 +68,7 @@ const emit = defineEmits(['keep', 'cancel'])
 }
 
 .usage__row {
-  padding: 6px 0;
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--border);
   font-size: var(--text-size-md);
 }
@@ -85,7 +85,7 @@ const emit = defineEmits(['keep', 'cancel'])
 
 .usage__footer {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 

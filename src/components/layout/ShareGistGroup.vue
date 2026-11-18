@@ -338,8 +338,8 @@ async function stop() {
 .share-gist {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 10px;
+  gap: var(--space-4);
+  padding-top: var(--space-4h);
   border-top: 1px solid var(--border);
 }
 
@@ -365,7 +365,7 @@ async function stop() {
 
 .share-gist__status {
   align-self: flex-start;
-  padding: 3px 10px;
+  padding: var(--space-2) var(--space-4h);
   border: 1px solid var(--accent-secondary);
   border-radius: var(--radius-pill);
   color: var(--text-1);
@@ -387,7 +387,7 @@ async function stop() {
 .share-gist__check {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
   min-height: var(--tap);
   font-size: var(--text-size-lg);
   color: var(--text-1);
@@ -403,7 +403,7 @@ async function stop() {
 
 .share-gist__row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .share-gist__link {
@@ -413,7 +413,7 @@ async function stop() {
   align-items: center;
   justify-content: center;
   min-height: 48px;
-  padding: 0 14px;
+  padding: 0 var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface-2);
@@ -437,8 +437,8 @@ async function stop() {
 .share-gist__confirm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4h);
   border: 1px solid var(--danger);
   border-radius: var(--radius-md);
   background: var(--surface-0);
@@ -452,7 +452,7 @@ async function stop() {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

@@ -86,6 +86,20 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q94 · Keep the spacing snap I chose when `ui-123` put padding and gap on tokens?
+
+**Question:** Padding and gap values off the `--space-1…8` scale were snapped; keep that?
+
+**Background:** 10px (117 uses) and 14px (20 uses) got two new half steps, `--space-4h` and `--space-5h`, so they did not move. Rarer values snapped to the nearest step: 1px to 2px, 3px to 4px, 5/7px to 6px, 9px to 8px, 13px to 12px, 18px to 16px, 20/22/28px to 24px, 34px to 32px (44 declarations, 1 to 4px each). 83 screenshots were regenerated: 54 docs pictures and 29 layout baselines (`git show --stat` on the `ui-123` commit lists them). Margin is not guarded.
+
+**Options:**
+- **Keep the snap (Recommended):** a 1 to 4px shift in 44 places, and every picture was regenerated and re-checked on all engines.
+- **Restore exact pixels:** add tokens for each odd value. About ten more tokens, which defeats the scale.
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
 #### Q16 · Does a `capture_view` picture read well enough, and is the Bolt's single colour misleading? (`ai-007` #1 and #2)
 
 **Question:** Keep `capture_view` as it is (faint grid, one colour per body), or change it?

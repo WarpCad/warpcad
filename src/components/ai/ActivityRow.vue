@@ -87,17 +87,17 @@ const result = computed(() => {
 .activity {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--tap);
   box-sizing: border-box;
-  padding: 6px 10px;
+  padding: var(--space-3) var(--space-4h);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -117,7 +117,7 @@ const result = computed(() => {
 .row__glyph {
   flex: none;
   width: 16px;
-  padding-top: 2px;
+  padding-top: var(--space-1);
   text-align: center;
   color: var(--text-2);
 }
@@ -125,7 +125,7 @@ const result = computed(() => {
 .row__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -169,7 +169,7 @@ const result = computed(() => {
   align-self: flex-start;
   min-width: var(--tap);
   min-height: var(--tap);
-  padding: 2px;
+  padding: var(--space-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

@@ -2129,8 +2129,8 @@ onBeforeUnmount(() => closeGroup())
   left: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--space-3);
+  padding: var(--space-3);
   /* `TODO/ui-084`: the reserve follows the chrome tier (`--layout-gizmo-reserve`, set on `.app__body` from
      the layout store: 184px full, 150px compact), so a compact gizmo gives the width back. */
   max-width: calc(100% - 24px - var(--layout-gizmo-reserve));
@@ -2169,9 +2169,9 @@ onBeforeUnmount(() => closeGroup())
 .ops__badge {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
-  padding: 0 2px;
+  padding: 0 var(--space-1);
   font-size: var(--text-size-xs);
   line-height: 1.3;
   color: var(--text-3);
@@ -2199,7 +2199,7 @@ onBeforeUnmount(() => closeGroup())
 .ops__legend {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 /*
@@ -2253,7 +2253,7 @@ onBeforeUnmount(() => closeGroup())
 .ops[data-ops-tier='groups'] .ops__btn {
   min-width: var(--tap-compact);
   min-height: var(--tap-compact);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
 }
 
 .ops[data-group-open='true'] {
@@ -2266,7 +2266,7 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__launcher {
   position: relative;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .ops__caret {
@@ -2288,7 +2288,7 @@ onBeforeUnmount(() => closeGroup())
   top: -5px;
   right: -5px;
   min-width: 16px;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-contrast);
@@ -2307,7 +2307,7 @@ onBeforeUnmount(() => closeGroup())
  */
 .ops__operands {
   margin: 0;
-  padding: 0 2px;
+  padding: 0 var(--space-1);
   font-size: var(--text-size-xs);
   line-height: 1.4;
   color: var(--text-3);
@@ -2330,7 +2330,7 @@ onBeforeUnmount(() => closeGroup())
  */
 .ops__pending {
   margin: 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -2341,7 +2341,7 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__error {
   margin: 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -2367,7 +2367,7 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__row {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
   /* Unconditional, not gated behind the phone media query below: the new
      `max-width` on `.ops` above is what decides *whether* wrapping is needed
      (container-relative, so it also catches the tablet-pane squeeze), and this
@@ -2378,9 +2378,9 @@ onBeforeUnmount(() => closeGroup())
 .ops__btn {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-3);
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -2494,8 +2494,8 @@ onBeforeUnmount(() => closeGroup())
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4h);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -2519,7 +2519,7 @@ onBeforeUnmount(() => closeGroup())
 }
 
 .ops__popover > :first-child {
-  padding-right: 34px;
+  padding-right: var(--space-8);
 }
 
 .ops__popover-note {
@@ -2568,7 +2568,7 @@ onBeforeUnmount(() => closeGroup())
  */
 .ops__popover-error {
   margin: 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -2580,7 +2580,7 @@ onBeforeUnmount(() => closeGroup())
 .ops__checkbox {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-1);
   cursor: pointer;
@@ -2597,7 +2597,7 @@ onBeforeUnmount(() => closeGroup())
 .ops__popover-field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2);
   font-size: var(--text-size-xs);
   color: var(--text-2);
 }
@@ -2605,7 +2605,7 @@ onBeforeUnmount(() => closeGroup())
 .ops__popover-field select,
 .ops__popover-field input {
   min-height: var(--tap-compact);
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -2615,7 +2615,7 @@ onBeforeUnmount(() => closeGroup())
 
 .ops__popover-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
   margin-top: 2px;
 }
 
@@ -2661,7 +2661,7 @@ onBeforeUnmount(() => closeGroup())
   .ops:not([data-ops-tier='labels']) {
     top: 8px;
     left: 8px;
-    padding: 2px 4px;
+    padding: var(--space-1) var(--space-2);
     /* Tighter than the base rule's 6px (`TODO/ui-043`): this toolbar's own
        total height, not just the badge's line count, is what has to fit above
        `NavigationChrome` at this width — see `.ops__row`'s own gap override
@@ -2669,7 +2669,7 @@ onBeforeUnmount(() => closeGroup())
        measurement. Trimming *this* container's padding/gap, never a bottom
        sheet's height or `--tap-compact`, is the budget this fix is allowed to
        spend from. */
-    gap: 2px;
+    gap: var(--space-1);
     /* No `max-width` override here on purpose (there used to be one,
        `calc(100vw - 16px)` — removed): at phone width the viewport pane spans
        essentially the whole page (Library/Inspector are bottom sheets there,
@@ -2701,7 +2701,7 @@ onBeforeUnmount(() => closeGroup())
    * both untouched — only the breathing room between rows/buttons shrinks.
    */
   .ops:not([data-ops-tier='labels']) .ops__row {
-    gap: 2px;
+    gap: var(--space-1);
   }
 
   .ops:not([data-ops-tier='labels']) .ops__btn {
@@ -2712,7 +2712,7 @@ onBeforeUnmount(() => closeGroup())
        convention, the established one for this exact situation. */
     min-height: var(--tap-compact);
     min-width: var(--tap-compact);
-    padding: 0 6px;
+    padding: 0 var(--space-3);
     font-size: var(--text-size-xs);
   }
 
@@ -2745,8 +2745,8 @@ onBeforeUnmount(() => closeGroup())
        and viewport-relative (see its own CSS comment above), not derived from
        `.ops`'s box, so nothing here needs to move. Only the padding/gaps
        tighten, to match the rest of the toolbar's phone-width density. */
-    padding: 8px;
-    gap: 6px;
+    padding: var(--space-4);
+    gap: var(--space-3);
   }
 }
 </style>
@@ -2764,8 +2764,8 @@ body .popover.ops__popover {
   max-height: calc(100vh - 96px);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4h);
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
 }

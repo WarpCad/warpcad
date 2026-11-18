@@ -144,7 +144,7 @@ const frameStyle = computed(() => (position.value ? { left: `${position.value.le
   max-width: calc(100vw - 16px);
   max-height: calc(100dvh - 16px);
   overflow-y: auto;
-  padding: 8px 10px 10px;
+  padding: var(--space-4) var(--space-4h) var(--space-4h);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-1);

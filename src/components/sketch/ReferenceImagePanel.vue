@@ -220,8 +220,8 @@ function commitRotation(value) {
 .ref-image {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 8px;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border-strong);
 }
 
@@ -229,7 +229,7 @@ function commitRotation(value) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .ref-image__help {
@@ -246,7 +246,7 @@ function commitRotation(value) {
 }
 
 .ref-image__badge {
-  padding: 1px 6px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--text-1);
@@ -268,7 +268,7 @@ function commitRotation(value) {
 .ref-image__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /* Visually hidden, still reachable by the button above and by tests. */
@@ -283,13 +283,13 @@ function commitRotation(value) {
 .ref-image__grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .ref-image__field {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -302,7 +302,7 @@ function commitRotation(value) {
 .ref-image__field input[type='text'] {
   width: 56px;
   min-height: var(--tap-compact);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

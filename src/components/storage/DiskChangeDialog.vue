@@ -116,7 +116,7 @@ useOverlayStack(() => persistence.diskPromptOpen, () => void choose('cancel'))
 .disk__actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 </style>

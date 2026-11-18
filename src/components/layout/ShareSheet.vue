@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
 .share-root {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .share-button {
@@ -399,10 +399,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-width: var(--tap);
   height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -439,8 +439,8 @@ onBeforeUnmount(() => {
 /* The frame is `BaseSheet`; its spacing stays this sheet's own (10px rhythm, 16px sides) so the
    layout, and the pictures of it, did not move. */
 body :global(.sheet.share-sheet) {
-  gap: 10px;
-  padding-inline: 16px;
+  gap: var(--space-4h);
+  padding-inline: var(--space-6);
 }
 
 body :global(.sheet.share-sheet .sheet__title) {
@@ -458,7 +458,7 @@ body :global(.sheet.share-sheet .sheet__title) {
 .share-sheet__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -466,7 +466,7 @@ body :global(.sheet.share-sheet .sheet__title) {
 .share-sheet__input {
   box-sizing: border-box;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -478,7 +478,7 @@ body :global(.sheet.share-sheet .sheet__title) {
 
 .share-sheet__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .share-sheet__file {
@@ -501,7 +501,7 @@ body :global(.sheet.share-sheet .sheet__title) {
 .share-sheet__manual {
   box-sizing: border-box;
   width: 100%;
-  padding: 8px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

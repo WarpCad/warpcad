@@ -79,13 +79,13 @@ function submit() {
 .file-name__form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .file-name__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -94,7 +94,7 @@ function submit() {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -120,14 +120,14 @@ function submit() {
 .file-name__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 
 .file-name__button {
   min-width: 96px;
   min-height: var(--tap);
-  padding: 0 14px;
+  padding: 0 var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

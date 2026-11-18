@@ -62,13 +62,13 @@ const placement = usePlacementStore()
   z-index: calc(var(--z-panel) + 5);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
   width: 260px;
   /* Never wider than the space right of the rail, whatever the window (≥ 641px here). */
   max-width: calc(100vw - var(--layout-library-width) - 24px);
   max-height: calc(100% - 16px);
   overflow-y: auto;
-  padding: 10px 12px 12px;
+  padding: var(--space-4h) var(--space-5) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -94,7 +94,7 @@ const placement = usePlacementStore()
 
 .library-popout__rows {
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;

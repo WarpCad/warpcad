@@ -74,7 +74,7 @@ const repeat = useRepeatStore()
 .delete__confirm {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin-top: 8px;
 }
 
@@ -88,7 +88,7 @@ const repeat = useRepeatStore()
 .delete__choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 
@@ -104,7 +104,7 @@ const repeat = useRepeatStore()
   bottom: -14px;
   z-index: calc(var(--z-canvas-overlay) + 1);
   margin: 16px 0 -14px;
-  padding: 8px 0 14px;
+  padding: var(--space-4) 0 var(--space-5h);
   border-top: 1px solid var(--border);
   background: var(--surface-1);
 }
@@ -113,8 +113,8 @@ const repeat = useRepeatStore()
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
   font-weight: var(--weight-medium);
 }
 

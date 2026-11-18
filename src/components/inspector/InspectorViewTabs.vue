@@ -34,7 +34,7 @@ const hasPrompts = computed(() => documentStore.promptIndex.byPrompt.size > 0)
 @media (max-width: 640px) {
   .views {
     display: flex;
-    gap: 6px;
+    gap: var(--space-3);
     margin-bottom: 6px;
   }
 

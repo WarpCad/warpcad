@@ -364,7 +364,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 10px 12px 14px;
+  padding: var(--space-4h) var(--space-5) var(--space-5h);
   /* Vertical only: with `overflow-y` alone the other axis computes to `auto` and the sheet
      scrolls sideways by whatever pixel overflows (`TODO/ui-085`). */
   overflow-x: hidden;
@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
   margin: 0 0 10px;
 }
 
@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
 
 .library__repeat-hint {
   margin: 0 0 6px;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   font-size: var(--text-size-sm);
@@ -410,7 +410,7 @@ onBeforeUnmount(() => {
 
 .library__rows {
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 8px;
+  gap: var(--space-1) var(--space-4);
   margin-top: 14px;
 }
 
@@ -434,7 +434,7 @@ onBeforeUnmount(() => {
 .library__section-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   width: 100%;
   min-height: 44px;
   padding: 0;
@@ -454,7 +454,7 @@ onBeforeUnmount(() => {
 }
 
 .library__count {
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-size: var(--text-size-xs);
@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
   top: 0;
   left: 0;
   z-index: var(--z-sheet);
-  padding: 4px 9px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface-2);
@@ -509,10 +509,10 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-4);
     /* The tab bar is the bottom edge: its content clears the home indicator (`TODO/ui-120`). */
     min-height: calc(44px + var(--layout-safe-bottom));
-    padding: 6px 12px calc(6px + var(--layout-safe-bottom));
+    padding: var(--space-3) var(--space-5) calc(var(--space-3) + var(--layout-safe-bottom));
     border: none;
     background: transparent;
     color: var(--text-1);

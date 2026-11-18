@@ -57,7 +57,7 @@ function onShow() {
 <style scoped>
 .note__show {
   min-height: var(--tap);
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border: none;
   background: transparent;
   color: var(--accent);

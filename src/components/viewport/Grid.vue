@@ -58,7 +58,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
   position: absolute;
   right: 12px;
   bottom: calc(12px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4h);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-glass);
@@ -70,7 +70,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
 .readout__bar-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .readout__bar {
@@ -103,7 +103,7 @@ const bar = computed(() => chooseScaleBar(props.mmPerPixel, props.maxBarPx))
   .readout {
     right: 8px;
     bottom: calc(8px + var(--layout-viewport-bottom-inset) + var(--layout-placement-chip-room));
-    padding: 6px 8px;
+    padding: var(--space-3) var(--space-4);
   }
 
   .readout__legend {

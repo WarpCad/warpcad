@@ -7,7 +7,7 @@ import { V1_CSS_COLOR_HEX } from '../core/kernel/colors.js'
 /** @typedef {{ rule: string, line: number, text: string, fix: string }} Violation */
 
 /** The rule ids, in report order. */
-export const RULES = ['style-color', 'style-z-index', 'style-font', 'style-radius', 'style-var-fallback', 'style-var-undefined', 'inline-style-color', 'js-color']
+export const RULES = ['style-color', 'style-z-index', 'style-font', 'style-radius', 'style-spacing', 'style-var-fallback', 'style-var-undefined', 'inline-style-color', 'js-color']
 
 /** Values that are never a colour literal. */
 const NOT_A_COLOUR = new Set(['transparent', 'currentcolor', 'inherit', 'initial', 'unset', 'revert'])
@@ -123,6 +123,9 @@ export function scanStyleBlocks(text, defined) {
       }
       if (/^border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius$/.test(prop) && /[1-9]/.test(value.replace(/var\([^)]*\)/gi, ' '))) {
         found.push({ rule: 'style-radius', line, text: shown, fix: 'use --radius-xs / -sm / -md / -lg / -pill / -round from src/styles/semantic.css, or 0' })
+      }
+      if (/^(?:padding|gap|row-gap|column-gap)(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?$/.test(prop) && /[1-9]/.test(value.replace(/var\([^)]*\)/gi, ' '))) {
+        found.push({ rule: 'style-spacing', line, text: shown, fix: 'use a --space-* token from src/styles/ (--space-1 ... --space-8, plus the half steps), or 0' })
       }
     }
     for (const u of varFallbacks(bare)) {

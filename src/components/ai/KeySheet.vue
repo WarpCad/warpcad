@@ -279,7 +279,7 @@ function done() {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   font-size: var(--text-size-lg);
   line-height: 1.4;
   color: var(--text-1);
@@ -301,13 +301,13 @@ function done() {
 .key__form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .key__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -316,7 +316,7 @@ function done() {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -333,7 +333,7 @@ select.key__input {
   height: var(--tap);
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 34px;
+  padding-right: var(--space-8);
   background-image:
     linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
     linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
@@ -346,7 +346,7 @@ select.key__input {
 
 .key__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 

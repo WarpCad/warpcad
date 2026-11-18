@@ -170,7 +170,7 @@ body :global(.sheet.repeat) {
   transform: translateX(-50%);
   width: min(300px, calc(100vw - 32px));
   max-height: calc(100dvh - 200px);
-  padding: 10px 12px 12px;
+  padding: var(--space-4h) var(--space-5) var(--space-5);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
   backdrop-filter: blur(6px);
@@ -185,13 +185,13 @@ body :global(.sheet.repeat) {
 .repeat__body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .repeat__head {
   display: flex;
   align-items: flex-start;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .repeat__title {
@@ -210,18 +210,18 @@ body :global(.sheet.repeat) {
 
 .repeat__targets {
   margin: 0;
-  padding: 4px 6px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   max-height: 160px;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 8px;
+  gap: 0 var(--space-4);
 }
 
 .repeat__legend {
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   font-size: var(--text-size-xs);
   color: var(--text-2);
 }
@@ -229,7 +229,7 @@ body :global(.sheet.repeat) {
 .repeat__target {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: var(--tap-compact);
   font-size: var(--text-size-md);
   overflow-wrap: anywhere;
@@ -260,7 +260,7 @@ body :global(.sheet.repeat) {
 
 .repeat__steps {
   margin: 0;
-  padding-left: 18px;
+  padding-left: var(--space-6);
   font-size: var(--text-size-sm);
   line-height: 1.45;
 }
@@ -290,12 +290,12 @@ body :global(.sheet.repeat) {
 .repeat__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-4);
   /* Stays in view while a long step list scrolls: Apply is never below the fold. */
   position: sticky;
   bottom: -12px;
   margin: 0 -12px -12px;
-  padding: 8px 12px 12px;
+  padding: var(--space-4) var(--space-5) var(--space-5);
   background: var(--surface-glass);
 }
 
@@ -326,7 +326,7 @@ body :global(.sheet.repeat) {
     transform: none;
     width: 100%;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding-bottom: 12px;
+    padding-bottom: var(--space-5);
     max-height: 40dvh;
   }
 
@@ -338,7 +338,7 @@ body :global(.sheet.repeat) {
      bar is up, so the bar never sits on the sheet's sticky Delete row. */
   body :global(.sheet.repeat.repeat--minimized) {
     height: 54px;
-    padding: 4px 8px;
+    padding: var(--space-2) var(--space-4);
     overflow: hidden;
   }
 
@@ -349,7 +349,7 @@ body :global(.sheet.repeat) {
   .repeat--minimized .repeat__bar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-4);
   }
 
   .repeat__bar-text {

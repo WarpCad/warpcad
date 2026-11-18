@@ -684,14 +684,14 @@ function onEnumChange(event, field) {
 <style scoped>
 .params {
   margin-top: 10px;
-  padding-top: 8px;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
 
 
 .params__fields {
   display: grid;
-  gap: 6px 8px;
+  gap: var(--space-3) var(--space-4);
   margin: 0;
 }
 
@@ -703,20 +703,20 @@ function onEnumChange(event, field) {
 .params__value {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0 0 2px;
 }
 
 .params__value--vector {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .params__component {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -730,7 +730,7 @@ function onEnumChange(event, field) {
   width: 100%;
   min-width: 0;
   min-height: 34px;
-  padding: 4px 6px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -771,7 +771,7 @@ function onEnumChange(event, field) {
   box-sizing: border-box;
   height: 44px;
   min-height: 44px;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -794,7 +794,7 @@ function onEnumChange(event, field) {
 .params__bindrow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--space-2);
   margin: 0 0 2px;
 }
 
@@ -812,7 +812,7 @@ function onEnumChange(event, field) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: var(--space-3) var(--space-4h);
   margin-top: 8px;
 }
 
@@ -822,7 +822,7 @@ function onEnumChange(event, field) {
 }
 
 .params__badge {
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   color: var(--text-2);
@@ -838,7 +838,7 @@ function onEnumChange(event, field) {
 
 .params__link {
   min-height: 44px;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border: none;
   background: none;
   color: var(--accent);
@@ -854,7 +854,7 @@ function onEnumChange(event, field) {
 
 .params__error {
   margin: 8px 0 0;
-  padding: 6px 8px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

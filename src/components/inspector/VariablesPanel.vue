@@ -137,7 +137,7 @@ function onKeep() {
 .variables__bar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 

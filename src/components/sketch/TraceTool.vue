@@ -162,8 +162,8 @@ function toggleAuto() {
   max-width: 560px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px 6px 10px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-4h);
   border: 1px solid var(--accent);
   border-radius: var(--radius-lg);
   background: var(--surface-1);
@@ -175,7 +175,7 @@ function toggleAuto() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--space-2) var(--space-4h);
 }
 
 .trace-tool__help {
@@ -184,7 +184,7 @@ function toggleAuto() {
 
 .trace-tool__row--head {
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .trace-tool__text {
@@ -198,7 +198,7 @@ function toggleAuto() {
 .trace-tool__field {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }

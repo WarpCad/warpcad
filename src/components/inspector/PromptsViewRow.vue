@@ -250,11 +250,11 @@ watch(
   grid-template-areas:
     'text chevron'
     'meta chevron';
-  gap: 2px 8px;
+  gap: var(--space-1) var(--space-4);
   align-items: center;
   width: 100%;
   min-height: var(--tap);
-  padding: 6px 4px 6px 8px;
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
   border: 0;
   background: transparent;
   color: var(--text-1);
@@ -310,9 +310,9 @@ watch(
 .detail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
-  padding: 2px 4px 10px 8px;
+  padding: var(--space-1) var(--space-2) var(--space-4h) var(--space-4);
   color: var(--text-2);
   font-size: var(--text-size-sm);
   line-height: 1.45;
@@ -342,7 +342,7 @@ watch(
 .edit {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   width: 100%;
   min-width: 0;
 }
@@ -351,7 +351,7 @@ watch(
   box-sizing: border-box;
   width: 100%;
   min-height: 8em;
-  padding: 8px;
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -366,13 +366,13 @@ watch(
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .edit__actions--start {
   justify-content: flex-start;
-  padding: 2px 0 4px;
+  padding: var(--space-1) 0 var(--space-2);
 }
 
 .edit__button:focus-visible {
@@ -394,10 +394,10 @@ watch(
 .part {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--tap);
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;

@@ -490,7 +490,7 @@ body :global(.sheet.split) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* The 44px target overhangs the title line rather than growing the header (`TODO/ui-061`). */
@@ -514,7 +514,7 @@ body :global(.sheet.split) {
 .split__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -522,7 +522,7 @@ body :global(.sheet.split) {
 .split__input {
   box-sizing: border-box;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -538,13 +538,13 @@ body :global(.sheet.split) {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .split__piece {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 2px 8px;
+  gap: var(--space-1) var(--space-4);
   font-size: var(--text-size-sm);
 }
 
@@ -563,7 +563,7 @@ body :global(.sheet.split) {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
   border-radius: var(--radius-pill);
   border: 1px solid currentColor;
   font-size: var(--text-size-xs);
@@ -600,14 +600,14 @@ body :global(.sheet.split) {
 
 .split__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 
 .split__toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   min-height: var(--tap);
   font-size: var(--text-size-md);
   color: var(--text-1);
@@ -622,7 +622,7 @@ body :global(.sheet.split) {
 .split__kinds {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .split__kind {
@@ -632,9 +632,9 @@ body :global(.sheet.split) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-3);
   min-height: var(--tap);
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -680,7 +680,7 @@ body :global(.sheet.split) {
        cut plane's handle (at the middle of the body) is not hidden behind it. */
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px 10px;
+    gap: var(--space-3) var(--space-4h);
   }
 
   .split > .split__title,
@@ -709,7 +709,7 @@ body :global(.sheet.split) {
     position: sticky;
     bottom: calc(-12px - var(--layout-safe-bottom));
     margin: 0 -12px calc(-12px - var(--layout-safe-bottom));
-    padding: 6px 12px calc(12px + var(--layout-safe-bottom));
+    padding: var(--space-3) var(--space-5) calc(var(--space-5) + var(--layout-safe-bottom));
     background: var(--surface-glass);
   }
 

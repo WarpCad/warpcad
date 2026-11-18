@@ -73,8 +73,7 @@ How it fits the rest:
 
 `src/styles/guard.spec.js` (rules in `src/styles/guardScan.js`) fails on a raw colour, a numeric `z-index`, a numeric
 `font-size` or `font-weight`, a numeric `border-radius` (`--radius-xs/-sm/-md/-lg/-pill/-round/-thumb`, or `0`), a `var(--x, literal)` fallback, or a `var()` naming a token nothing defines, anywhere under
-`src/` outside `src/styles/`. It is strict: there is no allow-list. Spacing (`padding`, `gap`, `margin`) literals are not guarded yet
-(`TODO/ui-123` part 2, onto `--space-1…8`), so a restyle of spacing still needs a search across `src/components/`.
+`src/` outside `src/styles/`. It is strict: there is no allow-list. Numeric `padding` and `gap` (and their `-top`, `-left`, `row-gap` forms) must be `--space-1…8` or the half steps `--space-4h` (10px) and `--space-5h` (14px), or `0`; `margin` is not guarded. Off-scale values were snapped to the nearest step when `TODO/ui-123` part 2 landed.
 
 ## How to check a restyle
 

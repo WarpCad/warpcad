@@ -173,9 +173,9 @@ onBeforeUnmount(() => {
   z-index: calc(var(--z-canvas-overlay) + 6);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   max-width: calc(100% - 32px);
-  padding: 4px 4px 4px 14px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   background: var(--surface-glass);

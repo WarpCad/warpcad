@@ -233,13 +233,13 @@ function close() {
 .gist-connect__form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4h);
 }
 
 .gist-connect__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -248,7 +248,7 @@ function close() {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--tap);
-  padding: 0 10px;
+  padding: 0 var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -261,8 +261,8 @@ function close() {
 .gist-connect__help {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 8px;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
 
@@ -294,7 +294,7 @@ function close() {
 .gist-connect__status {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .gist-connect__connected {
@@ -327,7 +327,7 @@ function close() {
 
 .gist-connect__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 

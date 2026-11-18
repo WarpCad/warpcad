@@ -72,13 +72,13 @@ function toggle(event) {
 .lan {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .lan__switch {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
   min-height: var(--tap);
   font-size: var(--text-size-lg);
   color: var(--text-1);
@@ -102,7 +102,7 @@ function toggle(event) {
 .lan__values {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 10px;
+  gap: var(--space-2) var(--space-4h);
   margin: 0;
   font-size: var(--text-size-sm);
   color: var(--text-2);
@@ -122,7 +122,7 @@ function toggle(event) {
 .lan__buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* Stacked on a phone: each is a full-width 44px target. */
@@ -134,7 +134,7 @@ function toggle(event) {
 
 .lan__button {
   min-height: var(--tap);
-  padding: 0 14px;
+  padding: 0 var(--space-5h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-2);

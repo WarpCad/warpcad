@@ -144,8 +144,8 @@ function cancel() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
-  padding: 8px 10px;
+  gap: var(--space-3) var(--space-4h);
+  padding: var(--space-4) var(--space-4h);
   border: 1px solid var(--accent);
   border-radius: var(--radius-lg);
   background: var(--surface-1);
@@ -157,7 +157,7 @@ function cancel() {
   flex: 1 1 220px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .scale-tool__help {
@@ -175,13 +175,13 @@ function cancel() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 .scale-tool__length {
   width: 72px;
   min-height: var(--tap);
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -191,7 +191,7 @@ function cancel() {
 
 .scale-tool__unit {
   min-height: var(--tap);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

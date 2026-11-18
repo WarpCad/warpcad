@@ -63,8 +63,8 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
 .save {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 10px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4h);
   border: 1px solid var(--accent);
   border-left-width: 4px;
   border-radius: var(--radius-sm);
@@ -96,7 +96,7 @@ const open = computed(() => props.item.status === 'proposed' || props.item.statu
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-2) var(--space-4);
 }
 
 .save__status {

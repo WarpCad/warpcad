@@ -77,11 +77,11 @@ function saveCopy() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4h);
   box-sizing: border-box;
   width: max-content;
   max-width: min(420px, calc(100% - 32px));
-  padding: 12px 14px;
+  padding: var(--space-5) var(--space-5h);
   transform: translate(-50%, -50%);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
@@ -111,13 +111,13 @@ function saveCopy() {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .context-banner__button {
   min-width: var(--tap);
   min-height: var(--tap);
-  padding: 0 16px;
+  padding: 0 var(--space-6);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-2);

@@ -34,7 +34,7 @@ const library = useLibraryStore()
 .save-library {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .save-library__reason {

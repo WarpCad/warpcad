@@ -185,8 +185,8 @@ const orientationLabel = computed(
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -288,7 +288,7 @@ const orientationLabel = computed(
 .gizmo[data-chrome-tier='compact'] {
   top: 8px;
   right: 8px;
-  padding: 4px;
+  padding: var(--space-2);
 }
 
 .gizmo[data-chrome-tier='compact'] .gizmo__dial {
@@ -310,7 +310,7 @@ const orientationLabel = computed(
   .gizmo {
     top: 8px;
     right: 8px;
-    padding: 4px;
+    padding: var(--space-2);
   }
 
   .gizmo__dial {

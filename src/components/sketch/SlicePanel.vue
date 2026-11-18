@@ -173,7 +173,7 @@ function remove() {
 .slices {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .slices__list {
@@ -182,15 +182,15 @@ function remove() {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .slices__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 2px;
+  gap: var(--space-4);
+  padding: var(--space-1);
   border-radius: var(--radius-sm);
 }
 
@@ -203,8 +203,8 @@ function remove() {
   min-height: var(--tap-compact);
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 0 8px;
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-1);
@@ -230,7 +230,7 @@ function remove() {
   min-width: 0;
   margin-left: auto;
   overflow: hidden;
-  padding: 0 5px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--text-2);
@@ -246,7 +246,7 @@ function remove() {
 .slices__z {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -254,7 +254,7 @@ function remove() {
 .slices__z input {
   width: 64px;
   min-height: var(--tap-compact);
-  padding: 0 6px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -266,8 +266,8 @@ function remove() {
   flex: 1 0 100%;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding-left: 8px;
+  gap: var(--space-3);
+  padding-left: var(--space-4);
 }
 
 .slices__transform input {
@@ -281,7 +281,7 @@ function remove() {
 
 .slices__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 </style>

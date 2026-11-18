@@ -4585,3 +4585,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 34 files, snapped values → git diff; 649 spacing values → TODO/FIND-ui-123 text
 **To Add:** none
+
+## 2026-11-17T23:40:00Z — ui-123 part 2: the style guard now covers padding and gap
+
+**Post:** The second half of WarpCad's style-guard task is done: numeric padding and gap now fail the guard unless they use a spacing token. 627 declarations in 116 files moved onto the scale.
+
+Two half steps (10px and 14px) cover the values the layouts already used most, so those did not move. Rarer odd values (1, 3, 5, 7, 9, 13, 18, 20, 22, 28, 34px) snapped to the nearest step, 44 declarations by 1 to 4px each.
+
+A full run across three engines and three viewports found 42 tests with drifted screenshots. All were regenerated and re-checked, and the final run was clean.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 627 values, 44 snapped, 116 files → git diff; 42 drifted tests → full e2e run this session
+**To Add:** none

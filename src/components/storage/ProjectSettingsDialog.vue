@@ -178,7 +178,7 @@ function save() {
 .settings__form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .settings__field {
@@ -203,8 +203,8 @@ function save() {
 .settings__untrusted {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4h);
   border: 1px solid var(--warn);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 10%, transparent);
@@ -221,7 +221,7 @@ function save() {
   box-sizing: border-box;
   width: 100%;
   min-height: calc(var(--tap) * 3);
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -240,7 +240,7 @@ function save() {
 }
 
 .settings__preview {
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4h);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
 }
@@ -248,7 +248,7 @@ function save() {
 .settings__volume {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   border: 0;
@@ -257,13 +257,13 @@ function save() {
 .settings__volume-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .settings__volume-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
   font-size: var(--text-size-sm);
   color: var(--text-2);
 }
@@ -272,7 +272,7 @@ function save() {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--tap);
-  padding: 0 8px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
@@ -290,7 +290,7 @@ function save() {
 
 .settings__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-4);
   justify-content: flex-end;
 }
 </style>
