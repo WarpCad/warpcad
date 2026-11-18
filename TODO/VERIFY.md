@@ -59,6 +59,16 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ai-045 — A tool to read a part's op and params, and to copy a part (2026-11-18 20:55)
+
+Both skill drives were run through `claude -p --model haiku` (subscription, scratch fixtures). Unrelated e2e reds seen in the pair run are listed in the commit's `Known-failures:` trailer.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `add-clearances` on a Housing with a **round** pin and round socket: *add 0.2 mm clearance to the group called Housing* | OK | Haiku read the skill, `describe_step` on Pin and Base, one `apply_records` (`copy`, `modify.enlarge` 0.4 on every axis, subtract), renamed back to `Housing`; `check_clearance` 0.198 mm, watertight, thinnest wall 4.8 mm. A first run put 0 on the Z axis and the gap stayed 0 (enlarge ignores it); the skill now forbids it, and the re-run passed |
+| 2 | `create-enclosure` on the Pi fixture (ai-041 repro) | OK | 89 calls, no tool errors, skill read 4th, shell 94.9 x 62.4 x 27.7 mm, thinnest wall 1.37 mm, same as the 2026-11-15 run |
+
+
 ### io-032 — Cura overlapping-faces cleanup (2026-11-18 19:40)
 
 Scenario 26 was driven with a 32k scan on Chromium and WebKit (see `TODO/ACCEPTANCE.md`); these are the items it does not cover.

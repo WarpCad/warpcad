@@ -15,6 +15,10 @@
  * the UI would have appended. A step names a body an earlier step of the same call made
  * as `@1`, `@2`, …, since its real id is only issued when the step is built.
  *
+ * A `{ copy: … }` step (`TODO/FIND-ai-045`) is the `copy` tool's input: a create whose op and
+ * params are read off a body or a part (`create.js`'s `buildCopyRecords`), so a cutter shaped
+ * like a round pin and the cut it makes land together.
+ *
  * ## Atomic: all or none
  *
  * `document.appendAll`'s fast path is *not* atomic across a batch (its own doc comment
@@ -55,7 +59,7 @@
 import { applyViewHides } from '../../core/groupMerge.js'
 import { ReplayRejection } from '../../core/document.js'
 import { composeIntent } from '../../core/intent.js'
-import { buildCreateRecords, createInputSchema, validateCreateInput } from './create.js'
+import { buildCopyRecords, buildCreateRecords, copyInputSchema, createInputSchema, validateCreateInput } from './create.js'
 import { buildOperateRecords, operateInputSchema, validateOperateInput } from './operate.js'
 import { assertWriteOrigin } from './limits.js'
 import { sceneSummary } from './read.js'
@@ -68,13 +72,13 @@ import { preparePrompt } from '../../core/prompt.js'
 /** @typedef {Readonly<Record<string, RegistryEntry>>} Registry */
 
 /**
- * @typedef {{ create: import('./create.js').CreateInput } | { operate: import('./operate.js').OperateInput }} Step
+ * @typedef {{ create: import('./create.js').CreateInput } | { operate: import('./operate.js').OperateInput } | { copy: import('./create.js').CopyInput }} Step
  */
 
 /**
  * @typedef {object} AppliedStep
  * @property {number} batchStep 1-based position in the call.
- * @property {'create' | 'operate'} tool
+ * @property {'create' | 'operate' | 'copy'} tool
  * @property {string} bodyId The body this step made or changed.
  * @property {string[]} recordIds What it appended, in order.
  */
@@ -153,13 +157,14 @@ export function applySteps(ctx, steps, ops, rationale) {
       steps.forEach((step, index) => {
         const batchStep = index + 1
         const at = document.rollbackAt() ?? document.entries.length
-        const tool = 'create' in step ? 'create' : 'operate'
+        const tool = 'create' in step ? 'create' : 'copy' in step ? 'copy' : 'operate'
+        /** @param {string} id */
+        const resolve = (id) => resolveBatchRef(id, applied, batchStep)
         let built
         try {
-          built =
-            'create' in step
-              ? buildCreateRecords(document, step.create, ops, ctx.references)
-              : buildOperateRecords(document, step.operate, ops, (id) => resolveBatchRef(id, applied, batchStep))
+          if ('create' in step) built = buildCreateRecords(document, step.create, ops, ctx.references)
+          else if ('copy' in step) built = buildCopyRecords(document, step.copy, ops, resolve)
+          else built = buildOperateRecords(document, step.operate, ops, resolve)
         } catch (error) {
           throw new StepFailure(batchStep, at + 1, error)
         }
@@ -198,13 +203,18 @@ export function applySteps(ctx, steps, ops, rationale) {
 export function createApplyRecordsTool(ops) {
   const createSchema = createInputSchema(ops)
   const operateSchema = operateInputSchema(ops)
+  const copySchema = copyInputSchema()
   const inputSchema = objectSchema(
     {
       steps: {
         type: 'array',
         description: 'The steps, in order. A later step names a body an earlier step made as "@1", "@2", … (1-based).',
         items: {
-          anyOf: [objectSchema({ create: createSchema }, ['create']), objectSchema({ operate: operateSchema }, ['operate'])],
+          anyOf: [
+            objectSchema({ create: createSchema }, ['create']),
+            objectSchema({ operate: operateSchema }, ['operate']),
+            objectSchema({ copy: copySchema }, ['copy']),
+          ],
         },
       },
       rationale: RATIONALE_PROPERTY,
@@ -215,7 +225,7 @@ export function createApplyRecordsTool(ops) {
   return {
     name: 'apply_records',
     description:
-      'Apply several create and operate steps as one atomic change: every step lands, or none does and the document is unchanged. ' +
+      'Apply several create, operate and copy steps as one atomic change: every step lands, or none does and the document is unchanged. ' +
       'Use it for anything that only makes sense whole, e.g. a part and the cut that shapes it. Returns each step’s body id and the scene afterwards. ' +
       'Pass `prompt` (the user’s words as received) to record the request with the change, if you have not called record_prompt for it.',
     inputSchema,
@@ -237,10 +247,12 @@ export function createApplyRecordsTool(ops) {
       steps.forEach((step, index) => {
         const path = `input.steps[${index}]`
         const keys = step && typeof step === 'object' && !Array.isArray(step) ? Object.keys(step) : []
-        if (keys.length !== 1 || (keys[0] !== 'create' && keys[0] !== 'operate')) {
-          errors.push(`${path} must have exactly one of "create", "operate"`)
+        if (keys.length !== 1 || (keys[0] !== 'create' && keys[0] !== 'operate' && keys[0] !== 'copy')) {
+          errors.push(`${path} must have exactly one of "create", "operate", "copy"`)
         } else if (keys[0] === 'create') {
           errors.push(...validateCreateInput(ops, createSchema, step.create, `${path}.create`))
+        } else if (keys[0] === 'copy') {
+          errors.push(...checkInput(copySchema, step.copy, `${path}.copy`))
         } else {
           errors.push(...validateOperateInput(operateSchema, step.operate, `${path}.operate`))
         }

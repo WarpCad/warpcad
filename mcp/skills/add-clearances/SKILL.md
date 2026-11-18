@@ -21,38 +21,39 @@ This rule is stated once here. The other steps refer back to it.
 
 ## 1. Find the mating pairs
 
-1. Call `describe_scene` to get the group's bodies and their parts. Call `describe_body { id }` to get each body's op, params, centre and rotation.
+1. Call `describe_scene` to get the group's bodies and their parts. Call `describe_body { id }` to get each body's op, params, centre and rotation. For one part of a group, call `describe_step { id: "<group>", part: "<part name>" }` to get the op and params of the step that made it.
 2. A mating pair is a part that goes in (A) and the part it goes into (B). For each pair, call `check_clearance { a, b }`. If they overlap, or the gap is under the clearance, the pair needs a gap.
 3. `check_clearance { a, b }` takes whole bodies. For two parts of one group, pass the group as `a` and `b`, with `aPieces` and `bPieces` naming the parts (comma-separated if there is more than one). `measure { ids }` takes whole bodies only. To read one part's size, use `evaluate_formula { formula }`, for example `[Bracket].[pin].width`.
 
 ## 2. Open the gap, one pair at a time
 
-**If A was made by a single create step** (`describe_body` shows a Library op such as `primitive.cylinder`), cut B with a copy of A that is 2 × clearance bigger. Send it as one `apply_records { steps }` call, so the cutter and the cut land together:
+**If A was made by a single create step** (`describe_body` shows a Library op such as `primitive.cylinder`), cut B with a copy of A that is 2 × clearance bigger. `copy` makes a new body with A's op and params, standing exactly where A stands. Send it as one `apply_records { steps }` call, so the cutter and the cut land together:
 
 ```
 apply_records { steps: [
-  { create: { op: "<A's op>", positionMm: [0, 0, 0], params: <A's params, without center> } },
-  { operate: { op: "group.align", operands: [{ id: "@1" }, { id: "<A>" }], params: { axes: "xyz" } } },
+  { copy: { id: "<A>", name: "<A's name> cutter" } },
   { operate: { op: "modify.enlarge", operands: [{ id: "@1" }], params: { deltaMm: [0.4, 0.4, 0.4] } } },
-  { operate: { op: "boolean.subtract", operands: [{ id: "<B>" }, { id: "@1" }] } }
+  { operate: { op: "boolean.subtract", operands: [{ id: "<B>" }, { id: "@2" }] } }
 ] }
 ```
 
-- `deltaMm` is 2 × clearance on every axis, which gives the clearance on every face A meets. Where A sticks out of B, the extra growth is harmless.
-- If A has turned (its rotation is not `[0, 0, 0]`), turn the copy the same way with `transform.rotate` before the align step.
+- `deltaMm` is 2 × clearance on every axis, which gives the clearance on every face A meets. Where A sticks out of B, the extra growth is harmless. **Never put 0 on an axis**, even one the part slides along: measured on a round pin, `[0.4, 0.4, 0]` leaves the cutter the size of A (the gap stays 0), while `[0.4, 0.4, 0.4]` opens 0.2 mm.
+- `copy` copies only the step that made A, not a later turn. If A has turned (its rotation is not `[0, 0, 0]`), add `{ operate: { op: "transform.rotate", operands: [{ id: "@1" }], params: { deltaDeg: <A's rotation> } } }` and then `{ operate: { op: "group.align", operands: [{ id: "@1" }, { id: "<A>" }], params: { axes: "xyz" } } }` after the copy step, and shift the later `@n` numbers to match.
 - The subtract uses up the cutter and returns B's new id. Use that id from now on.
 
-**If A and B are parts of one group** (`describe_scene` lists them under `parts`; the user says "the group called Housing"), address B as `{ "id": "<group>", "pieces": "<B's part name>" }`. A subtract with that base keeps the group's other parts, so the group is not rebuilt. No tool shows a part's op or params (`get_timeline` has no params), so measure A with `evaluate_formula`: `[<group>].[<A>].width`, `.depth`, `.height` and `.min.x`, `.min.y`, `.min.z`. Then build the cutter as a `primitive.cuboid` of that size, with `positionMm` at the centre of its footprint and its lowest Z. This is exact only for a box. If A is round or otherwise shaped, do not build a cutter for it: say so, and leave that pair alone.
+**If A and B are parts of one group** (`describe_scene` lists them under `parts`; the user says "the group called Housing"), address B as `{ "id": "<group>", "pieces": "<B's part name>" }`. A subtract with that base keeps the group's other parts, so the group is not rebuilt. Call `describe_step { id: "<group>", part: "<A>" }` to read the op and params of the step that made A. If that op is a Library op (a box, a round pin, a cone), copy A with `copy { id: "<group>", part: "<A>" }`. The copy stands where A stands in the group, even after the group has moved, so it is exact for a round pin as well as a box:
 
 ```
 apply_records { steps: [
-  { create: { op: "primitive.cuboid", positionMm: [<A's centre x>, <centre y>, <A's min z>], params: { size: [<A's width>, <A's depth>, <A's height>] } } },
+  { copy: { id: "<group>", part: "<A>", name: "<A> cutter" } },
   { operate: { op: "modify.enlarge", operands: [{ id: "@1" }], params: { deltaMm: [0.4, 0.4, 0.4] } } },
   { operate: { op: "boolean.subtract", operands: [{ id: "<group>", pieces: "<B>" }, { id: "@2" }] } }
 ] }
 ```
 
-The group keeps its id and its other parts. Only B is cut. Tell the user that the old steps stay in the History.
+The subtract returns a new id for the group (the last `applied` row's `bodyId`), and that body keeps all the group's parts. Only B is cut. Use the new id from now on. Its name is now "Subtract 1", so give it the group's old name back with `operate { op: "style.rename", operands: [{ id: "<new id>" }], params: { name: "<group's name>" } }`. Tell the user that the old steps stay in the History.
+
+If `describe_step` says A has no step of its own (it is made inside a recipe, like a Raspberry Pi's mounting hole), or A's op is not a Library op (a Union, say), `copy` refuses. If A is a box, measure it with `evaluate_formula`: `[<group>].[<A>].width`, `.depth`, `.height` and `.min.x`, `.min.y`, `.min.z`. Then use a `primitive.cuboid` of that size as the first step, with `positionMm` at the centre of its footprint and its lowest Z. If A has any other shape, do not build a cutter for it: say so, and leave that pair alone.
 
 **If A was built by several steps**, and has no hole running across the fit, shrink A instead: `operate { op: "modify.enlarge", operands: [{ id: "<A>" }], params: { deltaMm: [-0.4, -0.4, 0] } }`. Use 0 on the axis A slides in along. Enlarge scales the part about the centre of its bounds. That is exact for boxes and cylinders, and approximate for anything else.
 

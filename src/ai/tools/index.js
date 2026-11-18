@@ -27,12 +27,14 @@
  * | `describe_scene` | no | Every body: id, name, op, bounds and size in mm, colour, part names. Never a mesh. |
  * | `describe_body` | no | One body: the above plus params, centre position and rotation. |
  * | `get_timeline` | no | The History rows: op, label, origin, suppressed / active / broken. |
+ * | `describe_step` | no | `{ id, part? }` (`TODO/FIND-ai-045`): one step's op and params, target and operands, whether its body is on screen and which step consumed it (`consumedBy`). Reads a step a boolean or group used up; with `part`, the step that made that part of a group. |
  * | `get_selection` | no | Browser only. The user's current selection. |
  * | `select` | selection only | Browser only. Select bodies so the user sees which ones the model means. |
  * | `create` | yes | Place one body: `{ op, positionMm, params? }`. Zero-operand Library ops only. |
+ * | `copy` | yes | `{ id, part?, name?, positionMm? }` (`TODO/FIND-ai-045`): a new body with the same op and params as a body on screen or one part of a group, standing where the source does unless `positionMm` places it. Independent of the source; Library ops only. Also an `apply_records` step, `{ copy }`. |
  * | `operate` | yes | One operation: `{ op, operands: [{ id, pieces? }], params? }`. Refused by name on a wrong operand count or an id that is not a body on screen. |
  * | `repeat` | yes | `{ source, seedBody, seedPart, targets }`: one linked `pattern.repeat` (`TODO/core-061`) — the source's own steps re-aimed from `seedPart` at each target, as one new body. Refused in core's words; at most 64 targets. |
- * | `apply_records` | yes | `{ steps: [{ create } \| { operate }], prompt? }` as one atomic change; a step names an earlier step's body as `@n`. `prompt` records the request with it (`ai-031`). |
+ * | `apply_records` | yes | `{ steps: [{ create } \| { operate } \| { copy }], prompt? }` as one atomic change; a step names an earlier step's body as `@n`. `prompt` records the request with it (`ai-031`). |
  * | `record_prompt` | yes (the prompt only) | MCP and WebMCP (`ai-031`). `{ prompt }`: the user's request, in their words, stored in the project and linked to every record written for it afterwards; echoes `{ id, text, truncated }`. Called once, first. |
  * | `record_response` | yes (the reply only) | MCP and WebMCP (`ai-032`). `{ response }`: the agent's final message, appended as a segment under the bound prompt (`ctx.prompt`); refuses with none bound; echoes `{ promptId, id, text, truncated }`. Called last. |
  * | `set_description` | yes (the description only) | MCP and in-app (`io-023`). `{ description }`: the project's description for people, in a small Markdown subset (no links, images, headings or HTML); replaces it, `''` clears it; echoes `{ text, truncated, previous }`. |
@@ -106,7 +108,7 @@ import { registry as kernelRegistry } from '../../core/kernel/registry.js'
 import { applySteps, createApplyRecordsTool } from './batch.js'
 import { createCaptureTool } from './capture.js'
 import { createClearanceTool } from './clearance.js'
-import { createCreateTool, creatableOps } from './create.js'
+import { createCopyTool, createCreateTool, creatableOps } from './create.js'
 import { createSetDescriptionTool } from './description.js'
 import { createImageTools } from './image.js'
 import { createSaveToLibraryTool } from './library.js'
@@ -388,6 +390,7 @@ export function createToolRegistry(options = {}) {
       ...createReadTools(),
       createListOpsTool(ops),
       createCreateTool(ops, apply),
+      createCopyTool(apply),
       createOperateTool(ops, apply),
       createApplyRecordsTool(ops),
       createMeasureTool(),

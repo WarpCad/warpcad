@@ -28,15 +28,29 @@
  * (`src/composables/useSketchEditorCommands.js`), because a sketch drawn off-centre must
  * stay where it was drawn.
  *
+ * ## `copy` (`TODO/FIND-ai-045`)
+ *
+ * A new body with the same op and params as a body on screen, or as one part of a group (the
+ * step `describe_step` reads for it). It is a create, not an operation: the records are the ones
+ * {@link buildCreateRecords} writes for that op and those params, so the copy shares nothing
+ * with its source and editing either leaves the other alone. A bound param is copied as the
+ * value its source uses now (`literalParamsOf`), never as the binding, which `create` could not
+ * place. Only a Library op can be copied; anything else (a Union, a group) is refused by name.
+ * Absent `positionMm`, the copy stands where the source does now: its footprint centre and its
+ * underside, read off the source's (or the part's) built bounds, so a part moved with its group
+ * is copied where it is. A sketch keeps its own plane origin.
+ *
  * @module ai/tools/create
  */
 
 import { evaluateOp } from '../../core/kernel/index.js'
-import { boundsOf } from '../../core/kernel/group.js'
+import { boundsOf, isGroup } from '../../core/kernel/group.js'
 import { registry as kernelRegistry } from '../../core/kernel/registry.js'
+import { literalParamsOf } from '../../core/variables.js'
 import { checkInput, objectSchema, paramsSchemaFor, splitRationale, vectorSchema, withRationale } from './schema.js'
 import { curvePoints } from '../../sketch/curves.js'
 import { placeReferenceImages } from './image.js'
+import { findBody, findStep, round3 } from './read.js'
 import { renameRecord } from '../../core/operationRecords.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
@@ -261,6 +275,108 @@ export function validateCreateInput(ops, schema, input, path = 'input') {
   if (errors.length > 0 || params === undefined) return errors
   const op = /** @type {string} */ (rest.op)
   return checkInput(paramsSchemaFor(op, ops).schema, params, `${path}.params`).map((error) => `${error} (for ${op})`)
+}
+
+/**
+ * @typedef {object} CopyInput
+ * @property {string} id A body on screen; inside `apply_records`, `@n` for an earlier step's.
+ * @property {string} [part] One part of that group, as `describe_body` lists it.
+ * @property {string} [name] The copy's name; absent, numbered like a Library drop.
+ * @property {[number, number, number]} [positionMm] Where to place it, as `create` takes it;
+ *   absent, where the source stands now.
+ */
+
+/**
+ * The records one copy commits (`TODO/FIND-ai-045`): {@link buildCreateRecords} for the source
+ * step's op and its params as they are now. Throws a sentence naming the fix for a source that
+ * is not a body on screen, a part the group does not have or that has no step of its own, and
+ * an op `create` cannot place.
+ *
+ * @param {WarpDocument} document
+ * @param {CopyInput} input
+ * @param {Registry} [ops]
+ * @param {(id: string) => string} [resolveId] Turns an `@n` batch reference into a body id.
+ * @returns {BuiltStep}
+ */
+export function buildCopyRecords(document, input, ops = kernelRegistry, resolveId = (id) => id) {
+  const id = resolveId(input.id)
+  const onScreen = findBody(document, id)
+  if (onScreen.reason !== undefined) throw new Error(onScreen.reason)
+  const found = findStep(document, id, input.part)
+  if (found.reason !== undefined) throw new Error(found.reason)
+  const { record } = found
+  const source = input.part === undefined ? onScreen.body.name : `"${input.part}" in ${onScreen.body.name}`
+  if (!creatableOps(ops).includes(record.op)) {
+    throw new Error(
+      `${source} was made by ${record.op}, which create cannot place, so it cannot be copied. ` +
+        'Copy a body or part made by a Library op (list_ops kind "create"), or read its steps with describe_step and rebuild them.'
+    )
+  }
+  const { center, ...params } = literalParamsOf(document, record)
+  const positionMm = input.positionMm ?? copyPositionOf(onScreen.body, input.part, ops[record.op], center)
+  return buildCreateRecords(document, { op: record.op, positionMm, params, ...(input.name === undefined ? {} : { name: input.name }) }, ops)
+}
+
+/**
+ * Where a copy goes when no `positionMm` is given: `create`'s placement point (footprint centre,
+ * underside) read off the source's built bounds, or a part's within its group. A sketch's
+ * `positionMm` is its plane origin, so a sketch keeps its own.
+ *
+ * @param {import('../../core/document.js').Body} body The body on screen (the group, for a part).
+ * @param {string | undefined} part
+ * @param {RegistryEntry} entry The source step's registry entry.
+ * @param {unknown} center The source step's own `center` param, if it has one.
+ * @returns {[number, number, number]}
+ */
+function copyPositionOf(body, part, entry, center) {
+  if (entry.ui?.editor === 'sketch' && Array.isArray(center) && center.length === 3) return round3(center)
+  const geometry = part !== undefined && isGroup(body.geometry) ? body.geometry.parts[part] : body.geometry
+  const [min, max] = boundsOf(geometry)
+  return round3([(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, min[2]])
+}
+
+/**
+ * The copy tool's input, and the shape of an `apply_records` `{ copy }` step.
+ *
+ * @returns {JsonSchema}
+ */
+export function copyInputSchema() {
+  return objectSchema(
+    {
+      id: { type: 'string', description: 'The body to copy, an id from describe_scene (in apply_records, "@n" for an earlier step’s body). With part, the group.' },
+      part: { type: 'string', description: 'Optional: copy one part of the group id names, exactly as describe_body lists it, e.g. "Pin".' },
+      name: { type: 'string', description: 'Optional name for the copy, e.g. "Pin cutter". Omitted, it is numbered like a Library drop ("Cylinder 2").' },
+      positionMm: vectorSchema(
+        3,
+        'Optional: where to place the copy, as create takes it ([x, y, z] mm; x and y centre the footprint, z is the underside). Omitted, it stands exactly where the source does.'
+      ),
+    },
+    ['id'],
+    'One body or part to copy.'
+  )
+}
+
+/**
+ * `copy` (`TODO/FIND-ai-045`): a new body from a body's or a part's op and params.
+ *
+ * @param {(ctx: import('./index.js').ToolContext, steps: any[], rationale?: string) => Record<string, any>} applySteps
+ * @returns {import('./index.js').Tool}
+ */
+export function createCopyTool(applySteps) {
+  return {
+    name: 'copy',
+    description:
+      'Make a new body with the same op and params as a body on screen, or as one part of a group (part), e.g. a cutter the shape of a round pin. ' +
+      'It stands where the source does unless positionMm says otherwise, and is independent of it: editing either leaves the other alone. ' +
+      'Only the step that made the source is copied, not later steps (a fillet, a cut, a turn): describe_step shows that step. ' +
+      'A param tied to a variable is copied as its current value. Only bodies made by a Library op can be copied. Returns the copy’s id and the scene afterwards.',
+    inputSchema: withRationale(copyInputSchema()),
+    transports: ['ai', 'mcp'],
+    run: (ctx, input) => {
+      const { rationale, ...step } = input
+      return applySteps(ctx, [{ copy: step }], rationale)
+    },
+  }
 }
 
 /**

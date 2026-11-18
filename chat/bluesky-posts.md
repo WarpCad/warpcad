@@ -3361,3 +3361,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old probe 404 for a permissionless token → TODO/done/io-037 Problem section (2026-11-17 drive); 422 with permission, gist count unchanged → gh api run this session; 403 without → curl with the permissionless token this session
 **To Add:** none
+
+## 2026-11-18T21:00:00Z — WarpCad AI tools can read any step's params and copy a part (TODO/ai-045)
+
+**Post:** WarpCad's AI tools can now read the op and params of any step, even one a boolean already used up, and copy a part. That let the clearance skill cut a hole for a round pin, not just a box. Haiku ran it: 0.198 mm gap on a 10 mm pin. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 0.198 mm gap on a round pin, Haiku via claude -p → check_clearance in this session's drive; tools are describe_step and copy → diff
+**To Add:** none

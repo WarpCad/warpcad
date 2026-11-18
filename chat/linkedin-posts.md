@@ -4866,3 +4866,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** old probe 404 for a permissionless token → TODO/done/io-037 Problem section; 422/403 and gist count unchanged → gh api and curl runs this session; message wording → src/storage/gistBackend.js MESSAGES.forbidden
 **To Add:** none
+
+## 2026-11-18T21:00:00Z — WarpCad AI tools can read any step's params and copy a part (TODO/ai-045)
+
+**Post:** An AI driving a CAD model needs to see what a part is made of. WarpCad had no tool that returned a step's op and params once a boolean had consumed it, and none that copied a part. Both exist now: describe_step and copy, the second also usable inside apply_records.
+
+The add-clearances skill used to rebuild only boxes. It now copies a round pin, grows the copy by twice the clearance and subtracts it. A first Haiku run put 0 on one axis of the growth and got no gap; a zero axis makes the enlarge do nothing, so the skill now says never to. The second run measured 0.198 mm on a 10 mm pin.
+
+Details are in docs/mcp.md, with a worked example. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** first run no gap, zero axis → probe of [0.4,0.4,0] vs [0.4,0.4,0.4] this session; 0.198 mm → check_clearance in the re-drive; docs/mcp.md example → diff
+**To Add:** none

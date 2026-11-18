@@ -95,9 +95,11 @@ Lengths are millimetres, Z is up and angles are in degrees, as in the app.
 | `describe_scene` | no | Every shape: id, name, size and position in mm. |
 | `describe_body` | no | One shape in detail. |
 | `get_timeline` | no | The History rows, who made each one, and why. |
+| `describe_step` | no | One History step in detail: what made it (its op) and its sizes and settings (its params), even for a shape a Subtract or Group has used up. With `part`, the step that made one part of a group, e.g. `{ "id": "group-1", "part": "Pin" }`. |
 | `create` | yes | Place one new shape at a position. |
 | `operate` | yes | One operation on existing shapes by id: Union, Subtract, Fillet, Mirror, Move… |
-| `apply_records` | yes | Several of the above as one change: all of them land, or none do. |
+| `copy` | yes | A new shape with the same op and sizes as a shape, or as one part of a group, e.g. `{ "id": "group-1", "part": "Pin", "name": "Pin cutter" }`. It stands exactly where the original does unless `positionMm` says where, and it is separate from it: change either one and the other stays as it was. Only shapes placed from the Library can be copied. |
+| `apply_records` | yes | Several of the above as one change (`create`, `operate` and `copy` steps): all of them land, or none do. |
 | `repeat` | yes | Put the same finished part, placed the same way, on other matching parts of the body it was placed against: `{ "source": "bolt-1", "seedBody": "pi-1", "seedPart": "hole1", "targets": ["hole2", "hole3", "hole4"] }`. One new shape, *Bolt 1 ×3*, appears. The copies are linked: later changes to the source's size, Align or Snap move or resize all of them. It is refused, with the reason, if the source's steps never name `seedPart` or a target isn't a part of `seedBody`. Up to 64 targets. |
 | `measure` | no | Size, volume, surface area and centre of mass. |
 | `check_printability` | no | Is it watertight, does it fit the printer, how thin are the walls. |
@@ -134,6 +136,25 @@ part names, then `repeat` with `source: "bolt-1"`, `seedBody: "pi-1"`, `seedPart
 `targets: ["hole2", "hole3", "hole4"]`. One History row, *Bolt 1 ×3*, appears in the file. Open it in
 the app and the three bolts sit on holes 2, 3 and 4; change Bolt 1's **Length** and all three
 follow.
+
+**Example: a hole that fits a round pin.** In a group `Bracket` (id `group-1`) with a part `Base`
+and an 8 mm round part `Pin` through it, ask Claude Code *give the pin 0.2 mm of clearance*.
+Claude calls `describe_step { "id": "group-1", "part": "Pin" }` and reads that the pin is a
+`primitive.cylinder` with `diameter: 8`. Then it cuts the hole with one change:
+
+```json
+{ "steps": [
+  { "copy": { "id": "group-1", "part": "Pin", "name": "Pin cutter" } },
+  { "operate": { "op": "modify.enlarge", "operands": [{ "id": "@1" }], "params": { "deltaMm": [0.4, 0.4, 0.4] } } },
+  { "operate": { "op": "boolean.subtract", "operands": [{ "id": "group-1", "pieces": "Base" }, { "id": "@2" }] } }
+] }
+```
+
+The copy is a cylinder standing exactly where the pin is. It is grown by 0.4 mm and cut out of
+`Base`. Open the file in the app: the History has four new rows (the copy, its name, the grow and
+the cut), the cut result still has both parts, and the hole in `Base` is 8.4 mm across, leaving
+0.2 mm all round the pin. The result is named *Subtract 1*. Claude renames it back to *Bracket*
+with `operate` and `style.rename`.
 
 The server also offers two read-only resources, `warpcad://scene` and `warpcad://op-catalogue`,
 so a client can look at the scene or the catalogue without calling a tool.

@@ -209,3 +209,83 @@ describe('variable bindings in the read tools (TODO/ai-040)', () => {
     for (const body of scene.bodies) expect('boundTo' in body).toBe(false)
   })
 })
+
+describe('describe_step — a step’s op and params, a consumed one included (TODO/FIND-ai-045)', () => {
+  const tools = createToolRegistry()
+
+  /**
+   * A 30 × 30 × 10 block and an 8 × 20 pin through it, placed by hand.
+   *
+   * @returns {{ document: import('../../core/document.js').WarpDocument, ctx: import('./index.js').ToolContext, block: string, pin: string }}
+   */
+  function blockAndPin() {
+    const document = createDocument({ replica: 'abcdef' })
+    const block = place(document, 'primitive.cuboid', { x: 0, y: 0 }, { size: [30, 30, 10] })
+    const pin = place(document, 'primitive.cylinder', { x: 0, y: 0 }, { diameter: 8, height: 20 })
+    return { document, ctx: makeContext({ document }), block, pin }
+  }
+
+  it('is a read on both transports', () => {
+    for (const transport of /** @type {const} */ (['ai', 'mcp'])) {
+      expect(tools.toolsFor(transport).map((tool) => tool.name)).toContain('describe_step')
+    }
+    const tool = /** @type {any} */ (tools.tools.find((candidate) => candidate.name === 'describe_step'))
+    expect('rationale' in tool.inputSchema.properties).toBe(false)
+  })
+
+  it('reads back a step a boolean used up: its op, its params, and which step consumed it', () => {
+    const { document, ctx, block, pin } = blockAndPin()
+    const cut = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'boolean.subtract', operands: [{ id: block }, { id: pin }] }))
+    expect(cut.error).toBeUndefined()
+    expect(document.bodies().map((body) => body.id)).not.toContain(pin)
+    expect(tools.run(ctx, 'describe_body', { id: pin })).toMatchObject({ error: expect.stringMatching(/not a body on screen/) })
+
+    const step = /** @type {any} */ (tools.run(ctx, 'describe_step', { id: pin }))
+    expect(step.error).toBeUndefined()
+    expect(step).toMatchObject({ step: 2, id: pin, bodyId: pin, op: 'primitive.cylinder', onScreen: false, consumedBy: cut.applied[0].recordIds[0] })
+    expect(step.params).toMatchObject({ diameter: 8, height: 20 })
+    expect(step.label).toMatch(/Cylinder 1/)
+  })
+
+  it('reads the step that made one part of a group, by the group’s id and the part’s name', () => {
+    const { ctx, block, pin } = blockAndPin()
+    const grouped = /** @type {any} */ (
+      tools.run(ctx, 'operate', { op: 'group.assemble', operands: [{ id: block }, { id: pin }], params: { names: ['Base', 'Pin'] } })
+    )
+    expect(grouped.error).toBeUndefined()
+    const group = grouped.applied[0].bodyId
+    const step = /** @type {any} */ (tools.run(ctx, 'describe_step', { id: group, part: 'Pin' }))
+    expect(step).toMatchObject({ id: pin, op: 'primitive.cylinder', part: 'Pin', partOf: group, onScreen: false, consumedBy: grouped.applied[0].recordIds[0] })
+    expect(step.params).toMatchObject({ diameter: 8, height: 20 })
+  })
+
+  it('reads a body on screen as the step that holds its params, and a later step as itself', () => {
+    const { ctx, pin } = blockAndPin()
+    const moved = /** @type {any} */ (tools.run(ctx, 'operate', { op: 'transform.translate', operands: [{ id: pin }], params: { deltaMm: [5, 0, 0] } }))
+    expect(moved.error).toBeUndefined()
+    expect(tools.run(ctx, 'describe_step', { id: pin })).toMatchObject({ id: pin, op: 'primitive.cylinder', onScreen: true })
+    const move = /** @type {any} */ (tools.run(ctx, 'describe_step', { id: moved.applied[0].recordIds[0] }))
+    expect(move).toMatchObject({ op: 'transform.translate', bodyId: pin, target: pin })
+  })
+
+  it('refuses an id the document did not issue, and a part the group does not have, naming the parts there are', () => {
+    const { ctx, block, pin } = blockAndPin()
+    expect(tools.run(ctx, 'describe_step', { id: 'cylinder-99' })).toMatchObject({ error: expect.stringMatching(/no step "cylinder-99"/) })
+    expect(tools.run(ctx, 'describe_step', { id: block, part: 'Pin' })).toMatchObject({ error: expect.stringMatching(/no parts/) })
+    // A fresh turn: three refusals in a row would stop this one (limits.js's failure streak).
+    const next = makeContext({ document: ctx.document })
+    const grouped = /** @type {any} */ (
+      tools.run(next, 'operate', { op: 'group.assemble', operands: [{ id: block }, { id: pin }], params: { names: ['Base', 'Pin'] } })
+    )
+    const missing = /** @type {any} */ (tools.run(next, 'describe_step', { id: grouped.applied[0].bodyId, part: 'Peg' }))
+    expect(missing.error).toMatch(/"Peg"/)
+    expect(missing.error).toMatch(/Base, Pin/)
+  })
+
+  it('says a part made inside a recipe has no step of its own', () => {
+    const document = piAndCube()
+    const result = /** @type {any} */ (tools.run(makeContext({ document }), 'describe_step', { id: 'pi-1', part: 'hole1' }))
+    expect(result.error).toMatch(/hole1/)
+    expect(result.error).toMatch(/no step of its own/)
+  })
+})

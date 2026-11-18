@@ -6,8 +6,10 @@ priority: low
 model: opus
 milestone: none — Findings table, split from ai-044 (gap 2) on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18).** Two tools: `describe_step { id, part? }` (reads a step's op and params, consumed steps included, by step id, body id or group + part) and `copy { id, part?, name?, positionMm?, rationale? }`, also a `{ copy }` step kind in `apply_records`. A copy writes what `create` writes for the source op and params, stands where the source stands now, and shares nothing with it; only Library ops can be copied. `add-clearances` now rebuilds a round pin from the copy. Two skill corrections found on the way: a subtract on `{ id: group, pieces }` returns a new body (rename it back with `style.rename`), and `deltaMm` must never carry a 0 on an axis (the enlarge then leaves the cutter unchanged). Re-driven with `claude -p --model haiku`: a round-pin Housing gets a 0.198 mm gap through `copy`; `create-enclosure` on the Pi fixture gives the same 94.9 x 62.4 x 27.7 mm shell. The recorded `drawing-board` fixture was re-stamped (the `apply_records` schema gained `copy`).
 
 ## Problem
 

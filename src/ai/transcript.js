@@ -131,6 +131,12 @@ export function describeCall(name, input, result, nameOf) {
     const count = Array.isArray(input?.steps) ? input.steps.length : 0
     return `Applied ${count} ${count === 1 ? 'step' : 'steps'}`
   }
+  // `TODO/FIND-ai-045`.
+  if (name === 'copy') {
+    const id = typeof input?.id === 'string' ? input.id : ''
+    const source = nameOf?.(id) ?? sceneNameOf(result, id) ?? (id || 'a body')
+    return typeof input?.part === 'string' ? `Copied ${input.part} of ${source}` : `Copied ${source}`
+  }
   if (name === 'create') {
     const bodyId = result?.applied?.[0]?.bodyId
     const made = typeof bodyId === 'string' ? sceneNameOf(result, bodyId) : undefined

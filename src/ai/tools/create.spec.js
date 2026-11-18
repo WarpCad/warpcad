@@ -259,3 +259,158 @@ describe('create — an optional name (TODO/FIND-ai-041 gap 3)', () => {
     expect(document.entries).toHaveLength(0)
   })
 })
+
+describe('copy — a new body with the same op and params (TODO/FIND-ai-045)', () => {
+  const tools = createToolRegistry()
+  const LOCAL = { origin: 'local' }
+
+  /**
+   * A cylinder placed by hand at (15, −5), and the context to copy it in.
+   *
+   * @returns {{ document: import('../../core/document.js').WarpDocument, ctx: import('./index.js').ToolContext, pin: string }}
+   */
+  function placedPin() {
+    const document = createDocument({ replica: 'abcdef' })
+    const records = recordsForDrop('primitive.cylinder', { x: 15, y: -5 }, document, { diameter: 8, height: 20 })
+    document.appendAll(records, LOCAL)
+    return { document, ctx: makeContext({ document }), pin: /** @type {string} */ (records[0].id) }
+  }
+
+  /**
+   * @param {import('../../core/document.js').WarpDocument} document
+   * @param {string} id
+   * @returns {import('../../core/document.js').Body}
+   */
+  const bodyOf = (document, id) => /** @type {any} */ (document.bodies().find((body) => body.id === id))
+
+  /**
+   * @param {[number, number, number][]} actual
+   * @param {[number, number, number][]} expected
+   */
+  function expectSameBounds(actual, expected) {
+    for (let corner = 0; corner < 2; corner += 1) {
+      for (let axis = 0; axis < 3; axis += 1) expect(actual[corner][axis]).toBeCloseTo(expected[corner][axis], 6)
+    }
+  }
+
+  it('is a write on both transports, and takes a rationale', () => {
+    for (const transport of /** @type {const} */ (['ai', 'mcp'])) {
+      expect(tools.toolsFor(transport).map((tool) => tool.name)).toContain('copy')
+    }
+    const tool = /** @type {any} */ (tools.tools.find((candidate) => candidate.name === 'copy'))
+    expect(tool.inputSchema.required).toEqual(['id'])
+    expect('rationale' in tool.inputSchema.properties).toBe(true)
+  })
+
+  it('copies a cylinder: same op and params, where the source stands, under its own name and the call’s origin', () => {
+    const { document, ctx, pin } = placedPin()
+    const result = /** @type {any} */ (tools.run(ctx, 'copy', { id: pin, name: 'Pin cutter' }))
+    expect(result.error).toBeUndefined()
+    const copy = result.applied[0].bodyId
+    expect(copy).not.toBe(pin)
+    expect(result.applied[0].tool).toBe('copy')
+    const source = bodyOf(document, pin)
+    const made = bodyOf(document, copy)
+    expect(made).toMatchObject({ op: 'primitive.cylinder', name: 'Pin cutter' })
+    expect(made.params.diameter).toBe(8)
+    expect(made.params.height).toBe(20)
+    expectSameBounds(boundsOf(made.geometry), boundsOf(source.geometry))
+    expect(document.originOf(copy)).toBe('ai')
+    // Only the hand placement is the user's; the copy and its rename are the call's.
+    expect(document.entries.map((entry) => [entry.record.op, entry.origin])).toEqual([
+      ['primitive.cylinder', 'local'],
+      ['primitive.cylinder', 'ai'],
+      ['style.rename', 'ai'],
+    ])
+  })
+
+  it('is independent of its source: editing either leaves the other as it was', () => {
+    const { document, ctx, pin } = placedPin()
+    const copy = /** @type {any} */ (tools.run(ctx, 'copy', { id: pin })).applied[0].bodyId
+    expect(bodyOf(document, copy).name).toBe('Cylinder 2')
+
+    const sourceRecord = /** @type {any} */ (document.recordOf(pin))
+    document.replaceRecord(pin, { ...sourceRecord, params: { ...sourceRecord.params, diameter: 12 } }, LOCAL)
+    expect(bodyOf(document, pin).params.diameter).toBe(12)
+    expect(bodyOf(document, copy).params.diameter).toBe(8)
+    expect(boundsOf(bodyOf(document, copy).geometry)[1][0] - boundsOf(bodyOf(document, copy).geometry)[0][0]).toBeCloseTo(8, 1)
+
+    const copyRecord = /** @type {any} */ (document.recordOf(copy))
+    document.replaceRecord(copy, { ...copyRecord, params: { ...copyRecord.params, height: 5 } }, LOCAL)
+    expect(bodyOf(document, copy).params.height).toBe(5)
+    expect(bodyOf(document, pin).params.height).toBe(20)
+  })
+
+  it('places the copy at positionMm when given, the way create places a body', () => {
+    const { document, ctx, pin } = placedPin()
+    const copy = /** @type {any} */ (tools.run(ctx, 'copy', { id: pin, positionMm: [50, 0, 3] })).applied[0].bodyId
+    const [min, max] = boundsOf(bodyOf(document, copy).geometry)
+    expect((min[0] + max[0]) / 2).toBeCloseTo(50, 6)
+    expect((min[1] + max[1]) / 2).toBeCloseTo(0, 6)
+    expect(min[2]).toBeCloseTo(3, 6)
+  })
+
+  it('copies one part of a group as a body of its own, where the part stands, and leaves the group alone', () => {
+    const { document, ctx, pin } = placedPin()
+    const block = recordsForDrop('primitive.cuboid', { x: 15, y: -5 }, document, { size: [30, 30, 10] })
+    document.appendAll(block, LOCAL)
+    const grouped = /** @type {any} */ (
+      tools.run(ctx, 'operate', { op: 'group.assemble', operands: [{ id: /** @type {string} */ (block[0].id) }, { id: pin }], params: { names: ['Base', 'Pin'] } })
+    )
+    const group = grouped.applied[0].bodyId
+    tools.run(ctx, 'operate', { op: 'transform.translate', operands: [{ id: group }], params: { deltaMm: [0, 40, 0] } })
+    const before = JSON.stringify(document.entries.map((entry) => entry.record))
+
+    const result = /** @type {any} */ (tools.run(ctx, 'copy', { id: group, part: 'Pin' }))
+    expect(result.error).toBeUndefined()
+    const made = bodyOf(document, result.applied[0].bodyId)
+    expect(made).toMatchObject({ op: 'primitive.cylinder' })
+    expect(made.params).toMatchObject({ diameter: 8, height: 20 })
+    const partGeometry = /** @type {any} */ (bodyOf(document, group).geometry).parts.Pin
+    expectSameBounds(boundsOf(made.geometry), boundsOf(partGeometry))
+    expect(JSON.stringify(document.entries.slice(0, -1).map((entry) => entry.record))).toBe(before)
+  })
+
+  it('lands as an apply_records step, so a cutter copied from a round pin and the cut it makes land together', () => {
+    const { document, ctx, pin } = placedPin()
+    const block = recordsForDrop('primitive.cuboid', { x: 15, y: -5 }, document, { size: [30, 30, 10] })
+    document.appendAll(block, LOCAL)
+    const group = /** @type {any} */ (
+      tools.run(ctx, 'operate', { op: 'group.assemble', operands: [{ id: /** @type {string} */ (block[0].id) }, { id: pin }], params: { names: ['Base', 'Pin'] } })
+    ).applied[0].bodyId
+    const result = /** @type {any} */ (
+      tools.run(ctx, 'apply_records', {
+        steps: [
+          { copy: { id: group, part: 'Pin' } },
+          { operate: { op: 'modify.enlarge', operands: [{ id: '@1' }], params: { deltaMm: [0.4, 0.4, 0.4] } } },
+          { operate: { op: 'boolean.subtract', operands: [{ id: group, pieces: 'Base' }, { id: '@2' }] } },
+        ],
+      })
+    )
+    expect(result.error).toBeUndefined()
+    expect(result.applied.map((/** @type {any} */ step) => step.tool)).toEqual(['copy', 'operate', 'operate'])
+    // The cut is a new body that keeps both parts; the cutter is used up.
+    const after = /** @type {any} */ (bodyOf(document, result.applied[2].bodyId))
+    expect(Object.keys(after.geometry.parts).sort()).toEqual(['Base', 'Pin'])
+    expect(document.bodies()).toHaveLength(1)
+  })
+
+  it('refuses a body create cannot place, a step that is not on screen, and a blank name — writing nothing', () => {
+    const { document, ctx, pin } = placedPin()
+    const block = recordsForDrop('primitive.cuboid', { x: 15, y: -5 }, document, { size: [30, 30, 10] })
+    document.appendAll(block, LOCAL)
+    const group = /** @type {any} */ (
+      tools.run(ctx, 'operate', { op: 'group.assemble', operands: [{ id: /** @type {string} */ (block[0].id) }, { id: pin }], params: { names: ['Base', 'Pin'] } })
+    ).applied[0].bodyId
+    const before = JSON.stringify(document.entries)
+    // A fresh turn per call: three refusals in a row would stop one turn (limits.js's failure streak).
+    /** @param {Record<string, any>} input */
+    const copy = (input) => /** @type {any} */ (tools.run(makeContext({ document }), 'copy', input))
+    expect(copy({ id: group }).error).toMatch(/group\.assemble/)
+    expect(copy({ id: pin }).error).toMatch(/not a body on screen/)
+    expect(copy({ id: group, part: 'Peg' }).error).toMatch(/"Peg"/)
+    const blank = copy({ id: group, part: 'Pin', name: '  ' })
+    expect(blank.reason ?? blank.error).toMatch(/name must not be blank/)
+    expect(JSON.stringify(document.entries)).toBe(before)
+  })
+})

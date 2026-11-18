@@ -6,6 +6,9 @@
  *   colour and part names.
  * - **`describe_body(id)`**: one body, adding its params, position and rotation.
  * - **`get_timeline`**: the History rows, compactly.
+ * - **`describe_step(id, part?)`** (`TODO/FIND-ai-045`): one step's op and params, including a
+ *   step a boolean or a group has used up, and the step that made one part of a group. What
+ *   `copy` (`./create.js`) copies, read back first.
  * - **`get_selection`** / **`select(ids)`** (browser only): selection is not something
  *   the model needs for geometry, since operations take ids. Since `TODO/ai-017` the user keeps
  *   working during a turn, so both act on the turn's **own** selection (the agent seeds it from
@@ -29,11 +32,13 @@ import { recipeColorOf } from '../../core/colorOverride.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
 import { bindingsOf } from '../../core/variables.js'
 import { latestIntentOf } from '../../core/intent.js'
+import { currentParamsRecordOf, partRecordsOf } from '../../core/paramEdit.js'
 import { promptsForBody } from '../../core/prompt.js'
 import { objectSchema } from './schema.js'
 
 /** @typedef {import('../../core/document.js').WarpDocument} WarpDocument */
 /** @typedef {import('../../core/document.js').Body} Body */
+/** @typedef {import('../../core/kernel/registry.js').OpRecord} OpRecord */
 /** @typedef {import('./index.js').Tool} Tool */
 /** @typedef {[number, number, number]} Vec3 */
 
@@ -294,6 +299,108 @@ export function resolveBodies(document, ids) {
 }
 
 /**
+ * A step found by {@link findStep}.
+ *
+ * @typedef {object} FoundStep
+ * @property {OpRecord} record The step that holds the params: the named step itself, or, for a
+ *   body's id or a part, the record that gives it its params now (`currentParamsRecordOf`).
+ * @property {string} bodyId The lineage root the step belongs to.
+ * @property {Body} [body] The body on screen the caller named, when it named one — the group,
+ *   for a part.
+ * @property {string} [part] The part named, as given.
+ */
+
+/**
+ * Find the step a model named for `describe_step` or `copy` (`TODO/FIND-ai-045`), or say
+ * exactly why there is none.
+ *
+ * - **A body's id** (its lineage root, which is also its creation step's id) names the record
+ *   that holds the body's params now: the creation step, or a later param edit of it. A
+ *   consumed or suppressed body's id works too, since the History keeps every record.
+ * - **Any other step id** from `get_timeline` names that step as it is.
+ * - **`part`** with a group's id names the step that made that part, through the group's
+ *   `consumes` (`partRecordsOf`, the Inspector's own resolver). The group must be on screen; a
+ *   part made inside a recipe (a Pi's `hole1`) has no step of its own, and is refused so.
+ *
+ * @param {WarpDocument} document
+ * @param {string} id
+ * @param {string} [part]
+ * @returns {FoundStep & { reason?: undefined } | { reason: string }}
+ */
+export function findStep(document, id, part) {
+  if (part !== undefined) {
+    const found = findBody(document, id)
+    if (found.reason !== undefined) return { reason: found.reason }
+    const { body } = found
+    const names = partsOf(body).map((summary) => summary.name)
+    if (names.length === 0) return { reason: `${body.name} ("${id}") has no parts. Leave part out to read the body itself.` }
+    if (!names.includes(part)) return { reason: `${body.name} has no part "${part}". Its parts are: ${names.join(', ')}.` }
+    const record = partRecordsOf(body.id, document.records).get(part)
+    if (record?.id === undefined) {
+      return {
+        reason:
+          `"${part}" in ${body.name} has no step of its own: it is made inside the ${body.op} recipe. ` +
+          `Read its size with evaluate_formula, e.g. [${body.name}].[${part}].width.`,
+      }
+    }
+    return { record, bodyId: document.rootOf(record.id) ?? record.id, body, part }
+  }
+  const named = document.recordOf(id)
+  if (named === undefined) return { reason: `There is no step "${id}" in this document. Body ids come from describe_scene, step ids from get_timeline.` }
+  const bodyId = document.rootOf(id) ?? id
+  const record = bodyId === id ? (currentParamsRecordOf(document.lineageOf(id)) ?? named) : named
+  const body = bodyId === id ? document.bodies().find((candidate) => candidate.id === id) : undefined
+  return { record, bodyId, ...(body === undefined ? {} : { body }) }
+}
+
+/**
+ * The step that used a body up (a boolean or a group's `consumes`), or `undefined` while
+ * nothing has.
+ *
+ * @param {WarpDocument} document
+ * @param {string} bodyId A lineage root.
+ * @returns {string | undefined}
+ */
+function consumerOf(document, bodyId) {
+  const lineage = new Set(document.lineageOf(bodyId).map((record) => record.id))
+  const consumer = document.records.find((record) => record.consumes?.some((id) => lineage.has(id)))
+  return consumer?.id
+}
+
+/**
+ * `describe_step`'s result for a found step: the step's row facts, its op and params (as
+ * stored, bindings included, like `describe_body`), and whether its body is on screen.
+ *
+ * @param {WarpDocument} document
+ * @param {FoundStep} found
+ * @returns {Record<string, any>}
+ */
+function stepResult(document, { record, bodyId, part, body }) {
+  const id = /** @type {string} */ (record.id)
+  const row = document.timeline().find((candidate) => candidate.id === id)
+  const onScreen = document.bodies().some((candidate) => candidate.id === bodyId)
+  const consumedBy = consumerOf(document, bodyId)
+  const operands = record.operands?.map((operand) => (typeof operand === 'string' ? operand : { ...operand }))
+  const bindings = bindingsOf(record)
+  return {
+    ...(row === undefined ? {} : { step: row.step }),
+    id,
+    op: record.op,
+    ...(row === undefined ? {} : { label: row.label, origin: row.origin }),
+    ...(row?.intent == null ? {} : { intent: row.intent }),
+    bodyId,
+    ...(part === undefined ? {} : { part, partOf: body?.id }),
+    params: record.params ?? {},
+    ...(bindings.length === 0 ? {} : { boundTo: bindings.map(({ path, name }) => ({ path, variable: name })) }),
+    ...(record.target === undefined ? {} : { target: typeof record.target === 'string' ? record.target : { ...record.target } }),
+    ...(operands === undefined ? {} : { operands }),
+    onScreen,
+    ...(consumedBy === undefined ? {} : { consumedBy }),
+    ...(row === undefined ? {} : { suppressed: row.suppressed, active: row.active, broken: row.broken }),
+  }
+}
+
+/**
  * The read tools. Two are browser-only: the MCP server edits a closed file, with no
  * human looking at a selection.
  *
@@ -364,6 +471,25 @@ export function createReadTools() {
           broken: row.broken,
         })),
       }),
+    },
+    {
+      name: 'describe_step',
+      description:
+        'Describe one History step: its op and params as built, what it targets, whether its body is on screen, and which step used it up (consumedBy), if one did. ' +
+        'Works on a step a boolean or a group has consumed, which describe_body cannot read. id is a step id from get_timeline, or a body id for the step that holds that body’s params. ' +
+        'With part, id is a group on screen and the step read is the one that made that part. copy makes a new body from the same op and params.',
+      inputSchema: objectSchema(
+        {
+          id: { type: 'string', description: 'A step id from get_timeline, or a body id from describe_scene.' },
+          part: { type: 'string', description: 'Optional: a part name of the group id names, exactly as describe_body lists it, e.g. "Pin".' },
+        },
+        ['id']
+      ),
+      transports: ['ai', 'mcp'],
+      run: (ctx, input) => {
+        const found = findStep(ctx.document, input.id, input.part)
+        return found.reason !== undefined ? { error: found.reason } : stepResult(ctx.document, found)
+      },
     },
     {
       name: 'get_selection',
