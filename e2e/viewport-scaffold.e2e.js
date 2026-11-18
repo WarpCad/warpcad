@@ -933,6 +933,26 @@ test('the overlays stay on screen and tappable, and the page never scrolls sidew
     expect(box?.height ?? 0, id).toBeGreaterThanOrEqual(36)
     expect(box?.width ?? 0, id).toBeGreaterThanOrEqual(36)
   }
+  // TODO/ui-135: the mode row is full tap size too, with 6 px between neighbours (the cluster's width is budgeted, ui-084).
+  const modeBoxes = []
+  for (const id of ['nav-mode-orbit', 'nav-mode-pan', 'nav-settings-gear']) {
+    const box = await page.getByTestId(id).boundingBox()
+    expect(box?.width ?? 0, id).toBeGreaterThanOrEqual(36)
+    modeBoxes.push(box)
+    // The hit area is 40+ px tall even though the painted button is shorter: a point 19 px above and
+    // below the centre still lands on this button.
+    for (const dy of [-19, 19]) {
+      const hit = await page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'),
+        { x: (box?.x ?? 0) + (box?.width ?? 0) / 2, y: (box?.y ?? 0) + (box?.height ?? 0) / 2 + dy },
+      )
+      expect(hit, `${id} hit area ${dy}`).toBe(id)
+    }
+  }
+  for (let i = 1; i < modeBoxes.length; i++) {
+    const gap = (modeBoxes[i]?.x ?? 0) - ((modeBoxes[i - 1]?.x ?? 0) + (modeBoxes[i - 1]?.width ?? 0))
+    expect(gap, 'mode row gap').toBeGreaterThanOrEqual(6 - 0.5)
+  }
   for (const id of ['gizmo-view-top', 'gizmo-view-front']) {
     const box = await page.getByTestId(id).boundingBox()
     expect(box?.height ?? 0, id).toBeGreaterThanOrEqual(28)

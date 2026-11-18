@@ -348,7 +348,8 @@ const STEPS = Object.freeze([
 
 .chrome__modes {
   display: flex;
-  gap: var(--space-2);
+  /* TODO/ui-135: 8 px between the mode buttons, so a fingertip scattered around one rarely lands on its neighbour. */
+  gap: var(--space-4);
 }
 
 .chrome .chrome__mode {
@@ -359,9 +360,25 @@ const STEPS = Object.freeze([
   font-size: var(--text-size-sm);
 }
 
+/* TODO/ui-135: the mode row's hit areas are 44 px tall without growing the cluster. The visible
+   button is 30-32 px (ui-043 and ui-084 budget the cluster's height to the pixel), so an invisible
+   pseudo-element reaches 6 px above and below it, into the cluster's own padding and gap. A tap
+   there lands on the button. Width is real: the gear is --tap wide and the buttons sit 8 px apart. */
+.chrome .chrome__mode,
+.chrome .chrome__gear {
+  position: relative;
+}
+
+.chrome .chrome__mode::before,
+.chrome .chrome__gear::before {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
 .chrome .chrome__gear {
   flex: 0 0 auto;
-  width: 30px;
+  width: var(--tap);
   height: auto;
   min-height: 32px;
   font-size: var(--text-size-lg);
@@ -439,12 +456,17 @@ const STEPS = Object.freeze([
 
 .chrome[data-chrome-tier='compact'] .chrome__mode {
   min-height: 30px;
+  padding: 0 var(--space-3);
   font-size: var(--text-size-xs);
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__modes {
+  gap: var(--space-3);
 }
 
 .chrome[data-chrome-tier='compact'] .chrome__gear {
   min-height: 30px;
-  width: 26px;
+  width: var(--tap);
   font-size: var(--text-size-md);
 }
 
@@ -474,12 +496,17 @@ const STEPS = Object.freeze([
 
   .chrome .chrome__mode {
     min-height: 30px;
+    padding: 0 var(--space-3);
     font-size: var(--text-size-xs);
+  }
+
+  .chrome__modes {
+    gap: var(--space-3);
   }
 
   .chrome .chrome__gear {
     min-height: 30px;
-    width: 26px;
+    width: var(--tap);
     font-size: var(--text-size-md);
   }
 

@@ -3316,3 +3316,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 22-35 % wrong-cap rate before → TODO/done/ui-134 Problem (Chromium 390px, n=200, measured 2026-11-15); 6 of 150 (4 %) after on tablet → e2e/orientation-tap.e2e.js failure report then pass, this session, sigma 3.5 mm Gaussian scatter, simulated touch; 190px dial, 44px caps → diff of OrientationGizmo.vue; phone unchanged → diff (media query min-width 600px) and the ui-148 finding
 **To Add:** the old and new dial side by side at tablet width
+
+## 2026-11-18T16:33:45Z — Phone nav buttons: partial fix for the 44px tap target (TODO/ui-135)
+
+**Post:** Phone nav buttons: still 30px tall, not 44. Real height broke two layout budgets, so this is a partial fix: wider gear, 8px gaps, invisible 6px hit extension. Simulated fingertip taps hit the intended button 76 to 77 percent of the time. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Accessibility
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 30-32px painted, 42-44px hit area → diff of NavigationChrome.vue (::before inset -6px 0) and TODO/FIND-ui-135 progress note; height would overlap toolbar 12px (ui-043) and exceed ui-084 budgets → TODO/FIND-ui-135 progress note; 76 to 77 percent intended-control rate → TODO/FIND-ui-135 progress note (400 taps each, sigma 13.2px, Chromium 390x844); 8px gap is --space-4 → diff and src/styles/base.css:81; unit 444 files / 9784 tests passed and changed e2e specs 189 passed, 0 failed, 63 skipped → this session's test runs
+**To Add:** the nav row at phone width, before and after

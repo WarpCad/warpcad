@@ -4799,3 +4799,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** same as the BlueSky entry of this timestamp; 2 % would need caps about 54px apart, a dial near 240px → computed from 13px scatter and the Voronoi boundary, stated in TODO/done/ui-134 note; spec in repo → e2e/orientation-tap.e2e.js
 **To Add:** the old and new dial side by side at tablet width
+
+## 2026-11-18T16:33:45Z — Phone nav buttons: a partial fix for the 44px tap target (TODO/ui-135)
+
+**Post:** The Orbit, Pan and Select buttons on the phone navigation bar paint 30px tall, below the 44px tap size. Real 44px height would overlap the Operations toolbar by 12px at 390x844 with the Objects sheet open, and push the compact cluster past two layout budgets I had already set. So this change takes a narrower route.
+
+The settings gear is now full tap width, the mode row has 8px gaps on larger phones and 6px on the compact tier, and each button gets an invisible hit area reaching 6px above and below it. In a scatter test of 400 simulated fingertip taps per control, the intended button won 76 to 77 percent of the time, which misses the 2 percent wrong-tap target for the three mode buttons.
+
+This is a partial fix. The finding stays open, and the open decision is whether the layout budgets should give way so the buttons can reach real 44px height. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Accessibility #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Same sources as the BlueSky entry of this timestamp; 2 percent target missed → TODO/FIND-ui-135 progress note; gap uses --space-4 (8px) → diff and src/styles/base.css:81; spec in repo → e2e/viewport-scaffold.e2e.js
+**To Add:** the phone nav row before and after, side by side
