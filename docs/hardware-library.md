@@ -52,14 +52,14 @@ When you change a placed part in the Inspector, the Library remembers it, and th
 drag from that row starts the same way. Building an enclosure means placing the same screw six or
 eight times; you set it up once.
 
-![The Bolt / screw row after an M2.5 socket cap, 8 mm long, was placed and edited: its Type and Size lists show Socket cap and m2.5, "× 8 mm" sits under the label, and a ↺ button waits at the right edge.](./screenshots/library-remembered-bolt.png)
+![The Bolt / screw row after an M2.5 socket cap, 8 mm long, was placed and edited: its Type and Size lists show Socket cap and m2.5, "8 mm long" sits under the label, and a ↺ button waits at the right edge.](./screenshots/library-remembered-bolt.png)
 
 - **What is remembered**: everything the Inspector lets you edit on that part (for a Bolt / screw,
   its **Type**, **Size**, **Length** and **Fit**; for a Raspberry Pi board, its **Model**). It is
   remembered per row, per device, and it survives closing the tab. It is not saved in your
   project file.
 - **How you can tell**: the row's lists show the remembered value, and a line under the row's
-  name spells out the rest (`× 8 mm`). The dragging preview shows the remembered part too.
+  name spells out the rest (`8 mm long`). The dragging preview shows the remembered part too.
 - **Which rows**: every row in **Hardware**, **Kit Parts** and **Raspberry Pi**, and your own
   parts under **My parts** that have editable numbers. **Primitives** and **Text** always start from
   their defaults: a Cube's size describes that one Cube, and the next label should not repeat the
@@ -77,7 +77,7 @@ eight times; you set it up once.
 1. Drag **Bolt / screw** into the 3D view.
 2. In the Inspector set **Type** to **Socket cap**, **Size** to `m2.5` and **Length** to `8` (mm).
    The **Bolt / screw** row in the Library now shows **Socket cap** and `m2.5` in its lists, and
-   `× 8 mm` under its label.
+   `8 mm long` under its label.
 3. Drag **Bolt / screw** in again. The new screw is already an M2.5 socket cap, 8 mm long. Drag it
    in six more times; the first one stays where you put it.
 4. To go back to the default, press **↺** on the **Bolt / screw** row. It returns to Hex head `m10`,
@@ -93,7 +93,7 @@ eight times; you set it up once.
    See [The Library remembers your last choice](#the-library-remembers-your-last-choice).)
 3. Click the **Length** box, type `30` (mm) and press Enter. The bolt grows to 30 mm of thread
    under its head.
-4. Look at **Bill of materials** just under the object list: one line, `Bolt / screw M12 hex × 30 mm × 1`.
+4. Look at **Bill of materials** just under the object list: one line, `Bolt / screw M12 hex, 30 mm long` with `qty 1`.
    See [Bill of materials](bill-of-materials.md).
 
 ![Dragging a Bolt / screw in, switching its Size to m12 and its Length to 30 mm; the Bill of materials follows.](./media/hardware-drag-bolt.gif)
@@ -103,7 +103,7 @@ eight times; you set it up once.
 1. In the Library, set the **Bolt / screw** row's **Type** to **Socket cap** and its **Size** to
    `m2.5`, then drag it into the 3D view. In the Inspector set **Length** to `8` (mm).
 2. Drag **Nut** into the 3D view and set its **Spec** to `m2.5`.
-3. **Bill of materials** shows `Bolt / screw M2.5 socket × 8 mm × 1` and `Nut M2.5 × 1`.
+3. **Bill of materials** shows `Bolt / screw M2.5 socket, 8 mm long` and `Nut M2.5`, each with `qty 1`.
 
 A bolt for every mounting hole of a board needs the same placement four times. To place one
 and have the app do the rest, see
@@ -116,7 +116,7 @@ and have the app do the rest, see
 2. In the Inspector set **Length** to `10` (mm) and **Fit** to `close`.
 3. To countersink the hole, tick **Show hidden parts**, select your part, then add the screw's
    `tap` as the second operand of **Subtract**.
-4. The Bill of materials reads `Bolt / screw M3 flat × 10 mm × 1`.
+4. The Bill of materials reads `Bolt / screw M3 flat, 10 mm long` with `qty 1`.
 
 ![Six fastener Types side by side, each dragged in from the one Bolt / screw row.](./screenshots/hardware-screw-family.png)
 

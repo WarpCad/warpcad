@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-029 cold-read panel
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** all five strings and the owner's Save-sheet addition, as proposed, with two choices: the Repeat panel names the subject part (*Bolt / screw 1 keeps it*) from the session, and the BOM count reads `qty N` at the right of the row instead of a `: qty N` suffix. The Bolt / screw length reads `, 8 mm long` in both the Library summary and the BOM (one shared `detailOf`). `docs/bill-of-materials.md`, `docs/hardware-library.md`, `docs/snap-align.md` and the `bom-panel` stills were updated. The `bom-updates.gif` movie still shows `× 2`; `docs:gifs` rewrites every GIF, so it was left (VERIFY.md `ui-127`).
 
 ## Problem
 

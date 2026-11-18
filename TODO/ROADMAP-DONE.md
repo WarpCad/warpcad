@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-127` | Reworded the Repeat panel lines, the Repeat refusal and Inspector note, the Bolt / screw summary (`M2.5 socket, 8 mm long`), the Bill of materials (`qty 2`, `Total parts: 3`) and the Save-sheet note for a single body. Filed from the testing-029 cold-read panel | Finding | — | 2, 10 |
 | ✅ `core-084` | A sketch's automatic Twist steps now scale with the outline's elongation (`sketchTwistStepDeg`), so a 30 × 5, 60 × 4 or 100 × 3 mm rectangle at Twist 90 stays within 3% of the prism volume (was 5.4%, 13%, 29%). Driven: 30 × 5 mm lost 1.7% on Chromium and WebKit. Filed from `core-083` | Finding | — | 9 |
 | ✅ `build-039` | Kept the home page on manual deploys and stopped it drifting from the app's Help: `native-apps` and `import` filed into the home repo's `docs-groups.json`, its README corrected, and "run the home page's `pages` workflow" added to the release notes in `docs/decisions/release.md`. The live page catches up when the owner pushes the home repo and runs the workflow (`OWNER.md` K0, `Q95`) | Finding | — | none |
 | ✅ `ui-126` | In Pan mode the gizmo's hit targets step aside (`pointer-events: none` via a `dragMode` prop on `Gizmo.vue`), so a drag that starts on a ring or arm pans the view instead of rotating the body. Orbit and Select keep the handles | Finding | — | 7 |
@@ -1433,5 +1434,6 @@ convention going forward.
 | `ui-126` | 2026-11-18 00:06 | ~25m by the machine clock (00:03 start; one spec, two fix-ups to the spec's own hit-test point) |
 | `build-039` | 2026-11-18 00:17 | ~10m by the machine clock (00:16 start; two small edits in the home repo, no test suite beyond its 4 help-group tests) |
 | `core-084` | 2026-11-18 00:32 | ~14m by the machine clock (00:18 start; measured first, RED confirmed by stashing the fix, one pair run, two-engine drive) |
+| `ui-127` | 2026-11-18 01:47 | ~30m by the machine clock (01:17 start; five strings across ten specs, one regex over-reach caught by unit, one stale docs spec caught by the drift check, two baselines regenerated) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

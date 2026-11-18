@@ -18,7 +18,7 @@ describe('tallyBom', () => {
       body('hardware.bolt', { spec: 'm4', length: 12, fit: 'loose' }),
     ])
     expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({ label: 'Bolt / screw', detail: 'M4 × 12 mm', count: 3 })
+    expect(rows[0]).toMatchObject({ label: 'Bolt / screw', detail: 'M4, 12 mm long', count: 3 })
   })
 
   it('splits differing specs and lengths into separate rows', () => {
@@ -28,8 +28,8 @@ describe('tallyBom', () => {
       body('hardware.washer', { spec: 'm6', fit: 'loose' }),
     ])
     expect(rows.map((row) => `${row.label} ${row.detail} ${row.count}`)).toEqual([
-      'Bolt / screw M4 × 12 mm 1',
-      'Bolt / screw M4 × 20 mm 1',
+      'Bolt / screw M4, 12 mm long 1',
+      'Bolt / screw M4, 20 mm long 1',
       'Washer M6 1',
     ])
   })
@@ -42,7 +42,7 @@ describe('tallyBom', () => {
 
   it('derives a screw key from head, spec and length', () => {
     const rows = tallyBom([body('hardware.screw', { head: 'PanHead', spec: 'm4', length: 8 })])
-    expect(rows[0]).toMatchObject({ label: 'Screw', detail: 'M4 PanHead × 8 mm', count: 1 })
+    expect(rows[0]).toMatchObject({ label: 'Screw', detail: 'M4 PanHead, 8 mm long', count: 1 })
   })
 
   it('tallies kit parts and Pi boards by their identifying params', () => {
@@ -72,11 +72,11 @@ describe('tallyBom', () => {
         body('hardware.bolt', { type: 'pan', spec: 'm4', length: 6 }),
       ])
       expect(rows.map((row) => `${row.label} ${row.detail} × ${row.count}`)).toEqual([
-        'Bolt / screw M2.5 socket × 8 mm × 1',
-        'Bolt / screw M3 flat × 10 mm × 1',
-        'Bolt / screw #8 wood flat × 25 mm × 1',
-        'Bolt / screw #6 wood pan × 12 mm × 1',
-        'Bolt / screw M4 pan × 6 mm × 1',
+        'Bolt / screw M2.5 socket, 8 mm long × 1',
+        'Bolt / screw M3 flat, 10 mm long × 1',
+        'Bolt / screw #8 wood flat, 25 mm long × 1',
+        'Bolt / screw #6 wood pan, 12 mm long × 1',
+        'Bolt / screw M4 pan, 6 mm long × 1',
       ])
     })
 
@@ -86,7 +86,7 @@ describe('tallyBom', () => {
         body('hardware.bolt', { type: 'socket', spec: 'm2.5', length: 8, fit: 'tap' }),
       ])
       expect(rows).toHaveLength(1)
-      expect(rows[0]).toMatchObject({ label: 'Bolt / screw', detail: 'M2.5 socket × 8 mm', count: 2 })
+      expect(rows[0]).toMatchObject({ label: 'Bolt / screw', detail: 'M2.5 socket, 8 mm long', count: 2 })
     })
 
     it('an old hardware.screw keeps its own line and label', () => {
@@ -94,7 +94,7 @@ describe('tallyBom', () => {
         body('hardware.screw', { head: 'PanHead', spec: 'm4', length: 8 }),
         body('hardware.bolt', { type: 'pan', spec: 'm4', length: 8 }),
       ])
-      expect(rows.map((row) => `${row.label} ${row.detail}`)).toEqual(['Screw M4 PanHead × 8 mm', 'Bolt / screw M4 pan × 8 mm'])
+      expect(rows.map((row) => `${row.label} ${row.detail}`)).toEqual(['Screw M4 PanHead, 8 mm long', 'Bolt / screw M4 pan, 8 mm long'])
     })
   })
 })

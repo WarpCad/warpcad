@@ -306,7 +306,7 @@ test('a hand-placed Dowel of bought steel shows under You’ll also need, and la
   await showInspector(page)
   const row = page.getByTestId('bom-row').filter({ hasText: 'Steel dowel pin' })
   await expect(row).toHaveCount(1)
-  await expect(row.getByTestId('bom-count')).toHaveText('× 1')
+  await expect(row.getByTestId('bom-count')).toHaveText('qty 1')
 })
 
 test('Butterfly keys (stage 2): key rows before Apply, key parts after, and Print pieces writes one key file and assembly.txt', async ({
@@ -466,7 +466,7 @@ test('a hand-placed Magnet shows under You’ll also need and lands in the Bill 
   await showInspector(page)
   const row = page.getByTestId('bom-row').filter({ hasText: 'Magnets' })
   await expect(row).toHaveCount(1)
-  await expect(row.getByTestId('bom-count')).toHaveText('× 2')
+  await expect(row.getByTestId('bom-count')).toHaveText('qty 2')
 })
 
 test('Half lap (stage 4): the pieces list grows piece A by the lap, and Print pieces writes assembly.txt saying how it goes together', async ({

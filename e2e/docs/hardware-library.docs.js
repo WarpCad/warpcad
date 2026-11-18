@@ -285,7 +285,7 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await page.getByTestId('inspector-param-type').selectOption('socket')
     await page.getByTestId('inspector-param-spec').selectOption('m2.5')
     await typeInto(page, 'inspector-param-length', '8')
-    await expect(page.getByTestId('library-remembered-hardware.bolt')).toContainText('× 8 mm')
+    await expect(page.getByTestId('library-remembered-hardware.bolt')).toContainText('8 mm long')
     await expect(page.getByTestId('library-choice-hardware.bolt')).toHaveValue('socket')
     await expect(page.getByTestId('library-choice-hardware.bolt-spec')).toHaveValue('m2.5')
     await expect(page.getByTestId('library-reset-hardware.bolt')).toBeVisible()

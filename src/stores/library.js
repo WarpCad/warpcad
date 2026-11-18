@@ -391,6 +391,17 @@ export const useLibraryStore = defineStore('library', () => {
   const saveError = ref('')
   const saving = ref(false)
 
+  /**
+   * Whether the open sheet's body is a group of named parts, so the sheet says "this group" for
+   * one and plain "this" for a single body such as an imported mesh (`TODO/ui-127`).
+   */
+  const saveIsGroup = computed(() => {
+    if (!saveOpen.value || saveBodyId.value === null) return false
+    void documentStore.version
+    const body = documentStore.bodies.find((candidate) => candidate.id === saveBodyId.value)
+    return (body?.partNames.length ?? 0) > 0
+  })
+
   /** The `user.*` ops the open sheet's body is built from, by records alone (`TODO/ui-105`). */
   const saveLineageOps = computed(() => {
     if (!saveOpen.value || saveBodyId.value === null) return new Set()
@@ -867,6 +878,7 @@ export const useLibraryStore = defineStore('library', () => {
     brokenRows,
     saveGate,
     saveOpen,
+    saveIsGroup,
     saveName,
     saveCategory,
     saveError,

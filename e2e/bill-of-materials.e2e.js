@@ -115,8 +115,8 @@ test('the BOM tallies placed parts, adds a row per distinct spec, and drops a ro
   await dragRowIntoViewport(page, { op: 'hardware.bolt', fx: 0.5, fy: 0.3 })
   await showInspector(page)
   await expect(page.getByTestId('bom')).toBeVisible()
-  expect(await bomRows(page)).toEqual([{ op: 'hardware.bolt', text: 'Bolt / screw M10 hex × 20 mm × 2' }])
-  await expect(page.getByTestId('bom-total')).toHaveText('(2)')
+  expect(await bomRows(page)).toEqual([{ op: 'hardware.bolt', text: 'Bolt / screw M10 hex, 20 mm long qty 2' }])
+  await expect(page.getByTestId('bom-total')).toHaveText('Total parts: 2')
 
   // A different part is a second row; the first row is unchanged.
   await dragRowIntoViewport(page, { op: 'hardware.washer', fx: 0.75, fy: 0.22 })
@@ -125,14 +125,14 @@ test('the BOM tallies placed parts, adds a row per distinct spec, and drops a ro
   await expect.poll(async () => (await bomRows(page)).length).toBe(2)
   const rows = await bomRows(page)
   expect(rows.map((row) => row.op)).toEqual(['hardware.bolt', 'hardware.washer'])
-  expect(rows[0].text).toContain('× 2')
-  expect(rows[1].text).toBe('Washer M6 × 1')
+  expect(rows[0].text).toContain('qty 2')
+  expect(rows[1].text).toBe('Washer M6 qty 1')
 
   // The washer was just placed, so it is the selection: deleting it removes its row live.
   await page.keyboard.press('Delete')
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
   await expect.poll(async () => (await bomRows(page)).map((row) => row.op)).toEqual(['hardware.bolt'])
-  await expect(page.getByTestId('bom-total')).toHaveText('(2)')
+  await expect(page.getByTestId('bom-total')).toHaveText('Total parts: 2')
 })
 
 test('the BOM section collapses and re-expands from its header', async ({ page }) => {
@@ -141,7 +141,7 @@ test('the BOM section collapses and re-expands from its header', async ({ page }
   await expect(page.getByTestId('bom-row')).toHaveCount(1)
   await page.getByTestId('bom-header').click()
   await expect(page.getByTestId('bom-row')).toHaveCount(0)
-  await expect(page.getByTestId('bom-total')).toHaveText('(1)')
+  await expect(page.getByTestId('bom-total')).toHaveText('Total parts: 1')
   await page.getByTestId('bom-header').click()
   await expect(page.getByTestId('bom-row')).toHaveCount(1)
 })

@@ -56,7 +56,7 @@ onBeforeUnmount(() => overlays.setOpen('save-library-sheet', false))
     @escape="library.closeSave()"
   >
       <p class="save-sheet__note">
-        Saves this group as a fixed part you can drag into any project. To save another size, place it, change it, and save it under a new name.
+        Saves this{{ library.saveIsGroup ? ' group' : '' }} as a fixed part you can drag into any project. To save another size, place it, change it, and save it under a new name.
       </p>
 
       <label class="save-sheet__field">

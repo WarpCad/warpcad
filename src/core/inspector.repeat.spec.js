@@ -32,7 +32,7 @@ describe('describeSelection — a repeat body (TODO/ui-069)', () => {
       members: ['hole2', 'hole3', 'hole4'],
       broken: [],
     })
-    expect(body.moveRefusal).toBe('Edit an earlier step in History to move the repeats; a new move of Bolt 1 or Raspberry Pi 1 moves only that part.')
+    expect(body.moveRefusal).toBe('The copies follow the steps of Bolt 1. To move them all, edit an earlier step in History. A new move of Bolt 1 or Raspberry Pi 1 moves only that one; the copies stay.')
   })
 
   it('shows the source’s parameters (read-only elsewhere), not the record’s own source/seed/targets', () => {

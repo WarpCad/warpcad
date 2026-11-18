@@ -142,7 +142,7 @@ describe('⟳ Repeat and the Repeat panel (TODO/ui-069)', () => {
     const listed = body().findAll('[data-testid="repeat-outside-step"]')
     expect(listed).toHaveLength(1)
     expect(listed[0].attributes('data-origin')).toBe('ai')
-    expect(listed[0].get('[data-testid="repeat-outside-reason"]').text()).toBe('From the Assistant, so it is left out of the copies')
+    expect(listed[0].get('[data-testid="repeat-outside-reason"]').text()).toBe('Added by the Assistant. Bolt 1 keeps it; the copies don\'t get it.')
     expect(body().find('[data-testid="repeat-reason"]').exists()).toBe(false)
     expect(body().get('[data-testid="repeat-apply"]').attributes('disabled')).toBeUndefined()
     await body().get('[data-testid="repeat-apply"]').trigger('click')

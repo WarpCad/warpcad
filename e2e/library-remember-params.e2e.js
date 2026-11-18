@@ -139,7 +139,7 @@ async function expectBoltRowRemembers(page) {
   await withRowSettings(page, BOLT, async () => {
     await expect(page.getByTestId(`library-choice-${BOLT}`)).toHaveValue('socket')
     await expect(page.getByTestId(`library-choice-${BOLT}-spec`)).toHaveValue('m2.5')
-    await expect(page.getByTestId(`library-remembered-${BOLT}`)).toContainText('× 8 mm')
+    await expect(page.getByTestId(`library-remembered-${BOLT}`)).toContainText('8 mm long')
     await expect(page.getByTestId(`library-reset-${BOLT}`)).toBeVisible()
   })
 }
@@ -171,7 +171,7 @@ test('drag a screw in, make it an M2.5 socket cap 8 mm, drag again: the second o
   expect(bodies).toHaveLength(2)
   expect(bodies[0].id).not.toBe(bodies[1].id)
   expect(bodies[1].volume).toBeCloseTo(bodies[0].volume, 3)
-  await expect.poll(() => bomRows(page).then((rows) => rows.join('|'))).toMatch(/M2\.5 socket × 8 mm × 2/)
+  await expect.poll(() => bomRows(page).then((rows) => rows.join('|'))).toMatch(/M2\.5 socket, 8 mm long qty 2/)
 
   await openLibrary(page)
   mkdirSync(SNAPSHOT_DIR, { recursive: true })

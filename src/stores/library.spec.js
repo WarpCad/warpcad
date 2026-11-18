@@ -131,6 +131,17 @@ describe('the Save sheet', () => {
     expect(library).not.toHaveProperty('saveChosen')
   })
 
+  it('says "group" only for a group: a single body is not one (TODO/ui-127)', () => {
+    const { library, selection, documentStore } = setup()
+    selection.select('cube-1')
+    expect(library.openSave()).toBe(true)
+    expect(library.saveIsGroup).toBe(false)
+    library.closeSave()
+    combine(documentStore, selection)
+    expect(library.openSave()).toBe(true)
+    expect(library.saveIsGroup).toBe(true)
+  })
+
   it('validates the name live: empty, too long, and duplicate each give their own message and block Save', async () => {
     const { library, selection, documentStore } = setup()
     combine(documentStore, selection)

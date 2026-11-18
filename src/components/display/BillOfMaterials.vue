@@ -2,7 +2,7 @@
 <script setup>
 /**
  * The Bill of Materials readout (`TODO/ui-038`) — placed hardware, kit and Raspberry Pi
- * parts tallied by spec (`M4 × 12 mm  ×3`), live.
+ * parts tallied by spec (`M4, 12 mm long  qty 3`), live.
  *
  * Read-only and selection-independent, so it lives in `display/` and the Inspector mounts
  * it as a section: at phone width the Inspector's sheet is the one panel already there,
@@ -30,7 +30,7 @@ const open = ref(true)
       @click="open = !open"
     >
       <span>Bill of materials</span>
-      <span class="bom__total" data-testid="bom-total">({{ total }})</span>
+      <span class="bom__total" data-testid="bom-total">Total parts: {{ total }}</span>
       <span class="bom__chevron" :class="{ 'bom__chevron--open': open }" aria-hidden="true">▸</span>
     </button>
     <ul v-if="open" id="bom-list" class="bom__list">
@@ -38,7 +38,7 @@ const open = ref(true)
         <span class="bom__name">
           {{ row.label }} <span v-if="row.detail" class="bom__detail">{{ row.detail }}</span>
         </span>
-        <span class="bom__count" data-testid="bom-count">× {{ row.count }}</span>
+        <span class="bom__count" data-testid="bom-count">qty {{ row.count }}</span>
       </li>
     </ul>
   </section>

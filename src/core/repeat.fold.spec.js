@@ -180,11 +180,11 @@ describe('linked: an edit to Bolt 1’s steps reaches every member', () => {
 describe('members are derived (decision 6)', () => {
   it('a move of the repeat body is refused with the reason, and the Inspector cannot edit its params', () => {
     const document = piBoltRepeated()
-    expect(repeatMoveRefusal(document, 'rep-1')).toBe('Edit an earlier step in History to move the repeats; a new move of Bolt 1 or Raspberry Pi 1 moves only that part.')
+    expect(repeatMoveRefusal(document, 'rep-1')).toBe('The copies follow the steps of Bolt 1. To move them all, edit an earlier step in History. A new move of Bolt 1 or Raspberry Pi 1 moves only that one; the copies stay.')
     expect(repeatMoveRefusal(document, 'bolt-1')).toBeNull()
     const length = document.entries.length
     expect(() => document.append(translateRecord(document, 'rep-1', [5, 0, 0]), LOCAL)).toThrow(
-      'Edit an earlier step in History to move the repeats; a new move of Bolt 1 or Raspberry Pi 1 moves only that part.'
+      'The copies follow the steps of Bolt 1. To move them all, edit an earlier step in History. A new move of Bolt 1 or Raspberry Pi 1 moves only that one; the copies stay.'
     )
     expect(document.entries).toHaveLength(length)
     expect(paramEditability(document.lineageOf('rep-1'))).toEqual({ editable: false, blockedBy: REPEAT_OP })
@@ -268,7 +268,7 @@ describe('the BOM counts members as copies of the source (decision 9)', () => {
   it('Bolt 1 plus Bolt 1 ×3 is one row of four M2.5 bolts', () => {
     const rows = tallyBom(piBoltRepeated().bodies())
     const bolts = rows.filter((row) => row.op === 'hardware.bolt')
-    expect(bolts).toEqual([expect.objectContaining({ detail: 'M2.5 socket × 10 mm', count: 4 })])
+    expect(bolts).toEqual([expect.objectContaining({ detail: 'M2.5 socket, 10 mm long', count: 4 })])
   })
 })
 

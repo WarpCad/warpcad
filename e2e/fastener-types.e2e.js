@@ -156,12 +156,12 @@ function storeApi(page) {
  * drop of it reads.
  */
 const TYPES = [
-  { type: 'socket', label: 'Socket cap', size: 'm3', bom: 'M3 socket × 20 mm' },
-  { type: 'hex', label: 'Hex head', size: 'm10', bom: 'M10 hex × 20 mm' },
-  { type: 'pan', label: 'Pan head', size: 'm4', bom: 'M4 pan × 20 mm' },
-  { type: 'flat', label: 'Flat head', size: 'm3', bom: 'M3 flat × 20 mm' },
-  { type: 'woodPan', label: 'Wood screw, pan head', size: '#8', bom: '#8 wood pan × 20 mm' },
-  { type: 'woodFlat', label: 'Wood screw, flat head', size: '#8', bom: '#8 wood flat × 20 mm' },
+  { type: 'socket', label: 'Socket cap', size: 'm3', bom: 'M3 socket, 20 mm long' },
+  { type: 'hex', label: 'Hex head', size: 'm10', bom: 'M10 hex, 20 mm long' },
+  { type: 'pan', label: 'Pan head', size: 'm4', bom: 'M4 pan, 20 mm long' },
+  { type: 'flat', label: 'Flat head', size: 'm3', bom: 'M3 flat, 20 mm long' },
+  { type: 'woodPan', label: 'Wood screw, pan head', size: '#8', bom: '#8 wood pan, 20 mm long' },
+  { type: 'woodFlat', label: 'Wood screw, flat head', size: '#8', bom: '#8 wood flat, 20 mm long' },
 ]
 
 test.beforeEach(async ({ page }) => {
@@ -288,7 +288,7 @@ test('changing Type in the Inspector from Socket cap to Wood screw, flat head re
   expect(after[0].id).toBe(before.id)
   await expect(page.getByTestId('inspector-part-tap')).toBeVisible()
   await expect.poll(async () => (await bomRows(page)).map((row) => row.text)).toEqual([
-    'Bolt / screw #8 wood flat × 20 mm × 1',
+    'Bolt / screw #8 wood flat, 20 mm long qty 1',
   ])
 })
 
@@ -309,7 +309,7 @@ test('a file with a legacy hardware.bolt and a hardware.screw still builds and k
 
   await showInspector(page)
   await expect.poll(async () => (await bomRows(page)).map((row) => row.text).sort()).toEqual([
-    'Bolt / screw M2.5 socket × 8 mm × 2',
-    'Screw M4 PanHead × 12 mm × 1',
+    'Bolt / screw M2.5 socket, 8 mm long qty 2',
+    'Screw M4 PanHead, 12 mm long qty 1',
   ])
 })

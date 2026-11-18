@@ -4639,3 +4639,16 @@ The 360-step cap still applies, so a very thin outline twisted through a full tu
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 5.42% loss on 30x5 at default Twist 3° before the change → throwaway vitest run this session; 1.7% on Chromium and WebKit at Twist 90 → real-mouse drive of acceptance scenario 9, this session; 5 of 7 new spec cases failed with the fix stashed → vitest run this session; 360-step cap → MAX_TWIST_STEPS in src/core/kernel/registry.js and docs/sketch-mode.md
 **To Add:** none
+
+## 2026-11-18T01:53:41Z — ui-127: clearer Bill of materials, Repeat and Save-sheet wording
+
+WarpCad's Bill of materials used to print "× 20 mm × 2" for one bolt line and a bare "(3)" for the total. Two fresh readers with no documentation found those strings unclear, so this change is wording, not logic.
+
+A bolt line now reads "Bolt / screw M10 hex, 20 mm long" with "qty 2" at the right, and the heading says "Total parts: 3". The length is a length now, not a second multiplier next to the count. The Repeat panel names the steps a copy keeps and the ones it skips, and the Save sheet says "this as a fixed part" for a single body and keeps "group" for a group.
+
+I checked the BOM lines in Chromium with real mouse drags: two bolts and a washer gave those three lines. The new Repeat lines have not been checked at phone width yet; that check is logged for a hand pass. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two fresh readers found the strings unclear → TODO/done/ui-127-repeat-bolt-and-bom-wording.md; BOM lines and "Total parts: 3" with two bolts and a washer → hand-driven acceptance scenario 2, Chromium laptop, this session; single-body Save sheet wording → hand-driven acceptance scenario 26, this session; phone-width wrap not checked → TODO/VERIFY.md ui-127 row
+**To Add:** none

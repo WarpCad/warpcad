@@ -143,5 +143,5 @@ test('one Pi drills several holes: after each Subtract the Pi is still there and
   await expect(page.getByTestId('bom')).toBeVisible()
   await expect(bom).toHaveCount(1)
   await expect(bom).not.toContainText('× 2')
-  await expect(page.getByTestId('bom-total')).toHaveText('(1)')
+  await expect(page.getByTestId('bom-total')).toHaveText('Total parts: 1')
 })

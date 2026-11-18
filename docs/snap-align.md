@@ -341,8 +341,8 @@ The repeats are one body in the History, **Bolt / screw 1 ×3**, one row reading
 - **A new move of Bolt 1 moves Bolt 1 only, and so does a new move of the Pi.** Dragging either
   one with the gizmo *after* the Repeat adds a step that comes later in History than the Repeat,
   so the repeats don't see it. The repeat body has no gizmo of its own; the Inspector says
-  *Edit an earlier step in History to move the repeats; a new move of Bolt / screw 1 or
-  Raspberry Pi 1 moves only that part.* To move the whole assembly, **Edit** an earlier step in
+  *The copies follow the steps of Bolt / screw 1. To move them all, edit an earlier step in
+  History. A new move of Bolt / screw 1 or Raspberry Pi 1 moves only that one; the copies stay.* To move the whole assembly, **Edit** an earlier step in
   [History](timeline.md). In this example the Pi is aligned to the screen and the bolts to the Pi,
   so editing the screen's **Move** row carries the Pi, Bolt 1 and all three repeats with it.
 - Select the repeat and the Inspector shows what it repeats and where. **Go to Bolt / screw 1**
@@ -352,16 +352,16 @@ The repeats are one body in the History, **Bolt / screw 1 ×3**, one row reading
 - **A step you did not make.** Say you press **⟳ Repeat**, make Bolt / screw 1 as
   usual, and while the panel is open you ask the Assistant to *lift Bolt 1 by 3 mm*.
   1. Look at the panel: under your steps there is now **Not part of the repeat**, and below it
-     *Move Bolt / screw 1 …* with the line *From the Assistant, so it is left out of the copies*.
-     (Claude Code reads *From Claude Code, …* and a merge reads *From a merge, …*.)
+     *Move Bolt / screw 1 …* with the line *Added by the Assistant. Bolt / screw 1 keeps it; the copies don't get it.*
+     (Claude Code reads *Added by Claude Code. …* and a merge reads *Added by a merge. …*.)
   2. **Apply to 3 more** is still on. Tap it.
   3. Bolt 1 stays 3 mm up. The three copies sit where your own steps put them, 3 mm lower, each on
      its hole. Any step of yours made *after* the Assistant's still counts in the copies.
 
-  A step on a *different* shape is listed there too (*On another body, so it is not copied*).
+  A step on a *different* shape is listed there too (*On a different part, so it is not copied*).
   Apply goes grey only when leaving the step out leaves nothing to repeat: if the only step that
-  points at the hole is the Assistant's, the panel says so (*The only step that points at hole1
-  is from the Assistant … Make that step yourself*), and you make that step by hand. Because the
+  points at the hole is the Assistant's, the panel says so (*Nothing to repeat: the only step on hole1
+  was made by the Assistant, and repeats skip those. Redo that step yourself to include it.*), and you redo that step by hand. Because the
   copies leave the step out for good, **Detach** also gives you copies without it.
 - **A shape that was cut can't be repeated.** If the first part's steps include a Subtract (a plate
   drilled with the Pi's `hole1`, say), Repeat refuses with *so a repeat would copy the whole of it

@@ -3208,3 +3208,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 5.42% loss on 30x5 at default Twist 3° before the change → throwaway vitest run this session; 4500 vs 4422 mm³ (Chromium) and 4435 vs 4358 mm³ (WebKit) at Twist 90 → real-mouse drive of acceptance scenario 9, this session; 360-step cap → MAX_TWIST_STEPS in src/core/kernel/registry.js and docs/sketch-mode.md
 **To Add:** none
+
+## 2026-11-18T01:53:41Z — ui-127: clearer Bill of materials, Repeat and Save-sheet wording
+
+**Post:** WarpCad's Bill of materials now reads "Bolt / screw M10 hex, 20 mm long" with "qty 2" at the right and "Total parts: 3" in the heading, instead of "× 20 mm × 2" and "(3)". Two fresh readers found the old strings unclear. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "Two fresh readers found the old strings unclear" → TODO/done/ui-127-repeat-bolt-and-bom-wording.md (filed from the testing-029 cold-read panel); new BOM strings "Bolt / screw M10 hex, 20 mm long", "qty 2", "Total parts: 3" → hand-driven acceptance scenario 2, Chromium laptop, this session; the Bolt length reads ", 8 mm long" in the Library and BOM → src/core/bom.js diff
+**To Add:** the docs/media/bom-updates.gif movie still shows the old count; re-record it before a post with a screenshot.

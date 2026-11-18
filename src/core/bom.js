@@ -16,8 +16,8 @@
  * bolt are one line on a shopping list.
  *
  * `hardware.bolt` is the one fastener op since `TODO/core-060` — a **Type** and a bare
- * **Size** — and its detail reads `M2.5 socket × 8 mm`, `M3 flat × 10 mm`,
- * `#8 wood flat × 25 mm`. It is computed from the params read in the new shape
+ * **Size** — and its detail reads `M2.5 socket, 8 mm long`, `M3 flat, 10 mm long`,
+ * `#8 wood flat, 25 mm long`. It is computed from the params read in the new shape
  * (`normalizedParams`), so a saved `{ spec: 'm2.5 socket' }` and a new
  * `{ type: 'socket', spec: 'm2.5' }` of one length are one line. A replay-only
  * `hardware.screw` keeps its own line and label.
@@ -48,7 +48,7 @@ const PART_NAMESPACES = Object.freeze(['hardware', 'kit', 'raspberrypi'])
  * @property {string} op Registry key of the family, e.g. `hardware.bolt`.
  * @property {string} label Human family name, e.g. `Bolt`.
  * @property {string} detail What distinguishes this line within its family, e.g.
- *   `M4 × 12 mm`. Empty for a family with nothing to vary (a HAT).
+ *   `M4, 12 mm long`. Empty for a family with nothing to vary (a HAT).
  * @property {number} count
  */
 
@@ -76,6 +76,20 @@ const FASTENER_TYPE_WORDS = Object.freeze({
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
 
 /**
+ * A part's words followed by its length as `, 8 mm long`, so a length reads as a length and
+ * not as a second multiplier next to the count (`TODO/ui-127`).
+ *
+ * @param {string[]} words
+ * @param {string} length
+ * @returns {string}
+ */
+function withLength(words, length) {
+  const head = words.filter(Boolean).join(' ')
+  if (length === '') return head
+  return head === '' ? length : `${head}, ${length}`
+}
+
+/**
  * The identifying detail for one body, by its params. A pure function of params, so two
  * bodies with equal detail are interchangeable parts.
  *
@@ -85,16 +99,16 @@ const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
  */
 export function detailOf(op, params) {
   const spec = typeof params.spec === 'string' ? specLabel(params.spec) : ''
-  const length = isNumber(params.length) ? `× ${params.length} mm` : ''
+  const length = isNumber(params.length) ? `${params.length} mm long` : ''
   switch (op) {
     case 'hardware.bolt': {
       const normal = normalizedParams(op, params)
       const size = typeof normal.spec === 'string' ? specLabel(normal.spec) : ''
       const type = typeof normal.type === 'string' && Object.hasOwn(FASTENER_TYPE_WORDS, normal.type) ? FASTENER_TYPE_WORDS[normal.type] : ''
-      return [size, type, length].filter(Boolean).join(' ')
+      return withLength([size, type], length)
     }
     case 'hardware.screw':
-      return [spec, params.head, length].filter(Boolean).join(' ')
+      return withLength([spec, params.head], length)
     case 'kit.board':
     case 'kit.anchor':
       return isNumber(params.width) && isNumber(params.height) ? `${params.width} × ${params.height} mm` : ''
@@ -108,7 +122,7 @@ export function detailOf(op, params) {
         : ''
     default:
       if (params.model !== undefined) return `Model ${params.model}`
-      return [spec, length].filter(Boolean).join(' ')
+      return withLength([spec], length)
   }
 }
 

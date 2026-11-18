@@ -47,7 +47,7 @@ describe('Inspector — a repeat body (TODO/ui-069)', () => {
       expect(wrapper.get(`[data-testid="inspector-rotation-${axis}"]`).attributes('readonly')).toBeDefined()
     }
     expect(wrapper.get('[data-testid="inspector-transform-note"]').text()).toMatch(
-      /^Edit an earlier step in History to move the repeats; a new move of Bolt 1 or Raspberry Pi 1 moves only that part\./,
+      /^The copies follow the steps of Bolt 1\. To move them all, edit an earlier step in History\. A new move of Bolt 1 or Raspberry Pi 1 moves only that one; the copies stay\./,
     )
     // A typed value commits nothing and throws nothing.
     const before = documentStore.raw.entries.length

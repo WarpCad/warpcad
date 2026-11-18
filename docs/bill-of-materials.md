@@ -23,9 +23,9 @@ brackets stays visible when it's folded.
 
 ## What a line means
 
-Each line is one distinct part and how many of it you have, e.g. `Bolt / screw M4 socket × 12 mm  × 3`.
+Each line is one distinct part and how many of it you have, e.g. `Bolt / screw M4 socket, 12 mm long` with `qty 3` at the right. The heading shows `Total parts: 3`.
 
-- **Bolts and screws** are told apart by size *and* length, so an M4 × 12 and an M4 × 20 are
+- **Bolts and screws** are told apart by size *and* length, so an M4 12 mm long and an M4 20 mm long are
   two lines.
 - **Nuts, washers and bearings** are told apart by their size or bearing number.
 - **Fit** (loose / tight) is ignored: it only changes the clearance room around the part, not
@@ -34,10 +34,10 @@ Each line is one distinct part and how many of it you have, e.g. `Bolt / screw M
 - **Raspberry Pi** boards show the model.
 - **Bought dowels from a split** appear when you split with **Steel or filament dowels**
   ([Printing a part that is bigger than your printer](print-prep.md#choosing-a-joint)):
-  `Steel dowel pin Ø4 × 10 mm  × 2`, or `1.75 mm filament Ø1.75 × 4.5 mm lengths  × 2`. Dowels you
+  `Steel dowel pin Ø4 × 10 mm` with `qty 2`, or `1.75 mm filament Ø1.75 × 4.5 mm lengths` with `qty 2`. Dowels you
   print are not listed: they are in the Print pieces zip.
 - **Magnets from a split** appear when you split with **Magnets**, or hand-place a **Magnet**:
-  `Magnets 6 × 3 mm  × 4` (two per pocket pair). Printed tenons are in the Print pieces zip, not here.
+  `Magnets 6 × 3 mm` with `qty 4` (two per pocket pair). Printed tenons are in the Print pieces zip, not here.
 - Plain shapes (cube, cylinder, sphere, text labels) never appear.
 
 The list updates as you work — placing, changing a part's size in the Inspector, deleting,
@@ -51,7 +51,7 @@ Parts you place by dragging them from the Library are listed the moment they lan
 
 1. Open the **Library** and drag **Bolt / screw** into the 3D view twice, then **Washer** once.
 2. Open the Inspector (on a phone, close the Library first, then tap the Inspector tab).
-3. The **Bill of materials** shows `Bolt / screw M10 hex × 20 mm  × 2` and `Washer M6  × 1`, total `(3)`.
+3. The **Bill of materials** shows `Bolt / screw M10 hex, 20 mm long` with `qty 2`, `Washer M6` with `qty 1`, and `Total parts: 3`.
    ![Dragging a second identical Bolt / screw in: the one Bolt / screw line's count goes from 1 to 2.](./media/bom-updates.gif)
 4. With the washer still selected, press **Delete**. The washer line disappears and the total
    drops to `(2)`.

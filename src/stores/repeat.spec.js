@@ -205,7 +205,7 @@ describe('the session watcher', () => {
     // on, and that step is listed as left out of the copies, with who made it.
     expect(repeat.canApply).toBe(true)
     expect(repeat.applyReason).toBeNull()
-    expect(repeat.leftOut).toEqual([{ id: 'bolt-ai-color', label: expect.any(String), reason: 'From the Assistant, so it is left out of the copies' }])
+    expect(repeat.leftOut).toEqual([{ id: 'bolt-ai-color', label: expect.any(String), reason: 'Added by the Assistant. Bolt 1 keeps it; the copies don\'t get it.' }])
   })
 
   it('Apply writes the left-out step into the record, and the copies do not carry it (TODO/core-063)', () => {
@@ -213,7 +213,7 @@ describe('the session watcher', () => {
     firstScrew(documentStore)
     const snapId = /** @type {string} */ (documentStore.raw.currentIdOf('bolt-1'))
     documentStore.append({ id: 'bolt-ai-lift', op: 'transform.translate', target: snapId, supersedes: snapId, params: { vector: [0, 0, 3], rotation: [0, 0, 0] } }, { origin: 'mcp' })
-    expect(repeat.leftOut).toEqual([{ id: 'bolt-ai-lift', label: expect.any(String), reason: 'From Claude Code, so it is left out of the copies' }])
+    expect(repeat.leftOut).toEqual([{ id: 'bolt-ai-lift', label: expect.any(String), reason: 'Added by Claude Code. Bolt 1 keeps it; the copies don\'t get it.' }])
     expect(repeat.apply()).toBe(true)
     const record = documentStore.raw.entries.find((entry) => entry.record.op === REPEAT_OP)?.record
     expect(record?.params?.skip).toEqual(['bolt-ai-lift'])
@@ -245,7 +245,7 @@ describe('the session watcher', () => {
     expect(repeat.leftOut.map((step) => step.id)).toEqual(['bolt-ai-align'])
     expect(repeat.canApply).toBe(false)
     expect(repeat.applyReason).toBe(
-      'The only step that points at hole1 is from the Assistant, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.',
+      'Nothing to repeat: the only step on hole1 was made by the Assistant, and repeats skip those. Redo that step yourself to include it.',
     )
   })
 

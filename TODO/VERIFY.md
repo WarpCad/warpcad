@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-127 — Repeat, Bolt, BOM and Save-sheet wording (2026-11-18 01:47)
+
+Wording only; the new strings are asserted in unit and e2e specs and the two `bom-panel` stills were regenerated. One thing no spec covers. The 390 px wrap of the new Repeat lines was not measured by hand; the Repeat sheet's e2e only asserts the text.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `docs/media/bom-updates.gif` still shows the old `× 2` count. `docs:gifs` rewrites every GIF, so it was not re-recorded. | Moved | Re-record that one movie through a scoped moviesDir when the next docs-media pass runs; no TODO filed. |
+
+
 ### ai-041 — tool gaps 1, 3 and 4 (2026-11-17 04:01 UTC)
 
 Two skill drives (claude -p, Haiku, subscription) passed: add-clearances on the Housing fixture (measured the Pin with evaluate_formula, cut the pocket, check_clearance reads 0.2 mm) and create-enclosure on the Pi fixture (90 calls, enclosure built). Two things were not covered by those drives.

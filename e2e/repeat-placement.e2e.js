@@ -507,7 +507,7 @@ test('Repeat: a step the Assistant made on the first part is listed under Not pa
       const left = page.getByTestId('repeat-outside-step')
       await expect(left).toHaveCount(1)
       await expect(left).toHaveAttribute('data-origin', 'ai')
-      await expect(page.getByTestId('repeat-outside').getByTestId('repeat-outside-reason')).toHaveText('From the Assistant, so it is left out of the copies')
+      await expect(page.getByTestId('repeat-outside').getByTestId('repeat-outside-reason')).toHaveText(/^Added by the Assistant\. .+ keeps it; the copies don't get it\.$/)
       await expect(page.getByTestId('repeat-outside')).toContainText('Not part of the repeat')
       await expect(page.getByTestId('repeat-reason')).toHaveCount(0)
       await expect(page.getByTestId('repeat-apply')).toBeEnabled()

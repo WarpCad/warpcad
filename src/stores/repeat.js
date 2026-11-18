@@ -229,10 +229,10 @@ export const useRepeatStore = defineStore('repeat', () => {
         origin,
         onSubject,
         reason: onSubject
-          ? `From ${whoMade(origin)}, so it is left out of the copies`
+          ? `Added by ${whoMade(origin)}. ${current.name} keeps it; the copies don't get it.`
           : origin === 'local'
-            ? 'On another body, so it is not copied'
-            : `From ${whoMade(origin)}, on another body, so it is not copied`,
+            ? 'On a different part, so it is not copied'
+            : `Added by ${whoMade(origin)}, on a different part, so it is not copied`,
       }
       if (onSubject && origin === 'local') steps.push(step)
       else outside.push(step)
@@ -297,7 +297,7 @@ export const useRepeatStore = defineStore('repeat', () => {
     // case that is a refusal of its own: the only step that points at the seed is one of those.
     const foreignAim = outside.value.find((step) => step.onSubject && step.mentionsSeed)
     if (foreignAim && !steps.value.some((step) => step.mentionsSeed)) {
-      return `The only step that points at ${seed.value.partName} is from ${whoMade(foreignAim.origin)}, and it is left out of the copies, so there is nothing to repeat. Make that step yourself.`
+      return `Nothing to repeat: the only step on ${seed.value.partName} was made by ${whoMade(foreignAim.origin)}, and repeats skip those. Redo that step yourself to include it.`
     }
     return repeatRefusal(documentStore.raw, params.value)
   })
