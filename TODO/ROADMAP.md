@@ -74,7 +74,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [Findings](#findings-open-rows) | 27 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 61 | ▶ Ready | `FIND` | [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | sonnet |
 | 63 | ▶ Ready | `FIND` | [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | sonnet |
 | 64 | ▶ Ready | `FIND` | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | sonnet |
 | 65 | ▶ Ready | `FIND` | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | sonnet |
@@ -100,6 +99,7 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 98 | ▶ Ready | `FIND` | [`ui-146`](FIND-ui-146-broken-history-row-one-name-and-visible-repair.md) Give a broken History step one name, one amber treatment and a repair button visible without scrolling | sonnet |
 | 99 | ▶ Ready | `FIND` | [`ui-147`](FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md) Keep a dimension label's digits clear of the gizmo rings and arrowheads that cross them | sonnet |
 | 100 | ▶ Ready | `FIND` | [`ui-148`](FIND-ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md) Make the phone orientation dial caps tappable without overlap (split from ui-134) | sonnet |
+| 101 | ▶ Ready | `FIND` | [`ui-149`](FIND-ui-149-nav-chrome-mode-buttons-real-44px-height.md) Give the navigation chrome's Orbit, Pan, Select and gear buttons real 44 px height by relaxing the ui-043 and ui-084 size budgets (split from ui-135) | sonnet |
 
 ---
 
@@ -184,6 +184,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-146`](FIND-ui-146-broken-history-row-one-name-and-visible-repair.md) Give a broken History step one name, one amber treatment and a visible repair button | finding | medium | sonnet | ▶ Ready (Next up row 98) |
 | [`ui-147`](FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md) Keep a dimension label's digits clear of the gizmo rings and arrowheads | finding | low | sonnet | ▶ Ready (Next up row 99) |
 | [`ui-148`](FIND-ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md) Make the phone orientation dial caps tappable without overlap (split from ui-134) | finding | medium | sonnet | ▶ Ready (Next up row 100) |
+| [`ui-149`](FIND-ui-149-nav-chrome-mode-buttons-real-44px-height.md) Give the navigation chrome's Orbit, Pan, Select and gear buttons real 44 px height by relaxing the ui-043 and ui-084 size budgets (split from ui-135) | finding | medium | sonnet | ▶ Ready (Next up row 101) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
 | [`ai-044`](FIND-ai-044-tool-gaps-left-after-ai-041.md) Tool gaps left after ai-041: part copy and op read, offset, a joint refusal, keep-out consumption, direct parameter edit (owner 2026-11-17 Q3: build all five; first step is the split) | finding | low | opus | ▶ Ready (Next up row 84) |
@@ -216,7 +217,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | finding | medium | sonnet | ▶ Ready (Next up row 65) |
 | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) The deployed build fetches the Sentry SDK (144 kB gzip) before the app is usable | finding | medium | sonnet | ▶ Ready (Next up row 66) |
-| [`ui-135`](FIND-ui-135-nav-chrome-mode-buttons-are-30px-tall-on-phone.md) Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone | finding | medium | sonnet | ▶ Ready (Next up row 61) |
 | [`ui-137`](FIND-ui-137-connector-marker-drifts-from-the-face-under-perspective.md) Place split-face connector markers with the true camera projection | finding | low | sonnet | ▶ Ready (Next up row 63) |
 | [`sketch-009`](FIND-sketch-009-line-close-tolerance-too-tight-for-a-fingertip.md) Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it | finding | medium | sonnet | ▶ Ready (Next up row 64) |
 | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Cura still prints "Mesh has overlapping faces!" for a dense scan with a Subtract cut, though the STL is closed | finding | low | opus | ▶ Ready (Next up row 67) |
@@ -362,7 +362,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ui-135` | Make the Orbit, Pan, Select and gear buttons in the navigation chrome tap size on a phone. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | 7 |
 | `ui-137` | Place split-face connector markers with the true camera projection. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
 | `sketch-009` | Widen the Line tool close tolerance on touch so a fingertip tap on the first point closes it. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | none |
 | `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
@@ -388,6 +387,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-146` | The broken History row's layout half from `ui-129`: one name, one amber treatment, the repair button visible without scrolling. Filed 2026-11-18 | Finding | — | 12, 15 |
 | `ui-147` | A ring or arrowhead still crosses a dimension label's digits at phone width, split from `ui-130`. Filed 2026-11-18 | Finding | — | 1 |
 | `ui-148` | The 96px phone orientation dial still overlaps its caps (22-35% of scattered taps hit a neighbour, 390px); split from `ui-134`, which fixed tablet. Filed 2026-11-18 | Finding | — | 1 |
+| `ui-149` | The Orbit, Pan and Select buttons are still 30-32 px tall (wrong-control taps 4-8 %, target 2 %); real 44 px needs the `ui-043` toolbar-overlap and `ui-084` compact-size budgets relaxed. Split from `ui-135`. Filed 2026-11-18 | Finding | — | 7 |
 
 ---
 
