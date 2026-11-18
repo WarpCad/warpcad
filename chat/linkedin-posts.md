@@ -4745,3 +4745,16 @@ A new end-to-end spec clicks a grid across a placed label and checks the selecti
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "27 of 72 points" and "12 by 6 grid" → TODO/done/ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md (measured 27 of 72 box points, 38%); 8 px → LABEL_PICK_PAD_PX in the diff of src/render/pick.js; "runs only after the stroke test has missed" → labelBoxHit call in the diff of src/render/pointerGestures.js; spec passing on four project pairs → test runs this session (caller-supplied; the stored unit record is 2026-11-18T13:15:02Z)
 **To Add:** none
+
+## 2026-11-18T13:45:00Z — ui-133: give each save-status dot its own shape
+
+**Post:** A small accessibility fix in WarpCad. The header's save light had five states but only three shapes. Idle and saved were both discs, and paused and failed were both rounded squares, so the only thing separating them was colour.
+
+Each state now has its own shape, drawn with a clip-path on the same 10 px dot: a grey dash for idle, an amber ring for saving, a green disc for saved, an amber triangle for paused and a red square for failed. The help page for saving lists them.
+
+A new end-to-end spec loads the app at `/`, reads the dot's computed shape while idle, then again after a cube is placed and the chip reads Saved. It passed on Firefox, WebKit and Chromium this session. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Accessibility
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** both-disc and both-square problem → TODO/done/ui-133-save-status-dot-idle-and-saved-share-a-shape.md; shapes and clip-path → diff of src/components/display/SaveStatus.vue; docs list → diff of docs/save-load.md; spec passes on firefox-phone, webkit-tablet, chromium-laptop → test run this session
+**To Add:** a close-up of the five dots side by side

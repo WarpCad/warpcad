@@ -666,6 +666,28 @@ test.describe('the save-status chip in the header bar', () => {
     await page.screenshot({ path: join(SNAPSHOT_DIR, `chip-idle-${info.project.name}.png`) })
   })
 
+  // TODO/ui-133: the dot's shape (not only its hue) names the state. Idle is a dash, saved a disc.
+  test('idle and saved dots differ in shape, not only in colour', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByTestId('app-root')).toBeVisible()
+    const dot = page.getByTestId('save-status-dot')
+    const shape = () =>
+      dot.evaluate((el) => {
+        const cs = getComputedStyle(el)
+        return { clip: cs.clipPath, radius: cs.borderRadius }
+      })
+    await expect(page.getByTestId('save-status')).toHaveAttribute('data-tone', 'idle')
+    const idle = await shape()
+    expect(idle.clip).not.toBe('none') // a dash is a clipped bar
+    await openLibrary(page)
+    await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.38 })
+    await closeLibrary(page)
+    await expectSaved(page)
+    const saved = await shape()
+    expect(saved.clip).toBe('none') // a full disc
+    expect(saved.radius).not.toBe('0px')
+  })
+
   test('cycles Saving… → Saved with the words available at every width', async ({ page }, info) => {
     await page.goto('/')
     await expect(page.getByTestId('app-root')).toBeVisible()

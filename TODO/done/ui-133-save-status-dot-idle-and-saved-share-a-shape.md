@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-030 real-GPU drive
 depends: []
-status: open
+status: done
 ---
+
+**Shipped:** idle is a grey dash, saving a ring, saved a disc, paused (warn) an amber triangle, failed (error) a red square, all by `clip-path` on the one 10px dot. `docs/save-load.md` names the shapes. The e2e spec `idle and saved dots differ in shape` in `e2e/local-persistence.e2e.js` checks the computed shape at `/`.
 
 ## Problem
 

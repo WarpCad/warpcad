@@ -3280,3 +3280,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "only worked on its letter strokes" and "27 of 72 points" → TODO/done/ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md (measured 27 of 72 box points, 38%); 8 px slack → LABEL_PICK_PAD_PX = 8 in the diff of src/render/pick.js; a click inside the box selects → new spec in e2e/text-label-placement.e2e.js, passing on chromium-laptop, firefox-tablet, chromium-phone and webkit-tablet (test runs this session, caller-supplied; the stored unit record is 2026-11-18T13:15:02Z)
 **To Add:** a short clip of a click in the gap between two letters selecting the label (docs/primitive-placement.md has the text but no picture of it)
+
+## 2026-11-18T13:45:00Z — ui-133: give each save-status dot its own shape
+
+**Post:** WarpCad's save light now has five shapes, not two lookalikes: grey dash idle, amber ring saving, green disc saved, amber triangle paused, red square failed. Before, idle and saved were both discs and paused and failed both squares, so only hue told them apart. Built with Claude Code, reviewed by me. #CAD #Accessibility
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Accessibility
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** idle and saved both discs, paused and failed both rounded squares → TODO/done/ui-133-save-status-dot-idle-and-saved-share-a-shape.md (Problem); five shapes → diff of src/components/display/SaveStatus.vue; checked at `/` → new spec in e2e/local-persistence.e2e.js, green this session
+**To Add:** a close-up of the five dots side by side

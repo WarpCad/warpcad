@@ -66,7 +66,7 @@ bar is crowded, it shows just the light (screen readers still read out the words
 
 | Light | Words | What it means |
 |---|---|---|
-| Grey | **Autosave on** | Nothing to save yet — you haven't changed anything |
+| Grey dash | **Autosave on** | Nothing to save yet — you haven't changed anything |
 | Amber ring | **Saving…** | A change was just made and is about to be stored |
 | Amber ring | **Opening warpcad-project.warpcad…** | A file (or a repository copy) is being opened — see [While a file is opening](#while-a-file-is-opening) |
 | Amber ring | **Restoring your last session…** | Your model is being rebuilt as the page opens |
@@ -80,7 +80,7 @@ Three of those states, as they look in the bar:
 |---|---|---|
 | ![The status light as an amber ring with the words Saving…](./screenshots/save-status-saving.png) | ![The status light as a green dot with the words Saved · 14:02](./screenshots/save-status-saved.png) | ![The status light as a red square with the words Not saved — browser storage unavailable](./screenshots/save-status-unsaved.png) |
 
-The light differs in *shape* as well as colour (ring, disc, square), so it doesn't rely on
+The light differs in *shape* as well as colour (dash, ring, disc, triangle for paused, square), so it doesn't rely on
 telling red from green.
 
 ## If it says "Not saved"

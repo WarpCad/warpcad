@@ -18,8 +18,8 @@
  * on the 44px Undo and Redo targets. The text is *visually* hidden, not removed:
  * it stays in the accessibility tree and in `aria-label`, so a screen reader
  * hears the same words a laptop user reads. Colour alone would not tell the three
- * dots apart for a colour-blind user, so the shapes differ too (ring / solid /
- * square — see the styles).
+ * dots apart for a colour-blind user, so the shapes differ too (dash / ring / disc /
+ * triangle / square — see the styles).
  *
  * **While the opened file has changed on disk** (`TODO/ai-009`) it is a button too: tapping
  * `File changed on disk — Reload` asks the disk-change question again after a Cancel.
@@ -123,6 +123,16 @@ const title = computed(() => {
   background: var(--text-3);
 }
 
+/* Five states, five shapes (`TODO/ui-133`), so none relies on hue alone:
+   idle = grey dash, saving = amber ring, saved = green disc, paused = amber triangle,
+   failed = red square. */
+
+/* Idle: a short dash, clipped from the 10px box. */
+.save-status--idle .save-status__dot {
+  border-radius: 0;
+  clip-path: inset(3px 0);
+}
+
 /* Saved: solid green disc. */
 .save-status--saved .save-status__dot {
   background: var(--accent-secondary);
@@ -134,14 +144,15 @@ const title = computed(() => {
   border: 2px solid var(--warn);
 }
 
-/* Paused / needs you (a diverged repository): amber text, solid amber dot. */
+/* Paused / needs you (a diverged repository): amber text, solid amber triangle. */
 .save-status--warn {
   color: var(--warn);
 }
 
 .save-status--warn .save-status__dot {
   background: var(--warn);
-  border-radius: var(--radius-xs);
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 /* Failed: red square, and the text itself turns red. */
