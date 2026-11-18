@@ -361,6 +361,13 @@ test('a ring drag draws a dial and a readout, the Rotation field agrees, release
     expect(pill.x + pill.width).toBeLessThanOrEqual(view.x + view.width + 0.5)
     expect(pill.y + pill.height).toBeLessThanOrEqual(view.y + view.height + 0.5)
   }
+  // ...and clear of the operations toolbar, which sat over half of it on a phone (`ui-131`).
+  const bar = await page.getByTestId('operations-toolbar').boundingBox()
+  if (bar && pill) {
+    const overlaps =
+      pill.x < bar.x + bar.width && pill.x + pill.width > bar.x && pill.y < bar.y + bar.height && pill.y + pill.height > bar.y
+    expect(overlaps).toBe(false)
+  }
   await page.screenshot({ path: join(SNAPSHOT_DIR, `dial-mid-drag-${testInfo.project.name}.png`) })
 
   const samples = await releaseRing(page)

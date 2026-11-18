@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-030 real-GPU drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** `placeDialReadout` takes an optional keep-out rectangle (the operations toolbar's box, measured at gizmo-drag start in `Viewport.vue`) and moves the pill to the first clear spot: right, left, below, then above. Verified by a unit test and a no-overlap assertion in `e2e/rotate-dial.e2e.js`. The "270" label under the cube was not re-checked. No docs change: no new control.
 
 ## Problem
 

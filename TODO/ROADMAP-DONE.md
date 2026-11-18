@@ -843,6 +843,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | ✅ `ui-130` | Dimension labels are held inside the viewport (a 36-view orbit sweep at 390 px) and the gizmo ring's wall and core are 5 px and 1.5 px at phone width so the tube cue reads as two strokes. Reframing a small dropped part is OWNER.md Q100. Filed from the testing-030 real-GPU drive | Finding | — | 1, 4 |
+| ✅ `ui-131` | The rotate dial's readout moves off the operations toolbar's box (right, left, below, then above, first clear spot in the viewport), so "fine 0.1°" stays whole on a phone. The toolbar is measured once when a gizmo drag starts. Closed with a unit test and a no-overlap assertion in `rotate-dial.e2e.js`. | Finding | — | — |
 | ✅ `ai-039` | Reworded the History origin chip for an unknown origin (*via unknown source*) and for a merge (*via a merge*), the stale-project refusal, and the Assistant conflict strip, which now says what happened to the step. Filed from the testing-029 cold-read panel | Finding | — | 22, 24 |
 | ✅ `ui-129` | Plain sentences for the fillet radius, zero-size and broken-step messages at the display boundary (`userReason`), readable replica ids in the Assistant's activity rows, and the image notice *billed to your own API key*. The broken row's layout is `ui-146`. Filed from the testing-029 cold-read panel | Finding | — | 12, 24 |
 | ✅ `docs-036` | Fixed the docs sentences and the keep-out picture two cold readers could not follow: Align button names, the Repeat Rotation X step, the kept-Pi and Repeat bolt lines, the Fit result, and a labelled `rpi-keepout.png`. The five movie re-records are `docs-038`. Filed from the testing-029 cold-read panel | Finding | — | none |
@@ -1445,5 +1446,6 @@ convention going forward.
 | `ui-129` | 2026-11-18 04:17 | ~34m by the machine clock (03:43 start; includes waiting out docs-036's commit; one wrapper-prefix miss caught by e2e, one intended picture drift) |
 | `ai-039` | 2026-11-18 11:42 | ~13m by the machine clock (11:29 start; RED on five expectations first, one plural slip caught by the new spec, the dev-only scripted-Assistant spec run for the conflict reproduction) |
 | `ui-130` | 2026-11-18 12:13 | ~14m by the machine clock (11:59 start; RED needed a closer camera before the sweep found any violation; the first ring rule lost to the later base rule until the e2e caught it) |
+| `ui-131` | 2026-11-18 13:02 | ~25m by the machine clock (typecheck caught four untyped arrow parameters in the new helper before e2e) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

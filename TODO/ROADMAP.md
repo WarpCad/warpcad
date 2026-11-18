@@ -76,7 +76,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
-| 57 | ▶ Ready | `FIND` | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | sonnet |
 | 58 | ▶ Ready | `FIND` | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | sonnet |
 | 59 | ▶ Ready | `FIND` | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | sonnet |
 | 60 | ▶ Ready | `FIND` | [`ui-134`](FIND-ui-134-orientation-caps-overlap-and-miss-on-touch.md) Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at | sonnet |
@@ -221,7 +220,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
-| [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | finding | low | sonnet | ▶ Ready (Next up row 57) |
 | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | finding | low | sonnet | ▶ Ready (Next up row 58) |
 | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | finding | low | sonnet | ▶ Ready (Next up row 59) |
 | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | finding | medium | sonnet | ▶ Ready (Next up row 65) |
@@ -376,7 +374,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
-| `ui-131` | Keep the rotate dial readout clear of the operations toolbar at phone width. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-132` | Let a click anywhere in a text label box select it, not only on its letter strokes. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-133` | Give the save-status chip idle and saved dots different shapes, and paused and failed too. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 10 |
 | `ui-134` | Stop the orientation-triad caps overlapping so a fingertip lands on the cap it aimed at. Filed 2026-11-15 from the `testing-031` tap, timing and reach drive | Finding | — | 7 |

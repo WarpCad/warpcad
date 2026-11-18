@@ -3262,3 +3262,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** labels stay inside the view while orbiting → diff of src/render/annotate.js (keepLabelInside) and the new unit test in src/render/annotate.spec.js, which fails with the clamp disabled and passes with it (this session); 57 of 72 orbit views at phone width → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; ring thicker on phones → diff of src/components/viewport/Gizmo.vue (max-width: 640px rule)
 **To Add:** a hand check on a real iPhone at DPR 3 (TODO/VERIFY.md ui-130); the ring still crossing label digits is TODO/FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md
+
+## 2026-11-18T13:05:00Z — ui-131: rotate dial readout stays clear of the toolbar
+
+**Post:** Turning a part with the rotate ring on a phone drew its angle readout under the toolbar, hiding about half of it. WarpCad now moves the readout to the nearest clear spot. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** readout hid about half behind the toolbar on a phone → TODO/done/ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md (51 of 112 px); now moves clear → diff of src/render/annotate.js (clearOfKeepOut), new unit test in src/render/annotate.spec.js and no-overlap assertion in e2e/rotate-dial.e2e.js, rotate-dial 10/10 on firefox-phone + chromium-tablet (this session)
+**To Add:** a screenshot of the readout beside the toolbar at 390 px

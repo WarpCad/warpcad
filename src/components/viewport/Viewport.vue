@@ -463,6 +463,27 @@ const {
  * (`TODO/ui-108`, extraction 2). The viewport keeps the selection guard before a drag and the
  * `transform.*` commit after it.
  */
+/**
+ * The operations toolbar's box in viewport pixels, for the rotate dial's readout to stay clear of
+ * (`TODO/ui-131`). One reused object, refreshed when a gizmo drag begins, so the per-frame path
+ * allocates nothing. `active` is false when the toolbar is not mounted.
+ */
+const toolbarKeepOut = { active: false, left: 0, top: 0, right: 0, bottom: 0 }
+
+function refreshToolbarKeepOut() {
+  const el = rootEl.value?.querySelector('[data-testid="operations-toolbar"]')
+  if (!el) {
+    toolbarKeepOut.active = false
+    return
+  }
+  const r = el.getBoundingClientRect()
+  toolbarKeepOut.active = r.width > 0 && r.height > 0
+  toolbarKeepOut.left = r.left - viewportRect.left
+  toolbarKeepOut.right = r.right - viewportRect.left
+  toolbarKeepOut.top = r.top - viewportRect.top
+  toolbarKeepOut.bottom = r.bottom - viewportRect.top
+}
+
 const gizmoDrag = createGizmoDrag({
   meshes: bodyMeshes,
   preview,
@@ -473,6 +494,7 @@ const gizmoDrag = createGizmoDrag({
   viewportRect,
   widthPx: () => widthPx,
   heightPx: () => heightPx,
+  keepOut: () => (toolbarKeepOut.active ? toolbarKeepOut : null),
   scheduleRender,
   now: () => performance.now(),
 })
@@ -712,6 +734,7 @@ function onGizmoHandleDown(event) {
   // any other state, so this is a guard rather than a branch. Nor on a part or a repeat
   // body (`TODO/ui-069`), where it is hidden.
   if (!body || body.subPart || body.moveRefusal) return
+  refreshToolbarKeepOut()
   gizmoDrag.begin(event, body)
 }
 

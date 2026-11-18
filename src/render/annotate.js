@@ -1131,15 +1131,70 @@ export function updateDialAnnotation(ring, startParamDeg, turnedDeg, originX, or
  * @param {number} widthPx Viewport size.
  * @param {number} heightPx
  * @param {DialAnnotation} out Mutated in place.
+ * @param {KeepOutRect | null} [keepOut] Chrome the pill must not sit under (the operations
+ *   toolbar), viewport pixels. `TODO/ui-131`.
  * @returns {DialAnnotation} `out`
  */
-export function placeDialReadout(ring, originX, originY, pointerXPx, pointerYPx, touch, widthPx, heightPx, out) {
+export function placeDialReadout(ring, originX, originY, pointerXPx, pointerYPx, touch, widthPx, heightPx, out, keepOut = null) {
   const halfW = DIAL_READOUT_WIDTH_PX / 2
   const halfH = DIAL_READOUT_HEIGHT_PX / 2
-  if (touch) return placePillAboveFinger(pointerXPx, pointerYPx, originX, halfW, halfH, widthPx, heightPx, out)
-  // The ellipse's exact vertical half-extent on screen.
-  const ringHalfHeight = Math.hypot(ring.uy, ring.vy) * DIAL_TICK_OUTER
-  return clampPill(originX, originY - ringHalfHeight - DIAL_READOUT_GAP_PX - halfH, halfW, halfH, widthPx, heightPx, out)
+  if (touch) placePillAboveFinger(pointerXPx, pointerYPx, originX, halfW, halfH, widthPx, heightPx, out)
+  else {
+    // The ellipse's exact vertical half-extent on screen.
+    const ringHalfHeight = Math.hypot(ring.uy, ring.vy) * DIAL_TICK_OUTER
+    clampPill(originX, originY - ringHalfHeight - DIAL_READOUT_GAP_PX - halfH, halfW, halfH, widthPx, heightPx, out)
+  }
+  if (keepOut) clearOfKeepOut(keepOut, halfW, halfH, widthPx, heightPx, out)
+  return out
+}
+
+/**
+ * A rectangle of viewport chrome a readout must stay out from under.
+ *
+ * @typedef {object} KeepOutRect
+ * @property {number} left
+ * @property {number} top
+ * @property {number} right
+ * @property {number} bottom
+ */
+
+/**
+ * Move a placed pill off a keep-out rectangle (`TODO/ui-131`). Tries the free side to the
+ * right, then to the left, then below, then above, keeping the pill's own row where it can.
+ * The first candidate that is inside the viewport and clear wins; if none is, the pill stays.
+ *
+ * @param {KeepOutRect} k
+ * @param {number} halfW
+ * @param {number} halfH
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @param {{ readoutX: number, readoutY: number }} out Mutated in place.
+ * @returns {void}
+ */
+function clearOfKeepOut(k, halfW, halfH, widthPx, heightPx, out) {
+  const m = DIAL_READOUT_MARGIN_PX
+  /** @param {number} x @param {number} y @returns {boolean} */
+  const hits = (x, y) =>
+    x + halfW > k.left && x - halfW < k.right && y + halfH > k.top && y - halfH < k.bottom
+  /** @param {number} x @param {number} y @returns {boolean} */
+  const fits = (x, y) =>
+    x - halfW >= m && x + halfW <= widthPx - m && y - halfH >= m && y + halfH <= heightPx - m
+  const x0 = out.readoutX
+  const y0 = out.readoutY
+  if (!hits(x0, y0)) return
+  const candidates = [
+    [k.right + m + halfW, y0],
+    [k.left - m - halfW, y0],
+    [x0, k.bottom + m + halfH],
+    [x0, k.top - m - halfH],
+  ]
+  for (const [x, y] of candidates) {
+    if (fits(x, y) && !hits(x, y)) {
+      out.readoutX = x
+      out.readoutY = y
+      return
+    }
+  }
 }
 
 /**

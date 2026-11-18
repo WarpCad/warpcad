@@ -1696,6 +1696,27 @@ describe('the rotate dial (TODO/ui-064)', () => {
       }
     })
 
+    it('keeps clear of a keep-out rectangle such as the operations toolbar (ui-131)', () => {
+      const dial = createDialAnnotation()
+      const { gizmo } = rig(25, 35)
+      const ring = gizmo.rings[2]
+      // The phone's toolbar box, and a finger whose pill would land across it.
+      const keepOut = { left: 8, top: 61, right: 190, bottom: 241 }
+      const finger = { x: 120, y: 241 + 40 + 25 }
+      for (const touch of [true, false]) {
+        placeDialReadout(ring, 200, 400, finger.x, finger.y, touch, PHONE.width, PHONE.height, dial, keepOut)
+        const b = box(dial)
+        const overlaps = b.right > keepOut.left && b.left < keepOut.right && b.bottom > keepOut.top && b.top < keepOut.bottom
+        expect(overlaps).toBe(false)
+        expect(b.left).toBeGreaterThanOrEqual(0)
+        expect(b.right).toBeLessThanOrEqual(PHONE.width)
+      }
+      // Without the rectangle the same touch placement does overlap, so the test bites.
+      placeDialReadout(ring, 200, 400, finger.x, finger.y, true, PHONE.width, PHONE.height, dial)
+      const raw = box(dial)
+      expect(raw.right > keepOut.left && raw.left < keepOut.right && raw.bottom > keepOut.top && raw.top < keepOut.bottom).toBe(true)
+    })
+
     it('near the top edge on touch, moves beside the finger rather than under it', () => {
       const dial = createDialAnnotation()
       const { gizmo } = rig(25, 35)

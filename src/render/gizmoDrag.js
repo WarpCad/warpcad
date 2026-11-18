@@ -69,6 +69,9 @@ import { snapMm, translateSpeedStepMm, translateStepMm } from './translateSnap.j
  *   by the viewport; read on every event, so a mutated object stays in step.
  * @property {() => number} widthPx The canvas's width, px.
  * @property {() => number} heightPx The canvas's height, px.
+ * @property {() => import('./annotate.js').KeepOutRect | null} [keepOut] Chrome the dial's
+ *   readout must stay clear of (the operations toolbar), viewport pixels; the same object each
+ *   call. `TODO/ui-131`.
  * @property {() => void} scheduleRender
  * @property {() => number} now Monotonic clock, ms (`() => performance.now()` in the app).
  * @property {{ setTimeout: (fn: () => void, ms: number) => any, clearTimeout: (id: any) => void }} [timers]
@@ -287,6 +290,7 @@ export function createGizmoDrag(deps) {
       deps.widthPx(),
       deps.heightPx(),
       dialAnnotation,
+      deps.keepOut ? deps.keepOut() : null,
     )
   }
 

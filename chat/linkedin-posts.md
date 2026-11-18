@@ -4719,3 +4719,16 @@ Not yet checked on a real iPhone at 3x pixel density, and a separate finding cov
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** labels clamped inside the view → diff of src/render/annotate.js (keepLabelInside), and the 36-view sweep in src/render/annotate.spec.js fails with the clamp disabled and passes with it (this session); 57 of 72 → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; 5 px wall and 1.5 px core at 640 px and below, up from 3 px and 1 px → diff of src/components/viewport/Gizmo.vue (base rule at 3 px is unchanged above the new rule); not checked on a real iPhone at DPR 3 → TODO/VERIFY.md ui-130; digits under rings → TODO/FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md
 **To Add:** none
+
+## 2026-11-18T13:05:00Z — ui-131: rotate dial readout stays clear of the toolbar
+
+**Post:** While you drag a rotate ring in WarpCad, a readout shows the turned angle and the step size. On a phone the operations toolbar sat over about half of it (51 of 112 px), so the word "fine" was covered.
+
+The readout placement now takes the toolbar's box as a keep-out rectangle and moves to the first clear spot: right, left, below, then above. The toolbar is measured once when the drag starts, so nothing is allocated per frame.
+
+A unit test pins the placement, and the rotate-dial end-to-end spec now asserts the readout and toolbar never overlap; it passed 10 of 10 on Firefox at phone width and Chromium at tablet width. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Vue #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 51 of 112 px covered → TODO/done/ui-131 file; keep-out and measurement at drag start → diff of src/render/annotate.js and src/components/viewport/Viewport.vue; 10 of 10 on firefox-phone + chromium-tablet → e2e run this session
+**To Add:** a screenshot of the readout beside the toolbar at 390 px
