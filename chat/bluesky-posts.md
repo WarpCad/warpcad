@@ -3325,3 +3325,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 30-32px painted, 42-44px hit area → diff of NavigationChrome.vue (::before inset -6px 0) and TODO/FIND-ui-135 progress note; height would overlap toolbar 12px (ui-043) and exceed ui-084 budgets → TODO/FIND-ui-135 progress note; 76 to 77 percent intended-control rate → TODO/FIND-ui-135 progress note (400 taps each, sigma 13.2px, Chromium 390x844); 8px gap is --space-4 → diff and src/styles/base.css:81; unit 444 files / 9784 tests passed and changed e2e specs 189 passed, 0 failed, 63 skipped → this session's test runs
 **To Add:** the nav row at phone width, before and after
+
+## 2026-11-18T16:42:06Z — Phone Inspector: refusal message scrolls above the pinned Delete row (TODO/ui-136)
+
+**Post:** Phone Inspector: type a size a fillet can't take and the reason appeared 67px under the pinned Delete row, so you had to swipe to read it. Now the message scrolls into view above the footer. Tested at phone width on Chromium and WebKit. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Accessibility
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 67px under the Delete row at 390x844 → TODO/done/ui-136 Problem (measured 2026-11-15); scrolls above it, scroll margin = Delete row height → diff of ParamFields.vue and .params__error; filleted-body test passes at phone width, Chromium and WebKit (2/2) → e2e run this session; changed inspector specs 180 passed, 0 failed, 12 skipped across six projects → e2e run this session
+**To Add:** the sheet at phone width with the refusal line visible, before and after

@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the testing-031 tap, timing and reach drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** the refusal line already sat under the edited field (`ui-100`), so the fix is the scroll: `ParamFields.vue` scrolls a new refusal into view with `scrollIntoView({ block: 'nearest' })`, and `.params__error` carries `scroll-margin-bottom: 96px` (the pinned Delete row's height). The data-007 filleted-body spec in `e2e/inspector-param-edit.e2e.js` now asserts the line's bottom is above the Delete row (it was 67 px under it at 390x844 before). Re-run on Chromium and WebKit at all three viewports: 0 failed. The related unit specs and typecheck are green.
 
 ## Problem
 

@@ -4812,3 +4812,16 @@ This is a partial fix. The finding stays open, and the open decision is whether 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Same sources as the BlueSky entry of this timestamp; 2 percent target missed → TODO/FIND-ui-135 progress note; gap uses --space-4 (8px) → diff and src/styles/base.css:81; spec in repo → e2e/viewport-scaffold.e2e.js
 **To Add:** the phone nav row before and after, side by side
+
+## 2026-11-18T16:42:06Z — Phone Inspector: a refused edit now scrolls into view (TODO/ui-136)
+
+**Post:** On a phone, the Inspector's Delete row is pinned to the bottom of the sheet. When a parameter edit was refused, the reason appeared underneath it. At 390x844 the message sat 67px under the footer, so you had to swipe to see why a value was rejected.
+
+The fix is small. The refusal line now scrolls into view above the footer as it appears, and its scroll margin matches the Delete row's height. The end-to-end test for a filleted body checks that the message ends above the footer. That test passes on Chromium and WebKit at phone width, and the changed inspector specs pass with no failures across phone, tablet and laptop widths on both engines.
+
+The bug came from a tap-and-reach drive, filed as a finding, and closed in the same change. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Accessibility #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Same sources as the BlueSky entry of this timestamp; "found in a tap-and-reach drive" → TODO/done/ui-136 Problem and header (testing-031 tap, timing and reach drive); no-failure count across six projects → e2e run this session
+**To Add:** the phone sheet with the refusal visible, before and after

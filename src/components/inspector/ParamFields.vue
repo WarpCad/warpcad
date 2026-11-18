@@ -21,7 +21,7 @@
  *   Rounded axis, the same controls a whole Cube has. The edit swaps the part's record in
  *   place (`useParamCommands`' `setPartParam`); a composite or combined part says why not.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import NumberField from '../controls/NumberField.vue'
 import { useParamCommands } from '../../composables/useParamCommands.js'
@@ -138,6 +138,21 @@ const paramError = ref(/** @type {string | null} */ (null))
 /** The field the refusal belongs to (`field.key`), or `''` for the panel-level fallback (TODO/ui-100). */
 const errorKey = ref('')
 watch(() => props.body.id, () => { paramError.value = null; errorKey.value = '' })
+
+/** The section's root, to find the refusal line once it is painted. */
+const root = ref(/** @type {HTMLElement | null} */ (null))
+
+/**
+ * TODO/ui-136: bring a new refusal into view above the phone sheet's pinned Delete row. The line
+ * sits under the edited field, which can leave it behind the sticky footer after the focus scroll;
+ * `scroll-margin-bottom` on `.params__error` is the footer's height, so `nearest` stops short of it.
+ */
+watch(paramError, async (message) => {
+  if (message === null) return
+  await nextTick()
+  const line = root.value?.querySelector('[data-testid="inspector-param-error"]')
+  if (line && typeof line.scrollIntoView === 'function') line.scrollIntoView({ block: 'nearest' })
+})
 
 /**
  * Whether `key` is the field the current refusal is about.
@@ -407,6 +422,7 @@ function onEnumChange(event, field) {
 
 <template>
   <section
+    ref="root"
     class="params"
     data-testid="inspector-params"
     :data-editable="editable ? 'true' : 'false'"
@@ -858,6 +874,8 @@ function onEnumChange(event, field) {
 }
 
 .params__error {
+  /* The pinned Delete row's height (TODO/ui-136), so scrolling a refusal into view clears it. */
+  scroll-margin-bottom: 96px;
   margin: 8px 0 0;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);

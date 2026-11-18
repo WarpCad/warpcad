@@ -322,6 +322,14 @@ test('a filleted body stays editable: the rim is re-applied, and a size it no lo
   const error = page.getByTestId('inspector-param-error')
   await expect(error).toBeVisible()
   await expect(error).toContainText(/Fillet/)
+  // TODO/ui-136: the refusal is fully above the pinned Delete row, not hidden under it. A retry
+  // poll, since the scroll that brings it into view runs after the line is painted.
+  await expect
+    .poll(async () => {
+      const [e, d] = await Promise.all([error.boundingBox(), page.getByTestId('inspector-delete-row').boundingBox()])
+      return e && d ? d.y - (e.y + e.height) : -999
+    })
+    .toBeGreaterThanOrEqual(-1)
   const [still] = await sceneBodies(page)
   expect(sizeOf(still)[0]).toBeCloseTo(60, 1)
   expect(still.volumeMm3).toBeCloseTo(resized.volumeMm3, 3)
