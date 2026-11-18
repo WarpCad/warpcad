@@ -3190,3 +3190,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Cube rotated -14° then -26° in Pan mode before the fix → TODO/done/ui-126 problem table; new spec green on webkit-tablet + firefox-laptop (34 passed) and chromium-phone, chromium-tablet, webkit-phone (141 passed) → test runs this session
 **To Add:** none
+
+## 2026-11-18T00:30:00Z — build-039: the home page's Help list and the release checklist
+
+**Post:** The warpcad.com home page lists the app's Help pages, but it only rebuilds when someone runs its workflow, so two new pages were missing. Both are grouped now and the release notes make that workflow the last step. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** live index lists 35 pages, home links 33, missing native-apps and import → TODO/done/build-039; workflow manual-only since b3c72b6 → git log in warpcad.github.io
+**To Add:** none

@@ -4613,3 +4613,16 @@ The new end-to-end spec does a real hit test and a real mouse drag, because the 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** ring ~57 px from hub on a Cube at phone width → TODO/done/ui-126; older specs dispatch at the element → e2e/gizmo-transform.e2e.js dragHandle; specs green → test runs this session
 **To Add:** none
+
+## 2026-11-18T00:30:00Z — build-039: the home page's Help list and the release checklist
+
+**Post:** The warpcad.com home page links the app's Help pages, reading the list from the app's live index when its workflow runs. That workflow became manual-only on 2026-11-06 (commit b3c72b6), so two pages added afterwards, native-apps and import, never got a link: the index listed 35 pages and the home page linked 33.
+
+I kept the manual deploys and fixed the drift at its source instead: both pages are filed into the home page's groups, its README now says what the workflow really does, and the release notes name running it as the last release step. The live page updates once the workflow is run.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #StaticSites
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 35 vs 33 pages, 2026-11-15 drive → TODO/done/build-039; b3c72b6 dated 2026-11-06 → the TODO file's own text
+**To Add:** none

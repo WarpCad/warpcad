@@ -86,6 +86,19 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q95 · Keep the home page on manual deploys, with a release-checklist step?
+
+**Question:** `build-039` assumed you want to keep manual-only deploys of `warpcad.com` (your `b3c72b6` choice); keep that?
+
+**Background:** The home page's Help links come from the app's live `help/index.json` when its `pages` workflow runs, and nothing runs it after a release. `native-apps` and `import` were missing for that reason. I took the option that respects your choice: file those two pages into `docs-groups.json`, fix the README, and add "run the home page's `pages` workflow" to `docs/decisions/release.md`.
+
+**Options:**
+- **Keep manual deploys (Recommended):** no token, no cost; the step can be forgotten, so the gap can come back after a release.
+- **Restore a daily `schedule`:** the page never goes stale; one cheap build a day (the workflow runs no tests now).
+- **Dispatch it from the app's Release workflow:** automatic, but needs a token with access to the other repository.
+
+**If deferred:** manual deploys stay.
+
 #### Q94 · Keep the spacing snap I chose when `ui-123` put padding and gap on tokens?
 
 **Question:** Padding and gap values off the `--space-1…8` scale were snapped; keep that?
@@ -1451,6 +1464,16 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 ## 4. Accounts and settings
 
 Things only your signed-in accounts can do.
+
+#### K0 · Push the home page fix and run its `pages` workflow
+
+`build-039` · 3 min · filed 2026-11-18
+
+**Steps:** 1. In `~/src/@WarpCad/warpcad.github.io`, review the local commit and `git push origin main`. 2. github.com → warpcad.github.io → Actions → pages → Run workflow, from `main`. 3. When it finishes, open `https://warpcad.com/` and look for **Native apps** and **Import** under the Help links.
+
+**Pass if:** Every slug in `https://app.warpcad.com/help/index.json` has an `app.warpcad.com/#/help/<slug>` link on the home page (the runner re-compares it if you type "done" in Other).
+
+**Answer:** action
 
 #### K1 · Confirm the GitHub LFS free limits
 

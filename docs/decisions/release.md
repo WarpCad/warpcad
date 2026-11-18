@@ -47,6 +47,11 @@ outside the production licence check; `yaml` (ISC) joins them for the workflow g
   `pages.yml` with the new tag. The release job has `contents: write` and nothing else.
 - `pages.yml` accepts `workflow_call` and `workflow_dispatch`, each with a `ref`; it builds that ref.
   It has no `workflow_run` trigger, so a merge deploys nothing.
+- **The home page is a separate repository and is not rebuilt by a release.** Its `pages` workflow
+  (`warpcad.github.io`, manual only since `b3c72b6`) reads the app's live `help/index.json` when it
+  builds, so a release that adds a Help page leaves `warpcad.com` without a link to it until
+  someone runs that workflow (Actions → pages → Run workflow, from `main`). It is the last step of
+  the release checklist (`TODO/build-039`).
 - The ref is always the head of `main`: release-it commits the version bump onto `main`, so it cannot
   release an older commit. (`TODO/build-013` sketched an optional `ref` input; it was dropped for
   this reason. Rebuilding an old release is `pages.yml`'s own `ref` input.)

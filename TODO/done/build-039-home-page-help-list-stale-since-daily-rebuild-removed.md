@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the testing-024 drive of build-022 #10
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** option 3, which keeps your manual deploys (`b3c72b6`). In `warpcad.github.io`: `native-apps` filed under **Start here**, `import` under **History and files**, and the README's deploy paragraph corrected. In this repo: `docs/decisions/release.md` says a release does not rebuild the home page and that running its `pages` workflow is the last release step. The live page does not change until the owner pushes the home repo and runs that workflow (`TODO/OWNER.md` K0); the choice of option is `Q95`. Nothing was pushed or dispatched.
 
 ## Problem
 

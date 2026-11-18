@@ -75,7 +75,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
-| 48 | ▶ Ready | `FIND` | [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) Make the warpcad.com home page follow the app's Help again (it lacks `native-apps` and `import` since its daily rebuild was removed) | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 | 50 | ▶ Ready | `FIND` | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | sonnet |
 | 51 | ▶ Ready | `FIND` | [`core-084`](FIND-core-084-sketch-twist-volume-loss-grows-on-thin-profiles.md) Keep a sketch's automatic Twist steps within 3% of the volume on a long, thin profile | sonnet |
@@ -220,7 +219,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-058`](DEFER-ui-058-gear-mesh-operation.md) Mesh operation for two gears (was M11) | feature | high | opus | Deferred 2026-11-07 |
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
-| [`build-039`](FIND-build-039-home-page-help-list-stale-since-daily-rebuild-removed.md) The warpcad.com home page has not followed the app's Help since its daily rebuild was removed | finding | low | sonnet | ▶ Ready (Next up row 48) |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
 | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 50) |
 | [`core-084`](FIND-core-084-sketch-twist-volume-loss-grows-on-thin-profiles.md) A sketch's automatic Twist steps still lose several percent of the volume on a long, thin profile | finding | low | sonnet | ▶ Ready (Next up row 51) |
@@ -383,7 +381,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
-| `build-039` | The home page links 33 of the app's 35 Help pages and still lacks the 2026-11-09 grouping, because `b3c72b6` made its `pages` workflow manual-only. Filed 2026-11-15 from the testing-024 drive of `build-022` #10 | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
 | `docs-036` | Fix the docs pictures and sentences two cold readers could not follow. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
 | `core-084` | A sketch's automatic Twist steps still lose 5.7% of the volume on a 31 × 4.92 mm profile at Twist 90. Filed 2026-11-15 from `core-083` | Finding | — | 9 |
