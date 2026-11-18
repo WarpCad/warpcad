@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the testing-031 tap, timing and reach drive
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-18:** `src/render/sketchDraw.js` keeps a `chainTouch` flag (set by `begin`, `lineTap`, `trackChain`) and uses a 32 px close radius for a finger, 14 px for a mouse; the first-point pulse uses the same radius. Unit test in `sketchDraw.spec.js`; touch e2e in `sketch-primitive.e2e.js` (tap 25 px off the first point closes). The 95 % scatter re-run was not repeated; the radius is the one the finding derived (2.45 sigma). `docs/sketch-mode.md` quotes both radii.
 
 ## Problem
 

@@ -59,6 +59,14 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### sketch-009 — Line close radius for a finger (2026-11-18 17:45)
+
+Driven by `e2e/sketch-primitive.e2e.js` on chromium-phone (trusted touch). The scatter re-run was not repeated.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | sketch-006 #1: tap near the first point closes the outline | OK | A tap 25 px off the first point closed a triangle on chromium-phone (1 of 1). |
+
 ### ui-134 — Orientation dial taps (tablet) (2026-11-18 16:12)
 
 Tablet got the 190px dial with 44px caps and nearest-cap tap resolution. The phone only got the resolution, because the big dial does not fit beside the toolbar at 390px.

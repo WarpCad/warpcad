@@ -189,6 +189,15 @@ describe('createSketchDraw: the Line chain', () => {
     expect(editor.fixChainVertex).toHaveBeenCalledTimes(1)
   })
 
+  it('a finger tap gets a wider close radius than a mouse click', () => {
+    const { draw, editor } = setup({ tool: 'line', project: [12, 7] })
+    const mmPerPx = draw.toleranceMm() / 14
+    draw.lineTap(1, 1, false, false)
+    expect(editor.fixChainVertex.mock.calls[0][1].closeToleranceMm).toBeCloseTo(14 * mmPerPx, 6)
+    draw.lineTap(1, 1, false, true)
+    expect(editor.fixChainVertex.mock.calls[1][1].closeToleranceMm).toBeCloseTo(32 * mmPerPx, 6)
+  })
+
   it('a tap with the pointer off the plane does nothing', () => {
     const { draw, editor } = setup({ tool: 'line', project: null })
     draw.lineTap(1, 1)

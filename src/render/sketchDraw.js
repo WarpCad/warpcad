@@ -23,6 +23,12 @@ import { createScreenPoint, sketchPointToScreen, updateSketchPath } from './anno
 /** The pick/snap tolerance, in screen pixels: how forgiving a pick is. */
 const SKETCH_PICK_TOLERANCE_PX = 14
 /**
+ * The close-the-outline radius for a finger, in screen pixels. A fingertip scatters about 13 px (sigma)
+ * around its target, so 14 px closed only 45 % of taps; about 2.45 sigma closes 95 % (`TODO/sketch-009`).
+ * A mouse keeps the tighter radius so a distant click cannot close a shape by accident.
+ */
+const SKETCH_CLOSE_TOLERANCE_TOUCH_PX = 32
+/**
  * Below this, a sketch drag committed nothing: the Interaction model's explicit degenerate case.
  * Expressed in pixels and converted to millimetres at the moment of the check, so the threshold
  * means the same thing to the user's hand at every zoom level.
@@ -134,6 +140,15 @@ export function createSketchDraw(deps) {
     return SKETCH_PICK_TOLERANCE_PX * (orbit.getMmPerPixel(deps.heightPx()) || 1)
   }
 
+  /** Whether the pointer last seen on the Line chain was a finger. */
+  let chainTouch = false
+
+  /** The close-the-outline radius in sketch millimetres: wider for a finger than for a mouse. */
+  function closeToleranceMm() {
+    const px = chainTouch ? SKETCH_CLOSE_TOLERANCE_TOUCH_PX : SKETCH_PICK_TOLERANCE_PX
+    return px * (orbit.getMmPerPixel(deps.heightPx()) || 1)
+  }
+
   /** The profile the drag in progress would commit, or `null` for the Line tool. */
   function draggedProfile() {
     const start = /** @type {[number, number]} */ ([drag.startXMm, drag.startYMm])
@@ -213,7 +228,7 @@ export function createSketchDraw(deps) {
     updateSketchPath(orbit, frame, [anchor, end], zMm, false, widthPx, heightPx, draft)
     const lengthMm = Math.hypot(end[0] - anchor[0], end[1] - anchor[1])
     const tolerance = toleranceMm()
-    chain.closeNear = chain.showFirst && chainPoints !== null && Math.hypot(end[0] - chainPoints[0][0], end[1] - chainPoints[0][1]) <= tolerance
+    chain.closeNear = chain.showFirst && chainPoints !== null && Math.hypot(end[0] - chainPoints[0][0], end[1] - chainPoints[0][1]) <= closeToleranceMm()
     if (lengthMm > tolerance * 0.5) {
       const tip = sketchPointToScreen(orbit, frame, end[0], end[1], zMm, widthPx, heightPx, scratchTip)
       chain.labelXPx = (chain.lastXPx + tip.x) / 2
@@ -233,6 +248,7 @@ export function createSketchDraw(deps) {
    */
   function trackChain(clientXPx, clientYPx, shiftKey = false) {
     if (editor.tool !== 'line' || !editor.chainLive) return
+    chainTouch = deps.isTouchPress()
     const point = deps.project(clientXPx, clientYPx)
     if (!point) return
     // The rubber band ends where the click would fix the vertex: snapped, so what you see is what you get.
@@ -254,7 +270,7 @@ export function createSketchDraw(deps) {
   function fixVertex(pointMm) {
     const mmPerPx = orbit.getMmPerPixel(deps.heightPx()) || 1
     const result = editor.fixChainVertex(pointMm, {
-      closeToleranceMm: toleranceMm(),
+      closeToleranceMm: closeToleranceMm(),
       minLengthMm: SKETCH_MIN_LENGTH_PX * mmPerPx,
     })
     if (result !== 'ignored') {
@@ -275,6 +291,7 @@ export function createSketchDraw(deps) {
      * @returns {boolean} False when the press point does not meet the sketch plane.
      */
     begin(clientXPx, clientYPx, shiftKey, touch) {
+      chainTouch = touch
       const point = deps.project(clientXPx, clientYPx)
       if (!point) return false
       // The press point is the first point fixed: a circle's centre, a rectangle's corner.
@@ -360,6 +377,7 @@ export function createSketchDraw(deps) {
      * @param {boolean} [touch]
      */
     lineTap(clientXPx, clientYPx, shiftKey = false, touch = false) {
+      chainTouch = touch
       const point = deps.project(clientXPx, clientYPx)
       if (!point) return
       deps.snap(point, shiftKey, touch)

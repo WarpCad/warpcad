@@ -75,7 +75,7 @@ millimetres beside it.
    fixes the next point. You can also press and drag: the first drag fixes the first two
    points, and any later drag fixes the point where you let go.
 3. Click the **first** point again to close the triangle. The first point pulses when you are
-   close enough. The outline turns blue and is part of the solid.
+   close enough (about 14 px for a mouse, a roomier 32 px for a finger, so a fingertip tap near it closes the outline). The outline turns blue and is part of the solid.
 4. Or leave it open instead: press **Esc** or **Enter**, tap **Finish**, double-click where the last
    point should go (the first click fixes it, the second finishes), or pick another tool. An open outline is drawn in amber and is not part of the
    solid.

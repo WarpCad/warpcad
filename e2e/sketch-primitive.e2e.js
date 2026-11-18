@@ -600,6 +600,43 @@ test('touch only: a finger draws a circle and taps it, at the phone viewport', a
   await expect(page.locator('[data-testid^="sketch-profile-"][data-role="hole"]')).toHaveCount(1)
 })
 
+test('touch only: a fingertip tap 25 px off the first point still closes a Line outline (TODO/sketch-009)', async ({ page, browserName }, info) => {
+  test.skip(!isPhone(info), 'the touch pass runs at the phone reference')
+  test.skip(browserName !== 'chromium', 'a trusted touch drag needs CDP Input.dispatchTouchEvent, which only Chromium exposes')
+  const cdp = await page.context().newCDPSession(page)
+  /** @param {number} x @param {number} y */
+  const tap = async (x, y) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+  await openLibrary(page)
+  const row = await page.getByTestId('library-row-primitive.sketch').boundingBox()
+  const view = await page.getByTestId('viewport').boundingBox()
+  if (!row || !view) throw new Error('no row or viewport')
+  const to = [view.x + view.width / 2, view.y + view.height * 0.35]
+  const from = [row.x + row.width / 2, row.y + row.height / 2]
+  const path = Array.from({ length: 12 }, (_, i) => [from[0] + ((to[0] - from[0]) * i) / 11, from[1] + ((to[1] - from[1]) * i) / 11])
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: path[0][0], y: path[0][1] }] })
+  for (const [x, y] of path.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] })
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-sketch-mode', 'true')
+  await page.getByTestId('sketch-tool-line').tap()
+  const { cx, cy, pxPerMm } = await sketchScreen(page)
+  const a = [cx - 30 * pxPerMm, cy + 20 * pxPerMm]
+  await tap(a[0], a[1])
+  await page.waitForTimeout(500)
+  await tap(cx + 30 * pxPerMm, cy + 20 * pxPerMm)
+  await page.waitForTimeout(500)
+  await tap(cx, cy - 30 * pxPerMm)
+  await page.waitForTimeout(500)
+  // 25 px from the first point: outside the mouse's 14 px, inside the finger's 32 px.
+  await tap(a[0] + 18, a[1] + 17)
+  await expect(page.getByTestId('sketch-strokes')).toHaveAttribute('data-path-count', '1')
+  await page.getByTestId('sketch-tool-select').tap()
+  await page.touchscreen.tap(cx, cy + 5 * pxPerMm)
+  await expect(page.getByTestId('sketch-selection-status')).toContainText('Closed outline, Solid — 3 points')
+})
+
 test('touch only: Select tool picks with a finger, and the toolbar Delete removes it — no keyboard (TODO/sketch-005)', async ({ page, browserName }, info) => {
   test.skip(!isPhone(info), 'the touch pass runs at the phone reference')
   test.skip(browserName !== 'chromium', 'a trusted touch *drag* needs CDP Input.dispatchTouchEvent, which only Chromium exposes')
