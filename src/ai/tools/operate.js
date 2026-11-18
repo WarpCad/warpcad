@@ -251,8 +251,8 @@ export const OPERATIONS = Object.freeze({
   'boolean.subtract': booleanSpec(
     'Subtract',
     'Cut every later operand out of the first. Operands may name parts, e.g. a bolt’s "tap". ' +
-      'Cutting with only a Raspberry Pi’s mounting holes (pieces "hole1" … "hole4", "fan1hole", "fan2hole") leaves the Pi in place, ' +
-      'so the same Pi can drill the next hole; every other operand is used up.'
+      'Cutting with only a Raspberry Pi’s mounting holes (pieces "hole1" … "hole4", "fan1hole", "fan2hole") or its keep-outs ("clearance-usbc", "clearance-hdmi1" …) leaves the Pi in place, ' +
+      'so the same Pi can drill the next hole or cut the next port opening; every other operand is used up.'
   ),
   'boolean.intersect': booleanSpec('Intersect', 'Keep only the volume every operand shares.'),
 

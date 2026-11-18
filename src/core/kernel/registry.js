@@ -115,7 +115,7 @@ import {
   PHONE_MODELS,
 } from './recipes/phoneModels.js'
 import { activeCoolingFan } from './recipes/raspberrypi.activeCoolingFan.js'
-import { BPLUS_DRILL_PARTS, BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
+import { BPLUS_DRILL_PARTS, BPLUS_KEEP_OUT_PREFIX, BPLUS_MODELS, BPLUS_PART_ALIASES, DEFAULT_CLEARANCE_MM, bplus } from './recipes/raspberrypi.bplus.js'
 import { boltSpecs } from './tables/bolt-specs.js'
 import { nutSpecs } from './tables/nut-specs.js'
 import { screwSpecs } from './tables/screw-specs.js'
@@ -3155,4 +3155,17 @@ const DRILL_PARTS = Object.freeze({
  */
 export function drillPartsOf(op) {
   return Object.hasOwn(DRILL_PARTS, op) ? DRILL_PARTS[op] : Object.freeze([])
+}
+
+/**
+ * Is `part` a hidden keep-out volume of `op`'s recipe (`TODO/ai-047`)? A Subtract naming only
+ * such parts cuts that volume and leaves the body in the scene, like a drill part. False for
+ * every op that declares no keep-outs.
+ *
+ * @param {string} op
+ * @param {string} part
+ * @returns {boolean}
+ */
+export function isKeepOutPart(op, part) {
+  return op === 'raspberrypi.bplus' && part.startsWith(BPLUS_KEEP_OUT_PREFIX)
 }

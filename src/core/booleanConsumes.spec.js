@@ -113,10 +113,18 @@ describe('consumesOf — the records a boolean retires', () => {
     }
   })
 
+  it('a keep-out volume keeps the Pi too, alone or with holes (TODO/ai-047)', () => {
+    const document = piOverPlate({ model: 4 })
+    const pi = /** @type {string} */ (document.currentIdOf('pi-1'))
+    for (const pieces of ['clearance-avjack', 'clearance-usbc,clearance-hdmi1', 'hole1,clearance-usbc']) {
+      expect(keepsToolBody(document, 'boolean.subtract', { terminal: pi, ref: { id: pi, pieces } }, 1), pieces).toBe(true)
+    }
+  })
+
   it('a hole mixed with any other part, or the whole Pi, consumes it — that is a cut with the board', () => {
     const document = piOverPlate()
     const pi = /** @type {string} */ (document.currentIdOf('pi-1'))
-    for (const ref of [{ id: pi, pieces: 'hole1,usb1' }, { id: pi, pieces: 'clearance-avjack' }, pi]) {
+    for (const ref of [{ id: pi, pieces: 'hole1,usb1' }, { id: pi, pieces: 'clearance-avjack,usb1' }, pi]) {
       const operands = [
         { terminal: 'plate-1', ref: 'plate-1' },
         { terminal: pi, ref },

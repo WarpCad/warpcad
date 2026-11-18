@@ -57,12 +57,11 @@ Position everything with `group.align` against the part, never with copied coord
 
 ## 4. Cut-outs
 
-Never subtract with a keep-out piece directly: a cut with any piece other than the mounting holes uses the whole part up. Draw a cutter for each opening instead:
+Cut each opening with the board's own keep-out piece. A cut with only keep-out pieces (`clearance-*`) removes exactly that volume and leaves the board in place, so one board cuts every port:
 
-1. Read the keep-out part's size with `evaluate_formula { formula: "[Part].[clearance-usbc].width" }`, and the same for `.depth` and `.height`.
-2. Create a `primitive.cuboid` cutter. On the two axes across the opening, make it the keep-out size plus 2 × clearance. On the axis through the wall, make it the keep-out size plus 2 × wall, so it passes right through.
-3. Line it up with the port: `operate { op: "group.align", operands: [{ id: "<cutter>" }, { id: "<part>", pieces: "clearance-usbc" }], params: { axes: "xyz" } }`.
-4. Cut it from the shell: `operate { op: "boolean.subtract", operands: [{ id: "<shell>" }, { id: "<cutter>" }] }`.
+1. Cut the port: `operate { op: "boolean.subtract", operands: [{ id: "<shell>" }, { id: "<part>", pieces: "clearance-usbc" }] }`. Several keep-outs can go in one call: `pieces: "clearance-usbc,clearance-hdmi1"`. Mixing in any other piece, such as `usb1`, uses the board up.
+2. A keep-out reaches 5 mm past the board's edge by default. If `clearance + wall` is more than that, the opening won't go through the wall, so create the board with a bigger `clearance` param before you start (at least `clearance + wall + 1`).
+3. Check with `measure { ids: ["<shell>"] }` or `check_clearance`: the port should be open from the cavity to the outside.
 
 ## 5. The lid
 

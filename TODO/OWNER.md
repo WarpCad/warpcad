@@ -86,6 +86,18 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q101 · Keep a Raspberry Pi in the scene after you cut a port opening with its keep-out?
+
+**Question:** `ai-047` made a Subtract with only a Pi's `clearance-*` keep-outs leave the Pi in the scene, like its mounting holes (before, it was used up). Keep this?
+
+**Background:** Assumed yes, because the owner asked for keep-out cuts in Q3 and one Pi then cuts every port. It changes the Operations toolbar too: `ui-040`'s case cut no longer removes the Pi. Saved projects are unaffected. The `create-enclosure` skill was not re-driven with `claude -p --model haiku` (the warpcad MCP server was down).
+
+**Options:**
+1. **Keep it (Recommended)**: the Pi stays, one Pi cuts every port.
+2. **Revert**: restore the Pi being used up and keep cutter bodies.
+3. **Explain more**
+4. **Defer**
+
 #### Q100 · Should the camera zoom in on a small part you just dropped?
 
 **Question:** `ui-130` fixed the dimension labels and the ring cue but not item 1: an M4 Nut drops 18 px wide at the default camera. Keep the camera where it is, or zoom to frame a small dropped part?

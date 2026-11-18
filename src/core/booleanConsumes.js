@@ -18,7 +18,9 @@
  *   the thing being cut, so it is always retired);
  * - the operand is a sub-part address, and every part it lists is one of the drill parts the
  *   body's creation op declares (`drillPartsOf` in `kernel/registry.js`; today only
- *   `raspberrypi.bplus`: `hole1`–`hole4`, `fan1hole`, `fan2hole`). A hole mixed with any
+ *   `raspberrypi.bplus`: `hole1`–`hole4`, `fan1hole`, `fan2hole`) or one of its keep-out
+ *   volumes (`isKeepOutPart`: `clearance-usbc` and so on, `TODO/ai-047`, so a case's port
+ *   openings are cut with the keep-out itself). A drill or keep-out mixed with any
  *   other part (`hole1,usb1`) is a cut with the board, and retires it;
  * - the body's lineage root is still that recipe: a Pi that was itself the base of an earlier
  *   cut is a Subtract result now, not a Pi.
@@ -49,7 +51,7 @@
  * @module core/booleanConsumes
  */
 
-import { drillPartsOf } from './kernel/registry.js'
+import { drillPartsOf, isKeepOutPart } from './kernel/registry.js'
 
 /** @typedef {import('./kernel/registry.js').OpRecord} OpRecord */
 
@@ -117,7 +119,7 @@ export function keepsToolBody(view, op, operand, index) {
     return pieces.every((piece) => hidden.includes(piece))
   }
   const drills = drillPartsOf(creation.op)
-  return drills.length > 0 && pieces.every((piece) => drills.includes(piece))
+  return pieces.every((piece) => drills.includes(piece) || isKeepOutPart(creation.op, piece))
 }
 
 /**

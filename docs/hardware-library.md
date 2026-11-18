@@ -209,9 +209,11 @@ falls. Each hole is also kept as a hidden part (`hole1` to `hole4`) for exactly 
    under the same **Raspberry Pi 1**, and press **Subtract** again. Repeat with `hole3` and
    `hole4`. One Pi drills all four holes; you never place a second one.
 
-The Pi's mounting holes (`hole1` to `hole4`, plus `fan1hole` and `fan2hole` on a Pi 5) are
-the only parts that leave the Pi in place. Cutting with any other piece, such as the Ethernet
-jack or a `clearance-*` keep-out, or with the Pi's hole *and* another piece together, still
+The Pi's mounting holes (`hole1` to `hole4`, plus `fan1hole` and `fan2hole` on a Pi 5) and its
+hidden `clearance-*` keep-outs (`clearance-usbc`, `clearance-hdmi1` and so on) are the only parts
+that leave the Pi in place. A keep-out cuts exactly its own volume, so a case's port opening is one
+Subtract with the keep-out ticked. Cutting with any other piece, such as the Ethernet
+jack, or with a hole or keep-out *and* one of those other pieces together, still
 uses the Pi up, as every other Subtract does (see [Combining shapes](booleans.md)).
 
 Two things to know about a kept Pi:

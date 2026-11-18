@@ -591,11 +591,12 @@ test('a case with a sub-part Subtract of clearance-avjack, Only when… this ope
   await page.getByTestId('objects-expand-pi').click()
   await page.getByTestId('objects-part-check-pi-clearance-avjack').click()
   await page.getByTestId('operation-subtract').click()
-  await expectBodyCount(page, 1)
-  await expect.poll(async () => (await sceneBodies(page))[0]?.volume).not.toBe(uncut)
-  const cut = (await sceneBodies(page))[0].volume
+  // A keep-out cut leaves the Pi in the scene (TODO/ai-047), so two bodies remain.
+  await expectBodyCount(page, 2)
+  const caseVolume = async () => (await sceneBodies(page)).find((body) => body.id !== 'pi')?.volume
+  await expect.poll(caseVolume).not.toBe(uncut)
+  const cut = await caseVolume()
 
-  // The Pi was consumed by the Subtract, so History's Edit is the way to its Model.
   await openHistory(page)
   const piRow = page.locator('[data-step-id="pi"]')
   await piRow.click()
@@ -614,8 +615,8 @@ test('a case with a sub-part Subtract of clearance-avjack, Only when… this ope
   // The case is still there, without the cut-out. (Closing History first: a selected
   // History row previews the document at that step, which would show only the Pi.)
   await closeHistory(page)
-  await expectBodyCount(page, 1)
-  await expect.poll(async () => (await sceneBodies(page))[0]?.volume).toBe(uncut)
+  await expectBodyCount(page, 2)
+  await expect.poll(caseVolume).toBe(uncut)
 
   // Back to a Pi 4: the cut-out comes back, with no dialog.
   await openHistory(page)
@@ -625,7 +626,7 @@ test('a case with a sub-part Subtract of clearance-avjack, Only when… this ope
   await page.getByTestId('timeline-apply').click()
   await expect(page.getByTestId('repair-dialog')).toHaveCount(0)
   await closeHistory(page)
-  await expect.poll(async () => (await sceneBodies(page))[0]?.volume).toBe(cut)
+  await expect.poll(caseVolume).toBe(cut)
 })
 
 test('Pi 4 + cube snapped to ethernet → Pi 5: no dialog, and the cube follows the jack', async ({ page }) => {
