@@ -59,6 +59,16 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-129 — plain messages and readable ids (2026-11-18 04:17)
+
+The mappings are unit-tested and the three display points are asserted in e2e. Two things no spec covers.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | A fresh pair of readers reads the new fillet, size and broken-step sentences and the activity-row ids (the TODO's "re-run the cold read"). | Moved | → `ui-146`, which re-runs the cold read on the History row once its layout lands. |
+| 2 | The new broken-step sentence's length in the 130 px phone History panel (it is longer than the line it replaced). | Moved | → `ui-146`, which already budgets that panel. |
+
+
 ### docs-036 — cold-read docs sentences and the keep-out picture (2026-11-18 03:41)
 
 Text and one picture; the movies are `docs-038`. The new sentences were not read by a fresh pair.
@@ -1407,7 +1417,7 @@ Scale, build, overlay and Save-confirm are covered by unit specs, a scripted-pro
 | 3 | Product call: the overlay draws the model at 0.55 opacity with the grid hidden. Is that the right look for judging a match? | Owner | 2026-11-17 (`testing-033`): → `TODO/OWNER.md` Q60. Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 4 | Product call: a **cancelled turn keeps the scale it set** for the rest of the session (the project itself is untouched). Acceptable, or should a cancel forget it? | Owner | 2026-11-17 (`testing-033`): → `TODO/OWNER.md` Q61. Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 | 5 | Product call: if you send a new message while a Save proposal is pinned, the proposal stays until Confirm or Not now. Should a new message dismiss it? | Owner | 2026-11-17 (`testing-033`): → `TODO/OWNER.md` Q62. Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
-| 6 | Wording: *Image sent to Anthropic with your request, using your key. It is not sent anywhere else.* Right words? | Moved | 2026-11-17 owner (OWNER.md Q12): new wording "…and billed to your own API key…" → `ui-129`. |
+| 6 | Wording: *Image sent to Anthropic with your request, using your key. It is not sent anywhere else.* Right words? | OK | 2026-11-17 owner (OWNER.md Q12): new wording "…and billed to your own API key…"; shipped by `ui-129` 2026-11-18 (`useAgent.js`, `docs/ai-partner.md`). |
 
 ### core-054 — Saving a group as a user part drops its user colour overrides (2026-10-10 19:05)
 

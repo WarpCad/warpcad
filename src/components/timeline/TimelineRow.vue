@@ -40,6 +40,7 @@ import NumberField from '../controls/NumberField.vue'
 import BaseChip from '../display/BaseChip.vue'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { originChipText } from '../../core/origin.js'
+import { userReason } from '../../core/userReason.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
 const props = defineProps({
@@ -93,9 +94,10 @@ const rollbackVerdict = computed(() => {
 
 /** The `broken` reason to show: the shadow check's, or the last refusal's. */
 const brokenReason = computed(() => {
-  if (props.row.broken !== null) return props.row.broken
+  // `TODO/ui-129`: the plain sentence; the raw text (record ids and all) stays in the document.
+  if (props.row.broken !== null) return userReason(props.row.broken)
   const failing = timeline.error?.broken
-  return failing && failing.id === props.row.id ? failing.reason : null
+  return failing && failing.id === props.row.id ? userReason(failing.reason) : null
 })
 
 // Selecting a different row closes any form this one had open, so an abandoned

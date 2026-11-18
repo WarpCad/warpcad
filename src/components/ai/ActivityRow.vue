@@ -19,6 +19,8 @@
  */
 import { computed, ref } from 'vue'
 
+import { plainIdsIn, userReason } from '../../core/userReason.js'
+
 const props = defineProps({
   item: { type: /** @type {import('vue').PropType<import('../../ai/transcript.js').ToolItem>} */ (Object), required: true },
   /** What the assistant did right after this row (error rows only). */
@@ -41,7 +43,7 @@ const expanded = ref(false)
 
 const result = computed(() => {
   if (props.item.status === 'running') return 'working'
-  if (props.item.status === 'error') return props.item.error ?? 'failed'
+  if (props.item.status === 'error') return plainIdsIn(userReason(props.item.error ?? 'failed'))
   if (props.item.status === 'discarded') return 'not kept'
   return ''
 })
@@ -62,9 +64,9 @@ const result = computed(() => {
     >
       <span class="row__glyph" aria-hidden="true">{{ glyph }}</span>
       <span class="row__body">
-        <span class="row__label" data-testid="ai-activity-label">{{ item.label }}</span>
+        <span class="row__label" data-testid="ai-activity-label" :title="item.label">{{ plainIdsIn(item.label) }}</span>
         <span v-if="result" class="row__result" data-testid="ai-activity-result">{{ result }}</span>
-        <span v-if="item.summary && item.status === 'ok'" class="row__summary" data-testid="ai-activity-summary">{{ item.summary }}</span>
+        <span v-if="item.summary && item.status === 'ok'" class="row__summary" data-testid="ai-activity-summary" :title="item.summary">{{ plainIdsIn(item.summary) }}</span>
         <span v-if="item.status === 'error' && next" class="row__next" data-testid="ai-activity-next">Then: {{ next }}</span>
       </span>
     </button>

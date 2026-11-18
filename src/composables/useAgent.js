@@ -246,7 +246,7 @@ export function useAgent() {
         kind: 'notice',
         level: 'info',
         // v1 is Anthropic-only (docs/decisions/ai-partner.md).
-        message: 'Image sent to Anthropic with your request, using your key. It is not sent anywhere else.',
+        message: 'Image sent to Anthropic with your request and billed to your own API key. It is not sent anywhere else.',
       })
     }
     chat.running = true

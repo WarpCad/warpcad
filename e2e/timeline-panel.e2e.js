@@ -597,7 +597,7 @@ test('TODO/data-006: Re-link points a broken tail row at the body an insert move
   // and it is *offered* the re-link — nothing re-pointed yet.
   await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
   await page.getByTestId('timeline-row-3').click()
-  await expect(page.getByTestId('timeline-broken-reason')).toContainText('has itself already been superseded')
+  await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
   const relink = page.getByTestId('timeline-relink')
   await expect(relink).toBeVisible()
   await expect(relink).toBeEnabled()

@@ -32,6 +32,7 @@ import { onBeforeUnmount, onMounted } from 'vue'
 
 import BaseButton from '../controls/BaseButton.vue'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
+import { userReason } from '../../core/userReason.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 
 const timeline = useTimelineStore()
@@ -102,7 +103,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       role="alert"
       data-testid="timeline-error"
     >
-      {{ timeline.error.message }}
+      {{ userReason(timeline.error.message) }}
     </p>
   </div>
 </template>

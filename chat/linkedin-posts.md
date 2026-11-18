@@ -4678,3 +4678,17 @@ The five movie re-records are a separate task, and a fresh pair of readers has n
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two fresh readers could not follow → TODO/done/docs-036-cold-read-docs-pictures-and-sentences.md Problem section; Align button labels → same file, item 4, and the button text in docs/snap-align.md diff; Rotation X in degrees → diff of docs/snap-align.md; "Keep-out: power connector" label → diff of e2e/docs/hardware-library.docs.js and regenerated docs/screenshots/rpi-keepout.png; Fit result 40 to 20 → diff of docs/resize-bisect.md (cube 40 mm, scale 0.5 applied to all axes); five movie re-records not done → TODO/FIND-docs-038-cold-read-gif-rerecords.md; new text not cold-read → TODO/VERIFY.md docs-036 row
 **To Add:** none
+
+## 2026-11-18T11:18:34Z — ui-129: plain fillet, size and broken-step messages
+
+WarpCad's error messages were written for the console. A radius too large for a part used to show the kernel's op name and an "extent along the axis" phrase. The fillet popover now says "A 45 mm radius is too large for this 40 mm part. Use a radius smaller than 40 mm." A zero height reads "Height must be more than 0 mm.", and the Assistant's activity log shows cuboid-k3f5xa-1 as "Cuboid 1", with the full id on hover.
+
+The console, the MCP tools and the tests still get the kernel's raw text. The mapping is one small module, applied only where people read the message, and it returns any message it does not recognise unchanged. The broken History row's layout is still open and filed as its own task.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the fillet sentence → src/core/userReason.js and e2e/fillet-chamfer-operation.e2e.js (green, pair runs 57 and 58, this session); "Height must be more than 0 mm." → src/core/userReason.spec.js and e2e/inspector-param-edit.e2e.js (green, this session); "Cuboid 1" → plainRecordId in src/core/userReason.js, spec green this session; full raw text kept for console, MCP and tests → src/core/userReason.js module doc; broken row layout open → TODO/FIND-ui-146-broken-history-row-one-name-and-visible-repair.md
+**To Add:** none

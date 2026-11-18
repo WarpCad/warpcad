@@ -287,7 +287,8 @@ test('a radius the kernel rejects (>= the solid\'s own extent) surfaces visibly 
 
   const error = page.getByTestId('fillet-chamfer-error')
   await expect(error).toBeVisible()
-  await expect(error).not.toHaveText('')
+  // TODO/ui-129: the plain sentence, with the limit, and no op id.
+  await expect(error).toHaveText('A 45 mm radius is too large for this 40 mm part. Use a radius smaller than 40 mm.')
 
   // Nothing committed: the popover stays open (so the value can be corrected)
   // and the body is untouched.

@@ -241,8 +241,8 @@ The most common way a step breaks is one you caused on purpose: you roll back to
 step, then **move or resize a body** that the step builds on. Moving a body adds a new step
 that replaces the body's old position, so a later step that was pointing at the old one is
 left pointing at something that no longer exists. That later step gets the `broken` label, and when you select it the line under the row
-reads `can't be built: supersedes "…", which has itself already been superseded by "…"` —
-the two names are the body's old and new positions.
+reads *This step can't be built because a later step already changed the part it works on, for example a
+move made after you rolled back. Use Re-link to follow the moved part, or edit the earlier step.*
 
 When that is the reason, selecting the broken row also shows a **Re-link to the moved
 step** button. Nothing changes until you press it — WarpCad does not guess that you meant

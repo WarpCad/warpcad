@@ -34,6 +34,7 @@ import { useDocumentStore } from '../../stores/document.js'
 import { useModelImportStore } from '../../stores/modelImport.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
+import { userReason } from '../../core/userReason.js'
 import { useSelectionStore } from '../../stores/selection.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import ParamBindButton from './ParamBindButton.vue'
@@ -583,11 +584,11 @@ function onEnumChange(event, field) {
             />
           </dd>
         </template>
-        <dd v-if="invalidFor(field.key)" class="params__error params__error--field" role="alert" data-testid="inspector-param-error">{{ paramError }}</dd>
+        <dd v-if="invalidFor(field.key)" class="params__error params__error--field" role="alert" data-testid="inspector-param-error">{{ userReason(paramError) }}</dd>
       </template>
     </dl>
 
-    <p v-if="orphanError" class="params__error" role="alert" data-testid="inspector-param-error">{{ paramError }}</p>
+    <p v-if="orphanError" class="params__error" role="alert" data-testid="inspector-param-error">{{ userReason(paramError) }}</p>
 
     <!-- Drilled into one part of a composite: its parent's choices, read-only, and the way
          back up to where they can be changed (TODO/ui-052). -->

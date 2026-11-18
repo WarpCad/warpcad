@@ -343,7 +343,8 @@ test('a value the kernel rejects is shown in the panel and commits nothing', asy
 
   const error = page.getByTestId('inspector-param-error')
   await expect(error).toBeVisible()
-  await expect(error).not.toHaveText('')
+  // TODO/ui-129: no op id, and the limit as a sentence.
+  await expect(error).toHaveText('Diameter must be more than 0 mm.')
 
   // Nothing committed: still one body, same size, same place.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')

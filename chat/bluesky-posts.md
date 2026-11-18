@@ -3235,3 +3235,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "named by position" and the button labels out, in, half, ctr → TODO/done/docs-036-cold-read-docs-pictures-and-sentences.md Problem item 4; Rotation X in degrees → diff of docs/snap-align.md; keep-out label "Keep-out: power connector" → diff of e2e/docs/hardware-library.docs.js and regenerated docs/screenshots/rpi-keepout.png (light and dark); "a cold-read panel" → TODO/done/docs-036-cold-read-docs-pictures-and-sentences.md Problem section; docs:screenshots 312 passed, 0 failed, and e2e/docs-media.spec.js 2/2 → test output this session
 **To Add:** the five docs/media movies still show the old wording (TODO/FIND-docs-038-cold-read-gif-rerecords.md); the new sentences have not been read by a fresh pair (TODO/VERIFY.md docs-036 row)
+
+## 2026-11-18T11:18:34Z — ui-129: plain fillet, size and broken-step messages
+
+**Post:** WarpCad's error messages now say what to change. A fillet too big for a part reads "A 45 mm radius is too large for this 40 mm part", not an op id and an extent. The Assistant's log shows cuboid-k3f5xa-1 as "Cuboid 1". Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "A 45 mm radius is too large for this 40 mm part" → src/core/userReason.js and userReason.spec.js; e2e/fillet-chamfer-operation.e2e.js green on pair runs 57 and 58, this session; "Cuboid 1" for cuboid-k3f5xa-1 → plainRecordId in src/core/userReason.js, spec green this session; the Assistant's log → diff of src/components/ai/ActivityRow.vue
+**To Add:** the broken History row layout is open as TODO/FIND-ui-146-broken-history-row-one-name-and-visible-repair.md; the new sentences have not had a fresh cold read (TODO/VERIFY.md ui-129)

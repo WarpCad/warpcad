@@ -324,7 +324,7 @@ part.
 
 ![Attaching a drawing, asking for a library part, the Assistant building the board as a named group on the drawing and proposing a save, then Confirm: the part appears in My parts](./media/ai-drawing-to-group.gif)
 
-The image goes only to Anthropic, inside your own request, using your key. The first time you
+The image goes only to Anthropic, inside your own request and billed to your own API key. The first time you
 send one in a project, the chat says *Image sent*. Only the copy you build on is kept in the
 project, as the sketch's reference photo, and that copy is cleaned the same way as **Add image…**
 in a sketch: just the pixels, with no hidden data. The photo is not saved into the library part.

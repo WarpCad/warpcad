@@ -79,7 +79,9 @@ sharp shape.
   Fillet/Chamfer button turns on. If the radius you type is too large for the
   shape — larger than (or equal to) the shape's own size along that
   direction — the operation is rejected and an explanation appears directly in
-  the popover rather than only in the browser's own console.
+  the popover rather than only in the browser's own console. For example, a 45 mm
+  radius on a part 40 mm across reads *A 45 mm radius is too large for this 40 mm
+  part. Use a radius smaller than 40 mm.*
 - **Cancel** closes the popover without changing anything. **Fillet**/
   **Chamfer** (the popover's own commit button, labelled to match whichever one
   you opened) applies the rounding or bevelling.

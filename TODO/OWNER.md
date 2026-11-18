@@ -86,6 +86,19 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q98 · Keep `ui-129` split, with the broken History row's layout filed as `ui-146`?
+
+**Question:** `ui-129` had four message fixes and the broken step's layout; I did the messages and filed the layout as `ui-146`. Keep that?
+
+**Background:** Done: the fillet radius, size-field and broken-step messages read as plain sentences at the display boundary (popovers, toolbar, Inspector, History row and strip), replica ids in the Assistant's activity rows read `Cuboid 1`, and the image notice says *billed to your own API key*. Left: one name and one amber treatment for the broken step, and the repair button on the row instead of below a 130 px panel; that is phone-width layout work with its own checks.
+
+**Options:**
+- **Keep the split (Recommended):** `ui-146` is queued and ready.
+- **Fold `ui-146` back into one task:** merge the layout into a single longer run.
+- **Drop the layout work:** the plain message already says what to do.
+
+**If deferred:** the split stays and `ui-146` waits in Next up.
+
 #### Q97 · Keep `docs-036` split, with the five movie re-records filed as `docs-038`?
 
 **Question:** `docs-036` listed six fixes and two additions; I did the sentences and the keep-out picture and filed the movie re-records as `docs-038`. Keep that?

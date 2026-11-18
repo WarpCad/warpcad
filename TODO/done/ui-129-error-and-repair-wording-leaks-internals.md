@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-029 cold-read panel
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** items 1, 2 and 4 and the owner's image-notice addition, plus the wording of item 3. The layout half of item 3 (one name for Re-link and Resolve…, one amber treatment, the repair button visible without scrolling the 130 px panel, the Resolve dialog's *Nothing has changed yet*) is `FIND-ui-146` (OWNER.md Q98 asks to keep that split). One framework-free `src/core/userReason.js` maps the known kernel messages to plain sentences, applied at the display points only (the Fillet, Resize and Mirror popovers, the toolbar error line, the Inspector field error, the History row and strip, the Assistant's activity rows); it reads through the `document.append: … could not be applied —` wrapper and returns an unknown message untouched. `plainIdsIn` tidies replica ids (`Cuboid 1`, `Move of Cuboid 1 (4)`) in the activity rows, the full text in a tooltip. The image notice reads *…billed to your own API key…*. The fillet message names the part as *this 40 mm part*, not *cube*, because the message does not know the shape. Docs: `fillet-chamfer.md`, `timeline.md`, `ai-partner.md`; `fillet-error.png` regenerated.
 
 ## Problem
 

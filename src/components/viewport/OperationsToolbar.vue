@@ -330,6 +330,7 @@ import { useSelectionStore } from '../../stores/selection.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { RIM_FACE_OPTIONS } from '../../core/timelineLabel.js'
 import { useTimelineStore } from '../../stores/timeline.js'
+import { userReason } from '../../core/userReason.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 import { useTierCrossfade } from '../../composables/useTierCrossfade.js'
 import { usePopoverDrag } from '../../composables/usePopoverDrag.js'
@@ -1846,7 +1847,7 @@ onBeforeUnmount(() => closeGroup())
     <!-- A `pieces` address the kernel rejects, surfaced where it happened
          rather than in the console — the path Fillet/Chamfer established and
          Snap/Align reused (TODO/ui-040). -->
-    <p v-if="runError" class="ops__error" data-testid="operation-error">{{ runError }}</p>
+    <p v-if="runError" class="ops__error" data-testid="operation-error">{{ userReason(runError) }}</p>
 
     <!-- TODO/core-079: a cut with a whole multi-part model runs in the evaluation worker, so the
          app keeps drawing; this line is the feedback that it is on its way. -->
@@ -1901,7 +1902,7 @@ onBeforeUnmount(() => closeGroup())
         <!-- The first user-facing runtime kernel-error path on this toolbar —
              see the module doc's §3 and `commitFilletChamfer`'s own comment. -->
         <p v-if="opError" class="ops__popover-error" data-testid="fillet-chamfer-error">
-          {{ opError }}
+          {{ userReason(opError) }}
         </p>
 
         <div class="ops__popover-actions">
@@ -2028,7 +2029,7 @@ onBeforeUnmount(() => closeGroup())
 
         <!-- Same first-user-facing-kernel-error path Fillet/Chamfer established. -->
         <p v-if="opError" class="ops__popover-error" data-testid="resize-error">
-          {{ opError }}
+          {{ userReason(opError) }}
         </p>
 
         <div class="ops__popover-actions">
@@ -2074,7 +2075,7 @@ onBeforeUnmount(() => closeGroup())
           centre — a symmetric shape then lands exactly on itself.
         </p>
         <p v-if="opError" class="ops__popover-error" data-testid="mirror-error">
-          {{ opError }}
+          {{ userReason(opError) }}
         </p>
         <div class="ops__popover-actions">
           <BaseButton size="compact" fill data-testid="mirror-cancel" @click="closePopover">
