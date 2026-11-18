@@ -3199,3 +3199,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** live index lists 35 pages, home links 33, missing native-apps and import → TODO/done/build-039; workflow manual-only since b3c72b6 → git log in warpcad.github.io
 **To Add:** none
+
+## 2026-11-18T00:30:11Z — core-084: automatic Twist steps for long, thin sketch outlines
+
+**Post:** WarpCad's automatic Twist steps now get finer on long, thin sketch outlines. A 30 x 5 mm rectangle twisted 90° lost 5.4% of its volume; now it loses 1.7% in Chromium and WebKit. Very thin outlines through a full turn still hit the 360-step cap. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 5.42% loss on 30x5 at default Twist 3° before the change → throwaway vitest run this session; 4500 vs 4422 mm³ (Chromium) and 4435 vs 4358 mm³ (WebKit) at Twist 90 → real-mouse drive of acceptance scenario 9, this session; 360-step cap → MAX_TWIST_STEPS in src/core/kernel/registry.js and docs/sketch-mode.md
+**To Add:** none

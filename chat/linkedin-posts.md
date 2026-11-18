@@ -4626,3 +4626,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 35 vs 33 pages, 2026-11-15 drive → TODO/done/build-039; b3c72b6 dated 2026-11-06 → the TODO file's own text
 **To Add:** none
+
+## 2026-11-18T00:30:11Z — core-084: automatic Twist steps for long, thin sketch outlines
+
+**Post:** WarpCad can twist a sketched profile into a solid by building it from slices. Each slice's flat faces cut a little off the volume, so a long, thin outline came out light: a 30 x 5 mm rectangle twisted 90° measured 5.4% under its prism volume.
+
+The automatic step count now scales with the outline's elongation, so the step gets finer as the outline gets longer and thinner. The same rectangle now measures 1.7% light in Chromium and WebKit. Seven thin-profile cases went into the kernel tests, and five of them failed before the change.
+
+The 360-step cap still applies, so a very thin outline twisted through a full turn can read a little light, and the docs say so. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 5.42% loss on 30x5 at default Twist 3° before the change → throwaway vitest run this session; 1.7% on Chromium and WebKit at Twist 90 → real-mouse drive of acceptance scenario 9, this session; 5 of 7 new spec cases failed with the fix stashed → vitest run this session; 360-step cap → MAX_TWIST_STEPS in src/core/kernel/registry.js and docs/sketch-mode.md
+**To Add:** none

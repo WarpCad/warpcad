@@ -811,7 +811,7 @@ function buildSketch(params, policy) {
             {
               twistDeg: options.twistDeg,
               twistSteps: options.twistSteps === 1 ? undefined : options.twistSteps,
-              autoStepDeg: SKETCH_TWIST_STEP_DEG,
+              autoStepDeg: sketchTwistStepDeg(profile),
             },
             policy
           )
@@ -1142,6 +1142,32 @@ const TWIST_VERTEX_BUDGET = 2_000_000
  * (TODO/core-083).
  */
 const SKETCH_TWIST_STEP_DEG = 3
+
+/** The volume loss a sketch's automatic Twist steps aim to stay within, as a fraction. */
+const SKETCH_TWIST_LOSS_TARGET = 0.02
+
+/**
+ * The automatic Twist step for one sketch outline, in degrees (TODO/core-084). The flat
+ * faces of each step lose volume in proportion to how long and thin the outline is, so a
+ * fixed 3° leaves a 30 × 5 mm rectangle 5% light and a 100 × 3 mm one 29% light. The
+ * elongation is `q = perimeter² / (4 · area)` (4 for a square, `w/h + h/w + 2` for a
+ * rectangle); measured loss at 3° is about `0.85 · q − 0.7` percent, so the step shrinks
+ * by that factor until the estimate meets {@link SKETCH_TWIST_LOSS_TARGET}. Never wider
+ * than {@link SKETCH_TWIST_STEP_DEG}; the step count stays capped by `MAX_TWIST_STEPS`.
+ *
+ * @param {Geom2} profile
+ * @returns {number} degrees per step
+ */
+function sketchTwistStepDeg(profile) {
+  const area = measurements.measureArea(profile)
+  let perimeterMm = 0
+  for (const [from, to] of geometries.geom2.toSides(profile)) perimeterMm += Math.hypot(to[0] - from[0], to[1] - from[1])
+  if (!(area > 0) || !Number.isFinite(perimeterMm)) return SKETCH_TWIST_STEP_DEG
+  const elongation = (perimeterMm * perimeterMm) / (4 * area)
+  const lossAtCeiling = Math.max(0.0085 * elongation - 0.007, 0)
+  if (lossAtCeiling <= SKETCH_TWIST_LOSS_TARGET) return SKETCH_TWIST_STEP_DEG
+  return (SKETCH_TWIST_STEP_DEG * SKETCH_TWIST_LOSS_TARGET) / lossAtCeiling
+}
 
 /**
  * Extrude `profile` to `heightMm` with a twist, or as a herringbone chevron.

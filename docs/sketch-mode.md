@@ -362,7 +362,11 @@ behind your outlines and updates as you change things.
 
 **Twist steps** is how many slices a twisted Linear extrude is built from. The default,
 **1**, means "automatic": WarpCad picks about one step per 3° of twist (30 steps for 90°), so the
-solid stays a true twisted prism. A number above 1 is used as you type it, but a coarse count
+solid stays a true twisted prism. A long, thin outline needs finer steps to stay within about
+2% of the untwisted volume, so automatic uses more of them as the outline gets longer and thinner.
+The most any twist takes is 360
+steps, so a very thin outline twisted through a full turn can still read a little light. Type a
+count to override it. A number above 1 is used as you type it, but a coarse count
 folds the solid instead of twisting it (one slab turned 90° keeps about a quarter of its volume),
 so a count below the minimum for that twist is refused: **Done** greys out and the status line
 names the minimum.

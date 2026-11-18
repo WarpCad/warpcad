@@ -1815,6 +1815,29 @@ describe('primitive.sketch — a sketch is a primitive that always extrudes to a
       expect(max[2]).toBeCloseTo(30, 6)
     })
 
+    describe('thin profiles (TODO/core-084)', () => {
+      /** @param {number} w @param {number} h @param {number} twistDeg */
+      const loss = (w, h, twistDeg) => {
+        const body = sketch({
+          slices: slices([rect('p', 'solid', [0, 0], w, h)]),
+          extrusion: { method: 'linear', heightMm: 30, twistDeg, twistSteps: 1 },
+        })
+        return 1 - measurements.measureVolume(body) / (w * h * 30)
+      }
+      it.each([
+        [30, 5, 90],
+        [30, 5, 360],
+        [60, 4, 90],
+        [20, 20, 90],
+        [20, 20, 360],
+        [31, 4.92, 90],
+        [100, 3, 90],
+      ])('a %d × %d mm rectangle at Twist %d stays within 3% of the prism', (w, h, twistDeg) => {
+        expect(loss(w, h, twistDeg)).toBeLessThan(0.03)
+        expect(loss(w, h, twistDeg)).toBeGreaterThan(-0.03)
+      })
+    })
+
     it('an explicit count at or above the floor is used as given', () => {
       const volume = measurements.measureVolume(twisted(90, 60))
       expect(Math.abs(volume - TRUE_VOLUME_MM3) / TRUE_VOLUME_MM3).toBeLessThan(0.03)

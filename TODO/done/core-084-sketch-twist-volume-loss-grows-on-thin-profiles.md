@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the core-083 drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** the automatic step is now `sketchTwistStepDeg(profile)` in `registry.js`: 3° at most, shrunk by the outline's elongation `q = perimeter² / (4 · area)` until the estimated loss (0.85·q − 0.7 %, fitted to measurements) meets 2%. Measured at the default Twist 90: 30 × 5 mm 5.4% → under 3%, 60 × 4 mm 13% → under 3%, 100 × 3 mm 29% → under 3%; a driven 30 × 5 mm rectangle lost 1.7% on Chromium and WebKit. The 360-step cap (`MAX_TWIST_STEPS`) still bounds a very thin outline twisted a full turn; `docs/sketch-mode.md` says so.
 
 ## Problem
 
