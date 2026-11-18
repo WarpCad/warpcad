@@ -46,39 +46,36 @@ watchEffect(() => {
   sheet.faceViewUsable = !placing.value || usable.value
 })
 
-/** The face's cells where nothing fits, merged along each row into runs — one `rect` each. */
+/** The face's cells where nothing fits, merged along each row into runs — one `polygon` each. */
 const dimmedRuns = computed(() => {
   const face = sheet.face
   if (!placing.value || !face) return []
   const cellU = (face.uRange[1] - face.uRange[0]) / face.columns
   const cellV = (face.vRange[1] - face.vRange[0]) / face.rows
-  /** @type {{ x: number, y: number, width: number, height: number }[]} */
+  /** @type {string[]} */
   const runs = []
+  const at = { x: 0, y: 0 }
+  /** One run's corner as `x,y`, projected through the exact face map (`TODO/ui-137`). */
+  const corner = (/** @type {number} */ u, /** @type {number} */ v) => {
+    faceToScreen(props.annotation, u, v, at)
+    return `${at.x.toFixed(1)},${at.y.toFixed(1)}`
+  }
   for (let row = 0; row < face.rows; row += 1) {
     let start = -1
     for (let column = 0; column <= face.columns; column += 1) {
       const dim = column < face.columns && face.fits[row * face.columns + column] === 0
       if (dim && start < 0) start = column
       if (!dim && start >= 0) {
-        runs.push({
-          x: face.uRange[0] + start * cellU,
-          y: face.vRange[0] + row * cellV,
-          width: (column - start) * cellU,
-          height: cellV,
-        })
+        const u0 = face.uRange[0] + start * cellU
+        const u1 = face.uRange[0] + column * cellU
+        const v0 = face.vRange[0] + row * cellV
+        const v1 = v0 + cellV
+        runs.push(`${corner(u0, v0)} ${corner(u1, v0)} ${corner(u1, v1)} ${corner(u0, v1)}`)
         start = -1
       }
     }
   }
   return runs
-})
-
-/** The face-to-screen map as an SVG `matrix`, so the runs above are drawn in millimetres. */
-const faceMatrix = computed(() => {
-  const a = props.annotation
-  const e = a.handleX - a.centreU * a.uX - a.centreV * a.vX
-  const f = a.handleY - a.centreU * a.uY - a.centreV * a.vY
-  return `matrix(${a.uX} ${a.uY} ${a.vX} ${a.vY} ${e} ${f})`
 })
 
 const scratchPoint = { x: 0, y: 0 }
@@ -239,15 +236,8 @@ function onUp(event) {
       @pointerup="onFaceUp"
       @pointercancel="onFaceUp"
     />
-    <g v-if="usable" class="cut-plane__field" data-testid="cut-plane-field" :transform="faceMatrix">
-      <rect
-        v-for="(run, index) in dimmedRuns"
-        :key="index"
-        :x="run.x"
-        :y="run.y"
-        :width="run.width"
-        :height="run.height"
-      />
+    <g v-if="usable" class="cut-plane__field" data-testid="cut-plane-field">
+      <polygon v-for="(run, index) in dimmedRuns" :key="index" :points="run" />
     </g>
     <circle
       class="cut-plane__handle"
@@ -312,7 +302,7 @@ function onUp(event) {
   cursor: crosshair;
 }
 
-.cut-plane__field rect {
+.cut-plane__field polygon {
   fill: var(--danger);
   fill-opacity: 0.32;
   pointer-events: none;

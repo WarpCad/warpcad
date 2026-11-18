@@ -40,6 +40,11 @@ import { createScreenPoint, worldToScreen } from './annotate.js'
  * @property {number} uY
  * @property {number} vX The face's `v` axis's screen image at the centre, px per mm.
  * @property {number} vY
+ * @property {number[]} homography Eight coefficients `[a b c d e f g h]` of the exact face-to-screen
+ *   perspective map (`x = (a·du + b·dv + c) / (g·du + h·dv + 1)`, `y = (d·du + e·dv + f) / (same)`),
+ *   `du`/`dv` being millimetres from the face centre. Fitted to the four projected plane corners, so it
+ *   is the pinhole projection itself, not the affine tangent at the centre (`TODO/ui-137`).
+ * @property {boolean} hasHomography `false` when a corner was behind the camera or the fit was singular.
  */
 
 /** @returns {CutPlaneAnnotation} */
@@ -57,8 +62,49 @@ export function createCutPlaneAnnotation() {
     uY: 0,
     vX: 0,
     vY: 0,
+    homography: [1, 0, 0, 0, 1, 0, 0, 0],
+    hasHomography: false,
   }
 }
+
+const fitRows = Array.from({ length: 8 }, () => new Array(9).fill(0))
+
+/**
+ * Solve for the perspective map taking four `(du, dv)` points to four screen points, in place.
+ *
+ * @param {number[][]} from Four `[du, dv]` pairs.
+ * @param {number[][]} to Four `[x, y]` pairs.
+ * @param {number[]} out Eight coefficients, mutated.
+ * @returns {boolean} `false` when the system is singular (a degenerate quadrilateral).
+ */
+function fitHomography(from, to, out) {
+  for (let i = 0; i < 4; i++) {
+    const [du, dv] = from[i]
+    const [x, y] = to[i]
+    const r1 = fitRows[2 * i]
+    const r2 = fitRows[2 * i + 1]
+    r1[0] = du; r1[1] = dv; r1[2] = 1; r1[3] = 0; r1[4] = 0; r1[5] = 0; r1[6] = -du * x; r1[7] = -dv * x; r1[8] = x
+    r2[0] = 0; r2[1] = 0; r2[2] = 0; r2[3] = du; r2[4] = dv; r2[5] = 1; r2[6] = -du * y; r2[7] = -dv * y; r2[8] = y
+  }
+  for (let col = 0; col < 8; col++) {
+    let pivot = col
+    for (let r = col + 1; r < 8; r++) if (Math.abs(fitRows[r][col]) > Math.abs(fitRows[pivot][col])) pivot = r
+    if (!(Math.abs(fitRows[pivot][col]) > 1e-12)) return false
+    const swap = fitRows[col]
+    fitRows[col] = fitRows[pivot]
+    fitRows[pivot] = swap
+    for (let r = 0; r < 8; r++) {
+      if (r === col) continue
+      const k = fitRows[r][col] / fitRows[col][col]
+      if (k !== 0) for (let c = col; c < 9; c++) fitRows[r][c] -= k * fitRows[col][c]
+    }
+  }
+  for (let i = 0; i < 8; i++) out[i] = fitRows[i][8] / fitRows[i][i]
+  return true
+}
+
+const fitFrom = [[0, 0], [0, 0], [0, 0], [0, 0]]
+const fitTo = [[0, 0], [0, 0], [0, 0], [0, 0]]
 
 /** How far past the body the plane extends, as a fraction of the body's size. */
 const PAD = 0.1
@@ -98,6 +144,9 @@ export function updateCutPlaneAnnotation(orbit, boundsMm, axisIndex, cutMm, widt
     [min[u] - padU, max[v] + padV],
   ]
   let points = ''
+  const cu0 = (min[u] + max[u]) / 2
+  const cv0 = (min[v] + max[v]) / 2
+  let cornerIndex = 0
   for (const [cu, cv] of corners) {
     scratch[axisIndex] = cutMm
     scratch[u] = cu
@@ -108,6 +157,11 @@ export function updateCutPlaneAnnotation(orbit, boundsMm, axisIndex, cutMm, widt
       return out
     }
     points += `${points === '' ? '' : ' '}${corner.x.toFixed(1)},${corner.y.toFixed(1)}`
+    fitFrom[cornerIndex][0] = cu - cu0
+    fitFrom[cornerIndex][1] = cv - cv0
+    fitTo[cornerIndex][0] = corner.x
+    fitTo[cornerIndex][1] = corner.y
+    cornerIndex++
   }
   scratch[axisIndex] = cutMm
   scratch[u] = (min[u] + max[u]) / 2
@@ -136,6 +190,7 @@ export function updateCutPlaneAnnotation(orbit, boundsMm, axisIndex, cutMm, widt
   worldToScreen(orbit, scratch[0], scratch[1], scratch[2], widthPx, heightPx, ahead)
   out.vX = ahead.visible ? ahead.x - centre.x : 0
   out.vY = ahead.visible ? ahead.y - centre.y : 0
+  out.hasHomography = fitHomography(fitFrom, fitTo, out.homography)
   return out
 }
 
@@ -180,7 +235,8 @@ export function faceViewIsUsable(annotation) {
 }
 
 /**
- * A face position as a point on screen, by the affine map at the plane's centre.
+ * A face position as a point on screen: the exact perspective map when the plane's four corners
+ * were all in front of the camera, otherwise the affine map at the plane's centre.
  *
  * @param {CutPlaneAnnotation} annotation
  * @param {number} uMm
@@ -191,6 +247,15 @@ export function faceViewIsUsable(annotation) {
 export function faceToScreen(annotation, uMm, vMm, out) {
   const du = uMm - annotation.centreU
   const dv = vMm - annotation.centreV
+  if (annotation.hasHomography) {
+    const [a, b, c, d, e, f, g, h] = annotation.homography
+    const w = g * du + h * dv + 1
+    if (w > 1e-9) {
+      out.x = (a * du + b * dv + c) / w
+      out.y = (d * du + e * dv + f) / w
+      return out
+    }
+  }
   out.x = annotation.handleX + du * annotation.uX + dv * annotation.vX
   out.y = annotation.handleY + du * annotation.uY + dv * annotation.vY
   return out
@@ -206,6 +271,21 @@ export function faceToScreen(annotation, uMm, vMm, out) {
  * @returns {{ uMm: number, vMm: number } | null} `out`, or `null` when the face is seen edge-on.
  */
 export function screenToFace(annotation, x, y, out) {
+  if (annotation.hasHomography) {
+    // Invert x(g du + h dv + 1) = a du + b dv + c and the same for y: a 2x2 linear system in (du, dv).
+    const [a, b, c, d, e, f, g, h] = annotation.homography
+    const m00 = a - g * x
+    const m01 = b - h * x
+    const m10 = d - g * y
+    const m11 = e - h * y
+    const det = m00 * m11 - m01 * m10
+    if (!(Math.abs(det) > 1e-12)) return null
+    const r0 = x - c
+    const r1 = y - f
+    out.uMm = annotation.centreU + (r0 * m11 - r1 * m01) / det
+    out.vMm = annotation.centreV + (m00 * r1 - m10 * r0) / det
+    return out
+  }
   const det = faceDeterminant(annotation)
   if (!(Math.abs(det) > 1e-9)) return null
   const dx = x - annotation.handleX

@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the testing-031 tap, timing and reach drive
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** `updateCutPlaneAnnotation` now fits the exact face-to-screen perspective map (a homography from the four projected plane corners, stored as `homography`), and `faceToScreen`/`screenToFace` use it (affine fallback when a corner is behind the camera). The dimmed-fit field is drawn as projected polygons, since an SVG `matrix` cannot express perspective. Unit test at a 90 mm oblique camera: within 0.5 px and round-trips. The existing zoomed-in `print-prep` e2e specs (webkit-phone + firefox-tablet pair) cover placement; no new e2e spec was added.
 
 ## Problem
 

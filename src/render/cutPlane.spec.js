@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { createScreenPoint, worldToScreen } from './annotate.js'
 import { createOrbitCamera } from './camera.js'
 import {
   createCutPlaneAnnotation,
@@ -95,6 +96,25 @@ describe('cut face markers — face position <-> screen (TODO/ui-067)', () => {
     const back = screenToFace(out, moved.x, moved.y, { uMm: 0, vMm: 0 })
     expect(back?.uMm).toBeCloseTo(7.5, 6)
     expect(back?.vMm).toBeCloseTo(-3, 6)
+  })
+
+  it('a close, oblique camera: markers land within 0.5 px of the true projection (TODO/ui-137)', () => {
+    const orbit = createOrbitCamera({ azimuthDeg: 30, elevationDeg: 35, distanceMm: 90, target: { x: 150, y: 0, z: 0 } })
+    const out = createCutPlaneAnnotation()
+    updateCutPlaneAnnotation(orbit, BAR, 0, 150, 390, 791, out)
+    expect(out.hasHomography).toBe(true)
+    const truth = createScreenPoint()
+    const at = { x: 0, y: 0 }
+    // Face axes for cut axis 0 are u = Y, v = Z; take the body's corners and some interior points.
+    for (const [uMm, vMm] of [[-10, -10], [10, -10], [10, 10], [-10, 10], [4, -7], [0, 0]]) {
+      worldToScreen(orbit, 150, uMm, vMm, 390, 791, truth)
+      faceToScreen(out, uMm, vMm, at)
+      expect(Math.abs(at.x - truth.x)).toBeLessThan(0.5)
+      expect(Math.abs(at.y - truth.y)).toBeLessThan(0.5)
+      const back = screenToFace(out, truth.x, truth.y, { uMm: 0, vMm: 0 })
+      expect(back?.uMm).toBeCloseTo(uMm, 4)
+      expect(back?.vMm).toBeCloseTo(vMm, 4)
+    }
   })
 
   it('screenToFace refuses a face seen edge-on', () => {
