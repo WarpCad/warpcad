@@ -182,6 +182,12 @@ axis:
 | `−Y` | Front |
 | `Home` | Isometric three-quarter view |
 
+**On a touch tablet the triad is bigger, so a fingertip lands on the cap you aimed at.** With a
+touchscreen at tablet width and up, the triad grows to about 190 px with 44 px caps, and the toolbar
+leaves room for it. A tap that falls between two caps goes to the nearer one. For example, on a tablet
+tap `X` near the red spoke: the camera snaps to the Right view and the caption under the triad names it.
+On a phone the triad keeps its small size, and a tap still goes to the nearest cap.
+
 Zoom and the point you are looking at are left alone by a snap — only the
 direction changes — so you can line up a view without losing your place.
 

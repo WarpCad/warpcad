@@ -6,8 +6,16 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the testing-031 tap, timing and reach drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18).** Tablet-only for the enlarged dial, not phone and tablet as proposed. Both halves of the
+> proposed fix landed: a pointer tap resolves to the nearest cap centre (all widths), and at `pointer: coarse` with a
+> width of 600px or more the dial is 190px with 44px caps. The Operations toolbar reserves 208px for it there. Measured
+> on tablet, 150 scattered taps (sigma 3.5 mm): 6 landed on a different cap (4 %, was 22-35 %); the 2 % aim needs caps
+> about 54px apart, a dial near 240px. On the 390px phone the 190px dial cannot sit beside the toolbar (it drops to 3
+> columns, collides with the navigation chrome and the `ui-045` 20px gap), so the phone keeps the 96px dial and the case
+> is `ui-148`. Owner chose this on 2026-11-18.
 
 ## Problem
 

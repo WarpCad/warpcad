@@ -3307,3 +3307,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** pictures stale and Assistant inside the grouped menu since ui-078 → TODO/done/testing-041-dev-only-docs-stills-stale-at-phone-width.md (Problem); fix → diff of e2e/docs/ai-chat.docs.js and package.json; docs-phone, docs-tablet, docs-phone-dark dev specs 7 passed, 0 failed → run this session
 **To Add:** before/after of the phone header
+
+## 2026-11-18T10:18:49-0600 — ui-134: bigger orientation dial and nearest-cap taps on tablet
+
+**Post:** WarpCad's orientation dial had six 30px caps on a 106px dial, so a scattered fingertip hit a neighbouring cap 22 to 35 percent of the time. Taps now go to the nearest cap centre, and on a touch tablet the dial grows to 190px with 44px caps: 6 of 150 simulated taps still miss, 4 percent. Phone keeps the small dial for now. Built with Claude Code, reviewed by me. #CAD #Accessibility
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Accessibility
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 22-35 % wrong-cap rate before → TODO/done/ui-134 Problem (Chromium 390px, n=200, measured 2026-11-15); 6 of 150 (4 %) after on tablet → e2e/orientation-tap.e2e.js failure report then pass, this session, sigma 3.5 mm Gaussian scatter, simulated touch; 190px dial, 44px caps → diff of OrientationGizmo.vue; phone unchanged → diff (media query min-width 600px) and the ui-148 finding
+**To Add:** the old and new dial side by side at tablet width

@@ -18,8 +18,9 @@
  * right. Sign flips here are exactly the easy bug, so `src/render/camera.js`'s
  * spec pins every one of these orientations.
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { rightFromSpherical, upFromSpherical, positionFromSpherical } from '../../render/camera.js'
+import { nearestCapView, CAP_RADIUS_FRACTION } from '../../render/orientationHit.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
 
 const props = defineProps({
@@ -51,7 +52,12 @@ const panelLayout = usePanelLayoutStore()
 const chromeTier = computed(() => panelLayout.layout.chromeTier)
 
 const ORIGIN = Object.freeze({ x: 0, y: 0, z: 0 })
-const RADIUS = 33
+/**
+ * Cap placement is a fraction of the dial (`CAP_RADIUS_FRACTION`, 34 of the SVG's 100 units), so the
+ * caps spread out when a touch layout enlarges the dial (`TODO/ui-134`). A fixed pixel radius would
+ * leave six bigger caps in the same space, overlapping more.
+ */
+const RADIUS = CAP_RADIUS_FRACTION * 100
 
 /**
  * How far the visible spoke line extends past its own cap's anchor point
@@ -91,8 +97,8 @@ const caps = computed(() => {
       ...entry,
       // Screen-space projection of the world axis onto the camera basis. SVG's
       // Y grows downward, hence the negated up component.
-      x: (ax * basisRight.x + ay * basisRight.y + az * basisRight.z) * RADIUS,
-      y: -(ax * basisUp.x + ay * basisUp.y + az * basisUp.z) * RADIUS,
+      x: ax * basisRight.x + ay * basisRight.y + az * basisRight.z,
+      y: -(ax * basisUp.x + ay * basisUp.y + az * basisUp.z),
       // Positive depth means the axis points toward the viewer.
       depth: ax * toCamera.x + ay * toCamera.y + az * toCamera.z,
     }
@@ -101,6 +107,29 @@ const caps = computed(() => {
 
 /** Painter's order: far caps first, so near caps draw on top of them. */
 const capsByDepth = computed(() => [...caps.value].sort((a, b) => a.depth - b.depth))
+
+/** @type {import('vue').Ref<HTMLElement | null>} */
+const dialEl = ref(null)
+
+/**
+ * A pointer click resolves to the cap whose centre is nearest the tap, not the topmost box, so a
+ * fingertip in an overlap fires the cap it aimed at (`TODO/ui-134`). A keyboard click (`detail` 0)
+ * and a click that lands on the cap already nearest pass through untouched.
+ * @param {MouseEvent} event
+ */
+function onDialClickCapture(event) {
+  if (props.disabled || event.detail === 0 || !dialEl.value) return
+  const rect = dialEl.value.getBoundingClientRect()
+  const view = nearestCapView(caps.value, rect.width, {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  })
+  if (view === null) return
+  const hit = event.target instanceof Element ? event.target.closest('[data-view]') : null
+  if (hit && hit.getAttribute('data-view') === view) return
+  event.stopPropagation()
+  emit('snap', view)
+}
 
 const orientationLabel = computed(
   () => `${Math.round(props.azimuthDeg)}° az · ${Math.round(props.elevationDeg)}° el`,
@@ -116,7 +145,13 @@ const orientationLabel = computed(
     :data-elevation="elevationDeg.toFixed(2)"
     :data-chrome-tier="chromeTier"
   >
-    <div class="gizmo__dial" role="group" aria-label="Camera orientation">
+    <div
+      ref="dialEl"
+      class="gizmo__dial"
+      role="group"
+      aria-label="Camera orientation"
+      @click.capture="onDialClickCapture"
+    >
       <svg class="gizmo__svg" viewBox="-50 -50 100 100" aria-hidden="true">
         <line
           v-for="cap in capsByDepth"
@@ -125,8 +160,8 @@ const orientationLabel = computed(
           :class="{ 'gizmo__spoke--negative': !cap.positive }"
           x1="0"
           y1="0"
-          :x2="cap.x * SPOKE_SCALE"
-          :y2="cap.y * SPOKE_SCALE"
+          :x2="cap.x * RADIUS * SPOKE_SCALE"
+          :y2="cap.y * RADIUS * SPOKE_SCALE"
           :stroke="cap.label.includes('X') ? 'var(--axis-x)' : cap.label.includes('Y') ? 'var(--axis-y)' : 'var(--accent)'"
         />
         <circle class="gizmo__hub" cx="0" cy="0" r="2.5" />
@@ -139,11 +174,12 @@ const orientationLabel = computed(
         class="gizmo__cap"
         :class="{ 'gizmo__cap--negative': !cap.positive }"
         :style="{
-          left: `calc(50% + ${cap.x}px)`,
-          top: `calc(50% + ${cap.y}px)`,
+          left: `${50 + cap.x * RADIUS}%`,
+          top: `${50 + cap.y * RADIUS}%`,
           zIndex: Math.round((cap.depth + 1) * 10) + 1,
         }"
         :data-testid="`gizmo-view-${cap.view}`"
+        :data-view="cap.view"
         :data-depth="cap.depth.toFixed(3)"
         :disabled="disabled"
         :title="disabled ? 'Camera orientation is locked to the working plane while sketching' : cap.title"
@@ -304,6 +340,27 @@ const orientationLabel = computed(
 
 .gizmo[data-chrome-tier='compact'] .gizmo__caption {
   display: none;
+}
+
+/* Touch layout at tablet width and up (`TODO/ui-134`): a 190px dial so six 44px caps stay clear of each
+   other and a fingertip (about 13px of scatter) lands on the cap it aimed at. Keyed like the compact
+   rules so it wins. Not on a phone: 390px cannot hold this dial beside the Operations toolbar
+   (`TODO/ui-148`), so the phone keeps the 96px dial and the nearest-cap tap resolution only. */
+@media (pointer: coarse) and (min-width: 600px) {
+  .gizmo[data-chrome-tier] .gizmo__dial {
+    width: 190px;
+    height: 190px;
+  }
+
+  .gizmo[data-chrome-tier] .gizmo__cap {
+    width: 44px;
+    height: 44px;
+    font-size: var(--text-size-xs);
+  }
+
+  .gizmo[data-chrome-tier] .gizmo__home {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 480px) {

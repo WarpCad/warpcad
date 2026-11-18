@@ -2142,6 +2142,15 @@ onBeforeUnmount(() => closeGroup())
   box-shadow: var(--shadow-overlay);
 }
 
+/* `TODO/ui-134`: on a coarse pointer at tablet width and up the orientation dial is 190px (200px with
+   its padding, 8px in from the edge), wider than the compact reserve above, so the toolbar would run
+   under its caps. Reserve 220px (200 + 8 inset + a 12px gap, which `ui-045` needs above 20px with the toolbar margin) there; the larger of the two always wins. */
+@media (pointer: coarse) and (min-width: 600px) {
+  .ops {
+    max-width: calc(100% - 24px - max(var(--layout-gizmo-reserve), 220px));
+  }
+}
+
 /* The tier crossfade (`TODO/ui-079`, `useTierCrossfade`): the content swaps in the same frame
    this starts at 0.4, then it fades back up. Label widths are never animated inside this
    `flex-wrap` row, which would re-wrap on every frame and jump. A one-shot animation, not a

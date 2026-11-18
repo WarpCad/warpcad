@@ -4784,3 +4784,18 @@ All three phone and tablet docs projects pass with the new pictures. Built with 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** pictures stale, specs dev-only → TODO/done/testing-041-dev-only-docs-stills-stale-at-phone-width.md (Problem); helper, script → diff; docs-phone, docs-tablet, docs-phone-dark: 7 passed, 0 failed → run this session
 **To Add:** before/after of the phone header
+
+## 2026-11-18T10:18:49-0600 — ui-134: bigger orientation dial and nearest-cap taps on tablet
+
+**Post:** Touch targets in a CAD viewport are a geometry problem. WarpCad's orientation dial puts six axis caps on a small dial, and in some views two caps sit almost on top of each other. When we scattered simulated fingertip taps around each cap (3.5 mm of Gaussian spread), a different cap fired on 22 to 35 percent of them.
+
+Two changes. A tap now goes to the cap whose centre is nearest, instead of whichever box is on top. And on a touch tablet the dial grows from about 106px to 190px with 44px caps, with the toolbar leaving room for it. The same scatter test now misses 6 times in 150, which is 4 percent. Getting under 2 percent would need a dial near 240px, too large for a phone, so the phone keeps its small dial and has its own follow-up finding.
+
+The test lives in the repo as an end-to-end spec that drives the running app at tablet width.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #Accessibility #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** same as the BlueSky entry of this timestamp; 2 % would need caps about 54px apart, a dial near 240px → computed from 13px scatter and the Voronoi boundary, stated in TODO/done/ui-134 note; spec in repo → e2e/orientation-tap.e2e.js
+**To Add:** the old and new dial side by side at tablet width

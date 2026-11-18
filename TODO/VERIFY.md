@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-134 — Orientation dial taps (tablet) (2026-11-18 16:12)
+
+Tablet got the 190px dial with 44px caps and nearest-cap tap resolution. The phone only got the resolution, because the big dial does not fit beside the toolbar at 390px.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Scattered fingertip taps on a tablet dial fire the cap aimed at (3.5 mm Gaussian, 150 taps). | OK | 6 of 150 (4 %) hit another cap, was 22-35 %. Simulated scatter on trusted touch, not a real finger. |
+| 2 | Phone dial: scattered taps fire the cap aimed at. | Moved | `ui-148`. |
+
 ### ui-130 — dimension labels and the ring cue at phone width (2026-11-18 12:13)
 
 The label clamp is unit-tested over an orbit sweep and the strokes are asserted in e2e. Two things no spec covers.
