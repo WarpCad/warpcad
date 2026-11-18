@@ -310,6 +310,12 @@ describe('isFullRun (playwright)', () => {
       expect(isFullRun({ argv: argv(...flags, '--workers', '4') }, ran, env)).toBe(true)
     })
 
+    it('is full with the Storybook project of each engine in the pair, but not of another engine', () => {
+      const sb = [...flags, '--project=storybook-chromium', '--project=storybook-webkit']
+      expect(isFullRun({ argv: argv(...sb) }, ran, env)).toBe(true)
+      expect(isFullRun({ argv: argv(...flags, '--project=storybook-firefox') }, ran, env)).toBe(false)
+    })
+
     it('is partial when narrowed further, run on other projects, or missing one of the pair', () => {
       expect(isFullRun({ argv: argv(...flags, 'e2e/a.e2e.js') }, ran, env)).toBe(false)
       expect(isFullRun({ argv: argv(...flags, '--grep', 'x') }, ran, env)).toBe(false)

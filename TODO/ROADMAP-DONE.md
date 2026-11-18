@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `testing-038` | A `storybook-<engine>` Playwright project per engine runs `e2e/*.story.e2e.js` against a built Storybook (`scripts/serve-static.mjs`, port 6006, built only when a run can reach a story spec). `e2e/base-components.story.e2e.js` snapshots 13 base-component states in a light and a dark scheme (78 baselines across three engines, 352 KB); the rotation adds the project of each engine in its pair (about 8 s build plus 26 s of tests). `ui-116` and `ui-117` waived snapshots are now produced. [`done/testing-038`](done/testing-038-storybook-playwright-project.md) | Finding | — | none (test infrastructure only) |
 | ✅ `ui-130` | Dimension labels are held inside the viewport (a 36-view orbit sweep at 390 px) and the gizmo ring's wall and core are 5 px and 1.5 px at phone width so the tube cue reads as two strokes. Reframing a small dropped part is OWNER.md Q100. Filed from the testing-030 real-GPU drive | Finding | — | 1, 4 |
 | ✅ `ui-133` | The save-status chip's five dots now each have their own shape: grey dash (idle), amber ring (saving), green disc (saved), amber triangle (paused), red square (failed). Closed with an e2e spec at `/` checking the computed shape. | Finding | — | 10 |
 | ✅ `ui-132` | A click inside a text label's on-screen box, or within 8 px of it, selects the label; before, only its letter strokes picked (38% of its own box). Closed with unit tests for the box test and a grid-click assertion in `text-label-placement.e2e.js`. Filed 2026-11-14 from the `testing-030` drive. [`done/ui-132`](done/ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) | Finding | — | — |
@@ -1451,5 +1452,6 @@ convention going forward.
 | `ui-131` | 2026-11-18 13:02 | ~25m by the machine clock (typecheck caught four untyped arrow parameters in the new helper before e2e) |
 | `ui-133` | 2026-11-18 13:38 | ~6m by the machine clock |
 | `ui-132` | 2026-11-18 13:28 | ~21m by the machine clock (13:07 to 13:28) |
+| `testing-038` | 2026-11-18 14:04 | ~26m by the machine clock (13:38 to 14:04) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

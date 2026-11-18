@@ -52,6 +52,15 @@ export function pairFor(index, projects = allProjects()) {
   return [projects[k], projects[(k + 4) % n]]
 }
 
+/**
+ * The Storybook project of each engine in a pair, so a story spec runs on the engines the pair covers.
+ * @param {string[]} pair
+ * @returns {string[]}
+ */
+export function storybookFor(pair) {
+  return [...new Set(pair.map((p) => p.split('-')[0]))].map((engine) => `storybook-${engine}`)
+}
+
 /** @param {string} [path] @returns {number} */
 export function readIndex(path = STATE_FILE) {
   try {
@@ -108,8 +117,8 @@ function main(args) {
   }
 
   const explicit = hasExplicitProject(args)
-  const flags = explicit ? [] : [...pair, 'guards'].map((p) => `--project=${p}`)
-  if (!explicit) console.log(`e2e rotation: run ${index + 1}, projects ${pair.join(' + ')} (+ guards)${skipFirefox ? ', firefox skipped' : ''}`)
+  const flags = explicit ? [] : [...pair, ...storybookFor(pair), 'guards'].map((p) => `--project=${p}`)
+  if (!explicit) console.log(`e2e rotation: run ${index + 1}, projects ${pair.join(' + ')} (+ ${storybookFor(pair).join(' + ')} + guards)${skipFirefox ? ', firefox skipped' : ''}`)
 
   const bin = join(ROOT, 'node_modules', '.bin', 'playwright')
   const result = spawnSync(existsSync(bin) ? bin : 'npx', [...(existsSync(bin) ? [] : ['playwright']), 'test', ...flags, ...args], {

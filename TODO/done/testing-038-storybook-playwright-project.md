@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 when the theme umbrella (ui-111) closed
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** three `storybook-<engine>` projects (800×600) serve a built Storybook via `scripts/serve-static.mjs`; the rotation adds one per engine in the pair. 13 states × light/dark in `e2e/base-components.story.e2e.js`. `naming.spec.js` also guards that story specs only drive `iframe.html`.
 
 ## Problem
 

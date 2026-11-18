@@ -3289,3 +3289,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** idle and saved both discs, paused and failed both rounded squares → TODO/done/ui-133-save-status-dot-idle-and-saved-share-a-shape.md (Problem); five shapes → diff of src/components/display/SaveStatus.vue; checked at `/` → new spec in e2e/local-persistence.e2e.js, green this session
 **To Add:** a close-up of the five dots side by side
+
+## 2026-11-18T08:05:26-06:00 — testing-038: Storybook Playwright project for base-component snapshots
+
+**Post:** WarpCad's base components now get screenshot checks in Storybook. 13 states, light and dark, run on Chromium, Firefox and WebKit: 78 baselines in all. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 13 states in light and dark, 78 baselines → e2e/base-components.story.e2e.js (13 story ids, two colour schemes) and the snapshot folder (78 files, 26 per engine, counted this session); Storybook runs in Chromium, Firefox and WebKit → storybookFor and the storybook-<engine> projects in playwright.config.js (diff only); base components had waived snapshots → TODO/done/testing-038-storybook-playwright-project.md (Problem)
+**To Add:** a close-up of one base button in light and dark side by side

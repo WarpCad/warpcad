@@ -55,6 +55,8 @@ const browserProjects = ENGINES.flatMap((engine) =>
     // run — which would be the worst possible failure mode for the one gate
     // that proves the app is reachable.
     testMatch: /.*\.e2e\.js/,
+    // `*.story.e2e.js` drives the built Storybook, not the app, so the `storybook-*` projects own it.
+    testIgnore: /.*\.story\.e2e\.js/,
     use: {
       ...engine.device,
       viewport: size.viewport,
@@ -85,6 +87,19 @@ const SMOKE_BROWSERS = ['chromium-laptop', 'webkit-tablet']
 const smokeProjects = browserProjects
   .filter((project) => SMOKE_BROWSERS.includes(project.name))
   .map((project) => ({ ...project, name: `smoke-${project.name}`, grep: /@smoke/ }))
+
+/**
+ * Storybook projects (`TODO/testing-038`): `e2e/*.story.e2e.js` proves a base component in isolation,
+ * one project per engine, at one fixed viewport (a story is a component, not a layout). They run
+ * against the built Storybook that the `webServer` below serves on `STORYBOOK_ORIGIN`. The rotation
+ * (`scripts/e2e-rotate.mjs`) adds the project of each engine in the pair; the full run has all three.
+ */
+const STORYBOOK_ORIGIN = 'http://127.0.0.1:6006'
+const storybookProjects = ENGINES.map((engine) => ({
+  name: `storybook-${engine.name}`,
+  testMatch: /.*\.story\.e2e\.js/,
+  use: { ...engine.device, viewport: { width: 800, height: 600 }, baseURL: STORYBOOK_ORIGIN, serviceWorkers: 'block' },
+}))
 
 /**
  * Every docs picture is recorded twice from the same spec (`TODO/docs-030`): the `docs-<size>` project
@@ -126,6 +141,13 @@ const docsProjects = VIEWPORTS.flatMap((size) => THEMES.map((theme) => ({
 })))
 
 const PREVIEW = process.env.E2E_PREVIEW === '1'
+
+/**
+ * Build and serve Storybook only when the run can reach a story spec: a `storybook-*` project is
+ * named, or no project is (the full matrix). A `--project=docs-*` or one-engine run skips the ~8 s build.
+ */
+const NAMES_PROJECT = process.argv.some((arg) => arg === '-p' || arg.startsWith('--project'))
+const WANTS_STORYBOOK = process.env.WARPCAD_STORYBOOK === '1' || process.argv.some((arg) => arg.includes('storybook-')) || !NAMES_PROJECT
 
 /**
  * Whether this run names a `docs-*` project. Only the launching process sees the `--project`
@@ -190,6 +212,14 @@ export default defineConfig({
   // `VITE_LIVE_BRIDGE=1`, which makes the header treat the bridge as available (the phone's grouped
   // AI menu). It therefore gets its own build folder and port; every other spec keeps the plain
   // build above, where the bridge is `unavailable`, exactly like the hosted app.
+  ...(WANTS_STORYBOOK
+    ? [{
+        command: 'npx storybook build -o storybook-static --quiet && node scripts/serve-static.mjs storybook-static 6006',
+        url: `${STORYBOOK_ORIGIN}/iframe.html`,
+        reuseExistingServer: !process.env.CI && process.env.E2E_REUSE === '1',
+        timeout: 120_000,
+      }]
+    : []),
   ...(PREVIEW
     ? [{
         command: `VITE_E2E_HOOKS=1 VITE_LIVE_BRIDGE=1 npx vite build --outDir ${LIVE_OUT} && npx vite preview --outDir ${LIVE_OUT} --host 127.0.0.1 --port 5185 --strictPort`,
@@ -208,6 +238,7 @@ export default defineConfig({
         { name: 'guards', testMatch: /(naming|docs-media)\.spec\.js/ },
         ...browserProjects,
         ...smokeProjects,
+        ...storybookProjects,
         ...docsProjects,
       ],
 })

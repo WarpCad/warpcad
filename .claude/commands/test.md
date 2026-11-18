@@ -61,6 +61,10 @@ it as `full`, so `stamp check` and the pre-push gate accept it.
 when the run is clean and unfiltered. State is in `.todo-progress/_e2e-rotation.json`
 (gitignored, per developer).
 
+- **Storybook projects ride along.** The rotation also runs `storybook-<engine>` for each engine in the
+  pair (`e2e/*.story.e2e.js`, a light and a dark snapshot of each base component, against a built Storybook
+  served on port 6006; the build adds about 8 s). Baselines refresh with
+  `npx playwright test --project=storybook-chromium --project=storybook-webkit --project=storybook-firefox -u`.
 - **The cycle.** Nine pairs; each pairs projects that differ in **both** engine and viewport, and
   every project appears in two of them, so the whole matrix is covered within five runs
   (`chromium-phone + webkit-tablet`, `chromium-tablet + webkit-laptop`, `chromium-laptop +

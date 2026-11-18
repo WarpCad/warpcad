@@ -3,9 +3,14 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { allProjects, hasExplicitProject, narrowsRun, pairFor, readIndex, writeIndex } from './e2e-rotate.mjs'
+import { allProjects, hasExplicitProject, narrowsRun, pairFor, readIndex, storybookFor, writeIndex } from './e2e-rotate.mjs'
 
 describe('e2e rotation', () => {
+  it('adds one Storybook project per engine in the pair', () => {
+    expect(storybookFor(['chromium-phone', 'webkit-tablet'])).toEqual(['storybook-chromium', 'storybook-webkit'])
+    expect(storybookFor(['firefox-phone', 'firefox-laptop'])).toEqual(['storybook-firefox'])
+  })
+
   it('lists the nine projects, or six without Firefox', () => {
     expect(allProjects()).toHaveLength(9)
     expect(allProjects({ skipFirefox: true })).toHaveLength(6)

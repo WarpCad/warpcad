@@ -81,7 +81,9 @@ export function isFullRun(config, suite, env = {}) {
     if (pair && flag === '--project') {
       // The rotation's own flags are allowed; any other project is a hand-picked subset.
       const value = arg.includes('=') ? arg.slice(arg.indexOf('=') + 1) : rest[++i]
-      if (!pair.includes(value) && value !== 'guards') return false
+      // The rotation also adds the Storybook project of each engine in the pair (`storybookFor`).
+      const storybookOfPair = pair.some((p) => value === `storybook-${p.split('-')[0]}`)
+      if (!pair.includes(value) && value !== 'guards' && !storybookOfPair) return false
     } else if (NEUTRAL_VALUE_FLAGS.has(arg)) i += 1
     else if (!NEUTRAL_VALUE_FLAGS.has(flag)) return false // --project, -g, --grep, --last-failed, --shard, --only-changed, --list ...
   }

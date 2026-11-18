@@ -41,3 +41,13 @@ test('every *.docs.js spec navigates to the real app and never to Storybook', ()
   })
   expect(bad, `*.docs.js spec(s) not driving "/": ${bad.join(', ')}`).toEqual([])
 })
+
+test('every *.story.e2e.js spec drives a Storybook iframe and never the app', () => {
+  const e2eDir = fileURLToPath(new URL('.', import.meta.url))
+  const files = collectE2eFiles(e2eDir).filter((file) => file.endsWith('.story.e2e.js'))
+  const bad = files.filter((file) => {
+    const source = readFileSync(file, 'utf-8')
+    return !/iframe\.html/.test(source) || /goto\(['"`]\/['"`]/.test(source)
+  })
+  expect(bad, `*.story.e2e.js spec(s) not driving a Storybook iframe: ${bad.join(', ')}`).toEqual([])
+})

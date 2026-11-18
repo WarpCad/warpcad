@@ -4758,3 +4758,16 @@ A new end-to-end spec loads the app at `/`, reads the dot's computed shape while
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** both-disc and both-square problem → TODO/done/ui-133-save-status-dot-idle-and-saved-share-a-shape.md; shapes and clip-path → diff of src/components/display/SaveStatus.vue; docs list → diff of docs/save-load.md; spec passes on firefox-phone, webkit-tablet, chromium-laptop → test run this session
 **To Add:** a close-up of the five dots side by side
+
+## 2026-11-18T08:05:26-06:00 — testing-038: Storybook Playwright project for base-component snapshots
+
+**Post:** WarpCad's base components now have screenshot checks of their own. A Storybook project runs in Playwright, so 13 base-component states are snapshotted in light and dark mode on Chromium, Firefox and WebKit: 78 baselines in all.
+
+The end-to-end rotation now also runs one Storybook project per engine it covers. A guard test fails any story spec that loads the app root instead of Storybook's iframe, so an isolated component check cannot quietly become an app check.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 13 states, light and dark, 78 baselines → e2e/base-components.story.e2e.js and the snapshot folder (78 files, counted this session); one Storybook project per engine in the rotation → storybookFor in the diff of scripts/e2e-rotate.mjs; guard fails story specs that load the app root → new test in the diff of e2e/naming.spec.js
+**To Add:** none
