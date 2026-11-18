@@ -3334,3 +3334,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 67px under the Delete row at 390x844 → TODO/done/ui-136 Problem (measured 2026-11-15); scrolls above it, scroll margin = Delete row height → diff of ParamFields.vue and .params__error; filleted-body test passes at phone width, Chromium and WebKit (2/2) → e2e run this session; changed inspector specs 180 passed, 0 failed, 12 skipped across six projects → e2e run this session
 **To Add:** the sheet at phone width with the refusal line visible, before and after
+
+## 2026-11-18T17:35:00Z — describe_scene shows which params follow a project variable (TODO/ai-040)
+
+**Post:** An AI asked to "make this case for a Pi 5" placed a second Pi instead of changing the project's Pi, because the scene read-back never said its model was bound to a variable. describe_scene now lists boundTo per body. Re-run: 2 of 3 Haiku runs call set_variable, up from 0 of 3. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #MCP #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 0 of 3 before → bench/results/ai/2026-11-15-claude-code-over-mcp.md; 2 of 3 after → three claude -p --model haiku runs this session; boundTo field → diff of src/ai/tools/read.js
+**To Add:** a describe_scene result showing boundTo

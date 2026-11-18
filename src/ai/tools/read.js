@@ -27,6 +27,7 @@
 
 import { recipeColorOf } from '../../core/colorOverride.js'
 import { boundsOf, hiddenNamesOf, isGroup } from '../../core/kernel/group.js'
+import { bindingsOf } from '../../core/variables.js'
 import { latestIntentOf } from '../../core/intent.js'
 import { promptsForBody } from '../../core/prompt.js'
 import { objectSchema } from './schema.js'
@@ -210,6 +211,28 @@ function withPrompts(document, bodyId) {
 }
 
 /**
+ * `TODO/ai-040`: the project variables a body's params are bound to, as `{ path, variable, value }`
+ * (the value the row used), or `{}` when nothing is bound, so a project with no variables costs
+ * nothing. Without this a model sees `model: 4` and never learns `set_variable` would change it.
+ *
+ * @param {import('../../core/document.js').WarpDocument} document
+ * @param {Body} body
+ * @returns {{ boundTo?: { path: string, variable: string, value?: number | boolean | string }[] }}
+ */
+function withBindings(document, body) {
+  /** @type {Map<string, { path: string, variable: string, value?: number | boolean | string }>} */
+  const slots = new Map()
+  for (const record of document.lineageOf(body.id)) {
+    const values = record.id === undefined ? undefined : document.boundValuesOf(record.id)
+    for (const { path, name } of bindingsOf(record)) {
+      const value = values?.[path]
+      slots.set(path, { path, variable: name, ...(value === undefined ? {} : { value }) })
+    }
+  }
+  return slots.size === 0 ? {} : { boundTo: [...slots.values()] }
+}
+
+/**
  * `value` with `intent` added when there is one (`TODO/ai-003`), unchanged otherwise, so a
  * body or row without intent carries no empty field.
  *
@@ -281,7 +304,7 @@ export function createReadTools() {
     {
       name: 'describe_scene',
       description:
-        'List every body in the scene: id, name, the op that made it, world bounds and size in millimetres, colour, its named parts, and why it was made (intent, when recorded). ' +
+        'List every body in the scene: id, name, the op that made it, world bounds and size in millimetres, colour, its named parts, boundTo (which params follow a project variable, change them with set_variable), and why it was made (intent, when recorded). ' +
         'Never returns geometry. Call this first, and whenever you need ids.',
       inputSchema: objectSchema({}),
       transports: ['ai', 'mcp'],
@@ -289,7 +312,11 @@ export function createReadTools() {
         // TODO/ai-003: here, and not in the summary every write returns (which would repeat
         // every intent back on every call), each body says why it exists.
         const scene = sceneSummary(ctx.document)
-        return { ...scene, bodies: scene.bodies.map((body) => withIntent(body, latestIntentOf(ctx.document, body.id))) }
+        const byId = new Map(ctx.document.bodies().map((body) => [body.id, body]))
+        return {
+          ...scene,
+          bodies: scene.bodies.map((row) => ({ ...withIntent(row, latestIntentOf(ctx.document, row.id)), ...withBindings(ctx.document, /** @type {Body} */ (byId.get(row.id))) })),
+        }
       },
     },
     {
@@ -308,6 +335,7 @@ export function createReadTools() {
         return {
           ...withIntent(summary, latestIntentOf(ctx.document, body.id)),
           recordId: body.recordId,
+          ...withBindings(ctx.document, body),
           params: body.params,
           positionMm: round3([(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]),
           rotationDeg: round3(body.rotationDeg),

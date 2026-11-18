@@ -33,6 +33,8 @@ Three of three runs read the guide and `describe_scene`, then **never called `li
 new geometry around a newly placed Pi 5 and left the project's own Pi at 4. That is a defect in what the scene
 read-back shows, not only a model quirk: filed as `FIND-ai-040`.
 
+**Re-run 2026-11-18 after `ai-040`** (`describe_scene` now lists `boundTo: [{ path: "model", variable: "piModel", value: 4 }]`): three fresh `claude -p --model haiku` runs on `fixture-pi.ndjson`, same prompt. `set_variable` was called in **2 of 3** runs (was 0 of 3); run 1 still built geometry and used `evaluate_formula` without `set_variable`. Transcripts not stored.
+
 ## ai-022 #1: snap side
 
 One run, one fixture (two 20 mm cubes 60 mm apart in X, equal Z). `group.snap`, `axes: z`, `orientation: outside+` landed Block A on

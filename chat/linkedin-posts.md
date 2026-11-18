@@ -4825,3 +4825,16 @@ The bug came from a tap-and-reach drive, filed as a finding, and closed in the s
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Same sources as the BlueSky entry of this timestamp; "found in a tap-and-reach drive" → TODO/done/ui-136 Problem and header (testing-031 tap, timing and reach drive); no-failure count across six projects → e2e run this session
 **To Add:** the phone sheet with the refusal visible, before and after
+
+## 2026-11-18T17:35:00Z — describe_scene shows which params follow a project variable (TODO/ai-040)
+
+**Post:** Driving WarpCad through Claude Code over MCP, a model asked to make a case for a Pi 5 never touched the project variable that held the Pi model. In three of three runs it placed a second Pi and built around it. The cause was in the tool result: describe_scene listed the Pi's parts and size, and nothing said its model was bound to piModel.
+
+describe_scene and describe_body now add a boundTo entry (path, variable, current value) to any body with a bound parameter, and nothing to bodies without one, so projects with no variables cost no extra tokens.
+
+Re-running the same prompt three times with Haiku, the model called set_variable in two runs, up from none. One run still built geometry without it, so this is an improvement, not a guarantee. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #MCP #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 0 of 3 before → bench/results/ai/2026-11-15-claude-code-over-mcp.md; 2 of 3 after, run 1 without set_variable → three claude -p --model haiku runs this session; boundTo only when bound → diff and read.spec.js
+**To Add:** a describe_scene result showing boundTo

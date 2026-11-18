@@ -71,10 +71,9 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 25 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 24 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 65 | ▶ Ready | `FIND` | [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | sonnet |
 | 66 | ▶ Ready | `FIND` | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable | sonnet |
 | 67 | ▶ Ready | `FIND` | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a sub-30-micrometre flat-face cleanup | opus |
 | 68 | ▶ Ready | `FIND` | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) Close the one 1.4 micrometre four-face edge left in the 96k cut's STL export | opus |
@@ -213,7 +212,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-058`](DEFER-ui-058-gear-mesh-operation.md) Mesh operation for two gears (was M11) | feature | high | opus | Deferred 2026-11-07 |
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
-| [`ai-040`](FIND-ai-040-describe-scene-does-not-show-variable-bindings.md) Show a body's variable bindings in describe_scene so a model finds set_variable | finding | medium | sonnet | ▶ Ready (Next up row 65) |
 | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) The deployed build fetches the Sentry SDK (144 kB gzip) before the app is usable | finding | medium | sonnet | ▶ Ready (Next up row 66) |
 | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Cura still prints "Mesh has overlapping faces!" for a dense scan with a Subtract cut, though the STL is closed | finding | low | opus | ▶ Ready (Next up row 67) |
 | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) One 1.4 micrometre edge shared by four triangles remains in the 96k cut's STL export | finding | low | opus | ▶ Ready (Next up row 68) |
@@ -358,7 +356,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
 | `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Filed 2026-11-15 by `perf-005` | Finding | — | 1 |
 | `io-032` | Cura prints "Mesh has overlapping faces!" for a Subtract cut in a dense imported scan (32k triangles and up) though the STL is closed at 1e-5 mm: a 17 micrometre band in a flat face. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | `io-033` | One 1.4 micrometre edge used by four triangles remains in the 96k scan's cut STL export. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
@@ -481,7 +478,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 25 queued + 1 held | 25 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 24 queued + 1 held | 24 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { piAndCube } from '../../core/__fixtures__/piScenes.js'
 import { createDocument } from '../../core/document.js'
 import { recordsForDrop } from '../../core/library.js'
 import { fakeRegistry } from './__fixtures__/fakeRegistry.js'
@@ -174,5 +175,37 @@ describe('list_ops — the catalogue, split the way the tools are', () => {
     document.append({ id: 'b1', op: 'fake.block', name: 'Block 1', params: { sizeMm: 10, center: [0, 0, 5] } }, LOCAL)
     const result = /** @type {any} */ (tools.run(makeContext({ document }), 'describe_scene', {}))
     expect(result.bodies[0].boundsMm[1][2]).toBeCloseTo(10, 6)
+  })
+})
+
+describe('variable bindings in the read tools (TODO/ai-040)', () => {
+  const tools = createToolRegistry()
+  const PI_MODEL = {
+    name: 'piModel',
+    kind: 'enum',
+    value: 4,
+    label: 'Pi model',
+    options: [
+      { value: 4, label: 'Pi 4' },
+      { value: 5, label: 'Pi 5' },
+    ],
+  }
+
+  it('lists boundTo on a bound body in describe_scene, so a model sees set_variable applies', () => {
+    const document = piAndCube()
+    const ctx = makeContext({ document })
+    tools.run(ctx, 'define_variable', PI_MODEL)
+    tools.run(ctx, 'bind_param', { id: 'pi-1', path: 'model', name: 'piModel' })
+    const scene = /** @type {any} */ (tools.run(ctx, 'describe_scene', {}))
+    const pi = scene.bodies.find((/** @type {any} */ body) => body.id === 'pi-1')
+    expect(pi.boundTo).toEqual([{ path: 'model', variable: 'piModel', value: 4 }])
+    const body = /** @type {any} */ (tools.run(ctx, 'describe_body', { id: 'pi-1' }))
+    expect(body.boundTo).toEqual([{ path: 'model', variable: 'piModel', value: 4 }])
+  })
+
+  it('omits boundTo from a body with no bindings, and from every body of a project with no variables', () => {
+    const document = piAndCube()
+    const scene = /** @type {any} */ (tools.run(makeContext({ document }), 'describe_scene', {}))
+    for (const body of scene.bodies) expect('boundTo' in body).toBe(false)
   })
 })
