@@ -31,6 +31,7 @@
     "test:e2e:next": "node scripts/e2e-rotate.mjs --peek",
     "test:e2e:smoke": "playwright test --project=smoke-chromium-laptop --project=smoke-webkit-tablet",
     "docs:screenshots": "playwright test --project=docs-laptop --project=docs-tablet --project=docs-phone --project=docs-laptop-dark --project=docs-tablet-dark --project=docs-phone-dark --grep-invert @movie",
+    "docs:screenshots:dev": "E2E_DEV=1 playwright test --project=docs-laptop --project=docs-tablet --project=docs-phone --project=docs-laptop-dark --project=docs-tablet-dark --project=docs-phone-dark --grep-invert @movie e2e/docs/ai-chat.docs.js e2e/docs/ai-live-bridge.docs.js e2e/docs/ai-live-mcp-header.docs.js",
     "docs:screenshots:update": "playwright test --project=docs-laptop --project=docs-tablet --project=docs-phone --project=docs-laptop-dark --project=docs-tablet-dark --project=docs-phone-dark --grep-invert @movie --update-snapshots",
     "docs:movies": "playwright test --project=docs-laptop --project=docs-tablet --project=docs-phone --project=docs-laptop-dark --project=docs-tablet-dark --project=docs-phone-dark --grep @movie",
     "docs:gifs": "node scripts/docs-gifs.mjs",

@@ -4771,3 +4771,16 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 13 states, light and dark, 78 baselines → e2e/base-components.story.e2e.js and the snapshot folder (78 files, counted this session); one Storybook project per engine in the rotation → storybookFor in the diff of scripts/e2e-rotate.mjs; guard fails story specs that load the app root → new test in the diff of e2e/naming.spec.js
 **To Add:** none
+
+## 2026-11-18T08:17:26-0600 — testing-041: re-shoot two stale phone-width docs pictures
+
+**Post:** Two end-user docs pictures in WarpCad showed a phone header that no longer exists. Their specs only run against the dev server, so no routine run had noticed.
+
+The fix was small: the spec helper now opens the grouped AI menu before reaching for the Assistant button, the two pictures were re-shot, and a new npm script, docs:screenshots:dev, runs the three dev-only docs specs on demand.
+
+All three phone and tablet docs projects pass with the new pictures. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pictures stale, specs dev-only → TODO/done/testing-041-dev-only-docs-stills-stale-at-phone-width.md (Problem); helper, script → diff; docs-phone, docs-tablet, docs-phone-dark: 7 passed, 0 failed → run this session
+**To Add:** before/after of the phone header

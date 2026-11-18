@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 from the testing-025 drive of the build-015 row
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped:** `askForWing` in `e2e/docs/ai-chat.docs.js` opens the ✦ menu first when `ai-menu-button` is visible; the `ai-live-mcp-header` spec already used the menu, only its picture was stale. Re-shot `ai-chat-overlay-phone.png` and `ai-live-mcp-header{,.dark}.png`; the page text already described the grouped menu. Cadence: new `npm run docs:screenshots:dev` (`E2E_DEV=1`, the three dev-only docs specs, all six docs projects). docs-phone, docs-tablet and docs-phone-dark: 7 passed, 0 failed.
 
 ## Problem
 

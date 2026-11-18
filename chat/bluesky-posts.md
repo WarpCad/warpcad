@@ -3298,3 +3298,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 13 states in light and dark, 78 baselines → e2e/base-components.story.e2e.js (13 story ids, two colour schemes) and the snapshot folder (78 files, 26 per engine, counted this session); Storybook runs in Chromium, Firefox and WebKit → storybookFor and the storybook-<engine> projects in playwright.config.js (diff only); base components had waived snapshots → TODO/done/testing-038-storybook-playwright-project.md (Problem)
 **To Add:** a close-up of one base button in light and dark side by side
+
+## 2026-11-18T08:17:26-0600 — testing-041: re-shoot two stale phone-width docs pictures
+
+**Post:** Two WarpCad docs pictures still showed a phone header from before the AI entry moved into one menu. Re-shot both, fixed the spec helper that couldn't find the Assistant button at 390px, and added an npm script so the dev-only docs specs can be run on demand. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pictures stale and Assistant inside the grouped menu since ui-078 → TODO/done/testing-041-dev-only-docs-stills-stale-at-phone-width.md (Problem); fix → diff of e2e/docs/ai-chat.docs.js and package.json; docs-phone, docs-tablet, docs-phone-dark dev specs 7 passed, 0 failed → run this session
+**To Add:** before/after of the phone header

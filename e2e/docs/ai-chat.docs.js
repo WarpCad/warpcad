@@ -35,6 +35,9 @@ async function scriptedApp(page) {
 
 /** @param {import('@playwright/test').Page} page @param {number} typingMs per-key delay, 0 for none */
 async function askForWing(page, typingMs = 0) {
+  // At phone width the dev host groups the Assistant under the ✦ menu (ui-078); a hosted copy has none.
+  const menu = page.getByTestId('ai-menu-button')
+  if (await menu.isVisible()) await menu.click()
   await page.getByTestId('assistant-button').click()
   await expect(page.getByTestId('assistant-panel')).toBeVisible()
   await expect(page.getByTestId('ai-scripted-badge')).toBeVisible()
