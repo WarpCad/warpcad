@@ -4851,3 +4851,18 @@ All three cuts now load in Cura with no mesh warning; the app's own File > Expor
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** warnings before/after, 4e-6 volume, byte-identical uncut → agent's CuraEngine and bench runs this session; 26,822 triangles, 0 open edges → acceptance drive this session (chromium-laptop, webkit-laptop); 1-17 µm, 30 µm meld, 70 µm cap → agent report + diff of flatFaces.js
 **To Add:** a before/after of the cutter face triangulation
+
+## 2026-11-18T19:55:00Z — WarpCad rejects a gist token with no Gists permission at Connect (TODO/io-037)
+
+**Post:** WarpCad's Connect dialog checks a GitHub token before storing it. The check was a PATCH on a gist id of all zeros, read as "404 means write is allowed". A fine-grained token with no permissions at all also gets 404, so the dialog accepted it and the failure only showed up later, at Publish.
+
+The fix is a different probe. POST /gists with an empty file set is rejected by validation if the token can write (422, nothing is created) and by authorization if it can't (403). I measured both against GitHub with a classic gist token and a permissionless fine-grained one before changing the code; the gist count stayed the same.
+
+Connect now refuses such a token with the existing "lacks the Gists permission" message, and the decision record lists both measured answers.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old probe 404 for a permissionless token → TODO/done/io-037 Problem section; 422/403 and gist count unchanged → gh api and curl runs this session; message wording → src/storage/gistBackend.js MESSAGES.forbidden
+**To Add:** none

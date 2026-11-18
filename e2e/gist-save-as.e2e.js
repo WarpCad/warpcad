@@ -33,8 +33,8 @@ test.beforeAll(() => mkdirSync(SNAPSHOT_DIR, { recursive: true }))
 /** A sentinel, not a credential. */
 const GIST_TOKEN = 'github_pat_E2E_SENTINEL_gist_not_a_real_token'
 const LOGIN = 'warpcad-tester'
-/** The write probe the token dialog sends to check the token can write gists. */
-const PROBE = `/gists/${'0'.repeat(32)}`
+/** The write probe the token dialog sends to check the token can write gists: a POST /gists with no files. */
+const isProbe = (/** @type {{ method: string, body: any }} */ r) => r.method === 'POST' && Object.keys(r.body?.files ?? {}).length === 0
 
 const MOCK_CLIPBOARD = () => {
   const copied = /** @type {string[]} */ ([])
@@ -98,7 +98,7 @@ async function expectChip(page, /** @type {RegExp | string} */ text) {
 /** The gist API calls that write, the token dialog's probe left out. @param {ReturnType<typeof fakeGitHub>} fake */
 const writes = (fake) =>
   fake.requests
-    .filter((r) => r.method !== 'GET' && new URL(r.url).pathname !== PROBE && new URL(r.url).pathname.startsWith('/gists'))
+    .filter((r) => r.method !== 'GET' && !isProbe(r) && new URL(r.url).pathname.startsWith('/gists'))
     .map((r) => `${r.method} ${new URL(r.url).pathname}`)
 
 /** Every visible button, link and choice in `scope` is at least 44px tall. @param {import('@playwright/test').Locator} scope */

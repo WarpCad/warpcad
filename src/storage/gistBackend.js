@@ -46,11 +46,6 @@ import { GITHUB_API_ORIGIN, HostedError, classifyGitHubFailure, githubHeaders, i
 
 export { GIST_RAW_HOST }
 
-/**
- * The id the token probe PATCHes. No gist has it, so a token with Gists: write gets 404 and
- * nothing is written; a token without the permission gets 403.
- */
-export const PROBE_GIST_ID = '0'.repeat(32)
 
 /** Largest project file read from a gist, in bytes (`io-016`'s decompressed cap). */
 export const MAX_GIST_PROJECT_BYTES = MAX_DECOMPRESSED_BYTES
@@ -314,8 +309,9 @@ function expiryOf(value) {
 
 /**
  * Check a token can write gists, and whose it is. Uses the write probe from the decision record
- * — `PATCH /gists/<all-zero id>`: 404 means Gists: write is granted (and nothing is written),
- * 403 that it is missing, 401 that the token is rejected or expired — **not**
+ * — `POST /gists` with `{"files":{}}`: 422 means Gists: write is granted (validation fails, so
+ * nothing is created), 403 that it is missing, 401 that the token is rejected or expired. **Not**
+ * `PATCH /gists/<all-zero id>`, whose 404 is the same with or without the permission, and **not**
  * `GET /gists?per_page=1`, which answers 200 for a token with no gist permission at all. A
  * classic token's `X-OAuth-Scopes` must include `gist`; anything beyond it sets
  * `broaderThanNeeded` (the header itself is never returned or logged).
@@ -327,12 +323,12 @@ export async function validateGistToken({ token, fetch: injected }) {
   const checked = checkToken(token)
   const fetchImpl = fetchOf(injected)
 
-  const probe = await request(fetchImpl, `${GITHUB_API_ORIGIN}/gists/${PROBE_GIST_ID}`, {
-    method: 'PATCH',
+  const probe = await request(fetchImpl, `${GITHUB_API_ORIGIN}/gists`, {
+    method: 'POST',
     headers: githubHeaders(checked, { 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ description: 'x' }),
+    body: JSON.stringify({ files: {} }),
   })
-  if (probe.status !== 404 && !probe.ok) throw await failureOf(probe)
+  if (probe.status !== 422) throw await failureOf(probe)
 
   const scopesHeader = probe.headers?.get?.('x-oauth-scopes')
   /** @type {'classic' | 'fine-grained'} */

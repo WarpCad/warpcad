@@ -25,7 +25,7 @@ so the classic `gist`-scope token is the **fallback**, accepted but not recommen
 | Fine-grained token's scopes header | **None.** It carries `x-accepted-github-permissions` instead. The "token can do more than WarpCad needs" warning is therefore classic-only; a fine-grained token is narrow by construction |
 | Token expiry | `github-authentication-token-expiration` header on both kinds (30 days by default); the dialog should show it |
 | `GET /gists?per_page=1` as a validity check | 200, but the response says `allows_permissionless_access=true`: **it does not prove the Gists permission**. Do not use it as the only check |
-| Write probe that proves the permission and writes nothing | `PATCH /gists/<all-zero id>` → **404** plus `x-accepted-github-permissions: gists=write`. Expected for a token *without* the permission: 403 (**not verified**; no permissionless token was available. Verify by hand, `TODO/VERIFY.md`) |
+| Write probe that proves the permission and writes nothing | `POST /gists` with `{"files":{}}` → **422** with the permission (nothing is created; gist count unchanged), **403** `Resource not accessible by personal access token` without it. Both measured 2026-11-18 (classic `gist` token, and a fine-grained token with no permissions). The earlier probe, `PATCH /gists/<all-zero id>`, answers **404** either way, so it proved nothing (`TODO/io-037`) |
 | Bad token | 401 `Bad credentials`; the body does not quote the token (we still never echo server text) |
 | Login for the dialog | `GET /user` → 200 on both kinds |
 | CORS from `https://app.warpcad.com` | `access-control-allow-origin: *` on `api.github.com` (including the `POST`/`PATCH` preflight) and on `gist.githubusercontent.com` |
@@ -46,7 +46,7 @@ so the classic `gist`-scope token is the **fallback**, accepted but not recommen
   (reuse `io-016`'s decompressed cap).
 - **Rate limit.** A 403/429 with `x-ratelimit-remaining: 0` on the unauthenticated read maps to
   *"GitHub is busy. Try again in a few minutes."*
-- **Validation.** The connect dialog validates with the write probe above, not with
+- **Validation.** The connect dialog validates with the write probe above (422 = granted), not with
   `GET /gists?per_page=1`, then shows the login from `GET /user`.
 - **Merge (Stage 3).** Not in this task's first stages. Interim behaviour: **Update refuses if the
   gist's latest revision is not the one last published**; the owner opens the gist first. File
@@ -109,8 +109,7 @@ Neither token can be limited to a single gist; the sheet says so in plain words.
 
 ## Open item
 
-The negative case of the write probe (a token with no Gists permission gets 403) is expected from
-GitHub's documentation but was not observed. A by-hand check is queued in `TODO/VERIFY.md`.
+None on the write probe: both its answers were measured on 2026-11-18 (see the table above).
 
 ## Save as gist and Ctrl/Cmd+S (`TODO/io-021`)
 

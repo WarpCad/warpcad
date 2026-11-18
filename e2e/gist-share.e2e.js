@@ -410,7 +410,7 @@ test.describe('store and share a project as a GitHub gist', () => {
     // A Download copy taken before publishing — what the published file must equal.
     const before = await downloadCopy(page, input)
     // So far GitHub has seen the write probe and the login read, nothing else.
-    expect(fake.requests.map((r) => `${r.method} ${new URL(r.url).pathname}`)).toEqual([`PATCH /gists/${'0'.repeat(32)}`, 'GET /user'])
+    expect(fake.requests.map((r) => `${r.method} ${new URL(r.url).pathname}`)).toEqual(['POST /gists', 'GET /user'])
     const writesBefore = fake.requests.length
 
     // The sheet, connected and not yet published: compared at every project.

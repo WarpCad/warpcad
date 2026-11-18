@@ -586,7 +586,7 @@ other is asked for.
    **Gists** to **Read and write**. Copy it.
 3. Paste it into **GitHub token** and tap **Connect**. WarpCad checks it with GitHub before storing
    anything. A token that is wrong or expired is turned down with *GitHub rejected this token*, and
-   one without the Gists permission with *This token can't write gists*.
+   one without the Gists permission with *This token lacks the Gists permission (it needs Gists: read and write)*.
 4. It says *Connected as* your GitHub name, the kind of token and when it expires. Tap **Done**.
    The File menu row now reads **GitHub gists:** and your name.
 

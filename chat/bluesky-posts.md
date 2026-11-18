@@ -3352,3 +3352,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** warnings before/after → CuraEngine 5.13.0 runs this session on the bench-path 32k/96k/240k cuts; 1-17 µm strips → agent measurement on the 32k file, this session; flatFaces.js pass → diff
 **To Add:** the cutter's flat face before and after, as a wireframe
+
+## 2026-11-18T19:55:00Z — WarpCad rejects a gist token with no Gists permission at Connect (TODO/io-037)
+
+**Post:** A GitHub token with no permissions at all passed WarpCad's "Connect gists" check. The probe, PATCH on an all-zero gist id, answers 404 whether or not the token can write gists. Switched to POST /gists with no files: 422 means the permission is there and nothing is created, 403 means it isn't. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** old probe 404 for a permissionless token → TODO/done/io-037 Problem section (2026-11-17 drive); 422 with permission, gist count unchanged → gh api run this session; 403 without → curl with the permissionless token this session
+**To Add:** none

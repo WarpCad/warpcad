@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from OWNER.md U5 (VERIFY.md io-017 #1)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-18.** The positive case was 422 as hoped (classic `gist` token, gist count unchanged), so the probe is now `POST /gists {"files":{}}` (422 granted, 403 missing, 401 rejected). `PROBE_GIST_ID` is gone. The e2e fake answers the probe with 422. Acceptance: no scenario drives Connect; `e2e/gist-share.e2e.js` (24/24, webkit-tablet + firefox-laptop) covers it, and `io-017`'s repro is VERIFY.md io-017 #1, now `OK`.
 
 ## Problem
 

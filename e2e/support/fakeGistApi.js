@@ -30,7 +30,6 @@ import { randomBytes } from 'node:crypto'
 
 const API = 'https://api.github.com'
 const RAW_HOST = 'https://gist.githubusercontent.com'
-const PROBE_ID = '0'.repeat(32)
 
 /** @param {number} bytes */
 const hex = (bytes) => randomBytes(bytes).toString('hex')
@@ -186,9 +185,10 @@ export async function routeFakeGitHub(target, fake) {
         }
       : {}
 
-    if (path === `/gists/${PROBE_ID}` && method === 'PATCH') {
+    // The connect probe: POST /gists with no files. 422 = Gists: write granted, nothing created.
+    if (path === '/gists' && method === 'POST' && Object.keys(body?.files ?? {}).length === 0) {
       if (!account) return json(route, 401, { message: 'Requires authentication' })
-      return json(route, 404, { message: 'Not Found' }, { ...tokenHeaders, 'x-accepted-github-permissions': 'gists=write' })
+      return json(route, 422, { message: 'Validation Failed' }, { ...tokenHeaders, 'x-accepted-github-permissions': 'gists=write' })
     }
 
     if (path === '/gists' && method === 'POST') {

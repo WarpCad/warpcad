@@ -7,7 +7,6 @@ import { MAX_DECOMPRESSED_BYTES } from '../core/shareLink.js'
 import {
   GIST_RAW_HOST,
   GistError,
-  PROBE_GIST_ID,
   createGist,
   deleteGist,
   readGist,
@@ -74,7 +73,7 @@ function fakeFetch(routes) {
         (typeof candidate.url === 'function' ? candidate.url(String(url)) : candidate.url === String(url)),
     )
     if (!route) throw new Error(`unrouted request: ${method} ${url}`)
-    return typeof route.answer === 'function' ? route.answer() : route.answer
+    return typeof route.answer === 'function' ? route.answer(init) : route.answer
   })
   fetchImpl.calls = calls
   return fetchImpl
@@ -150,16 +149,16 @@ describe('GistError', () => {
 })
 
 describe('validateGistToken — the write probe, not GET /gists', () => {
-  const probeUrl = `${GITHUB_API_ORIGIN}/gists/${PROBE_GIST_ID}`
+  const probeUrl = `${GITHUB_API_ORIGIN}/gists`
 
-  it('probes PATCH /gists/<all-zero id>, reads 404 as "Gists: write granted", then reads the login', async () => {
+  it('probes POST /gists with no files, reads 422 as "Gists: write granted", then reads the login', async () => {
     const fetchImpl = fakeFetch([
       {
-        method: 'PATCH',
+        method: 'POST',
         url: probeUrl,
         answer: response({
-          status: 404,
-          body: { message: 'Not Found' },
+          status: 422,
+          body: { message: 'Validation Failed' },
           headers: { 'x-accepted-github-permissions': 'gists=write', 'github-authentication-token-expiration': '2026-11-27 14:05:00 UTC' },
         }),
       },
@@ -171,10 +170,9 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
       broaderThanNeeded: false,
       tokenKind: 'fine-grained',
     })
-    expect(PROBE_GIST_ID).toBe('0'.repeat(32))
     const [probe, user] = fetchImpl.calls
-    expect(probe.method).toBe('PATCH')
-    expect(JSON.parse(probe.init.body)).toEqual({ description: 'x' })
+    expect(probe.method).toBe('POST')
+    expect(JSON.parse(probe.init.body)).toEqual({ files: {} })
     expect(probe.init.headers).toMatchObject({
       Authorization: `Bearer ${TOKEN}`,
       Accept: 'application/vnd.github+json',
@@ -187,7 +185,7 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
 
   it('accepts a classic gist-only token without the "broader" warning', async () => {
     const fetchImpl = fakeFetch([
-      { method: 'PATCH', url: probeUrl, answer: response({ status: 404, headers: { 'X-OAuth-Scopes': 'gist' } }) },
+      { method: 'POST', url: probeUrl, answer: response({ status: 422, headers: { 'X-OAuth-Scopes': 'gist' } }) },
       { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ body: { login: 'octo' } }) },
     ])
     const result = await validateGistToken({ token: TOKEN, fetch: fetchImpl })
@@ -196,7 +194,7 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
 
   it('flags a classic token with more than the gist scope, without carrying the header value', async () => {
     const fetchImpl = fakeFetch([
-      { method: 'PATCH', url: probeUrl, answer: response({ status: 404, headers: { 'X-OAuth-Scopes': 'gist, repo, admin:org_hook, workflow' } }) },
+      { method: 'POST', url: probeUrl, answer: response({ status: 422, headers: { 'X-OAuth-Scopes': 'gist, repo, admin:org_hook, workflow' } }) },
       { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ body: { login: 'octo' } }) },
     ])
     const result = await validateGistToken({ token: TOKEN, fetch: fetchImpl })
@@ -204,10 +202,10 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
     expect(JSON.stringify(result)).not.toMatch(/repo|workflow|admin/)
   })
 
-  it('refuses a classic token whose scopes do not include gist, even when the probe 404s', async () => {
+  it('refuses a classic token whose scopes do not include gist, even when the probe answers 422', async () => {
     for (const scopes of ['repo', '', 'gists, user']) {
       const fetchImpl = fakeFetch([
-        { method: 'PATCH', url: probeUrl, answer: response({ status: 404, headers: { 'X-OAuth-Scopes': scopes } }) },
+        { method: 'POST', url: probeUrl, answer: response({ status: 422, headers: { 'X-OAuth-Scopes': scopes } }) },
         { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ body: { login: 'octo' } }) },
       ])
       const error = await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: fetchImpl }))
@@ -217,7 +215,7 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
   })
 
   it('reads 403 on the probe as "token lacks the Gists permission"', async () => {
-    const fetchImpl = fakeFetch([{ method: 'PATCH', url: probeUrl, answer: response({ status: 403, body: { message: 'Resource not accessible by personal access token' } }) }])
+    const fetchImpl = fakeFetch([{ method: 'POST', url: probeUrl, answer: response({ status: 403, body: { message: 'Resource not accessible by personal access token' } }) }])
     const error = await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: fetchImpl }))
     expect(error.kind).toBe('forbidden')
     expect(error.message).toMatch(/lacks the Gists permission/)
@@ -225,26 +223,33 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
     expect(fetchImpl.calls).toHaveLength(1)
   })
 
+  it('no longer reads 404 as success: that answer is the same with or without the permission', async () => {
+    const fetchImpl = fakeFetch([{ method: 'POST', url: probeUrl, answer: response({ status: 404, body: { message: 'Not Found' } }) }])
+    const error = await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: fetchImpl }))
+    expect(error).toBeInstanceOf(GistError)
+    expect(fetchImpl.calls).toHaveLength(1)
+  })
+
   it('reads 401 as rejected or expired', async () => {
-    const fetchImpl = fakeFetch([{ method: 'PATCH', url: probeUrl, answer: response({ status: 401, body: { message: 'Bad credentials' } }) }])
+    const fetchImpl = fakeFetch([{ method: 'POST', url: probeUrl, answer: response({ status: 401, body: { message: 'Bad credentials' } }) }])
     const error = await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: fetchImpl }))
     expect(error.kind).toBe('unauthorized')
     expect(error.message).not.toMatch(/Bad credentials/)
   })
 
   it('reads a 403 with no requests left as rate-limited, not as a missing permission', async () => {
-    const fetchImpl = fakeFetch([{ method: 'PATCH', url: probeUrl, answer: response({ status: 403, headers: { 'x-ratelimit-remaining': '0' } }) }])
+    const fetchImpl = fakeFetch([{ method: 'POST', url: probeUrl, answer: response({ status: 403, headers: { 'x-ratelimit-remaining': '0' } }) }])
     expect((await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: fetchImpl }))).kind).toBe('rate-limited')
   })
 
   it('fails when the login cannot be read', async () => {
     const unauthorized = fakeFetch([
-      { method: 'PATCH', url: probeUrl, answer: response({ status: 404 }) },
+      { method: 'POST', url: probeUrl, answer: response({ status: 422 }) },
       { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ status: 401 }) },
     ])
     expect((await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: unauthorized }))).kind).toBe('unauthorized')
     const garbage = fakeFetch([
-      { method: 'PATCH', url: probeUrl, answer: response({ status: 404 }) },
+      { method: 'POST', url: probeUrl, answer: response({ status: 422 }) },
       { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ body: { login: '<script>' } }) },
     ])
     expect((await rejectionOf(() => validateGistToken({ token: TOKEN, fetch: garbage }))).kind).toBe('malformed')
@@ -253,7 +258,7 @@ describe('validateGistToken — the write probe, not GET /gists', () => {
   it('returns no expiry for a missing or unreadable expiry header', async () => {
     for (const headers of [{}, { 'github-authentication-token-expiration': 'whenever' }]) {
       const fetchImpl = fakeFetch([
-        { method: 'PATCH', url: probeUrl, answer: response({ status: 404, headers }) },
+        { method: 'POST', url: probeUrl, answer: response({ status: 422, headers }) },
         { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ body: { login: 'octo' } }) },
       ])
       expect((await validateGistToken({ token: TOKEN, fetch: fetchImpl })).expiresAt).toBeNull()
@@ -651,9 +656,13 @@ describe('the token never leaves the Authorization header — every failure path
 
   it('success results carry no token either', async () => {
     const fetchImpl = fakeFetch([
-      { method: 'PATCH', url: `${GITHUB_API_ORIGIN}/gists/${PROBE_GIST_ID}`, answer: response({ status: 404 }) },
+      {
+        method: 'POST',
+        url: `${GITHUB_API_ORIGIN}/gists`,
+        // The probe sends no files and gets 422; the real create gets 201.
+        answer: (init) => (Object.keys(JSON.parse(init.body).files).length === 0 ? response({ status: 422 }) : response({ status: 201, body: gistBody() })),
+      },
       { url: `${GITHUB_API_ORIGIN}/user`, answer: response({ body: { login: 'octo' } }) },
-      { method: 'POST', url: `${GITHUB_API_ORIGIN}/gists`, answer: response({ status: 201, body: gistBody() }) },
     ])
     expect(JSON.stringify(await validateGistToken({ token: TOKEN, fetch: fetchImpl }))).not.toContain(TOKEN)
     expect(JSON.stringify(await createGist({ token: TOKEN, files: { 'a.ndjson': PROJECT }, description: '', fetch: fetchImpl }))).not.toContain(TOKEN)
