@@ -236,8 +236,9 @@ When the turn finishes:
   change is kept, and the chat says whose that was.
 - If one of its steps can no longer be built because of something you did, say you moved a cube
   it was rounding, that step is marked as a conflict, exactly as when you
-  [merge two copies of a project](merging.md#what-a-conflict-is). A yellow strip reads *Merged 1
-  step from the Assistant — 1 step conflicted*, and **Show** opens History on the marked step. The
+  [merge two copies of a project](merging.md#what-a-conflict-is). A yellow strip reads *1 step from
+  the Assistant couldn't be built next to your own edits, so it is marked broken in History*, and **Show**
+  opens History on the marked step. The
   Assistant is told which of its steps conflicted at the start of your next request.
 
 The Assistant doesn't see what you change while it works: it works from your project as it was

@@ -52,9 +52,9 @@ describe('TimelineRow — design intent', () => {
 
   it('an origin the file made up is not echoed on either chip (TODO/ai-009)', async () => {
     const wrapper = mount(TimelineRow, { props: { row: rowFor('why', 'you (verified)</span>') } })
-    expect(wrapper.get('[data-testid="chip-origin"]').text()).toBe('via another program')
+    expect(wrapper.get('[data-testid="chip-origin"]').text()).toBe('via unknown source')
     await wrapper.get('[data-testid="timeline-intent-toggle"]').trigger('click')
-    expect(wrapper.get('[data-testid="timeline-intent-origin"]').text()).toBe('via another program')
+    expect(wrapper.get('[data-testid="timeline-intent-origin"]').text()).toBe('via unknown source')
     expect(wrapper.html()).not.toContain('verified')
   })
 

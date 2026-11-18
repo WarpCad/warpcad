@@ -384,7 +384,7 @@ test.describe('TODO/ai-017 — keep editing while the Assistant works', () => {
     await dragGizmoArm(page, 60)
 
     await expect(page.getByTestId('ai-working-chip')).toBeHidden({ timeout: 30_000 })
-    await expect(page.getByTestId('merge-banner-text')).toHaveText(/1 step conflicted$/)
+    await expect(page.getByTestId('merge-banner-text')).toHaveText(/^1 step from the Assistant couldn't be built next to your own edits, so it is marked broken in History\./)
     await page.getByTestId('merge-banner-show').click()
     await expect(page.getByTestId('timeline-panel')).toBeVisible()
     const row = page.locator('[data-testid="timeline-panel"] [aria-current="true"]')

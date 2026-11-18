@@ -212,6 +212,9 @@ describe('createTabEndpoint: one writer, enforced', () => {
     const reply = await endpoint.handle(call(2, 'create', SPHERE, 'second'))
     expect(reply.result.error).toMatch(/project changed in WarpCad while this call waited/)
     expect(reply.result.error).toMatch(/retry/)
+    // TODO/ai-039: no developer jargon ("a merge landed") for a person reading the log.
+    expect(reply.result.error).toMatch(/you edited it, or another copy was merged in/)
+    expect(reply.result.error).not.toMatch(/landed/)
     // The user's edit is there; Claude's sphere is not.
     expect(doc.entries).toHaveLength(before + 1)
     expect(doc.entries.some((entry) => entry.record.op === 'primitive.sphere')).toBe(false)

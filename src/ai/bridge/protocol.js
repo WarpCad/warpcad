@@ -72,7 +72,7 @@ export const EDITING_REFUSAL = 'the user is editing; try again'
 
 /** What a call returns when the live document moved while it waited. */
 export const STALE_REFUSAL =
-  'The project changed in WarpCad while this call waited (the user edited it, or a merge landed), so nothing was applied. Read it again (describe_scene) and retry.'
+  'The project changed in WarpCad while this call waited (you edited it, or another copy was merged in), so nothing was applied. Read it again with describe_scene, then retry.'
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isObject(value) {

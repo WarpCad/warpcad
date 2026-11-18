@@ -146,6 +146,28 @@ export function describeMerge(change, conflicts, sourceName) {
 }
 
 /**
+ * What the Assistant strip says when some of a turn's steps conflicted with the user's own edits
+ * (`TODO/ai-039`): the conflicted steps are kept, marked broken in History and not built; any other
+ * step of the turn was applied.
+ *
+ * @param {MergeChange} change The turn's change.
+ * @param {number} conflicts How many of its steps conflicted.
+ * @returns {string}
+ */
+export function describeAiConflict(change, conflicts) {
+  const gone = new Set([...change.added, ...change.removed])
+  const changed = new Set([...change.revised, ...change.moved].filter((id) => !gone.has(id)))
+  const total = change.added.length + changed.size + change.removed.length
+  const one = conflicts === 1
+  const rest = total - conflicts
+  const applied = rest > 0 ? ` ${rest === 1 ? 'The other step was' : `The other ${rest} steps were`} applied.` : ''
+  return (
+    `${plural(conflicts, 'step')} from the Assistant couldn't be built next to your own edits, ` +
+    `so ${one ? 'it is' : 'they are'} marked broken in History.${applied} Show opens ${one ? 'it' : 'the first'}.`
+  )
+}
+
+/**
  * A parsed project file's merge state — what `mergeFrom` takes. The file is folded into a
  * throwaway document (never the live one, never the registry's project layer), so a file that
  * does not build is refused here, before anything is touched, with the same reason Open gives.
@@ -318,8 +340,9 @@ export const useMergeStore = defineStore('merge', () => {
 
   /**
    * `TODO/ai-017`: an Assistant turn landed by merge and some rows conflicted — the same banner,
-   * **Show** and chipped rows a Merge file… gets, reading `Merged 2 steps from the Assistant — 1
-   * step conflicted`. No **Undo merge** on it: the turn's own undo is **Undo AI turn** in the
+   * **Show** and chipped rows a Merge file… gets. It says what happened to the step, not that
+   * something "merged" (`TODO/ai-039`): the conflicted step is kept and marked broken in History, and
+   * the turn's other steps were applied. No **Undo merge** on it: the turn's own undo is **Undo AI turn** in the
    * chat, and this merge's inverse is not this store's `last`. A clean landing shows nothing
    * here; the transcript says what happened.
    *
@@ -332,7 +355,7 @@ export const useMergeStore = defineStore('merge', () => {
     notice.value = {
       kind: 'banner',
       tone: 'warn',
-      text: describeMerge(change, /** @type {any} */ (conflicts), 'the Assistant'),
+      text: describeAiConflict(change, conflicts.length),
       undoable: false,
       conflictIds: conflicts.map((conflict) => conflict.id),
     }

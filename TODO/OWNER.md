@@ -86,6 +86,18 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q99 · Rename the History chip `via mcp` to a plain phrase?
+
+**Question:** `ai-039` kept `via mcp`, `via ai` and `via webmcp` as they are. The cold readers called `via mcp` a developer term; rename it to *via an external tool (MCP)*?
+
+**Background:** Done: an unrecognised origin reads *via unknown source* and a merge reads *via a merge*. Renaming `via mcp` touches about 30 quoted copies (`docs/mcp.md`, `docs/README.md`, `docs/design-intent.md`, `docs/merging.md`, five docs specs, four e2e specs) and widens a chip that already wraps at 390 px. The docs define MCP on first use.
+
+**Options:**
+- **Keep `via mcp` (Recommended):** the docs explain it, and the chip is the same word the Assistant header's *MCP agent* uses.
+- **Rename it:** an S-M task: one string, 30 quoted copies and a phone-width check.
+
+**If deferred:** nothing changes.
+
 #### Q98 · Keep `ui-129` split, with the broken History row's layout filed as `ui-146`?
 
 **Question:** `ui-129` had four message fixes and the broken step's layout; I did the messages and filed the layout as `ui-146`. Keep that?

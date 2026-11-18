@@ -25,11 +25,14 @@ export const KNOWN_ORIGINS = Object.freeze(['local', 'ai', 'mcp', 'remote', 'pro
 
 /**
  * @param {string} origin As the entry carries it.
- * @returns {string} `by you`, `via <origin>` for a known origin, otherwise `via another program`.
+ * @returns {string} `by you`, `via <origin>` for a known origin (`via a merge` for `merge`), otherwise
+ *   `via unknown source` — the app only fails to recognise it, which is not the same as a program acting
+ *   (`TODO/ai-039`).
  */
 export function originChipText(origin) {
   if (origin === 'local') return 'by you'
-  return KNOWN_ORIGINS.includes(origin) ? `via ${origin}` : 'via another program'
+  if (origin === 'merge') return 'via a merge'
+  return KNOWN_ORIGINS.includes(origin) ? `via ${origin}` : 'via unknown source'
 }
 
 /**
@@ -71,7 +74,7 @@ export function originActorText(origin) {
  * another once the page reloads. The reason is part of the merged log every replica folds,
  * so it must read the same on every copy and after a reload; a phrase that depended on who is
  * looking ("by you" here, "on another copy" there) would not. Any other origin keeps its
- * {@link originChipText} (`via ai`, `via mcp`, `via another program`), which is the same on
+ * {@link originChipText} (`via ai`, `via mcp`, `via unknown source`), which is the same on
  * every copy.
  *
  * @param {string} origin As the winning entry carries it.

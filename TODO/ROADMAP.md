@@ -71,12 +71,11 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 34 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 33 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
-| 55 | ▶ Ready | `FIND` | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | sonnet |
 | 56 | ▶ Ready | `FIND` | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | sonnet |
 | 57 | ▶ Ready | `FIND` | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | sonnet |
 | 58 | ▶ Ready | `FIND` | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | sonnet |
@@ -215,7 +214,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
-| [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | finding | low | sonnet | ▶ Ready (Next up row 55) |
 | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | finding | low | sonnet | ▶ Ready (Next up row 56) |
 | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | finding | low | sonnet | ▶ Ready (Next up row 57) |
 | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | finding | low | sonnet | ▶ Ready (Next up row 58) |
@@ -372,7 +370,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
-| `ai-039` | Reword the "via another program" chip, the stale-project refusal and the conflict strip. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
 | `ui-130` | Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-131` | Keep the rotate dial readout clear of the operations toolbar at phone width. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-132` | Let a click anywhere in a text label box select it, not only on its letter strokes. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
@@ -498,7 +495,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 34 queued + 1 held | 34 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 33 queued + 1 held | 33 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

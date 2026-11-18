@@ -126,8 +126,9 @@ can no longer be built is marked as a conflict, never attached to a different sh
 
 - A clean turn shows no strip. The chat says *Merged with 2 changes you made meanwhile* if you
   changed anything while it worked.
-- A turn with a conflict shows the yellow strip, naming the Assistant as the source: **Merged 2
-  steps from the Assistant — 1 step conflicted**, with **Show**. Fix the marked step the same way
+- A turn with a conflict shows the yellow strip, naming the Assistant as the source: *2 steps
+  from the Assistant couldn't be built next to your own edits, so they are marked broken in History. The
+  other step was applied.* It has a **Show** button. Fix the marked step the same way
   as [above](#fixing-a-conflicted-step).
 - The strip has no **Undo merge**. To take the Assistant's work back out, use **Undo AI turn** in
   the chat. It works like Undo merge, but for that turn only.

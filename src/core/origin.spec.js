@@ -9,7 +9,7 @@ describe('originChipText — the History origin chip never echoes file text (TOD
     expect(originChipText('ai')).toBe('via ai')
     expect(originChipText('mcp')).toBe('via mcp')
     expect(originChipText('remote')).toBe('via remote')
-    expect(originChipText('merge')).toBe('via merge')
+    expect(originChipText('merge')).toBe('via a merge')
     // TODO/ai-021: a browser agent over WebMCP.
     expect(originChipText('webmcp')).toBe('via webmcp')
     expect([...KNOWN_ORIGINS].sort()).toEqual(['ai', 'local', 'mcp', 'merge', 'programmatic', 'remote', 'webmcp'])
@@ -17,7 +17,7 @@ describe('originChipText — the History origin chip never echoes file text (TOD
 
   it('any other origin a file declares reads as one fixed phrase, whatever it says', () => {
     for (const hostile of ['</span><img src=x onerror=alert(1)>', 'you (verified)', 'x'.repeat(10_000), 'MCP', ' mcp', '']) {
-      expect(originChipText(hostile)).toBe('via another program')
+      expect(originChipText(hostile)).toBe('via unknown source')
     }
   })
 })

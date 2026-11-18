@@ -135,6 +135,21 @@ describe('the merge summary, in History rows (TODO/ui-062)', () => {
     expect(merge.canUndo).toBe(false)
   })
 
+  it('an Assistant turn that conflicts says what happened to the step, not "merged" (TODO/ai-039)', () => {
+    const turnChange = { added: ['fillet-1'], removed: [], revised: [], moved: [], registers: [], parts: [] }
+    merge.noteAiLanding(/** @type {any} */ (turnChange), [{ id: 'fillet-1' }])
+    expect(merge.notice).toMatchObject({ kind: 'banner', tone: 'warn', undoable: false, conflictIds: ['fillet-1'] })
+    expect(merge.notice?.text).toBe(
+      "1 step from the Assistant couldn't be built next to your own edits, so it is marked broken in History. Show opens it.",
+    )
+    expect(merge.notice?.text).not.toMatch(/Merged|conflicted/)
+    const two = { added: ['a', 'b', 'c'], removed: [], revised: [], moved: [], registers: [], parts: [] }
+    merge.noteAiLanding(/** @type {any} */ (two), [{ id: 'a' }, { id: 'b' }])
+    expect(merge.notice?.text).toBe(
+      "2 steps from the Assistant couldn't be built next to your own edits, so they are marked broken in History. The other step was applied. Show opens the first.",
+    )
+  })
+
   it('conflicts: a banner instead of the toast, naming how many rows conflicted', () => {
     const other = copyOf(documentStore.raw)
     documentStore.append(structuredClone(move))

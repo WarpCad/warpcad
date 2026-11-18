@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ai-039` | Reworded the History origin chip for an unknown origin (*via unknown source*) and for a merge (*via a merge*), the stale-project refusal, and the Assistant conflict strip, which now says what happened to the step. Filed from the testing-029 cold-read panel | Finding | — | 22, 24 |
 | ✅ `ui-129` | Plain sentences for the fillet radius, zero-size and broken-step messages at the display boundary (`userReason`), readable replica ids in the Assistant's activity rows, and the image notice *billed to your own API key*. The broken row's layout is `ui-146`. Filed from the testing-029 cold-read panel | Finding | — | 12, 24 |
 | ✅ `docs-036` | Fixed the docs sentences and the keep-out picture two cold readers could not follow: Align button names, the Repeat Rotation X step, the kept-Pi and Repeat bolt lines, the Fit result, and a labelled `rpi-keepout.png`. The five movie re-records are `docs-038`. Filed from the testing-029 cold-read panel | Finding | — | none |
 | ✅ `ui-128` | Four of the nine cold-read chrome fixes: Share and Export under Save in File ▾ (*Add a shape first*), the folded nav toggle reads ✥ View, Size bind buttons carry X / Y / Z in fixed columns, the mixed eye is a struck eye with an *n of m parts hidden* tooltip. The other five are `ui-145`. Filed from the testing-029 cold-read panel | Finding | — | 7, 21, 29 |
@@ -1441,5 +1442,6 @@ convention going forward.
 | `ui-128` | 2026-11-18 02:32 | ~34m by the machine clock (01:58 start; four items; the first design of the nav toggle widened it and broke the phone width budget, so it was reworked; one stale docs still run per intended drift) |
 | `docs-036` | 2026-11-18 03:41 | ~11m by the machine clock (03:30 start; five sentences, one regenerated picture; two failed picture runs on the way, one from a deleted baseline that the help build's dead-link check needs, one from a shot that cannot carry the toggle) |
 | `ui-129` | 2026-11-18 04:17 | ~34m by the machine clock (03:43 start; includes waiting out docs-036's commit; one wrapper-prefix miss caught by e2e, one intended picture drift) |
+| `ai-039` | 2026-11-18 11:42 | ~13m by the machine clock (11:29 start; RED on five expectations first, one plural slip caught by the new spec, the dev-only scripted-Assistant spec run for the conflict reproduction) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

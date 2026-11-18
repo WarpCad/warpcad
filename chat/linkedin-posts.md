@@ -4692,3 +4692,17 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** the fillet sentence → src/core/userReason.js and e2e/fillet-chamfer-operation.e2e.js (green, pair runs 57 and 58, this session); "Height must be more than 0 mm." → src/core/userReason.spec.js and e2e/inspector-param-edit.e2e.js (green, this session); "Cuboid 1" → plainRecordId in src/core/userReason.js, spec green this session; full raw text kept for console, MCP and tests → src/core/userReason.js module doc; broken row layout open → TODO/FIND-ui-146-broken-history-row-one-name-and-visible-repair.md
 **To Add:** none
+
+## 2026-11-18T11:56:02Z — ai-039: reword the origin chip, stale refusal and conflict strip
+
+WarpCad's History panel tags each change with where it came from. For an origin the app did not recognise, it said "via another program", which told the reader that some program had acted. The label now says "via unknown source", because the app only failed to recognise the origin.
+
+The same pass fixed three other messages. A merge now reads "via a merge". A stale-project refusal says the project changed because you edited it or another copy was merged in, then tells the caller to read the scene again and retry. When some steps from an Assistant turn clash with your own edits, the strip says those steps couldn't be built next to your edits and are marked broken in History, and when other steps landed, it says so.
+
+The wording came from a cold-read panel that flagged the old text. The MCP, AI and WebMCP labels are unchanged for now, since renaming MCP touches about 30 quoted copies across the docs and tests. Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "via unknown source" and "via a merge" → diff of src/core/origin.js (stored unit run passed in full, 2026-11-18T11:31:48Z); "via another program" asserted a program acted → src/core/origin.js JSDoc in the diff; stale refusal wording → diff of src/ai/bridge/protocol.js and src/ai/bridge/tabEndpoint.spec.js; conflict strip wording → diff of src/stores/merge.js (describeAiConflict) and src/stores/merge.spec.js; the cold-read origin → TODO/FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md; MCP labels unchanged and about 30 copies → TODO/OWNER.md Q99
+**To Add:** a fresh cold read of the new wording (not done yet)

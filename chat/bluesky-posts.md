@@ -3244,3 +3244,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "A 45 mm radius is too large for this 40 mm part" → src/core/userReason.js and userReason.spec.js; e2e/fillet-chamfer-operation.e2e.js green on pair runs 57 and 58, this session; "Cuboid 1" for cuboid-k3f5xa-1 → plainRecordId in src/core/userReason.js, spec green this session; the Assistant's log → diff of src/components/ai/ActivityRow.vue
 **To Add:** the broken History row layout is open as TODO/FIND-ui-146-broken-history-row-one-name-and-visible-repair.md; the new sentences have not had a fresh cold read (TODO/VERIFY.md ui-129)
+
+## 2026-11-18T11:56:02Z — ai-039: reword the origin chip, stale refusal and conflict strip
+
+**Post:** History said "via another program" for any origin it didn't recognise, which claimed a program had acted. It now says "via unknown source". A clashing Assistant step is marked broken in History. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "via unknown source" and "via a merge" → diff of src/core/origin.js and src/core/origin.spec.js (stored unit run passed in full, 2026-11-18T11:31:48Z); "via another program" claimed a program acted → src/core/origin.js JSDoc in the diff; a clashing step is marked broken in History → diff of src/stores/merge.js (describeAiConflict) and src/stores/merge.spec.js
+**To Add:** a fresh cold read of the new wording (not done yet)
