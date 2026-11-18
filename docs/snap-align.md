@@ -52,15 +52,16 @@ Units are **millimetres**, Z points **up**, and **−** is always the side with 
 ## A quick example: a lug against a plate
 
 Select a plate and a lug (the lug first) and press **⇔ Align**. The popover's top line
-reads `Aligning Lug 1 to Plate 1`. In the **X** row, tap **outside +** (the last button).
+reads `Aligning Lug 1 to Plate 1`. In the **X** row, tap the rightmost **out** button, the one at the **+** end. The line under the grid then reads *X outside +*.
 The lug slides against the plate's +X side and stops flush with it, without
 merging: the plate has not moved, and both are still two separate shapes you can select on
 their own.
 
 ![Clicking the lug, Shift-clicking the plate, pressing Align and tapping X outside +: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
 
-To put the lug against the plate's *−X* side instead, tap **X outside −** (the first
-button). Each button is named for **where the moving shape ends up**: *outside −* leaves
+To put the lug against the plate's *−X* side instead, tap the leftmost **out** button, the one at the **−**
+end (*X outside −*). On screen the buttons are headed **out, in, half, ctr, half, in, out**, with a **−** at the
+left end and a **+** at the right end, so *outside +* is the **out** button at the **+** end. Each button is named for **where the moving shape ends up**: *outside −* leaves
 it beyond the target's −X side, *outside +* beyond its +X side. Hover or tap a button and
 the line under the grid spells it out in a full sentence. See
 [the popover's fields](#the-popovers-fields).
@@ -76,7 +77,7 @@ the line under the grid spells it out in a full sentence. See
    exactly as they were (only the tapped axis moves). The popover is still open: tap
    **X center** as well and the Cube is centred along X too.
 
-Now stand the Cube on the Cylinder: tap **Z outside +**, and the Cube's bottom face lands
+Now stand the Cube on the Cylinder: in the **Z** row tap the **out** button at the **+** end (*Z outside +*), and the Cube's bottom face lands
 on the Cylinder's top face. Tap **Z half +** instead and the bottom face sits at the
 Cylinder's mid-height; tap **Z inside +** and the Cube's top lines up with the Cylinder's
 top. Switch **Target** to `World origin` and tap **Z outside +** to sit the Cube on the grid.
@@ -284,7 +285,8 @@ Units are millimetres, with Z pointing up.
 3. In the Library, set the **Bolt / screw** row to **Type: Socket cap** and **Size: m2.5**,
    and drag it into the 3D view. Drop it clear of the panel, which sits low in the view. In
    the Inspector set **Length** to `12`. A new bolt starts head-down, so type `180` into
-   **Rotation X** to turn it head-up. The panel now reads *Recording Bolt / screw 1* and lists
+   **Rotation X** (in degrees) to turn it head-up. Check it: the bolt's head is now on top, and the
+   Inspector shows `180°` in **Rotation X**. The panel now reads *Recording Bolt / screw 1* and lists
    what you have done.
 4. With the bolt selected, tick the Pi's **hole1** in the Objects list (the check next to
    its name) and press **⇔ Align**. The top line reads **Aligning Bolt / screw 1 to

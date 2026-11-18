@@ -4665,3 +4665,16 @@ The other five items are filed as their own task. The cold-read check has not be
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "nine items", "four of the nine" → TODO/ROADMAP-DONE.md ui-128 row; "two independent fresh agents" → TODO/done/ui-128-cold-read-discoverability-of-chrome-and-glyphs.md Problem section; the four fixes → diff of FileMenu.vue, ShareSheet.vue, NavigationChrome.vue, ParamBindButton.vue, ParamFields.vue and objectList.js; cold-read re-check not run → TODO/VERIFY.md ui-128 row 1; test counts → test output this session
 **To Add:** the docs/media movies still show the old File menu and nav toggle (TODO/VERIFY.md ui-128 row 3); a real-iPhone check of the toggle is still open
+
+## 2026-11-18T03:47:10Z — docs-036: cold-read sentences and the labelled keep-out picture
+
+Two fresh readers could not follow several WarpCad help sentences. The docs described the Align buttons by their position, but the screen labels them out, in, half, ctr, half, in, out. The Rotation X step did not say the value was in degrees, and the picture of the Pi keep-out showed a red block with nothing to name it.
+
+The sentences now match the screen. The Align buttons are named as the screen shows them, the Rotation X step says degrees and how to check the bolt, and the keep-out picture, in light and dark, carries the label "Keep-out: power connector". The Fit example states its result: X 60 to 30 with Keep aspect ratio takes Y and Z from 40 to 20.
+
+The five movie re-records are a separate task, and a fresh pair of readers has not yet read the new text. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two fresh readers could not follow → TODO/done/docs-036-cold-read-docs-pictures-and-sentences.md Problem section; Align button labels → same file, item 4, and the button text in docs/snap-align.md diff; Rotation X in degrees → diff of docs/snap-align.md; "Keep-out: power connector" label → diff of e2e/docs/hardware-library.docs.js and regenerated docs/screenshots/rpi-keepout.png; Fit result 40 to 20 → diff of docs/resize-bisect.md (cube 40 mm, scale 0.5 applied to all axes); five movie re-records not done → TODO/FIND-docs-038-cold-read-gif-rerecords.md; new text not cold-read → TODO/VERIFY.md docs-036 row
+**To Add:** none

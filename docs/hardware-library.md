@@ -216,9 +216,11 @@ uses the Pi up, as every other Subtract does (see [Combining shapes](booleans.md
 
 Two things to know about a kept Pi:
 
-- **Each Subtract reads the Pi as it was at that step.** If you later *move* the Pi, the holes
-  already drilled stay where they were; only a Subtract you do after the move uses the new
-  position. Change the Pi itself (say its model, in the Inspector) and the holes follow.
+- **Holes you already drilled stay where they were when you move the Pi.** Each Subtract uses the
+  Pi's place at the moment you press it, so holes you drill after the move use its new place. To
+  move the holes with the Pi, change its model in the Inspector instead. If you placed bolts on
+  the Pi (see [Repeat](snap-align.md#repeating-a-placement-on-every-hole)), they stay where they
+  were too: move each one, or **Edit** an earlier step in [History](timeline.md).
 - **Repeat does not apply here.** [Repeat](snap-align.md#repeating-a-placement-on-every-hole) copies a part onto several holes;
   it cannot drill one plate four times, because each copy would be a whole new plate. Use
   one Subtract per hole, as above.
@@ -230,9 +232,10 @@ Two things to know about a kept Pi:
 Some parts carry a hidden **keep-out**: a block of space nothing else should occupy, such as
 the clearance a cable needs beside a connector. The 7-inch Touch Display has one called
 `noGoPower`, 15 × 10 × 1 mm, by its power connector. Select the display, tick **Show hidden
-parts** and tap `noGoPower` in the list: it shows as a translucent red block.
+parts** and tap `noGoPower` in the list: it shows as a translucent red block. The block marks where
+a power cable plugs in. Keep it clear when you design a case, so the cable still fits.
 
-![The 7-inch Touch Display with Show hidden parts on and its noGoPower keep-out part selected; the Inspector gives its size as 15 by 10 by 1 mm.](./screenshots/rpi-keepout.png)
+![The 7-inch Touch Display with its noGoPower keep-out part selected (Show hidden parts ticked first): the red block by the power connector is labelled Keep-out: power connector, and the Inspector gives its size as 15 by 10 by 1 mm.](./screenshots/rpi-keepout.png)
 
 Subtract it from your own enclosure and the enclosure leaves that space free.
 

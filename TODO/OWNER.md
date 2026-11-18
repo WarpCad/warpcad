@@ -86,6 +86,19 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q97 · Keep `docs-036` split, with the five movie re-records filed as `docs-038`?
+
+**Question:** `docs-036` listed six fixes and two additions; I did the sentences and the keep-out picture and filed the movie re-records as `docs-038`. Keep that?
+
+**Background:** Re-recording means editing five docs scripts and re-encoding 15 or more movies through a scoped folder (never `docs:gifs`, which rewrites every GIF), then looking at each result. Done now: the Align button names, the Rotation X step, the kept-Pi and Repeat sentences, the Fit result, the keep-out sentence, and `rpi-keepout.png` now labelled *Keep-out: power connector*.
+
+**Options:**
+- **Keep the split (Recommended):** `docs-038` is queued and ready.
+- **Fold it back into one task:** merge the movie work into a single longer run.
+- **Drop the movie work:** the sentences now say what the movies failed to show.
+
+**If deferred:** the split stays and `docs-038` waits in Next up.
+
 #### Q96 · Keep `ui-128` split in two?
 
 **Question:** `ui-128` listed nine cold-read fixes; I did four (1, 2, 3, 5) and filed the other five as `ui-145`. Keep that split?

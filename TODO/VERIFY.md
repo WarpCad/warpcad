@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### docs-036 — cold-read docs sentences and the keep-out picture (2026-11-18 03:41)
+
+Text and one picture; the movies are `docs-038`. The new sentences were not read by a fresh pair.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | A fresh pair of readers follows the new Align button names, the Rotation X step, the kept-Pi bullet, the Fit result and the labelled keep-out picture (the TODO's "re-run the panel on the changed rows"). | Moved | → `docs-038`, which re-runs the cold read once the movies land. |
+
+
 ### ui-128 — cold-read chrome, items 1, 2, 3 and 5 (2026-11-18 02:32)
 
 Four of the nine fixes. The wording and layout are asserted in unit and e2e specs and six docs pictures were regenerated; the cold-read half needs fresh readers.

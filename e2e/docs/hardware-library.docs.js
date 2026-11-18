@@ -335,7 +335,25 @@ test.describe('docs media: hardware, kit and Raspberry Pi library', () => {
     await keepout.click()
     await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('noGoPower')
     await heavySettle(page)
+    // TODO/docs-036: a stranger cannot tell what the red block is. Label it beside its own
+    // dimension readout. (The Show hidden parts box lives on the display's own Inspector view,
+    // which a selected part replaces, so the page text says to tick it.)
+    await page.evaluate(() => {
+      const readout = [...document.querySelectorAll('[data-testid="viewport"] *')].find(
+        (el) => el.children.length === 0 && el.textContent?.trim() === '15 mm',
+      )
+      if (!readout) throw new Error('no 15 mm dimension readout to anchor the label')
+      const box = readout.getBoundingClientRect()
+      const label = document.createElement('div')
+      label.id = 'docs-keepout-label'
+      label.textContent = 'Keep-out: power connector \u2192'
+      label.style.cssText =
+        `position:fixed;right:${Math.round(window.innerWidth - box.left + 6)}px;top:${Math.round(box.top - 14)}px;padding:4px 10px;` +
+        'background:#fff;color:#b00020;border:2px solid #b00020;border-radius:6px;font:600 14px sans-serif;z-index:2147483647;pointer-events:none;'
+      document.body.appendChild(label)
+    })
     await shot(page, 'rpi-keepout.png', { maxDiffPixelRatio: PI_DIFF })
+    await page.evaluate(() => document.getElementById('docs-keepout-label')?.remove())
   })
 
   test('rpi-mounting-holes', { tag: '@movie' }, async ({ page }) => {

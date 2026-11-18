@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-029 cold-read panel
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** items 4, 5 and 6 and both owner additions, with the five movie re-records (items 1, 2, 3 and `resize-fit`) split to `FIND-docs-038` (OWNER.md Q97 asks to keep that split). `snap-align.md` names the Align buttons as the screen does (*the rightmost **out** button, at the **+** end*), the Repeat example's Rotation X step says degrees and how to check, `hardware-library.md` leads the kept-Pi bullet with *Holes you already drilled stay where they were when you move the Pi* and adds the bolts-stay-put line, and gains a sentence on what `noGoPower` is for; `resize-bisect.md` states the Fit result (X 60 → 30 makes Y and Z 40 → 20). `rpi-keepout.png` (light and dark) carries a *Keep-out: power connector* label; the Show hidden parts box could not share the frame, because selecting the part replaces the Inspector view that holds it, so the page text says to tick it first.
 
 ## Problem
 

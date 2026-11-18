@@ -37,7 +37,9 @@ Fit asks for the finished size instead of a change. With a cube selected, click
 **Fit** and set **X size** to `60`; the box grows to 60 mm along X and the other
 two axes stay as they were. Open Fit again, set **X size** to `30`, tick **Keep
 aspect ratio** and press **Fit**: this time all three axes shrink by the same
-factor, so the shape keeps its proportions.
+factor, so the shape keeps its proportions. In the example, the cube is 40 mm on every side: X
+60 leaves Y and Z at 40. Then X 60 → 30 with **Keep aspect ratio** makes Y and Z 40 → 20, because
+Keep aspect ratio applies the smallest ratio of the three to every axis.
 
 ![Fit twice: first X alone to 60 mm, then X to 30 mm with Keep aspect ratio ticked](./media/resize-fit.gif)
 

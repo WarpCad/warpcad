@@ -3226,3 +3226,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** Share and Export under Save as gist, and "Add a shape first" → diff of src/components/storage/FileMenu.vue and src/components/layout/ShareSheet.vue; ✥ View on the folded toggle → diff of src/components/viewport/NavigationChrome.vue; axis letters on the Size bind buttons → diff of src/components/inspector/ParamBindButton.vue; unit 441 files / 9757 tests passed and e2e pair run 1225 passed, 0 failed → test output this session; cold-read re-check not run → TODO/VERIFY.md ui-128 row 1 (moved to ui-145)
 **To Add:** six docs/screenshots pictures were regenerated; the docs/media movies still show the old File menu and nav toggle (TODO/VERIFY.md ui-128 row 3)
+
+## 2026-11-18T03:47:10Z — docs-036: cold-read sentences and the labelled keep-out picture
+
+**Post:** WarpCad's help now names the Align buttons as the screen does, says Rotation X is in degrees, and labels the power-connector keep-out in its Pi picture. The wording came from a cold-read panel. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "named by position" and the button labels out, in, half, ctr → TODO/done/docs-036-cold-read-docs-pictures-and-sentences.md Problem item 4; Rotation X in degrees → diff of docs/snap-align.md; keep-out label "Keep-out: power connector" → diff of e2e/docs/hardware-library.docs.js and regenerated docs/screenshots/rpi-keepout.png (light and dark); "a cold-read panel" → TODO/done/docs-036-cold-read-docs-pictures-and-sentences.md Problem section; docs:screenshots 312 passed, 0 failed, and e2e/docs-media.spec.js 2/2 → test output this session
+**To Add:** the five docs/media movies still show the old wording (TODO/FIND-docs-038-cold-read-gif-rerecords.md); the new sentences have not been read by a fresh pair (TODO/VERIFY.md docs-036 row)
