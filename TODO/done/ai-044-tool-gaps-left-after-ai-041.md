@@ -6,8 +6,10 @@ priority: low
 model: opus
 milestone: none — Findings table, filed 2026-11-17 as the remainder of ai-041
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** split only, no code. The five gaps are now `ai-045` (gap 2), `ai-046` (gap 8), `ai-047` (gap 7), `ai-048` (gap 6) and `ai-049` (gap 5), in the owner's order, each with its own Effort, model and Testing. Closed 2026-11-18.
 
 ## Problem
 
