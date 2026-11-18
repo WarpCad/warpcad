@@ -96,7 +96,7 @@ Example: place a cube near the lower-left of the view, then drop a cylinder
 somewhere else.
 
 1. The cylinder is selected and the Inspector panel slides up. The navigation
-   pad is now just the **✥** button, sitting above the panel.
+   pad is now just the **✥ View** button, sitting above the panel.
 2. Tap the cube. It becomes the selected object and the camera stays where it
    was.
 3. Tap **✥** to open the full pad (`Orbit`/`Pan`/`Select`, the arrows,

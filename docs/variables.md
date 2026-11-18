@@ -33,7 +33,9 @@ something that is not allowed, the panel says why and nothing changes.
 ![A bound Model field: a chip reading piModel with its current value Pi 4 beside it, where the dropdown used to be.](./screenshots/variable-bound-chip.png)
 
 Select a shape. Next to every field that can be bound (a number, a choice, or a yes/no)
-there is a small **link** button. Tap it and a list opens:
+there is a small **link** button. On a Size or other three-part field each button also carries its
+axis letter (**X**, **Y**, **Z**), and an axis that is already bound leaves its spot empty, so the
+other buttons stay under their own boxes. Tap it and a list opens:
 
 ![The bind list for the Model field: "New variable from this value…", then every variable of a matching kind.](./screenshots/variable-bind-popover.png)
 

@@ -26,6 +26,8 @@ const props = defineProps({
   /** What the row names, for the label: `Cube 1`, `Cube 1 A`. */
   name: { type: String, required: true },
   disabled: { type: Boolean, default: false },
+  /** The mixed state's count, `1 of 6 parts hidden` (`TODO/ui-128`). */
+  note: { type: String, default: '' },
 })
 
 const emit = defineEmits(['toggle'])
@@ -33,7 +35,7 @@ const emit = defineEmits(['toggle'])
 const label = computed(() => `${props.state === 'shown' ? 'Hide' : 'Show'} ${props.name}`)
 
 const title = computed(() => {
-  if (props.state === 'mixed') return `Some parts of ${props.name} are hidden — show them all`
+  if (props.state === 'mixed') return `${props.note || `Some parts of ${props.name} are hidden`} — tap to show them all`
   return props.state === 'hidden' ? `Show ${props.name} in the view` : `Hide ${props.name} in the view`
 })
 </script>
@@ -53,7 +55,8 @@ const title = computed(() => {
       <circle v-if="state === 'shown'" class="eye__pupil" cx="12" cy="12" r="3" />
       <template v-else-if="state === 'mixed'">
         <circle class="eye__ring" cx="12" cy="12" r="3" />
-        <path class="eye__pupil" d="M12 9a3 3 0 0 0 0 6z" />
+        <!-- TODO/ui-128 #5: a partly struck eye, so it reads as neither shown nor hidden. -->
+        <path class="eye__slash" d="M12 12l8 8" />
       </template>
       <template v-else>
         <circle class="eye__ring" cx="12" cy="12" r="3" />

@@ -1058,7 +1058,8 @@ deleted: hiding only changes what the 3D view draws.
   shape are shown. Hiding `Cube 1` hides both pieces; showing it again brings back each
   piece as it was, so a piece you hid stays hidden.
 - **Some pieces hidden.** When a shape is shown but one of its pieces is hidden, the shape's
-  eye is half filled. Tapping it then shows every piece.
+  eye is drawn with a short slash through its lower half, not crossed out and not open, and
+  its tooltip says how many, for example *1 of 6 parts hidden*. Tapping it then shows every piece.
 - **Show all.** While anything is hidden, the **Objects** header reads, for example,
   `1 hidden · Show all`, whether the section is open or folded, so it is still there with a
   shape selected. Tap **Show all** to bring everything back at once, without deselecting.

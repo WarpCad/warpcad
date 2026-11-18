@@ -4652,3 +4652,16 @@ I checked the BOM lines in Chromium with real mouse drags: two bolts and a washe
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** two fresh readers found the strings unclear → TODO/done/ui-127-repeat-bolt-and-bom-wording.md; BOM lines and "Total parts: 3" with two bolts and a washer → hand-driven acceptance scenario 2, Chromium laptop, this session; single-body Save sheet wording → hand-driven acceptance scenario 26, this session; phone-width wrap not checked → TODO/VERIFY.md ui-127 row
 **To Add:** none
+
+## 2026-11-18T02:40:34Z — ui-128: Share in File, View on the nav toggle, axis letters on Size
+
+**Post:** WarpCad's cold-read panel found its chrome hard to read on a phone. Two fresh agents, given only the production build and a goal, flagged nine items. Share sat deep in the File menu, the navigation button was a bare move glyph, and the three Size bind buttons did not say which axis each one bound.
+
+This change fixes four of the nine. Share and Export now sit under Save in File, and an empty project says "Add a shape first". The folded navigation button shows the move glyph with the word View under it, inside the same square. Each Size bind button carries its axis letter, and a bound axis keeps its column so Y and Z stop sliding left. A partly hidden body's eye is now struck through, with a tooltip that says how many parts are hidden.
+
+The other five items are filed as their own task. The cold-read check has not been run again, so the readability problem is not solved yet. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "nine items", "four of the nine" → TODO/ROADMAP-DONE.md ui-128 row; "two independent fresh agents" → TODO/done/ui-128-cold-read-discoverability-of-chrome-and-glyphs.md Problem section; the four fixes → diff of FileMenu.vue, ShareSheet.vue, NavigationChrome.vue, ParamBindButton.vue, ParamFields.vue and objectList.js; cold-read re-check not run → TODO/VERIFY.md ui-128 row 1; test counts → test output this session
+**To Add:** the docs/media movies still show the old File menu and nav toggle (TODO/VERIFY.md ui-128 row 3); a real-iPhone check of the toggle is still open

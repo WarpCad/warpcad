@@ -75,6 +75,7 @@ import { useTimelineStore } from './timeline.js'
  *   component decides when to draw it.
  * @property {'shown' | 'hidden' | 'mixed'} eye `TODO/ui-089`: the body row's eye — `mixed`
  *   when the body is shown with some part hidden.
+ * @property {string} eyeNote `TODO/ui-128`: the mixed eye's tooltip count, `1 of 6 parts hidden`, or `''`.
  * @property {boolean} viewHidden `TODO/ui-089`: the user hid the whole body (the row dims).
  * @property {string | null} drilledPart The part this body is currently addressed at, or
  *   `null` — shown on the row even while it is collapsed so an address is never invisible.
@@ -211,6 +212,11 @@ export const useObjectListStore = defineStore('objectList', () => {
         expanded: expandable && expandedIds.value.includes(body.id),
         parts: expandable ? parts : [],
         eye: eyeStateOf(body),
+        // `TODO/ui-128` #5: the mixed eye's tooltip says how many, e.g. `1 of 6 parts hidden`.
+        eyeNote:
+          eyeStateOf(body) === 'mixed'
+            ? `${(body.viewHiddenParts ?? []).length} of ${partNames.length} part${partNames.length === 1 ? '' : 's'} hidden`
+            : '',
         viewHidden: !isBodyDrawn(body),
         drilledPart: drilled,
       }

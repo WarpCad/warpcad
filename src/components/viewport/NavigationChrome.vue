@@ -249,7 +249,8 @@ const STEPS = Object.freeze([
         data-testid="nav-expand-toggle"
         @click="toggleExpanded"
       >
-        ✥
+        <span aria-hidden="true">✥</span>
+        <span class="chrome__expand-word" data-testid="nav-expand-word" aria-hidden="true">View</span>
       </IconButton>
       <div class="chrome__pad" role="group" :aria-label="`${verb} the camera`">
         <IconButton
@@ -318,6 +319,24 @@ const STEPS = Object.freeze([
   display: none;
   font-size: var(--text-size-2xl);
   align-self: flex-end;
+}
+
+/* TODO/ui-128 #2: the ✥ glyph alone reads as "move"; the word says these are the view controls.
+   The word sits under the glyph inside the same square: the folded cluster's width and height are
+   budgeted to the pixel (ui-046's 60 px, the sketch editor's 69% reachable canvas), so the button
+   must not grow. */
+.chrome .chrome__expand {
+  grid-auto-flow: row;
+  align-content: center;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+.chrome__expand-word {
+  font-size: var(--text-size-2xs);
+  font-weight: var(--font-weight-1);
 }
 
 .chrome .chrome__expand[aria-expanded='true'],

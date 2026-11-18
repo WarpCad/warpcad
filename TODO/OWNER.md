@@ -86,6 +86,19 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q96 · Keep `ui-128` split in two?
+
+**Question:** `ui-128` listed nine cold-read fixes; I did four (1, 2, 3, 5) and filed the other five as `ui-145`. Keep that split?
+
+**Background:** The file said "items 1, 2, 3 and 5 first" and "split into sub-tasks if the owner prefers". Nine UI changes with their e2e specs, docs and pictures in one commit was too much to review, and two of the five left over (the connector caption, the Align glyphs) need a design choice about phone room. Shipped: Share and Export sit under the Save rows in File ▾ (reason now *Add a shape first*); the folded navigation toggle reads ✥ over the word *View*; each Size bind button carries X, Y or Z and a bound axis keeps its column; the mixed eye is a struck eye with a *1 of 6 parts hidden* tooltip.
+
+**Options:**
+- **Keep the split (Recommended):** `ui-145` is queued and ready.
+- **Fold `ui-145` back into one task:** merge its items into a single longer run.
+- **Drop items 7 to 9:** the connector caption, Align strips and glyphs stay as they are.
+
+**If deferred:** the split stays and `ui-145` waits in Next up.
+
 #### Q95 · Keep the home page on manual deploys, with a release-checklist step?
 
 **Question:** `build-039` assumed you want to keep manual-only deploys of `warpcad.com` (your `b3c72b6` choice); keep that?

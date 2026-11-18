@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-029 cold-read panel
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** items 1, 2, 3 and 5 only, as the file's own "items 1, 2, 3 and 5 first" allowed; items 4, 6, 7, 8 and 9 moved to `FIND-ui-145` (OWNER.md Q96 asks to keep that split), and the butterfly bug was already `ui-143`. (1) Share and Export sit under Save as gist… in File ▾; the empty reason reads *Add a shape first* in the menu and the Share sheet. (2) The folded navigation toggle reads ✥ over the word *View* inside the same square, because a wider pill broke the phone budget (`selection-inspector` ui-046 collapsed width ≤ 60 px and the sketch editor's ≥ 69% reachable canvas). (3) Each Size bind button carries X, Y or Z, and a bound axis keeps its column. (5) The mixed eye is a struck eye with a *1 of 6 parts hidden — tap to show them all* tooltip. Docs: `sharing.md`, `mobile.md`, `viewport-navigation.md`, `variables.md`, `selection-and-inspector.md`; six pictures regenerated.
 
 ## Problem
 

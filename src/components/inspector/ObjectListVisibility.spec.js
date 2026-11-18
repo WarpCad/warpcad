@@ -115,6 +115,9 @@ describe('ObjectList — Hide and show (TODO/ui-089)', () => {
     expect(wrapper.find('[data-testid="objects-part-hidden-cube-1-Cube 1 A"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="objects-part-item-cube-1-Cube 1 B"]').attributes('data-view-hidden')).toBe('false')
     expect(eyeOf(wrapper, 'objects-eye-cube-1').attributes('data-eye')).toBe('mixed')
+    // TODO/ui-128 #5: the mixed eye says how many, and draws a struck eye, not the open one.
+    expect(eyeOf(wrapper, 'objects-eye-cube-1').attributes('title')).toMatch(/^1 of 2 parts hidden — tap to show them all$/)
+    expect(eyeOf(wrapper, 'objects-eye-cube-1').find('.eye__slash').exists()).toBe(true)
     expect(wrapper.get('[data-testid="objects-count"]').text()).toBe('2 objects')
     await eyeOf(wrapper, 'objects-eye-cube-1').trigger('click')
     expect(eyeOf(wrapper, 'objects-eye-cube-1').attributes('data-eye')).toBe('shown')

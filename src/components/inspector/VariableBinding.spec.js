@@ -48,6 +48,8 @@ describe('Inspector — variables (TODO/ui-059)', () => {
     const wrapper = mountInspector()
     await nextTick()
     for (const axis of ['x', 'y', 'z']) expect(wrapper.find(`[data-testid="param-bind-size-${axis}"]`).exists()).toBe(true)
+    // TODO/ui-128 #3: each button names its axis, so three in a row say which is which.
+    expect(wrapper.findAll('[data-testid="param-bind-axis"]').map((node) => node.text())).toEqual(['X', 'Y', 'Z'])
   })
 
   it('a choice param gets a bind control beside its dropdown', async () => {
@@ -88,6 +90,12 @@ describe('Inspector — variables (TODO/ui-059)', () => {
     expect(wrapper.get('[data-testid="inspector-param-size-y"]').element.value).toBe('20')
     expect(wrapper.find('[data-testid="param-bind-size-x"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="param-bind-size-y"]').exists()).toBe(true)
+    // TODO/ui-128 #3: the bound axis keeps its column, so Y and Z do not slide left under the chip.
+    const cells = wrapper.get('.params__bindrow').element.children
+    expect(cells).toHaveLength(3)
+    expect(cells[0].classList.contains('params__bindgap')).toBe(true)
+    expect(cells[1].getAttribute('data-testid')).toBe('param-bind-size-y')
+    expect(cells[2].getAttribute('data-testid')).toBe('param-bind-size-z')
   })
 
   it('a field that is text, not a number or a choice, has no bind control', async () => {

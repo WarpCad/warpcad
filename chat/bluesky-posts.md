@@ -3217,3 +3217,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "Two fresh readers found the old strings unclear" → TODO/done/ui-127-repeat-bolt-and-bom-wording.md (filed from the testing-029 cold-read panel); new BOM strings "Bolt / screw M10 hex, 20 mm long", "qty 2", "Total parts: 3" → hand-driven acceptance scenario 2, Chromium laptop, this session; the Bolt length reads ", 8 mm long" in the Library and BOM → src/core/bom.js diff
 **To Add:** the docs/media/bom-updates.gif movie still shows the old count; re-record it before a post with a screenshot.
+
+## 2026-11-18T02:40:34Z — ui-128: Share in File, View on the nav toggle, axis letters on Size
+
+**Post:** The File menu now lists Share and Export near the top, and an empty project says "Add a shape first". The folded nav button reads ✥ View. The Size X/Y/Z bind buttons carry their letters. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Share and Export under Save as gist, and "Add a shape first" → diff of src/components/storage/FileMenu.vue and src/components/layout/ShareSheet.vue; ✥ View on the folded toggle → diff of src/components/viewport/NavigationChrome.vue; axis letters on the Size bind buttons → diff of src/components/inspector/ParamBindButton.vue; unit 441 files / 9757 tests passed and e2e pair run 1225 passed, 0 failed → test output this session; cold-read re-check not run → TODO/VERIFY.md ui-128 row 1 (moved to ui-145)
+**To Add:** six docs/screenshots pictures were regenerated; the docs/media movies still show the old File menu and nav toggle (TODO/VERIFY.md ui-128 row 3)

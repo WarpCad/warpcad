@@ -453,7 +453,11 @@ function onEnumChange(event, field) {
                 :id="`${field.key}-${component.label.toLowerCase()}`"
                 :label="`${field.label} ${component.label}`"
                 :popover-key="popoverKeyOf(`${field.key}.${index}`)"
+                :axis="component.label"
               />
+              <!-- TODO/ui-128 #3: an axis with no button (already bound, or unbindable) keeps its
+                   column, so the Y and Z buttons stay under their own inputs. -->
+              <span v-else class="params__bindgap" aria-hidden="true" />
             </template>
           </dd>
           <template v-for="(component, index) in field.components" :key="`p-${component.label}`">

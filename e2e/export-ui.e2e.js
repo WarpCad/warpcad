@@ -428,7 +428,7 @@ test.beforeEach(async ({ page }) => {
 
 // ---------------------------------------------------------------------------------------
 
-test('Export… is in File ▾, last in the "This device" group, and dimmed with its reason on an empty scene', async ({
+test('Export… is in File ▾, near the top of the "This device" group, and dimmed with its reason on an empty scene', async ({
   page,
 }, testInfo) => {
   // Reachability: the header's File menu is the trigger, not the Operations toolbar.
@@ -452,12 +452,10 @@ test('Export… is in File ▾, last in the "This device" group, and dimmed with
       b.getAttribute('data-testid'),
     ),
   )
-  expect(order.at(-1)).toBe('file-export')
-  expect(order.at(-2)).toBe('file-share')
-  expect(order.at(-3)).toBe('file-import-part')
-  expect(order.at(-4)).toBe('file-import-model')
-  expect(order.at(-5)).toBe('file-merge')
-  expect(order.at(-6)).toBe('file-open')
+  // TODO/ui-128 #1: Share… and Export… sit under the Save rows, ahead of Open….
+  expect(order.at(-1)).toBe('file-import-part')
+  expect(order.indexOf('file-export')).toBe(order.indexOf('file-share') + 1)
+  expect(order.indexOf('file-export') + 1).toBe(order.indexOf('file-open'))
 
   // Pressing the dimmed item does nothing: the menu stays and no popover appears.
   await item.click({ force: true })

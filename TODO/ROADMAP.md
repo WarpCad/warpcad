@@ -77,7 +77,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
 | 50 | ▶ Ready | `FIND` | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | sonnet |
-| 53 | ▶ Ready | `FIND` | [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | sonnet |
 | 54 | ▶ Ready | `FIND` | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | sonnet |
 | 55 | ▶ Ready | `FIND` | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | sonnet |
 | 56 | ▶ Ready | `FIND` | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | sonnet |
@@ -219,7 +218,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
 | [`docs-036`](FIND-docs-036-cold-read-docs-pictures-and-sentences.md) Fix the docs pictures and sentences two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 50) |
-| [`ui-128`](FIND-ui-128-cold-read-discoverability-of-chrome-and-glyphs.md) Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows | finding | medium | sonnet | ▶ Ready (Next up row 53) |
 | [`ui-129`](FIND-ui-129-error-and-repair-wording-leaks-internals.md) Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout | finding | medium | sonnet | ▶ Ready (Next up row 54) |
 | [`ai-039`](FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md) Reword the "via another program" chip, the stale-project refusal and the conflict strip | finding | low | sonnet | ▶ Ready (Next up row 55) |
 | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | finding | low | sonnet | ▶ Ready (Next up row 56) |
@@ -379,7 +377,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
 | `docs-036` | Fix the docs pictures and sentences two cold readers could not follow. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
-| `ui-128` | Fix the chrome two cold users could not read: Share, orbit toggle, bind buttons, Edit variable, mixed eye, clearance, glyph rows. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | 1, 4, 7, 9 |
 | `ui-129` | Word the fillet, field and broken-step messages for a user; trim replica ids in the chat readout. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
 | `ai-039` | Reword the "via another program" chip, the stale-project refusal and the conflict strip. Filed 2026-11-14 from the `testing-029` cold-read panel | Finding | — | none |
 | `ui-130` | Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |

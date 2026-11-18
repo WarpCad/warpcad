@@ -65,7 +65,7 @@ import BaseChip from '../display/BaseChip.vue'
  */
 const SHARE_LINK_MAX_CHARS = 6000
 /** What the sheet calls an empty scene. */
-const EMPTY_REASON = 'Nothing to share yet'
+const EMPTY_REASON = 'Add a shape first'
 
 const documentStore = useDocumentStore()
 const persistence = usePersistenceStore()

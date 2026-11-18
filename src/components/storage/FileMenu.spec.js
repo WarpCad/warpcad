@@ -357,24 +357,25 @@ describe('FileMenu — dismissing a persistent message (TODO/ui-033, data-002 "o
 })
 
 describe('FileMenu — Export… (TODO/ui-034, data-002 §12)', () => {
-  it('sits last in the "This device" group, after Open…, before the hosted divider (New is first, TODO/ui-054)', async () => {
+  it('sits right after Share… near the top of the "This device" group, before Open… (New is first, TODO/ui-054; moved up by TODO/ui-128)', async () => {
     const { wrapper } = setup('fallback')
     await openMenu(wrapper)
     const group = document.body.querySelector('[role="group"][aria-label="This device"]')
     const ids = Array.from(group.querySelectorAll('button')).map((b) => b.getAttribute('data-testid'))
     // Save as gist… (TODO/io-021) under the save item; Merge file… (TODO/ui-062) directly under
-    // Open…; Share… (TODO/io-016) before Export…, which stays last.
+    // Open…; Share… (TODO/io-016) before Export…, the pair moved up under Save as gist… so Share is
+    // not the 11th row of the menu (TODO/ui-128).
     // Import model… and Import part file… (TODO/ui-107) right after Merge file….
     expect(ids).toEqual([
       'file-new',
       'file-save',
       'file-save-as-gist',
+      'file-share',
+      'file-export',
       'file-open',
       'file-merge',
       'file-import-model',
       'file-import-part',
-      'file-share',
-      'file-export',
     ])
   })
 

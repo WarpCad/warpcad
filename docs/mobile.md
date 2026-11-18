@@ -173,7 +173,7 @@ On a tablet the same toolbar sits at the top-left of the 3D view:
 ## The navigation pad folds behind a button
 
 On a phone, while a sheet is open, the navigation pad would sit on top of your shapes. So it
-folds to a single **✥** button in the corner, and **a tap on a shape goes to the shape**.
+folds to a single **✥ View** button in the corner, and **a tap on a shape goes to the shape**.
 Tap **✥** to open the pad (Orbit, Pan, Select, the arrows, **⌂** and the zoom buttons) and
 tap it again to fold it. You can always move the camera with your fingers, whether or not the
 pad is folded.

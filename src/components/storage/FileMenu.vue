@@ -209,7 +209,7 @@ async function onPartFile(event) {
 }
 
 /** `TODO/io-016`: why **Share…** is dimmed — the Share button's own precondition — or `''`. */
-const shareReason = computed(() => (documentStore.bodies.length === 0 ? 'Nothing to share yet' : ''))
+const shareReason = computed(() => (documentStore.bodies.length === 0 ? 'Add a shape first' : ''))
 
 /**
  * **Share…** (`TODO/io-016`): the header's Share sheet, for where that button is not in the row (the
@@ -526,6 +526,40 @@ onBeforeUnmount(() => {
             <button
               type="button"
               role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-share"
+              :aria-disabled="shareReason !== '' ? 'true' : undefined"
+              :aria-describedby="shareReason !== '' ? 'file-share-reason' : undefined"
+              @click="requestShare()"
+            >
+              <span>Share…</span>
+              <span v-if="shareReason !== ''" id="file-share-reason" class="file-menu__reason" data-testid="file-share-reason">
+                {{ shareReason }}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="file-menu__item file-menu__item--stacked"
+              data-testid="file-export"
+              :aria-disabled="exportDialog.unavailableReason !== '' ? 'true' : undefined"
+              :aria-describedby="exportDialog.unavailableReason !== '' ? 'file-export-reason' : undefined"
+              :title="exportDialog.unavailableReason !== '' ? exportDialog.unavailableReason : undefined"
+              @click="menu.requestExport()"
+            >
+              <span>Export…</span>
+              <span
+                v-if="exportDialog.unavailableReason !== ''"
+                id="file-export-reason"
+                class="file-menu__reason"
+                data-testid="file-export-reason"
+              >
+                {{ exportDialog.unavailableReason }}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
               class="file-menu__item"
               data-testid="file-open"
               :disabled="persistence.loading !== ''"
@@ -594,40 +628,6 @@ onBeforeUnmount(() => {
               @click="reloadFromDisk()"
             >
               Reload from disk…
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="file-menu__item file-menu__item--stacked"
-              data-testid="file-share"
-              :aria-disabled="shareReason !== '' ? 'true' : undefined"
-              :aria-describedby="shareReason !== '' ? 'file-share-reason' : undefined"
-              @click="requestShare()"
-            >
-              <span>Share…</span>
-              <span v-if="shareReason !== ''" id="file-share-reason" class="file-menu__reason" data-testid="file-share-reason">
-                {{ shareReason }}
-              </span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="file-menu__item file-menu__item--stacked"
-              data-testid="file-export"
-              :aria-disabled="exportDialog.unavailableReason !== '' ? 'true' : undefined"
-              :aria-describedby="exportDialog.unavailableReason !== '' ? 'file-export-reason' : undefined"
-              :title="exportDialog.unavailableReason !== '' ? exportDialog.unavailableReason : undefined"
-              @click="menu.requestExport()"
-            >
-              <span>Export…</span>
-              <span
-                v-if="exportDialog.unavailableReason !== ''"
-                id="file-export-reason"
-                class="file-menu__reason"
-                data-testid="file-export-reason"
-              >
-                {{ exportDialog.unavailableReason }}
-              </span>
             </button>
           </div>
 

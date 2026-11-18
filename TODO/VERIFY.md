@@ -59,6 +59,17 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-128 — cold-read chrome, items 1, 2, 3 and 5 (2026-11-18 02:32)
+
+Four of the nine fixes. The wording and layout are asserted in unit and e2e specs and six docs pictures were regenerated; the cold-read half needs fresh readers.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | A fresh pair of readers finds Share, reads the folded ✥ View toggle as the camera, tells the three bind buttons apart and reads the mixed eye (the TODO's "re-run the cold read"). | Moved | → `ui-145`, which re-runs the cold read once its five items land. |
+| 2 | The folded toggle on a real iPhone (the real-device half of `ui-046` #1). | Owner | Already an open device check; `ui-128` changed the button's face only, same 38 px square. |
+| 3 | `docs/media` movies recorded before this change still show the old File menu and nav toggle. `docs:gifs` rewrites every GIF, so they were not re-recorded. | Moved | Next docs-media pass. |
+
+
 ### ui-127 — Repeat, Bolt, BOM and Save-sheet wording (2026-11-18 01:47)
 
 Wording only; the new strings are asserted in unit and e2e specs and the two `bom-panel` stills were regenerated. One thing no spec covers. The 390 px wrap of the new Repeat lines was not measured by hand; the Repeat sheet's e2e only asserts the text.

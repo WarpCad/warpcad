@@ -260,7 +260,7 @@ test.describe('share a project by link', () => {
     // in the sheet a tap opens below that (the header has no room for the words).
     const share = page.getByTestId('share-open')
     await expect(share).toHaveAttribute('aria-disabled', 'true')
-    await expect(page.getByTestId('share-reason')).toHaveText('Nothing to share yet')
+    await expect(page.getByTestId('share-reason')).toHaveText('Add a shape first')
     if (info.project.name.endsWith('-laptop')) await expect(page.getByTestId('share-reason')).toBeVisible()
     if (await share.isVisible()) {
       await input.press(share)
@@ -271,7 +271,7 @@ test.describe('share a project by link', () => {
     } else {
       // The dev host's phone header: File ▾ → Share…, dimmed with the same reason.
       await input.press(page.getByTestId('file-menu-button'))
-      await expect(page.getByTestId('file-share-reason')).toHaveText('Nothing to share yet')
+      await expect(page.getByTestId('file-share-reason')).toHaveText('Add a shape first')
       await page.keyboard.press('Escape')
     }
     await expectHeaderFits(page)

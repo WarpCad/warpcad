@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `ui-128` | Four of the nine cold-read chrome fixes: Share and Export under Save in File ▾ (*Add a shape first*), the folded nav toggle reads ✥ View, Size bind buttons carry X / Y / Z in fixed columns, the mixed eye is a struck eye with an *n of m parts hidden* tooltip. The other five are `ui-145`. Filed from the testing-029 cold-read panel | Finding | — | 7, 21, 29 |
 | ✅ `ui-127` | Reworded the Repeat panel lines, the Repeat refusal and Inspector note, the Bolt / screw summary (`M2.5 socket, 8 mm long`), the Bill of materials (`qty 2`, `Total parts: 3`) and the Save-sheet note for a single body. Filed from the testing-029 cold-read panel | Finding | — | 2, 10 |
 | ✅ `core-084` | A sketch's automatic Twist steps now scale with the outline's elongation (`sketchTwistStepDeg`), so a 30 × 5, 60 × 4 or 100 × 3 mm rectangle at Twist 90 stays within 3% of the prism volume (was 5.4%, 13%, 29%). Driven: 30 × 5 mm lost 1.7% on Chromium and WebKit. Filed from `core-083` | Finding | — | 9 |
 | ✅ `build-039` | Kept the home page on manual deploys and stopped it drifting from the app's Help: `native-apps` and `import` filed into the home repo's `docs-groups.json`, its README corrected, and "run the home page's `pages` workflow" added to the release notes in `docs/decisions/release.md`. The live page catches up when the owner pushes the home repo and runs the workflow (`OWNER.md` K0, `Q95`) | Finding | — | none |
@@ -1435,5 +1436,6 @@ convention going forward.
 | `build-039` | 2026-11-18 00:17 | ~10m by the machine clock (00:16 start; two small edits in the home repo, no test suite beyond its 4 help-group tests) |
 | `core-084` | 2026-11-18 00:32 | ~14m by the machine clock (00:18 start; measured first, RED confirmed by stashing the fix, one pair run, two-engine drive) |
 | `ui-127` | 2026-11-18 01:47 | ~30m by the machine clock (01:17 start; five strings across ten specs, one regex over-reach caught by unit, one stale docs spec caught by the drift check, two baselines regenerated) |
+| `ui-128` | 2026-11-18 02:32 | ~34m by the machine clock (01:58 start; four items; the first design of the nav toggle widened it and broke the phone width budget, so it was reworked; one stale docs still run per intended drift) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

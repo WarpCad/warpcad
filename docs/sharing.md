@@ -12,9 +12,9 @@ A project that is too big for a link, or one you want to keep updating, can be p
 ## Send a project
 
 1. Open your project. It needs at least one shape. On an empty project **Share** is greyed out,
-   and it says *Nothing to share yet*.
+   and it says *Add a shape first*.
 2. Tap **Share**, at the top of the screen to the left of **File ▾**. On a phone it is the icon
-   with an arrow pointing up out of a box. **File ▾ → Share…** opens the same sheet, if you can't
+   with an arrow pointing up out of a box. **File ▾ → Share…**, just under the Save rows, near the top of the menu, opens the same sheet, if you can't
    find the button.
 3. Check the **Name**. It is the title the other person will see over the model. It starts as
    your project's name, or *Untitled*.

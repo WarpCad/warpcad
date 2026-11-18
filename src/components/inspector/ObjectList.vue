@@ -393,6 +393,7 @@ watch(
             <EyeToggle
               :state="row.eye"
               :name="row.name"
+              :note="row.eyeNote"
               :disabled="disabled"
               :data-testid="`objects-eye-${row.id}`"
               @toggle="objects.toggleBodyVisibility(row.id)"
