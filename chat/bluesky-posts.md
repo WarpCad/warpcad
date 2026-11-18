@@ -3379,3 +3379,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** set_params exists and its refusals → diff and src/ai/tools/params.spec.js (9 tests green this session); snapped body follows → params.spec.js "the snapped body follows" test
 **To Add:** none
+
+## 2026-11-18T21:40:00Z — WarpCad tongue joints work on a hollow box (TODO/ai-048)
+
+**Post:** A hollow box can take a tongue joint now. A lid split used to skip the joint, since a 2 mm shell wall is below the ordinary tongue's 3.8 mm. The tongue is sized from the wall: 0.53 mm at 2 mm walls, 0.2 mm clearance. Not printed yet. Built with Claude Code, reviewed by me. #CAD #OpenSource
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** lid split used to skip the joint, 3.8 mm needed → joint.tongueWall.js header comment (this diff); 0.53 mm at 2 mm and 0.2 clearance → joint.tongueWall.spec.js "a 2 mm wall" test, unit run 9829 passed this session; not printed → OWNER.md Q102 background
+**To Add:** none

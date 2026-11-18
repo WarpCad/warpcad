@@ -993,6 +993,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `ai-045` | `describe_step` reads a step's op and params (consumed steps too) and `copy` duplicates a part; `add-clearances` rebuilds a round pin from the copy. | finding | — | none |
 | ✅ `ai-046` | `set_params` resizes a placed body, or one part of a group, directly: an AI-origin Inspector edit with refusals for an unknown name, a bad value, a bound parameter and a breaking size. | finding | low | sonnet |
 | ✅ `ai-047` | A Subtract cut with a Pi's `clearance-*` keep-outs removes just that volume and leaves the Pi in place; `create-enclosure` cuts port openings with them. | finding | low | opus |
+| ✅ `ai-048` | `splitWithJoint` tongue joint works on a hollow box: a rib sized from the wall, one per side, refused under 1.9 mm with the minimum named. | finding | low | opus |
 | ✅ `ai-041` | Tool gaps found writing the first two skills: a boolean on one part of a group keeps the other parts, `create` takes a name, `operate` offers `style.rename`, and `check_clearance` measures between parts of a group (gaps 1, 3 and 4). Gaps 2, 5–8 filed as `ai-044`. | finding | — | none |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
@@ -1480,5 +1481,6 @@ convention going forward.
 | `ai-045` | 2026-11-18 20:55 | ~40m (opus agent for the code; unit, scripted e2e, two `claude -p` drives) |
 | `ai-046` | 2026-11-18 21:10 | ~25m (tool, spec, docs; one schema fix after the first typecheck) |
 | `ai-047` | 2026-11-18 21:35 | ~25m (scoped to the consumption rule; unit, 44 e2e on two projects; no model drive) |
+| `ai-048` | 2026-11-18 21:55 | ~30m (new wall-sized recipe, 5 specs, docs; kernel drive on a Pi-sized shell) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

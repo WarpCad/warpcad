@@ -6,8 +6,11 @@ priority: low
 model: opus
 milestone: none — Findings table, split from ai-044 (gap 6) on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-18):** a new recipe, `src/core/kernel/recipes/joint.tongueWall.js`, runs when the ordinary tongue search finds nothing. It measures the wall by bisecting an exact containment probe and sizes the rib from it: tongue and each side wall are `(wall − 2 × clearance) / 3`, none under 0.5 mm, so a 2 mm wall takes a 0.53 mm rib. One rib per side that has a clear stretch (up to four). Each is confirmed by `tongueMisfit`, which now takes a per-rib `wallMm`. A wall under `1.5 + 2 × clearance` (1.9 mm at 0.2) is refused, and the message names it. `create-enclosure` now splits with `joint: "tongue"`. The Pi-sized shell with ports re-drove clean in the kernel (4 ribs, both pieces watertight); the skill itself was not re-run with `claude -p` because the warpcad MCP server was down.
+
 
 ## Problem
 

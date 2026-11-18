@@ -65,9 +65,9 @@ Cut each opening with the board's own keep-out piece. A cut with only keep-out p
 
 ## 5. The lid
 
-Split the shell across z: `operate { op: "modify.splitWithJoint", operands: [{ id: "<shell>" }], params: { axis: "z", offsetMm: <outerH − lid depth>, joint: "none", names: ["Base", "Lid"] } }`. `offsetMm` is measured from the shell's bottom face.
+Split the shell across z with a tongue so the lid locates itself: `operate { op: "modify.splitWithJoint", operands: [{ id: "<shell>" }], params: { axis: "z", offsetMm: <outerH − lid depth>, joint: "tongue", clearanceMm: <clearance>, names: ["Base", "Lid"] } }`. `offsetMm` is measured from the shell's bottom face.
 
-A `tongue` joint is refused on a box wall ("no room for a tongue and groove"), so the lid sits loose. Tell the user it needs tape, glue or screws.
+The tongue is sized from the wall: a rib down each wall about a third of its thickness wide, so a 2 mm wall takes a 0.53 mm rib (one printed line). Tell the user it is thin and only locates the lid; tape, glue or screws still hold it. If the wall is under 1.5 mm plus twice the clearance, the call is refused, naming that minimum. Then use `joint: "none"` and say the lid sits loose.
 
 ## 6. Check your work
 

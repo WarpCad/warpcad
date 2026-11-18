@@ -106,6 +106,7 @@ import {
   TONGUE_MIN_WIDTH_MM,
   tongueGrooveJoint,
 } from './recipes/joint.tongueGroove.js'
+import { wallTongueJoint, wallTongueMinWallMm } from './recipes/joint.tongueWall.js'
 import {
   TENON_MAX_THICKNESS_MM,
   TENON_MAX_WIDTH_MM,
@@ -810,6 +811,10 @@ function planOn(solid, lower, upper, read, cutMm) {
   const args = { field, lower, upper, clearanceMm: read.clearanceMm }
   const plan = read.joint === 'pins' ? pinJoint(args) : tongueGrooveJoint(args)
   if (plan) return plan
+  // A hollow shell's ring is too thin for the ordinary search: size a tongue from the wall (`TODO/ai-048`).
+  const walled =
+    read.joint === 'tongue' ? wallTongueJoint({ solid, axisIndex: read.axisIndex, cutMm, lower, upper, clearanceMm: read.clearanceMm }) : null
+  if (walled) return walled
   const thinnest = Math.min(field.uRange[1] - field.uRange[0], field.vRange[1] - field.vRange[0])
   if (read.joint === 'pins') {
     throw new Error(
@@ -819,6 +824,7 @@ function planOn(solid, lower, upper, read, cutMm) {
   }
   throw new Error(
     `${OP}: no room for a tongue and groove on the cut face (${fmt(thinnest)} mm across at its narrowest) — ` +
+      `a hollow shell needs a wall of at least ${fmt(wallTongueMinWallMm(read.clearanceMm))} mm; ` +
       'choose no joint, or cut somewhere thicker'
   )
 }

@@ -86,6 +86,18 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q102 · Is a 0.53 mm lid tongue on a 2 mm enclosure wall acceptable?
+
+**Question:** `ai-048` lets `splitWithJoint` put a tongue in a 2 mm shell wall by sizing it from the wall: a 0.53 mm rib with 0.53 mm walls either side, one printed line. It only locates the lid. Keep this, or require a thicker wall for a tongue?
+
+**Background:** Assumed yes: the other readings (refusing under 3.8 mm) leave the default enclosure with no joint, which Q3 asked to fix. Not test-printed. A wall under 1.9 mm is still refused. The `create-enclosure` skill was not re-run with `claude -p` (the warpcad MCP server was down); the kernel was driven directly on a Pi-sized shell with ports.
+
+**Options:**
+1. **Keep it (Recommended)**: thin lip, lid locates itself.
+2. **Require 3.8 mm walls**: sturdier ribs, but the 2 mm default has no joint.
+3. **Explain more**
+4. **Defer**
+
 #### Q101 · Keep a Raspberry Pi in the scene after you cut a port opening with its keep-out?
 
 **Question:** `ai-047` made a Subtract with only a Pi's `clearance-*` keep-outs leave the Pi in the scene, like its mounting holes (before, it was used up). Keep this?

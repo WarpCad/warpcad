@@ -212,6 +212,14 @@ clearance holes 5 mm in from each corner*. Claude follows the guide's method: it
 and the holes in one `apply_records` step, measures the result, and runs a print check before it
 calls the plate done.
 
+**Example: a lid that locates itself.** Ask Claude *split the box 10 mm below the top with a tongue
+joint*. It calls `operate` with `op: "modify.splitWithJoint"`, `params: { axis: "z", offsetMm: 20,
+joint: "tongue", clearanceMm: 0.2, names: ["Base", "Lid"] }`. On a hollow box the tongue is sized
+from the wall: a rib down the middle of each wall, and the same width again of plastic either side of
+its groove. A 2 mm wall at 0.2 mm clearance takes a 0.53 mm rib, one printed line. The result lists
+the tongues it made. A wall thinner than 1.5 mm plus twice the clearance is refused, and the message
+names that minimum.
+
 Some Assistant tools aren't here. `capture_view` needs a graphics card to draw a picture, and the
 server has none. The selection and reference-image tools need the app on screen.
 

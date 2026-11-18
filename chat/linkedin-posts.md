@@ -4892,3 +4892,19 @@ The tool is documented in docs/mcp.md with a worked example. Built with Claude C
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** refusals and follow-on behaviour → src/ai/tools/params.spec.js and src/ai/tools/params.js; worked example → docs/mcp.md diff
 **To Add:** none
+
+## 2026-11-18T21:40:00Z — WarpCad tongue joints work on a hollow box (TODO/ai-048)
+
+WarpCad's split tool could cut a box into a base and a lid, but it refused a tongue joint on a hollow box. The lid sat loose, and the enclosure skill told users to hold it with tape, glue or screws.
+
+The fix measures the wall where the cut crosses it, using an exact containment check rather than sampling the face. The tongue and the wall beside its groove each get a third of what is left after clearance, with a 0.5 mm floor. A 2 mm wall at 0.2 mm clearance gives a 0.53 mm rib. Walls under 1.9 mm are refused, and the message names that minimum.
+
+The kernel split a test shell with two port cut-outs into two watertight pieces, with four tongues. The part has not been printed, and the enclosure skill has not yet been re-run through the MCP server, so the kernel result is the only evidence so far.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tongue refused, lid loose, tape/glue/screws → mcp/skills/create-enclosure/SKILL.md removed lines (this diff); exact containment check, a third of the wall after clearance, 0.5 mm floor → joint.tongueWall.js header and sizing code (this diff); 0.53 mm at 2 mm, 1.9 mm minimum → joint.tongueWall.spec.js, unit run 9829 passed this session; four tongues, two watertight pieces → TODO/done/ai-048 Shipped note (kernel drive, not re-run here); not printed, skill not re-run → TODO/done/ai-048 Shipped note and OWNER.md Q102
+**To Add:** none

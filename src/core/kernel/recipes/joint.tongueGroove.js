@@ -62,6 +62,8 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value))
  * @property {number} widthMm
  * @property {number} lengthMm
  * @property {boolean} alongU
+ * @property {number} [wallMm] Wall of plastic left round the groove; default {@link JOINT_WALL_MM}.
+ *   A rib sized from a thin shell wall (`joint.tongueWall.js`) carries a thinner one.
  */
 
 /**
@@ -105,8 +107,9 @@ function ribSection(alongU, longMm, wideMm) {
  * @returns {Footprint}
  */
 export function tongueFootprint(rib, clearanceMm) {
-  const halfLong = rib.lengthMm / 2 + clearanceMm + JOINT_WALL_MM
-  const halfWide = rib.widthMm / 2 + clearanceMm + JOINT_WALL_MM
+  const wallMm = rib.wallMm ?? JOINT_WALL_MM
+  const halfLong = rib.lengthMm / 2 + clearanceMm + wallMm
+  const halfWide = rib.widthMm / 2 + clearanceMm + wallMm
   return {
     shape: 'rect',
     uMm: rib.uMm,
@@ -131,6 +134,7 @@ export function tongueFootprint(rib, clearanceMm) {
 export function tongueMisfit({ field, lower, upper, clearanceMm, rib }) {
   const { axisIndex, cutMm } = field
   const { uMm, vMm, widthMm, lengthMm, alongU } = rib
+  const wallMm = rib.wallMm ?? JOINT_WALL_MM
   const heightMm = tongueHeight(widthMm)
   const depthMm = heightMm + clearanceMm + JOINT_WALL_MM
   const grooveProbe = prismAlong(
@@ -139,7 +143,7 @@ export function tongueMisfit({ field, lower, upper, clearanceMm, rib }) {
     cutMm + depthMm,
     uMm,
     vMm,
-    ribSection(alongU, lengthMm + 2 * (clearanceMm + JOINT_WALL_MM), widthMm + 2 * (clearanceMm + JOINT_WALL_MM))
+    ribSection(alongU, lengthMm + 2 * (clearanceMm + wallMm), widthMm + 2 * (clearanceMm + wallMm))
   )
   if (!contains(upper, grooveProbe)) return 'wall'
   const baseProbe = prismAlong(axisIndex, cutMm - JOINT_BASE_DEPTH_MM, cutMm, uMm, vMm, ribSection(alongU, lengthMm, widthMm))
