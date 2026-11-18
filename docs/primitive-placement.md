@@ -284,6 +284,11 @@ raised 3D label out of a string — handy for naming a part or marking a face.
 
 ![A Text label placed on the grid, with its Text field showing in the Inspector](./screenshots/text-label-placed.png)
 
+To select a label later, click or tap anywhere on it, including the gaps between letters and
+a few pixels around its edge. You don't have to hit a stroke of a letter. For example, after
+placing **Label**, click empty grid to deselect, then click the space between the **b** and
+the **e**: the label is selected and the Inspector shows it again.
+
 Good to know: the lettering is a single-line stroke font, so letters are drawn with a
 constant-width stroke rather than outlined shapes. Only plain keyboard characters are
 supported — anything else shows as `?`. The Text field cannot be empty; an empty value

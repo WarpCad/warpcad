@@ -4732,3 +4732,16 @@ A unit test pins the placement, and the rotate-dial end-to-end spec now asserts 
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 51 of 112 px covered → TODO/done/ui-131 file; keep-out and measurement at drag start → diff of src/render/annotate.js and src/components/viewport/Viewport.vue; 10 of 10 on firefox-phone + chromium-tablet → e2e run this session
 **To Add:** a screenshot of the readout beside the toolbar at 390 px
+
+## 2026-11-18T13:20:08Z — ui-132: select a text label by its whole box
+
+**Post:** Small fix, but a real one. In WarpCad, a text label could only be picked where its letters were drawn. A 12 by 6 grid of clicks across the label's own box hit 27 of 72 points, so a finger on a touch screen would miss most of the time.
+
+The fix runs only after the stroke test has missed. If the click landed inside the label's on-screen box, grown by 8 px, the label is selected. Bodies that the ray already hits keep their click, so nothing else in the picking path changes.
+
+A new end-to-end spec clicks a grid across a placed label and checks the selection after each point. It passes on Chromium at laptop width, Firefox at tablet, Chromium at phone and WebKit at tablet. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "27 of 72 points" and "12 by 6 grid" → TODO/done/ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md (measured 27 of 72 box points, 38%); 8 px → LABEL_PICK_PAD_PX in the diff of src/render/pick.js; "runs only after the stroke test has missed" → labelBoxHit call in the diff of src/render/pointerGestures.js; spec passing on four project pairs → test runs this session (caller-supplied; the stored unit record is 2026-11-18T13:15:02Z)
+**To Add:** none

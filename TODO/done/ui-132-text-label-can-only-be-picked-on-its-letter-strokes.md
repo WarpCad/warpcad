@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-030 real-GPU drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** after the stroke raycast misses, a click inside a `text.label` body's on-screen box (grown by 8 px, `LABEL_PICK_PAD_PX`) selects it. `src/render/pick.js` has the pure `pointInScreenBox`; `pointerGestures.js` `labelBoxHit` projects the body's drawn bounds with the marquee's `updateBoxScreenBounds`. Identified by the body's root op, so no other body's picking changed. Covered by `pick.spec.js` and `e2e/text-label-placement.e2e.js`; documented in `docs/primitive-placement.md`.
 
 ## Problem
 

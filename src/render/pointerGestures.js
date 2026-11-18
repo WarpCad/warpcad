@@ -18,7 +18,7 @@
 import { Raycaster, Vector2 } from 'three'
 import { createBoxScreenBounds, marqueeIntersectsBox, updateBoxScreenBounds, updateMarqueeRect } from './annotate.js'
 import { drawnBoundsOf } from './mesh.js'
-import { PICK_OFFSETS_PX, firstDrawnHit, ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from './pick.js'
+import { LABEL_PICK_PAD_PX, PICK_OFFSETS_PX, firstDrawnHit, isDrawn, ndcFromClient, pointInScreenBox, projectToSketchPlane, projectToWorkingPlane } from './pick.js'
 
 /** Degrees of orbit per pixel of drag. */
 export const ORBIT_DEG_PER_PX = 0.4
@@ -814,6 +814,31 @@ export function createPointerGestures(deps) {
       if (hit === null) continue
       const object = hit.object
       return { bodyId: object.name, partName: object.userData.partName }
+    }
+    return labelBoxHit(clientXPx, clientYPx)
+  }
+
+  /**
+   * A click inside a text label's on-screen box, which the stroke raycast above misses
+   * (`TODO/ui-132`): a label is thin letter strokes with gaps, so only 38% of its own box hit.
+   * Runs only after every real hit missed, so a body in front of or behind a label keeps its
+   * click; the nearest label box wins by being first found. Click-time only.
+   *
+   * @param {number} clientXPx
+   * @param {number} clientYPx
+   * @returns {{ bodyId: string } | null}
+   */
+  function labelBoxHit(clientXPx, clientYPx) {
+    for (const body of deps.documentBodies()) {
+      if (body.op !== 'text.label') continue
+      const mesh = bodyMeshes.get(body.id)
+      if (mesh && !isDrawn(mesh)) continue
+      const bounds = drawnBoundsOf([body])
+      if (bounds === null) continue
+      updateBoxScreenBounds(orbit, bounds[0], bounds[1], deps.widthPx(), deps.heightPx(), boxScreenBounds)
+      if (pointInScreenBox(boxScreenBounds, clientXPx - viewportRect.left, clientYPx - viewportRect.top, LABEL_PICK_PAD_PX)) {
+        return { bodyId: body.id }
+      }
     }
     return null
   }

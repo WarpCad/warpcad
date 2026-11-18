@@ -3271,3 +3271,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** readout hid about half behind the toolbar on a phone → TODO/done/ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md (51 of 112 px); now moves clear → diff of src/render/annotate.js (clearOfKeepOut), new unit test in src/render/annotate.spec.js and no-overlap assertion in e2e/rotate-dial.e2e.js, rotate-dial 10/10 on firefox-phone + chromium-tablet (this session)
 **To Add:** a screenshot of the readout beside the toolbar at 390 px
+
+## 2026-11-18T13:20:08Z — ui-132: select a text label by its whole box
+
+**Post:** Clicking a text label in WarpCad only worked on its letter strokes. A grid of clicks across its box hit 27 of 72 points. Now a click anywhere inside the box selects it, with 8 px of slack around the edge. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** "only worked on its letter strokes" and "27 of 72 points" → TODO/done/ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md (measured 27 of 72 box points, 38%); 8 px slack → LABEL_PICK_PAD_PX = 8 in the diff of src/render/pick.js; a click inside the box selects → new spec in e2e/text-label-placement.e2e.js, passing on chromium-laptop, firefox-tablet, chromium-phone and webkit-tablet (test runs this session, caller-supplied; the stored unit record is 2026-11-18T13:15:02Z)
+**To Add:** a short clip of a click in the gap between two letters selecting the label (docs/primitive-placement.md has the text but no picture of it)

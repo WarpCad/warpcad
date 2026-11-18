@@ -302,3 +302,25 @@ export function firstDrawnHit(hits) {
   for (const hit of hits) if (isDrawn(hit.object)) return hit
   return null
 }
+
+/**
+ * How far outside a text label's on-screen box a click still selects it, in CSS pixels
+ * (`TODO/ui-132`). A label is open stroke geometry, so a ray only hits the letters themselves;
+ * the box plus this margin is the target a fingertip can actually aim at.
+ */
+export const LABEL_PICK_PAD_PX = 8
+
+/**
+ * Whether a viewport-local point lies in a screen-space box grown by `padPx` on every side.
+ * The box is {@link import('./annotate.js').BoxScreenBounds}; allocation-free.
+ *
+ * @param {{ visible: boolean, minX: number, minY: number, maxX: number, maxY: number }} bounds
+ * @param {number} xPx Pixels from the viewport's left edge.
+ * @param {number} yPx Pixels from the viewport's top edge.
+ * @param {number} padPx
+ * @returns {boolean}
+ */
+export function pointInScreenBox(bounds, xPx, yPx, padPx) {
+  if (!bounds.visible) return false
+  return xPx >= bounds.minX - padPx && xPx <= bounds.maxX + padPx && yPx >= bounds.minY - padPx && yPx <= bounds.maxY + padPx
+}

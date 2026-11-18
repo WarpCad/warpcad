@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createOrbitCamera, STANDARD_VIEWS } from './camera.js'
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 
-import { PICK_OFFSETS_PX, firstDrawnHit, isDrawn, nearestOnPlane, ndcFromClient, projectToWorkingPlane } from './pick.js'
+import { LABEL_PICK_PAD_PX, PICK_OFFSETS_PX, firstDrawnHit, isDrawn, nearestOnPlane, pointInScreenBox, ndcFromClient, projectToWorkingPlane } from './pick.js'
 
 /** @param {Record<string, any>} [options] */
 function camera(options = {}) {
@@ -251,5 +251,24 @@ describe('firstDrawnHit — a hidden thing is never picked (TODO/ui-089)', () =>
     expect(isDrawn(b)).toBe(false)
     body.visible = false
     expect(isDrawn(a)).toBe(false)
+  })
+})
+
+describe('pointInScreenBox — a label is picked anywhere in its box (TODO/ui-132)', () => {
+  const box = { visible: true, minX: 100, minY: 50, maxX: 177, maxY: 95 }
+
+  it('hits inside the box, including the gaps between letters', () => {
+    expect(pointInScreenBox(box, 138, 72, 0)).toBe(true)
+    expect(pointInScreenBox(box, 100, 50, 0)).toBe(true)
+  })
+
+  it('pads the box by the touch tolerance on every side, and no further', () => {
+    expect(pointInScreenBox(box, 100 - LABEL_PICK_PAD_PX, 70, LABEL_PICK_PAD_PX)).toBe(true)
+    expect(pointInScreenBox(box, 177 + LABEL_PICK_PAD_PX + 0.5, 70, LABEL_PICK_PAD_PX)).toBe(false)
+    expect(pointInScreenBox(box, 138, 50 - LABEL_PICK_PAD_PX - 0.5, LABEL_PICK_PAD_PX)).toBe(false)
+  })
+
+  it('never hits a box that is wholly behind the camera', () => {
+    expect(pointInScreenBox({ ...box, visible: false }, 138, 72, 10)).toBe(false)
   })
 })

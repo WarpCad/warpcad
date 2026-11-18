@@ -206,3 +206,65 @@ test('retyping the label in the Inspector rebuilds it wider; an empty string is 
   await expect(page.getByTestId('inspector-param-error')).toBeVisible()
   await expect(field).toHaveValue('Label Longer')
 })
+
+/**
+ * A click at a pixel offset inside the canvas, as real pointer events on it (the shape
+ * `primitive-placement.e2e.js` uses), so a phone's bottom sheet cannot intercept it.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} xPx
+ * @param {number} yPx
+ */
+async function clickCanvasAt(page, xPx, yPx) {
+  await page.evaluate(
+    ({ xPx, yPx }) => {
+      const canvas = document.querySelector('[data-testid="viewport-canvas"]')
+      if (!canvas) throw new Error('no canvas')
+      const box = canvas.getBoundingClientRect()
+      for (const type of ['pointerdown', 'pointerup']) {
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 3,
+            pointerType: 'mouse',
+            isPrimary: true,
+            button: 0,
+            clientX: box.left + xPx,
+            clientY: box.top + yPx,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+      }
+    },
+    { xPx, yPx },
+  )
+  await page.waitForTimeout(80)
+}
+
+test("a click anywhere in the label's box selects it, not only on its letters (TODO/ui-132)", async ({ page }) => {
+  await openLibrary(page)
+  const viewport = page.getByTestId('viewport')
+  await dragRowIntoViewport(page, { op: 'text.label', fx: 0.5, fy: 0.45 })
+  await closeLibrary(page)
+  const [label] = await sceneBodies(page)
+  const canvasBox = await page.getByTestId('viewport-canvas').boundingBox()
+  if (!canvasBox) throw new Error('no canvas box')
+  const cx = canvasBox.width * 0.5
+  const cy = canvasBox.height * 0.45
+  const emptyX = canvasBox.width * 0.05
+  const emptyY = canvasBox.height * 0.07
+
+  // Empty space first: it must still clear the selection (every other body's picking is as it was).
+  await clickCanvasAt(page, emptyX, emptyY)
+  await expect(viewport).toHaveAttribute('data-selected-count', '0')
+
+  // A grid across the label's footprint; about 60% of these fall in the gaps between strokes.
+  for (const dx of [-24, -12, 0, 12, 24]) {
+    for (const dy of [-10, 0, 10]) {
+      await clickCanvasAt(page, cx + dx, cy + dy)
+      await expect(viewport, `click at ${dx},${dy}`).toHaveAttribute('data-selected-id', label.id)
+      await clickCanvasAt(page, emptyX, emptyY)
+      await expect(viewport).toHaveAttribute('data-selected-count', '0')
+    }
+  }
+})
