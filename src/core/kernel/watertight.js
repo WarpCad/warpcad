@@ -93,6 +93,17 @@
  * reports the ten `io-004` / `io-005` / benchmark shapes byte-identical in STL, OBJ and glTF.
  * The dense cases are `watertightDense.spec.js`.
  *
+ * ### Slivers inside flat faces (`TODO/FIND-io-032`)
+ *
+ * Closed at the serializer's weld is not closed at a slicer's. `@jscad/modeling` cuts every flat
+ * face a boolean makes into sweep-line strips, and on a cutter face a dense scan clips, strips a
+ * micrometre or two thick; CuraEngine melds corners within 30 micrometres, unevenly, and folds
+ * them (*Mesh has overlapping faces*). Once the surface is closed, {@link cleanFlatFaces}
+ * (`flatFaces.js`) re-triangulates every flat face with a sliver in it. A solid without one comes
+ * back as before; a library part with sweep slivers of its own (the `raspberrypi.bplus`, a
+ * `kit.boardFrame`) is re-triangulated without a corner moving (straight-through ones dropped),
+ * so its bytes change and its shape does not.
+ *
  * The result of this pass is for **serialization only**. Inserting a vertex into an
  * edge can leave a polygon a hair non-convex, so it must not be fed back into a boolean
  * — the same caveat `@jscad/modeling`'s own `insertTjunctions` carries.
@@ -134,6 +145,8 @@
  */
 
 import modeling from '@jscad/modeling'
+
+import { cleanFlatFaces } from './flatFaces.js'
 
 const { geometries, measurements } = modeling
 
@@ -257,6 +270,13 @@ export function makeWatertight(solid) {
   // A face can now visit one corner twice — fused onto itself, or given the same corner on
   // two sides of an acute angle — so it is split into the simple loops it walks.
   inserted += splitAtRepeatedCorners(polygons, ids)
+
+  // The surface is closed now, at the serializer's weld. A flat face a boolean cut into sweep
+  // strips thinner than a slicer's own weld is triangulated afresh from its outline
+  // (`TODO/FIND-io-032`, and `flatFaces.js` for why).
+  const cleaned = cleanFlatFaces(polygons, ids, cornerCount, pinned, tolerance)
+  // Collapsing a short outline side can make a neighbour visit one corner twice.
+  if (cleaned > 0) inserted += cleaned + splitAtRepeatedCorners(polygons, ids)
 
   // `inserted` also counts corners fused, faces dropped and loops split: the polygons changed.
   if (inserted === 0) return solid

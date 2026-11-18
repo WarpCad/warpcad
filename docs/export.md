@@ -171,12 +171,13 @@ Union of two shapes, a bolt from the library, or a whole scene of them in one fi
 
 That holds for a **dense imported scan** with a cut made in it by **Subtract** too: the cut
 file is a closed surface at the precision the file is written in (a hundredth of a micrometre).
-One narrow note for that case: Cura looks at corners about 30 micrometres apart as one, and on a
-scan with tens of thousands of triangles it can still print *Mesh has overlapping faces* where the
-cut meets the scan. It still slices the file, and the shape it slices is the shape you see.
+Slicers merge corners closer than a few hundredths of a millimetre (Cura's limit is 0.03 mm), so
+on the flat faces of a cut WarpCad leaves no corners that close: where the scan's surface runs
+nearly flat along a face of the cutter, corners a hair apart are joined before the file is
+written, moving nothing by more than 0.07 mm, well under what a printer can draw.
 For example, import a scan, place a **Cube** through it, select both, press **Subtract**, then
-**File ▾ → Export… → STL** and open the file in Cura: the part loads and slices, with at most that
-one warning, and a mesh check such as MeshLab's **Select non-manifold edges** finds nothing.
+**File ▾ → Export… → STL** and open the file in Cura: the part loads and slices with no mesh
+warning, and a mesh check such as MeshLab's **Select non-manifold edges** finds nothing.
 
 ### Trying it on a shape that used to be the hard case
 

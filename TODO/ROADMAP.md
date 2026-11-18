@@ -65,17 +65,16 @@ stashes only the failed task's own paths.
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed
 (43–66). Row numbers are stable ids, not positions: a gap means a row closed.
-**Opus tasks** (each splits into an Opus half and a Sonnet half): `io-032`, `io-033`.
+**Opus tasks** (each splits into an Opus half and a Sonnet half): `io-033`.
 **New findings a task files** get a Findings row at the bottom of the table and the next free Next up number, unless the owner re-ranks them.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 24 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 25 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 66 | ▶ Ready | `FIND` | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable | sonnet |
-| 67 | ▶ Ready | `FIND` | [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a sub-30-micrometre flat-face cleanup | opus |
 | 68 | ▶ Ready | `FIND` | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) Close the one 1.4 micrometre four-face edge left in the 96k cut's STL export | opus |
 | 78 | ▶ Ready | `FIND` | [`testing-042`](FIND-testing-042-help-from-align-baselines-stale.md) Refresh the help-from-align screenshots, stale since the Align docs page gained text | sonnet |
 | 83 | ▶ Ready | `FIND` | [`io-037`](FIND-io-037-gist-token-check-accepts-a-token-with-no-gists-permission.md) Reject a gist token with no Gists permission at Connect (GitHub answers the probe 404, not 403); test token expires 2026-11-24 | sonnet |
@@ -97,6 +96,10 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 99 | ▶ Ready | `FIND` | [`ui-147`](FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md) Keep a dimension label's digits clear of the gizmo rings and arrowheads that cross them | sonnet |
 | 100 | ▶ Ready | `FIND` | [`ui-148`](FIND-ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md) Make the phone orientation dial caps tappable without overlap (split from ui-134) | sonnet |
 | 101 | ▶ Ready | `FIND` | [`ui-149`](FIND-ui-149-nav-chrome-mode-buttons-real-44px-height.md) Give the navigation chrome's Orbit, Pan, Select and gear buttons real 44 px height by relaxing the ui-043 and ui-084 size budgets (split from ui-135) | sonnet |
+| [`ui-150`](FIND-ui-150-sketch-toolbar-overlaps-orientation-gizmo-on-tablet-and-laptop.md) Stop the Sketch toolbar overlapping the orientation gizmo on webkit-tablet and firefox-laptop | finding | medium | sonnet | ▶ Ready (Next up row 102) |
+| [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing | finding | low | sonnet | ▶ Ready (Next up row 103) |
+| 102 | ▶ Ready | `FIND` | [`ui-150`](FIND-ui-150-sketch-toolbar-overlaps-orientation-gizmo-on-tablet-and-laptop.md) Stop the Sketch toolbar overlapping the orientation gizmo on webkit-tablet and firefox-laptop (pre-existing e2e failure found during io-032) | sonnet |
+| 103 | ▶ Ready | `FIND` | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing, instead of downloading nothing silently | sonnet |
 
 ---
 
@@ -213,7 +216,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`perf-006`](FIND-perf-006-sentry-chunk-loads-before-usable-on-the-deployed-build.md) The deployed build fetches the Sentry SDK (144 kB gzip) before the app is usable | finding | medium | sonnet | ▶ Ready (Next up row 66) |
-| [`io-032`](FIND-io-032-cura-overlapping-faces-warning-on-a-cut-dense-scan.md) Cura still prints "Mesh has overlapping faces!" for a dense scan with a Subtract cut, though the STL is closed | finding | low | opus | ▶ Ready (Next up row 67) |
 | [`io-033`](FIND-io-033-one-four-face-edge-remains-in-the-96k-cut-export.md) One 1.4 micrometre edge shared by four triangles remains in the 96k cut's STL export | finding | low | opus | ▶ Ready (Next up row 68) |
 | [`testing-042`](FIND-testing-042-help-from-align-baselines-stale.md) The help-from-align screenshots are stale since the Align docs page gained text | finding | medium | sonnet | ▶ Ready (Next up row 78) |
 | `data-012` Tombstone and position-key compaction (`data-011` measured the section at 34-43% of an edited file) | reserved | — | — | 📝 no file yet |
@@ -357,7 +359,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
 | `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Filed 2026-11-15 by `perf-005` | Finding | — | 1 |
-| `io-032` | Cura prints "Mesh has overlapping faces!" for a Subtract cut in a dense imported scan (32k triangles and up) though the STL is closed at 1e-5 mm: a 17 micrometre band in a flat face. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | `io-033` | One 1.4 micrometre edge used by four triangles remains in the 96k scan's cut STL export. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | `testing-042` | The help-from-align screenshots are stale since `docs/snap-align.md` gained text in `e376b5da`; red on firefox-phone and firefox-tablet, so pair runs do not advance. Filed 2026-11-16 from the `ui-121` and `build-034` runs | Finding | — | none |
 | `io-037` | The gist token check accepts a token with no Gists permission: `PATCH /gists/000…` answers 404 for it as for a permitted token (verified 2026-11-17, OWNER.md U5). Filed from VERIFY.md io-017 #1 | Finding | — | gist share |
@@ -379,6 +380,8 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-147` | A ring or arrowhead still crosses a dimension label's digits at phone width, split from `ui-130`. Filed 2026-11-18 | Finding | — | 1 |
 | `ui-148` | The 96px phone orientation dial still overlaps its caps (22-35% of scattered taps hit a neighbour, 390px); split from `ui-134`, which fixed tablet. Filed 2026-11-18 | Finding | — | 1 |
 | `ui-149` | The Orbit, Pan and Select buttons are still 30-32 px tall (wrong-control taps 4-8 %, target 2 %); real 44 px needs the `ui-043` toolbar-overlap and `ui-084` compact-size budgets relaxed. Split from `ui-135`. Filed 2026-11-18 | Finding | — | 7 |
+| `ui-150` | The Sketch toolbar overlaps the orientation gizmo on webkit-tablet and firefox-laptop; `sketch-primitive.e2e.js:533` fails on plain HEAD. Filed 2026-11-18 | Finding | — | 102 |
+| `io-039` | Export of a Subtract that left nothing (an STL in inches imported as mm) downloads nothing and shows no error; same at HEAD. Filed 2026-11-18 | Finding | — | 11, 26 |
 
 ---
 
@@ -478,7 +481,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 24 queued + 1 held | 24 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 25 queued + 1 held | 25 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

@@ -3343,3 +3343,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 0 of 3 before → bench/results/ai/2026-11-15-claude-code-over-mcp.md; 2 of 3 after → three claude -p --model haiku runs this session; boundTo field → diff of src/ai/tools/read.js
 **To Add:** a describe_scene result showing boundTo
+
+## 2026-11-18T19:45:00Z — Cura stops flagging overlapping faces on a cut dense scan (TODO/io-032)
+
+**Post:** Cut a hole in a 32k-triangle scan and export it: the STL was closed, but Cura still said "Mesh has overlapping faces!". The cause was 1-17 µm sliver strips the boolean leaves on flat faces, which Cura melds unevenly. A new pass re-triangulates only those faces. Cura now loads the 32k, 96k and 240k cuts clean. #CAD #3DPrinting Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** warnings before/after → CuraEngine 5.13.0 runs this session on the bench-path 32k/96k/240k cuts; 1-17 µm strips → agent measurement on the 32k file, this session; flatFaces.js pass → diff
+**To Add:** the cutter's flat face before and after, as a wireframe

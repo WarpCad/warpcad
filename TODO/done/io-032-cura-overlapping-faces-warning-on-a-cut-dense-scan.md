@@ -6,8 +6,18 @@ priority: low
 model: opus
 milestone: none — Findings table, filed 2026-11-15 from the io-031 close
 depends: []
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-11-18).** A new pass, `src/core/kernel/flatFaces.js`, runs inside `makeWatertight`: on each flat face that has a
+> polygon thinner than 35 micrometres it drops straight-through corners, collapses sub-35 micrometre outline sides (moving a real corner
+> by at most 70 micrometres, onto an existing corner) and re-triangulates. Real CuraEngine 5.13.0 now prints no mesh warning for the 32k,
+> 96k and 240k cuts; the uncut scan and the box are byte-identical. The spec asserts Cura's own load check (a port in
+> `__fixtures__/curaMesh.js`) instead of "no two edges within 30 micrometres", which no triangulation can meet (real crease corners sit
+> 4-29 micrometres apart). Left open: the 96k four-face edge (`io-033`); `cleanOnce` is about 620 lines of guards and could use a simplify
+> pass; the cut export is about 114 ms slower at 240k. Two library parts (`kit.boardFrame`, `raspberrypi.bplus`) and the core-075 "placements"
+> golden changed in bytes only (retessellated, volume identical).
 
 ## Problem
 

@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `io-032` | Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a flat-face sliver cleanup (`flatFaces.js`). Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | ✅ `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
 | ✅ `testing-038` | A `storybook-<engine>` Playwright project per engine runs `e2e/*.story.e2e.js` against a built Storybook (`scripts/serve-static.mjs`, port 6006, built only when a run can reach a story spec). `e2e/base-components.story.e2e.js` snapshots 13 base-component states in a light and a dark scheme (78 baselines across three engines, 352 KB); the rotation adds the project of each engine in its pair (about 8 s build plus 26 s of tests). `ui-116` and `ui-117` waived snapshots are now produced. [`done/testing-038`](done/testing-038-storybook-playwright-project.md) | Finding | — | none (test infrastructure only) |
 | ✅ `ui-130` | Dimension labels are held inside the viewport (a 36-view orbit sweep at 390 px) and the gizmo ring's wall and core are 5 px and 1.5 px at phone width so the tube cue reads as two strokes. Reframing a small dropped part is OWNER.md Q100. Filed from the testing-030 real-GPU drive | Finding | — | 1, 4 |
@@ -1467,5 +1468,7 @@ convention going forward.
 | `ui-137` | 2026-11-18 17:20 | ~15m |
 | `sketch-009` | 2026-11-18 17:45 | ~25m |
 | `ai-040` | 2026-11-18 17:30 | ~15m |
+
+| `io-032` | 2026-11-18 19:20 | 1h59m |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -22,6 +22,7 @@ import { exportBodies } from '../export.js'
 import { lumpyScan, denseBox } from './__fixtures__/denseMeshes.js'
 import { solidFromMesh } from './recipes/importMesh.js'
 import { makeWatertight, openEdgesOf } from './watertight.js'
+import { curaMeshCheck } from './__fixtures__/curaMesh.js'
 
 const { booleans, geometries, measurements, primitives, transforms } = modeling
 
@@ -181,6 +182,107 @@ describe('makeWatertight on a cut dense scan (FIND-io-031)', () => {
     expectClosedExport(
       booleans.subtract(scan, primitives.cuboid({ size: [25, 25, 20], center: [pole[0] + 12.5, pole[1], pole[2] - 5] }))
     )
+  }, DENSE_TIMEOUT_MS)
+})
+
+/**
+ * The flat-face slivers of a written file (`TODO/FIND-io-032`): triangles of a flat face of two or
+ * more triangles whose height (twice the area over the longest side) is under a micrometre, the
+ * resolution CuraEngine rounds every coordinate to, so it can turn one over.
+ *
+ * Triangles are grouped by plane: unit normal to 1e-3 and offset to 1e-3 mm, which keeps a cutter
+ * face's triangles together through float32 noise and keeps a scan's neighbouring triangles (a
+ * few degrees apart) apart.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {{ planes: number, slivers: number }}
+ */
+function flatFaceSlivers(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const triangles = view.getUint32(80, true)
+  /** @type {Map<string, number[]>} plane → heights of its triangles, mm */
+  const planes = new Map()
+  for (let index = 0; index < triangles; index += 1) {
+    const base = 84 + 50 * index + 12
+    const v = [0, 1, 2].map((corner) => [0, 1, 2].map((axis) => view.getFloat32(base + 12 * corner + 4 * axis, true)))
+    const u = [0, 1, 2].map((axis) => v[1][axis] - v[0][axis])
+    const w = [0, 1, 2].map((axis) => v[2][axis] - v[0][axis])
+    const n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]
+    const doubled = Math.hypot(n[0], n[1], n[2])
+    if (!(doubled > 0)) continue
+    const normal = n.map((x) => x / doubled)
+    const offset = normal[0] * v[0][0] + normal[1] * v[0][1] + normal[2] * v[0][2]
+    const key = `${normal.map((x) => Math.round(x * 1e3)).join(',')}|${Math.round(offset * 1e3)}`
+    const longest = Math.max(...[0, 1, 2].map((corner) => Math.hypot(...[0, 1, 2].map((axis) => v[(corner + 1) % 3][axis] - v[corner][axis]))))
+    planes.set(key, [...(planes.get(key) ?? []), doubled / longest])
+  }
+  let flat = 0
+  let slivers = 0
+  for (const heights of planes.values()) {
+    if (heights.length < 2) continue
+    flat += 1
+    slivers += heights.filter((height) => height < 1e-3).length
+  }
+  return { planes: flat, slivers }
+}
+
+/**
+ * {@link expectClosedExport}, and what CuraEngine says when it loads the file (`curaMesh.js`, a
+ * port of its `src/mesh.cpp`): neither *Mesh has overlapping faces* nor *disconnected faces*.
+ *
+ * @param {Geom3} result
+ */
+function expectCuraClean(result) {
+  const stats = expectClosedExport(result)
+  const bytes = exportBodies([{ id: 'part', name: 'Part', geometry: result }], 'stl').bytes
+  const cura = curaMeshCheck(bytes)
+  expect(cura.overlapping, 'CuraEngine: Mesh has overlapping faces').toBe(0)
+  expect(cura.disconnected, 'CuraEngine: Mesh has disconnected faces').toBe(0)
+  return { ...stats, ...flatFaceSlivers(bytes) }
+}
+
+// The TODO's first reading of the test — no two edges of one flat face closer than 30 µm — is
+// not reachable by any triangulation: where the scan's skin crosses a cutter face, the face's
+// own outline has real corners closer than that, and some of them (at a cutter edge, with a
+// small sliver face of the scan beside it) cannot be collapsed without laying a scan triangle
+// flat on the face. What the pass guarantees is what CuraEngine checks, so that is what is tested.
+describe('makeWatertight on a cut dense scan leaves no sliver in a flat face (FIND-io-032)', () => {
+  /** @type {Geom3} */
+  let scan
+
+  beforeAll(() => {
+    scan = placed(lumpyScan({ lon: 160, lat: 102 }), 25.4)
+  })
+
+  it("testing-023's 32,320-triangle cut: CuraEngine's load check finds no overlapping faces", () => {
+    // Before the fix: the cutter's flat faces were @jscad/modeling's sweep-line strips, one per
+    // distinct corner height, so corners 1 to 17 micrometres apart in y made full-width strips
+    // that thin. Cura melded their corners unevenly and folded them flat onto their neighbours:
+    // 8 overlapping face pairs on the cutter's top face, and 146 flat triangles under 1 µm high.
+    const result = booleans.subtract(scan, primitives.cuboid({ size: [25, 25, 75], center: centreOf(scan) }))
+    const stats = expectCuraClean(result)
+    expect(stats.planes).toBeGreaterThanOrEqual(6)
+    // 3 are left (measured), where a corner of the cutter's edge sits within micrometres of a
+    // crease corner the pass declines to collapse; Cura accepts them.
+    expect(stats.slivers).toBeLessThanOrEqual(5)
+    expect(stats.triangles).toBeGreaterThan(29_000)
+    expect(measurements.measureVolume(result)).toBeCloseTo(210_053.1, 0)
+  }, DENSE_TIMEOUT_MS)
+
+  it('a tilted cutter: its faces are flat but not axis-aligned', () => {
+    const cutter = transforms.translate(centreOf(scan), transforms.rotateX(0.35, transforms.rotateZ(0.52, primitives.cuboid({ size: [25, 25, 75] }))))
+    expect(expectCuraClean(booleans.subtract(scan, cutter)).slivers).toBe(0)
+  }, DENSE_TIMEOUT_MS)
+
+  it('a cutter through the skin, so its walls meet the scan along a long open curve', () => {
+    const [x, y, z] = centreOf(scan)
+    const cutter = transforms.translate([x + 30, y, z], transforms.rotateZ(0.52, primitives.cuboid({ size: [40, 40, 120] })))
+    expectCuraClean(booleans.subtract(scan, cutter))
+  }, DENSE_TIMEOUT_MS)
+
+  it('the uncut scan, whose pole rings are closer than 30 µm, is not touched', () => {
+    // A global 30 µm fuse would collapse these; the flat-face pass must not see them at all.
+    expect(makeWatertight(scan)).toBe(scan)
   }, DENSE_TIMEOUT_MS)
 })
 

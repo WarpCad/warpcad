@@ -4838,3 +4838,16 @@ Re-running the same prompt three times with Haiku, the model called set_variable
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 0 of 3 before → bench/results/ai/2026-11-15-claude-code-over-mcp.md; 2 of 3 after, run 1 without set_variable → three claude -p --model haiku runs this session; boundTo only when bound → diff and read.spec.js
 **To Add:** a describe_scene result showing boundTo
+
+## 2026-11-18T19:45:00Z — Cura stops flagging overlapping faces on a cut dense scan (TODO/io-032)
+
+**Post:** A mesh can be closed and still trip a slicer. After a Subtract in a dense imported scan, WarpCad's exported STL had no open edges at 1e-5 mm, yet CuraEngine 5.13.0 printed "Mesh has overlapping faces!" for the 32k, 96k and 240k-triangle cuts.
+
+The boolean left strips 1 to 17 micrometres thick on the cutter's flat faces. Cura melds vertices within about 30 micrometres, but only within a hash cell, so it folds some of those strips onto a neighbouring edge and not others. A global 30 micrometre fuse would have collapsed real detail, so the new pass touches only flat faces that contain a sliver: it drops corners a neighbour passes straight through, collapses sub-35 micrometre sides onto existing corners (at most 70 micrometres of movement), and re-triangulates. Volume is unchanged to 4e-6 relative, and the uncut scan comes back byte-identical.
+
+All three cuts now load in Cura with no mesh warning; the app's own File > Export of a 32k cut gave 26,822 triangles with 0 open edges on Chromium and WebKit. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #Geometry #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** warnings before/after, 4e-6 volume, byte-identical uncut → agent's CuraEngine and bench runs this session; 26,822 triangles, 0 open edges → acceptance drive this session (chromium-laptop, webkit-laptop); 1-17 µm, 30 µm meld, 70 µm cap → agent report + diff of flatFaces.js
+**To Add:** a before/after of the cutter face triangulation

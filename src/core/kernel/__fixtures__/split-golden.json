@@ -86,8 +86,8 @@
       "Bar B"
     ],
     "sha256": {
-      "Bar A": "20def2228f8d311172e5b641eca56ee98305a4ea2175a8c4aad03ca42adc1cd2",
-      "Bar B": "8de7d16e843683dd8556d00e00bed9f8485708fe71d05bc82d257d134e3182b1"
+      "Bar A": "41770635e64fd5f3bf0979722b05f5b842bda661d579c5176f34549d1cbca113",
+      "Bar B": "a4db67e51b5662199975ffb4c0395f15d103c45c9695f36de330c9e75b20e360"
     }
   },
   "dowel": {
