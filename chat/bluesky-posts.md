@@ -3370,3 +3370,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 0.198 mm gap on a round pin, Haiku via claude -p → check_clearance in this session's drive; tools are describe_step and copy → diff
 **To Add:** none
+
+## 2026-11-18T21:15:00Z — WarpCad AI tools can resize a placed body directly (TODO/ai-046)
+
+**Post:** WarpCad's AI tools can now resize a body directly. A new set_params tool changes a box's size or a cylinder's diameter in one step, and anything snapped to it follows. It refuses a size a later step can't build at, and a setting tied to a variable. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** set_params exists and its refusals → diff and src/ai/tools/params.spec.js (9 tests green this session); snapped body follows → params.spec.js "the snapped body follows" test
+**To Add:** none

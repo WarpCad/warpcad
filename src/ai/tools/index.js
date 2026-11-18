@@ -32,6 +32,7 @@
  * | `select` | selection only | Browser only. Select bodies so the user sees which ones the model means. |
  * | `create` | yes | Place one body: `{ op, positionMm, params? }`. Zero-operand Library ops only. |
  * | `copy` | yes | `{ id, part?, name?, positionMm? }` (`TODO/FIND-ai-045`): a new body with the same op and params as a body on screen or one part of a group, standing where the source does unless `positionMm` places it. Independent of the source; Library ops only. Also an `apply_records` step, `{ copy }`. |
+ * | `set_params` | yes | `{ id, part?, params }` (`TODO/FIND-ai-046`): resize a body on screen, or one part of a group, directly — the Inspector's Parameters edit. Refused, changing nothing, for an unknown parameter, a value the op rejects, a parameter bound to a variable, or a size a later step could not build at. |
  * | `operate` | yes | One operation: `{ op, operands: [{ id, pieces? }], params? }`. Refused by name on a wrong operand count or an id that is not a body on screen. |
  * | `repeat` | yes | `{ source, seedBody, seedPart, targets }`: one linked `pattern.repeat` (`TODO/core-061`) — the source's own steps re-aimed from `seedPart` at each target, as one new body. Refused in core's words; at most 64 targets. |
  * | `apply_records` | yes | `{ steps: [{ create } \| { operate } \| { copy }], prompt? }` as one atomic change; a step names an earlier step's body as `@n`. `prompt` records the request with it (`ai-031`). |
@@ -111,6 +112,7 @@ import { createClearanceTool } from './clearance.js'
 import { createCopyTool, createCreateTool, creatableOps } from './create.js'
 import { createSetDescriptionTool } from './description.js'
 import { createImageTools } from './image.js'
+import { createSetParamsTool } from './params.js'
 import { createSaveToLibraryTool } from './library.js'
 import { LIMITS, assertWriteOrigin } from './limits.js'
 import { createMeasureTool } from './measure.js'
@@ -391,6 +393,7 @@ export function createToolRegistry(options = {}) {
       createListOpsTool(ops),
       createCreateTool(ops, apply),
       createCopyTool(apply),
+      createSetParamsTool(),
       createOperateTool(ops, apply),
       createApplyRecordsTool(ops),
       createMeasureTool(),

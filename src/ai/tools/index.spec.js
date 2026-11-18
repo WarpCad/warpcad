@@ -119,6 +119,7 @@ describe('createToolRegistry', () => {
       // io-023: the project's description for people, on both transports.
       'set_description',
       'set_formula',
+      'set_params',
       'set_variable',
       'unbind_param',
     ])

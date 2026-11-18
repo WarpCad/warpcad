@@ -991,6 +991,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `ai-037` | The dev server now binds `127.0.0.1` (`server.host`, as `preview` does), so the endpoint `npm run mcp:add -- --dev` registers answers and `claude mcp get warpcad` reads Connected; `http://localhost:5183` still works and `::1` and the LAN are not bound. `scripts/dev-server-host.spec.js` starts the real dev server and asks it. Filed 2026-11-14 from the `testing-022` drive. [`done/ai-037`](done/ai-037-dev-server-does-not-answer-the-registered-ipv4-mcp-endpoint.md) | Finding | — | 25 (re-driven, step 2 wording unchanged) |
 | ✅ `ai-044` | Split the five AI tool gaps left after `ai-041` into `ai-045` to `ai-049` (owner Q3: build all five; order 2, 8, 7, 6, 5). No code. | finding | — | none |
 | ✅ `ai-045` | `describe_step` reads a step's op and params (consumed steps too) and `copy` duplicates a part; `add-clearances` rebuilds a round pin from the copy. | finding | — | none |
+| ✅ `ai-046` | `set_params` resizes a placed body, or one part of a group, directly: an AI-origin Inspector edit with refusals for an unknown name, a bad value, a bound parameter and a breaking size. | finding | low | sonnet |
 | ✅ `ai-041` | Tool gaps found writing the first two skills: a boolean on one part of a group keeps the other parts, `create` takes a name, `operate` offers `style.rename`, and `check_clearance` measures between parts of a group (gaps 1, 3 and 4). Gaps 2, 5–8 filed as `ai-044`. | finding | — | none |
 
 ## M11 — Gears: the `jscad-gears` library, ported and extended
@@ -1476,5 +1477,6 @@ convention going forward.
 | `io-037` | 2026-11-18 19:50 | ~20m (full unit, gist-share e2e on webkit-tablet + firefox-laptop) |
 | `ai-044` | 2026-11-18 20:15 | ~10m (split only; no tests needed) |
 | `ai-045` | 2026-11-18 20:55 | ~40m (opus agent for the code; unit, scripted e2e, two `claude -p` drives) |
+| `ai-046` | 2026-11-18 21:10 | ~25m (tool, spec, docs; one schema fix after the first typecheck) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

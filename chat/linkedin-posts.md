@@ -4879,3 +4879,16 @@ Details are in docs/mcp.md, with a worked example. Built with Claude Code, revie
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** first run no gap, zero axis → probe of [0.4,0.4,0] vs [0.4,0.4,0.4] this session; 0.198 mm → check_clearance in the re-drive; docs/mcp.md example → diff
 **To Add:** none
+
+## 2026-11-18T21:15:00Z — WarpCad AI tools can resize a placed body directly (TODO/ai-046)
+
+**Post:** Until now, an AI driving WarpCad had to define a variable and bind a parameter, or build a new step, to change a body's size. A new set_params tool does it directly, the same edit the Inspector's Parameters section makes.
+
+It checks before it writes. An unknown parameter name gets the list of real ones, a bound parameter gets a pointer to set_variable, and a size that would break a later step is refused with that step named. Steps built on the body, such as a snap, follow the new size.
+
+The tool is documented in docs/mcp.md with a worked example. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** refusals and follow-on behaviour → src/ai/tools/params.spec.js and src/ai/tools/params.js; worked example → docs/mcp.md diff
+**To Add:** none

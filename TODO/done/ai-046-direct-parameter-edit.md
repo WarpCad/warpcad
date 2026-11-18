@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, split from ai-044 (gap 8) on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped:** a standalone `set_params` tool (`src/ai/tools/params.js`) rather than an `operate` action, because `operate` only builds records for registry ops and a resize swaps a creation record in place. It takes `{ id, part?, params: [{ name, value }] }` (a name/value list, since the strict tool schema forbids a free-form object) and goes through the Inspector's `paramEditRecord`, `impactOf` and `reviseRecords`, as an AI-origin write. It refuses an unknown name (listing the real ones), a value the op rejects, a body made from operands, a variable-bound parameter (pointing at `set_variable`), and a size a later step can't build at. `RESERVED_PARAMS` is now exported from `paramEdit.js`. The `ai-041` drives (`add-clearances`, `create-enclosure`) were not re-run with `claude -p`: the change only adds a tool and edits no existing one. The skill text was not changed.
 
 ## Problem
 

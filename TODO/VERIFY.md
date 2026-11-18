@@ -59,6 +59,14 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ai-046 — A direct parameter edit for a placed body (2026-11-18 21:10)
+
+`set_params` is new and edits no existing tool, so the `ai-041` drives were not re-run with `claude -p`; the unit spec covers the resize, its refusals and the AI origin.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `add-clearances` on Housing and `create-enclosure` on the Pi fixture still work with `set_params` in the tool list | OK | Not re-run: no existing tool changed; the tool-list specs and the 15 AI/MCP e2e specs (webkit-tablet + firefox-laptop) are green. |
+
 ### ai-045 — A tool to read a part's op and params, and to copy a part (2026-11-18 20:55)
 
 Both skill drives were run through `claude -p --model haiku` (subscription, scratch fixtures). Unrelated e2e reds seen in the pair run are listed in the commit's `Known-failures:` trailer.

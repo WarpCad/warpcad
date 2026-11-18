@@ -99,6 +99,7 @@ Lengths are millimetres, Z is up and angles are in degrees, as in the app.
 | `create` | yes | Place one new shape at a position. |
 | `operate` | yes | One operation on existing shapes by id: Union, Subtract, Fillet, Mirror, Move… |
 | `copy` | yes | A new shape with the same op and sizes as a shape, or as one part of a group, e.g. `{ "id": "group-1", "part": "Pin", "name": "Pin cutter" }`. It stands exactly where the original does unless `positionMm` says where, and it is separate from it: change either one and the other stays as it was. Only shapes placed from the Library can be copied. |
+| `set_params` | yes | Resize a shape directly, or one part of a group: `{ "id": "cuboid-1", "params": [{ "name": "size", "value": [30, 20, 40] }] }`. Each value replaces the whole setting, so a size is given as `[x, y, z]`. Shapes that sit on it (a Snap, a Fillet) follow. Refused, with nothing changed, for a setting the shape doesn't have (the reply lists them), a value the shape can't take, a Union or Group (edit the shapes it was made from), a setting tied to a variable (use `set_variable`), or a size a later step can't build at. |
 | `apply_records` | yes | Several of the above as one change (`create`, `operate` and `copy` steps): all of them land, or none do. |
 | `repeat` | yes | Put the same finished part, placed the same way, on other matching parts of the body it was placed against: `{ "source": "bolt-1", "seedBody": "pi-1", "seedPart": "hole1", "targets": ["hole2", "hole3", "hole4"] }`. One new shape, *Bolt 1 ×3*, appears. The copies are linked: later changes to the source's size, Align or Snap move or resize all of them. It is refused, with the reason, if the source's steps never name `seedPart` or a target isn't a part of `seedBody`. Up to 64 targets. |
 | `measure` | no | Size, volume, surface area and centre of mass. |
@@ -155,6 +156,14 @@ The copy is a cylinder standing exactly where the pin is. It is grown by 0.4 mm 
 the cut), the cut result still has both parts, and the hole in `Base` is 8.4 mm across, leaving
 0.2 mm all round the pin. The result is named *Subtract 1*. Claude renames it back to *Bracket*
 with `operate` and `style.rename`.
+
+**Example: make the base wider.** In a project with a 20 mm cube `Base 1` (id `cuboid-1`) and a
+small cube snapped on top of it, ask Claude Code *make the base 30 mm wide and 40 mm tall*. Claude
+calls `describe_body` to read the base's `size`, then `set_params` with
+`{ "id": "cuboid-1", "params": [{ "name": "size", "value": [30, 20, 40] }] }`. Open the file in the app: the History
+shows one new row, *Edit Base 1*, the base is 30 × 20 × 40 mm, and the small cube has moved up to
+sit on the taller top. If the base's height had been tied to a variable, Claude would be told so
+and would use `set_variable` instead.
 
 The server also offers two read-only resources, `warpcad://scene` and `warpcad://op-catalogue`,
 so a client can look at the scene or the catalogue without calling a tool.

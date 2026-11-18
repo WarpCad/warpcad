@@ -64,6 +64,7 @@ export const EXAMPLES = Object.freeze({
   select: { ids: ['bool-abcdef-4'] },
   set_description: { description: 'A box with a lid for the **bench supply**.' },
   set_formula: { name: 'overhang', formula: 'group1.part1.width - group1.part2.width / 3' },
+  set_params: { id: 'cuboid-abcdef-5', params: [{ name: 'size', value: [30, 20, 40] }], rationale: 'a wider, taller base' },
   set_variable: { name: 'wall', value: 3 },
   unbind_param: { id: 'cuboid-abcdef-5', path: 'size.2' },
 })

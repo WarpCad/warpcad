@@ -79,7 +79,7 @@ import { REPEAT_OP } from './repeat.js'
  * enforcement of the same rule for any caller that does not go through the panel
  * — the MCP surface, a future script.
  */
-const RESERVED_PARAMS = Object.freeze(new Set(['center', 'segments', 'rotation']))
+export const RESERVED_PARAMS = Object.freeze(new Set(['center', 'segments', 'rotation']))
 
 /**
  * Is every record between a lineage's creation record and its terminal something
