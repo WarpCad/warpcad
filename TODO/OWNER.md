@@ -86,6 +86,19 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q100 · Should the camera zoom in on a small part you just dropped?
+
+**Question:** `ui-130` fixed the dimension labels and the ring cue but not item 1: an M4 Nut drops 18 px wide at the default camera. Keep the camera where it is, or zoom to frame a small dropped part?
+
+**Background:** The docs promise the camera stays where it was after a drop (`docs/viewport-navigation.md`, `docs/mobile.md`), and a zoom would move every later drop's frame too. A part under about 24 px across is below WCAG 2.5.8's target size and well under the 44 px touch size, so a finger cannot easily select it.
+
+**Options:**
+- **Keep the camera (Recommended):** nothing moves unasked; the user can zoom with the pad or pinch.
+- **Zoom only when the dropped part projects under 24 px:** a small, bounded reframe. An M-size task with a phone check and a docs change.
+- **Always frame the dropped part:** the camera follows every drop; changes a documented promise.
+
+**If deferred:** the camera stays where it is.
+
 #### Q99 · Rename the History chip `via mcp` to a plain phrase?
 
 **Question:** `ai-039` kept `via mcp`, `via ai` and `via webmcp` as they are. The cold readers called `via mcp` a developer term; rename it to *via an external tool (MCP)*?

@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-14 from the testing-030 real-GPU drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-18):** items 2 and 3, and the question on item 1. (2) `keepLabelInside` in `src/render/annotate.js` pulls each dimension label back inside the viewport after it is placed (the line and arrowheads still sit where they measure); a unit test sweeps 36 orbit views on a 390 px viewport and fails without the clamp. Labels are not nudged off the gizmo rings: that needs the ring geometry from another module, and the label already has a halo. (3) At phone width the ring's wall is 5 px and its core 1.5 px (3 and 1), after the base rules; a screenshot of a selected cube on chromium-phone shows the two strokes apart. (1) A small dropped nut is not reframed: the docs promise the camera stays where it was after a drop, so zooming is a product decision, OWNER.md Q100. `e2e/viewport-legibility.e2e.js` drives labels inside the viewport while orbiting and the phone ring strokes.
 
 ## Problem
 

@@ -59,6 +59,16 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-130 — dimension labels and the ring cue at phone width (2026-11-18 12:13)
+
+The label clamp is unit-tested over an orbit sweep and the strokes are asserted in e2e. Two things no spec covers.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | At 390 px on a real iPhone (DPR 3), does the ring read as a wall with a lit core, not one flat stroke? | OK | Judged from a chromium-phone screenshot of a selected cube (the wall and core visibly apart); the DPR 3 real-device look stays with the device sessions already listed. |
+| 2 | A ring, arrowhead or dashed guide crossing the digits of a label (the other half of the finding). | Moved | → `ui-147`. |
+
+
 ### ui-129 — plain messages and readable ids (2026-11-18 04:17)
 
 The mappings are unit-tested and the three display points are asserted in e2e. Two things no spec covers.

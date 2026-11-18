@@ -1941,7 +1941,32 @@ export function updateDimensionAnnotation(
 
   out.labelX = (out.x1 + out.x2) / 2 + outX * (arrowPx + 3)
   out.labelY = (out.y1 + out.y2) / 2 + outY * (arrowPx + 3)
+  keepLabelInside(out, widthPx, heightPx)
   return out
+}
+
+/** Approximate width of one label character, px (the overlay's monospace face at its small size). */
+export const LABEL_CHAR_PX = 7
+/** Breathing room either side of a label's text, px. */
+export const LABEL_PAD_PX = 4
+/** Half the label's box height, px. */
+export const LABEL_HALF_HEIGHT_PX = 9
+
+/**
+ * Pull a dimension label back inside the viewport (`TODO/ui-130`). At phone width a label box crossed
+ * the viewport edge in 57 of 72 driven orbit views; the line and arrowheads stay where they measure,
+ * only the number moves. A viewport too small to hold the label at all is left alone.
+ *
+ * @param {DimensionAnnotation} out Mutated in place.
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @returns {void}
+ */
+function keepLabelInside(out, widthPx, heightPx) {
+  const halfW = (out.label.length * LABEL_CHAR_PX) / 2 + LABEL_PAD_PX
+  const halfH = LABEL_HALF_HEIGHT_PX
+  if (widthPx >= halfW * 2) out.labelX = clamp(out.labelX, halfW, widthPx - halfW)
+  if (heightPx >= halfH * 2) out.labelY = clamp(out.labelY, halfH, heightPx - halfH)
 }
 
 /**

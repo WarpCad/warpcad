@@ -4706,3 +4706,16 @@ The wording came from a cold-read panel that flagged the old text. The MCP, AI a
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "via unknown source" and "via a merge" → diff of src/core/origin.js (stored unit run passed in full, 2026-11-18T11:31:48Z); "via another program" asserted a program acted → src/core/origin.js JSDoc in the diff; stale refusal wording → diff of src/ai/bridge/protocol.js and src/ai/bridge/tabEndpoint.spec.js; conflict strip wording → diff of src/stores/merge.js (describeAiConflict) and src/stores/merge.spec.js; the cold-read origin → TODO/FIND-ai-039-origin-chip-stale-refusal-and-conflict-wording.md; MCP labels unchanged and about 30 copies → TODO/OWNER.md Q99
 **To Add:** a fresh cold read of the new wording (not done yet)
+
+## 2026-11-18T12:13:34Z — ui-130: keep dimension labels in view, thicken phone ring
+
+**Post:** Dimension labels in WarpCad could slide off the edge of the screen on a phone when you orbited a part. In 57 of 72 driven orbit views at phone width, a label box crossed the viewport edge. Labels are now pulled back inside the view after they are placed. The dimension line and arrowheads still sit where they measure, so only the number moves.
+
+The gizmo ring around a selected part was also too thin at phone size. At 640 px and below it now has a 5 px wall over a 1.5 px core, up from 3 px and 1 px, to keep its double-stroke cue legible. A unit test sweeps 36 orbit views on a 390 by 600 viewport and fails when the clamp is switched off.
+
+Not yet checked on a real iPhone at 3x pixel density, and a separate finding covers the ring still crossing a label's digits. Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** labels clamped inside the view → diff of src/render/annotate.js (keepLabelInside), and the 36-view sweep in src/render/annotate.spec.js fails with the clamp disabled and passes with it (this session); 57 of 72 → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; 5 px wall and 1.5 px core at 640 px and below, up from 3 px and 1 px → diff of src/components/viewport/Gizmo.vue (base rule at 3 px is unchanged above the new rule); not checked on a real iPhone at DPR 3 → TODO/VERIFY.md ui-130; digits under rings → TODO/FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md
+**To Add:** none

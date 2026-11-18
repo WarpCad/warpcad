@@ -43,6 +43,9 @@ import {
   screenDirection,
   translateDeltaMm,
   updateDimensionAnnotation,
+  LABEL_CHAR_PX,
+  LABEL_PAD_PX,
+  LABEL_HALF_HEIGHT_PX,
   updateGizmoAnnotation,
   updateSketchPath,
   updateSnapGuideAnnotations,
@@ -736,6 +739,30 @@ describe('updateDimensionAnnotation', () => {
     const midX = (out.x1 + out.x2) / 2
     const midY = (out.y1 + out.y2) / 2
     expect(Math.hypot(out.labelX - midX, out.labelY - midY)).toBeLessThan(30)
+  })
+
+  it('keeps every label box inside a phone viewport over an orbit sweep (TODO/ui-130)', () => {
+    // Driven finding: at 390 px a label box crossed the viewport edge in 57 of 72 orbit views.
+    const phoneW = 390
+    const phoneH = 600
+    const out = createDimensionAnnotation()
+    let visibleViews = 0
+    for (let azimuthDeg = -180; azimuthDeg < 180; azimuthDeg += 30) {
+      for (const elevationDeg of [-30, 10, 40, 70]) {
+        const orbit = cameraAt({ azimuthDeg, elevationDeg, distanceMm: 90 })
+        for (let axisIndex = 0; axisIndex < 3; axisIndex += 1) {
+          updateDimensionAnnotation(orbit, box(MIN, MAX), axisIndex, phoneW, phoneH, 28, 9, out)
+          if (!out.visible) continue
+          visibleViews += 1
+          const halfW = (out.label.length * LABEL_CHAR_PX) / 2 + LABEL_PAD_PX
+          expect(out.labelX - halfW).toBeGreaterThanOrEqual(-1e-9)
+          expect(out.labelX + halfW).toBeLessThanOrEqual(phoneW + 1e-9)
+          expect(out.labelY - LABEL_HALF_HEIGHT_PX).toBeGreaterThanOrEqual(-1e-9)
+          expect(out.labelY + LABEL_HALF_HEIGHT_PX).toBeLessThanOrEqual(phoneH + 1e-9)
+        }
+      }
+    }
+    expect(visibleViews).toBeGreaterThan(40)
   })
 
   it('handles a degenerate zero-size box without NaN', () => {

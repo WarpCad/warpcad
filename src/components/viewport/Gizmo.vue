@@ -675,6 +675,19 @@ function onHandleUp(event) {
   pointer-events: none;
 }
 
+/* TODO/ui-130: at the 40 px ring floor (390 px, DPR 3) a 3 px wall over a 1 px core read as one flat
+   stroke to both panel readers. A 5 px wall with a 1.5 px core keeps the two strokes apart at the
+   floor, where the double-stroke tube cue has the least room. After the base rules so it wins. */
+@media (max-width: 640px) {
+  .tgizmo__ring {
+    stroke-width: 5;
+  }
+
+  .tgizmo__ring-core {
+    stroke-width: 1.5;
+  }
+}
+
 .tgizmo__ring-arrow {
   /* Slightly more opaque than the ring's own faint stroke so the direction
      cue reads clearly without competing with the translate arms' heads. */

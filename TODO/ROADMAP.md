@@ -76,7 +76,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 38 | ▶ Ready | `FIND` | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | sonnet |
 | 49 | ▶ Ready | `FIND` | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Refresh the two dev-only docs pictures that went stale at phone width, and get those specs run on a cadence | sonnet |
-| 56 | ▶ Ready | `FIND` | [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | sonnet |
 | 57 | ▶ Ready | `FIND` | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | sonnet |
 | 58 | ▶ Ready | `FIND` | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | sonnet |
 | 59 | ▶ Ready | `FIND` | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | sonnet |
@@ -103,6 +102,10 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 93 | ▶ Ready | `FIND` | [`ui-143`](FIND-ui-143-butterfly-keys-cannot-be-placed-on-the-cut-face-at-the-default-390-px-zoom.md) Let a Butterfly key be placed on the cut face at the default phone zoom, or say why not | sonnet |
 | 94 | ▶ Ready | `FIND` | [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking `Viewport.vue`'s script and split `pointerGestures.js` (the remainder of `ui-108`) | sonnet |
 | 95 | ▶ Ready | `FIND` | [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) Find why `pwa-update`'s drag test timed out in its hook once in the full matrix | sonnet |
+| 96 | ▶ Ready | `FIND` | [`ui-145`](FIND-ui-145-cold-read-chrome-remainder.md) Finish the cold-read chrome fixes `ui-128` did not take: Edit variable highlight, clearance chip, connector kind caption, Align strips, Align and Split glyphs | sonnet |
+| 97 | ▶ Ready | `FIND` | [`docs-038`](FIND-docs-038-cold-read-gif-rerecords.md) Re-record the five docs movies two cold readers could not follow: tour, timeline-relink, the two Subtract-order movies, resize-fit | sonnet |
+| 98 | ▶ Ready | `FIND` | [`ui-146`](FIND-ui-146-broken-history-row-one-name-and-visible-repair.md) Give a broken History step one name, one amber treatment and a repair button visible without scrolling | sonnet |
+| 99 | ▶ Ready | `FIND` | [`ui-147`](FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md) Keep a dimension label's digits clear of the gizmo rings and arrowheads that cross them | sonnet |
 
 ---
 
@@ -182,6 +185,10 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-143`](FIND-ui-143-butterfly-keys-cannot-be-placed-on-the-cut-face-at-the-default-390-px-zoom.md) Let a Butterfly key be placed on the cut face at the default phone zoom, or say why not | finding | medium | sonnet | ▶ Ready (Next up row 93) |
 | [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking Viewport.vue's script and split pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 94) |
 | [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) pwa-update drag test timed out in its hook once in the full matrix | finding | low | sonnet | ▶ Ready (Next up row 95) |
+| [`ui-145`](FIND-ui-145-cold-read-chrome-remainder.md) Finish the cold-read chrome fixes ui-128 did not take | finding | medium | sonnet | ▶ Ready (Next up row 96) |
+| [`docs-038`](FIND-docs-038-cold-read-gif-rerecords.md) Re-record the five docs movies two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 97) |
+| [`ui-146`](FIND-ui-146-broken-history-row-one-name-and-visible-repair.md) Give a broken History step one name, one amber treatment and a visible repair button | finding | medium | sonnet | ▶ Ready (Next up row 98) |
+| [`ui-147`](FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md) Keep a dimension label's digits clear of the gizmo rings and arrowheads | finding | low | sonnet | ▶ Ready (Next up row 99) |
 | [`testing-038`](FIND-testing-038-storybook-playwright-project.md) Add a Storybook Playwright project so story snapshots can run | finding | low | sonnet | ▶ Ready (Next up row 38) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
@@ -214,7 +221,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-002`](DEFER-testing-002-acceptance-scenario-19-gear-train.md) Acceptance scenario 19, the gear train (was M11) | feature | medium | sonnet | Deferred 2026-11-07 |
 | [`docs-021`](DEFER-docs-021-media-gears-and-porting-guide.md) Gear docs media and a "porting a jscad-gears script" guide (was M11) | feature | low | sonnet | Deferred 2026-11-07 |
 | [`testing-041`](FIND-testing-041-dev-only-docs-stills-stale-at-phone-width.md) Two dev-only docs pictures are stale at phone width, because no routine run exercises the dev-only docs specs | finding | medium | sonnet | ▶ Ready (Next up row 49) |
-| [`ui-130`](FIND-ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md) Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size | finding | low | sonnet | ▶ Ready (Next up row 56) |
 | [`ui-131`](FIND-ui-131-rotate-dial-readout-sits-under-the-operations-toolbar-on-phone.md) Keep the rotate dial readout clear of the operations toolbar at phone width | finding | low | sonnet | ▶ Ready (Next up row 57) |
 | [`ui-132`](FIND-ui-132-text-label-can-only-be-picked-on-its-letter-strokes.md) Let a click anywhere in a text label box select it, not only on its letter strokes | finding | low | sonnet | ▶ Ready (Next up row 58) |
 | [`ui-133`](FIND-ui-133-save-status-dot-idle-and-saved-share-a-shape.md) Give the save-status chip idle and saved dots different shapes, and paused and failed too | finding | low | sonnet | ▶ Ready (Next up row 59) |
@@ -370,7 +376,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
 | `testing-038` | Add a Storybook Playwright project so story snapshots can run. Filed 2026-11-14 when `ui-111` closed | Finding | — | none |
 | `testing-041` | The phone-width Assistant and Live MCP header docs stills show the pre-`ui-078` header and nothing runs the dev-only docs specs. Filed 2026-11-15 from the testing-025 drive of `build-015` #1 | Finding | — | 24, 25 (scripted only) |
-| `ui-130` | Frame small dropped hardware, keep dimension labels clear of lines, make the ring tube cue show at floor size. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-131` | Keep the rotate dial readout clear of the operations toolbar at phone width. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-132` | Let a click anywhere in a text label box select it, not only on its letter strokes. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 1, 4 |
 | `ui-133` | Give the save-status chip idle and saved dots different shapes, and paused and failed too. Filed 2026-11-14 from the `testing-030` real-GPU drive | Finding | — | 10 |
@@ -397,6 +402,10 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-143` | A Butterfly key cannot be placed by tapping the cut face at the default 390 px zoom, and nothing says why (filed 2026-11-17 from VERIFY.md core-075 stage 2 #2) | Finding | — | none |
 | `ui-144` | Finish shrinking Viewport.vue's script (964 lines after slice 7) and split pointerGestures.js (filed 2026-11-17 as the remainder of ui-108) | Finding | — | 1, 4, 6, 7, 9 |
 | `testing-046` | pwa-update's drag test timed out in its hook once in the 2026-11-17 full matrix; not reproduced (filed from the ui-108 close-out) | Finding | — | none |
+| `ui-145` | Five cold-read chrome fixes split from `ui-128` (Edit variable highlight, clearance chip, connector kind caption, Align strips, Align and Split glyphs). Filed 2026-11-18 | Finding | — | 4, 5 |
+| `docs-038` | Re-record tour, timeline-relink, the two Subtract-order movies and resize-fit, split from `docs-036`. Filed 2026-11-18 | Finding | — | none |
+| `ui-146` | The broken History row's layout half from `ui-129`: one name, one amber treatment, the repair button visible without scrolling. Filed 2026-11-18 | Finding | — | 12, 15 |
+| `ui-147` | A ring or arrowhead still crosses a dimension label's digits at phone width, split from `ui-130`. Filed 2026-11-18 | Finding | — | 1 |
 
 ---
 

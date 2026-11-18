@@ -3253,3 +3253,12 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** "via unknown source" and "via a merge" → diff of src/core/origin.js and src/core/origin.spec.js (stored unit run passed in full, 2026-11-18T11:31:48Z); "via another program" claimed a program acted → src/core/origin.js JSDoc in the diff; a clashing step is marked broken in History → diff of src/stores/merge.js (describeAiConflict) and src/stores/merge.spec.js
 **To Add:** a fresh cold read of the new wording (not done yet)
+
+## 2026-11-18T12:13:34Z — ui-130: keep dimension labels in view, thicken phone ring
+
+**Post:** Dimension labels in WarpCad now stay inside the view while you orbit. At phone width a label had crossed the edge in 57 of 72 test orbit views. The selected part's gizmo ring is also thicker on phones now. Built with Claude Code, reviewed by me. #CAD #WebGL
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** labels stay inside the view while orbiting → diff of src/render/annotate.js (keepLabelInside) and the new unit test in src/render/annotate.spec.js, which fails with the clamp disabled and passes with it (this session); 57 of 72 orbit views at phone width → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; ring thicker on phones → diff of src/components/viewport/Gizmo.vue (max-width: 640px rule)
+**To Add:** a hand check on a real iPhone at DPR 3 (TODO/VERIFY.md ui-130); the ring still crossing label digits is TODO/FIND-ui-147-dimension-label-crossed-by-gizmo-rings.md
