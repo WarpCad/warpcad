@@ -8,6 +8,7 @@ import AppView from './views/AppView.vue'
 import { startPwa } from './pwa.js'
 import { useTheme } from './composables/useTheme.js'
 import { initErrorReporting } from './core/errorReporting.js'
+import { afterFirstFrame } from './firstFrame.js'
 import { initAnalytics } from './analytics/analytics.js'
 
 // AppView is the app's actual root view — no router, one screen (CLAUDE.md's
@@ -18,7 +19,8 @@ import { initAnalytics } from './analytics/analytics.js'
 const pinia = createPinia()
 const app = createApp(AppView)
 // `TODO/build-004`: inert without VITE_SENTRY_DSN; must run before mount so Vue errors are caught.
-initErrorReporting({ app })
+// `TODO/perf-006`: the early handlers go in now; the SDK itself is fetched after the first drawn frame.
+initErrorReporting({ app, schedule: afterFirstFrame })
 app.use(pinia)
 // `TODO/ui-113`: the one module that decides the theme starts before the first mount paints.
 useTheme()

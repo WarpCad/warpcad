@@ -926,6 +926,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | ✅ `perf-002` | Measure whether the production bundle warning affects load time. Moved here from unscheduled 2026-10-16 | Finding | — | 1 |
 | ✅ `perf-003` | Defer the code the app does not use at boot (Sentry, the AI agent and tool registry, a dev-only provider). Shipped 2026-11-02: slow4g cold usable 333 / 334 / 335 ms faster in Chromium / Firefox / WebKit, 66 kB less boot JS; targets re-baselined and one extra request accepted (see the TODO). ai-006 and scenarios 24–25 logged in `TODO/VERIFY.md` | Feature | `perf-002` | 1 |
 | ✅ `perf-005` | Point the bundle-load bench at the deployed Pages build (`perf-002` #1). Shipped 2026-11-15 as `--url <origin>` (Chromium only, throttling through the DevTools Protocol); deployed cold usable 344 / 4,069 / 4,419 ms (none / slow4g / slow4g-cpu4). Found the deploy fetches the Sentry SDK (144 kB gzip) before usable: filed `perf-006` | Finding | — | none |
+| ✅ `perf-006` | Stop the deployed build fetching the Sentry SDK (144 kB gzip) before the app is usable. Shipped 2026-11-19: the SDK import waits for the first drawn frame (`src/firstFrame.js`); boot errors stay buffered. | Finding | — | 1 |
 | ✅ `ui-072` | Phone (390 px): the second Library drag does not register; `save-load-ui` fails on all three phone projects (at HEAD and earlier) | Finding | — | 1, 12; `ui-070` repro |
 | ✅ `core-064` | Subtract with a Pi's `hole1` consumes the Pi along with the plate; the tool part should survive so one Pi can drill several holes. Decided 2026-10-17 | Finding | — | 5, 10, 15 |
 | ✅ `core-063` | Repeat Apply copies a foreign step on the first part; decided 2026-10-17 to copy it and list it under *Not part of the repeat* | Finding | `core-061` | 10, 15 |
@@ -1425,6 +1426,7 @@ convention going forward.
 | `testing-030` | 2026-11-14 | ~2 stages, ~100m (verification only: no product code changed; four findings filed; 14 haiku panel agents) |
 | `testing-031` | 2026-11-15 05:05 | ~70m (verification only: no product code changed; five findings filed; one bench helper kept) |
 | `testing-032` | 2026-11-15 05:03 | ~10m (verification only: no product code changed; one finding filed; 8 haiku `claude -p` runs, 2 haiku fetch agents) |
+| `perf-006` | 2026-11-19 16:20 | ~2h (wall clock incl. a 5-min e2e pair; deferral, two benches, scenario drive) |
 | `perf-005` | 2026-11-15 05:20 | ~15m (bench `--url` mode, three bench runs of 7, one finding filed) |
 | `ai-035` | 2026-11-15 05:52 | ~40m (Sonnet half only: docs, 7 haiku `claude -p` drives, one skill fix, one finding filed; the Opus half's time is not counted) |
 | `ui-124` | 2026-11-15 06:14 | ~21m (one container query, one new spec, the 1440-390-1440 sweep on three engines) |

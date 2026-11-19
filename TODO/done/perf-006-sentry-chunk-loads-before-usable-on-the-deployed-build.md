@@ -6,8 +6,18 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-15 by `perf-005`
 depends: []
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-11-19).** `initErrorReporting` takes a `schedule` option; `src/main.js` passes
+> `afterFirstFrame` (`src/firstFrame.js`: first drawn viewport frame, then idle, 8 s fallback). The early
+> listeners and the buffer were already in place from `perf-003`, so boot errors are still reported once
+> Sentry starts. Dummy-DSN bench (`bench/results/2026-11-19-perf-006.md`): JS wire before usable under
+> slow4g fell 838.4 to 694.0 kB; `usable` itself did not move (4324 ms both). No bench change was needed
+> (it already takes several `--build` dirs). **Retirement note:** the after-deploy check
+> `node bench/bundle-load.mjs --url https://app.warpcad.com/ --runs 7` could not run (not deployed yet);
+> no result is claimed. After the next deploy, confirm `esm-*.js` is absent from the cold JS list.
 
 ## Problem
 

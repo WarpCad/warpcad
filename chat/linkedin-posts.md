@@ -4923,3 +4923,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** counts and ids hand-kept → scripts/roadmap-waits.mjs header comment (this diff); drifted when only /fix-todo Step 8 checked → .githooks/pre-push comment (this diff); three unit tests (clean, count one high, findings both ways) → scripts/roadmap-waits.spec.js (this diff); plan passes today → `node scripts/roadmap-waits.mjs` exit 0, this session
 **To Add:** none
 ---
+
+## 2026-11-19T16:25:00Z — WarpCad stops loading its error reporter before the app is usable
+
+WarpCad's deployed build reports errors through the Sentry SDK, a 144 kB gzip download. With reporting switched on, that file was fetched during boot, on the same slow link as the app's own code. It now waits until the first 3D frame has been drawn and the browser is idle.
+
+Errors thrown before then are not lost: small handlers catch them at startup and hand them to Sentry once it loads. On a throttled 200 kB/s link, the JavaScript fetched before the app was usable dropped from 838 kB to 694 kB on a build with a dummy reporting address. The time to usable did not change in that test (4.32 s both). I have not yet measured the live site, because the change is not deployed.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #WebPerformance
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 144 kB fetched at boot with a DSN → bench/results/2026-11-19-perf-006.md; 838.4 to 694.0 kB, usable 4324 ms both → same file; buffered boot errors → src/core/errorReporting.spec.js (this diff); fetch after first frame → src/firstFrame.js (this diff).
+**To Add:** none
+---

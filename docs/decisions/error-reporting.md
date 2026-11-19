@@ -213,6 +213,29 @@ SDK lands, errors from `window` `error`, `unhandledrejection` and Vue's `app.con
 through the same `beforeSend` scrubber after `Sentry.init`. `errorReportingReady()` resolves to
 whether initialisation succeeded.
 
+### Change 2026-11-19 (`perf-006`): the fetch waits for the first drawn frame
+
+`perf-003` moved the SDK out of the boot chunk, but `initErrorReporting` still started the
+`import('@sentry/vue')` during boot, before mount. With a DSN set (the deploy) the 144 kB gzip chunk
+was then on the cold path. Without a DSN the chunk is emitted and never fetched, which is why
+`perf-003`'s local numbers missed it.
+
+Now `src/main.js` passes `schedule: afterFirstFrame` (`src/firstFrame.js`). The early listeners and
+the Vue error handler still go in before mount, so the buffer is unchanged; only the fetch waits,
+until `[data-testid="viewport"]` reports `data-frames-rendered` of 1 or more and the main thread is
+idle (`requestIdleCallback`, 2 s timeout), or 8 s after boot if no frame is ever drawn.
+
+Trade-off, stated plainly:
+
+- **Lost**: an error is no longer reported by Sentry's own handlers during the boot window, and
+  anything past the buffer's 20 entries (newest kept) is dropped. Nothing else is lost: the buffered
+  errors are captured after `Sentry.init`, through the same scrubber, with their original stacks.
+- **Lost, new**: breadcrumbs (`fetch`, `xhr`, console-free by design) from before the SDK starts are
+  not recorded, and a page that is closed before the first frame plus idle never reports its
+  buffered errors (the SDK never loaded).
+- **Gained**: with a DSN the cold load no longer fetches the 144 kB chunk before the app is usable.
+  Measured on a dummy-DSN build (`bench/results/2026-11-19-perf-006.md`).
+
 ## Operator steps
 
 1. Create a Sentry project (platform: Vue / browser) and copy its DSN.

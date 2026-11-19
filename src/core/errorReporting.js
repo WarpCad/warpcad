@@ -217,9 +217,12 @@ export function errorReportingReady() {
  * @param {import('vue').App | object} options.app The Vue app, before it is mounted.
  * @param {Record<string, any>} [options.env] `import.meta.env`; injected in tests.
  * @param {any} [options.target] Where `error` / `unhandledrejection` are heard; `globalThis` by default.
+ * @param {(run: () => void) => void} [options.schedule] Calls `run` when the SDK may be fetched
+ *   (`TODO/perf-006`: the first drawn frame, `src/firstFrame.js`). The listeners above are installed
+ *   at once either way; only the `import('@sentry/vue')` waits. Runs `run` immediately by default.
  * @returns {boolean} Whether the SDK is being started (a DSN is set); `errorReportingReady()` says how it went.
  */
-export function initErrorReporting({ app, env = import.meta.env, target = globalThis }) {
+export function initErrorReporting({ app, env = import.meta.env, target = globalThis, schedule = (run) => run() }) {
   const dsn = typeof env.VITE_SENTRY_DSN === 'string' ? env.VITE_SENTRY_DSN.trim() : ''
   if (dsn === '') return false
   /** @type {unknown[]} */
@@ -250,6 +253,7 @@ export function initErrorReporting({ app, env = import.meta.env, target = global
   }
   ready = (async () => {
     try {
+      await new Promise((resolve) => schedule(() => resolve(undefined)))
       const Sentry = await import('@sentry/vue')
       Sentry.init({
         app: /** @type {any} */ (app),

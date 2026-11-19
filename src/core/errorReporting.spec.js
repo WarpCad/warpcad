@@ -120,6 +120,47 @@ describe('initErrorReporting', () => {
   })
 })
 
+describe('initErrorReporting start scheduling (TODO/perf-006)', () => {
+  it('does not import or init Sentry until the first-frame callback runs, and still reports a boot error once it does', async () => {
+    const target = new EventTarget()
+    /** @type {(() => void) | undefined} */
+    let firstFrame
+    const schedule = vi.fn((/** @type {() => void} */ run) => {
+      firstFrame = run
+    })
+    expect(initErrorReporting({ app: {}, env: DSN_ENV, target, schedule })).toBe(true)
+    expect(schedule).toHaveBeenCalledTimes(1)
+    const bootError = new Error('thrown while booting')
+    target.dispatchEvent(Object.assign(new Event('error'), { error: bootError }))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(Sentry.init).not.toHaveBeenCalled()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+    firstFrame?.()
+    expect(await errorReportingReady()).toBe(true)
+    expect(Sentry.init).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(Sentry.captureException).mock.calls.map((c) => c[0])).toEqual([bootError])
+  })
+
+  it('keeps buffering errors raised after the first frame but before the SDK lands', async () => {
+    const target = new EventTarget()
+    /** @type {(() => void) | undefined} */
+    let firstFrame
+    initErrorReporting({ app: {}, env: DSN_ENV, target, schedule: (run) => (firstFrame = run) })
+    firstFrame?.()
+    const late = new Error('after first frame')
+    target.dispatchEvent(Object.assign(new Event('error'), { error: late }))
+    await errorReportingReady()
+    expect(vi.mocked(Sentry.captureException).mock.calls.map((c) => c[0])).toEqual([late])
+  })
+
+  it('does not schedule anything without a DSN', () => {
+    const schedule = vi.fn()
+    initErrorReporting({ app: {}, env: {}, target: new EventTarget(), schedule })
+    expect(schedule).not.toHaveBeenCalled()
+  })
+})
+
 describe('containsSecret', () => {
   it('recognises the stored key shapes', () => {
     expect(containsSecret(`error with ${ANTHROPIC_KEY} inside`)).toBe(true)

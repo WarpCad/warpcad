@@ -3398,3 +3398,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** counts and ids hand-kept → scripts/roadmap-waits.mjs header comment (this diff); drifted when only /fix-todo Step 8 checked → .githooks/pre-push comment (this diff); pre-push refuses → .githooks/pre-push runs roadmap-waits.mjs (this diff); plan passes today → `node scripts/roadmap-waits.mjs` exit 0, this session
 **To Add:** none
 ---
+
+## 2026-11-19T16:25:00Z — WarpCad stops loading its error reporter before the app is usable
+
+**Post:** WarpCad's error reporter (144 kB gzip) used to download during boot. It now waits for the first drawn 3D frame, and errors thrown earlier are buffered and sent once it loads. On a throttled link the JS fetched before usable fell from 838 to 694 kB; time to usable was unchanged. Live site not yet measured. Built with Claude Code, reviewed by me. #OpenSource #WebPerformance
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #WebPerformance
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 838.4 to 694.0 kB, usable 4324 ms both → bench/results/2026-11-19-perf-006.md; buffered boot errors → src/core/errorReporting.spec.js (this diff).
+**To Add:** none
+---

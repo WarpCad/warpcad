@@ -59,6 +59,16 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### perf-006 — Sentry SDK fetch waits for the first frame (2026-11-19 16:20)
+
+The deployed-build measurement could not run before a deploy; everything locally drivable was driven.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Dummy-DSN build: `esm-*.js` requested after the first frame, not at boot; none without a DSN; scenario 1 intact | OK | Driven in Chromium: esm at 569 ms, first frame 583 ms poll; 2 bodies placed in both builds. |
+| 2 | After deploy: `node bench/bundle-load.mjs --url https://app.warpcad.com/ --runs 7`, `esm-*.js` gone from the cold JS list | Moved | Needs the deploy; next `perf-*` bench pass, not owner work. |
+
+
 ### ai-046 — A direct parameter edit for a placed body (2026-11-18 21:10)
 
 `set_params` is new and edits no existing tool, so the `ai-041` drives were not re-run with `claude -p`; the unit spec covers the resize, its refusals and the AI origin.
