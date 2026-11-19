@@ -65,7 +65,7 @@ function setup({
   const ruler = createRulerAnnotation()
   const dimensions = [createDimensionAnnotation(), createDimensionAnnotation(), createDimensionAnnotation()]
   const cutPlane = createCutPlaneAnnotation()
-  const gizmoDrag = { syncDial: vi.fn(), syncRuler: vi.fn() }
+  const gizmoDrag = { syncDial: vi.fn(), syncRuler: vi.fn(), state: { active: false, kind: 'translate', moved: false } }
   const state = { selected }
   const sync = createOverlaySync({
     orbit,
@@ -342,5 +342,29 @@ describe('createOverlaySync: the cut plane', () => {
     const { sync } = setup()
     expect(typeof sync.syncAnnotations).toBe('function')
     expect(typeof sync.syncCutPlane).toBe('function')
+  })
+})
+
+describe('createOverlaySync: dimension lines during a ring drag (TODO/ui-139)', () => {
+  it('hides all three once a rotate drag has moved, and shows them again on release', () => {
+    const { sync, dimensions, gizmoDrag } = setup()
+    sync.sync()
+    expect(dimensions.every((d) => d.visible)).toBe(true)
+    Object.assign(gizmoDrag.state, { active: true, kind: 'rotate', moved: true })
+    sync.sync()
+    expect(dimensions.some((d) => d.visible)).toBe(false)
+    Object.assign(gizmoDrag.state, { active: false, moved: false })
+    sync.sync()
+    expect(dimensions.every((d) => d.visible)).toBe(true)
+  })
+
+  it('keeps them through a translate drag and through a rotate press that has not moved', () => {
+    const { sync, dimensions, gizmoDrag } = setup()
+    Object.assign(gizmoDrag.state, { active: true, kind: 'translate', moved: true })
+    sync.sync()
+    expect(dimensions.every((d) => d.visible)).toBe(true)
+    Object.assign(gizmoDrag.state, { kind: 'rotate', moved: false })
+    sync.sync()
+    expect(dimensions.every((d) => d.visible)).toBe(true)
   })
 })

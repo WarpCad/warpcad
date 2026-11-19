@@ -737,6 +737,56 @@ test('two rotate rings in a row leave a cylinder s own diameter and length on th
   expect(await sceneBodies(page)).toHaveLength(1)
 })
 
+test('the dimension lines hide during a rotate-ring drag and return, turned, on release (TODO/ui-139)', async ({
+  page,
+}) => {
+  await placeCube(page)
+  await expect(page.getByTestId('dimension-lines')).toHaveAttribute('data-axis-count', '3')
+
+  /** @type {string | null} */
+  let midCount = null
+  /** @type {number | null} */
+  let midRotation = null
+  await dragHandle(page, 'gizmo-grab-ring-z', {
+    distancePx: 60,
+    tangential: true,
+    async midDrag(page) {
+      await expect(page.getByTestId('viewport')).toHaveAttribute('data-transforming', 'true')
+      midRotation = await fieldNumber(page, 'inspector-rotation-z')
+      // The lines annotated the unrotated box; mid-turn there is nothing true to draw.
+      await expect(page.getByTestId('dimension-lines')).toHaveAttribute('data-axis-count', '0')
+      midCount = await page.getByTestId('dimension-lines').getAttribute('data-axis-count')
+      await expect(page.locator('[data-testid^="dimension-"][data-length-mm]:visible')).toHaveCount(0)
+    },
+  })
+
+  expect(midCount).toBe('0')
+  expect(Math.abs(/** @type {number} */ (midRotation))).toBeGreaterThan(1)
+  // Released: all three are back, on the turned body, still reading the cube's own 40 mm.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-transforming', 'false')
+  await expect(page.getByTestId('dimension-lines')).toHaveAttribute('data-axis-count', '3')
+  const after = await dimensionLengths(page)
+  expect(after['dimension-x']).toBeCloseTo(40, 1)
+  expect(after['dimension-y']).toBeCloseTo(40, 1)
+  expect(after['dimension-z']).toBeCloseTo(40, 1)
+  expect(await dimensionFrames(page)).toMatchObject({ 'dimension-x': 'local' })
+})
+
+test('the dimension lines stay visible through a translate drag (TODO/ui-139)', async ({ page }) => {
+  await placeCube(page)
+  /** @type {string | null} */
+  let midCount = null
+  await dragHandle(page, 'gizmo-grab-arm-x', {
+    distancePx: 70,
+    async midDrag(page) {
+      await expect(page.getByTestId('viewport')).toHaveAttribute('data-transforming', 'true')
+      midCount = await page.getByTestId('dimension-lines').getAttribute('data-axis-count')
+    },
+  })
+  expect(midCount).toBe('3')
+  await expect(page.getByTestId('dimension-lines')).toHaveAttribute('data-axis-count', '3')
+})
+
 test('dragging a rotate ring turns the body and the Rotation fields track it live', async ({
   page,
 }) => {

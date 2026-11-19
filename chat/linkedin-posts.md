@@ -4990,3 +4990,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** before 7.7 dark, 6.2 light → TODO/VERIFY.md ui-049 #1 (testing-030); after 18.9 and 14.6, selected 42.9 and 47.9 → e2e/objects-hover-tint.e2e.js (this diff, run this session).
 **To Add:** none
 ---
+
+## 2026-11-19T18:25:00Z — Draw nothing rather than draw something wrong
+
+**Post:** When you drag a rotate ring in WarpCad, the preview turns the solid on every frame. Measuring the turned solid's true bounds that often would need the geometry kernel, which the preview deliberately avoids. So the three dimension lines used to stay on the old, unturned box until you let go, and two reviewers disagreed on whether that read as broken.
+
+The fix is to draw nothing. While a ring drag is moving, the lines hide. On release they come back on the committed, turned part, still reading the cube's own 40 mm on each side. Dragging a move arrow is unchanged: the lines track it all the way, because that case is exact.
+
+A browser test covers both drags, and I drove it with a real mouse on Chromium, WebKit and Firefox.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** per-frame kernel measuring avoided → src/composables/useSelectedBody.js comment (existing); lines 0 mid-drag, 3 at release, 40 mm → e2e/gizmo-transform.e2e.js and my real-mouse drive on three engines (this session); translate keeps lines → same spec.
+**To Add:** none
+---

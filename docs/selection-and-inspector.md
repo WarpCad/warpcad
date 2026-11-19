@@ -626,6 +626,8 @@ Drag a ring and the Rotation field follows the same way.
 
 ![Dragging a rotate ring while the Rotation X field changes](./media/gizmo-rotate.gif)
 
+The three size lines hide while a ring is turning, because they would be measuring a box that is no longer there, and come back on release, drawn along the turned shape's own edges. Dragging an arrow keeps them on screen throughout.
+
 ### The translate ruler
 
 While you drag an arrow, a **ruler** appears along that arrow, starting where you pressed, so

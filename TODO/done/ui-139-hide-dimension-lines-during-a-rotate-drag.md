@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from OWNER.md Q9 (VERIFY.md ui-012 #1)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19):** `createOverlaySync` hides all three dimension annotations while `gizmoDrag.state` is an active, moved rotate drag, so the lines vanish on the first ring movement and return on release at the committed turned bounds; a press that never moves, and every translate drag, keep them. The fix is in `src/render/overlaySync.js` only, because the gizmo-drag state is already visible there; `useSelectedBody.js` is unchanged. Tests: two `e2e/gizmo-transform.e2e.js` cases and an `overlaySync.spec.js` case. Docs sentence in `docs/selection-and-inspector.md`.
 
 ## Problem
 

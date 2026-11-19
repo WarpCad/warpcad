@@ -3439,3 +3439,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** hover vs unhovered 18.9 dark, 14.6 light (was 7.7 and 6.2); vs selected 42.9 and 47.9 → e2e/objects-hover-tint.e2e.js (this diff, run this session, nine projects); constant in src/render/mesh.js (this diff).
 **To Add:** none
 ---
+
+## 2026-11-19T18:25:00Z — WarpCad hides its size lines while you turn a part
+
+**Post:** Turn a part with WarpCad's rotate ring and the three size lines used to stay on the old, unturned box until you let go. Two reviewers split on whether that was misleading. They now hide while the ring moves and come back on release, on the turned part. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** lines stayed on the old box mid-drag, reviewers split → TODO/done/ui-139 and TODO/VERIFY.md ui-012 #1 (testing-029); hidden mid-drag, back at 40 mm on release → e2e/gizmo-transform.e2e.js (this diff, run this session).
+**To Add:** none
+---

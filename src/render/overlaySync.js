@@ -83,7 +83,7 @@ const DIMENSION_ARROW_PX = 9
  * @property {(id: string) => (import('../core/visibility.js').BodyView | undefined)} bodyView
  *   The drawn mesh's view state for a body, or `undefined` with no mesh yet.
  * @property {OverlaySplitSheet} splitSheet
- * @property {{ syncDial: () => void, syncRuler: () => void }} gizmoDrag
+ * @property {{ syncDial: () => void, syncRuler: () => void, state?: { active: boolean, kind: string, moved?: boolean } }} gizmoDrag
  * @property {() => number} widthPx Viewport width, CSS pixels.
  * @property {() => number} heightPx Viewport height, CSS pixels.
  */
@@ -215,6 +215,15 @@ export function createOverlaySync(deps) {
     // world-axis shadow the gizmo above is sized against. The two genuinely want
     // different measurements — the gizmo has to clear the tilted part's whole
     // on-screen silhouette, while the numbers have to be the part's real size.
+    // `TODO/ui-139`: while a rotate-ring drag is turning the body the lines would annotate a box
+    // that is no longer there (true turned bounds need the kernel, which the preview avoids per
+    // frame), so they hide until release and come back on the committed, turned body. A translate
+    // drag tracks exactly and keeps them.
+    const turning = gizmoDrag.state?.active === true && gizmoDrag.state.kind === 'rotate' && gizmoDrag.state.moved === true
+    if (turning) {
+      for (const annotation of dimensionAnnotations) annotation.visible = false
+      return
+    }
     dimensionBox.minMm = body.localBoundsMm[0]
     dimensionBox.maxMm = body.localBoundsMm[1]
     dimensionBox.rotationDeg = body.rotationDeg
