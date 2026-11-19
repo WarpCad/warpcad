@@ -338,9 +338,11 @@ export const HIDDEN_PART_ALPHA = 0.35
  * and, for a recoloured selected body, its selection glow — which is the precedence the
  * task asks for: selection role and colour first, hover on top. Stronger than
  * {@link OVERRIDE_HIGHLIGHT_INTENSITY} on purpose: a hover is a transient "this one", and it
- * has to read against a body that is already lit up as selected.
+ * has to read against a body that is already lit up as selected. 0.9 (was 0.45, `TODO/ui-138`):
+ * at 0.45 the default light-blue body moved only dE00 5-8 against its unhovered self, under the 10 that
+ * reads as clearly different; at 0.9 it moves about 15-19 and stays 43+ from the selected amber.
  */
-export const HOVER_HIGHLIGHT_INTENSITY = 0.45
+export const HOVER_HIGHLIGHT_INTENSITY = 0.9
 
 /** @typedef {'none' | 'base' | 'secondary'} SelectionRole */
 

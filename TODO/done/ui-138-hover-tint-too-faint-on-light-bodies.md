@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from OWNER.md Q8 (VERIFY.md ui-049 #1)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19):** one constant. `HOVER_HIGHLIGHT_INTENSITY` in `src/render/mesh.js` went from 0.45 to 0.9; no token or `bodyMeshes.js` change was needed because the tint is the emissive term of the hover material. New `e2e/objects-hover-tint.e2e.js` (RED first: 5.5 light) asserts dE00 >= 10 hover vs unhovered and >= 25 vs selected on the default body in both schemes. Measured 18.9 dark / 14.6 light and 42.9 / 47.9. The docs have no sentence about the hover tint, so none changed.
 
 ## Problem
 

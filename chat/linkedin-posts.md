@@ -4973,3 +4973,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** enlarge exact only for boxes and cylinders, expand throws/rounds/2.6 s → docs/decisions/geometry-kernel.md and src/core/kernel/offset.js (this diff); 0.2 mm read back → bench/results/ai/2026-11-19-offset-over-mcp.md (run this session).
 **To Add:** none
 ---
+
+## 2026-11-19T18:10:00Z — A hover highlight you can measure
+
+**Post:** Two people looking at the same screenshot disagreed on whether a hover highlight was visible. So the fix started with a number, not an opinion.
+
+In WarpCad, hovering a row in the object list tints that body violet. On the default light-blue body the tint moved the colour by only 5 to 8 units of CIEDE2000, below the 10 that reads as clearly different.
+
+The tint is an emissive glow, so the fix was one constant: 0.45 to 0.9. A new browser test hovers the row, photographs the canvas, and checks the body's own pixels: 18.9 in the dark theme and 14.6 in the light one, while the hovered body stays 43 or more away from the amber selection colour, so the two cannot be confused.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** before 7.7 dark, 6.2 light → TODO/VERIFY.md ui-049 #1 (testing-030); after 18.9 and 14.6, selected 42.9 and 47.9 → e2e/objects-hover-tint.e2e.js (this diff, run this session).
+**To Add:** none
+---

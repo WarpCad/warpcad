@@ -3429,3 +3429,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** expand throws on a negative delta, rounds convex edges, 2.6 s on a bored block → docs/decisions/geometry-kernel.md and src/core/kernel/offset.js (this diff); Housing clearance read back 0.2 mm → bench/results/ai/2026-11-19-offset-over-mcp.md (run this session).
 **To Add:** none
 ---
+
+## 2026-11-19T18:10:00Z — WarpCad's hover highlight now shows on light bodies
+
+**Post:** Hover a row in WarpCad's object list and the body lights up violet. On the default light-blue body it barely did: a colour difference of 5 to 8, where about 10 reads as clearly different. I doubled the glow. It now measures 15 to 19, and still sits 43+ away from the amber selection. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebGL
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** hover vs unhovered 18.9 dark, 14.6 light (was 7.7 and 6.2); vs selected 42.9 and 47.9 → e2e/objects-hover-tint.e2e.js (this diff, run this session, nine projects); constant in src/render/mesh.js (this diff).
+**To Add:** none
+---
