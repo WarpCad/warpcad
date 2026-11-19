@@ -80,6 +80,11 @@ function onSet(name, value) {
   })
 }
 
+/** @param {string} name @param {{ min?: number | null, max?: number | null }} patch */
+function onRange(name, patch) {
+  attempt(() => commands.setRange(name, patch))
+}
+
 /** @param {string} name */
 function onRemove(name) {
   error.value = ''
@@ -116,7 +121,7 @@ function onKeep() {
       <p v-if="ui.announcement && ui.announcementVersion === documentStore.version" class="variables__note" role="status" data-testid="variable-announcement">{{ ui.announcement }}</p>
       <p v-if="error" class="variables__error" role="alert" data-testid="variable-error">{{ error }}</p>
       <ul class="variables__list">
-        <VariableRow v-for="row in rows" :key="row.variable.name" :row="row" @set="onSet" @rename="(from, to) => attempt(() => commands.rename(from, to))" @remove="onRemove" />
+        <VariableRow v-for="row in rows" :key="row.variable.name" :row="row" @set="onSet" @range="onRange" @rename="(from, to) => attempt(() => commands.rename(from, to))" @remove="onRemove" />
       </ul>
       <p v-if="rows.length === 0 && !adding" class="variables__empty" data-testid="variables-empty">
         No variables yet. Tap + to add one, or bind a field from the Parameters list.

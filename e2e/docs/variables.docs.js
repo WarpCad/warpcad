@@ -61,6 +61,27 @@ test.describe('docs media: variables', () => {
     await shot(page, 'variables-panel.png', { locator: page.getByTestId('inspector-variables') })
   })
 
+  test('variable-range-refused still', async ({ page }) => {
+    await openScene(page)
+    await select(page, 'cube-1')
+    await page.getByTestId('param-bind-size-x').click()
+    await page.getByTestId('param-bind-new').click()
+    await page.getByTestId('param-bind-new-name').fill('width')
+    await page.getByTestId('param-bind-new-create').click()
+    await expect(page.getByTestId('param-chip-size-x')).toHaveAttribute('data-variable', 'width')
+    await page.getByTestId('inspector-breadcrumb-root').click()
+    await page.evaluate(async () => {
+      const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
+      useSelectionStore().clear()
+    })
+    await page.getByTestId('variable-min-width').fill('5')
+    await page.getByTestId('variable-min-width').press('Enter')
+    await page.getByTestId('variable-value-width').fill('2')
+    await page.getByTestId('variable-value-width').press('Enter')
+    await expect(page.getByTestId('variable-value-error-width')).toHaveText('Must be 5 or more')
+    await shot(page, 'variable-range-refused.png', { locator: page.getByTestId('variable-row-width') })
+  })
+
   test('variable-bind-popover still', async ({ page }) => {
     await openScene(page)
     await select(page, 'pi-1')

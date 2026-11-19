@@ -1578,6 +1578,89 @@ export function setVariableRevision(document, name, value) {
 }
 
 /**
+ * Why a number would be refused by a variable's own range, in the words the Variables panel shows
+ * under the field (`TODO/ui-140`): "Must be 5 or more". `null` when it fits, when there is no
+ * range, or when the variable is not a plain number (a formula's result is checked by the fold).
+ *
+ * @param {{ name?: string, kind?: string, min?: number, max?: number, formula?: unknown, value?: unknown }} variable
+ * @param {number} value
+ * @returns {string | null}
+ */
+export function variableRangeProblem(variable, value) {
+  if (variable.kind !== 'number' || variable.formula !== undefined) return null
+  const { min, max } = variable
+  const low = typeof min === 'number'
+  const high = typeof max === 'number'
+  if (low && high && (value < /** @type {number} */ (min) || value > /** @type {number} */ (max))) return `Must be between ${min} and ${max}`
+  if (low && value < /** @type {number} */ (min)) return `Must be ${min} or more`
+  if (high && value > /** @type {number} */ (max)) return `Must be ${max} or less`
+  return null
+}
+
+/**
+ * Why a new range cannot be put on a variable, in the words shown under its Min or Max field
+ * (`TODO/ui-140`), or `null`. A `null` or absent limit is unbounded.
+ *
+ * @param {{ value?: unknown }} variable
+ * @param {{ min?: number | null, max?: number | null }} range The whole range the variable would have.
+ * @returns {string | null}
+ */
+export function variableRangeEditProblem(variable, range) {
+  const { min, max } = range
+  if (typeof min === 'number' && typeof max === 'number' && min > max) return `Min can't be above Max (${max})`
+  const value = variable.value
+  if (typeof value === 'number') {
+    if (typeof min === 'number' && value < min) return `The value is ${value}, so Min can't be above it`
+    if (typeof max === 'number' && value > max) return `The value is ${value}, so Max can't be below it`
+  }
+  return null
+}
+
+/**
+ * Set or clear a number variable's `min` and `max` — a `reviseRecords` on its one definition record,
+ * one Undo step (`TODO/ui-140`). The same two fields `define_variable` takes; no new model field.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @param {{ min?: number | null, max?: number | null }} patch A key left out stays as it is; `null` clears it.
+ * @param {TransactionOptions} transaction
+ * @returns {{ scene: import('./replay.js').Scene }}
+ * @throws {VariableError} For an unknown or non-number variable, min above max, or a value left outside.
+ */
+export function setVariableRange(document, name, patch, transaction) {
+  const revision = setVariableRangeRevision(document, name, patch)
+  if (revision === null) return { scene: document.scene }
+  return document.reviseRecords([revision], labelled(transaction, `Set ${name} range`))
+}
+
+/**
+ * The revision {@link setVariableRange} commits.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @param {{ min?: number | null, max?: number | null }} patch
+ * @returns {RecordRevision | null} `null` when nothing changes.
+ * @throws {VariableError}
+ */
+export function setVariableRangeRevision(document, name, patch) {
+  const variable = requireVariable(document, name)
+  if (isFormula(variable) || variable.kind !== 'number') {
+    throw new VariableError(`"${name}" is not a plain number, so it has no range to set`)
+  }
+  const record = requireRecord(document, variable.id)
+  const params = { ...record.params }
+  for (const key of /** @type {const} */ (['min', 'max'])) {
+    if (!(key in patch)) continue
+    if (patch[key] === null || patch[key] === undefined) delete params[key]
+    else params[key] = patch[key]
+  }
+  const problem = variableDefinitionError(params)
+  if (problem !== null) throw new VariableError(problem)
+  if (Object.is(record.params?.min, params.min) && Object.is(record.params?.max, params.max)) return null
+  return { id: variable.id, record: { ...record, params } }
+}
+
+/**
  * Bind one param slot (`size.0`, `length`) of a record to a variable. The slot must be one
  * {@link bindableParams} offers, and the variable's kind and value must fit it.
  *

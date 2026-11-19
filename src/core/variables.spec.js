@@ -35,8 +35,11 @@ import {
   resolveRecord,
   setFormula,
   setVariable,
+  setVariableRange,
   unbindParam,
   variableDefinitionError,
+  variableRangeEditProblem,
+  variableRangeProblem,
   variablesOf,
 } from './variables.js'
 import { recordLinesOf } from './__fixtures__/projectText.js'
@@ -1506,5 +1509,60 @@ describe('calculated variables — load, merge and hostile files', () => {
     live.mergeFrom(fork.mergeState(), { origin: 'ai' })
     expect(formulaOf(live, 'sneaky')?.error).toMatch(/./)
     expect(formulaOf(live, 'sneaky')?.value).toBeUndefined()
+  })
+})
+
+// --- a variable's range, edited from the panel (TODO/ui-140) --------------------------
+
+describe('variable range (TODO/ui-140)', () => {
+  /** @returns {any} */
+  const plain = () => ({ name: 'width', kind: 'number', value: 10, unit: 'mm' })
+
+  it('variableRangeProblem honours min and max in plain words, and empty is unbounded', () => {
+    expect(variableRangeProblem({ ...plain(), min: 5 }, 2)).toBe('Must be 5 or more')
+    expect(variableRangeProblem({ ...plain(), min: 5 }, 5)).toBeNull()
+    expect(variableRangeProblem({ ...plain(), max: 20 }, 21)).toBe('Must be 20 or less')
+    expect(variableRangeProblem({ ...plain(), min: 5, max: 20 }, 4)).toBe('Must be between 5 and 20')
+    expect(variableRangeProblem({ ...plain(), min: 5, max: 20 }, 20)).toBeNull()
+    expect(variableRangeProblem(plain(), -1e9)).toBeNull()
+    expect(variableRangeProblem({ name: 'f', kind: 'boolean', value: true }, 3)).toBeNull()
+  })
+
+  it('variableRangeEditProblem refuses min above max and a range that leaves the value outside', () => {
+    expect(variableRangeEditProblem(plain(), { min: 8, max: 5 })).toMatch(/Min can't be above Max/)
+    expect(variableRangeEditProblem(plain(), { min: 11 })).toMatch(/Min can't be above it/)
+    expect(variableRangeEditProblem(plain(), { max: 9 })).toMatch(/Max can't be below it/)
+    expect(variableRangeEditProblem(plain(), { min: 10, max: 10 })).toBeNull()
+    expect(variableRangeEditProblem(plain(), { min: null, max: null })).toBeNull()
+  })
+
+  it('setVariableRange sets, keeps and clears a limit as one local Undo step', () => {
+    const document = createDocument()
+    defineVariable(document, plain(), LOCAL)
+    setVariableRange(document, 'width', { min: 5 }, LOCAL)
+    expect(variablesOf(document)[0]).toMatchObject({ min: 5 })
+    setVariableRange(document, 'width', { max: 20 }, LOCAL)
+    expect(variablesOf(document)[0]).toMatchObject({ min: 5, max: 20 })
+    setVariableRange(document, 'width', { min: null }, LOCAL)
+    expect(variablesOf(document)[0].min).toBeUndefined()
+    expect(variablesOf(document)[0].max).toBe(20)
+    expect(document.undo()).toBeDefined()
+    expect(variablesOf(document)[0]).toMatchObject({ min: 5, max: 20 })
+    document.undo()
+    document.undo()
+    expect(variablesOf(document)[0].min).toBeUndefined()
+    expect(variablesOf(document)[0].max).toBeUndefined()
+  })
+
+  it('setVariableRange refuses min above max, a value left outside, a non-number, and changes nothing', () => {
+    const document = createDocument()
+    defineVariable(document, { ...plain(), min: 1, max: 20 }, LOCAL)
+    defineVariable(document, /** @type {any} */ ({ name: 'on', kind: 'boolean', value: true }), LOCAL)
+    const before = serializeProject(document)
+    expect(() => setVariableRange(document, 'width', { min: 15, max: 12 }, LOCAL)).toThrow(/above max/)
+    expect(() => setVariableRange(document, 'width', { min: 11 }, LOCAL)).toThrow(/between/)
+    expect(() => setVariableRange(document, 'on', { min: 1 }, LOCAL)).toThrow(/no range/)
+    expect(() => setVariableRange(document, 'nope', { min: 1 }, LOCAL)).toThrow(/nope/)
+    expect(serializeProject(document)).toBe(before)
   })
 })

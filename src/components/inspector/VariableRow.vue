@@ -9,12 +9,18 @@
  * panel; this row shows it pending until the dialog decides. Every refusal is core's own
  * reason string.
  *
+ * A number row also shows **Min** and **Max** under its value (`TODO/ui-140`), blank meaning
+ * unbounded. A Value outside that range, a Min above the Max, or a limit the current value
+ * already breaks is refused *under its own field* in plain words, before anything commits, and the
+ * field goes back to what it was. Core's own check stays behind it as the backstop.
+ *
  * A **formula** row (`TODO/FIND-core-078`) shows its value read-only and its formula as text
  * below, which edits on tap — `VariableFormulaView.vue`. Its **⋯** is the same Rename and Delete.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
 import NumberField from '../controls/NumberField.vue'
+import { variableRangeEditProblem, variableRangeProblem } from '../../core/variables.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
 import VariableFormulaView from './VariableFormulaView.vue'
@@ -28,7 +34,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['set', 'rename', 'remove'])
+const emit = defineEmits(['set', 'range', 'rename', 'remove'])
 
 const ui = useVariablesUiStore()
 const repairDialog = useRepairDialogStore()
@@ -67,9 +73,41 @@ watch(
   { immediate: true },
 )
 
+/** The plain refusal shown under the field it belongs to: `value`, `min` or `max` (`TODO/ui-140`). */
+const refusal = ref(/** @type {{ field: 'value' | 'min' | 'max', text: string } | null} */ (null))
+
+// A change that arrives from outside (Undo, an agent) makes a stale refusal untrue.
+watch(
+  () => [variable.value.value, variable.value.min, variable.value.max],
+  () => {
+    refusal.value = null
+  },
+)
+
 /** @param {number} value a finite number, committed once by the field */
 function onNumberCommit(value) {
+  const text = variableRangeProblem(variable.value, value)
+  if (text !== null) {
+    refusal.value = { field: 'value', text }
+    return
+  }
+  refusal.value = null
   emit('set', variable.value.name, value)
+}
+
+/**
+ * @param {'min' | 'max'} key
+ * @param {number | null} limit A finite number, or `null` for a blank field (unbounded).
+ */
+function onRangeCommit(key, limit) {
+  if ((limit ?? undefined) === variable.value[key]) return
+  const text = variableRangeEditProblem(variable.value, { min: variable.value.min, max: variable.value.max, [key]: limit })
+  if (text !== null) {
+    refusal.value = { field: key, text }
+    return
+  }
+  refusal.value = null
+  emit('range', variable.value.name, { [key]: limit })
 }
 
 /** @param {Event} event */
@@ -127,6 +165,16 @@ function commitRename() {
         <span v-if="unit" class="vrow__unit">{{ unit }}</span>
       </template>
     </div>
+    <p v-if="refusal?.field === 'value'" class="vrow__error" role="alert" :data-testid="`variable-value-error-${variable.name}`">{{ refusal.text }}</p>
+    <div v-if="row.formula === undefined && variable.kind === 'number'" class="vrow__range">
+      <label class="vrow__limit">Min
+        <NumberField class="vrow__input" nullable placeholder="none" :unit="unit === 'mm' || unit === 'deg' ? unit : ''" :invalid="refusal?.field === 'min'" :model-value="variable.min ?? null" :aria-label="`${variable.name} minimum`" :data-testid="`variable-min-${variable.name}`" @update:model-value="(/** @type {number | null} */ limit) => onRangeCommit('min', limit)" />
+      </label>
+      <label class="vrow__limit">Max
+        <NumberField class="vrow__input" nullable placeholder="none" :unit="unit === 'mm' || unit === 'deg' ? unit : ''" :invalid="refusal?.field === 'max'" :model-value="variable.max ?? null" :aria-label="`${variable.name} maximum`" :data-testid="`variable-max-${variable.name}`" @update:model-value="(/** @type {number | null} */ limit) => onRangeCommit('max', limit)" />
+      </label>
+    </div>
+    <p v-if="refusal && refusal.field !== 'value'" class="vrow__error" role="alert" :data-testid="`variable-${refusal.field}-error-${variable.name}`">{{ refusal.text }}</p>
     <div v-if="renaming" class="vrow__rename">
       <input v-model="newName" class="vrow__input" type="text" autocapitalize="off" spellcheck="false" :aria-label="`New name for ${variable.name}`" :data-testid="`variable-rename-input-${variable.name}`" @keydown.enter.prevent="commitRename" />
       <BaseButton narrow :data-testid="`variable-rename-save-${variable.name}`" @click="commitRename">Rename</BaseButton>
@@ -209,6 +257,28 @@ function commitRename() {
   width: 20px;
   height: 20px;
   accent-color: var(--accent);
+}
+
+.vrow__range {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.vrow__limit {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-size-xs);
+  color: var(--text-3);
+}
+
+.vrow__error {
+  margin: 0;
+  font-size: var(--text-size-sm);
+  color: var(--danger);
 }
 
 .vrow__unit {

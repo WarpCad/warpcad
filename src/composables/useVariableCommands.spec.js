@@ -357,4 +357,30 @@ describe('useVariableCommands — formulas (TODO/FIND-core-078)', () => {
     expect(row?.valueLabel).toBe('—')
     expect(row?.variable.error).toMatch(/Lid|deleted|lid-1/)
   })
+
+  describe('range (TODO/ui-140)', () => {
+    /** @type {any} */
+    const WIDTH = { name: 'width', kind: 'number', value: 10, unit: 'mm' }
+
+    it('setRange commits with the local origin, lists on the row, and Undo restores it', () => {
+      commands.define(WIDTH)
+      commands.setRange('width', { min: 5 })
+      expect(commands.list()[0].variable.min).toBe(5)
+      expect(doc.undo().ok).toBe(true)
+      expect(commands.list()[0].variable.min).toBeUndefined()
+    })
+
+    it('setRange throws core\'s refusal for min above max and changes nothing', () => {
+      commands.define({ ...WIDTH, max: 20 })
+      expect(() => commands.setRange('width', { min: 30 })).toThrow(VariableError)
+      expect(commands.list()[0].variable.min).toBeUndefined()
+    })
+
+    it('rangeProblem is the plain sentence for an out-of-range value, null when it fits or is unbounded', () => {
+      commands.define({ ...WIDTH, min: 5 })
+      expect(commands.rangeProblem('width', 2)).toBe('Must be 5 or more')
+      expect(commands.rangeProblem('width', 6)).toBeNull()
+      expect(commands.rangeProblem('nope', 6)).toBeNull()
+    })
+  })
 })

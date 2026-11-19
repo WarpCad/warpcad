@@ -1438,7 +1438,7 @@ the panel should make with the real UI in front of it.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | In the `ui-059` panel, type a value past a variable's max: is the refusal clear *before* commit, and if a file arrives with such a value, is "3 parts disappeared" explained by name on screen? | Issue | 2026-11-17 owner (OWNER.md Q11): add Min and Max to the Variables panel → `FIND-ui-140`. |
+| 1 | In the `ui-059` panel, type a value past a variable's max: is the refusal clear *before* commit, and if a file arrives with such a value, is "3 parts disappeared" explained by name on screen? | OK | 2026-11-19 (`ui-140`): Min and Max now in the panel; typing past Min (30) shows *Must be 30 or more* under the Value before commit, the value and cube stay put, at 1440 and 390. The file-with-an-out-of-range-value half is unchanged (a loaded bad value still breaks by name, covered by core specs). |
 
 ### core-053 — Export a project that holds a real left-broken row (2026-10-11 00:12)
 

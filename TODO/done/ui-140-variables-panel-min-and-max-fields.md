@@ -6,8 +6,11 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from OWNER.md Q11 (VERIFY.md core-050 #1)
 depends: []
-status: open
+status: done
 ---
+
+
+> **Shipped:** as proposed. Core gained `setVariableRange` (+ plain-word helpers `variableRangeProblem`, `variableRangeEditProblem`); the row's Min and Max are the shared `NumberField` (blank = unbounded) and the refusals render under their own field (`variable-value-error-<name>`, `variable-min-error-<name>`, `variable-max-error-<name>`). Formula variables have no Min/Max fields yet (only plain numbers); core's own check stays as the backstop.
 
 ## Problem
 

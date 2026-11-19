@@ -3459,3 +3459,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** two readers split, owner chose reword + re-record → TODO/done/docs-037 and TODO/VERIFY.md docs-020 #1 (testing-029); movies re-recorded, docs-media spec green → this session; fresh-agent cold read CLEAR → VERIFY.md docs-020 #1.
 **To Add:** none
 ---
+
+## 2026-11-19T19:20:00Z — A variable can finally say how far it may go
+
+**Post:** WarpCad variables had a min and max in the file, but the panel hid them, so typing -5 into a cube's size committed and then failed with a kernel message. Each number variable now shows Min and Max, and a value outside them is refused under its own field ("Must be 5 or more") before anything changes.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Min 30, Value 20 refused and the cube stayed 40, Value 35 resized it, Undo restored, at 1440 and 390 px Chromium; e2e green on four engine-viewport projects → e2e/variables.e2e.js.
+**To Add:** none
+---

@@ -5024,3 +5024,14 @@ Built with Claude Code, reviewed by me.
 **Evidence:** reader split and the owner's choice → TODO/done/docs-037; four GIFs changed, no others → git status this session; cold-read verdict and leftover note → TODO/VERIFY.md docs-020 #1.
 **To Add:** none
 ---
+
+## [2026-11-19T19:20:00Z] — Showing a limit the file already had
+
+**Post:** A WarpCad variable could carry a minimum and a maximum, and an AI agent could set them, but the Variables panel never showed them. A person typing -5 into a variable bound to a cube's size got a committed change and then a kernel error about primitives.
+
+The panel now shows Min and Max under each number's value, blank meaning unbounded. A value outside the range, a Min above the Max, or a limit the current value already breaks is refused under its own field in plain words, and the field goes back to what it was. Setting a limit is one Undo step.
+
+Not done: formula variables have a range in the file too, and still no fields for it here.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)

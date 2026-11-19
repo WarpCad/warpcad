@@ -42,9 +42,12 @@ import {
   setFormula,
   setFormulaRevision,
   setVariable,
+  setVariableRange,
   setVariableRevision,
   transitiveConsumersOf,
   unbindParam,
+  variableRangeEditProblem,
+  variableRangeProblem,
   variableValueLabel,
   variablesOf,
 } from '../core/variables.js'
@@ -127,6 +130,9 @@ function summaryOf(variable, next, parameters, parts) {
  *   list: () => VariableRowData[],
  *   define: (definition: Parameters<typeof defineVariable>[1]) => void,
  *   set: (name: string, value: number | boolean | string) => SetResult,
+ *   setRange: (name: string, patch: { min?: number | null, max?: number | null }) => void,
+ *   rangeProblem: (name: string, value: number) => string | null,
+ *   rangeEditProblem: (name: string, patch: { min?: number | null, max?: number | null }) => string | null,
  *   previewFormula: (text: string, editing?: string) => FormulaPreview,
  *   defineFormula: (definition: Parameters<typeof defineFormula>[1]) => void,
  *   setFormula: (name: string, formula: string) => SetResult,
@@ -236,6 +242,28 @@ export function useVariableCommands() {
       run((document, tx) => setVariable(document, name, value, tx))
       ui.announce(summary, documentStore.version)
       return { committed: true, summary }
+    },
+
+    /**
+     * Set or clear a number variable's Min and Max (`TODO/ui-140`): one local Undo step, core's own
+     * refusal thrown unchanged. A range moves no value, so there is no impact check.
+     */
+    setRange(name, patch) {
+      run((document, tx) => setVariableRange(document, name, patch, tx))
+    },
+
+    /** The sentence a typed value earns against the variable's own range, or `null` (`TODO/ui-140`). */
+    rangeProblem(name, value) {
+      const variable = variablesOf(live()).find((candidate) => candidate.name === name)
+      return variable === undefined ? null : variableRangeProblem(variable, value)
+    },
+
+    /** The sentence a typed Min or Max earns (min above max, a value left outside), or `null`. */
+    rangeEditProblem(name, patch) {
+      const variable = variablesOf(live()).find((candidate) => candidate.name === name)
+      if (variable === undefined) return null
+      const range = { min: variable.min, max: variable.max, ...patch }
+      return variableRangeEditProblem(variable, range)
     },
 
     /**

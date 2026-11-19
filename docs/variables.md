@@ -76,6 +76,27 @@ one of those values; otherwise it is listed greyed in the object list, and you e
 remove the condition from there. **Edit** on an existing condition has a **Based on** choice
 for switching it between a variable and the part parameter it read.
 
+## Keeping a value in range: Min and Max
+
+Every number variable has two small boxes under its value, **Min** and **Max**. Leave one
+blank and that side is unbounded. They are the same limits an AI agent can set when it
+defines a variable, so a range you set here is one the agent sees too.
+
+![A variable row for width with Min 5. Value 2 was typed; the message under it reads "Must be 5 or more" and the value is unchanged.](./screenshots/variable-range-refused.png)
+
+A value outside the range is **refused under its own box, before anything changes**: the
+message says what is allowed, the box goes back to the number it had, and nothing is added
+to Undo. Setting a **Min** above the **Max**, or a limit that the current value already
+breaks, is refused the same way. Setting or clearing a limit is one Undo step.
+
+Example, with a variable `width` bound to a cube's X size (the cube is 30 mm wide):
+
+1. Open **Variables** (on a phone, the **Variables** tab of the sheet) and find the **width** row.
+2. In **Min**, type `5` and press Enter. The box keeps `5`; the cube does not move.
+3. In **Value**, type `2` and press Enter. The row says *Must be 5 or more*, the value goes back to
+   30, and the cube stays as it was.
+4. Type `6` in **Value**. It commits and the cube becomes 6 mm wide. Undo puts it back to 30.
+
 ## Changing a value
 
 Change a variable in its row. The model rebuilds, **every bound field in the Inspector

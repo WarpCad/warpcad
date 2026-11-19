@@ -424,3 +424,96 @@ test('a loaded file whose binding names an undefined variable opens with that st
   await expect(page.getByTestId('chip-broken').first()).toHaveAttribute('title', /ghost/)
   await expectBodyCount(page, 1)
 })
+
+/**
+ * `TODO/ui-140`: a variable's Min and Max are visible and editable in the panel, and a Value outside
+ * the range is refused under its own field, in plain words, before anything commits. Every step is
+ * a pointer or a typed field on the real app: a Cube's X size bound to `width`, Min 5, then 2
+ * (refused, the cube unchanged), then 6 (commits, the cube resizes), then Undo.
+ */
+test('a variable bound to a Cube size: Min refuses a smaller Value under the field, a valid one resizes, Undo restores', async ({ page }, testInfo) => {
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.3 })
+  await closeLibrary(page)
+  await expectBodyCount(page, 1)
+  await showInspectorView(page)
+  await page.getByTestId('param-bind-size-x').click()
+  await page.getByTestId('param-bind-new').click()
+  await page.getByTestId('param-bind-new-name').fill('width')
+  await page.getByTestId('param-bind-new-create').click()
+  await expect(page.getByTestId('param-chip-size-x')).toHaveAttribute('data-variable', 'width')
+
+  /** The cube's X extent in mm, read from the rendered evaluated geometry. */
+  const widthOfCube = async () => {
+    const bounds = await page.locator('[data-testid="scene-bodies"] li').first().getAttribute('data-body-bounds')
+    const [minX, , , maxX] = (bounds ?? '').split(',').map(Number)
+    return maxX - minX
+  }
+  const original = await widthOfCube()
+  expect(original).toBeGreaterThan(5)
+
+  await clearSelection(page)
+  await showVariables(page)
+  const min = page.getByTestId('variable-min-width')
+  const max = page.getByTestId('variable-max-width')
+  const value = page.getByTestId('variable-value-width')
+  await expect(min).toBeVisible()
+  await expect(max).toBeVisible()
+  await expect(min).toHaveValue('')
+  // Reachable at tap size and without a horizontal scroll, at every viewport.
+  for (const field of [min, max, value]) expect((await field.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(40)
+  await noHorizontalScroll(page)
+
+  // Min 5 commits; the value is untouched.
+  await min.fill('5')
+  await min.press('Enter')
+  await expect(min).toHaveValue(/^5/)
+  await expect(page.getByTestId('variable-row-width')).toHaveAttribute('data-value', String(original))
+
+  // A Value below Min is refused under the field and nothing changes.
+  await value.fill('2')
+  await value.press('Enter')
+  await expect(page.getByTestId('variable-value-error-width')).toHaveText('Must be 5 or more')
+  await expect(page.getByTestId('variable-row-width')).toHaveAttribute('data-value', String(original))
+  expect(await widthOfCube()).toBeCloseTo(original, 3)
+  await expect(page.getByTestId('variable-error')).toHaveCount(0)
+  await expect(page.getByTestId('repair-dialog')).toHaveCount(0)
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await page.screenshot({ path: join(SNAPSHOT_DIR, `range-refused-${testInfo.project.name}.png`) })
+
+  // A Max below the Value is refused under its own field; a valid Max commits; then a Min above
+  // that Max is refused the same way and the Min stays 5.
+  await max.fill('7')
+  await max.press('Enter')
+  await expect(page.getByTestId('variable-max-error-width')).toHaveText(/Max can't be below it/)
+  await expect(max).toHaveValue('')
+  await max.fill(String(original + 10))
+  await max.press('Enter')
+  await expect(page.getByTestId('variable-max-error-width')).toHaveCount(0)
+  await min.fill(String(original + 20))
+  await min.press('Enter')
+  await expect(page.getByTestId('variable-min-error-width')).toHaveText(/Min can't be above Max/)
+  await expect(min).toHaveValue(/^5/)
+  await expect(page.getByTestId('variable-row-width')).toHaveAttribute('data-value', String(original))
+
+  // A valid Value commits and the cube resizes.
+  await value.fill('6')
+  await value.press('Enter')
+  await expect(page.getByTestId('variable-row-width')).toHaveAttribute('data-value', '6')
+  await expect(page.getByTestId('variable-value-error-width')).toHaveCount(0)
+  await expect.poll(widthOfCube).toBeCloseTo(6, 3)
+
+  // Undo restores the previous size in one step.
+  await page.getByTestId('undo-button').click()
+  await expect(page.getByTestId('variable-row-width')).toHaveAttribute('data-value', String(original))
+  await expect.poll(widthOfCube).toBeCloseTo(original, 3)
+
+  // Blank Min means unbounded again.
+  await min.fill('')
+  await min.press('Enter')
+  await value.fill('2')
+  await value.press('Enter')
+  await expect(page.getByTestId('variable-row-width')).toHaveAttribute('data-value', '2')
+  await expect(page.getByTestId('variable-value-error-width')).toHaveCount(0)
+  await noHorizontalScroll(page)
+})
