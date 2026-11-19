@@ -48,10 +48,14 @@ export const MAX_GIST_DESCRIPTION_CHARS = 200
  * (History is previewing or the Assistant is running — the moments **Merge file…** is dimmed
  * for), and `merge-failed` (the merge itself was refused).
  *
+ * `TODO/io-038` adds `missed-revision`: an **Update gist** whose write landed on a revision
+ * another device wrote moments before, which the read had not shown yet, and which could not be
+ * merged and written again in the same tap. The next **Update gist** merges it first.
+ *
  * @typedef {import('../storage/gistBackend.js').GistFailureKind | 'unreadable' | 'invalid-link'
  *   | 'not-connected' | 'no-bodies' | 'busy' | 'already-published' | 'not-published' | 'storage'
  *   | 'different-project' | 'merge-conflict' | 'merge-unavailable' | 'merge-failed'
- *   | 'unknown'} GistMessageKind
+ *   | 'missed-revision' | 'unknown'} GistMessageKind
  */
 
 /** @type {readonly GistMessageContext[]} */
@@ -85,6 +89,7 @@ export const GIST_MESSAGE_KINDS = Object.freeze([
   'merge-conflict',
   'merge-unavailable',
   'merge-failed',
+  'missed-revision',
   'unknown',
 ])
 
@@ -129,6 +134,9 @@ const SEND = {
   'merge-conflict': "The gist's changes were merged in, but some steps conflicted. Check them, then update again.",
   'merge-unavailable': 'The gist has changes to merge first. Return to the latest step and let the Assistant finish, then update again.',
   'merge-failed': `The gist's changes couldn't be merged in, ${NOTHING_SENT}`,
+  // The read showed the gist before another device's write landed (`TODO/io-038`); that revision
+  // is remembered, and the next Update reads it by its sha and merges it.
+  'missed-revision': 'Another device updated this gist a moment ago. Update gist again to merge its changes.',
   offline: `No network. ${SAFE}`,
   server: `GitHub is having trouble right now. ${SAFE}`,
   malformed: `GitHub's answer could not be read. ${SAFE}`,

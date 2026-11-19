@@ -24,7 +24,8 @@
  *
  * ## Update merges the gist first if it changed (`TODO/io-019`, Stage 3)
  *
- * Before patching, the gist is read (unauthenticated, `readGist`) and its revision compared with
+ * Before patching, the gist is read (with the token since `TODO/io-038`, `authorized().readGist`)
+ * and its revision compared with
  * the field's `lastRevision`. A different revision means someone else's write came in between
  * (another device, an edit on github.com): the gist's project is merged into the open one
  * through `persistence.mergeText` — the same `mergeIn` as **Merge file…**, so the same toast
@@ -95,6 +96,7 @@ const README = 'README.md'
 /** @typedef {import('../core/gistMessages.js').GistMessageKind} GistMessageKind */
 /** @typedef {import('../core/gistMessages.js').GistFailure} GistFailure */
 /** @typedef {import('../core/gistField.js').GistField} GistField */
+/** @typedef {import('./gist.js').AuthorizedGistClient} AuthorizedClient */
 
 /**
  * A successful publish or update. `warning`: `readme` — published, but the README patch failed;
@@ -320,10 +322,48 @@ export function createGistPublisher(options = {}) {
   }
 
   /**
+   * Merge the revisions a write of this session replaced before they were merged
+   * (`gist.noteMissed`, `TODO/io-038`): each read **by its sha** — a fixed state no cache serves
+   * stale — and merged as {@link mergeRemote} merges the head. Each merged one is forgotten and
+   * added to `held`. Stops at the first that cannot be read or merged (it stays remembered, so the
+   * next **Update gist** tries again), or that conflicts.
+   *
+   * @param {AuthorizedClient} client
+   * @param {string} id
+   * @param {Set<string>} held The revisions whose content the project now holds; added to.
+   * @returns {Promise<GistFailure | null>} `null` when nothing is left to merge.
+   */
+  async function mergeMissed(client, id, held) {
+    for (const revision of gist.missedRevisions(id)) {
+      /** @type {import('../storage/gistBackend.js').GistRead} */
+      let read
+      try {
+        read = await client.readGist({ id, revision })
+      } catch (error) {
+        return gistFailureOf(error, 'update')
+      }
+      if (gistField.value?.id !== id || !published.value) return fail('not-published', 'update')
+      const merged = await mergeRemote(read.text)
+      if (!merged.ok) return merged
+      gist.settleMissed(id, revision)
+      held.add(revision)
+      if (merged.conflicted) return fail('merge-conflict', 'update')
+    }
+    return null
+  }
+
+  /**
    * **Update gist**: the same gist, a new revision. When the gist is not at the revision this
    * project last published (another device, an edit on github.com), its project is merged in
    * first and the merged project is what is written; a merge that is refused, or that leaves
    * conflicted rows for the person to look at, writes nothing (`TODO/io-019`).
+   *
+   * **A stale read never silently drops a revision** (`TODO/io-038`). The read is the owner's,
+   * with the token, which GitHub does not serve from its 60 s public cache. In case it is stale
+   * anyway, the write's answer says which revision it landed on (`parent`): when that is a
+   * revision this project never held, another device wrote it after the read, and this write
+   * replaced it. It is remembered, read by its sha, merged, and the merged project written once
+   * more. If that cannot finish in this tap, the next **Update gist** merges it first.
    *
    * @param {{ name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's Name (see
    *   {@link publish}); without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own
@@ -343,13 +383,16 @@ export function createGistPublisher(options = {}) {
     /** @type {import('../storage/gistBackend.js').GistRead} */
     let remote
     try {
-      remote = await gist.readGist(current.id)
+      remote = await client.readGist({ id: current.id })
     } catch (error) {
       return done(gistFailureOf(error, 'update'))
     }
     // The project open now must still be the one published as this gist (an Open or New while
     // the read was out): never merge a gist into, or publish over it, another project.
     if (gistField.value?.id !== current.id || !published.value) return done(fail('not-published', 'update'))
+    /** The revisions whose content the project holds: a write landing on any other dropped one. */
+    const held = new Set([current.lastRevision])
+    if (remote.revision !== null) held.add(remote.revision)
     if (remote.revision !== current.lastRevision && !gist.wroteRevision(current.id, remote.revision)) {
       const merged = await mergeRemote(remote.text)
       if (!merged.ok) return done(merged)
@@ -360,45 +403,61 @@ export function createGistPublisher(options = {}) {
       if (merged.conflicted) return done(fail('merge-conflict', 'update'))
     }
 
-    const loadAt = documentStore.loadRevision
-    // Read after the merge: what is published is the merged project.
-    const text = serializeProject(toRaw(documentStore.raw))
     const name = choice.name ?? (plainGistDescription(remote.description) || persistence.projectName)
     // A gist published before `TODO/io-035` holds `<slug>.ndjson`: an Update under the same name
     // keeps that file (and its raw URL) rather than renaming it to `.warpcad`.
     const slugFile = gistFileName(name)
     const fileName = stripProjectExtension(remote.fileName) === stripProjectExtension(slugFile) ? remote.fileName : slugFile
-    const publishedAt = now()
-    /** @type {Record<string, string | null>} */
-    const files = {
-      [fileName]: text,
-      [README]: gistReadme({
-        name,
-        ...briefOf(choice),
-        publishedAt,
-        id: current.id,
-        rawUrl: gistRawFileUrl(current.owner, current.id, fileName),
-        fileName,
-      }),
-    }
-    // A renamed project: remove the old file rather than leave two projects in the gist.
-    if (remote.fileName !== fileName && remote.fileName !== README) files[remote.fileName] = null
-
-    /** @type {import('../storage/gistBackend.js').GistPublished} */
-    let updated
-    try {
-      updated = await client.updateGist({ id: current.id, files, description: descriptionOf(name) })
-    } catch (error) {
-      return done(gistFailureOf(error, 'update'))
-    }
-    gist.rememberRevision(current.id, updated.revision)
+    /** The project file the gist holds now; after a first write, `fileName`. */
+    let existingFile = remote.fileName
     const link = gistLink(current.id)
-    if (documentStore.loadRevision !== loadAt) {
-      return done({ ok: true, id: current.id, link, revision: updated.revision, name, warning: 'project-changed' }, { publishedAt })
+
+    // At most two writes: the second only after merging a revision the first one replaced.
+    for (let attempt = 0; ; attempt += 1) {
+      const caughtUp = await mergeMissed(client, current.id, held)
+      if (caughtUp !== null) return done(caughtUp)
+
+      const loadAt = documentStore.loadRevision
+      // Read after the merge: what is published is the merged project.
+      const text = serializeProject(toRaw(documentStore.raw))
+      const publishedAt = now()
+      /** @type {Record<string, string | null>} */
+      const files = {
+        [fileName]: text,
+        [README]: gistReadme({
+          name,
+          ...briefOf(choice),
+          publishedAt,
+          id: current.id,
+          rawUrl: gistRawFileUrl(current.owner, current.id, fileName),
+          fileName,
+        }),
+      }
+      // A renamed project: remove the old file rather than leave two projects in the gist.
+      if (existingFile !== fileName && existingFile !== README) files[existingFile] = null
+
+      /** @type {import('../storage/gistBackend.js').GistPublished} */
+      let updated
+      try {
+        updated = await client.updateGist({ id: current.id, files, description: descriptionOf(name) })
+      } catch (error) {
+        return done(gistFailureOf(error, 'update'))
+      }
+      gist.rememberRevision(current.id, updated.revision)
+      existingFile = fileName
+      if (documentStore.loadRevision !== loadAt) {
+        return done({ ok: true, id: current.id, link, revision: updated.revision, name, warning: 'project-changed' }, { publishedAt })
+      }
+      setField({ ...current, lastRevision: updated.revision })
+      const parent = updated.parent ?? null
+      if (parent === null || held.has(parent) || gist.wroteRevision(current.id, parent)) {
+        persistence.noteGistSaved(publishedAt)
+        return done({ ok: true, id: current.id, link, revision: updated.revision, name }, { publishedAt })
+      }
+      // Another device's revision, written after the read, that this write replaced.
+      gist.noteMissed(current.id, parent)
+      if (attempt >= 1) return done(fail('missed-revision', 'update'))
     }
-    setField({ ...current, lastRevision: updated.revision })
-    persistence.noteGistSaved(publishedAt)
-    return done({ ok: true, id: current.id, link, revision: updated.revision, name }, { publishedAt })
   }
 
   /**

@@ -5051,3 +5051,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** behaviour gap and owner decision → TODO/done/ui-141; volume and Undo drive → this session (Chromium, WebKit); the test-premise finding → the Subtract button's title read in this session's debug run.
 **To Add:** none
 ---
+
+## 2026-11-19T20:05:00Z — Two devices, one gist, no lost edit
+
+**Post:** WarpCad shares a project as a GitHub gist, and Update gist merges the gist's current content before it writes. Driving that on real GitHub turned up a gap: update from a phone, then from a laptop three seconds later, and the phone's edit vanished with no message. The merge read the gist without a token, and GitHub can serve that read up to a minute old. With a 65-second wait the same drive merged correctly.
+
+The fix has two parts. The merge's base read now carries the owner's token. Because nobody has yet confirmed that GitHub serves an authenticated read fresh, the write also checks the revision it landed on. If another device's revision slipped in underneath, WarpCad reads that exact revision by its sha, merges it and writes again in the same tap. The gist's history gains two revisions, and the person sees the merge note and then "Gist updated".
+
+The test suite has a fake gist server that can answer one revision behind, with or without a token. The real-GitHub re-run is still on my list, so which of the two parts does the work is not yet known.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the 3 s loss and the 65 s merge → TODO/done/io-038 Problem (testing-045 drive); token on base read, parent check, merge by sha, two revisions → this diff and e2e case 11; stale-answering fake → e2e/support/fakeGistApi.js; real re-run pending → OWNER.md K7.
+**To Add:** none
+---

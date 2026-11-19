@@ -3479,3 +3479,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** toolbar dropped the other parts, owner chose to match the AI path → TODO/done/ui-141 (OWNER.md Q15); Chromium and WebKit drive, volume 145358 from 190653 and one Undo restoring both → this session; unit and e2e pair webkit-laptop + chromium-phone green → this session.
 **To Add:** none
 ---
+
+## 2026-11-19T20:05:00Z — Two devices, one gist, no lost edit
+
+**Post:** WarpCad's Update gist could silently drop an edit: update from a phone, then from a laptop a few seconds later, and the laptop's write won. The merge read a copy GitHub may serve a minute old. It now reads with your token, checks what its write landed on, and merges the missed edit in the same tap. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the loss and the 65 s control run → TODO/done/io-038 (testing-045 drive, real GitHub, 2026-11-17); the fix verified against a fake gist API that serves a stale read, e2e green on chromium, webkit and firefox → this session; real-GitHub re-run not done yet (OWNER.md K7).
+**To Add:** none
+---

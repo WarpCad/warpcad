@@ -370,7 +370,8 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     const { scope, api } = await published()
     const expected = serializeProject(toRaw(useDocumentStore().raw))
     const result = await api.update()
-    expect(backend.readGist).toHaveBeenCalledWith({ id: ID })
+    // With the token: an authenticated read is not the 60 s public cache (`TODO/io-038`).
+    expect(backend.readGist).toHaveBeenCalledWith({ id: ID, token: TOKEN })
     expect(backend.updateGist).toHaveBeenCalledTimes(1)
     const patched = backend.updateGist.mock.calls[0][0]
     expect(patched.id).toBe(ID)
@@ -579,6 +580,126 @@ describe('update — the gist is read first, and merged in when it changed (io-0
     const { scope, api } = mount()
     expect(await api.update()).toMatchObject({ ok: false, kind: 'not-published' })
     expect(backend.readGist).not.toHaveBeenCalled()
+    scope.stop()
+  })
+})
+
+describe('update — a stale read never silently drops another device\'s revision (io-038)', () => {
+  /** The revision the phone wrote seconds ago, which the read did not show. */
+  const THEIRS = 'f'.repeat(40)
+  /** A third device's revision, landing between the recovery read and the second write. */
+  const THIRD = 'e'.repeat(40)
+  const REV4 = '4'.repeat(40)
+  const REV5 = '5'.repeat(40)
+  const PHONE_ROW = { id: 'phone-1', op: 'primitive.sphere', name: 'Knob', params: { diameter: 8, center: [0, 30, 4] } }
+
+  /** Published at {@link REV2}, one local step since; the read keeps answering REV2 (stale). */
+  async function published() {
+    buildProject()
+    const mounted = mount()
+    await mounted.api.publish()
+    const gistText = backend.createGist.mock.calls[0][0].files['phone-stand.warpcad']
+    backend.createGist.mockClear()
+    backend.updateGist.mockReset()
+    backend.readGist.mockReset()
+    useDocumentStore().append({ ...CUBE, id: 'cube-2', name: 'Lip', params: { size: [5, 5, 5], center: [40, 0, 2.5] } })
+    const phone = otherDevice(gistText, (doc) => doc.append(structuredClone(PHONE_ROW), { origin: 'local' }))
+    const stale = { id: ID, description: 'Phone stand', text: gistText, revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' }
+    // The head read is stale (REV2, what this project last published); a read by sha is exact.
+    backend.readGist.mockImplementation(async ({ revision }) =>
+      revision === THEIRS ? { ...stale, text: phone, revision: THEIRS } : revision === undefined ? stale : Promise.reject(new GistError('not-found', 'gone')),
+    )
+    return { ...mounted, gistText, phone }
+  }
+
+  const written = (revision, parent) => ({ id: ID, revision, parent, url: '', rawUrls: {} })
+  const projectIn = (call) => backend.updateGist.mock.calls[call][0].files['phone-stand.warpcad']
+
+  it('a write that landed on a revision the read never showed merges that revision by its sha and writes again', async () => {
+    const { scope, api } = await published()
+    backend.updateGist.mockResolvedValueOnce(written(REV3, THEIRS)).mockResolvedValueOnce(written(REV4, REV3))
+
+    const result = await api.update()
+
+    expect(result).toEqual({ ok: true, id: ID, link: gistLink(ID), revision: REV4, name: 'Phone stand' })
+    expect(backend.readGist).toHaveBeenCalledWith({ id: ID, token: TOKEN, revision: THEIRS })
+    expect(backend.updateGist).toHaveBeenCalledTimes(2)
+    // The first write lacked the phone's sphere; the second, which the gist ends on, has it.
+    expect(idsOf(projectIn(0))).not.toContain('phone-1')
+    expect(idsOf(projectIn(1))).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1'])
+    expect(useMergeStore().notice).toMatchObject({ kind: 'toast', text: 'Merged 1 step from the gist', undoable: true })
+    expect(toRaw(useDocumentStore().raw).gist().lastRevision).toBe(REV4)
+    expect(useGistStore().missedRevisions(ID)).toEqual([])
+    scope.stop()
+  })
+
+  it('a write that landed on the revision it read, or on one this session wrote, is not written twice', async () => {
+    const { scope, api } = await published()
+    backend.updateGist.mockResolvedValueOnce(written(REV3, REV2))
+    expect(await api.update()).toMatchObject({ ok: true, revision: REV3 })
+    backend.updateGist.mockResolvedValueOnce(written(REV4, REV3))
+    expect(await api.update()).toMatchObject({ ok: true, revision: REV4 })
+    expect(backend.updateGist).toHaveBeenCalledTimes(2)
+    expect(useMergeStore().notice).toBeNull()
+    scope.stop()
+  })
+
+  it('a parent GitHub did not report is unknown, not a loss: one write, as before', async () => {
+    const { scope, api } = await published()
+    backend.updateGist.mockResolvedValueOnce(written(REV3, null))
+    expect(await api.update()).toMatchObject({ ok: true, revision: REV3 })
+    expect(backend.updateGist).toHaveBeenCalledTimes(1)
+    scope.stop()
+  })
+
+  it('if a third revision slips in again, it stops with a plain sentence, and the next Update merges it first', async () => {
+    const { scope, api, phone } = await published()
+    backend.updateGist.mockResolvedValueOnce(written(REV3, THEIRS)).mockResolvedValueOnce(written(REV4, THIRD))
+
+    const result = await api.update()
+
+    expect(result).toEqual({ ok: false, kind: 'missed-revision', message: gistMessage('missed-revision', 'update') })
+    expect(result.message).toBe('Another device updated this gist a moment ago. Update gist again to merge its changes.')
+    expect(useGistStore().lastErrorKind).toBe('missed-revision')
+    expect(useGistStore().missedRevisions(ID)).toEqual([THIRD])
+
+    // The next Update reads the third revision by its sha and merges it before it writes.
+    const thirdText = otherDevice(phone, (doc) => doc.append({ id: 'tab-1', op: 'primitive.cuboid', name: 'Tab', params: { size: [3, 3, 3], center: [0, -30, 1.5] } }, { origin: 'local' }))
+    backend.readGist.mockImplementation(async ({ revision }) =>
+      revision === THIRD
+        ? { id: ID, description: 'Phone stand', text: thirdText, revision: THIRD, updatedAt: null, fileName: 'phone-stand.warpcad' }
+        : { id: ID, description: 'Phone stand', text: phone, revision: REV4, updatedAt: null, fileName: 'phone-stand.warpcad' },
+    )
+    backend.updateGist.mockResolvedValueOnce(written(REV5, REV4))
+    expect(await api.update()).toMatchObject({ ok: true, revision: REV5 })
+    expect(backend.readGist).toHaveBeenCalledWith({ id: ID, token: TOKEN, revision: THIRD })
+    expect(idsOf(projectIn(2))).toEqual(['cube-1', 'cube-2', 'cyl-1', 'phone-1', 'tab-1'])
+    expect(useGistStore().missedRevisions(ID)).toEqual([])
+    scope.stop()
+  })
+
+  it('a missed revision that will not read (offline) is kept, and the next Update merges it before writing', async () => {
+    const { scope, api, phone } = await published()
+    backend.updateGist.mockResolvedValueOnce(written(REV3, THEIRS))
+    backend.readGist.mockImplementation(async ({ revision }) => {
+      if (revision === THEIRS) throw new GistError('offline', 'No network')
+      return { id: ID, description: 'Phone stand', text: '', revision: REV2, updatedAt: null, fileName: 'phone-stand.warpcad' }
+    })
+
+    expect(await api.update()).toMatchObject({ ok: false, kind: 'offline' })
+    expect(backend.updateGist).toHaveBeenCalledTimes(1)
+    expect(useGistStore().missedRevisions(ID)).toEqual([THEIRS])
+    // The gist is at this session's write now, so a fresh read shows REV3 — not a change to merge…
+    backend.readGist.mockImplementation(async ({ revision }) =>
+      revision === THEIRS
+        ? { id: ID, description: 'Phone stand', text: phone, revision: THEIRS, updatedAt: null, fileName: 'phone-stand.warpcad' }
+        : { id: ID, description: 'Phone stand', text: projectIn(0), revision: REV3, updatedAt: null, fileName: 'phone-stand.warpcad' },
+    )
+    backend.updateGist.mockResolvedValueOnce(written(REV4, REV3))
+    // …but the phone's revision it replaced is, by its sha.
+    expect(await api.update()).toMatchObject({ ok: true, revision: REV4 })
+    expect(idsOf(projectIn(1))).toContain('phone-1')
+    expect(useGistStore().missedRevisions(ID)).toEqual([])
     scope.stop()
   })
 })

@@ -6,8 +6,10 @@ priority: high
 model: opus
 milestone: none — Findings table, filed 2026-11-17 from the testing-045 drive of VERIFY.md io-019 #1
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19).** Fix 1 and fix 2 both, because the real-GitHub question (does an authenticated read bypass the 60 s cache?) can only be answered by the owner (K7). `readGist({ token })` is the base read for the merge. The write's `parent` (`history[1]`) is compared with what the device read: on a miss, the revision is read by its sha, merged and written again in the same tap, so the gist's history gains two revisions. If that cannot finish, the revision is remembered for the session and the sentence *Another device updated this gist a moment ago. Update gist again to merge its changes.* shows (`missed-revision`). The Update-again wording and the automatic merge-and-rewrite are owner questions Q107 and Q106. Verified against the fake gist API (`staleBy`), never real GitHub; the two-context real-GitHub run is K7. Docs: `docs/sharing.md`, `docs/decisions/gist-storage.md` Stage 4.
 
 ## Problem
 

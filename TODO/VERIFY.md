@@ -59,6 +59,14 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### io-038 — Update gist from a second device within a minute (2026-11-19 20:05)
+
+Driven only against the fake gist API (`staleBy`, `e2e/gist-share.e2e.js` case 11, all three engines), never real GitHub: agents may not touch it. The unknown is whether GitHub's authenticated `GET /gists/<id>` is served from the 60 s cache; the fix is correct either way (the write's `parent` check merges and rewrites), but only the real run says which path fires.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Real GitHub: two-context drive, 3 s gap | Owner | K7 |
+
 ### ui-139 — Hide the dimension lines during a rotate-ring drag (2026-11-19 18:25 UTC)
 
 Closes `ui-012` #1 (owner choice, OWNER.md Q9). Everything functional is covered by two `gizmo-transform.e2e.js` cases; this records the by-eye check that the hide reads as intended and not as a flicker.

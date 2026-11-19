@@ -264,6 +264,32 @@ describe('authorized calls', () => {
     await gist.readGist(ID)
     expect(backend.readGist).toHaveBeenCalledWith({ id: ID })
   })
+
+  it('the owner\'s read (Update gist\'s base) carries the token, and a revision only when asked (io-038)', async () => {
+    const gist = useGistStore()
+    await gist.connect(TOKEN)
+    const client = gist.authorized()
+    await client.readGist({ id: ID })
+    expect(backend.readGist).toHaveBeenLastCalledWith({ token: TOKEN, id: ID })
+    await client.readGist({ id: ID, revision: 'a'.repeat(40), token: 'ghp_FAKEotherFAKEotherFAKEotherFAKE00' })
+    expect(backend.readGist).toHaveBeenLastCalledWith({ token: TOKEN, id: ID, revision: 'a'.repeat(40) })
+  })
+})
+
+describe('revisions another device wrote that a write replaced (io-038)', () => {
+  it('are kept by gist until merged, in the order they were found, each once', () => {
+    const gist = useGistStore()
+    const other = 'bb22cc33dd44ee55ff66778899001122'
+    expect(gist.missedRevisions(ID)).toEqual([])
+    gist.noteMissed(ID, 'a'.repeat(40))
+    gist.noteMissed(ID, 'b'.repeat(40))
+    gist.noteMissed(ID, 'a'.repeat(40))
+    gist.noteMissed(other, 'c'.repeat(40))
+    expect(gist.missedRevisions(ID)).toEqual(['a'.repeat(40), 'b'.repeat(40)])
+    gist.settleMissed(ID, 'a'.repeat(40))
+    expect(gist.missedRevisions(ID)).toEqual(['b'.repeat(40)])
+    expect(gist.missedRevisions(other)).toEqual(['c'.repeat(40)])
+  })
 })
 
 describe('revisions this session wrote', () => {

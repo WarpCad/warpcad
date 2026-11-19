@@ -74,6 +74,8 @@ import { useSharedOpenStore } from './sharedOpen.js'
  * @property {(options: Omit<Parameters<typeof gistClient.createGist>[0], 'token' | 'fetch'>) => ReturnType<typeof gistClient.createGist>} createGist
  * @property {(options: Omit<Parameters<typeof gistClient.updateGist>[0], 'token' | 'fetch'>) => ReturnType<typeof gistClient.updateGist>} updateGist
  * @property {(options: Omit<Parameters<typeof gistClient.deleteGist>[0], 'token' | 'fetch'>) => ReturnType<typeof gistClient.deleteGist>} deleteGist
+ * @property {(options: Omit<Parameters<typeof gistClient.readGist>[0], 'token' | 'fetch'>) => ReturnType<typeof gistClient.readGist>} readGist
+ *   The owner's read, with the token: the base **Update gist** merges (`TODO/io-038`).
  */
 
 /**
@@ -168,6 +170,8 @@ export const useGistStore = defineStore('gist', () => {
 
   /** Revisions this session wrote, by gist id — see {@link wroteRevision}. @type {Map<string, Set<string>>} */
   const written = new Map()
+  /** Revisions a write of ours replaced unmerged, by gist id — see {@link noteMissed}. @type {Map<string, Set<string>>} */
+  const missed = new Map()
 
   let started = false
   /** @type {Promise<void> | null} */
@@ -285,11 +289,13 @@ export const useGistStore = defineStore('gist', () => {
       updateGist: ({ id, files, description }) =>
         backend.updateGist({ token: current(), id, files, ...(description === undefined ? {} : { description }) }),
       deleteGist: ({ id }) => backend.deleteGist({ token: current(), id }),
+      readGist: ({ id, revision }) => backend.readGist({ token: current(), id, ...(revision === undefined ? {} : { revision }) }),
     }
   }
 
   /**
-   * Read a gist's project file, unauthenticated (no token, no account).
+   * Read a gist's project file, unauthenticated (no token, no account): the Shared view's read.
+   * **Update gist** reads with the token instead ({@link authorized}'s `readGist`, `TODO/io-038`).
    *
    * @param {string} id
    * @returns {ReturnType<typeof gistClient.readGist>}
@@ -325,6 +331,44 @@ export const useGistStore = defineStore('gist', () => {
    */
   function wroteRevision(id, revision) {
     return revision !== null && (written.get(id)?.has(revision) ?? false)
+  }
+
+  /**
+   * Note a revision another device wrote that one of this session's writes replaced before it was
+   * merged (`TODO/io-038`): the write's `parent` was neither the revision the read showed nor one
+   * this project already held. Its content is still in the gist's history; **Update gist** reads
+   * it by its sha and merges it before it writes again. Session memory, like {@link wroteRevision}.
+   *
+   * @param {string} id
+   * @param {string} revision
+   */
+  function noteMissed(id, revision) {
+    let set = missed.get(id)
+    if (set === undefined) {
+      set = new Set()
+      missed.set(id, set)
+    }
+    set.add(revision)
+  }
+
+  /**
+   * The revisions {@link noteMissed} holds for gist `id`, oldest note first.
+   *
+   * @param {string} id
+   * @returns {string[]}
+   */
+  function missedRevisions(id) {
+    return [...(missed.get(id) ?? [])]
+  }
+
+  /**
+   * A missed revision has been merged into the project: forget it.
+   *
+   * @param {string} id
+   * @param {string} revision
+   */
+  function settleMissed(id, revision) {
+    missed.get(id)?.delete(revision)
   }
 
   /** @param {GistPublishState} state */
@@ -467,6 +511,9 @@ export const useGistStore = defineStore('gist', () => {
     readGist,
     rememberRevision,
     wroteRevision,
+    noteMissed,
+    missedRevisions,
+    settleMissed,
     setPublishState,
     noteOutcome,
     beginLink,

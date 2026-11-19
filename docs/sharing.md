@@ -232,6 +232,13 @@ Once a project is published, the group in the Share sheet offers:
   **Update gist**: the phone merges the laptop's changes first, then updates the gist. Open the
   link on either device and both edits are there.
 
+  Updating the same gist from two devices within about a minute keeps both edits too. GitHub can
+  show one device an out-of-date copy for a short while, so WarpCad checks what its write landed on.
+  If it finds an update it had not seen, it merges it and writes again in the same tap: you may see
+  *Merged 1 step from the gist*, and the gist's history on GitHub gains two revisions instead of
+  one. If it says *Another device updated this gist a moment ago. Update gist again to merge its
+  changes.*, tap **Update gist** again.
+
   Some updates stop before anything is sent to GitHub, and say why:
 
   - If a step from the gist clashes with one of yours (both changed the same shape), the merge

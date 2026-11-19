@@ -295,6 +295,8 @@ describe('createGist', () => {
     expect(result).toEqual({
       id: ID,
       revision: REV1,
+      // A new gist has nothing under it (`TODO/io-038`'s parent is for updates).
+      parent: null,
       url: `https://gist.github.com/${ID}`,
       rawUrls: {
         'phone-stand.ndjson': `https://gist.githubusercontent.com/octo/${ID}/raw/${REV1}/phone-stand.ndjson`,
@@ -367,6 +369,19 @@ describe('updateGist', () => {
       description: 'Phone stand',
       files: { 'phone-stand.ndjson': { content: PROJECT }, 'old-name.ndjson': null },
     })
+  })
+
+  it('returns the revision the write landed on (history[1]) as parent, so a caller can tell what it replaced (io-038)', async () => {
+    const body = { ...gistBody({ revision: REV2 }), history: [{ version: REV2 }, { version: REV1 }] }
+    const fetchImpl = fakeFetch([{ method: 'PATCH', url: `${GITHUB_API_ORIGIN}/gists/${ID}`, answer: response({ body }) }])
+    expect(await updateGist({ token: TOKEN, id: ID, files: { 'a.ndjson': PROJECT }, fetch: fetchImpl })).toMatchObject({ revision: REV2, parent: REV1 })
+  })
+
+  it('a parent GitHub does not give, or gives malformed, is null: unknown, never guessed', async () => {
+    for (const history of [[{ version: REV2 }], [{ version: REV2 }, { version: 'not-a-sha' }], [{ version: REV2 }, null]]) {
+      const fetchImpl = fakeFetch([{ method: 'PATCH', url: `${GITHUB_API_ORIGIN}/gists/${ID}`, answer: response({ body: { ...gistBody(), history } }) }])
+      expect((await updateGist({ token: TOKEN, id: ID, files: { 'a.ndjson': PROJECT }, fetch: fetchImpl })).parent).toBeNull()
+    }
   })
 
   it('never sends a public flag on update (GitHub cannot convert a secret gist)', async () => {
@@ -599,6 +614,56 @@ describe('readGist — no token, one fixed file rule, capped', () => {
   })
 })
 
+describe('readGist — the owner\'s read for Update gist (TODO/io-038)', () => {
+  const gistUrl = `${GITHUB_API_ORIGIN}/gists/${ID}`
+
+  it('with a token, reads the same URL authenticated (not served from the 60 s public cache)', async () => {
+    const fetchImpl = fakeFetch([{ url: gistUrl, answer: response({ body: gistBody({ revision: REV2 }) }) }])
+    const result = await readGist({ id: ID, token: TOKEN, fetch: fetchImpl })
+    expect(result).toMatchObject({ id: ID, text: PROJECT, revision: REV2, fileName: 'phone-stand.ndjson' })
+    const [call] = fetchImpl.calls
+    expect(call.method).toBe('GET')
+    expect(call.init.headers.Authorization).toBe(`Bearer ${TOKEN}`)
+    expect(call.init.credentials).toBe('omit')
+    expect(JSON.stringify(result)).not.toContain(TOKEN)
+  })
+
+  it('with a token, still follows a truncated file\'s raw_url without it', async () => {
+    const big = PROJECT + 'x'.repeat(1_500_000)
+    const files = { 'big.ndjson': { size: big.length, truncated: true, content: big.slice(0, 900_000), raw_url: RAW_URL } }
+    const fetchImpl = fakeFetch([
+      { url: gistUrl, answer: response({ body: gistBody({ files }) }) },
+      { url: RAW_URL, answer: response({ body: big }) },
+    ])
+    expect((await readGist({ id: ID, token: TOKEN, fetch: fetchImpl })).text).toBe(big)
+    expect(JSON.stringify(fetchImpl.calls[1].init)).not.toMatch(/Bearer|Authorization/)
+  })
+
+  it('refuses a malformed token before any request', async () => {
+    for (const token of ['', '   ', 'ghp_abc\r\nX-Evil: 1']) {
+      const fetchImpl = fakeFetch([])
+      expect((await rejectionOf(() => readGist({ id: ID, token, fetch: fetchImpl }))).kind).toBe('invalid')
+      expect(fetchImpl).not.toHaveBeenCalled()
+    }
+  })
+
+  it('with a revision, reads that revision by its sha, which no cache can serve stale', async () => {
+    const fetchImpl = fakeFetch([{ url: `${gistUrl}/${REV1}`, answer: response({ body: gistBody({ revision: REV2 }) }) }])
+    const result = await readGist({ id: ID, token: TOKEN, revision: REV1, fetch: fetchImpl })
+    // The revision asked for, whatever history the body lists.
+    expect(result).toMatchObject({ id: ID, text: PROJECT, revision: REV1 })
+    expect(fetchImpl.calls[0].init.headers.Authorization).toBe(`Bearer ${TOKEN}`)
+  })
+
+  it('refuses a revision that is not a commit sha before building a URL', async () => {
+    for (const revision of ['../../user', `${REV1}/x`, 'abc', REV1.toUpperCase(), '']) {
+      const fetchImpl = fakeFetch([])
+      expect((await rejectionOf(() => readGist({ id: ID, token: TOKEN, revision, fetch: fetchImpl }))).kind).toBe('invalid')
+      expect(fetchImpl).not.toHaveBeenCalled()
+    }
+  })
+})
+
 describe('the token never leaves the Authorization header — every failure path', () => {
   /** Every authenticated operation, each against each failing answer. */
   const operations = {
@@ -606,6 +671,8 @@ describe('the token never leaves the Authorization header — every failure path
     create: (fetchImpl) => createGist({ token: TOKEN, files: { 'a.ndjson': PROJECT }, description: '', fetch: fetchImpl }),
     update: (fetchImpl) => updateGist({ token: TOKEN, id: ID, files: { 'a.ndjson': PROJECT }, description: '', fetch: fetchImpl }),
     remove: (fetchImpl) => deleteGist({ token: TOKEN, id: ID, fetch: fetchImpl }),
+    read: (fetchImpl) => readGist({ token: TOKEN, id: ID, fetch: fetchImpl }),
+    'read-revision': (fetchImpl) => readGist({ token: TOKEN, id: ID, revision: REV1, fetch: fetchImpl }),
   }
   const quoting = { message: `Bad credentials for ${TOKEN}`, token: TOKEN, documentation_url: `https://docs.github.com/?t=${TOKEN}` }
   const failures = {

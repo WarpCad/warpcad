@@ -17,7 +17,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
 | [2](#2-questions--answer-from-anywhere) | Questions | 78 now (Q16-Q93), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
-| [4](#4-accounts-and-settings) | Accounts and settings | 6 | 38 min total | closes rows |
+| [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
 | [7](#7-at-the-printer-or-bench) | At the printer or bench | 13 | print time | closes rows |
@@ -85,6 +85,38 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q107 · Should the "another device" refusal say to update again, rather than to wait a minute?
+
+**Question:** `io-038` proposed *Another device updated this gist a moment ago. Try again in a minute.* for an **Update gist** that could not take in another device's change in one tap. WarpCad remembers that change, and the very next **Update gist** merges it, so there is no need to wait. Use *Another device updated this gist a moment ago. Update gist again to merge its changes.*?
+
+**Background:** Assumed yes (`src/core/gistMessages.js`, kind `missed-revision`). It reads like the existing GitHub-409 sentence, *This gist changed while it was being updated. Update again to merge those changes.* The refusal shows only when a third revision lands during the recovery, or when the recovery's read or merge fails (those show their own sentences).
+
+**Options:**
+1. **Say to update again (Recommended)**: accurate, since a retry works at once.
+2. **Say to wait a minute**: the finding's wording. A retry works either way.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** the "update again" wording stays.
+
+**Answer:** question
+
+#### Q106 · When Update gist finds it replaced another device's change, should it merge and write again by itself?
+
+**Question:** If GitHub's read is stale even with the token, an **Update gist** write can land on top of a revision another device wrote a few seconds earlier. The write's reply shows this. `io-038` merges that revision in, read by its exact revision id, and writes again in the same tap: the person sees *Merged 1 step from the gist*, then *Gist updated*, and the gist's history gains two revisions instead of one. Keep that, rather than only refusing?
+
+**Background:** Assumed yes. Refusing alone cannot recover the change: the gist would already hold this device's write, so a later Update reads it as this device's own revision and never merges the lost one. The missed revision is also remembered for this session, so if the recovery fails (offline, History previewing, a conflict), the next Update merges it first. After a reload that memory is gone, though the revision stays in the gist's history on GitHub. Whether the safety net ever fires depends on K7: if GitHub's authenticated read is fresh, it never does.
+
+**Options:**
+1. **Merge and write again by itself (Recommended)**: no lost edit and no extra tap. The cost is one extra revision in the gist's history.
+2. **Refuse only, and merge on the next tap**: one revision per tap, but the person has to tap twice.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** it merges and writes again by itself.
+
+**Answer:** question
 
 #### Q105 · Should the offset leave grown corners sharp?
 
@@ -1668,6 +1700,16 @@ Things only your signed-in accounts can do.
 **Steps:** 1. github.com → Settings → Developer settings → Fine-grained tokens → Generate. Repository access: only one scratch repository you own; Permissions: Contents **Read-only**, nothing else. Copy it. 2. In WarpCad: File ▾ → Save to a repository…, connect that repository with this token, then Save.
 
 **Pass if:** the sheet says the token does not have permission to write to that repository and needs Contents: read and write (a 403), not "Repository not found". Say what it showed in Other. Delete the token afterwards.
+
+**Answer:** validation
+
+#### K7 · Two devices updating one gist 3 s apart keep both edits (real GitHub)
+
+`io-038` (Testing: Real GitHub) · Mac, two browser windows · 10 min · filed 2026-11-19
+
+**Steps:** 1. Say `/owner K7`: the runner builds and serves the production bundle locally (the `run-warpcad` skill) and gives you the URL. Agents may not touch real GitHub, so the rest is yours. 2. Open the URL in a normal Chrome window (**A**) and in a Chrome Incognito window (**B**), so the two have separate storage. 3. In A: File ▾ → connect GitHub for short links with a fine-grained token that has only **Gists: read and write**. Place a cuboid and a sphere. Share → **Publish to a gist** (secret). Then File ▾ → **Download copy**. 4. In B: File ▾ → **Open…** the downloaded file, and connect the same token. 5. In B: place a cylinder, Share → **Update gist**, and wait for *Gist updated*. 6. Within 3 seconds, in A: place a cuboid, Share → **Update gist**. 7. Open the gist on github.com: count the bodies in its project file, and look at its Revisions tab.
+
+**Pass if:** A shows *Merged 1 step from the gist* and then *Gist updated* (or the sentence *Another device updated this gist a moment ago. Update gist again to merge its changes.*, and a second **Update gist** then merges), never *Gist updated* with no merge. The gist's project file holds four bodies, B's cylinder among them. In Other, say how many revisions A's Update added after B's: **one** means GitHub's authenticated read was fresh (fix 1 alone works); **two** means the read was stale and the write-then-merge safety net fired. Afterwards: Share → **Stop sharing** in A (deletes the gist), and delete the token.
 
 **Answer:** validation
 

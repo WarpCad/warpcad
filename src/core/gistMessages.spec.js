@@ -93,6 +93,10 @@ describe('gistMessage', () => {
     expect(gistMessage('conflict', 'update')).toBe('This gist changed while it was being updated. Update again to merge those changes.')
   })
 
+  it('io-038: a write that replaced a revision another device wrote a moment ago says to update again, which merges it', () => {
+    expect(gistMessage('missed-revision', 'update')).toBe('Another device updated this gist a moment ago. Update gist again to merge its changes.')
+  })
+
   it('the classic-token warning is exactly the agreed sentence', () => {
     expect(BROADER_THAN_NEEDED_MESSAGE).toBe('This token can do more than WarpCad needs. Make a new one with only the gist box ticked.')
   })

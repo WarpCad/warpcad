@@ -140,6 +140,30 @@ function checkId(id) {
 }
 
 /**
+ * A gist revision: a commit sha, lower-case hex, nothing else (it becomes a URL path segment).
+ *
+ * @param {unknown} revision
+ * @returns {string}
+ */
+function checkRevision(revision) {
+  if (typeof revision !== 'string' || !REVISION_PATTERN.test(revision)) throw fail('invalid', { message: 'That is not a gist revision' })
+  return revision
+}
+
+/**
+ * `history[index].version` when it is a commit sha, else `null`.
+ *
+ * @param {Record<string, any>} body
+ * @param {number} index
+ * @returns {string | null}
+ */
+function historyAt(body, index) {
+  const entry = Array.isArray(body.history) ? body.history[index] : undefined
+  const version = isRecord(entry) ? entry.version : undefined
+  return typeof version === 'string' && REVISION_PATTERN.test(version) ? version : null
+}
+
+/**
  * A gist file name: a plain name, no path, no controls.
  *
  * @param {unknown} name
@@ -252,8 +276,8 @@ async function readJson(response) {
  */
 function publishedOf(body, expectedId) {
   if (!isRecord(body) || !isGistId(body.id) || (expectedId !== null && body.id !== expectedId)) throw fail('malformed')
-  const revision = Array.isArray(body.history) ? body.history[0]?.version : undefined
-  if (typeof revision !== 'string' || !REVISION_PATTERN.test(revision)) throw fail('malformed')
+  const revision = historyAt(body, 0)
+  if (revision === null) throw fail('malformed')
   /** @type {Record<string, string>} */
   const rawUrls = {}
   if (isRecord(body.files)) {
@@ -261,7 +285,7 @@ function publishedOf(body, expectedId) {
       if (isFileName(name) && isRecord(file) && isGistRawUrl(file.raw_url)) rawUrls[name] = file.raw_url
     }
   }
-  return { id: body.id, revision, url: `https://gist.github.com/${body.id}`, rawUrls }
+  return { id: body.id, revision, parent: historyAt(body, 1), url: `https://gist.github.com/${body.id}`, rawUrls }
 }
 
 /* ------------------------------------------------------------------ public */
@@ -278,6 +302,9 @@ function publishedOf(body, expectedId) {
  * @typedef {object} GistPublished
  * @property {string} id The gist id (the short link's capability).
  * @property {string} revision The new revision (`history[0].version`).
+ * @property {string | null} parent The revision it was written on top of (`history[1].version`):
+ *   the gist's head at the moment of the write, whatever a read before it showed (`TODO/io-038`).
+ *   `null` when GitHub did not say (a new gist, or a history it left out): unknown, never guessed.
  * @property {string} url The gist's page, `https://gist.github.com/<id>`.
  * @property {Record<string, string>} rawUrls Each file's `gist.githubusercontent.com` link, by name.
  */
@@ -483,18 +510,28 @@ async function cappedBytes(response, max) {
 }
 
 /**
- * Read a gist's project file, **unauthenticated** (no token, no account; 60 requests an hour
- * per IP). Returns the text unparsed — Stage 2 loads it through **Open…**'s path.
+ * Read a gist's project file. Returns the text unparsed — Stage 2 loads it through **Open…**'s path.
  *
- * @param {{ id: string, fetch?: typeof globalThis.fetch }} options
+ * - **No `token`** — unauthenticated (no account; 60 requests an hour per IP), for the Shared
+ *   view. GitHub can serve this read up to 60 s old (`docs/decisions/gist-storage.md`).
+ * - **With `token`** — the owner's read, the base **Update gist** merges (`TODO/io-038`). An
+ *   authenticated read is not served from the public cache. The token goes only in the
+ *   `Authorization` header to `api.github.com`; a truncated file's `raw_url` is still fetched
+ *   without it.
+ * - **With `revision`** — that revision (`GET /gists/<id>/<sha>`), which names one fixed state,
+ *   so no cache can serve it stale. The result's `revision` is the one asked for.
+ *
+ * @param {{ id: string, token?: string, revision?: string, fetch?: typeof globalThis.fetch }} options
  * @returns {Promise<GistRead>}
  */
-export async function readGist({ id, fetch: injected }) {
+export async function readGist({ id, token, revision: wanted, fetch: injected }) {
   const gistId = checkId(id)
+  const checkedToken = token === undefined ? null : checkToken(token)
+  const at = wanted === undefined ? null : checkRevision(wanted)
   const fetchImpl = fetchOf(injected)
-  const response = await request(fetchImpl, `${GITHUB_API_ORIGIN}/gists/${gistId}`, {
+  const response = await request(fetchImpl, `${GITHUB_API_ORIGIN}/gists/${gistId}${at === null ? '' : `/${at}`}`, {
     method: 'GET',
-    headers: githubHeaders(null),
+    headers: githubHeaders(checkedToken),
   })
   if (!response.ok) throw await failureOf(response, { read: true })
   const body = await readJson(response)
@@ -525,12 +562,11 @@ export async function readGist({ id, fetch: injected }) {
     text = file.content
   }
 
-  const revision = Array.isArray(body.history) ? body.history[0]?.version : undefined
   return {
     id: gistId,
     description: typeof body.description === 'string' ? Array.from(body.description).slice(0, MAX_DESCRIPTION_CHARS).join('') : '',
     text,
-    revision: typeof revision === 'string' && REVISION_PATTERN.test(revision) ? revision : null,
+    revision: at ?? historyAt(body, 0),
     updatedAt: typeof body.updated_at === 'string' ? body.updated_at : null,
     fileName,
   }

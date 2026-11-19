@@ -30,7 +30,9 @@ import { closeLibrary, isPhone, openLibrary, pointer, sleep, viewportPoint } fro
  *   8. a project over the long link's ceiling shows the gist button as the way to share it;
  *  11. the owner on two devices (`TODO/io-019`): both update the same gist, and each **Update gist**
  *      merges the other's step in first (the merge toast, then *Gist updated*), so both contexts
- *      and the gist end with every body.
+ *      and the gist end with every body. A's Update gets a read one revision stale even with the
+ *      token (`TODO/io-038`): its write lands on B's revision, which A reads by its sha, merges and
+ *      writes again, so the gist never silently loses B's body.
  * Plus: the hosted-repository and gist credentials never overwrite each other through the UI
  * (`io-002`'s closed findings, on the second key), and `#/gist/` coexisting with `#/help/<slug>`
  * (`M20-testing-012` has no spec yet, so the case lives here until it does).
@@ -598,16 +600,29 @@ test.describe('store and share a project as a GitHub gist', () => {
       await expect(phone.getByTestId('merge-toast')).toHaveCount(0)
       await closeShareSheet(phone)
 
-      // A edits too and updates: B's cylinder is merged in first, then the gist gets both.
+      // A edits too and updates seconds later (`TODO/io-038`): GitHub's read is still a revision
+      // behind, even with the token — it shows the gist as A last left it, not B's cylinder. The
+      // write lands on B's revision; A reads that revision by its sha, merges it, and writes again.
+      // Never a silent overwrite: the merge toast, then *Gist updated*, and the gist keeps B's body.
       await placeShapes(page, input, info, ['primitive.cuboid'])
       const patches = fake.requests.filter((r) => r.method === 'PATCH').length
+      const requestsBefore = fake.requests.length
+      fake.staleBy = 1
       await openShareSheet(page, input)
       await tap(input, page.getByTestId('share-gist-update'))
       await expect(page.getByTestId('merge-toast-text')).toHaveText('Merged 1 step from the gist')
       await expect(page.getByTestId('merge-undo')).toBeVisible()
       await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
       await expect(page.getByTestId('share-gist-error')).toHaveCount(0)
-      expect(fake.requests.filter((r) => r.method === 'PATCH').length).toBe(patches + 1)
+      fake.staleBy = 0
+      expect(fake.requests.filter((r) => r.method === 'PATCH').length).toBe(patches + 2)
+      // The base read for the merge carried the token (`TODO/io-038` fix 1); the Shared view's does not.
+      const aReads = fake.requests.slice(requestsBefore).filter((r) => r.method === 'GET' && r.url.includes(`/gists/${id}`))
+      expect(aReads.length).toBeGreaterThanOrEqual(2)
+      expect(aReads.every((r) => r.auth === `Bearer ${GIST_TOKEN}`)).toBe(true)
+      expect(aReads.some((r) => /\/gists\/[0-9a-f]+\/[0-9a-f]{40}$/.test(r.url))).toBe(true)
+      const afterA = (projectFileOf(fake.gists.get(id))?.text ?? '').split('\n').filter((line) => line !== '' && !line.startsWith('{"warpcad"'))
+      expect(afterA).toHaveLength(4)
       await sleep(300)
       await page.screenshot({ path: join(SNAPSHOT_DIR, `${info.project.name}-update-merged.png`) })
       await closeShareSheet(page)

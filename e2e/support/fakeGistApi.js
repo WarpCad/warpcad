@@ -17,7 +17,9 @@ import { randomBytes } from 'node:crypto'
  *   token's `x-oauth-scopes`; 401 for a token it does not know.
  * - **`GET /user`**: the token's login.
  * - **Modes**: `rate-limited` (an unauthenticated read gets 403 with `x-ratelimit-remaining: 0`),
- *   and per-gist deletion. `truncateOver` (bytes) serves a bigger file `truncated: true` with only
+ *   and per-gist deletion. `staleBy` (a count of revisions) serves `GET /gists/<id>` as the gist
+ *   was that many revisions ago, **with or without a token**: GitHub's read cache at its worst,
+ *   which `TODO/io-038` must survive. `GET /gists/<id>/<sha>` always answers that exact revision. `truncateOver` (bytes) serves a bigger file `truncated: true` with only
  *   the start inline, the whole of it at its `raw_url` on `gist.githubusercontent.com`.
  * - **A repository**, for the one check that both GitHub credentials live side by side
  *   (`repo`): `GET /repos/<owner>/<repo>` is 200 and its contents 404 (no file yet).
@@ -68,6 +70,10 @@ export function fakeGitHub(options = {}) {
     repo: options.repo ?? null,
     /** `ok`, or `rate-limited` for every unauthenticated gist read. */
     mode: /** @type {'ok' | 'rate-limited'} */ ('ok'),
+    /** How many revisions behind `GET /gists/<id>` answers (0: the latest), token or not. */
+    staleBy: 0,
+    /** Each revision's files and description, by revision, for stale reads and reads by sha. @type {Map<string, { files: Record<string, string>, description: string }>} */
+    snapshots: new Map(),
     /** Files larger than this many bytes are served truncated, the rest at `raw_url`. */
     truncateOver: Number.POSITIVE_INFINITY,
     /** @type {Array<{ method: string, url: string, auth: string | undefined, body: any }>} */
@@ -80,15 +86,31 @@ export function fakeGitHub(options = {}) {
 /** @typedef {ReturnType<typeof fakeGitHub>} FakeGitHub */
 
 /**
- * The gist's JSON, the way the API answers it.
+ * Keep the gist's current files as its newest revision's snapshot.
  *
  * @param {FakeGitHub} fake
  * @param {FakeGist} gist
  */
-function gistJson(fake, gist) {
+function snapshot(fake, gist) {
+  fake.snapshots.set(gist.revisions[0], { files: { ...gist.files }, description: gist.description })
+}
+
+/**
+ * The gist's JSON, the way the API answers it: as it is, or as it was at `revisions[index]`
+ * (its files, and the history up to it). A seeded gist has no snapshot of its first revision; it
+ * answers its current files.
+ *
+ * @param {FakeGitHub} fake
+ * @param {FakeGist} gist
+ * @param {number} [index]
+ */
+function gistJson(fake, gist, index = 0) {
+  const at = Math.min(Math.max(index, 0), gist.revisions.length - 1)
+  const revision = gist.revisions[at]
+  const shot = at === 0 ? { files: gist.files, description: gist.description } : (fake.snapshots.get(revision) ?? { files: gist.files, description: gist.description })
   /** @type {Record<string, object>} */
   const files = {}
-  for (const [name, content] of Object.entries(gist.files)) {
+  for (const [name, content] of Object.entries(shot.files)) {
     const size = Buffer.byteLength(content, 'utf8')
     const truncated = size > fake.truncateOver
     files[name] = {
@@ -96,16 +118,16 @@ function gistJson(fake, gist) {
       size,
       truncated,
       content: truncated ? content.slice(0, Math.floor(fake.truncateOver / 2)) : content,
-      raw_url: `${RAW_HOST}/${gist.owner}/${gist.id}/raw/${gist.revisions[0]}/${name}`,
+      raw_url: `${RAW_HOST}/${gist.owner}/${gist.id}/raw/${revision}/${name}`,
     }
   }
   return {
     id: gist.id,
-    description: gist.description,
+    description: shot.description,
     public: gist.public,
     owner: { login: gist.owner },
     files,
-    history: gist.revisions.map((version) => ({ version })),
+    history: gist.revisions.slice(at).map((version) => ({ version })),
     updated_at: gist.updatedAt,
   }
 }
@@ -207,7 +229,17 @@ export async function routeFakeGitHub(target, fake) {
         updatedAt: new Date().toISOString(),
       }
       fake.gists.set(gist.id, gist)
+      snapshot(fake, gist)
       return json(route, 201, gistJson(fake, gist), tokenHeaders)
+    }
+
+    // A revision by its sha: exact, whatever `staleBy` says (a sha names one fixed state).
+    const byRevision = /^\/gists\/([0-9a-f]{20,32})\/([0-9a-f]{40})$/.exec(path)
+    if (byRevision && method === 'GET') {
+      const gist = fake.gists.get(byRevision[1])
+      const index = gist ? gist.revisions.indexOf(byRevision[2]) : -1
+      if (!gist || index === -1) return json(route, 404, { message: 'Not Found' })
+      return json(route, 200, gistJson(fake, gist, index))
     }
 
     const match = /^\/gists\/([0-9a-f]{20,32})$/.exec(path)
@@ -218,7 +250,7 @@ export async function routeFakeGitHub(target, fake) {
           return json(route, 403, { message: 'API rate limit exceeded for 127.0.0.1.' }, { 'x-ratelimit-remaining': '0', 'x-ratelimit-limit': '60' })
         }
         if (!gist) return json(route, 404, { message: 'Not Found' })
-        return json(route, 200, gistJson(fake, gist), { 'x-ratelimit-limit': '60' })
+        return json(route, 200, gistJson(fake, gist, fake.staleBy), { 'x-ratelimit-limit': '60' })
       }
       if (!account) return json(route, 401, { message: 'Requires authentication' })
       if (!gist) return json(route, 404, { message: 'Not Found' })
@@ -231,6 +263,7 @@ export async function routeFakeGitHub(target, fake) {
         if (typeof body?.description === 'string') gist.description = body.description
         gist.revisions.unshift(hex(20))
         gist.updatedAt = new Date().toISOString()
+        snapshot(fake, gist)
         return json(route, 200, gistJson(fake, gist), tokenHeaders)
       }
       if (method === 'DELETE') {

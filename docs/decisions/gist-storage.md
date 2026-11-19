@@ -84,8 +84,10 @@ Neither token can be limited to a single gist; the sheet says so in plain words.
   account when one is connected.
 - **A copy never keeps the gist.** `withoutGist` (`shareCopy.js`) is applied by `withProjectId`,
   so "Make my own copy to edit" starts a project that owns nothing.
-- **Stale reads.** The public API can serve a read up to 60 s old (`cache-control: max-age=60`),
-  so Update accepts a revision this session itself wrote; the memory does not survive a reload.
+- **Stale reads.** The public (unauthenticated) API can serve a read up to 60 s old
+  (`cache-control: max-age=60`), so Update accepts a revision this session itself wrote; the memory
+  does not survive a reload. Since `io-038` Update reads with the token and checks the write's
+  `parent`, see "Stage 4" below.
 - **Byte identity.** A Download copy taken *after* publishing contains `merge.gist`, which a file
   cannot know before the gist exists; the published file equals a Download copy taken before.
 - **Undo merge** leaves the gist field alone. A stale `lastRevision` only makes Update refuse,
@@ -126,7 +128,7 @@ Replaces Stage 2's interim rule (Update refused with `changed-remotely`, "open i
 then update"). An owner who edits the same published project on two devices and taps **Update
 gist** on both no longer has to open the gist and redo work.
 
-- **The flow.** `useGistPublish.update()` reads the gist (`readGist`, unauthenticated) as before.
+- **The flow.** `useGistPublish.update()` reads the gist (`readGist`; unauthenticated when this stage shipped, with the owner's token since `io-038`) as before.
   When its revision is neither the field's `lastRevision` nor one this session wrote, the gist's
   project file goes through `persistence.mergeText` — the same `mergeIn` as **Merge file…**
   (`ui-062`) and the hosted Load (`io-011`), under the source name *the gist*, so the same toast
@@ -151,8 +153,8 @@ gist** on both no longer has to open the gist and redo work.
   popover or dialog is open. This merge is the answer to a tap on a button inside the Share sheet
   or the Save-to-gist dialog, which are themselves such surfaces, so it runs at once, as Save
   merging a changed file with a menu open does.
-- **Stale reads unchanged.** The 60-second cache on the public read can serve a revision this
-  session just wrote: `wroteRevision` still accepts it, so a stale read of our own write is never
+- **Stale reads.** The 60-second cache on the public read can serve a revision this
+  session just wrote (`io-038` later closed the other-device case): `wroteRevision` still accepts it, so a stale read of our own write is never
   merged. A read that carries no revision is merged and leaves `lastRevision` as it was.
 - **GitHub's own `409`** (`conflict`, the gist moved during the PATCH) now says to update again,
   which merges.
@@ -173,5 +175,33 @@ gist** on both no longer has to open the gist and redo work.
 - **A new description, not the old note slot.** The owner wanted text written for people, separate from the standing instructions, which are written for the AI and stay out of the README. It is a new last-writer-wins register, `description`, set by a person in **File ▾ → Project settings…** or by an agent with `set_description`. Like `gist`, it travels in the file's merge section as `merge.description: [text, stamp]`, not under `merge.registers`, because a released build refuses an unknown register name but ignores an unknown section key. A v1.4.0 tab opens such a file and drops the field if it saves; a merge brings it back (fixtures `description-*.ndjson`). The old `note` input, which was never filled, is gone.
 - **A Markdown subset, sanitised twice.** Allowed: paragraphs, `- ` / `* ` / `+ ` bullet lists, `**bold**`, `*italic*` / `_italic_`, `` `code` ``. Everything else (links, images, autolinks, HTML, headings, numbered lists, quotes, tables, code blocks) is plain text. The text is cleaned and capped (2,000 characters) when it is stored and on load, and `parseDescription` cleans it again before rendering. The README writes its own markers around escaped text. The app renders the tokens as elements with text content (`DescriptionText.vue`, no `v-html`).
 - **Variables with their ranges.** One row per variable, in definition order: name, value with its unit, and a range (`40–120 mm`, `≥ 40 mm`, `≤ 120 mm`, an enum's option labels, `yes / no`). A number with neither `min` nor `max` reads `—`, and the **Range** column is left out when no variable has one, rather than shown blank. Cells are one line, capped, escaped (`|` included) and `@`-broken. At most 100 rows, then "and N more". A range cannot be invented at publish time, so the agent guidance (the shared tools section of the guide and system prompt, and `define_variable`'s schema) now asks agents to set `min` and `max` on every variable a person is meant to change.
+
+## Stage 4: a revision another device wrote moments ago (`TODO/io-038`, 2026-11-19)
+
+Found by driving `io-019` against real GitHub: device B updates, 3 s later device A updates, and A's
+write silently dropped B's edit, because the merge's base read was unauthenticated and up to 60 s old.
+
+- **Authenticated base read.** `readGist({ id, token })` sends the token on the API request, so the
+  owner's merge base is not the public 60 s cache. The Shared view keeps the unauthenticated read.
+  **Unverified assumption:** GitHub does not serve an authenticated `GET /gists/<id>` from that
+  cache. Owner item K7 re-runs the two-context drive on real GitHub to settle it; the safety net
+  below makes the fix correct either way.
+- **The `parent` check.** A `PATCH` reply lists the gist's history; `history[1]` (`parent`) is the
+  head the write landed on, whatever the read showed. When `parent` is neither the revision this
+  device read nor one it wrote, a revision was missed. `parent` is `null` when GitHub leaves it out;
+  that is unknown, never treated as a miss.
+- **Merge, then write again.** The missed revision is read by its sha (`GET /gists/<id>/<sha>`,
+  exact, no cache can serve it stale), merged like any gist merge, and written again in the same tap.
+  The gist's history gains two revisions, and the person sees *Merged 1 step from the gist*, then
+  *Gist updated*. Question Q106 asks the owner to confirm this over refusing alone.
+- **Session-only memory.** If the recovery cannot finish (offline, History previewing, a conflict),
+  the missed revision is remembered for this session and the next Update merges it first. The memory
+  is lost on reload; the revision stays in the gist's history on GitHub.
+- **`missed-revision`.** The one sentence for a recovery that could not finish:
+  *Another device updated this gist a moment ago. Update gist again to merge its changes.*
+  (Q107 asks whether to say that rather than "try again in a minute".)
+- **The fake.** `e2e/support/fakeGistApi.js` takes `staleBy` (a count of revisions): `GET /gists/<id>`
+  answers the gist as it was that many revisions ago, with or without a token, and a read by sha is
+  always exact. Case 11 of `e2e/gist-share.e2e.js` uses it.
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
