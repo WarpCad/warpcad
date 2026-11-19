@@ -77,7 +77,7 @@ test.describe('docs media: timeline re-link', () => {
 
     // Select the broken row: the reason and the offered button.
     await press(page, 'timeline-row-3')
-    await expect(page.getByTestId('timeline-broken-reason')).toContainText('has itself already been superseded')
+    await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
     await expect(page.getByTestId('timeline-relink')).toBeEnabled()
     await page.waitForTimeout(900)
     await press(page, 'timeline-relink')

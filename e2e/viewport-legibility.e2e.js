@@ -67,6 +67,8 @@ test('every dimension label stays inside the viewport while the camera orbits', 
 
 test('at phone width the gizmo ring is a wide wall with a distinct core', async ({ page }, info) => {
   test.skip(!info.project.name.endsWith('-phone'), 'the wider cue is a phone-width rule')
+  // The cube existing does not mean its gizmo is drawn yet; under a loaded full run the read came first.
+  await page.locator('.tgizmo__ring').first().waitFor({ state: 'attached' })
   const strokes = await page.evaluate(() => {
     const ring = document.querySelector('.tgizmo__ring')
     const core = document.querySelector('.tgizmo__ring-core')
