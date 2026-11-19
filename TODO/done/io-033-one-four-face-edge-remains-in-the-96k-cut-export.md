@@ -6,8 +6,18 @@ priority: low
 model: opus
 milestone: none — Findings table, filed 2026-11-15 from the io-031 close
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19), and one deviation from the Proposed fix.** `releasePinchedEdges` in `src/core/kernel/watertight.js`
+> runs as the last pass of `makeWatertight`. Root cause: the T-junction pass inserted a corner 1.4 micrometres from another into two
+> faces on two different lines (it sits exactly on one and 0.78 micrometre, inside the 0.87 micrometre weld, off the other), so one
+> side was walked twice each way. The pass takes that corner out of both faces; no coordinate moves, and it does nothing when no side is
+> walked twice in one direction. **Design decision (deviation):** the proposed "collapse short edges" was not used, because collapsing
+> moves a corner 1.6 snap epsilons, beyond the weld radius, and `io-031` showed that opens a hole. The 96k cut now exports 0 open edges
+> at 1e-5 mm and at 1e-3 mm, volume 210,200.55 mm3 (the kernel's); the `io-031` table, `io-004` and `io-005` shapes
+> (`bench/watertight-equivalence.mjs`) are unchanged. Hazard met on the way: a line starting with a `/** @type */ (...)` cast after an
+> assignment with no semicolon parses as a call of the previous line.
 
 ## Problem
 

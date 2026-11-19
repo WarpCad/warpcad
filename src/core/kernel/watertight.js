@@ -104,6 +104,18 @@
  * `kit.boardFrame`) is re-triangulated without a corner moving (straight-through ones dropped),
  * so its bytes change and its shape does not.
  *
+ * ### One side walked twice each way (`TODO/FIND-io-033`)
+ *
+ * On the 96,600-triangle cut scan one 1.4 micrometre side was used by four triangles, two each
+ * way. A corner `w` lies on one scan line and, by 0.78 micrometre (inside the 0.87 micrometre
+ * weld), near a second line that leaves the same corner at an acute angle, so the T-junction pass
+ * inserted `w` into the faces on both. No fuse reaches it (the side is longer than the weld) and no
+ * loop split sees it (no face visits a corner twice). {@link releasePinchedEdges} runs last and
+ * takes `w` out of the two faces it was only near, the reverse of that insertion. **Decided
+ * against** the finding's "collapse short edges" proposal: that moves a corner by 1.6 times the
+ * snap epsilon, beyond the weld radius, and `io-031` measured that opening a hole. Nothing moves
+ * here, and a solid with no doubly walked side is untouched.
+ *
  * The result of this pass is for **serialization only**. Inserting a vertex into an
  * edge can leave a polygon a hair non-convex, so it must not be fed back into a boolean
  * — the same caveat `@jscad/modeling`'s own `insertTjunctions` carries.
@@ -277,6 +289,11 @@ export function makeWatertight(solid) {
   const cleaned = cleanFlatFaces(polygons, ids, cornerCount, pinned, tolerance)
   // Collapsing a short outline side can make a neighbour visit one corner twice.
   if (cleaned > 0) inserted += cleaned + splitAtRepeatedCorners(polygons, ids)
+
+  // A corner the T-junction pass put on two lines that leave one corner at an acute angle
+  // pinches four faces onto one short edge (`TODO/FIND-io-033`): it comes off the line it
+  // only sat near.
+  inserted += releasePinchedEdges(polygons, ids, cornerCount, tolerance)
 
   // `inserted` also counts corners fused, faces dropped and loops split: the polygons changed.
   if (inserted === 0) return solid
@@ -559,6 +576,189 @@ function splitAtRepeatedCorners(polygons, ids) {
     ids.push(extraIds[at])
   }
   return changed
+}
+
+/**
+ * Undo a T-junction insertion that pinched four faces onto one edge (`TODO/FIND-io-033`).
+ * Mutates `polygons` and `ids` in place. Exported for its spec; {@link makeWatertight} runs it
+ * last.
+ *
+ * ## The defect
+ *
+ * Measured on the 96,600-triangle scan of `bench/results/2026-11-15-io-031.md` with a cube cut
+ * through it: two scan triangles cross the pocket's flat ceiling along lines that leave one
+ * corner `o` about 33° apart. A corner `w` 1.4 µm from `o` lies exactly on the first line, and so
+ * 0.78 µm off the second, inside the 0.87 µm weld. The T-junction pass therefore inserts `w` into
+ * the second line's two faces as well as the first line's. Each face is consistent with its
+ * partner across its own line, but the side `w`–`o` ends up walked twice each way: four faces on
+ * one edge, which no fuse can reach (the side is longer than the weld) and no loop split sees (no
+ * face visits a corner twice).
+ *
+ * ## What it does
+ *
+ * For each side walked more than once in one direction, it looks for two faces `P` and `Q` that
+ * walk the same three corners in reverse, `a → w → b` and `b → w → a`, with the over-walked side
+ * among them, and takes `w` out of both. Their sides `a → w → b` cancel `b → w → a` exactly, and
+ * the `a → b` and `b → a` that replace them cancel each other, so no other edge's balance changes,
+ * and the side `w`–`o` keeps only the faces that genuinely meet there. No coordinate moves.
+ *
+ * It is bounded by the T-junction test itself. `w` must be a corner {@link cornersOnEdge} would
+ * have inserted into `a`–`b` (within `tolerance` of the line and `tolerance` clear of both ends),
+ * so the surface moves by less than the weld and the removal is only the reverse of an insertion.
+ * Where more than one pair qualifies, the one whose line `w` lies farthest from goes first, since
+ * that is the insertion the test was least sure of. A face of three corners is never reduced (it
+ * would leave nothing), and a removal that would walk a side some other face already walks is
+ * refused.
+ *
+ * @param {{ vertices: Vec3[] }[]} polygons
+ * @param {number[][]} ids Per polygon, its vertices' corner ids, with no corner repeated.
+ * @param {number} cornerCount
+ * @param {number} tolerance The serializer's weld radius, mm.
+ * @returns {number} How many polygons lost a corner (0 when nothing was pinched).
+ */
+export function releasePinchedEdges(polygons, ids, cornerCount, tolerance) {
+  /** @type {Map<number, number>} How often each directed side is walked, keyed `from * cornerCount + to`. */
+  const directed = new Map()
+  /** @type {number[]} Undirected keys `lo * cornerCount + hi` of sides walked more than once one way. */
+  const pinched = []
+  for (const polygonIds of ids) {
+    for (let corner = 0; corner < polygonIds.length; corner += 1) {
+      const from = polygonIds[corner]
+      const to = polygonIds[(corner + 1) % polygonIds.length]
+      if (from === to) continue
+      const edge = from * cornerCount + to
+      const uses = (directed.get(edge) ?? 0) + 1
+      directed.set(edge, uses)
+      if (uses === 2) pinched.push(Math.min(from, to) * cornerCount + Math.max(from, to))
+    }
+  }
+  if (pinched.length === 0) return 0
+
+  /** @type {Map<number, Set<number>>} Corner id → polygons that visit it, for the pinched sides' ends. */
+  const visitors = new Map()
+  for (const key of pinched) {
+    visitors.set(Math.floor(key / cornerCount), new Set())
+    visitors.set(key % cornerCount, new Set())
+  }
+  for (let index = 0; index < ids.length; index += 1) {
+    for (const id of ids[index]) visitors.get(id)?.add(index)
+  }
+
+  /** @param {number} from @param {number} to */
+  const walked = (from, to) => directed.get(from * cornerCount + to) ?? 0
+  /** @param {number} from @param {number} to @param {number} by */
+  const tally = (from, to, by) => directed.set(from * cornerCount + to, walked(from, to) + by)
+
+  let changed = 0
+  for (const key of new Set(pinched)) {
+    const low = Math.floor(key / cornerCount)
+    const high = key % cornerCount
+    while (walked(low, high) > 1 || walked(high, low) > 1) {
+      const best = pinchedPair(polygons, ids, visitors, walked, low, high, tolerance)
+      if (best === null) break
+      const { corner, a, b, faces } = best
+      const visiting = /** @type {Set<number>} */ (visitors.get(corner))
+      for (const index of faces) {
+        const at = ids[index].indexOf(corner)
+        ids[index].splice(at, 1)
+        const vertices = polygons[index].vertices.slice()
+        vertices.splice(at, 1)
+        polygons[index] = { vertices }
+        visiting.delete(index)
+      }
+      tally(a, corner, -1)
+      tally(corner, b, -1)
+      tally(b, corner, -1)
+      tally(corner, a, -1)
+      tally(a, b, 1)
+      tally(b, a, 1)
+      changed += 2
+    }
+  }
+  return changed
+}
+
+/**
+ * The best pair of faces {@link releasePinchedEdges} can take a corner out of for the pinched
+ * side `low`–`high`, or `null` when none qualifies.
+ *
+ * @param {{ vertices: Vec3[] }[]} polygons
+ * @param {number[][]} ids
+ * @param {Map<number, Set<number>>} visitors
+ * @param {(from: number, to: number) => number} walked
+ * @param {number} low
+ * @param {number} high
+ * @param {number} tolerance
+ * @returns {{ corner: number, a: number, b: number, faces: [number, number] } | null}
+ */
+function pinchedPair(polygons, ids, visitors, walked, low, high, tolerance) {
+  /** @type {{ corner: number, a: number, b: number, faces: [number, number] } | null} */
+  let best = null
+  let bestOffset = -1
+  for (const [corner, other] of [
+    [low, high],
+    [high, low],
+  ]) {
+    const around = [.../** @type {Set<number>} */ (visitors.get(corner))]
+    for (const first of around) {
+      const firstIds = ids[first]
+      if (firstIds.length < 4) continue
+      const at = firstIds.indexOf(corner)
+      const a = firstIds[(at - 1 + firstIds.length) % firstIds.length]
+      const b = firstIds[(at + 1) % firstIds.length]
+      if (a !== other && b !== other) continue
+      // The sides the removal makes must be new to the surface.
+      if (a === b || walked(a, b) > 0 || walked(b, a) > 0) continue
+      const { vertices } = polygons[first]
+      const offset = offsetFromSide(
+        vertices[(at - 1 + firstIds.length) % firstIds.length],
+        vertices[at],
+        vertices[(at + 1) % firstIds.length],
+        tolerance
+      )
+      if (offset < 0 || offset <= bestOffset) continue
+      for (const second of around) {
+        if (second === first) continue
+        const secondIds = ids[second]
+        if (secondIds.length < 4) continue
+        const there = secondIds.indexOf(corner)
+        if (secondIds[(there - 1 + secondIds.length) % secondIds.length] !== b) continue
+        if (secondIds[(there + 1) % secondIds.length] !== a) continue
+        best = { corner, a, b, faces: [first, second] }
+        bestOffset = offset
+        break
+      }
+    }
+  }
+  return best
+}
+
+/**
+ * How far `point` lies from the segment `start`→`end`, when it is a corner the T-junction pass
+ * would insert there: within `tolerance` of the line and `tolerance` clear of both ends, the
+ * test {@link cornersOnEdge} applies. `-1` when it is not.
+ *
+ * @param {Vec3} start
+ * @param {Vec3} point
+ * @param {Vec3} end
+ * @param {number} tolerance
+ * @returns {number} Perpendicular distance in mm, or -1.
+ */
+function offsetFromSide(start, point, end, tolerance) {
+  const dx = end[0] - start[0]
+  const dy = end[1] - start[1]
+  const dz = end[2] - start[2]
+  const lengthSquared = dx * dx + dy * dy + dz * dz
+  if (lengthSquared === 0) return -1
+  const margin = tolerance / Math.sqrt(lengthSquared)
+  if (margin >= 0.5) return -1
+  const along = ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy + (point[2] - start[2]) * dz) / lengthSquared
+  if (along <= margin || along >= 1 - margin) return -1
+  const offX = start[0] + dx * along - point[0]
+  const offY = start[1] + dy * along - point[1]
+  const offZ = start[2] + dz * along - point[2]
+  const offset = Math.sqrt(offX * offX + offY * offY + offZ * offZ)
+  return offset > tolerance ? -1 : offset
 }
 
 /**

@@ -509,6 +509,16 @@ Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). 
 
 **Steps taken to resolve:** none needed; recorded so the next person does not rediscover it.
 
+### 2026-11-19 — A line starting with a `/** @type {...} */ (expr)` cast after an assignment with no semicolon is parsed as a call
+
+**What happened:** Writing `releasePinchedEdges` (`io-033`), `const visiting = ...` followed on the next line by `/** @type {Set<number>} */ (visitors.get(corner))` made the code throw at run time; the cast's parentheses became a call of the previous line's value.
+
+**Why it happened:** The repo writes no semicolons, and a line that starts with `(` continues the previous expression. A JSDoc cast is exactly that: a comment, then `(`.
+
+**Fix / Prevention:** put the cast on the right of the assignment (`const visiting = /** @type {...} */ (expr)`) rather than starting a statement with it; never start a line with `(`, `[` or a backtick.
+
+**Steps taken to resolve:** moved the cast onto the assignment's right side; the spec then ran.
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

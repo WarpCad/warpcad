@@ -843,6 +843,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | ✅ `io-037` | The gist token check now rejects a token with no Gists permission at Connect. The probe is `POST /gists {"files":{}}` (422 granted, 403 missing, both measured 2026-11-18); the old `PATCH /gists/000…` answered 404 either way. Filed 2026-11-17 from OWNER.md U5 | Finding | — | gist share |
+| ✅ `io-033` | Closed the one 1.4 micrometre four-face edge left in the 96k cut scan's STL export. A new last pass, `releasePinchedEdges`, takes the corner the T-junction pass wrongly put on a second line out of the two faces, moving no coordinate. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | ✅ `io-032` | Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a flat-face sliver cleanup (`flatFaces.js`). Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | ✅ `ai-040` | Show a body's variable bindings in describe_scene so a model finds set_variable. Filed 2026-11-15 from the `testing-032` MCP drive of `ai-014` #1 | Finding | — | 21 |
 | ✅ `testing-038` | A `storybook-<engine>` Playwright project per engine runs `e2e/*.story.e2e.js` against a built Storybook (`scripts/serve-static.mjs`, port 6006, built only when a run can reach a story spec). `e2e/base-components.story.e2e.js` snapshots 13 base-component states in a light and a dark scheme (78 baselines across three engines, 352 KB); the rotation adds the project of each engine in its pair (about 8 s build plus 26 s of tests). `ui-116` and `ui-117` waived snapshots are now produced. [`done/testing-038`](done/testing-038-storybook-playwright-project.md) | Finding | — | none (test infrastructure only) |
@@ -1484,5 +1485,6 @@ convention going forward.
 | `ai-046` | 2026-11-18 21:10 | ~25m (tool, spec, docs; one schema fix after the first typecheck) |
 | `ai-047` | 2026-11-18 21:35 | ~25m (scoped to the consumption rule; unit, 44 e2e on two projects; no model drive) |
 | `ai-048` | 2026-11-18 21:55 | ~30m (new wall-sized recipe, 5 specs, docs; kernel drive on a Pi-sized shell) |
+| `io-033` | 2026-11-19 16:35 | ~30m (opus half not timed; unit, pair run, scenario 11/26 specs on four projects, CuraEngine on the 96k cut) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

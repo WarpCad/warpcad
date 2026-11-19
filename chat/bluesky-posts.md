@@ -3408,3 +3408,14 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** 838.4 to 694.0 kB, usable 4324 ms both → bench/results/2026-11-19-perf-006.md; buffered boot errors → src/core/errorReporting.spec.js (this diff).
 **To Add:** none
 ---
+
+---
+
+## 2026-11-19T16:45:00Z — One pinched edge left in a cut 3D scan export is closed
+
+**Post:** One 1.4 micrometre edge was still shared by four triangles in WarpCad's STL export of a 96,600-triangle scan with a cut in it. A repair step had put a corner on two lines where it belonged on one. It now takes it back off, moving no coordinate, and the file has 0 open edges. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 96,600 triangles, one 1.4 micrometre four-face edge before, 0 open edges at 1e-5 mm and 1e-3 mm after → TODO/done/io-033 and src/core/kernel/watertightDense.spec.js (this diff, run this session); no coordinate moves → src/core/kernel/watertight.spec.js (this diff).
+**To Add:** none

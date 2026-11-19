@@ -185,6 +185,38 @@ describe('makeWatertight on a cut dense scan (FIND-io-031)', () => {
   }, DENSE_TIMEOUT_MS)
 })
 
+describe('makeWatertight on the 96,600-triangle cut scan (FIND-io-033)', () => {
+  /** @type {Geom3} */
+  let scan
+
+  beforeAll(() => {
+    // `bench/results/2026-11-15-io-031.md`'s 300 × 162 row: about two seconds, boolean and export.
+    const mesh = lumpyScan({ lon: 300, lat: 162 })
+    expect(mesh.triangleCount).toBe(96_600)
+    scan = placed(mesh, 25.4)
+  })
+
+  it('the uncut scan is closed and comes back from the repair untouched', () => {
+    expect(openEdgesOf(scan).openEdges).toBe(0)
+    expect(makeWatertight(scan)).toBe(scan)
+  }, DENSE_TIMEOUT_MS)
+
+  it('a 25 × 25 × 75 mm cube subtracted through the middle leaves no four-face edge', () => {
+    // Before the fix: one 1.4 µm edge on the pocket's ceiling used by four triangles, two each
+    // way, at 1e-5 mm and at 1e-3 mm alike. Two scan triangles cross the ceiling along lines
+    // 33° apart, and a corner exactly on one line sat 0.78 µm (under the 0.87 µm weld) off the
+    // other, 1.4 µm from where they meet, so the T-junction pass put it on both.
+    const result = booleans.subtract(scan, primitives.cuboid({ size: [25, 25, 75], center: centreOf(scan) }))
+    const stats = expectClosedExport(result)
+    expect(stats.triangles).toBeGreaterThan(80_000)
+    const bytes = exportBodies([{ id: 'part', name: 'Part', geometry: result }], 'stl').bytes
+    const coarse = stlStats(bytes, 1e-3)
+    expect(coarse.open, `open edges of ${coarse.edges} at 1e-3 mm`).toBe(0)
+    expect(coarse.collapsed, 'triangles with two corners on one 1e-3 mm key').toBe(0)
+    expect(measurements.measureVolume(result)).toBeCloseTo(210_200.55, 1)
+  }, DENSE_TIMEOUT_MS)
+})
+
 /**
  * The flat-face slivers of a written file (`TODO/FIND-io-032`): triangles of a flat face of two or
  * more triangles whose height (twice the area over the longest side) is under a micrometre, the

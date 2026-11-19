@@ -4938,3 +4938,21 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 144 kB fetched at boot with a DSN → bench/results/2026-11-19-perf-006.md; 838.4 to 694.0 kB, usable 4324 ms both → same file; buffered boot errors → src/core/errorReporting.spec.js (this diff); fetch after first frame → src/firstFrame.js (this diff).
 **To Add:** none
 ---
+
+---
+
+## 2026-11-19T16:45:00Z — One pinched edge left in a cut 3D scan export is closed
+
+After the last export fix, one defect was left in WarpCad's STL output for a dense imported scan with a Subtract cut: a single 1.4 micrometre edge used by four triangles, two each way. The surface was closed everywhere else and the volume matched the kernel, but the docs promise every edge is shared by exactly two triangles.
+
+The cause was a corner placed on two lines. The repair that closes T-junctions inserted it into the faces on both, though it sits exactly on one line and only 0.78 micrometre from the other. The obvious fix, collapsing the short edge, would have moved a corner farther than the weld radius, and the earlier export work showed that kind of move opening a hole. So the new pass removes the extra corner from the two faces instead and moves nothing.
+
+The 96,600-triangle cut now exports 0 open edges at 1e-5 mm and 1e-3 mm, and CuraEngine 5.13.0 prints no mesh warning on it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** four-face edge, 1.4 micrometres, 0.78 micrometre off the second line, 0 open edges after → TODO/done/io-033 and src/core/kernel/watertightDense.spec.js (this diff); collapse rejected, io-031 hole → TODO/done/io-033 note; docs claim → docs/export.md; CuraEngine no warning → run this session on the exported 96k cut STL.
+**To Add:** none

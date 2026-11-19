@@ -59,6 +59,14 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### io-033 — One four-face edge in the 96k cut scan's STL (2026-11-19 UTC)
+
+`releasePinchedEdges` removes a wrongly inserted corner from two faces; no coordinate moves. The unit spec, the closed-finding benches and scenarios 11 and 26 are green; this row is the slicer check no scenario holds.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The 96,600-triangle cut scan's STL loads in CuraEngine 5.13.0 with no mesh warning | OK | Same stock Ultimaker Original invocation as `bench/results/2026-11-15-io-031.md`: no `Mesh has ...` line, only the benign `Failing to discretize`. |
+
 ### perf-006 — Sentry SDK fetch waits for the first frame (2026-11-19 16:20)
 
 The deployed-build measurement could not run before a deploy; everything locally drivable was driven.

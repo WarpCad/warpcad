@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import modeling from '@jscad/modeling'
 
-import { makeWatertight, openEdgesOf } from './watertight.js'
+import { makeWatertight, openEdgesOf, releasePinchedEdges } from './watertight.js'
 
 const { primitives, geometries, transforms, measurements, booleans } = modeling
 
@@ -164,6 +164,116 @@ describe('makeWatertight', () => {
     const once = makeWatertight(union)
     const twice = makeWatertight(once)
     expect(twice).toBe(once) // same object: the second pass found nothing to do
+  })
+})
+
+/**
+ * `FIND-io-033`'s pinch, by hand and in miniature. Two faces leave corner `o` (id 0) along
+ * lines `angle` degrees apart on the plane z = 0: one up the y axis through `w` (id 1, 1.6 µm
+ * from `o` and exactly on it), the other towards `a` (id 2, 10 mm out). With a 1 µm weld and
+ * 33°, `w` is 0.87 µm off the second line, so the T-junction pass would have put it there too.
+ *
+ * - `P` (scan face across the second line) walks a → w → o, then up to the apex (id 3).
+ * - `Q` (flat face beside it) walks o → w → a.
+ * - `R` (flat face beside the first line) walks w → o; `S` (scan face across it) walks o → w.
+ *
+ * So the side w–o is walked twice each way: four faces on one edge.
+ *
+ * @param {{ angle?: number, along?: number, triangleP?: boolean, extra?: number[] }} [options]
+ *   `along`: how far `w` is from `o`, mm. `triangleP`: P without its apex. `extra`: one more
+ *   polygon, by corner ids.
+ */
+function pinch(options = {}) {
+  const angle = ((options.angle ?? 33) * Math.PI) / 180
+  const along = options.along ?? 1.6e-3
+  /** @type {[number, number, number][]} */
+  const corners = [
+    [0, 0, 0],
+    [0, along, 0],
+    [10 * Math.sin(angle), 10 * Math.cos(angle), 0],
+    [0, 0, 5],
+    [10, 0, 0],
+    [-10, 0, 0],
+    [-10, along, 0],
+    [3, -4, 0],
+  ]
+  const loops = [options.triangleP ? [2, 1, 0] : [2, 1, 0, 3], [0, 1, 2, 4], [1, 0, 5, 6], [3, 0, 1]]
+  if (options.extra) loops.push(options.extra)
+  return {
+    corners,
+    polygons: loops.map((loop) => ({ vertices: loop.map((id) => corners[id]) })),
+    ids: loops.map((loop) => loop.slice()),
+    cornerCount: corners.length,
+    tolerance: 1e-3,
+  }
+}
+
+/** @param {number[][]} ids @param {number} from @param {number} to @returns {number} */
+function walks(ids, from, to) {
+  let count = 0
+  for (const loop of ids) for (let at = 0; at < loop.length; at += 1) if (loop[at] === from && loop[(at + 1) % loop.length] === to) count += 1
+  return count
+}
+
+describe('releasePinchedEdges (FIND-io-033)', () => {
+  it('takes the corner out of the two faces it was wrongly put on, and nothing else', () => {
+    const { corners, polygons, ids, cornerCount, tolerance } = pinch()
+    expect(walks(ids, 1, 0)).toBe(2)
+    expect(walks(ids, 0, 1)).toBe(2)
+    expect(releasePinchedEdges(polygons, ids, cornerCount, tolerance)).toBe(2)
+    expect(ids).toEqual([[2, 0, 3], [0, 2, 4], [1, 0, 5, 6], [3, 0, 1]])
+    // w–o is one face each way now, and so is the side a–o that replaced a → w → o.
+    expect([walks(ids, 1, 0), walks(ids, 0, 1), walks(ids, 2, 0), walks(ids, 0, 2)]).toEqual([1, 1, 1, 1])
+    // Nothing moves: every corner kept is the very coordinate it was.
+    expect(polygons[0].vertices).toEqual([corners[2], corners[0], corners[3]])
+    expect(polygons[0].vertices[0]).toBe(corners[2])
+    expect(polygons[1].vertices[1]).toBe(corners[2])
+    for (let index = 0; index < polygons.length; index += 1) {
+      expect(polygons[index].vertices).toEqual(ids[index].map((id) => corners[id]))
+    }
+  })
+
+  it('leaves a corner farther than the weld from the other line alone (60°: 1.39 µm off)', () => {
+    const { polygons, ids, cornerCount, tolerance } = pinch({ angle: 60 })
+    const before = structuredClone(ids)
+    expect(releasePinchedEdges(polygons, ids, cornerCount, tolerance)).toBe(0)
+    expect(ids).toEqual(before)
+  })
+
+  it('leaves a corner within the weld of the shared corner alone: that is a fuse, not a T-junction', () => {
+    // 0.9 µm from o, so 0.75 µm along the second line: inside the 1 µm end clearance.
+    const { polygons, ids, cornerCount, tolerance } = pinch({ along: 0.9e-3 })
+    const before = structuredClone(ids)
+    expect(releasePinchedEdges(polygons, ids, cornerCount, tolerance)).toBe(0)
+    expect(ids).toEqual(before)
+  })
+
+  it('never empties a triangle: a → w → o with nothing else is a real face', () => {
+    const { polygons, ids, cornerCount, tolerance } = pinch({ triangleP: true })
+    const before = structuredClone(ids)
+    expect(releasePinchedEdges(polygons, ids, cornerCount, tolerance)).toBe(0)
+    expect(ids).toEqual(before)
+  })
+
+  it('refuses when another face already walks the side the removal would make', () => {
+    const { polygons, ids, cornerCount, tolerance } = pinch({ extra: [0, 2, 7] })
+    const before = structuredClone(ids)
+    expect(releasePinchedEdges(polygons, ids, cornerCount, tolerance)).toBe(0)
+    expect(ids).toEqual(before)
+  })
+
+  it('does nothing to a closed surface', () => {
+    const polygons = geometries.geom3.toPolygons(primitives.cuboid({ size: [10, 10, 10] })).map((polygon) => ({ vertices: polygon.vertices.slice() }))
+    /** @type {Map<string, number>} */
+    const seen = new Map()
+    const ids = polygons.map((polygon) => polygon.vertices.map((vertex) => {
+      const key = vertex.join(',')
+      if (!seen.has(key)) seen.set(key, seen.size)
+      return /** @type {number} */ (seen.get(key))
+    }))
+    const before = structuredClone(ids)
+    expect(releasePinchedEdges(polygons, ids, seen.size, 1e-3)).toBe(0)
+    expect(ids).toEqual(before)
   })
 })
 
