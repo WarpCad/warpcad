@@ -4908,3 +4908,18 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** tongue refused, lid loose, tape/glue/screws → mcp/skills/create-enclosure/SKILL.md removed lines (this diff); exact containment check, a third of the wall after clearance, 0.5 mm floor → joint.tongueWall.js header and sizing code (this diff); 0.53 mm at 2 mm, 1.9 mm minimum → joint.tongueWall.spec.js, unit run 9829 passed this session; four tongues, two watertight pieces → TODO/done/ai-048 Shipped note (kernel drive, not re-run here); not printed, skill not re-run → TODO/done/ai-048 Shipped note and OWNER.md Q102
 **To Add:** none
+
+## 2026-11-19T14:02:27Z — WarpCad's roadmap check refuses a stale plan at push
+
+WarpCad keeps its build plan in one markdown file: the open work, the count of queued items, and the ids the findings table uses. The counts were typed by hand, and they drifted. A check now compares the summary counts and the findings ids against the ready rows, and the pre-push hook runs it, so a stale plan is refused before the push goes out.
+
+The check is a small Node script with three unit tests. A clean plan passes. A summary count one too high is caught. A findings row with no ready row, or the reverse, is caught. Today the plan passes it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** counts and ids hand-kept → scripts/roadmap-waits.mjs header comment (this diff); drifted when only /fix-todo Step 8 checked → .githooks/pre-push comment (this diff); three unit tests (clean, count one high, findings both ways) → scripts/roadmap-waits.spec.js (this diff); plan passes today → `node scripts/roadmap-waits.mjs` exit 0, this session
+**To Add:** none
+---

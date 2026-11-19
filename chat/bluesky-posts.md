@@ -3388,3 +3388,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** lid split used to skip the joint, 3.8 mm needed → joint.tongueWall.js header comment (this diff); 0.53 mm at 2 mm and 0.2 clearance → joint.tongueWall.spec.js "a 2 mm wall" test, unit run 9829 passed this session; not printed → OWNER.md Q102 background
 **To Add:** none
+
+## 2026-11-19T14:02:27Z — WarpCad's roadmap check refuses a stale plan at push
+
+**Post:** WarpCad's build plan has counts and ids typed by hand, so they drifted out of step with its tables. A pre-push check now compares them and refuses a stale plan before it leaves your machine. Built with Claude Code, reviewed by me. #OpenSource #CAD
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #CAD
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** counts and ids hand-kept → scripts/roadmap-waits.mjs header comment (this diff); drifted when only /fix-todo Step 8 checked → .githooks/pre-push comment (this diff); pre-push refuses → .githooks/pre-push runs roadmap-waits.mjs (this diff); plan passes today → `node scripts/roadmap-waits.mjs` exit 0, this session
+**To Add:** none
+---

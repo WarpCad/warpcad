@@ -9,4 +9,6 @@ refs="$(cat)"
 printf '%s\n' "$refs" | git lfs pre-push "$@" || exit $?
 # TODO/build-016: refuse commits by an author who has not signed the CLA (CLA.md). Local git only.
 printf '%s\n' "$refs" | node scripts/check-contributors.mjs || exit $?
+# A stale roadmap (counts, Findings ids, Waits-on cells) is refused here: it drifted when only /fix-todo Step 8 checked it.
+node scripts/roadmap-waits.mjs || exit $?
 printf '%s\n' "$refs" | node scripts/todo-progress.mjs stamp verify-push
