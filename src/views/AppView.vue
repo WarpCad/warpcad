@@ -840,6 +840,18 @@ function onInspectorClaim() {
   }
 }
 
+/* `TODO/ui-142`: at phone width the sheet's Half and Tall are taller (`ChatPanel.vue`); keep the
+   viewport's overlays above it at the same heights. */
+@media (max-width: 480px) {
+  .app__body[data-chat-sheet='half'] {
+    --layout-viewport-bottom-inset: calc(50dvh + 12px);
+  }
+
+  .app__body[data-chat-sheet='full'] {
+    --layout-viewport-bottom-inset: calc(68dvh + 12px);
+  }
+}
+
 /* Laptop: the chat is a persistent column, an explicit fourth grid cell. */
 @media (min-width: 1100px) {
   /* The fourth track stays on this media query so it always agrees with `ChatPanel.vue`'s own

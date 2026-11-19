@@ -360,6 +360,26 @@ const HEIGHTS = /** @type {const} */ ([
   --layout-chat-sheet-height: 60dvh;
 }
 
+/*
+ * `TODO/ui-142`: at phone width the half sheet's header (two rows), model line, bar and composer
+ * used to leave the transcript a 26 px strip (0 with a body selected), so an activity row was out
+ * of sight until Tall. Half is taller here, Tall taller still, and the connection line (the
+ * header's dot already shows the state; a failure still shows its text) folds away in Half.
+ */
+@media (max-width: 480px) {
+  .chat[data-sheet='half'] {
+    --layout-chat-sheet-height: 50dvh;
+  }
+
+  .chat[data-sheet='full'] {
+    --layout-chat-sheet-height: 68dvh;
+  }
+
+  .chat[data-sheet='half'] .chat__connection:not([data-status='failed']) {
+    display: none;
+  }
+}
+
 .chat__help {
   /* A 44px target that adds no height to the Model line. */
   margin: -6px -8px -6px auto;

@@ -3509,3 +3509,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** picker at the bottom of Help and only once the page loaded → TODO/done/ui-151; File > Appearance, Help copy kept and no longer gated → this session; new spec green on chromium, webkit and firefox at phone, tablet and laptop (45 of 45) → this session.
 **To Add:** none
 ---
+
+## 2026-11-19T22:50:00Z — The half-height Assistant sheet now shows what it changed
+
+**Post:** On a phone, WarpCad's Assistant sheet at half height left the transcript a 26 px strip, so you saw its last words and none of what it changed. Half is now taller and drops a status line, so the activity row and Undo AI turn show together. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** transcript 26 px (0 px with a body selected) at 390x844 in Half → VERIFY.md ai-014 #2; row inside the transcript, at least 40 px, on nine engine-viewport projects → e2e/ai-half-sheet.e2e.js, this session.
+**To Add:** none
+---

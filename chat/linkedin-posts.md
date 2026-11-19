@@ -5095,3 +5095,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** picker location and the ready gate → TODO/done/ui-151; spec 45 of 45 across nine projects, tiles 44 px or taller, no sideways overflow → this session; fonts blocked, nine buttons still drawn, no CSP error → this session.
 **To Add:** none
 ---
+
+## 2026-11-19T22:50:00Z — Half a chat sheet should show half the story
+
+**Post:** I drove the in-app Assistant at phone size and found that its half-height sheet was mostly chrome. The header wrapped to two rows, then a model line, a button bar and the composer, and the transcript got 26 px (zero once a part was selected). You could read the Assistant's last sentence, but not the activity row saying what it had changed; you had to press Tall.
+
+The fix was heights, not folding. At phone width Half is now half the screen, Tall is two thirds, and the static connection line folds away in Half (a failure still shows its text, and the header dot keeps the state). The transcript is about 145 px, enough for the row and the reply, with Undo AI turn still one tap away.
+
+The test is a scripted Assistant turn that places a cube, then measures the row's box against the transcript's box, on chromium, webkit and firefox at phone, tablet and laptop. It failed first for the right reason: the row sat 55 px above the transcript's top edge.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 26 px and 0 px transcript → VERIFY.md ai-014 #2; red run, row 642 px against a transcript starting at 697 px → this session; green on nine projects, pair webkit-phone + firefox-tablet → this session.
+**To Add:** none
+---

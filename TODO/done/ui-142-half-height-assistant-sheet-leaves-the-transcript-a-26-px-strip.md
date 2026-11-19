@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from VERIFY.md ai-014 #2 (TODO/testing-044)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19):** the first option, with heights rather than folding rows. At 480 px and under, Half is 50dvh (was 36dvh) and Tall 68dvh (was 60dvh), the viewport's overlay inset follows (`AppView.vue`), and the static connection line folds away in Half (a failure still shows its text). The transcript is about 145 px in Half, with a body selected too. `e2e/ai-half-sheet.e2e.js` (scripted provider, dev host) asserts it on nine projects. `docs/ai-partner.md` does not describe the sheet height, so no prose changed; one still (`assistant-save-proposal`) was refreshed.
 
 ## Problem
 

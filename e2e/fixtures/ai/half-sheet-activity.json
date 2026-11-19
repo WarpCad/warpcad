@@ -1,0 +1,24 @@
+{
+  "name": "half-sheet-activity",
+  "tools": {
+    "create": "d5d1acf6"
+  },
+  "turns": [
+    {
+      "text": "Placing one cube so the sheet has an activity row to show.",
+      "calls": [
+        {
+          "name": "create",
+          "input": {
+            "op": "primitive.cuboid",
+            "positionMm": [0, 0, 0],
+            "rationale": "a cube for the half-height sheet check"
+          }
+        }
+      ]
+    },
+    {
+      "text": "Placed one cube."
+    }
+  ]
+}
