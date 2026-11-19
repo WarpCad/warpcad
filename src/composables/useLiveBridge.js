@@ -27,6 +27,7 @@
  */
 
 import { BRIDGE_EVENT, parseHostMessage } from '../ai/bridge/protocol.js'
+import { nativeSurface } from '../ai/bridge/mcpSurface.js'
 import { createPreviewTransport, newPreviewTabId } from '../ai/bridge/previewTransport.js'
 import { createNativeLink, rotateNativeToken } from '../native/mcp.js'
 import { isNativeShell, probeShell } from '../native/shell.js'
@@ -62,7 +63,7 @@ let heldStatus = null
 
 /** The page's MCP surface for the native host, built from the one registry when access is enabled. */
 async function pageSurface() {
-  const [{ createToolRegistry }, { nativeSurface }] = await Promise.all([import('../ai/tools/index.js'), import('../ai/bridge/mcpSurface.js')])
+  const { createToolRegistry } = await import('../ai/tools/index.js')
   return nativeSurface(createToolRegistry())
 }
 
