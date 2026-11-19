@@ -6,8 +6,11 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from OWNER.md Q10 (VERIFY.md docs-020 #1)
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-19).** Paragraph reworded and both GIFs captioned in `docs/ai-partner.md`. Both movies re-recorded with the two dark twins the media check requires (four GIFs), converted through a scoped moviesDir, never `docs:gifs`. The wing movie ends on the Home view stepped in and held; the wing GIF dropped from 10 to 8 fps to stay inside the size budget. The drawing movie scrolls to the Image-sent notice and holds 3.5 s. The cold read (one fresh agent) found it CLEAR; its leftover note (parts are small in the wing frame) is logged in VERIFY.md.
+
 
 ## Problem
 

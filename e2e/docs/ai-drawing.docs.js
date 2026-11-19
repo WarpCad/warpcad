@@ -76,7 +76,14 @@ test('ai-drawing-to-group', { tag: '@movie' }, async ({ page }, info) => {
   await page.getByTestId('ai-send').click()
   await expect(page.getByTestId('ai-save-proposal')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
-  await page.waitForTimeout(1500)
+  await page.waitForTimeout(800)
+  // `TODO/docs-037`: hold on the image notice long enough to read it, then return to the proposal.
+  const notice = page.getByTestId('ai-notice').filter({ hasText: 'Image sent to Anthropic' })
+  await notice.scrollIntoViewIfNeeded()
+  await expect(notice).toBeVisible()
+  await page.waitForTimeout(3500)
+  await page.getByTestId('ai-save-proposal').scrollIntoViewIfNeeded()
+  await page.waitForTimeout(1200)
   // Nothing is in My parts until Confirm.
   await expect(page.getByTestId('library-user-count')).toHaveText('0')
   const confirm = page.getByTestId('ai-save-confirm')

@@ -92,7 +92,17 @@ test.describe('docs media: the chat panel (scripted provider)', () => {
     await askForWing(page, 18)
     await settle(page)
     await page.getByTestId('ai-transcript').evaluate((el) => el.scrollTo(0, el.scrollHeight))
-    await page.waitForTimeout(1800)
-    await endMovie(page, 'ai-wing-airfoil', { fps: 10, width: 720 })
+    await page.waitForTimeout(1200)
+    // `TODO/docs-037`: end on the home (isometric) view, held for a beat, so the four bodies read as a wing.
+    await page.getByTestId('gizmo-view-home').click()
+    await page.waitForTimeout(500)
+    // Step in so the wing, fuselage, tailplane and fin fill the view rather than sit small in it.
+    const zoomIn = page.getByTestId('nav-zoom-in')
+    for (let i = 0; i < 2; i++) {
+      await zoomIn.click()
+      await page.waitForTimeout(300)
+    }
+    await page.waitForTimeout(1900)
+    await endMovie(page, 'ai-wing-airfoil', { fps: 8, width: 720 })
   })
 })

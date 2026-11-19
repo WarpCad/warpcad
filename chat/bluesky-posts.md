@@ -3449,3 +3449,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** lines stayed on the old box mid-drag, reviewers split → TODO/done/ui-139 and TODO/VERIFY.md ui-012 #1 (testing-029); hidden mid-drag, back at 40 mm on release → e2e/gizmo-transform.e2e.js (this diff, run this session).
 **To Add:** none
 ---
+
+## 2026-11-19T19:05:00Z — WarpCad's Assistant docs say what "Scripted" means
+
+**Post:** WarpCad's Assistant help page showed a "Scripted" badge in its pictures and explained it in jargon. Two cold readers split. I reworded it to one plain sentence (a recorded replay, no model, no key, no network) and re-recorded the two movies so the wing and the image notice are readable. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two readers split, owner chose reword + re-record → TODO/done/docs-037 and TODO/VERIFY.md docs-020 #1 (testing-029); movies re-recorded, docs-media spec green → this session; fresh-agent cold read CLEAR → VERIFY.md docs-020 #1.
+**To Add:** none
+---

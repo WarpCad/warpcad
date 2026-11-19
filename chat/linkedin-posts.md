@@ -5007,3 +5007,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** per-frame kernel measuring avoided → src/composables/useSelectedBody.js comment (existing); lines 0 mid-drag, 3 at release, 40 mm → e2e/gizmo-transform.e2e.js and my real-mouse drive on three engines (this session); translate keeps lines → same spec.
 **To Add:** none
 ---
+
+## 2026-11-19T19:05:00Z — Explaining a badge that only exists in the screenshots
+
+**Post:** WarpCad's help pages use a recorded replay of the AI Assistant for their pictures, so no model, key or network is involved. The panel in those pictures wears a "Scripted" badge that a real user's chat never shows. The page explained that in jargon ("a recorded turn"), and two cold readers split on whether they could follow it. One also said the wing the Assistant builds did not read as a wing, and that the movie never explained the "Connected" line or the image notice.
+
+The fix is mostly words. The paragraph now opens with one plain sentence: the pictures come from a recorded example that replays in the app, which is why they carry a badge your own chat will not have, and then says what the Connected line looks like. Each movie got a caption naming what landed. The wing movie ends on the angled Home view, stepped in and held. The drawing movie holds on the "Image sent to Anthropic" notice.
+
+I re-recorded only those two movies, and their dark twins, rather than regenerating every GIF on the site. A fresh reader given just the paragraph and the frames found it clear, with one leftover note: the tailplane and fin are small in the wing frame.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** reader split and the owner's choice → TODO/done/docs-037; four GIFs changed, no others → git status this session; cold-read verdict and leftover note → TODO/VERIFY.md docs-020 #1.
+**To Add:** none
+---

@@ -149,11 +149,19 @@ viewport. Open **History** and its rows are marked as written by the Assistant.
 
 ![The Assistant panel after a turn: a column beside the viewport with activity rows Created Sketch 1 and Created Cube 1 to 3, a printability warning, the reply, Undo AI turn and the token line, and the finished wing model in the 3D view](./screenshots/ai-chat-panel.png)
 
-![Asking for a model wing: the prompt is typed and sent, activity rows stream in for the sketch and the other parts, and four bodies appear in the viewport](./media/ai-wing-airfoil.gif)
+![Asking for a model wing: the prompt is typed and sent, activity rows stream in for the sketch and the other parts, and four bodies appear in the viewport; the view then settles on the Home angle with the Objects list naming them](./media/ai-wing-airfoil.gif)
 
-The pictures above were made with the app's built-in **scripted replay** (a recorded turn, so the
-panel wears a *Scripted* badge): no model, no key and no network were involved. Your own chat shows
-a *Connected* line instead of the badge.
+*What landed:* four separate bodies, listed in the Inspector as Sketch 1, Cube 1, Cube 2 and Cube 3. Sketch 1 is the
+wing itself, the tall tapered panel on the right, made from an airfoil drawn in the sketch tool and extruded to
+200 mm of span. The cubes are the fuselage (the tall box), the tailplane (the thin flat piece beside it) and the
+fin. The movie ends on the Home (angled) view, stepped in a little, and holds there, so you can see all four. The red
+warning in the panel is the Assistant's own printability check: the wing's trailing edge comes to a point, thinner
+than a 0.4 mm nozzle can print, and it says so in its reply.
+
+The pictures on this page come from a recorded example that the app replays: no model, no key and no
+network are involved. That is why the panel in them carries a **Scripted** badge. Your own chat will not have
+one. When your own key is working, the panel shows a **Connected** line instead (for example, *Connected:
+Claude Opus*), and the Assistant's replies come from the live model.
 
 On a tablet the same chat is a sheet over the bottom of the screen, and the model stays visible above it:
 
@@ -323,7 +331,13 @@ part.
 
 ![On a phone, the half-height Assistant sheet over the viewport: the built board is selected above it, and a card reads "Save WC-85 board to My parts?" with Confirm and Not now buttons and "Nothing is saved until you tap Confirm."](./screenshots/assistant-save-proposal.png)
 
-![Attaching a drawing, asking for a library part, the Assistant building the board as a named group on the drawing and proposing a save, then Confirm: the part appears in My parts](./media/ai-drawing-to-group.gif)
+![Attaching a drawing, asking for a library part, the Assistant building the board as a named group on the drawing and proposing a save, then Confirm: the part appears in My parts. The panel shows its Connected line and, after you send, the Image sent notice](./media/ai-drawing-to-group.gif)
+
+*In the movie:* the **Connected** line at the top of the panel is the one a working key shows (the movie uses a
+made-up key and a recorded reply, so the panel shows no **Scripted** badge here). Right after **Send**, a
+notice reads *Image sent to Anthropic with your request and billed to your own API key. It is not sent anywhere
+else.* The movie pauses on it. Further down, the row *Proposed saving "WC-85 board" to My parts* is followed by a
+card with **Confirm**; nothing is saved until you press it.
 
 The image goes only to Anthropic, inside your own request and billed to your own API key. The first time you
 send one in a project, the chat says *Image sent*. Only the copy you build on is kept in the

@@ -493,16 +493,16 @@
   "ai-drawing-to-group.gif": {
     "spec": "e2e/docs/ai-drawing.docs.js",
     "theme": "light",
-    "specHash": "93e8f860c98b6771742c26538e4f0cdd726531be330a2898626e658c319882d8",
-    "bytes": 888443,
-    "seconds": 9.88
+    "specHash": "c4dd19910bb1de43da104de1a5986fbae66f18db2c1a3dddd401453d490ece8e",
+    "bytes": 1262744,
+    "seconds": 14.26
   },
   "ai-wing-airfoil.gif": {
     "spec": "e2e/docs/ai-chat.docs.js",
     "theme": "light",
-    "specHash": "d2f8c6613c5b99ddc9e975ec489372251b1b135212ac6571779917a0ccf0754d",
-    "bytes": 1842020,
-    "seconds": 8.5
+    "specHash": "e6ee2fc9acaeaad0628386c220105169352c1217df8262967d3b07a778071c84",
+    "bytes": 1846053,
+    "seconds": 11.51
   },
   "sketch-select-delete.gif": {
     "spec": "e2e/docs/sketch-select.docs.js",
@@ -542,16 +542,16 @@
   "ai-drawing-to-group.dark.gif": {
     "spec": "e2e/docs/ai-drawing.docs.js",
     "theme": "dark",
-    "specHash": "93e8f860c98b6771742c26538e4f0cdd726531be330a2898626e658c319882d8",
-    "bytes": 1593353,
-    "seconds": 10.01
+    "specHash": "c4dd19910bb1de43da104de1a5986fbae66f18db2c1a3dddd401453d490ece8e",
+    "bytes": 1516007,
+    "seconds": 14.38
   },
   "ai-wing-airfoil.dark.gif": {
     "spec": "e2e/docs/ai-chat.docs.js",
     "theme": "dark",
-    "specHash": "d2f8c6613c5b99ddc9e975ec489372251b1b135212ac6571779917a0ccf0754d",
-    "bytes": 1791878,
-    "seconds": 8.4
+    "specHash": "e6ee2fc9acaeaad0628386c220105169352c1217df8262967d3b07a778071c84",
+    "bytes": 2214294,
+    "seconds": 11.38
   },
   "align-operation.dark.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
