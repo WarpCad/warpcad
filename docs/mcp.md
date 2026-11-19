@@ -146,16 +146,58 @@ Claude calls `describe_step { "id": "group-1", "part": "Pin" }` and reads that t
 ```json
 { "steps": [
   { "copy": { "id": "group-1", "part": "Pin", "name": "Pin cutter" } },
-  { "operate": { "op": "modify.enlarge", "operands": [{ "id": "@1" }], "params": { "deltaMm": [0.4, 0.4, 0.4] } } },
+  { "operate": { "op": "modify.offset", "operands": [{ "id": "@1" }], "params": { "distanceMm": 0.2 } } },
   { "operate": { "op": "boolean.subtract", "operands": [{ "id": "group-1", "pieces": "Base" }, { "id": "@2" }] } }
 ] }
 ```
 
-The copy is a cylinder standing exactly where the pin is. It is grown by 0.4 mm and cut out of
-`Base`. Open the file in the app: the History has four new rows (the copy, its name, the grow and
-the cut), the cut result still has both parts, and the hole in `Base` is 8.4 mm across, leaving
-0.2 mm all round the pin. The result is named *Subtract 1*. Claude renames it back to *Bracket*
-with `operate` and `style.rename`.
+The copy is a cylinder standing exactly where the pin is. Its faces are moved out by 0.2 mm and
+it is cut out of `Base`. Open the file in the app: the History has four new rows (the copy, its
+name, the offset and the cut), the cut result still has both parts, and the hole in `Base` is
+8.4 mm across, leaving 0.2 mm all round the pin. The result is named *Subtract 1*. Claude renames
+it back to *Bracket* with `operate` and `style.rename`.
+
+**Offsetting a shape.** `operate` with `modify.offset` moves every face of one body along its own
+outward normal by `distanceMm`, so the distance is the gap you get: `0.2` opens 0.2 mm on every
+face. A negative distance shrinks the part. A hole through the part goes the other way (a
+positive offset makes the hole smaller), because the hole's faces point into the hole. A distance
+of `0` returns the body as it was.
+
+The result is exact for boxes, L-shapes, other straight-sided extrusions and cylinders, where
+every corner is met by three faces. It is approximate on a sphere and at a cone's tip, where
+more than three faces meet at a point that the moved faces no longer share. Sharp corners stay
+sharp: the offset does not round them. A group is offset part by part.
+
+The call is refused, with the distance and where it failed, when the offset would change the
+part's shape rather than its size:
+
+- an edge reverses or a face folds over (a wall or pin thinner than twice the distance, when
+  shrinking);
+- a slit or gap closes (two faces that face each other meet, when growing);
+- two faces that do not touch now cross;
+- two faces in one plane that face opposite ways meet at a corner (a part flush with another's
+  face and running past it);
+- the body is empty, or `distanceMm` is not a finite number.
+
+When it refuses, fall back to `modify.enlarge` for a box or a cylinder, or tell the user which
+feature is too thin.
+
+**Example: a cutter that is 0.2 mm bigger.** In a project with a part `A` (id `cuboid-1`) that
+sits inside a part `B` (id `cuboid-2`), ask Claude Code *cut a pocket for A with 0.2 mm all
+round*. Claude sends one change: copy `A` as `@1`, offset `@1` by 0.2 as `@2`, and subtract `@2`
+from `B`:
+
+```json
+{ "steps": [
+  { "copy": { "id": "cuboid-1", "name": "A cutter" } },
+  { "operate": { "op": "modify.offset", "operands": [{ "id": "@1" }], "params": { "distanceMm": 0.2 } } },
+  { "operate": { "op": "boolean.subtract", "operands": [{ "id": "cuboid-2" }, { "id": "@2" }] } }
+] }
+```
+
+Open the file in the app: the History shows the copy, an *Offset* row and the subtract, and `B`
+has a pocket 0.4 mm wider and deeper than `A`, so `check_clearance` between `A` and `B` reads
+0.2 mm.
 
 **Example: make the base wider.** In a project with a 20 mm cube `Base 1` (id `cuboid-1`) and a
 small cube snapped on top of it, ask Claude Code *make the base 30 mm wide and 40 mm tall*. Claude

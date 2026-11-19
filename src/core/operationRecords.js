@@ -62,6 +62,7 @@ export const IN_PLACE_PREFIXES = Object.freeze({
   'modify.filletRim': 'fillet',
   'modify.chamferRim': 'chamfer',
   'modify.enlarge': 'enlarge',
+  'modify.offset': 'offset',
   'modify.fit': 'fit',
   'modify.bisect': 'bisect',
   'modify.splitWithJoint': 'split',

@@ -3419,3 +3419,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** 96,600 triangles, one 1.4 micrometre four-face edge before, 0 open edges at 1e-5 mm and 1e-3 mm after → TODO/done/io-033 and src/core/kernel/watertightDense.spec.js (this diff, run this session); no coordinate moves → src/core/kernel/watertight.spec.js (this diff).
 **To Add:** none
+
+## 2026-11-19T17:50:00Z — WarpCad gets an offset that moves every face by the same distance
+
+**Post:** WarpCad now has an offset: every face moves along its own normal by one distance, so 0.2 mm of clearance is 0.2 mm on every face. The JSCAD expand call can't shrink and rounds every corner, so I wrote a mitred one. Exact on boxes, L-shapes and cylinders. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** expand throws on a negative delta, rounds convex edges, 2.6 s on a bored block → docs/decisions/geometry-kernel.md and src/core/kernel/offset.js (this diff); Housing clearance read back 0.2 mm → bench/results/ai/2026-11-19-offset-over-mcp.md (run this session).
+**To Add:** none
+---

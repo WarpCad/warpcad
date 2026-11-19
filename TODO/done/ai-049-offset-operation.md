@@ -6,8 +6,10 @@ priority: low
 model: opus
 milestone: none — Findings table, split from ai-044 (gap 5) on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19).** `modify.offset` (`distanceMm`) in `src/core/kernel/offset.js`, a mitred vertex offset rather than `@jscad/modeling`'s `expand` (which cannot shrink, rounds every convex edge and is slow; measured in `docs/decisions/geometry-kernel.md`, "Offsetting a solid"). Exact for boxes, L-shapes and cylinders; approximate on spheres and cone tips; refuses a distance past half the thinnest feature and opposed coplanar faces. `add-clearances` now uses it (`distanceMm: 0.2` for a 0.2 mm clearance, not 2 x), with `modify.enlarge` as the fallback. Re-drive on Housing: 0.2 mm exactly (`bench/results/ai/2026-11-19-offset-over-mcp.md`). Three assumed defaults are in OWNER.md as Q103 to Q105.
 
 ## Problem
 

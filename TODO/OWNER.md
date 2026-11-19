@@ -86,6 +86,54 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q105 · Should the offset leave grown corners sharp?
+
+**Question:** `ai-049`'s `modify.offset` moves every face by one distance and keeps each corner sharp, where a true constant-distance offset would round every convex edge of a grown part. Keep corners sharp?
+
+**Background:** Assumed yes: a clearance cutter for a printed part wants the same corner the part has, and `@jscad/modeling`'s `expand` (which rounds) was rejected for this reason (`docs/decisions/geometry-kernel.md`, "Offsetting a solid"). On a sphere or a cone tip the corner is approximate.
+
+**Options:**
+1. **Keep corners sharp (Recommended)**: matches the part's own corners.
+2. **Round grown corners**: a true offset, but a clearance cutter no longer has the part's corners.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** corners stay sharp.
+
+**Answer:** question
+
+#### Q104 · Should a group be offset part by part, with holes going the other way?
+
+**Question:** `modify.offset` on a group moves every face of every part by the distance, so a hole through a part gets smaller when the offset is positive (its faces point into the hole). Keep this?
+
+**Background:** Assumed yes: it is what "every face moves outward from the material" means, and a positive offset on a plate with a bore makes a cutter that fits a bigger plate. The other reading (grow the outline only) needs a way to tell a hole from a pocket.
+
+**Options:**
+1. **Part by part, holes the other way (Recommended)**: the geometric offset.
+2. **Outline only**: holes keep their size.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** parts offset one by one, holes shrink on growth.
+
+**Answer:** question
+
+#### Q103 · Should offset refuse two opposed faces in one plane rather than handle them?
+
+**Question:** `modify.offset` refuses a corner where two faces in one plane face opposite ways (a part flush with another's face and running past it, like the Pi's AV jack barrel under its block). Keep refusing, or build handling for it?
+
+**Background:** Assumed refuse: any distance would have to move that corner both ways, so there is no single right answer, and `add-clearances` falls back to `modify.enlarge`, which still works for boxes and cylinders. Handling it needs a rule for which face wins.
+
+**Options:**
+1. **Keep refusing (Recommended)**: honest, with a fallback.
+2. **File a task to handle it**: needs a rule for which face wins.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** it stays refused.
+
+**Answer:** question
+
 #### Q102 · Is a 0.53 mm lid tongue on a 2 mm enclosure wall acceptable?
 
 **Question:** `ai-048` lets `splitWithJoint` put a tongue in a 2 mm shell wall by sizing it from the wall: a 0.53 mm rib with 0.53 mm walls either side, one printed line. It only locates the lid. Keep this, or require a thicker wall for a tongue?

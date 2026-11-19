@@ -89,6 +89,7 @@ const VERBS = Object.freeze({
   'modify.filletRim': 'Fillet',
   'modify.chamferRim': 'Chamfer',
   'modify.enlarge': 'Resize',
+  'modify.offset': 'Offset',
   'modify.fit': 'Fit',
   'modify.bisect': 'Bisect',
   'transform.mirror': 'Mirror',

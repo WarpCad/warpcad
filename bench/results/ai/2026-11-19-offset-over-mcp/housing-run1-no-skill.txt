@@ -1,0 +1,56 @@
+# run-housing
+
+INIT model claude-haiku-5-5
+CALL mcp__warpcad__record_prompt {"prompt":"add 0.2 mm clearance to the group called Housing"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-6i2rav-1\",\"text\":\"add 0.2 mm clearance to the group called Housing\",\"truncated\":false},\"appended\":{\"file\":\"housing.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":1,\"bodies\":[{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}],\"intent\":\"scratch\"}],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+CALL mcp__warpcad__describe_body {"id":"placeholder"}
+  RESULT <document_data source="project" label="tool_result">{"error":"The document has no body \"placeholder\". Call describe_scene for the ids there are."}</document_data>
+CALL mcp__warpcad__describe_body {"id":"group-prmvni-5"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}],\"intent\":\"scratch\",\"recordId\":\"group-prmvni-5\",\"params\":{\"names\":[\"Base\",\"Pin\"]},\"positionMm\":[0,0,17.5],\"rotationDeg\":[0,0,0]}</document_data>"}]
+CALL mcp__warpcad__get_timeline {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"rollbackAt\":null,\"rows\":[{\"step\":1,\"id\":\"cuboid-prmvni-1\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 1\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":2,\"id\":\"cuboid-prmvni-2\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 2\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":3,\"id\":\"bool-prmvni-3\",\"op\":\"boolean.subtract\",\"label\":\"Subtract\",\"origin\":\"mcp\",\"
+CALL mcp__warpcad__list_ops {"detail":"summary"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"create\":[{\"op\":\"hardware.bearing\",\"label\":\"Bearing\",\"kind\":\"composite\",\"operandCount\":0,\"params\":[\"spec\"]},{\"op\":\"hardware.bolt\",\"label\":\"Bolt / screw\",\"kind\":\"composite\",\"operandCount\":0,\"params\":[\"type\",\"spec\",\"length\",\"fit\"]},{\"op\":\"hardware.nut\",\"label\":\"Nut\",\"kind\":\"composite\",\"operandCount\":0,\"params\":[\"spec\",\"fit\"]},{\"op\":\"hardware.washer\",\"label\":\"Washer\",\"kind\":\"composite\",\"operandCount\":0,\"params\":[\"spec\",\"fit\"]},{\"op\"
+CALL mcp__warpcad__describe_step {"id":"bool-prmvni-3"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":3,\"id\":\"bool-prmvni-3\",\"op\":\"boolean.subtract\",\"label\":\"Subtract\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"bool-prmvni-3\",\"params\":{},\"target\":\"cuboid-prmvni-1\",\"operands\":[\"cuboid-prmvni-2\"],\"onScreen\":false,\"consumedBy\":\"group-prmvni-5\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__describe_step {"id":"cuboid-prmvni-4"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":4,\"id\":\"cuboid-prmvni-4\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 3\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-4\",\"params\":{\"size\":[10,10,20],\"center\":[0,0,20]},\"onScreen\":false,\"consumedBy\":\"group-prmvni-5\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__describe_step {"id":"cuboid-prmvni-1"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":1,\"id\":\"cuboid-prmvni-1\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 1\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-1\",\"params\":{\"size\":[40,40,10],\"center\":[0,0,10]},\"onScreen\":false,\"consumedBy\":\"bool-prmvni-3\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__describe_step {"id":"cuboid-prmvni-2"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":2,\"id\":\"cuboid-prmvni-2\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 2\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-2\",\"params\":{\"size\":[10,10,12],\"center\":[0,0,11]},\"onScreen\":false,\"consumedBy\":\"bool-prmvni-3\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__set_params {"id":"group-prmvni-5","part":"Pin","params":[{"name":"size","value":[9.6,9.6,20]}],"request":"add 0.2 mm clearance to the group called Housing","rationale":"Shrink the Pin 0.2 mm per side in X and Y so it fits the 10 mm pocket in Base with 0.2 mm clearance."}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"edited\":{\"id\":\"group-prmvni-5\",\"part\":\"Pin\",\"params\":{\"size\":[9.6,9.6,20]}},\"scene\":{\"count\":1,\"bodies\":[{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}]}],\"rolledBack\":null,\"inactiveBodies\":[]},\"appended\":{\"file\":\"housing.ndjson\",\"rows\":[]},\"revised\":{\"file\":\"housing.ndjson\",\"rows\":[{\"step\
+CALL mcp__warpcad__describe_body {"id":"group-prmvni-5"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}],\"intent\":\"scratch\",\"recordId\":\"group-prmvni-5\",\"params\":{\"names\":[\"Base\",\"Pin\"]},\"positionMm\":[0,0,17.5],\"rotationDeg\":[0,0,0]}</document_data>"}]
+CALL mcp__warpcad__describe_step {"id":"cuboid-prmvni-4"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":4,\"id\":\"cuboid-prmvni-4\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 3\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-4\",\"params\":{\"size\":[9.6,9.6,20],\"center\":[0,0,20]},\"onScreen\":false,\"consumedBy\":\"group-prmvni-5\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__check_clearance {"a":"group-prmvni-5","aPieces":"Pin","b":"group-prmvni-5","bPieces":"Base"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"a\":{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"pieces\":\"Pin\"},\"b\":{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"pieces\":\"Base\"},\"interpenetrating\":false,\"overlapVolumeMm3\":0,\"gapMm\":0.2,\"closestMm\":{\"onA\":[-4.8,-4.8,10],\"onB\":[-5,-4.8,10]},\"message\":\"0.2 mm apart at the closest point.\"}</document_data>"}]
+CALL mcp__warpcad__record_response {"response":"Added 0.2 mm clearance to the Housing group. The Pin part is now 9.6 × 9.6 × 20 mm (was 10 × 10 × 20), so it sits 0.2 mm inside the 10 mm pocket in Base on each side. Check: the closest gap between Pin and Base is 0.2 mm, with no overlap.\n\nProblems met: The request did not say which part gets the clearance. I took the Pin (the plug) as the part that shrinks, since the Base holds the pocket. The Pin's Z size and position are unchanged. Nothing else was edited."}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-6i2rav-1\",\"id\":\"reply-6i2rav-3\",\"text\":\"Added 0.2 mm clearance to the Housing group. The Pin part is now 9.6 × 9.6 × 20 mm (was 10 × 10 × 20), so it sits 0.2 mm inside the 10 mm pocket in Base on each side. Check: the closest gap between Pin and Base is 0.2 mm, with no overlap.\\n\\nProblems met: The request did not say which part gets the clearance. I took the Pin (the plug) as the part that shrinks, since the Base holds the pocket. The Pin's Z size and position are unc
+TEXT I added 0.2 mm clearance to Housing by shrinking its Pin part to 9.6 × 9.6 × 20 mm, down from 10 × 10 × 20 mm.
+
+`★ Insight ─────────────────────────────────────`
+- In a plug-and-socket fit, the clearance goes on the part that goes *into* the other, so the socket stays at its nominal size. Here the Base holds the 10 mm pocket, so the Pin is the part that shrinks.
+- The clearance is 0.2 mm per side, so each horizontal dimension loses 0.4 mm in total. That is why 10 becomes 9.6.
+`─────────────────────────────────────────────────`
+
+**Check:** `check_clearance` reports the closest gap between Pin and Base as 0.2 mm, with no overlap.
+
+**Decision for you:** the request didn't say which part should take the clearance. I chose the Pin, since the Base holds the pocket. If you meant the pocket to grow to 10.4 mm instead, say so and I'll change Base.
+
+FINAL I added 0.2 mm clearance to Housing by shrinking its Pin part to 9.6 × 9.6 × 20 mm, down from 10 × 10 × 20 mm.
+
+`★ Insight ─────────────────────────────────────`
+- In a plug-and-socket fit, the clearance goes on the part that goes *into* the other, so the socket stays at its nominal size. Here the Base holds the 10 mm pocket, so the Pin is the part that shrinks.
+- The clearance is 0.2 mm per side, so each horizontal dimension loses 0.4 mm in total. That is why 10 becomes 9.6.
+`─────────────────────────────────────────────────`
+
+**Check:** `check_clearance` reports the closest gap between Pin and Base as 0.2 mm, with no overlap.
+
+**Decision for you:** the request didn't say which part should take the clearance. I chose the Pin, since the Base holds the pocket. If you meant the pocket to grow to 10.4 mm instead, say so and I'll change Base.
+
+calls 15, turns 23, cost $0.021

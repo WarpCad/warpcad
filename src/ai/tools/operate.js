@@ -331,6 +331,12 @@ export const OPERATIONS = Object.freeze({
     objectSchema({ deltaMm: vectorSchema(3, 'Change in size per axis, [x, y, z] in millimetres.') }, ['deltaMm']),
     (params) => ({ deltaMm: params.deltaMm })
   ),
+  'modify.offset': inPlaceSpec(
+    'Offset',
+    'Move every face of a body along its own normal by one distance: positive grows the part and shrinks any hole through it, negative does the reverse. Exact for boxes, L-shapes, extrusions and cylinders; refused if the distance is more than half the thinnest wall (shrinking) or gap (growing).',
+    objectSchema({ distanceMm: { type: 'number', description: 'Distance every face moves, in millimetres. Negative shrinks.' } }, ['distanceMm']),
+    (params) => ({ distanceMm: params.distanceMm })
+  ),
   'modify.fit': inPlaceSpec(
     'Fit',
     'Scale a body to an absolute size; 0 on an axis leaves that axis alone.',

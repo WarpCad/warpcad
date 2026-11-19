@@ -4956,3 +4956,20 @@ Built with Claude Code, reviewed by me.
 **Disclosure:** Built with Claude Code, reviewed by me.
 **Evidence:** four-face edge, 1.4 micrometres, 0.78 micrometre off the second line, 0 open edges after → TODO/done/io-033 and src/core/kernel/watertightDense.spec.js (this diff); collapse rejected, io-031 hole → TODO/done/io-033 note; docs claim → docs/export.md; CuraEngine no warning → run this session on the exported 96k cut STL.
 **To Add:** none
+
+## 2026-11-19T17:50:00Z — An offset that is the same on every face
+
+WarpCad's clearance recipe used to grow a copy of a part by scaling it about its bounding-box centre. That is exact for a box or a cylinder and off for anything else, so a gap meant to be 0.2 mm could differ face to face.
+
+The obvious replacement, the expand call in JSCAD 2.13.0, cannot shrink a solid (it throws on a negative distance), rounds every convex edge, and took about 2.6 seconds on a 20 mm block with one bore. So the new `modify.offset` moves each corner to where the moved planes of the faces around it meet. It is exact where three faces meet, approximate on a sphere or a cone tip, and it refuses, naming the distance, when a wall or gap is thinner than twice the offset.
+
+Driven through Claude Code on the Housing fixture, the clearance skill now reads back a gap of 0.2 mm.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #3DPrinting #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** enlarge exact only for boxes and cylinders, expand throws/rounds/2.6 s → docs/decisions/geometry-kernel.md and src/core/kernel/offset.js (this diff); 0.2 mm read back → bench/results/ai/2026-11-19-offset-over-mcp.md (run this session).
+**To Add:** none
+---

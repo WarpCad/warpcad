@@ -730,6 +730,21 @@ describe('native builders', () => {
     expect(() => build('modify.enlarge', { params: {}, inputs: [brick] })).toThrow(/three finite/)
   })
 
+  // TODO/ai-049. The arithmetic is `offset.js`'s and `offset.spec.js` measures it; this
+  // checks the dispatch: one scalar `distanceMm`, every face moved by it.
+  it('modify.offset moves every face by one scalar distance, refusing a vector', () => {
+    const brick = build('primitive.cuboid', { params: { size: [10, 20, 30] } })
+    const grown = build('modify.offset', { params: { distanceMm: 0.5 }, inputs: [brick] })
+    const bounds = boundsOf(grown)
+    expect(bounds[1][0] - bounds[0][0]).toBeCloseTo(11, 9)
+    expect(bounds[1][1] - bounds[0][1]).toBeCloseTo(21, 9)
+    expect(bounds[1][2] - bounds[0][2]).toBeCloseTo(31, 9)
+    expect(bounds[0][0] + bounds[1][0]).toBeCloseTo(0, 9)
+    expect(() => build('modify.offset', { params: { distanceMm: [1, 1, 1] }, inputs: [brick] })).toThrow(/finite/)
+    expect(registry['modify.offset']).toMatchObject({ kind: 'native', operandCount: 1 })
+    expect(registry['modify.offset'].ui).toBeUndefined()
+  })
+
   it('modify.fit scales to absolute target sizes and honours keepAspectRatio', () => {
     const brick = build('primitive.cuboid', { params: { size: [10, 20, 30] } })
     const independent = boundsOf(

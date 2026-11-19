@@ -38,6 +38,7 @@ import modeling from '@jscad/modeling'
 const { booleans, extrusions, geometries, maths, measurements, primitives, transforms } = modeling
 
 import { chamferRim, filletRim } from './fillet.js'
+import { offset } from './offset.js'
 import {
   add,
   align,
@@ -2218,6 +2219,11 @@ export const registry = Object.freeze({
   // that `group.snap`'s identically-named param takes. Both are millimetres; only the
   // shape differs, and `enlarge` throws by name rather than coercing a scalar.
   'modify.enlarge': native(1, ({ params, inputs }) => enlarge(inputs[0], params.deltaMm)),
+
+  // `distanceMm` is one scalar: every face moves that far along its own normal
+  // (TODO/ai-049), so `0.2` is a 0.2 mm gap on every face, where `enlarge` needs
+  // `[0.4, 0.4, 0.4]` and is exact only for a box or a cylinder. A vector throws by name.
+  'modify.offset': native(1, ({ params, inputs }) => offset(inputs[0], params.distanceMm)),
 
   // `sizeMm` is an absolute target size, not a delta; a `0` on an axis means "leave
   // this one alone" (V1's own sentinel). See `fit`'s doc comment for the aspect-ratio

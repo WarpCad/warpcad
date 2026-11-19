@@ -819,8 +819,11 @@ function pinnedCorners(polygons, ids, cornerCount) {
  * The three rounded coordinates are hashed into a bucket and then compared exactly, so
  * a hash collision costs a comparison rather than a wrong answer. Two vertices get the
  * same id precisely when `` `${ix},${iy},${iz}` `` would have matched.
+ *
+ * Exported for `offset.js` (`TODO/ai-049`), which welds the repaired surface's corners
+ * the same way before it moves them.
  */
-class CornerIdentity {
+export class CornerIdentity {
   /** @param {number} epsilon */
   constructor(epsilon) {
     this.epsilon = epsilon

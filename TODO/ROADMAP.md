@@ -65,16 +65,15 @@ stashes only the failed task's own paths.
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed
 (43–66). Row numbers are stable ids, not positions: a gap means a row closed.
-**Opus tasks** (each splits into an Opus half and a Sonnet half): `ai-049`, `io-038`, `core-085`.
+**Opus tasks** (each splits into an Opus half and a Sonnet half): `io-038`, `core-085`.
 **New findings a task files** get a Findings row at the bottom of the table and the next free Next up number, unless the owner re-ranks them.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 21 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 20 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 108 | ▶ Ready | `FIND` | [`ai-049`](FIND-ai-049-offset-operation.md) An offset operation exact for any shape (split from `ai-044`) | opus |
 | 85 | ▶ Ready | `FIND` | [`ui-138`](FIND-ui-138-hover-tint-too-faint-on-light-bodies.md) Make the Objects-list hover tint clearly visible on light bodies (owner, Q8) | sonnet |
 | 86 | ▶ Ready | `FIND` | [`ui-139`](FIND-ui-139-hide-dimension-lines-during-a-rotate-drag.md) Hide the dimension lines while a rotate-ring drag is in progress (owner, Q9) | sonnet |
 | 87 | ▶ Ready | `FIND` | [`docs-037`](FIND-docs-037-assistant-docs-scripted-badge-and-gifs.md) Reword the Scripted-badge paragraph and re-record the two Assistant GIFs (owner, Q10) | sonnet |
@@ -183,7 +182,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`ui-149`](FIND-ui-149-nav-chrome-mode-buttons-real-44px-height.md) Give the navigation chrome's Orbit, Pan, Select and gear buttons real 44 px height by relaxing the ui-043 and ui-084 size budgets (split from ui-135) | finding | medium | sonnet | ▶ Ready (Next up row 101) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
-| [`ai-049`](FIND-ai-049-offset-operation.md) An offset operation exact for any shape (split from `ai-044`) | finding | low | opus | ▶ Ready (Next up row 108) |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
 | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns (M19) | feature | high | sonnet | Held (native) |
 | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
@@ -351,7 +349,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ai-049` | An offset operation exact for any shape. Split from `ai-044` on 2026-11-18 | Finding | — | none |
 | `ui-138` | Make the Objects-list hover tint clearly visible on light-blue and default bodies (ΔE00 5-8 today; owner chose to strengthen it, OWNER.md Q8, 2026-11-17) | Finding | — | 6 |
 | `ui-139` | Hide the dimension lines while a rotate-ring drag is in progress (owner, OWNER.md Q9, 2026-11-17) | Finding | — | 4 |
 | `docs-037` | Reword the Assistant page's Scripted-badge paragraph and re-record its two GIFs (owner, OWNER.md Q10, 2026-11-17) | Finding | — | none |
@@ -470,7 +467,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 21 queued + 1 held | 21 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 20 queued + 1 held | 20 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

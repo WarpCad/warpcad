@@ -278,4 +278,63 @@ Bolt/Nut/Washer as a composite recipe once a spec table exists.
 | §11 risk 1 | "may not have a clean V3 equivalent... needs a spike" | **Resolved.** Rim ops: yes, shipped. Edge fillet: no, and the kernel-fork question is now open and explicit above. |
 | §11 risk 6 (Bearing) | "most likely to actually need the native-op exception" | **Resolved.** Neither needs it as a *creation* op; Bearing is composite. |
 
+## Offsetting a solid
+
+Added 2026-11-19 for `TODO/ai-049`. The question: how does the kernel grow or shrink a solid so
+every face moves by one distance (a clearance cutter that is exactly 0.2 mm bigger, a part that is
+exactly 0.2 mm smaller)? The code is `src/core/kernel/offset.js` (`modify.offset`, param `distanceMm`).
+
+### What was measured
+
+`@jscad/modeling` 2.13.0's `expand` was tried first, as the TODO required:
+
+| Case | `expand` result |
+|---|---|
+| Negative delta (shrink) on a solid | **Throws** "radius must be positive". V3 has no solid erosion. |
+| A box grown by `d` | Every convex edge becomes a cylinder of radius `d` and every corner a sphere octant, so the box is no longer a box and does not match `modify.enlarge` even where enlarge is exact. |
+| Time: L-shaped part | about 20 ms |
+| Time: 32-segment cylinder | about 316 ms |
+| Time: 20 mm block with one 32-segment bore | about 2.6 s (104 polygons in, 930 out), a union of hundreds of pieces per call |
+
+`modify.offset` (a mitred vertex offset: each corner moves to where the moved planes of the faces
+around it meet) measured in under 5 ms on the Housing fixture's parts, 27 ms on the Pi board (436
+corners) and 155 ms on a plate with six 64-segment holes and a 128-segment boss (1,812 corners).
+
+### Options compared
+
+| Option | Shrink | Corners | Cost | Health (checked 2026-11-19) |
+|---|---|---|---|---|
+| `@jscad/modeling` `expand` | No | Rounded (`round`) or chamfered (`chamfer`), never sharp | 20 ms to 2.6 s on the cases above | 2.13.0, last published 2026-11-07, 1.6 MB unpacked, the kernel already in use |
+| `booleans.minkowski` `minkowskiSum` of the solid with a small cube or sphere | Grow only (no erosion, above) | With a sphere it returns bit-identical results to `expand` (finding 1), so every convex edge is rounded; with a cube it grows by `d` on each axis, not along each normal, so slanted faces move too little | Not timed here; same result as `expand` for the sphere case | Part of `@jscad/modeling` 2.13.0 (see the `expand` row) |
+| `modify.enlarge` (scale about the bounds centre) | Yes, but the same scale on every axis | Sharp | Instant | In-tree. **Exact only for boxes and cylinders**: for anything else the gap differs face to face |
+| `manifold-3d` (WASM) | Its offset is 2D (`CrossSection.offset`), so it does not offset a solid | n/a | n/a | 3.5.5, last published 2026-11-13, 2.8 MB unpacked, WASM. Already rejected as the kernel above |
+| `OpenCascade.js` (`BRepOffsetAPI_MakeOffsetShape`) | Yes | Sharp or rounded by mode | Fast, on a BREP | 1.1.1, last published 2023-03-23, 66.7 MB unpacked. Far heavier than the whole app; see the kernel question above |
+| **Mitred vertex offset (shipped)** | Yes | **Sharp**, exact where three faces meet | Under 160 ms on the largest case measured | In-tree, about one module, framework-free |
+
+### Rejection table
+
+| Rejected option | Specific reason |
+|---|---|
+| `expand` | Cannot shrink, rounds every convex edge so the result is not the shape a clearance needs, and is the slowest option (2.6 s for a block with one bore). |
+| `minkowskiSum` | Bit-identical to `expand` with a sphere (rounds every convex edge), and with a cube it moves slanted faces by the wrong amount. It also cannot shrink. |
+| `modify.enlarge` | Scales about the bounds centre, so only a box or a cylinder gets the same gap on every face. Kept as the fallback when an offset refuses. |
+| `manifold-3d` | Its offset is 2D only, and adopting its WASM kernel for one operation reverses the decision above. |
+| `OpenCascade.js` | 66.7 MB, unmaintained since 2023, and its offset belongs to the BREP kernel this project did not adopt. |
+
+### Known limits
+
+- **Approximate corners.** Where four or more faces with different planes meet at a point (a cone
+  tip, a sphere's facets) the moved planes need not share a point; the least-squares point is
+  used. Exact when they do share one (a regular pyramid's tip), approximate on a sphere.
+- **Opposed coplanar faces.** A corner where two faces in one plane face opposite ways (a part
+  flush with another's face and running past it, like the Pi's AV jack barrel under its block) is
+  refused, because any distance would have to move that corner both ways.
+- **Topology changes are refused, not repaired.** Past half of the thinnest wall, pin, gap or slot,
+  the true offset changes topology (a wall vanishes, two faces merge). A corner-moving offset
+  cannot do that, so it names the distance and where, and the caller falls back to
+  `modify.enlarge` or leaves the pair alone.
+- **Sharp corners are not rounded.** A true constant-distance offset would round every convex edge
+  of a grown part; this one keeps them sharp, which is what a clearance cutter for a printed part
+  wants, and is a choice the owner can reverse (`TODO/OWNER.md`).
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

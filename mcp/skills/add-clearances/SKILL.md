@@ -27,17 +27,17 @@ This rule is stated once here. The other steps refer back to it.
 
 ## 2. Open the gap, one pair at a time
 
-**If A was made by a single create step** (`describe_body` shows a Library op such as `primitive.cylinder`), cut B with a copy of A that is 2 × clearance bigger. `copy` makes a new body with A's op and params, standing exactly where A stands. Send it as one `apply_records { steps }` call, so the cutter and the cut land together:
+**If A was made by a single create step** (`describe_body` shows a Library op such as `primitive.cylinder`), cut B with a copy of A that is offset by the clearance. `copy` makes a new body with A's op and params, standing exactly where A stands. Send it as one `apply_records { steps }` call, so the cutter and the cut land together:
 
 ```
 apply_records { steps: [
   { copy: { id: "<A>", name: "<A's name> cutter" } },
-  { operate: { op: "modify.enlarge", operands: [{ id: "@1" }], params: { deltaMm: [0.4, 0.4, 0.4] } } },
+  { operate: { op: "modify.offset", operands: [{ id: "@1" }], params: { distanceMm: 0.2 } } },
   { operate: { op: "boolean.subtract", operands: [{ id: "<B>" }, { id: "@2" }] } }
 ] }
 ```
 
-- `deltaMm` is 2 × clearance on every axis, which gives the clearance on every face A meets. Where A sticks out of B, the extra growth is harmless. **Never put 0 on an axis**, even one the part slides along: measured on a round pin, `[0.4, 0.4, 0]` leaves the cutter the size of A (the gap stays 0), while `[0.4, 0.4, 0.4]` opens 0.2 mm.
+- `distanceMm` is the clearance itself, not twice it. Every face of the copy moves out by that distance, so every face A meets gets the clearance, and the offset is exact for a box, an L-shape and a round pin alike. Where A sticks out of B, the extra growth is harmless. If `modify.offset` refuses (a thin feature, or two faces in one plane facing opposite ways), say so, and for a box or a round pin fall back to `modify.enlarge` with `deltaMm` of `[0.4, 0.4, 0.4]` (2 × clearance on every axis, never 0 on an axis).
 - `copy` copies only the step that made A, not a later turn. If A has turned (its rotation is not `[0, 0, 0]`), add `{ operate: { op: "transform.rotate", operands: [{ id: "@1" }], params: { deltaDeg: <A's rotation> } } }` and then `{ operate: { op: "group.align", operands: [{ id: "@1" }, { id: "<A>" }], params: { axes: "xyz" } } }` after the copy step, and shift the later `@n` numbers to match.
 - The subtract uses up the cutter and returns B's new id. Use that id from now on.
 
@@ -46,7 +46,7 @@ apply_records { steps: [
 ```
 apply_records { steps: [
   { copy: { id: "<group>", part: "<A>", name: "<A> cutter" } },
-  { operate: { op: "modify.enlarge", operands: [{ id: "@1" }], params: { deltaMm: [0.4, 0.4, 0.4] } } },
+  { operate: { op: "modify.offset", operands: [{ id: "@1" }], params: { distanceMm: 0.2 } } },
   { operate: { op: "boolean.subtract", operands: [{ id: "<group>", pieces: "<B>" }, { id: "@2" }] } }
 ] }
 ```
@@ -55,13 +55,13 @@ The subtract returns a new id for the group (the last `applied` row's `bodyId`),
 
 If `describe_step` says A has no step of its own (it is made inside a recipe, like a Raspberry Pi's mounting hole), or A's op is not a Library op (a Union, say), `copy` refuses. If A is a box, measure it with `evaluate_formula`: `[<group>].[<A>].width`, `.depth`, `.height` and `.min.x`, `.min.y`, `.min.z`. Then use a `primitive.cuboid` of that size as the first step, with `positionMm` at the centre of its footprint and its lowest Z. If A has any other shape, do not build a cutter for it: say so, and leave that pair alone.
 
-**If A was built by several steps**, and has no hole running across the fit, shrink A instead: `operate { op: "modify.enlarge", operands: [{ id: "<A>" }], params: { deltaMm: [-0.4, -0.4, 0] } }`. Use 0 on the axis A slides in along. Enlarge scales the part about the centre of its bounds. That is exact for boxes and cylinders, and approximate for anything else.
+**If A was built by several steps**, and has no hole running across the fit, shrink A instead: `operate { op: "modify.offset", operands: [{ id: "<A>" }], params: { distanceMm: -0.2 } }`. The shrink takes the clearance off every face, and it is exact on facets. If it refuses because a wall or pin is thinner than twice the distance, say which feature, and leave that pair alone.
 
-**If the user may want to tune the fit later**, define the gap once. Call `define_variable { name: "clearance", kind: "number", value: 0.2, unit: "mm", min: 0, max: 1 }`. Then bind the enlarge's `deltaMm` slots to `define_formula { name: "clearanceTotal", formula: "2 * clearance" }` wherever `list_variables { id }` offers them. After that, a single `set_variable { name, value }` re-fits every pair.
+**If the user may want to tune the fit later**, define the gap once. Call `define_variable { name: "clearance", kind: "number", value: 0.2, unit: "mm", min: 0, max: 1 }`. Then bind the offset's `distanceMm` to `clearance` directly wherever `list_variables { id }` offers it (a fallback `modify.enlarge` binds its `deltaMm` slots to `define_formula { name: "clearanceTotal", formula: "2 * clearance" }`). After that, a single `set_variable { name, value }` re-fits every pair.
 
 ## 3. Check your work
 
-1. Call `check_clearance { a, b }` for every pair of separate bodies, and with `aPieces` and `bPieces` for every pair of parts in one group. There should be no overlap volume, and a gap within 0.05 mm of the clearance (curved faces are tessellated, so 0.2 mm reads about 0.198). A gap of 0 means a face still touches. Find that face, and open it or say why it stays.
+1. Call `check_clearance { a, b }` for every pair of separate bodies, and with `aPieces` and `bPieces` for every pair of parts in one group. There should be no overlap volume, and a gap within 0.01 mm of the clearance (an offset gives exactly the distance on a flat face; curved faces are tessellated, so 0.2 mm can read about 0.198). A gap of 0 means a face still touches. Find that face, and open it or say why it stays.
 2. Call `measure { ids }` on every whole body you changed. Its size should have changed by exactly what you meant, and by nothing else. For a part inside a group, check its size with `evaluate_formula`.
 3. Call `get_timeline` and confirm no step is broken.
 4. Call `check_printability { ids }` on each printed part. A clearance can thin a wall below 1.2 mm.

@@ -1,0 +1,103 @@
+# run-housing-3
+
+INIT model claude-haiku-5-5
+TEXT I'll load the WarpCad tools and the add-clearances skill first, since the server asks for `record_prompt` before any other call.
+CALL ToolSearch {"query":"select:mcp__warpcad__record_prompt,mcp__warpcad__describe_scene,mcp__warpcad__operate,mcp__warpcad__check_clearance,mcp__warpcad__set_params,mcp__warpcad__measure,ReadMcpResourceTool,mcp__warpcad__record_response,mcp__warpcad__get_timeline","max_results":12}
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__record_prompt"},{"type":"tool_reference","tool_name":"mcp__warpcad__describe_scene"},{"type":"tool_reference","tool_name":"mcp__warpcad__operate"},{"type":"tool_reference","tool_name":"mcp__warpcad__check_clearance"},{"type":"tool_reference","tool_name":"mcp__warpcad__set_params"},{"type":"tool_reference","tool_name":"mcp__warpcad__measure"},{"type":"tool_reference","tool_name":"ReadMcpResourceTool"},{"type":"tool_reference","tool_name":"mcp__warpcad__record_response"},{"type":"tool_reference","tool_name":"mcp__warpcad__get_timeline"}]
+CALL mcp__warpcad__record_prompt {"prompt":"add 0.2 mm clearance to the group called Housing"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"prompt\":{\"id\":\"prompt-azb4xh-1\",\"text\":\"add 0.2 mm clearance to the group called Housing\",\"truncated\":false},\"appended\":{\"file\":\"housing.ndjson\",\"rows\":[]}}</document_data>"}]
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"skill://add-clearances/SKILL.md"}
+  RESULT {"contents":[{"uri":"skill://add-clearances/SKILL.md","mimeType":"text/markdown","text":"---\nname: add-clearances\ndescription: Open a fit gap between WarpCad parts that must go together, such as a peg in a socket, a part in a pocket or a lid on a box. Use when the user asks for clearance, tolerance, a looser or tighter fit, or says printed parts do not fit.\nlicense: CC-BY-SA-4.0\n---\n\n# Add clearances to a group\n\nTakes a group of parts that must fit together, and opens a gap on every face where one part meets another. Every gap is a step in the History, so it survives a rebuild.\n\n## T
+CALL ReadMcpResourceTool {"server":"warpcad","uri":"warpcad://guide"}
+  RESULT {"contents":[{"uri":"warpcad://guide","mimeType":"text/markdown","text":"# WarpCad modelling guide\nYou are driving a WarpCad project from outside the app, over MCP. The tools are the ones in your tool list; each write is saved in the project's History with the design intent you give it.\nBesides rationale, every write tool takes request: the user's own words for what they asked, as received. Pass it on every write. Call record_prompt first with that request, before any write.\nWhen you finish, call record_response with your final message — including every problem you met: a deviation from the
+CALL mcp__warpcad__describe_scene {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"count\":1,\"bodies\":[{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"op\":\"group.assemble\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}],\"intent\":\"scratch\"}],\"rolledBack\":null,\"inactiveBodies\":[]}</document_data>"}]
+TEXT The Housing group has two parts, Base and Pin. Next I'll read how each was made and measure the gap between them.
+CALL mcp__warpcad__describe_step {"id":"group-prmvni-5","part":"Pin"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":4,\"id\":\"cuboid-prmvni-4\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 3\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-4\",\"part\":\"Pin\",\"partOf\":\"group-prmvni-5\",\"params\":{\"size\":[10,10,20],\"center\":[0,0,20]},\"onScreen\":false,\"consumedBy\":\"group-prmvni-5\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__describe_step {"id":"group-prmvni-5","part":"Base"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":3,\"id\":\"bool-prmvni-3\",\"op\":\"boolean.subtract\",\"label\":\"Subtract\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"bool-prmvni-3\",\"part\":\"Base\",\"partOf\":\"group-prmvni-5\",\"params\":{},\"target\":\"cuboid-prmvni-1\",\"operands\":[\"cuboid-prmvni-2\"],\"onScreen\":false,\"consumedBy\":\"group-prmvni-5\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__check_clearance {"a":"group-prmvni-5","aPieces":"Pin","b":"group-prmvni-5","bPieces":"Base"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"a\":{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"pieces\":\"Pin\"},\"b\":{\"id\":\"group-prmvni-5\",\"name\":\"Housing\",\"pieces\":\"Base\"},\"interpenetrating\":false,\"overlapVolumeMm3\":0,\"gapMm\":0,\"closestMm\":{\"onA\":[-5,-5,10],\"onB\":[-5,-5,10]},\"message\":\"They touch: no gap and no overlap.\"}</document_data>"}]
+TEXT The Pin is a 10 × 10 × 20 mm cuboid, and it touches the Base with zero gap. To see which face of the Base is the socket wall, I'll read the two cuboids the Base was cut from.
+CALL mcp__warpcad__describe_step {"id":"cuboid-prmvni-2"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":2,\"id\":\"cuboid-prmvni-2\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 2\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-2\",\"params\":{\"size\":[10,10,12],\"center\":[0,0,11]},\"onScreen\":false,\"consumedBy\":\"bool-prmvni-3\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+CALL mcp__warpcad__describe_step {"id":"cuboid-prmvni-1"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"step\":1,\"id\":\"cuboid-prmvni-1\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 1\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"bodyId\":\"cuboid-prmvni-1\",\"params\":{\"size\":[40,40,10],\"center\":[0,0,10]},\"onScreen\":false,\"consumedBy\":\"bool-prmvni-3\",\"suppressed\":false,\"active\":true,\"broken\":null}</document_data>"}]
+TEXT The Base is a 40 × 40 × 10 mm plate with a 10 × 10 mm square hole cut straight through it. The Pin is a 10 × 10 mm post that sits in that hole with zero gap, so the Pin is the part that goes in (A) and the Base is the part that is cut (B). The Pin was made by a single `primitive.cuboid` step, so the skill's copy-offset-subtract method applies. I'll grow a 0.2 mm cutter from the Pin and subtract it from the Base, so the hole becomes 10.4 mm square.
+CALL mcp__warpcad__apply_records {"steps":[{"copy":{"id":"group-prmvni-5","part":"Pin","name":"Pin cutter"}},{"operate":{"op":"modify.offset","operands":[{"id":"@1"}],"params":{"distanceMm":0.2},"request":"add 0.2 mm clearance to the group called Housing","rationale":"Grow the Pin cutter by the 0.2 mm per-side clearance"}},{"operate":{"op":"boolean.subtract","operands":[{"id":"group-prmvni-5","pieces":"Base"},{"id":"@2"}],"request":"add 0.2 mm clearance to the group called Housing","rationale":"Open the 0.2 mm fit gap in the Base hole around the Pin"}}]}
+  RESULT <document_data source="project" label="tool_result">{"error":"invalid input","reason":"input.steps[1].operate has unknown field \"request\"; input.steps[1].operate has unknown field \"rationale\"; input.steps[2].operate has unknown field \"request\"; input.steps[2].operate has unknown field \"rationale\""}</document_data>
+
+This tool's input schema was not in your prompt when you called it. If the error above is about the input, call ToolSearch with query "select:mcp__warpcad__apply_records" to load the tool, then call it again.
+TEXT The call failed because I guessed the `apply_records` schema. I'll load its real schema and retry.
+CALL ToolSearch {"query":"select:mcp__warpcad__apply_records","max_results":1}
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__apply_records"}]
+CALL mcp__warpcad__apply_records {"steps":[{"copy":{"id":"group-prmvni-5","part":"Pin","name":"Pin cutter"}},{"operate":{"op":"modify.offset","operands":[{"id":"@1"}],"params":{"distanceMm":0.2}}},{"operate":{"op":"boolean.subtract","operands":[{"id":"group-prmvni-5","pieces":"Base"},{"id":"@2"}]}}],"request":"add 0.2 mm clearance to the group called Housing","rationale":"Open the 0.2 mm per-side fit gap in the Base hole around the Pin"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"copy\",\"bodyId\":\"cuboid-azb4xh-6\",\"recordIds\":[\"cuboid-azb4xh-6\",\"cuboid-azb4xh-6-rename-azb4xh-7\"]},{\"batchStep\":2,\"tool\":\"operate\",\"bodyId\":\"cuboid-azb4xh-6\",\"recordIds\":[\"offset-azb4xh-8\"]},{\"batchStep\":3,\"tool\":\"operate\",\"bodyId\":\"bool-azb4xh-9\",\"recordIds\":[\"bool-azb4xh-9\"]}],\"scene\":{\"count\":1,\"bodies\":[{\"id\":\"bool-azb4xh-9\",\"name\":\"Subtract 2\",\"op\":\"boolean.subtract\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeM
+TEXT The subtract landed and returned a new group id, `bool-azb4xh-9`, named "Subtract 2". The skill says to give the group its old name back, so I'll rename it and then check the new gap.
+CALL mcp__warpcad__operate {"op":"style.rename","operands":[{"id":"bool-azb4xh-9"}],"params":{"name":"Housing"},"request":"add 0.2 mm clearance to the group called Housing","rationale":"Give the group back its name Housing after the cut"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"applied\":[{\"batchStep\":1,\"tool\":\"operate\",\"bodyId\":\"bool-azb4xh-9\",\"recordIds\":[\"bool-azb4xh-9-rename-azb4xh-10\"]}],\"scene\":{\"count\":1,\"bodies\":[{\"id\":\"bool-azb4xh-9\",\"name\":\"Housing\",\"op\":\"boolean.subtract\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"color\":null,\"parts\":[{\"name\":\"Base\",\"hidden\":false},{\"name\":\"Pin\",\"hidden\":false}]}],\"rolledBack\":null,\"inactiveBodies\":[]},\"appended\":{\"file\":\"housing.ndjson\",\"rows\":[{\"step\":10,\"id\"
+CALL mcp__warpcad__check_clearance {"a":"bool-azb4xh-9","aPieces":"Pin","b":"bool-azb4xh-9","bPieces":"Base"}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"a\":{\"id\":\"bool-azb4xh-9\",\"name\":\"Housing\",\"pieces\":\"Pin\"},\"b\":{\"id\":\"bool-azb4xh-9\",\"name\":\"Housing\",\"pieces\":\"Base\"},\"interpenetrating\":false,\"overlapVolumeMm3\":0,\"gapMm\":0.2,\"closestMm\":{\"onA\":[-5,-5,10],\"onB\":[-5,-5,9.8]},\"message\":\"0.2 mm apart at the closest point.\"}</document_data>"}]
+CALL mcp__warpcad__get_timeline {}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"rollbackAt\":null,\"rows\":[{\"step\":1,\"id\":\"cuboid-prmvni-1\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 1\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":2,\"id\":\"cuboid-prmvni-2\",\"op\":\"primitive.cuboid\",\"label\":\"Place Cube 2\",\"origin\":\"mcp\",\"intent\":\"scratch\",\"suppressed\":false,\"active\":true,\"broken\":null},{\"step\":3,\"id\":\"bool-prmvni-3\",\"op\":\"boolean.subtract\",\"label\":\"Subtract\",\"origin\":\"mcp\",\"
+TEXT The gap is now 0.2 mm and the timeline has no broken steps. The skill also asks for a printability check, so I'll load that tool and the measure tool and run both.
+CALL ToolSearch {"query":"select:mcp__warpcad__check_printability","max_results":1}
+  RESULT [{"type":"tool_reference","tool_name":"mcp__warpcad__check_printability"}]
+CALL mcp__warpcad__check_printability {"ids":["bool-azb4xh-9"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"heuristic\":\"Heuristic checks, not a guarantee: walls were sampled with 4000 rays, so a feature narrower than the sample spacing can be missed; fit is checked on axis-aligned orientations only; overhangs and supports are not checked. Slice it before trusting it.\",\"settings\":{\"buildVolumeMm\":[220,220,250],\"minWallMm\":1.2,\"nozzleMm\":0.4},\"bodies\":[{\"id\":\"bool-azb4xh-9\",\"name\":\"Housing\",\"sizeMm\":[40,40,25],\"watertight\":true,\"openEdges\":0,\"thinnestWallMm\":4.8,\"thinnestAtMm\":[-3.383114,5
+CALL mcp__warpcad__measure {"ids":["bool-azb4xh-9"]}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"bodies\":[{\"id\":\"bool-azb4xh-9\",\"name\":\"Housing\",\"boundsMm\":[[-20,-20,5],[20,20,30]],\"sizeMm\":[40,40,25],\"volumeMm3\":16957.568,\"surfaceAreaMm2\":6008.32,\"centerOfMassMm\":[0,0,11.173409]}]}</document_data>"}]
+CALL mcp__warpcad__record_response {"response":"Opened a 0.2 mm per-side clearance in the Housing group. The Pin keeps its 10 × 10 mm size. The Base's square hole grew from 10 mm to 10.4 mm, and the gap is 0.2 mm at the closest point (check_clearance: Pin at [-5, -5, 10], Base hole at [-5, -5, 9.8]). The group is named Housing again and is 40 × 40 × 25 mm. It is watertight, has no errors or warnings, and fits the 220 × 220 × 250 mm build volume. The thinnest wall is 4.8 mm.\n\nSteps: a copy of the Pin, grown by modify.offset at 0.2 mm, cut from the Base. Those steps are in History as rows 6 to 10. The old steps stay in History.\n\nProblems met:\n- The first apply_records call failed because I passed request and rationale on the operate steps. Those fields belong at the top level of the call. I loaded the real schema and retried; the retry landed.\n- The volume is 16957.6 mm³ against my hand estimate of 16958.4 mm³. The 0.8 mm³ difference is unexplained, and I judged it too small to matter.\n- The hole's bottom 0.1 mm (z 9.9 to 10) stays at 10 mm, because the offset cutter starts 0.1 mm lower than the Pin. The Pin's bottom sits at z 10, so nothing touches it there."}
+  RESULT [{"type":"text","text":"<document_data source=\"project\" label=\"tool_result\">{\"response\":{\"promptId\":\"prompt-azb4xh-1\",\"id\":\"reply-azb4xh-4\",\"text\":\"Opened a 0.2 mm per-side clearance in the Housing group. The Pin keeps its 10 × 10 mm size. The Base's square hole grew from 10 mm to 10.4 mm, and the gap is 0.2 mm at the closest point (check_clearance: Pin at [-5, -5, 10], Base hole at [-5, -5, 9.8]). The group is named Housing again and is 40 × 40 × 25 mm. It is watertight, has no errors or warnings, and fits the 220 × 220 × 250 mm build volume. The thinnest wall is 4.8 mm.\\n\\
+TEXT The Housing group now has a 0.2 mm per-side clearance. The Pin stays 10 × 10 mm, and the Base's square hole opened from 10 mm to 10.4 mm. The measured gap is 0.2 mm at the closest point.
+
+`★ Insight ─────────────────────────────────────`
+- The clearance lives on the hole, not the peg. The skill prefers growing the hole because shrinking a part also shrinks any hole through it.
+- The gap is applied by growing a copy of the Pin by 0.2 mm on every face and subtracting it from the Base. That is a per-side gap of 0.2 mm, not 0.4 mm, because `modify.offset` takes the distance per face.
+- The new group keeps both parts, and the old steps stay in History, so the fit can be re-derived after a rebuild.
+`─────────────────────────────────────────────────`
+
+**What changed**
+- The Base hole is 10.4 mm square. Before, the Pin touched the Base with zero gap.
+- The group is named Housing again, and its size is 40 × 40 × 25 mm.
+- Six History rows were added (rows 6 to 10). The old steps remain.
+
+**Checks**
+- `check_clearance`: 0.2 mm gap, no overlap.
+- `check_printability`: watertight, no errors or warnings, fits the 220 × 220 × 250 mm build volume, thinnest wall 4.8 mm.
+- `get_timeline`: no broken steps.
+
+**Things to know**
+- The first `apply_records` call failed because I put `request` and `rationale` on the operate steps. The retry, with those fields at the top level, landed.
+- The measured volume is 0.8 mm³ below my hand estimate. I don't have an explanation for it, and it's small enough that I didn't chase it.
+- The hole's bottom 0.1 mm stays at 10 mm, since the cutter starts 0.1 mm below the Pin. Nothing touches the Pin there, so it doesn't affect the fit.
+
+I didn't run the `run` skill to exercise the app, since this is a single model edit with no UI control involved.
+
+FINAL The Housing group now has a 0.2 mm per-side clearance. The Pin stays 10 × 10 mm, and the Base's square hole opened from 10 mm to 10.4 mm. The measured gap is 0.2 mm at the closest point.
+
+`★ Insight ─────────────────────────────────────`
+- The clearance lives on the hole, not the peg. The skill prefers growing the hole because shrinking a part also shrinks any hole through it.
+- The gap is applied by growing a copy of the Pin by 0.2 mm on every face and subtracting it from the Base. That is a per-side gap of 0.2 mm, not 0.4 mm, because `modify.offset` takes the distance per face.
+- The new group keeps both parts, and the old steps stay in History, so the fit can be re-derived after a rebuild.
+`─────────────────────────────────────────────────`
+
+**What changed**
+- The Base hole is 10.4 mm square. Before, the Pin touched the Base with zero gap.
+- The group is named Housing again, and its size is 40 × 40 × 25 mm.
+- Six History rows were added (rows 6 to 10). The old steps remain.
+
+**Checks**
+- `check_clearance`: 0.2 mm gap, no overlap.
+- `check_printability`: watertight, no errors or warnings, fits the 220 × 220 × 250 mm build volume, thinnest wall 4.8 mm.
+- `get_timeline`: no broken steps.
+
+**Things to know**
+- The first `apply_records` call failed because I put `request` and `rationale` on the operate steps. The retry, with those fields at the top level, landed.
+- The measured volume is 0.8 mm³ below my hand estimate. I don't have an explanation for it, and it's small enough that I didn't chase it.
+- The hole's bottom 0.1 mm stays at 10 mm, since the cutter starts 0.1 mm below the Pin. Nothing touches the Pin there, so it doesn't affect the fit.
+
+I didn't run the `run` skill to exercise the app, since this is a single model edit with no UI control involved.
+
+calls 20, turns 38, cost $0.022

@@ -70,6 +70,7 @@ describe('operand-count refusals — the same acceptsOperandCount the toolbar us
     ['boolean.subtract', {}, [2, 3], [0, 1]],
     ['boolean.union', {}, [2, 3], [0, 1]],
     ['modify.enlarge', { deltaMm: [1, 1, 1] }, [1], [0, 2, 3]],
+    ['modify.offset', { distanceMm: 0.2 }, [1], [0, 2, 3]],
     ['transform.translate', { deltaMm: [0, 0, 5] }, [1], [0, 2, 3]],
   ]
 
