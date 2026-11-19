@@ -398,6 +398,14 @@ function onSides(value) {
   color: var(--danger);
 }
 
+/* `TODO/ui-134`: on a coarse pointer at tablet width and up the orientation dial is 200px with its
+   padding, so this bar reserves the same 220px the Operations toolbar does. */
+@media (pointer: coarse) and (min-width: 600px) {
+  .sketch-toolbar {
+    max-width: calc(100% - 24px - 220px);
+  }
+}
+
 /* A narrow viewport — the 390px phone, and the tablet, whose viewport column is also
    390px wide (ui-020 finding #2): smaller type, never a shrunken tap target. The bar
    wraps to two rows; the orientation gizmo's corner stays clear. */
