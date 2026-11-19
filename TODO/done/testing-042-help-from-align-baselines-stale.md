@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-16 from the ui-121 and build-034 runs
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19):** no baseline change. Step 1 of the fix, the one test (`-g "Align pop-up"`) on all nine projects with no update, passed on every project, so there was nothing to refresh. `build-034` had already refreshed firefox-phone, and the other reds did not reproduce on `main`; two pair runs the same day (firefox-phone + chromium-tablet, firefox-tablet + chromium-laptop) were green. Steps 2 and 3 had no failing image to inspect. No acceptance scenario changes.
 
 ## Problem
 

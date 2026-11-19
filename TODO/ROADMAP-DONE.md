@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `testing-042` | The help-from-align baselines needed no refresh: all nine projects pass with no update (the earlier red on firefox-phone and firefox-tablet was cleared by `build-034`'s refresh and later changes). Closed 2026-11-19 with no baseline change | Finding | — | none |
 | ✅ `io-037` | The gist token check now rejects a token with no Gists permission at Connect. The probe is `POST /gists {"files":{}}` (422 granted, 403 missing, both measured 2026-11-18); the old `PATCH /gists/000…` answered 404 either way. Filed 2026-11-17 from OWNER.md U5 | Finding | — | gist share |
 | ✅ `io-033` | Closed the one 1.4 micrometre four-face edge left in the 96k cut scan's STL export. A new last pass, `releasePinchedEdges`, takes the corner the T-junction pass wrongly put on a second line out of the two faces, moving no coordinate. Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
 | ✅ `io-032` | Clear Cura's "Mesh has overlapping faces!" on a cut dense scan with a flat-face sliver cleanup (`flatFaces.js`). Filed 2026-11-15 from the `io-031` close | Finding | — | 11, 26 |
@@ -1486,5 +1487,6 @@ convention going forward.
 | `ai-047` | 2026-11-18 21:35 | ~25m (scoped to the consumption rule; unit, 44 e2e on two projects; no model drive) |
 | `ai-048` | 2026-11-18 21:55 | ~30m (new wall-sized recipe, 5 specs, docs; kernel drive on a Pi-sized shell) |
 | `io-033` | 2026-11-19 16:35 | ~30m (opus half not timed; unit, pair run, scenario 11/26 specs on four projects, CuraEngine on the 96k cut) |
+| `testing-042` | 2026-11-19 16:50 | ~10m (nine one-test runs, no baseline change) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
