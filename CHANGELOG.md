@@ -1,5 +1,75 @@
 # Changelog
 
+## [1.19.0](https://github.com/WarpCad/warpcad/compare/v1.18.0...v1.19.0) (2026-11-19)
+
+## [1.18.0](https://github.com/WarpCad/warpcad/compare/v1.17.0...v1.18.0) (2026-11-19)
+
+### Features
+
+* **ai:** cut a port opening with a Pi's keep-out and keep the Pi (TODO/ai-047) ([a5d9edc](https://github.com/WarpCad/warpcad/commit/a5d9edce9a723b1aa7fb204a6b05f2ff5e208b91))
+* **ai:** keep a group's other parts, name bodies, measure parts in a group (TODO/ai-041) ([7a8fb45](https://github.com/WarpCad/warpcad/commit/7a8fb45cb0666b09bfc7cc87fa983c06c8ae14ec))
+* **ai:** read any step's params and copy a part, so add-clearances handles a round pin (TODO/ai-045) ([03b1d0f](https://github.com/WarpCad/warpcad/commit/03b1d0f4ff3e3f06fbfa3aa024f4fff0a527b1f7))
+* **ai:** resize a placed body directly with set_params (TODO/ai-046) ([02c512e](https://github.com/WarpCad/warpcad/commit/02c512ea3f5a16e4eef9aedcc3a9d56bbacb2612))
+* **ai:** the Live MCP sheet says the token is sent unencrypted, and follows the app's address (TODO/ai-036) ([0525fc5](https://github.com/WarpCad/warpcad/commit/0525fc537c33c1a3b1d401e673a2fc9a2f069430))
+* **core:** size a tongue from a hollow shell's wall so a box lid locates (TODO/ai-048) ([9f09021](https://github.com/WarpCad/warpcad/commit/9f09021974aa8daeea7da9ac813f059b1b1b6b73)), references [#2](https://github.com/WarpCad/warpcad/issues/2)
+* **help:** render native Help from app.warpcad.com through a sanitiser (TODO/ui-119) ([7faa7a8](https://github.com/WarpCad/warpcad/commit/7faa7a8468492984fda4089dfc19eb79c9d3f3fb))
+* **io:** ask the browser for persistent storage and say when saved data was cleared (TODO/io-028) ([284fd8f](https://github.com/WarpCad/warpcad/commit/284fd8f424a3c0cebb25fa6df4cc4a0d52b1f806))
+* **io:** save, open and export real files in the iOS app (TODO/io-014) ([6b580c3](https://github.com/WarpCad/warpcad/commit/6b580c351b9a54881a2ee87e006a5e1cc092f35e))
+* **mcp:** serve WarpCad skills over MCP, add-clearances and create-enclosure (TODO/ai-035) ([9afe4fd](https://github.com/WarpCad/warpcad/commit/9afe4fd7d09eece88b666f3692e94e8cbc8e500d))
+* **native:** an MCP server inside the iOS and macOS app (TODO/ai-026) ([2b858a3](https://github.com/WarpCad/warpcad/commit/2b858a3efbda3dc84d798dd6f16618c6b17152d0))
+* **native:** open links that leave the app in the system browser (TODO/build-029) ([a7289fa](https://github.com/WarpCad/warpcad/commit/a7289fa1e2c633ec6240d012ed516c2f0dd03a5d))
+* **render:** restore the 3D view after a lost WebGL context (TODO/render-006) ([a2f241b](https://github.com/WarpCad/warpcad/commit/a2f241bf173ab4d398164fb1f1bb1c64befab160))
+* **render:** the 3D view reads its colours from the theme tokens (TODO/render-008) ([e2d6ecd](https://github.com/WarpCad/warpcad/commit/e2d6ecd3ac093217570e2a1a68753901d0e3ff3d)), references [#ffffff](https://github.com/WarpCad/warpcad/issues/ffffff) [#fff](https://github.com/WarpCad/warpcad/issues/fff) [#rgb](https://github.com/WarpCad/warpcad/issues/rgb)
+* **storage:** keep the Anthropic key and GitHub token in the iOS Keychain (TODO/ai-025) ([c9b3447](https://github.com/WarpCad/warpcad/commit/c9b3447081f5994bd89bdcbcee25c8886fc9651d))
+* **storage:** mirror the autosave and My parts to app files on iOS (TODO/io-015) ([6887239](https://github.com/WarpCad/warpcad/commit/6887239f15243bb7eca1bc85b48f7d273c645bc9))
+* **storage:** save projects as name.warpcad, keep opening .ndjson (TODO/io-035) ([9e5575c](https://github.com/WarpCad/warpcad/commit/9e5575c1352968b3078d0ce7874e8e9e6e1998b7))
+* **ui:** BaseSheet takes a clear scrim, a stack opt-out, a dock tier and an anchored card (TODO/ui-116) ([5996f0e](https://github.com/WarpCad/warpcad/commit/5996f0eb91debea5c90a6aaef6776963bffcb2ec))
+* **ui:** choose System, Dark or Light in the Help sheet, one module decides the theme (TODO/ui-113) ([a8fbaf3](https://github.com/WarpCad/warpcad/commit/a8fbaf3fa03a36cc0c17b972f7cc8c8e351d5d56))
+* **ui:** one set of overlay behaviours - Escape stack, focus trap, outside click, keyboard inset (TODO/ui-110) ([07ce51e](https://github.com/WarpCad/warpcad/commit/07ce51e463c90497d2ae3e9e8c43763255493861))
+* **ui:** one unit-aware NumberField replaces two number-entry patterns (TODO/ui-115) ([be87f6a](https://github.com/WarpCad/warpcad/commit/be87f6a05679c622832974821657359676d2e60e))
+* **ui:** six styles (Kids, Glass, Art Deco, Minimal, Blueprint, Pixel) under Help > Style ([87398c2](https://github.com/WarpCad/warpcad/commit/87398c2f8ef4772c16535eb6470cd0258c550b1f)), references [docs/help.md#styles](https://github.com/docs/help.md/issues/styles)
+* **ui:** tell the native shell the theme so the iOS status bar follows it (TODO/ui-121) ([0f15344](https://github.com/WarpCad/warpcad/commit/0f15344fdcaca48e0fab156b46cdf8c0a552ba39))
+* **ui:** theme-sweep tokens and the one global reduced-motion rule (TODO/ui-118) ([f66a6ad](https://github.com/WarpCad/warpcad/commit/f66a6ad9ef812ce30e92bccab1ef4aad37a3f4c2))
+
+### Bug Fixes
+
+* **ai:** reword origin chip, stale refusal, conflict strip (TODO/ai-039) ([f54fd30](https://github.com/WarpCad/warpcad/commit/f54fd309baf1a742bc0f5f45aa0545ce92d610a3))
+* **ai:** show a body's variable bindings in describe_scene and describe_body (TODO/ai-040) ([883a920](https://github.com/WarpCad/warpcad/commit/883a92026ec9e4bdbcd5062de48296db62043dc7))
+* **ai:** the dev server binds IPv4 loopback so the registered MCP endpoint answers (TODO/ai-037) ([93ead35](https://github.com/WarpCad/warpcad/commit/93ead35de7a40a9823496e3889649b4c01702d99))
+* **build:** the native bundle carries one CSP, the shell's (TODO/build-032) ([39aa00f](https://github.com/WarpCad/warpcad/commit/39aa00f3bb8701b4dcd6af8c2258788310254d8b))
+* **core:** a cut dense imported scan exports a closed STL (TODO/io-031) ([76425f1](https://github.com/WarpCad/warpcad/commit/76425f1d9ab8f21078ff6531809f40c998f9eccc))
+* **core:** a sketch's Linear twist takes its steps from the resolution (TODO/core-083) ([ae71993](https://github.com/WarpCad/warpcad/commit/ae719936d89a9e4577bde786c620371ff735a124))
+* **core:** report a fixed code, not document names, for user-facing errors (TODO/core-082) ([c0beb35](https://github.com/WarpCad/warpcad/commit/c0beb3537dec49b8c8cbc5d1a1183dc37c3dbc2a))
+* **core:** scale a sketch's automatic Twist steps with outline elongation (TODO/core-084) ([0b92fd1](https://github.com/WarpCad/warpcad/commit/0b92fd1bdf8e6edffa1049cf867ece3c601581e6))
+* **inspector:** scroll a parameter refusal above the phone Delete row (TODO/ui-136) ([b639f76](https://github.com/WarpCad/warpcad/commit/b639f76db9c72cd96dfbfd991fb018e02a039198))
+* **io:** clear Cura's "overlapping faces" on a cut dense scan (TODO/io-032) ([1f142a0](https://github.com/WarpCad/warpcad/commit/1f142a0e71028f3e3bbc268c08872e9d899708b9)), references [#2](https://github.com/WarpCad/warpcad/issues/2)
+* **io:** Mac and Windows keep projects and exports in Documents/WarpCad, not all of Documents (TODO/io-029) ([9340ad4](https://github.com/WarpCad/warpcad/commit/9340ad49da9e228e9fba752ee174cf4e9fb04182))
+* **io:** reject a gist token with no Gists permission at Connect (TODO/io-037) ([8bfe8aa](https://github.com/WarpCad/warpcad/commit/8bfe8aa3edb651bcca4c7dacc1ea14e7f4838757)), references [#1](https://github.com/WarpCad/warpcad/issues/1) [#2](https://github.com/WarpCad/warpcad/issues/2)
+* **mcp:** a live MCP session whose connection ended stops counting as a client (TODO/ai-038) ([14a64b1](https://github.com/WarpCad/warpcad/commit/14a64b106f70ad47c5c22626c04d5d5802adfbc7))
+* **scripts:** skip tracked files deleted in the working tree in spdx check ([36822ff](https://github.com/WarpCad/warpcad/commit/36822ff19ef4f50d4c4c3827202263d920b8b2a9))
+* **sketch:** widen the Line close radius for a fingertip (TODO/sketch-009) ([9552b7a](https://github.com/WarpCad/warpcad/commit/9552b7a0fc4aae8f743db88606399672fa661d77))
+* **ui:** BasePopover places its frame on whole pixels (TODO/ui-116) ([c95d393](https://github.com/WarpCad/warpcad/commit/c95d393b62aeca10d6e7631f53e8ffd40db7b6fb))
+* **ui:** fix four cold-read chrome items, file the rest (TODO/ui-128) ([5b92b43](https://github.com/WarpCad/warpcad/commit/5b92b436a464e44fce0211c08056f6cef4e865e4))
+* **ui:** fold the navigation pad when the canvas is too narrow for the scale readout (TODO/ui-124) ([88c419f](https://github.com/WarpCad/warpcad/commit/88c419fdc1a268a7d6c0b5c787ab14ca7cb10ee3))
+* **ui:** give each save-status dot its own shape (TODO/ui-133) ([4b746f3](https://github.com/WarpCad/warpcad/commit/4b746f3bdef5cb1530c84ef7733297eae28edea7))
+* **ui:** keep header, toolbars and side panels clear of the device safe areas (TODO/ui-120) ([b36a242](https://github.com/WarpCad/warpcad/commit/b36a242b59f5b3f406225e5db9c5fe031ae6ae31))
+* **ui:** plain fillet, size and broken-step messages (TODO/ui-129) ([0e183bf](https://github.com/WarpCad/warpcad/commit/0e183bf61a9a287e8599351d1e47f3ce5fa47978))
+* **ui:** reword Repeat, Bolt, BOM and Save-sheet text (TODO/ui-127) ([be69f3e](https://github.com/WarpCad/warpcad/commit/be69f3e0b6e7d2ef92e2ab0567e0308b187fc998))
+* **ui:** the Split sheet's phone grid rules apply again (TODO/ui-116) ([518f20d](https://github.com/WarpCad/warpcad/commit/518f20dc5a124a4e5f348b85148d8e800c31d755))
+* **ui:** the Undo refusal says what to do, in the status chip (TODO/ui-125) ([734085a](https://github.com/WarpCad/warpcad/commit/734085a20ec9a4eef4c24adf8f4969ed4d69256d))
+* **viewport:** keep labels in view, widen phone ring (TODO/ui-130) ([053359a](https://github.com/WarpCad/warpcad/commit/053359ad78ed42c7ecfd6dbc40f30b13398f4280))
+* **viewport:** keep rotate dial readout clear of the toolbar (TODO/ui-131) ([6ca43fc](https://github.com/WarpCad/warpcad/commit/6ca43fc27eb50556e063f62a127ac3c09dfb5b4c))
+* **viewport:** let a Pan-mode drag from a gizmo ring pan the view (TODO/ui-126) ([77998ee](https://github.com/WarpCad/warpcad/commit/77998ee21ceb1d9e90c0b26a6cac10a682d60e2f))
+* **viewport:** place split-face connector markers with the true perspective projection (TODO/ui-137) ([11c1a20](https://github.com/WarpCad/warpcad/commit/11c1a2079e6b5fa074d3ac97bd2bbea82e0d3c0d))
+* **viewport:** reserve the orientation dial's width in the sketch toolbar on tablets ([bd10e7e](https://github.com/WarpCad/warpcad/commit/bd10e7e4dcc7eb9e5eac8318dcb8b15a50bd9a39))
+* **viewport:** select a text label by its whole box (TODO/ui-132) ([dbc01dd](https://github.com/WarpCad/warpcad/commit/dbc01dd96e07b7afcc5c338e3204ca4c4ffa4734))
+* **viewport:** stop orientation dial caps stealing taps from neighbours (TODO/ui-134) ([c325119](https://github.com/WarpCad/warpcad/commit/c3251193cf3fdf048fc4cf09a74507d3843607c9))
+* **viewport:** widen phone nav mode row toward the tap size (TODO/ui-135, partial) ([f10919d](https://github.com/WarpCad/warpcad/commit/f10919d1650d67dcf7fb90fa93c59ac14df9812c))
+
+### Performance Improvements
+
+* **bench:** measure the bundle load against a deployed URL with --url (TODO/perf-005) ([df85e15](https://github.com/WarpCad/warpcad/commit/df85e152968fc5802b764315d8034bd8b9e2afb7)), references [#1](https://github.com/WarpCad/warpcad/issues/1)
+
 ## [1.17.0](https://github.com/WarpCad/warpcad/compare/v1.16.0...v1.17.0) (2026-11-10)
 
 ### Features
