@@ -265,6 +265,70 @@ export function featherShapedThreeMf() {
   return packageThreeMf(featherShapedModel(), { extra: thumbnails })
 }
 
+/**
+ * A closed, welded UV sphere as 3MF `<mesh>` XML: `segments` around, `segments + 1` rings from
+ * pole to pole, so `2 × segments × segments` triangles, every one wound outward.
+ *
+ * @param {number} radius Millimetres.
+ * @param {number} segments
+ * @returns {string}
+ */
+export function sphereMeshXml(radius, segments) {
+  const rings = segments + 1
+  const vertices = [`<vertex x="0" y="0" z="${radius}"/>`]
+  for (let ring = 1; ring < rings; ring += 1) {
+    const polar = (Math.PI * ring) / rings
+    for (let around = 0; around < segments; around += 1) {
+      const azimuth = (2 * Math.PI * around) / segments
+      const x = radius * Math.sin(polar) * Math.cos(azimuth)
+      const y = radius * Math.sin(polar) * Math.sin(azimuth)
+      const z = radius * Math.cos(polar)
+      vertices.push(`<vertex x="${x.toFixed(5)}" y="${y.toFixed(5)}" z="${z.toFixed(5)}"/>`)
+    }
+  }
+  const south = vertices.length
+  vertices.push(`<vertex x="0" y="0" z="${-radius}"/>`)
+  const at = (/** @type {number} */ ring, /** @type {number} */ around) => 1 + (ring - 1) * segments + (around % segments)
+  /** @type {string[]} */
+  const triangles = []
+  const triangle = (/** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ c) => triangles.push(`<triangle v1="${a}" v2="${b}" v3="${c}"/>`)
+  for (let around = 0; around < segments; around += 1) triangle(0, at(1, around), at(1, around + 1))
+  for (let ring = 1; ring < rings - 1; ring += 1) {
+    for (let around = 0; around < segments; around += 1) {
+      triangle(at(ring, around), at(ring + 1, around), at(ring + 1, around + 1))
+      triangle(at(ring, around), at(ring + 1, around + 1), at(ring, around + 1))
+    }
+  }
+  for (let around = 0; around < segments; around += 1) triangle(south, at(rings - 1, around + 1), at(rings - 1, around))
+  return `<mesh><vertices>${vertices.join('')}</vertices><triangles>${triangles.join('')}</triangles></mesh>`
+}
+
+/**
+ * A dense multi-part 3MF (`TODO/core-085`), generated and never committed: a stand-in for the
+ * owner's `5036 RGB Matrix 2.5mm` (25 parts, 219,540 triangles, 1.9 MB). The default is 25
+ * named spheres of 8,712 triangles each (217,800 in all) on a 5 × 5 grid, so a whole-model
+ * boolean has the same number of parts and about the same number of triangles to carry.
+ *
+ * @param {{ parts?: number, segments?: number, radius?: number }} [options]
+ * @returns {Promise<Uint8Array>}
+ */
+export function denseThreeMf(options = {}) {
+  const parts = options.parts ?? 25
+  const segments = options.segments ?? 66
+  const radius = options.radius ?? 5
+  const columns = Math.ceil(Math.sqrt(parts))
+  const mesh = sphereMeshXml(radius, segments)
+  let objects = ''
+  let build = ''
+  for (let index = 0; index < parts; index += 1) {
+    const x = (index % columns) * radius * 2.4
+    const y = Math.floor(index / columns) * radius * 2.4
+    objects += `<object id="${index + 1}" type="model" name="Part ${index + 1}">${mesh}</object>`
+    build += `<item objectid="${index + 1}" transform="1 0 0 0 1 0 0 0 1 ${x} ${y} ${radius}"/>`
+  }
+  return packageThreeMf(modelXml({ objects, build }))
+}
+
 /** The 3MF materials namespace (`<colorgroup>`). */
 export const MATERIAL_NS = 'http://schemas.microsoft.com/3dmanufacturing/material/2015/02'
 

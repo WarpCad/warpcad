@@ -31,7 +31,7 @@ import { cachedCombinedOf, createGroup, isGroup } from './group.js'
 import { evaluate, evaluateOp, policyFor, PREBUILT_BOOLEAN_OPS } from './index.js'
 import { measureGeometry } from './measure.js'
 import { previewSplitFace } from './split.js'
-import { packGeometry, unpackGeometry } from './transport.js'
+import { packGeometry, transferablesOf, unpackGeometry } from './transport.js'
 
 /** @typedef {import('./transport.js').PackedGeometry} PackedGeometry */
 /** @typedef {import('./group.js').BoundsMm} BoundsMm */
@@ -180,6 +180,21 @@ export function runEvaluationJob(job) {
     }
   }
   throw new Error(`evaluation job: unknown kind "${/** @type {any} */ (job)?.kind}"`)
+}
+
+/**
+ * The buffers a result can hand back instead of copying (`TODO/core-085`): the packed geometry
+ * it carries — a boolean's result, a build's solid, a measure job's composite unions. The worker
+ * builds each result for the one message that carries it, so it can always transfer them. A
+ * split preview's answer is plain numbers and has none.
+ *
+ * @param {EvaluationResult} result
+ * @returns {ArrayBuffer[]}
+ */
+export function resultTransferables(result) {
+  if (result?.kind === 'boolean' || result?.kind === 'build') return transferablesOf(result.geometry)
+  if (result?.kind === 'measure') return transferablesOf(result.measurements.map((entry) => entry.combined))
+  return []
 }
 
 /**

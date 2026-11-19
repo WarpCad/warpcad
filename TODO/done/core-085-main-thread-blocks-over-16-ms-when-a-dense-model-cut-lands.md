@@ -6,8 +6,23 @@ priority: medium
 model: opus
 milestone: none — Findings table, filed 2026-11-17 from VERIFY.md core-079 #2 (TODO/testing-044)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19).** The click and the landing no longer block the main thread for a Long Task. Solids now
+> cross to the worker as `{counts: Uint32Array, positions: Float64Array}` and planes as `Float64Array`, so they are
+> **transferred, not structured-cloned** (`transferablesOf`, `packGeometryInSlices` with a 4 ms slice budget in
+> `src/core/kernel/transport.js`); `evaluationClient.request(job, {transfer, repack})`, `evaluationJob`'s
+> `resultTransferables` and the worker's transfer list carry the result back; `src/stores/document.js` packs the
+> operands in slices that yield through `afterNextPaint`, with the pending line showing meanwhile. Measured on two
+> copies of the owner's RGB Matrix 3MF (`bench/results/2026-11-19-core-085.md`): the click went from 210 ms to a
+> median 20 ms headless (frame floor 18-19 ms) and from 208 ms to 14 ms on the GPU (target 16 ms), with no Long Task.
+> **The landing meets its 50 ms target on the GPU only** (119 to 47 ms); **headless it is 137-147 ms and the target
+> is NOT met**: a software rasteriser draws the 220 k-triangle non-indexed result at about 80 ms a frame, which is
+> outside this task's code. Followed up as `render-009` (indexed result geometry) and `core-086` (a worker-side
+> geometry cache, a one-off 1 s GC after the pack, two unprofiled gaps). The e2e (`e2e/import-3mf.e2e.js`) uses a
+> generated 25-part, 217,800-triangle 3MF and a Cube target, asserting 50 ms at the click and 80 ms at the landing
+> (OWNER.md Q108, Q109 record both assumptions). `bench/whole-model-cut.mjs` keeps the two-copy case.
 
 ## Problem
 

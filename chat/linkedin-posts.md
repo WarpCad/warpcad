@@ -5067,3 +5067,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** the 3 s loss and the 65 s merge → TODO/done/io-038 Problem (testing-045 drive); token on base read, parent check, merge by sha, two revisions → this diff and e2e case 11; stale-answering fake → e2e/support/fakeGistApi.js; real re-run pending → OWNER.md K7.
 **To Add:** none
 ---
+
+## 2026-11-19T21:25:00Z — Send typed arrays, not nested arrays, to the worker
+
+**Post:** A whole-model Subtract in WarpCad hands the worker every triangle of both models. I measured it on two copies of a 219,540-triangle 3MF: the click blocked the main thread for 210 ms, and a CPU profile put 195 ms of that in structured-cloning nested JavaScript arrays. The fix is a transport change. Solids now travel as a Uint32Array of counts and a Float64Array of positions, planes as a Float64Array, all transferred rather than copied, and packed in 4 ms slices that yield to the next paint. The result comes back the same way.
+
+The click gap fell to 14 ms on a real GPU (target 16) and a median 20 ms headless, with no Long Task. The landing is honest about what it did not reach. On a real GPU it is 47 ms, under the 50 ms target. Headless it is still 137 to 147 ms, because a software rasteriser draws the 220,000-triangle non-indexed result at about 80 ms a frame, and that is rendering, not the cut. I filed it as its own finding (indexed geometry) instead of calling the task met.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebPerformance
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** click 210 to 20 ms headless and 208 to 14 ms GPU, landing 119 to 47 ms GPU and 137-147 ms headless → bench/results/2026-11-19-core-085.md; 195 ms in structured clone, 79 ms first read of event.data, about 80 ms a frame in SwiftShader → CPU profiles (Opus half of core-085); e2e import-3mf green on chromium, firefox and webkit laptop, pair firefox-tablet + chromium-laptop → this session; headless landing unmet → TODO/FIND-render-009.
+**To Add:** none
+---

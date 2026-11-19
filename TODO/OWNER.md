@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 78 now (Q16-Q93), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 94 now (Q16-Q109; Q94-Q109 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,38 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q109 · Is the dense-model cut done when its 50 ms landing target is met on a real GPU but not headless?
+
+**Question:** `core-085` asked that a whole-model Subtract of two copies of the `5036 RGB Matrix 2.5mm` 3MF never block the main thread for more than 16 ms at the click or 50 ms when the result lands. After the fix, in Chromium with the Mac's GPU, the click reads 14 ms (worst 17) and the landing 47 ms (worst 48), with no Long Tasks at either moment. In headless Chromium, which draws with a software rasteriser, the landing still reads about 110 ms. Most of that is the rasteriser drawing the 220,000-triangle result: a bare WebGL test of the same size takes 79 to 113 ms per frame there. Count the GPU numbers as meeting the target, and file the headless draw cost as its own finding?
+
+**Background:** Assumed yes. Before the fix the same pair read 208 ms at the click and 119 ms at landing on the GPU, and 210 and 244 ms headless. The app's own work at landing is now about 30 ms (fold, mesh build, normals). Getting the headless number under 50 ms would mean drawing fewer vertices, for example an indexed mesh with flat shading in the material. That is a rendering change with a visual risk, so it is out of this task's scope.
+
+**Options:**
+1. **Count the GPU numbers, file the headless draw separately (Recommended)**: the TODO itself calls software-rasteriser numbers pessimistic.
+2. **Keep core-085 open until headless is under 50 ms too**: this needs the rendering change above.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** the GPU numbers count, and the headless draw is a separate finding.
+
+**Answer:** question
+
+#### Q108 · Should the dense-cut e2e test cut a Cube with the dense model, and allow 80 ms at landing?
+
+**Question:** `core-085`'s new test in `e2e/import-3mf.e2e.js` imports a generated dense 3MF (25 parts, 217,800 triangles, the RGB Matrix's shape), drops a Cube on it and subtracts the whole model from the Cube, on the laptop project of all three engines. The TODO asked for the model to be imported twice and cut from itself. With a 220,000-triangle result, though, the headless rasteriser's draw alone breaks 50 ms whatever the app does. With the Cube, the click still sends the full dense model, and the result stays small. The test asserts under 50 ms at the click and under 80 ms at landing. Keep it that way?
+
+**Background:** Assumed yes. Measured after the fix: click 0, 8 and 13 ms, landing 65, 47 and 27 ms (Chromium, Firefox, WebKit). Before the fix the click was 95 to 137 ms (Chromium) and 133 ms (Firefox), so the click assertion fails on the old code. The landing bound allows for the rasteriser's own frame: a frame that draws the result costs about 55 ms. The two-copy case is measured by `bench/evaluation-mainthread.mjs --only whole-model-cut` (headless and `--headed`).
+
+**Options:**
+1. **Cube target, 50 ms at the click and 80 ms at landing (Recommended)**: it fails the old code at the click and does not fail on the rasteriser.
+2. **Two copies, as the TODO wrote it**: the landing has to be recorded rather than asserted under 50 ms in headless runs.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** the test stays as written.
+
+**Answer:** question
 
 #### Q107 · Should the "another device" refusal say to update again, rather than to wait a minute?
 

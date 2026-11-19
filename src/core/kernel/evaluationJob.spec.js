@@ -4,9 +4,9 @@ import modeling from '@jscad/modeling'
 
 import { combine } from './group.js'
 import { evaluate, evaluateOp } from './index.js'
-import { createLatestOnlyQueue, runEvaluationJob } from './evaluationJob.js'
+import { createLatestOnlyQueue, resultTransferables, runEvaluationJob } from './evaluationJob.js'
 import { measureGeometry } from './measure.js'
-import { packGeometry, unpackGeometry } from './transport.js'
+import { packGeometry, transferablesOf, unpackGeometry } from './transport.js'
 
 /**
  * The evaluation worker's job function (`TODO/core-029`), tested with no `Worker` at all.
@@ -225,5 +225,34 @@ describe('runEvaluationJob — boolean (TODO/core-079: a whole multi-part model 
     const cube = packGeometry(/** @type {any} */ (evaluateOp('primitive.cuboid', { size: [2, 2, 2] })))
     const result = /** @type {any} */ (runEvaluationJob({ kind: 'boolean', op: 'transform.translate', operands: [cube], pieces: [undefined] }))
     expect(result.error).toMatch(/not a boolean/)
+  })
+})
+
+describe('resultTransferables — what the worker hands back instead of cloning (TODO/core-085)', () => {
+  it("lists a boolean result's buffers, and a transferred copy still unpacks to the same cut", () => {
+    const plate = /** @type {any} */ (evaluateOp('primitive.cuboid', { size: [60, 40, 4], center: [0, 0, 2] }))
+    const pi = /** @type {any} */ (evaluateOp('raspberrypi.bplus', {}))
+    const result = /** @type {any} */ (runEvaluationJob({
+      kind: 'boolean',
+      op: 'boolean.subtract',
+      operands: [packGeometry(plate, { planes: true }), packGeometry(pi, { planes: true })],
+      pieces: [undefined, undefined],
+    }))
+    const transfer = resultTransferables(result)
+    expect(transfer).toEqual(transferablesOf(result.geometry))
+    expect(transfer.length).toBeGreaterThan(0)
+    const before = modeling.measurements.measureVolume(/** @type {any} */ (unpackGeometry(result.geometry)))
+    const moved = structuredClone(result, { transfer })
+    expect(modeling.measurements.measureVolume(/** @type {any} */ (unpackGeometry(moved.geometry)))).toBe(before)
+  })
+
+  it("lists a measure result's composite unions and a build's geometry; a split preview has none", () => {
+    const measured = /** @type {any} */ (runEvaluationJob({ kind: 'measure', bodies: realBodies().map((geometry) => packGeometry(geometry, { planes: true })) }))
+    const unions = measured.measurements.filter((/** @type {any} */ entry) => entry.combined !== undefined)
+    expect(unions.length).toBeGreaterThan(0)
+    expect(resultTransferables(measured)).toEqual(transferablesOf(unions.map((/** @type {any} */ entry) => entry.combined)))
+    const built = /** @type {any} */ (runEvaluationJob({ kind: 'build', op: 'primitive.cuboid', params: { size: [2, 2, 2] }, resolution: 'normal' }))
+    expect(resultTransferables(built)).toEqual(transferablesOf(built.geometry))
+    expect(resultTransferables({ kind: 'splitFace', error: 'no' })).toEqual([])
   })
 })

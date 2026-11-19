@@ -138,7 +138,7 @@ function bodiesAtResolution(refold) {
  * @property {string} mimeType
  * @property {Uint8Array} [bytes] `kind: 'bytes'` only.
  * @property {number} [triangleCount] `kind: 'bytes'` only.
- * @property {{ name: string, polygons: number[][][] }[]} [solids] `kind: 'solids'` only.
+ * @property {{ name: string, polygons: import('./kernel/transport.js').PackedSolid }[]} [solids] `kind: 'solids'` only.
  */
 
 /**

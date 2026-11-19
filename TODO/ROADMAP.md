@@ -65,16 +65,15 @@ stashes only the failed task's own paths.
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed
 (43–66). Row numbers are stable ids, not positions: a gap means a row closed.
-**Opus tasks** (each splits into an Opus half and a Sonnet half): `core-085`.
+**Opus tasks** (each splits into an Opus half and a Sonnet half): none open.
 **New findings a task files** get a Findings row at the bottom of the table and the next free Next up number, unless the owner re-ranks them.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 14 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 15 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 91 | ▶ Ready | `FIND` | [`core-085`](FIND-core-085-main-thread-blocks-over-16-ms-when-a-dense-model-cut-lands.md) Keep the main thread under the frame budget when a whole-model Subtract of a dense 3MF starts and lands (480 ms and 272 ms measured) | opus |
 | 92 | ▶ Ready | `FIND` | [`ui-142`](FIND-ui-142-half-height-assistant-sheet-leaves-the-transcript-a-26-px-strip.md) Give the Assistant's Half height sheet a readable transcript at 390x844 | sonnet |
 | 93 | ▶ Ready | `FIND` | [`ui-143`](FIND-ui-143-butterfly-keys-cannot-be-placed-on-the-cut-face-at-the-default-390-px-zoom.md) Let a Butterfly key be placed on the cut face at the default phone zoom, or say why not | sonnet |
 | 94 | ▶ Ready | `FIND` | [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking `Viewport.vue`'s script and split `pointerGestures.js` (the remainder of `ui-108`) | sonnet |
@@ -87,8 +86,12 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 101 | ▶ Ready | `FIND` | [`ui-149`](FIND-ui-149-nav-chrome-mode-buttons-real-44px-height.md) Give the navigation chrome's Orbit, Pan, Select and gear buttons real 44 px height by relaxing the ui-043 and ui-084 size budgets (split from ui-135) | sonnet |
 | [`ui-150`](FIND-ui-150-sketch-toolbar-overlaps-orientation-gizmo-on-tablet-and-laptop.md) Stop the Sketch toolbar overlapping the orientation gizmo on webkit-tablet and firefox-laptop | finding | medium | sonnet | ▶ Ready (Next up row 102) |
 | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing | finding | low | sonnet | ▶ Ready (Next up row 103) |
+| [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry (headless landing about 110 ms) | finding | low | sonnet | ▶ Ready (Next up row 105) |
+| [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing; check a 1 s GC after the pack | finding | low | sonnet | ▶ Ready (Next up row 106) |
 | 102 | ▶ Ready | `FIND` | [`ui-150`](FIND-ui-150-sketch-toolbar-overlaps-orientation-gizmo-on-tablet-and-laptop.md) Stop the Sketch toolbar overlapping the orientation gizmo on webkit-tablet and firefox-laptop (pre-existing e2e failure found during io-032) | sonnet |
 | 103 | ▶ Ready | `FIND` | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing, instead of downloading nothing silently | sonnet |
+| 105 | ▶ Ready | `FIND` | [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry so a software rasteriser lands it in under 50 ms (real-GPU landing already passes) | sonnet |
+| 106 | ▶ Ready | `FIND` | [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing, and check a 1 s GC after the pack | sonnet |
 
 ---
 
@@ -162,7 +165,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
-| [`core-085`](FIND-core-085-main-thread-blocks-over-16-ms-when-a-dense-model-cut-lands.md) Keep the main thread under the frame budget when a whole-model Subtract of a dense 3MF starts and lands | finding | medium | opus | ▶ Ready (Next up row 91) |
 | [`ui-142`](FIND-ui-142-half-height-assistant-sheet-leaves-the-transcript-a-26-px-strip.md) Give the Assistant's Half height sheet a readable transcript at 390x844 | finding | medium | sonnet | ▶ Ready (Next up row 92) |
 | [`ui-143`](FIND-ui-143-butterfly-keys-cannot-be-placed-on-the-cut-face-at-the-default-390-px-zoom.md) Let a Butterfly key be placed on the cut face at the default phone zoom, or say why not | finding | medium | sonnet | ▶ Ready (Next up row 93) |
 | [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking Viewport.vue's script and split pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 94) |
@@ -342,7 +344,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `core-085` | The main thread blocks for 480 ms at the click and 272 ms when the result lands on a whole-model Subtract of two dense 3MFs (filed 2026-11-17 from VERIFY.md core-079 #2) | Finding | — | 26, 31 |
 | `ui-142` | The Assistant's Half sheet at 390x844 leaves the transcript a 26 px strip, so an activity row is not visible (filed 2026-11-17 from VERIFY.md ai-014 #2) | Finding | — | 17, 24, 25 |
 | `ui-143` | A Butterfly key cannot be placed by tapping the cut face at the default 390 px zoom, and nothing says why (filed 2026-11-17 from VERIFY.md core-075 stage 2 #2) | Finding | — | none |
 | `ui-144` | Finish shrinking Viewport.vue's script (964 lines after slice 7) and split pointerGestures.js (filed 2026-11-17 as the remainder of ui-108) | Finding | — | 1, 4, 6, 7, 9 |
@@ -355,6 +356,8 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `ui-149` | The Orbit, Pan and Select buttons are still 30-32 px tall (wrong-control taps 4-8 %, target 2 %); real 44 px needs the `ui-043` toolbar-overlap and `ui-084` compact-size budgets relaxed. Split from `ui-135`. Filed 2026-11-18 | Finding | — | 7 |
 | `ui-150` | The Sketch toolbar overlaps the orientation gizmo on webkit-tablet and firefox-laptop; `sketch-primitive.e2e.js:533` fails on plain HEAD. Filed 2026-11-18 | Finding | — | 102 |
 | `io-039` | Export of a Subtract that left nothing (an STL in inches imported as mm) downloads nothing and shows no error; same at HEAD. Filed 2026-11-18 | Finding | — | 11, 26 |
+| `render-009` | A dense whole-model cut's result lands in about 110 ms headless (non-indexed mesh, 660 k vertices for 220 k triangles on a software rasteriser); real GPU passes 50 ms (filed 2026-11-19 from core-085) | Finding | — | 1, 26, 31 |
+| `core-086` | The whole-model cut still sends every operand triangle each click, and one headless run paused 1 s in a GC after the pack (filed 2026-11-19 from core-085) | Finding | — | 26, 31 |
 
 ---
 
@@ -454,7 +457,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 14 queued + 1 held | 14 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 15 queued + 1 held | 15 ready for `/run-todos`, `testing-045` first; `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

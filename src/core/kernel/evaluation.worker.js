@@ -10,7 +10,7 @@
  * ## Protocol
  *
  * In:  `{ id, channel, generation, job }` — see `runEvaluationJob` for `job`.
- * Out: `{ id, channel, generation, ok: true, result }`,
+ * Out: `{ id, channel, generation, ok: true, result }` (its packed geometry transferred, `TODO/core-085`),
  *      `{ id, channel, generation, ok: false, error }`, or
  *      `{ id, channel, generation, superseded: true }` for a request that a newer one on
  *      the same channel overtook before it started — never run, always answered, so the
@@ -27,7 +27,7 @@
  * @module core/kernel/evaluation.worker
  */
 
-import { createLatestOnlyQueue, runEvaluationJob } from './evaluationJob.js'
+import { createLatestOnlyQueue, resultTransferables, runEvaluationJob } from './evaluationJob.js'
 
 // `self` inside a worker is a `DedicatedWorkerGlobalScope`; the project's DOM typings
 // describe the window one.
@@ -42,7 +42,10 @@ function drain() {
   for (let request = queue.take(); request; request = queue.take()) {
     const { id, channel, generation, job } = request
     try {
-      scope.postMessage({ id, channel, generation, ok: true, result: runEvaluationJob(job) })
+      const result = runEvaluationJob(job)
+      // TODO/core-085: the result's buffers are handed over, not cloned — the main thread's
+      // first read of a 220 k-triangle answer cost 80 ms when it was nested arrays.
+      scope.postMessage({ id, channel, generation, ok: true, result }, resultTransferables(result))
     } catch (error) {
       scope.postMessage({ id, channel, generation, ok: false, error: error instanceof Error ? error.message : String(error) })
     }

@@ -340,6 +340,7 @@ board as one shell (33,720 triangles), or a 30 k-triangle generated STL where no
 | Volume (worker union of 29 parts) | — | 2.0 s after the drop, off the main thread | 1.6 s |
 | Export the whole model as one STL | — | 1.0 s in the worker, no gap over 17 ms | 255 ms |
 | **Subtract with the whole model as the cutter** (`core-079`) | one 624 ms long task (320–363 ms in the Node synthetic) | sends operands 6–14 ms; the worker unions and subtracts in 1.25 s (Chromium), off the main thread with a pending line; the commit ~11.5 ms; longest gap 43 ms at landing, 29 ms at the click (phone WebKit: 1.6 s, 25 ms) | 179 ms |
+| **Whole-model Subtract of a dense 3MF, two copies of `5036 RGB Matrix 2.5mm`** (`core-085`: 25 parts, 219,540 triangles each) | at the click 210 ms headless, 208 ms on the GPU; at the landing 244 ms headless, 119 ms on the GPU | operands transferred as typed arrays, packed in 4 ms slices; click median 20 ms headless (frame floor 18-19) and 14 ms on the GPU, no long task; landing median 137-147 ms headless and **47 ms on the GPU** (software rasteriser draws the 220 k-triangle non-indexed result at about 80 ms a frame: the headless 50 ms target is **not met**, `render-009`) | — |
 
 The three fixes, all in the main-thread paths a group-valued body takes:
 

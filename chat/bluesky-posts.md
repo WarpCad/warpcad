@@ -3489,3 +3489,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** the loss and the 65 s control run → TODO/done/io-038 (testing-045 drive, real GitHub, 2026-11-17); the fix verified against a fake gist API that serves a stale read, e2e green on chromium, webkit and firefox → this session; real-GitHub re-run not done yet (OWNER.md K7).
 **To Add:** none
 ---
+
+## 2026-11-19T21:25:00Z — Subtract a dense model without freezing the page
+
+**Post:** Cutting a dense 3MF from another froze WarpCad for 210 ms at the click: nested arrays being cloned to the worker. Now typed arrays, transferred. Click gap 14 ms on a real GPU, landing 47. Headless landing is still 140 ms, filed separately. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Performance
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 210 to median 20 ms headless, 208 to 14 ms GPU at the click; 119 to 47 ms GPU landing, 137-147 ms headless (not met) → bench/results/2026-11-19-core-085.md; CPU profile 195 ms in structured clone → Opus half of core-085; import-3mf e2e green on three engines, pair firefox-tablet + chromium-laptop green → this session.
+**To Add:** none
+---

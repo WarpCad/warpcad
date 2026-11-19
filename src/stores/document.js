@@ -26,7 +26,7 @@ import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kern
 import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf, rememberCombined } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { PREBUILT_BOOLEAN_OPS, rememberPrebuiltBoolean } from '../core/kernel/index.js'
-import { packGeometry, unpackGeometry } from '../core/kernel/transport.js'
+import { packGeometry, packGeometryInSlices, unpackGeometry } from '../core/kernel/transport.js'
 import { promptIndex as buildPromptIndex } from '../core/prompt.js'
 import { useAlignReferenceStore } from './alignReference.js'
 import { useColorPreviewStore } from './colorPreview.js'
@@ -127,7 +127,9 @@ function requestMeasurements(list, channel, onLanded) {
     .map((body) => body.geometry)
     .filter((geometry) => isGroup(geometry) && !cachedMeasurementOf(geometry))
   if (waiting.length === 0 || !evaluationWorkerAvailable()) return
-  channel.request({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry, { planes: true })) }).then(
+  // Packed for this one request, so its buffers are handed over rather than copied (TODO/core-085).
+  const job = () => /** @type {const} */ ({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry, { planes: true })) })
+  channel.request(job(), { transfer: true, repack: job }).then(
     (outcome) => {
       if (outcome.superseded || outcome.result.kind !== 'measure') return
       outcome.result.measurements.forEach((measured, index) => {
@@ -152,6 +154,33 @@ function requestMeasurements(list, channel, onLanded) {
       console.error('evaluation worker refused a measure job', error)
     }
   )
+}
+
+/**
+ * A yield between slices of main-thread work that lets a frame paint, and every task already
+ * due run, before the next slice (`TODO/core-085`). A bare zero-delay timer is not enough: a
+ * chain of them stays ahead of other timers in the queue, so three or four 4 ms slices ran back
+ * to back and a dense pair's click still read as a 20 ms gap. With no frames at all (Node, in the
+ * unit suite) it is a plain zero-delay timer; in a hidden tab, whose frames stop, it waits 50 ms
+ * at most.
+ *
+ * @returns {Promise<void>}
+ */
+function afterNextPaint() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function') {
+      setTimeout(resolve, 0)
+      return
+    }
+    let settled = false
+    const go = () => {
+      if (settled) return
+      settled = true
+      setTimeout(resolve, 0)
+    }
+    requestAnimationFrame(go)
+    setTimeout(go, 50)
+  })
 }
 
 /**
@@ -420,12 +449,16 @@ export const useDocumentStore = defineStore('document', () => {
     const pieces = refs.map((ref) => ref.pieces)
     pendingOperation.value = { id: String(record.id), op: record.op }
     try {
-      const outcome = await operationChannel.request({
-        kind: 'boolean',
-        op: record.op,
-        operands: values.map((value) => packGeometry(value, { planes: true })),
-        pieces,
-      })
+      // TODO/core-085: packed as flat typed arrays for this one request, a slice at a time so the
+      // click's task stays inside a frame, and handed over rather than cloned — a dense 3MF pair's
+      // nested arrays cost about 200 ms to post. `repack` is the worker-died fallback, which
+      // builds on this thread anyway.
+      /** @type {import('../core/kernel/transport.js').PackedGeometry[]} */
+      const operands = []
+      for (const value of values) operands.push(await packGeometryInSlices(value, { planes: true, yieldToEventLoop: afterNextPaint }))
+      const job = (/** @type {import('../core/kernel/transport.js').PackedGeometry[]} */ packed) => /** @type {const} */ ({ kind: 'boolean', op: record.op, operands: packed, pieces })
+      const repack = () => job(values.map((value) => packGeometry(value, { planes: true })))
+      const outcome = await operationChannel.request(job(operands), { transfer: true, repack })
       if (!outcome.superseded && outcome.result.kind === 'boolean' && outcome.result.geometry !== undefined) {
         rememberPrebuiltBoolean(record.op, values, pieces, /** @type {any} */ (unpackGeometry(outcome.result.geometry)))
       }

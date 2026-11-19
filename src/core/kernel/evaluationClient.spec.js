@@ -11,7 +11,7 @@ import {
 import { runEvaluationJob } from './evaluationJob.js'
 import { evaluateOp } from './index.js'
 import { measureGeometry } from './measure.js'
-import { packGeometry } from './transport.js'
+import { packGeometry, transferablesOf } from './transport.js'
 
 /**
  * The evaluation worker's main-thread client (`TODO/core-029`).
@@ -30,6 +30,7 @@ class FakeWorker {
     if (behaviour.fail === 'construct') throw new Error('no worker here')
     this.listeners = { message: [], error: [] }
     this.posted = []
+    this.transfers = []
     this.terminated = false
   }
 
@@ -49,9 +50,11 @@ class FakeWorker {
     for (const listener of [...(this.listeners[type] ?? [])]) listener(event)
   }
 
-  postMessage(message) {
-    // What a real postMessage does to the payload.
-    this.posted.push(structuredClone(message))
+  postMessage(message, transfer = []) {
+    // What a real postMessage does to the payload: clone it, handing over (detaching) whatever
+    // the transfer list names (TODO/core-085).
+    this.transfers.push(transfer)
+    this.posted.push(structuredClone(message, { transfer }))
   }
 
   /** Answer the `index`-th posted request, running the real job. */
@@ -187,5 +190,77 @@ describe('evaluation client — fallback', () => {
     expect(evaluationWorkerAvailable()).toBe(false)
     expect(worker.terminated).toBe(true)
     await settle()
+  })
+})
+
+describe('evaluation client — transfer lists (TODO/core-085)', () => {
+  const booleanJob = () => ({
+    kind: 'boolean',
+    op: 'boolean.subtract',
+    operands: [
+      packGeometry(evaluateOp('primitive.cuboid', { size: [10, 10, 10] }), { planes: true }),
+      packGeometry(evaluateOp('primitive.cuboid', { size: [4, 4, 20] }), { planes: true }),
+    ],
+    pieces: [undefined, undefined],
+  })
+
+  it('hands a job\'s buffers to the worker instead of cloning them, when the caller asks', async () => {
+    let worker
+    setEvaluationWorkerFactory(() => (worker = new FakeWorker()))
+    const job = booleanJob()
+    const buffers = transferablesOf(job.operands)
+    const pending = createEvaluationChannel('operation').request(job, { transfer: true })
+    expect(buffers.length).toBeGreaterThan(0)
+    expect(worker.transfers[0]).toEqual(buffers)
+    expect(job.operands[0].polygons.positions.byteLength).toBe(0)
+    worker.answer(0)
+    const outcome = await pending
+    expect(outcome.superseded).toBe(false)
+    expect(outcome.result.geometry.polygons.positions.length).toBeGreaterThan(0)
+  })
+
+  it('transfers nothing by default, so a caller may post the same packed body again (the Split sheet does)', async () => {
+    let worker
+    setEvaluationWorkerFactory(() => (worker = new FakeWorker()))
+    const job = booleanJob()
+    const pending = createEvaluationChannel('operation').request(job)
+    expect(worker.transfers[0]).toEqual([])
+    expect(job.operands[0].polygons.positions.byteLength).toBeGreaterThan(0)
+    worker.answer(0)
+    await pending
+  })
+
+  it('a worker that dies after a transfer redoes the job here from a fresh pack, never from the detached one', async () => {
+    let worker
+    setEvaluationWorkerFactory(() => (worker = new FakeWorker()))
+    const channel = createEvaluationChannel('operation')
+    let repacked = 0
+    const pending = channel.request(booleanJob(), { transfer: true, repack: () => ((repacked += 1), booleanJob()) })
+    worker.emit('error', new Error('worker crashed'))
+    const outcome = await pending
+    expect(repacked).toBe(1)
+    expect(outcome.superseded).toBe(false)
+    expect(outcome.result.error).toBeUndefined()
+    // 10 mm cube less a 4 x 4 mm column through it.
+    const { unpackGeometry } = await import('./transport.js')
+    const { measureGeometry: measure } = await import('./measure.js')
+    expect(measure(unpackGeometry(outcome.result.geometry)).volumeMm3).toBeCloseTo(1000 - 160, 6)
+  })
+
+  it('a worker that dies after a transfer with no way to repack resolves superseded, so the caller builds it itself', async () => {
+    let worker
+    setEvaluationWorkerFactory(() => (worker = new FakeWorker()))
+    const pending = createEvaluationChannel('operation').request(booleanJob(), { transfer: true })
+    worker.emit('error', new Error('worker crashed'))
+    expect((await pending).superseded).toBe(true)
+  })
+
+  it('answers on this thread with the buffers intact when there is no worker', async () => {
+    setEvaluationWorkerFactory(() => new FakeWorker({ fail: 'construct' }))
+    const job = booleanJob()
+    const outcome = await createEvaluationChannel('operation').request(job, { transfer: true })
+    expect(outcome.superseded).toBe(false)
+    expect(outcome.result.error).toBeUndefined()
+    expect(job.operands[0].polygons.positions.byteLength).toBeGreaterThan(0)
   })
 })

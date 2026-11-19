@@ -41,16 +41,32 @@
  * CPU throttling (CDP `Emulation.setCPUThrottlingRate`) stands in for a phone and is
  * Chromium-only, exactly as in `export-mainthread.mjs`.
  *
+ * 8. **whole-model-cut** (`TODO/core-085`) — a separate mode, `--only whole-model-cut --mesh
+ *    <file.3mf>`: the 3MF imported twice through **File ▾ → Import model…** and placed side by
+ *    side, the first copy picked in the Objects list and the second ticked, then **Subtract**.
+ *    The window runs from the click until the cut body has its volume. It is split into two
+ *    moments at the halfway point between the click and the cut row appearing (the worker's
+ *    boolean runs for seconds in between, so nothing straddles it): **click** (the operands
+ *    packed and posted) and **landing** (the result read back, folded, measured and drawn).
+ *    Each moment reports the longest gap between `setTimeout(0)` ticks — the method
+ *    `e2e/import-3mf.e2e.js`'s `watchMainThread` falls back to on Firefox and WebKit — the
+ *    longest gap between animation frames, and every Long Task. `--profile <dir>` also writes a
+ *    CDP CPU profile of the window (open it in Chrome DevTools' Performance panel).
+ *    The owner's own file is never committed; with no `--mesh` a generated dense 3MF stands in.
+ *
  * Usage (a server must already be running):
  *   npm run build && npx vite preview --port 4173 &
  *   node bench/evaluation-mainthread.mjs --url http://localhost:4173 --runs 5
  *   node bench/evaluation-mainthread.mjs --scene 24-bodies --rates 1,4 --runs 3
  *   node bench/evaluation-mainthread.mjs --only open --rates 1,4     # Open alone, every scene
+ *   node bench/evaluation-mainthread.mjs --only whole-model-cut --mesh "…/5036 RGB Matrix.3mf" --rates 1 --runs 3
  *
  * @module bench/evaluation-mainthread
  */
 
 import { chromium } from '@playwright/test'
+
+import { wholeModelCut } from './whole-model-cut.mjs'
 
 const args = process.argv.slice(2)
 /** @param {string} flag @param {string} [fallback] */
@@ -202,11 +218,16 @@ async function dragRowIntoViewport(page, op) {
   }, op)
 }
 
-const browser = await chromium.launch()
+// `--headed`: a real window on the machine's GPU, to tell a software-rasteriser cost from a real one.
+const browser = await chromium.launch({ headless: !args.includes('--headed') })
 /** @type {any[]} */
 const rows = []
 
-for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
+if (option('--only') === 'whole-model-cut') {
+  rows.push(...(await wholeModelCut(browser, { url: URL_BASE, runs: RUNS, rates: RATES, mesh: option('--mesh'), profileDir: option('--profile'), warmCube: args.includes('--warm-cube'), cubeTarget: args.includes('--cube-target') })))
+}
+
+for (const sceneName of option('--only') === 'whole-model-cut' ? [] : ONLY ? [ONLY] : Object.keys(SCENES)) {
   const scene = SCENES[sceneName]
   if (!scene) throw new Error(`unknown scene "${sceneName}"`)
   const text = scene.records.map((record) => JSON.stringify(record)).join('\n') + '\n'
@@ -358,7 +379,7 @@ for (const sceneName of ONLY ? [ONLY] : Object.keys(SCENES)) {
 }
 
 await browser.close()
-console.log(`\nn=${RUNS} per cell · ${URL_BASE} · Chromium · laptop viewport 1440x900 · headless`)
+console.log(`\nn=${RUNS} per cell · ${URL_BASE} · Chromium · laptop viewport 1440x900 · ${args.includes('--headed') ? 'headed (GPU)' : 'headless'}`)
 if (JSON_OUT) {
   const { writeFileSync } = await import('node:fs')
   writeFileSync(JSON_OUT, JSON.stringify({ url: URL_BASE, runs: RUNS, rows }, null, 2))

@@ -53,6 +53,18 @@ class FakeWorker {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+/**
+ * Wait until `worker` has been posted more than `count` messages (`TODO/core-085`: a cut's
+ * operands are packed in slices before the job is posted).
+ *
+ * @param {FakeWorker} worker
+ * @param {number} count
+ */
+async function postedAfter(worker, count) {
+  for (let tries = 0; tries < 100 && worker.posted.length <= count; tries += 1) await flush()
+  expect(worker.posted.length).toBeGreaterThan(count)
+}
+
 /** Parts in the Feather 3MF the finding was measured on. */
 const PART_COUNT = 29
 
@@ -190,7 +202,12 @@ describe('the whole-model cut runs in the evaluation worker (TODO/core-079)', ()
     worker.answer(0) // the model's measurement
     await flush()
 
+    const posted = worker.posted.length
     const landed = doc.appendOperation(CUT, { origin: 'local' })
+    // Pending at once, before the operands are even packed (TODO/core-085: they are packed a slice
+    // at a time, so the job is posted a task or two after the click).
+    expect(doc.pendingOperation).toEqual({ id: 'cut', op: 'boolean.subtract' })
+    await postedAfter(worker, posted)
     // Nothing is cut yet: the job is with the worker, and the store says so.
     expect(doc.pendingOperation).toEqual({ id: 'cut', op: 'boolean.subtract' })
     expect(doc.raw.bodies().some((body) => body.id === 'cut')).toBe(false)
@@ -246,7 +263,9 @@ describe('the whole-model cut runs in the evaluation worker (TODO/core-079)', ()
   it('a cut the kernel refuses rejects with the kernel\'s own message, and nothing is appended', async () => {
     const doc = useDocumentStore()
     doc.appendAll([...featherRecords(), PLATE])
+    const posted = worker.posted.length
     const landed = doc.appendOperation({ ...CUT, operands: [{ id: 'feather', pieces: 'no such part' }] })
+    await postedAfter(worker, posted)
     worker.answer(worker.posted.length - 1)
     await expect(landed).rejects.toThrow(/no part named "no such part"/)
     expect(doc.pendingOperation).toBeNull()

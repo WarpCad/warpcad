@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 
-import { colouredThreeMf, featherShapedThreeMf } from '../src/io/__fixtures__/threeMf.js'
+import { colouredThreeMf, denseThreeMf, featherShapedThreeMf } from '../src/io/__fixtures__/threeMf.js'
 import { closeLibrary, isPhone, openLibrary, pointer, sceneBodies, viewportPoint } from './support/humanInput.js'
 import { importModel, myPartsCount, openObjectList as openObjects } from './support/importModel.js'
 
@@ -122,16 +122,28 @@ function boundsIn(page, bodyId, partName = null) {
  * Tasks (Chromium), every `longtask` entry's duration; elsewhere (Firefox, WebKit have no
  * `longtask` entries) the longest gap between zero-delay timer ticks, which a blocking task
  * stretches by its own length.
+ *
+ * Each entry keeps its start time, and `landing` (a selector inside the scene list) records when
+ * the result first appears, so {@link stopWatchingMainThread} can also split the window into the
+ * click and the landing (`TODO/core-085`).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ landing?: string }} [options]
  */
-async function watchMainThread(page) {
-  await page.evaluate(() => {
-    const watch = { longestMs: 0, kind: 'longtask', stop: () => {} }
+async function watchMainThread(page, options = {}) {
+  await page.evaluate((landing) => {
+    const watch = { longestMs: 0, kind: 'longtask', entries: /** @type {number[][]} */ ([]), startedAt: performance.now(), landedAt: 0, stop: () => {} }
+    /** @type {(() => void)[]} */
+    const stops = []
     if (PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
       const observer = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) watch.longestMs = Math.max(watch.longestMs, entry.duration)
+        for (const entry of list.getEntries()) {
+          watch.longestMs = Math.max(watch.longestMs, entry.duration)
+          watch.entries.push([entry.startTime, entry.duration])
+        }
       })
       observer.observe({ type: 'longtask' })
-      watch.stop = () => observer.disconnect()
+      stops.push(() => observer.disconnect())
     } else {
       watch.kind = 'timer gap'
       let last = performance.now()
@@ -139,26 +151,72 @@ async function watchMainThread(page) {
       const tick = () => {
         const now = performance.now()
         watch.longestMs = Math.max(watch.longestMs, now - last)
+        watch.entries.push([last, now - last])
         last = now
         if (running) setTimeout(tick, 0)
       }
       setTimeout(tick, 0)
-      watch.stop = () => {
+      stops.push(() => {
         running = false
-      }
+      })
     }
-    /** @type {any} */ (window).__mainThreadWatch = watch
-  })
+    const list = document.querySelector('[data-testid="scene-bodies"]')
+    if (landing && list) {
+      const seen = new MutationObserver(() => {
+        if (watch.landedAt === 0 && list.querySelector(landing)) watch.landedAt = performance.now()
+      })
+      seen.observe(list, { childList: true, subtree: true, attributes: true })
+      stops.push(() => seen.disconnect())
+    }
+    watch.stop = () => stops.forEach((stop) => stop())
+    Object.assign(window, { __mainThreadWatch: watch })
+  }, options.landing ?? '')
 }
 
-/** @returns {Promise<{ longestMs: number, kind: string }>} */
+/**
+ * Stop watching. `clickMs` is the longest entry that starts within {@link CLICK_WINDOW_MS} of the
+ * start (the request built and posted); `landingMs` the longest from the task that made the
+ * `landing` selector match onwards — the row is added inside the landing's own task, and the
+ * observer runs at that task's end. What falls between the two is the worker's time, when the
+ * app has nothing of the cut's to do. Without a landing both are the whole window's longest.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{ longestMs: number, kind: string, clickMs: number, landingMs: number, landedAfterMs: number, over30: string }>}
+ */
 async function stopWatchingMainThread(page) {
-  return page.evaluate(() => {
+  return page.evaluate((clickWindowMs) => {
     const watch = /** @type {any} */ (window).__mainThreadWatch
     watch.stop()
-    return { longestMs: watch.longestMs, kind: watch.kind }
-  })
+    /** @type {number[][]} */
+    const entries = watch.entries
+    const all = (/** @type {number[][]} */ list) => Math.max(0, ...list.map(([, length]) => length))
+    const over30 = entries
+      .filter(([, length]) => length > 30)
+      .map(([start, length]) => `${(start - watch.startedAt).toFixed(0)}+${length.toFixed(0)}`)
+      .join(' ')
+    if (watch.landedAt === 0) return { longestMs: watch.longestMs, kind: watch.kind, clickMs: all(entries), landingMs: all(entries), landedAfterMs: Number.NaN, over30 }
+    const holding = entries.filter(([start, length]) => start <= watch.landedAt && watch.landedAt <= start + length + 1)
+    const landingStart = Math.min(watch.landedAt, ...holding.map(([start]) => start))
+    const clickEnd = Math.min(landingStart, watch.startedAt + clickWindowMs)
+    return {
+      longestMs: watch.longestMs,
+      kind: watch.kind,
+      clickMs: all(entries.filter(([start]) => start < clickEnd)),
+      landingMs: all(entries.filter(([start]) => start >= landingStart)),
+      landedAfterMs: watch.landedAt - watch.startedAt,
+      over30,
+    }
+  }, CLICK_WINDOW_MS)
 }
+
+/**
+ * How long after the click its own work can run (`TODO/core-085`): the operands are packed a
+ * slice a frame, a dense pair's in about 100 ms, and posted. The rest of the wait is the worker's.
+ */
+const CLICK_WINDOW_MS = 1500
+
+/** The landing's bound in this headless suite (`TODO/core-085`); see the dense cut test. */
+const LANDING_LIMIT_MS = 80
 
 /** The three Size fields, as numbers. */
 async function inspectorSize(page) {
@@ -309,6 +367,66 @@ test('import feather.3mf: 3 parts, drill to one, align a cube to it, cut with an
   if (await replace.isVisible().catch(() => false)) await input.press(replace)
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
   expect(await myPartsCount(page)).toBe(0)
+})
+
+test('a dense 3MF as the whole-model cutter: the main thread stays free at the click and when the cut lands (TODO/core-085)', async ({ page }, info) => {
+  // The kernel and the transport, not the layout: laptop is enough (the TODO's Testing section).
+  test.skip(!info.project.name.endsWith('-laptop'), 'laptop only: kernel and transport, not layout')
+  test.setTimeout(300_000)
+  const input = await pointer(page, info)
+  // Generated, never the owner's file: 25 parts and 217,800 triangles, the shape of the
+  // `5036 RGB Matrix 2.5mm` 3MF the finding was measured on (1.9 MB, 25 parts, 219,540 triangles).
+  const file = { name: 'dense.3mf', mimeType: 'model/3mf', buffer: Buffer.from(await denseThreeMf()) }
+  const at = [0.45, 0.5]
+  const denseId = await importAndPlace(page, input, file, at)
+  // Its volume needs the union of its 25 parts, which the worker builds and hands back.
+  await expect(page.locator(`[data-testid="scene-bodies"] li[data-body-id="${denseId}"]`)).toHaveAttribute('data-body-volume', /.+/, { timeout: 120_000 })
+
+  // A Cube dropped on it. The cutter is the dense model, so the click posts its 217,800 triangles;
+  // the result is the Cube with pockets, so the landing measures the app's own share and not a
+  // software rasteriser drawing a 220 k-triangle result (bench/whole-model-cut.mjs keeps that case).
+  await openLibrary(page, input.press)
+  const p = await viewportPoint(page, at[0], at[1])
+  await input.dragRow(page.getByTestId('library-row-primitive.cuboid'), p.x, p.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  await closeLibrary(page, input.press)
+  const cubeId = (await sceneBodies(page)).find((body) => body.op === 'primitive.cuboid').id
+
+  await openObjectList(page, input)
+  await input.press(page.getByTestId(`objects-row-${cubeId}`))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-id', cubeId)
+  await openObjectList(page, input)
+  await input.press(page.getByTestId(`objects-check-${denseId}`))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  // Rest the pointer on Subtract first and let the selection's own work settle. On the way there
+  // from the Objects list the pointer crosses the view, and hovering the dense model redraws it
+  // highlighted, which a software rasteriser takes over 100 ms to draw: a cost of the hover, not
+  // of the click this measures.
+  await page.getByTestId('operation-subtract').hover()
+  await page.waitForTimeout(1500)
+
+  const cutRow = '[data-body-op="boolean.subtract"]'
+  await watchMainThread(page, { landing: `li${cutRow}` })
+  await input.press(page.getByTestId('operation-subtract'))
+  const cut = page.locator(`[data-testid="scene-bodies"] li${cutRow}`)
+  await expect(cut).toHaveCount(1, { timeout: 180_000 })
+  await expect(cut).toHaveAttribute('data-body-volume', /.+/, { timeout: 60_000 })
+  await expect(page.getByTestId('operation-pending')).toHaveCount(0)
+  await page.waitForTimeout(500)
+  const blocked = await stopWatchingMainThread(page)
+  info.annotations.push({ type: 'core-085', description: `click ${blocked.clickMs.toFixed(0)} ms, landing ${blocked.landingMs.toFixed(0)} ms, row ${blocked.landedAfterMs.toFixed(0)} ms after the click, entries over 30 ms (+start+length) [${blocked.over30}] (${blocked.kind}, ${info.project.name})` })
+  console.log(`core-085 ${info.project.name}: ${info.annotations.at(-1)?.description}`)
+  // Before core-085 the click alone was a 100 ms-class task here (Chromium 100 to 137 ms): the
+  // cutter's nested arrays cloned for postMessage. Now it is packed in slices and transferred.
+  expect(blocked.clickMs, `longest main-thread ${blocked.kind} at the click`).toBeLessThan(50)
+  // The landing is the app's share (about 30 ms: unpack, fold, mesh, normals) plus the first frame
+  // that draws the result, which a headless software rasteriser takes about 55 ms over on its own
+  // (bench/whole-model-cut.mjs: on a real GPU the whole landing is under 50 ms). Before core-085 it
+  // was 98 to 160 ms here; 80 ms allows the rasteriser's frame and fails that.
+  expect(blocked.landingMs, `longest main-thread ${blocked.kind} when the cut landed`).toBeLessThan(LANDING_LIMIT_MS)
+  // Pockets were cut, and the cut is one body.
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+  expect(Number(await cut.getAttribute('data-body-volume'))).toBeLessThan(64_000 - 100)
 })
 
 test('a first click selects the whole model, a second narrows to the part under the pointer', async ({ page }, info) => {

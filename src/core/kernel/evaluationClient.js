@@ -41,6 +41,7 @@
  */
 
 import { runEvaluationJob } from './evaluationJob.js'
+import { transferablesOf } from './transport.js'
 
 /** @typedef {import('./evaluationJob.js').EvaluationJob} EvaluationJob */
 /** @typedef {import('./evaluationJob.js').EvaluationResult} EvaluationResult */
@@ -52,6 +53,9 @@ import { runEvaluationJob } from './evaluationJob.js'
 /**
  * @typedef {object} PendingRequest
  * @property {EvaluationJob} job Kept so a dying worker's work can be redone here.
+ * @property {(() => EvaluationJob) | null} [repack] Set when `job`'s buffers were transferred
+ *   (`TODO/core-085`): `job` is then detached, and a redo here packs afresh with this, or
+ *   resolves `superseded` when it is `null`.
  * @property {number} generation
  * @property {(outcome: EvaluationOutcome) => void} resolve
  * @property {(error: Error) => void} reject
@@ -120,7 +124,13 @@ function onWorkerError() {
 /** @param {PendingRequest} request */
 function answerHere(request) {
   try {
-    request.resolve(request.land(request.generation, runEvaluationJob(request.job)))
+    // A transferred job's buffers are gone (TODO/core-085): never run it on what is left.
+    if (request.repack === null) {
+      request.resolve({ superseded: true })
+      return
+    }
+    const job = request.repack === undefined ? request.job : request.repack()
+    request.resolve(request.land(request.generation, runEvaluationJob(job)))
   } catch (error) {
     request.reject(error instanceof Error ? error : new Error(String(error)))
   }
@@ -150,10 +160,23 @@ function resolveWorker() {
 
 /**
  * @typedef {object} EvaluationChannel
- * @property {(job: EvaluationJob) => Promise<EvaluationOutcome>} request Ask; the answer
- *   lands, or resolves `superseded`. Rejects only for a job the worker refused outright.
+ * @property {(job: EvaluationJob, options?: RequestOptions) => Promise<EvaluationOutcome>} request
+ *   Ask; the answer lands, or resolves `superseded`. Rejects only for a job the worker refused
+ *   outright.
  * @property {() => number} landedGeneration The newest generation that has landed.
  * @property {() => number} requestedGeneration The newest generation asked for.
+ */
+
+/**
+ * @typedef {object} RequestOptions
+ * @property {boolean} [transfer] Hand the job's typed-array buffers to the worker instead of
+ *   copying them (`TODO/core-085`). They are **detached** here once posted, so only a caller that
+ *   packed the job for this one request may ask; one that keeps a packed body to post again (the
+ *   Split sheet) must not. Ignored on the fallback path, which never posts.
+ * @property {() => EvaluationJob} [repack] With `transfer`: how to pack the job again, should the
+ *   worker die before answering and the job have to be redone on this thread. Without it such a
+ *   request resolves `superseded`, and the caller builds the answer itself as it would for any
+ *   superseded request.
  */
 
 /**
@@ -179,7 +202,7 @@ export function createEvaluationChannel(name) {
   }
 
   return {
-    request(job) {
+    request(job, options = {}) {
       const generation = (requested += 1)
       return new Promise((resolve, reject) => {
         /** @type {PendingRequest} */
@@ -191,7 +214,9 @@ export function createEvaluationChannel(name) {
         }
         const id = (nextId += 1)
         pending.set(id, entry)
-        active.postMessage({ id, channel, generation, job })
+        const transfer = options.transfer === true ? transferablesOf(job) : []
+        if (transfer.length > 0) entry.repack = options.repack ?? null
+        active.postMessage({ id, channel, generation, job }, transfer)
       })
     },
     landedGeneration: () => landed,
