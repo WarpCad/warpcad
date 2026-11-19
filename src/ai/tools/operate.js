@@ -104,12 +104,9 @@ function booleanSpec(label, description) {
     label,
     description,
     params: objectSchema({}),
-    // A base named by part keeps the group's other parts (TODO/FIND-ai-041 gap 1): the
-    // kernel's `keepParts`. Without it the model's "cut the Base" silently lost the Pin.
-    build: (document, operands, _params, op) => {
-      const record = booleanRecord(document, op, operands)
-      return typeof operands[0].ref === 'object' ? { ...record, params: { keepParts: true } } : record
-    },
+    // A base named by part keeps the group's other parts: `booleanRecord` sets `keepParts`
+    // (TODO/FIND-ai-041 gap 1, TODO/ui-141).
+    build: (document, operands, _params, op) => booleanRecord(document, op, operands),
   }
 }
 

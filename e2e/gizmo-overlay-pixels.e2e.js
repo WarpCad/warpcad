@@ -140,6 +140,11 @@ test.describe('Show hidden parts, off again, leaves nothing behind (render-007)'
 
     // The docs flow: tick the Cube (the base), then the Bolt's tap (the tool) from the Objects list.
     await openObjectList(page, press)
+    // The Bolt is still selected from the drop, which would make it the base (and, since
+    // TODO/ui-141, a part-addressed base keeps the Bolt's other parts). Untick it so the
+    // Cube is picked first, as the docs flow says.
+    await press(page.getByTestId(`objects-check-${bolt.id}`))
+    await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '0')
     await press(page.getByTestId(`objects-check-${cube.id}`))
     await press(page.getByTestId(`objects-expand-${bolt.id}`))
     await press(page.getByTestId(`objects-part-check-${bolt.id}-tap`))

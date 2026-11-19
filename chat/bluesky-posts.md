@@ -3469,3 +3469,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** Min 30, Value 20 refused and the cube stayed 40, Value 35 resized it, Undo restored, at 1440 and 390 px Chromium; e2e green on four engine-viewport projects → e2e/variables.e2e.js.
 **To Add:** none
 ---
+
+## 2026-11-19T19:55:00Z — Cut one part of a group from the toolbar, keep the rest
+
+**Post:** In WarpCad, subtracting a cube from one part of a group through the AI path kept the group's other parts. The Operations toolbar threw them away. Both now write the same record, so cutting Cube 1 leaves the Cylinder and Cube 2 where they were, and one Undo puts it all back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** toolbar dropped the other parts, owner chose to match the AI path → TODO/done/ui-141 (OWNER.md Q15); Chromium and WebKit drive, volume 145358 from 190653 and one Undo restoring both → this session; unit and e2e pair webkit-laptop + chromium-phone green → this session.
+**To Add:** none
+---

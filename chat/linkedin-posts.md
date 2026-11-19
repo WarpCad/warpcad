@@ -5035,3 +5035,19 @@ Not done: formula variables have a range in the file too, and still no fields fo
 
 Built with Claude Code, reviewed by me.
 **Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+
+## [2026-11-19T19:55:00Z] — The same boolean, whoever presses the button
+
+**Post:** WarpCad has two ways to subtract one shape from another: the Operations toolbar, and the AI tools. They disagreed on one case. With a base that names one part of a group, the AI path cut only that part and kept the group's other parts. The toolbar cut the part and dropped the rest.
+
+The fix was to move the rule into the one function that builds the boolean record, so both paths write the same thing. A group of a Cube, a Cylinder and a Cube, with a fourth cube dropped over the first, now loses material from Cube 1 only. The result still spans the whole group, and one Undo brings back the group and the cube.
+
+One existing end-to-end test had a wrong premise: it said the Cube was the base, but the toolbar title showed the bolt's part first. The new behaviour exposed it, and the test now unticks the bolt so the Cube really is the base.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** behaviour gap and owner decision → TODO/done/ui-141; volume and Undo drive → this session (Chromium, WebKit); the test-premise finding → the Subtract button's title read in this session's debug run.
+**To Add:** none
+---

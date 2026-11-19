@@ -565,7 +565,7 @@ async function drillIntoMemberA(page, group, partName) {
   await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText(partName)
 }
 
-test('Subtract addresses a drilled-in sub-part: the result is that member, not the whole group (TODO/ui-040)', async ({
+test('Subtract addresses a drilled-in sub-part and keeps the group’s other part (TODO/ui-040, TODO/ui-141)', async ({
   page,
 }) => {
   const { memberA, memberB, group, third } = await placeGroupAndThirdCube(page)
@@ -635,20 +635,22 @@ test('Subtract addresses a drilled-in sub-part: the result is that member, not t
 
   const [result] = await sceneBodies(page)
   const actual = parseBounds(result.bounds)
-  // The base was `{ id, pieces: "<member A>" }`, and the third cube does not
-  // overlap it, so the result is that member alone — never the whole group,
-  // whose far member is still 10+ mm beyond this extent.
+  // TODO/ui-141: the base was `{ id, pieces: "<member A>" }`, which the toolbar now writes with
+  // `keepParts` exactly as the AI `operate` tool does. The group's other part stays, so the
+  // result spans the whole group (it no longer collapses to the member, which is the bug), and its
+  // volume is the group's: the third cube does not touch it, so nothing was removed.
   for (let index = 0; index < 6; index += 1) {
-    expect(actual[index], `bounds[${index}] follows the addressed member`).toBeCloseTo(
-      memberBounds[index],
-      1,
-    )
+    expect(actual[index], `bounds[${index}] follows the whole group`).toBeCloseTo(groupBounds[index], 1)
   }
-  // Stated as its own assertion rather than left implicit in the loop: the
-  // whole-group answer is excluded, which is the claim that fails if `pieces`
-  // were silently dropped on the way to the kernel.
-  expect(maxBoundsGap(actual, groupBounds)).toBeGreaterThan(10)
+  expect(maxBoundsGap(actual, memberBounds)).toBeGreaterThan(10)
+  expect(result.volume).toBeCloseTo(group.volume, 0)
   expect(memberB.name).not.toBe(memberA.name)
+
+  // One transaction: a single Undo puts the group and the third cube back.
+  await page.getByTestId('undo-button').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  const restored = await sceneBodies(page)
+  expect(restored.map((body) => body.id).sort()).toEqual([group.id, third.id].sort())
 })
 
 test('a drilled-in body picked *second* addresses its part too — the base-first order Subtract needs (TODO/ui-040)', async ({

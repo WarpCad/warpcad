@@ -185,7 +185,7 @@ Two skill drives (claude -p, Haiku, subscription) passed: add-clearances on the 
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | `docs/mcp.md` around line 237 says a rebuilt group comes back "Group 1" and must be renamed in the app. That is now stale: `create` takes `name`, and `operate` offers `style.rename`. Fix the wording. | OK | 2026-11-17 (`testing-044`): reworded `docs/mcp.md` (Example paragraph for add-clearances). Evidence: `mcp/skills/add-clearances/SKILL.md` line 45 now addresses a group part with `pieces` so the group is not rebuilt; `create` takes `name`; `operate` offers `style.rename` (`src/ai/tools/operate.js` 359). |
-| 2 | The human Operations toolbar still writes the flat boolean, because `keepParts` is opt-in. Check in the app that Subtract on one part of a group keeps the others, or decide that the toolbar stays as it is. | Issue | 2026-11-17 owner (OWNER.md Q15): the toolbar should keep the group's other parts like the AI path → `FIND-ui-141`. |
+| 2 | The human Operations toolbar still writes the flat boolean, because `keepParts` is opt-in. Check in the app that Subtract on one part of a group keeps the others, or decide that the toolbar stays as it is. | OK | 2026-11-19 (`ui-141`): the owner chose to match the AI path (Q15); `booleanRecord` now sets `keepParts` for a part-addressed base. Driven in the production build, Chromium and WebKit laptop, real mouse: Cube, Cylinder, Cube grouped, a fourth cube dropped over Cube 1, `Group 1 › Cube 1` and the cube ticked, Subtract gave one body spanning the whole group (volume 145358 from 190653 on Chromium) and one Undo restored both. |
 
 ### ui-108 slice 1 — overlay and annotation sync out of Viewport.vue (2026-11-17 UTC)
 

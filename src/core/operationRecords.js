@@ -96,7 +96,7 @@ export function booleanRecord(document, op, operands) {
   const label = /** @type {Record<string, string>} */ (BOOLEAN_LABELS)[op]
   if (label === undefined) throw new Error(`${op} is not a boolean`)
   if (operands.length < 2) throw new Error(`${op} needs 2 or more operands, got ${operands.length}`)
-  return {
+  const record = {
     id: document.nextId('bool'),
     op,
     name: document.nextName(label),
@@ -105,6 +105,10 @@ export function booleanRecord(document, op, operands) {
     operands: operands.slice(1).map((operand) => operand.ref),
     consumes: consumesOf(document, op, operands),
   }
+  // A base named by part (`{ id, pieces }`) changes only those parts and keeps the group's
+  // others (TODO/FIND-ai-041, TODO/ui-141). Set here so the toolbar and the AI `operate`
+  // tool write the same record.
+  return typeof operands[0].ref === 'object' ? { ...record, params: { keepParts: true } } : record
 }
 
 /**

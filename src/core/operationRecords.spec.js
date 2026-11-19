@@ -140,6 +140,19 @@ describe('booleanRecord', () => {
     expect(() => document.append(record, LOCAL)).not.toThrow()
   })
 
+  it('carries keepParts: true exactly when the base names parts of a group (TODO/ui-141)', () => {
+    const { document, group, plate } = groupAndPlate()
+    const cutter = operandOf(document, plate)
+    for (const op of ['boolean.subtract', 'boolean.union', 'boolean.intersect']) {
+      const record = booleanRecord(document, op, [operandOf(document, group, 'Cube 1'), cutter])
+      expect(record.target, op).toEqual({ id: group, pieces: 'Cube 1' })
+      expect(record.params, op).toEqual({ keepParts: true })
+    }
+    // A whole-body base, or a part only as the cutter, writes no params at all.
+    expect(booleanRecord(document, 'boolean.subtract', [operandOf(document, group), cutter]).params).toBeUndefined()
+    expect(booleanRecord(document, 'boolean.subtract', [cutter, operandOf(document, group, 'Cube 1')]).params).toBeUndefined()
+  })
+
   it('refuses an op that is not a boolean, and fewer than two operands', () => {
     const { document, ids } = cubes(2)
     expect(() => booleanRecord(document, 'group.assemble', ids.map((id) => operandOf(document, id)))).toThrow(/not a boolean/)

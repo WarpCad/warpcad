@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from OWNER.md Q15 (VERIFY.md ai-041 #2)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-19).** The `keepParts` flag moved into `booleanRecord` (`src/core/operationRecords.js`), so the toolbar and the AI `operate` tool share one record and `operate.js` no longer adds it. The ui-040 e2e test that asserted the result was the member alone now asserts the whole group stays, and checks one Undo. `docs/groups.md` gained "Cutting one part of a group leaves the others". `e2e/boolean-operations.e2e.js` stays Chromium-only at three viewports (as before); the kernel's `keepParts` cut is covered by the unit specs.
 
 ## Problem
 

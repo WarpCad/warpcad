@@ -139,6 +139,15 @@ their name and measurements but no parameter fields, because those parts were ne
 separate shapes you created and so have no parameters of their own to show. That stays
 true after the built-in shape is [merged into a group](#grouping-groups-merging-their-parts).
 
+### Cutting one part of a group leaves the others
+
+A boolean whose **first** pick is a part of a group changes only that part. The group's other
+parts stay in the group, and the group keeps its place in the Objects list. Group a Cube and a
+Cylinder, drop a small Cube over the first Cube, click the group, click **Cube 1** again to
+select just that part, Shift-click the small cube, and press **Subtract**: the hole is cut in
+Cube 1 and the Cylinder stays in the group. **Undo** puts the small cube back and removes the
+cut in one step. Picking the whole group first still gives one solid, as before.
+
 ### This works on shapes you have moved, too
 
 A built-in multi-part shape — a **Bolt / screw** from the Hardware section, a **Raspberry Pi
