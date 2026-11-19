@@ -131,6 +131,7 @@ import { useModelImportStore } from '../../stores/modelImport.js'
 import { useExportDialogStore } from '../../stores/exportDialog.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
 import { useGistStore } from '../../stores/gist.js'
+import { useAppearanceStore } from '../../stores/appearance.js'
 import { useHelpStore } from '../../stores/help.js'
 import { useHostedStore } from '../../stores/hosted.js'
 import { useMergeStore } from '../../stores/merge.js'
@@ -162,6 +163,7 @@ const exportDialog = useExportDialogStore()
 const resolutionDialog = useResolutionDialogStore()
 const hosted = useHostedStore()
 const help = useHelpStore()
+const appearance = useAppearanceStore()
 const persistence = usePersistenceStore()
 const timeline = useTimelineStore()
 const overlays = useOverlaysStore()
@@ -286,6 +288,14 @@ watch(
   (value) => persistence.setUiBusy(value),
   { immediate: true },
 )
+
+/** **Appearance…** (`TODO/ui-151`): the theme and style sheet; the menu closes first. Nothing gates it. */
+function openAppearance() {
+  menu.closeMenu()
+  // The menu item the click landed on is about to unmount; make the File button the opener the sheet returns focus to.
+  buttonRef.value?.focus({ preventScroll: true })
+  appearance.open()
+}
 
 /** **Help** (`TODO/ui-061`): the docs, opened at Getting started; the menu closes first. */
 function openHelp() {
@@ -743,9 +753,12 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="file-menu__divider" role="separator">
-            <span>Help</span>
+            <span>App</span>
           </div>
-          <div role="group" aria-label="Help">
+          <div role="group" aria-label="App">
+            <button type="button" role="menuitem" class="file-menu__item" data-testid="file-appearance" @click="openAppearance()">
+              Appearance…
+            </button>
             <button type="button" role="menuitem" class="file-menu__item" data-testid="file-help" @click="openHelp()">
               Help and documentation
             </button>

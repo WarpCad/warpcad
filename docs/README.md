@@ -64,6 +64,9 @@ nothing to install. The home page, **https://warpcad.com**, links every page her
   opening on the section for the tool you are using, working offline, and leaving your
   selection and open pop-up alone; also how WarpCad updates itself (the *new version* banner and
   **Check for updates**).
+- [Appearance: theme and style](appearance.md) — **File ▾ → Appearance…**: System, Dark and Light,
+  and six whole styles (Kids, Glass, Art Deco, Minimal, Blueprint, Pixel); remembered on this
+  device, with no network or project needed.
 - [Combining shapes: Union, Subtract and Intersect](booleans.md) — the
   Operations toolbar, why its buttons stay dimmed until two shapes are selected,
   and how to tell which shape Subtract is about to cut.

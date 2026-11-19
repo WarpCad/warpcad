@@ -3499,3 +3499,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** 210 to median 20 ms headless, 208 to 14 ms GPU at the click; 119 to 47 ms GPU landing, 137-147 ms headless (not met) → bench/results/2026-11-19-core-085.md; CPU profile 195 ms in structured clone → Opus half of core-085; import-3mf e2e green on three engines, pair firefox-tablet + chromium-laptop green → this session.
 **To Add:** none
 ---
+
+## 2026-11-19T22:05:00Z — Pick a look from File, not from the bottom of Help
+
+**Post:** You could already restyle WarpCad (Kids, Glass, Art Deco, Minimal, Blueprint, Pixel), but the picker sat at the bottom of the Help sheet and vanished if Help hadn't loaded. It's now File > Appearance, works offline, and Help keeps its copy. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** picker at the bottom of Help and only once the page loaded → TODO/done/ui-151; File > Appearance, Help copy kept and no longer gated → this session; new spec green on chromium, webkit and firefox at phone, tablet and laptop (45 of 45) → this session.
+**To Add:** none
+---

@@ -1092,5 +1092,19 @@
     "specHash": "0a7c9fb0d9b1c3cd36703584191d66d896e0ee4d7ed501c3ba27422d18b32cc4",
     "bytes": 1923915,
     "seconds": 17.1
+  },
+  "appearance-pick-style.dark.gif": {
+    "spec": "e2e/docs/appearance.docs.js",
+    "theme": "dark",
+    "specHash": "c0f8cfd7e643d8d97beaca453c92616ce97549423ea8c411f01d8dce0ca1993c",
+    "bytes": 1137987,
+    "seconds": 10.2
+  },
+  "appearance-pick-style.gif": {
+    "spec": "e2e/docs/appearance.docs.js",
+    "theme": "light",
+    "specHash": "c0f8cfd7e643d8d97beaca453c92616ce97549423ea8c411f01d8dce0ca1993c",
+    "bytes": 983710,
+    "seconds": 10.4
   }
 }

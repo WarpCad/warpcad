@@ -141,6 +141,32 @@ describe('HelpSheet (TODO/ui-061)', () => {
     expect(q('help-retry')).not.toBeNull()
   })
 
+  it('keeps the theme and style picker in the error and moved states, not only once the page is ready (TODO/ui-151)', async () => {
+    const { help } = setup()
+    setHelpFetch(async (url) => {
+      if (String(url).endsWith('help/index.json')) return { ok: true, json: async () => INDEX, text: async () => JSON.stringify(INDEX) }
+      return { ok: false, status: 500, text: async () => '' }
+    })
+    help.open('boolean')
+    await flushPromises()
+    expect(q('help-error')).not.toBeNull()
+    expect(q('help-theme-light')).not.toBeNull()
+    expect(q('help-theme-blueprint')).not.toBeNull()
+    help.openPage('missing-page')
+    await flushPromises()
+    expect(q('help-moved')).not.toBeNull()
+    expect(q('help-theme-light')).not.toBeNull()
+  })
+
+  it('shows the picker while the page is still loading (TODO/ui-151)', async () => {
+    const { help } = setup()
+    setHelpFetch(() => new Promise(() => {}))
+    help.open('boolean')
+    await Promise.resolve()
+    expect(q('help-theme-system')).not.toBeNull()
+    expect(q('help-style')).not.toBeNull()
+  })
+
   it('says the page has moved, and opens Contents, when the slug is not in the index', async () => {
     const { help } = setup()
     help.open('boolean')

@@ -37,6 +37,7 @@ import { useVisibilityShortcut } from '../composables/useVisibilityShortcut.js'
 import { startLiveBridge } from '../composables/useLiveBridge.js'
 import { startWebMcp } from '../composables/useWebMcp.js'
 import HelpEntryButton from '../components/layout/HelpEntryButton.vue'
+import AppearanceSheet from '../components/layout/AppearanceSheet.vue'
 import HelpSheet from '../components/layout/HelpSheet.vue'
 import ShareSheet from '../components/layout/ShareSheet.vue'
 import SharedView from '../components/layout/SharedView.vue'
@@ -433,6 +434,8 @@ function onInspectorClaim() {
     <!-- The in-app docs (TODO/ui-061): over every pop-up (modal tier 50/51), opened by any ? button,
          File ▾ → Help or the ? / F1 keys. Outside the editor so a help link still works whatever shows. -->
     <HelpSheet />
+    <!-- File ▾ → Appearance… (TODO/ui-151): the theme and style picker, with no network and no project needed. -->
+    <AppearanceSheet />
   </div>
 </template>
 

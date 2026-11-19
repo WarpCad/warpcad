@@ -67,7 +67,8 @@
     "agent-prompting",
     "native-apps",
     "import",
-    "native-files"
+    "native-files",
+    "appearance"
   ],
   "aliases": {}
 }

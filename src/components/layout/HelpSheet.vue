@@ -34,9 +34,9 @@ import { isNativeShell, openExternal, probeShell } from '../../native/shell.js'
 import BaseButton from '../controls/BaseButton.vue'
 import ExternalLink from '../controls/ExternalLink.vue'
 import IconButton from '../controls/IconButton.vue'
+import ThemePicker from '../controls/ThemePicker.vue'
 import { useAppUpdateStore } from '../../stores/appUpdate.js'
 import { useHelpStore } from '../../stores/help.js'
-import { THEME_MODES, THEME_STYLES } from '../../stores/settings.js'
 
 const help = useHelpStore()
 const update = useAppUpdateStore()
@@ -63,12 +63,6 @@ const state = ref('loading')
 const content = ref(null)
 /** @type {import('vue').Ref<HTMLElement | null>} */
 const closeButton = ref(null)
-
-/** The visible words of the three theme segments. */
-const THEME_LABELS = { system: 'System', dark: 'Dark', light: 'Light' }
-
-/** The visible words of the style tiles (`src/styles/skins/`). */
-const STYLE_LABELS = { kids: 'Kids', glass: 'Glass', deco: 'Art Deco', minimal: 'Minimal', blueprint: 'Blueprint', pixel: 'Pixel' }
 
 /**
  * A picture's dark twin is a `<source class="help-pic-dark">`, keyed to the system scheme in the
@@ -358,42 +352,9 @@ onBeforeUnmount(() => {
               <ExternalLink :href="SOURCE_URL" data-testid="help-source-link">Source code</ExternalLink>
               <ExternalLink :href="NOTICES_URL" data-testid="help-notices-link">Third-party notices</ExternalLink>
             </footer>
-            <!-- The theme (`TODO/ui-113`): System follows the device, Dark and Light override it. -->
-            <div v-if="state === 'ready'" class="help__theme" role="group" aria-labelledby="help-theme-label" data-testid="help-theme">
-              <span id="help-theme-label" class="help__theme-label">Theme</span>
-              <button
-                v-for="choice in THEME_MODES"
-                :key="choice"
-                type="button"
-                class="help__theme-btn"
-                :aria-pressed="theme.preference.value === choice ? 'true' : 'false'"
-                :data-testid="`help-theme-${choice}`"
-                @click="theme.setPreference(choice)"
-              >
-                {{ THEME_LABELS[choice] }}
-              </button>
-            </div>
-            <!-- The styles (`src/styles/skins/`): a whole look, fixed to light or dark. Picking one releases the
-                 mode above; picking a mode releases the style. Each swatch is drawn by its style's own file. -->
-            <div v-if="state === 'ready'" class="help__styles" role="group" aria-labelledby="help-style-label" data-testid="help-style">
-              <span id="help-style-label" class="help__theme-label">Style</span>
-              <div class="help__styles-grid">
-                <button
-                  v-for="style in THEME_STYLES"
-                  :key="style"
-                  type="button"
-                  class="help__style-btn"
-                  :aria-pressed="theme.preference.value === style ? 'true' : 'false'"
-                  :data-testid="`help-theme-${style}`"
-                  @click="theme.setPreference(style)"
-                >
-                  <span class="theme-swatch" :class="`theme-swatch--${style}`" aria-hidden="true">
-                    <span class="theme-swatch__panel">Aa<span class="theme-swatch__accent" /></span>
-                  </span>
-                  <span class="help__style-name">{{ STYLE_LABELS[style] }}</span>
-                </button>
-              </div>
-            </div>
+            <!-- The theme and style picker (`TODO/ui-113`, `TODO/ui-151`): outside the ready gate, so it is here
+                 while the page loads and when it fails, offline included. Same component as File ▾ → Appearance…. -->
+            <ThemePicker testid-prefix="help" />
             <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
             <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
               <span data-testid="help-version">{{ update.helpVersionLine }}</span>
@@ -419,136 +380,6 @@ onBeforeUnmount(() => {
   margin: 4px 0 0;
   color: var(--text-2);
   font-size: var(--text-size-md);
-}
-
-.help__theme {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--space-4h);
-  margin-top: 8px;
-  color: var(--text-2);
-  font-size: var(--text-size-md);
-}
-
-.help__theme-btn {
-  flex: 1 1 0;
-  min-width: var(--tap);
-  min-height: var(--tap);
-  max-width: 120px;
-  padding: 0 var(--space-4h);
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-2);
-  font-family: inherit;
-  font-size: var(--text-size-md);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.help__theme-btn:first-of-type {
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-}
-
-.help__theme-btn:last-of-type {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.help__theme-btn + .help__theme-btn {
-  margin-left: -1px;
-}
-
-.help__theme-btn[aria-pressed='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.help__theme-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.help__styles {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: 12px;
-  color: var(--text-2);
-  font-size: var(--text-size-md);
-}
-
-.help__styles-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-  max-width: 420px;
-}
-
-.help__style-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-2);
-  min-height: var(--tap);
-  padding: var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-2);
-  font-family: inherit;
-  font-size: var(--text-size-sm);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.help__style-btn[aria-pressed='true'] {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
-  color: var(--text-1);
-}
-
-.help__style-btn:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.help__style-name {
-  text-align: center;
-}
-
-/* A thumbnail of the style: its ground, one of its panels, a word in its type and a dot of its accent.
-   The `--swatch-*` values are set per style in `src/styles/skins/*.css`, so a tile looks like its style
-   whichever theme is painted around it. */
-.theme-swatch {
-  display: grid;
-  place-items: center;
-  height: 46px;
-  overflow: hidden;
-  border-radius: var(--radius-xs);
-  background: var(--swatch-ground);
-}
-
-.theme-swatch__panel {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border: var(--swatch-edge);
-  border-radius: var(--swatch-radius);
-  background: var(--swatch-panel);
-  color: var(--swatch-ink);
-  font-family: var(--swatch-font);
-  font-size: var(--text-size-lg);
-  line-height: 1.2;
-  box-shadow: var(--swatch-shadow);
-}
-
-.theme-swatch__accent {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--swatch-radius);
-  background: var(--swatch-accent);
 }
 
 .help__version {

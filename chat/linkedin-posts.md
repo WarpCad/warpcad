@@ -5081,3 +5081,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** click 210 to 20 ms headless and 208 to 14 ms GPU, landing 119 to 47 ms GPU and 137-147 ms headless → bench/results/2026-11-19-core-085.md; 195 ms in structured clone, 79 ms first read of event.data, about 80 ms a frame in SwiftShader → CPU profiles (Opus half of core-085); e2e import-3mf green on chromium, firefox and webkit laptop, pair firefox-tablet + chromium-laptop → this session; headless landing unmet → TODO/FIND-render-009.
 **To Add:** none
 ---
+
+## 2026-11-19T22:05:00Z — A theme picker that does not depend on the help page
+
+**Post:** WarpCad has six whole styles on top of System, Dark and Light. They were hard to find: the picker lived at the bottom of the Help sheet, under the page and the licence footer, and it was drawn only after the Help page had loaded. Offline, or with a fetch error, there was no way to change the look at all. No end-to-end spec ever picked a style either.
+
+The picker is now one shared component. File > Appearance opens it in its own sheet, a bottom sheet with two tile columns on a phone and a card on larger screens, and the Help sheet keeps the same component, shown while the page loads and when it fails. A new spec chooses a mode and a style from the real app, checks a panel pixel and a canvas pixel in each, reloads to confirm the choice stuck, and presses Escape to confirm focus returns to File. It runs on Chromium, WebKit and Firefox at all three viewports.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** picker location and the ready gate → TODO/done/ui-151; spec 45 of 45 across nine projects, tiles 44 px or taller, no sideways overflow → this session; fonts blocked, nine buttons still drawn, no CSP error → this session.
+**To Add:** none
+---
