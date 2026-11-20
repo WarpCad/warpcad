@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 94 now (Q16-Q109; Q94-Q109 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 96 now (Q16-Q111; Q94-Q111 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q111 · On a phone, should a tap on the orientation triad open a big view picker?
+
+**Question:** `ui-148` fixes the phone's orientation caps, which were 23 px apart so a fingertip fired a neighbouring cap on 31 % of scattered taps. Of the three designs the finding offered (a collapsed dial that opens to a large picker, a two-row layout in the dial's footprint, or moving the toolbar so a 190 px dial fits) it took the first: on a phone a touch tap on the 96 px triad opens a 3 by 2 picker of six 68 by 64 px buttons (Top, Front, Right, Bottom, Back, Left) plus Home and Close. A mouse or keyboard click on the triad's own caps still snaps directly. Wrong-cap taps fell from 31 % to under 3 %. The cost is one extra tap to change view by touch on a phone.
+
+**Background:** Assumed yes. A two-row layout in the 112 px footprint cannot get cells wider than 32 px, which is still about 20 % wrong; the 190 px dial only fits by shrinking the Operations toolbar and breaking the toolbar and chrome budget (`ui-043`) and the over-20 px gap (`ui-045`). The picker leaves the tablet's 190 px dial, the toolbar and the chrome untouched.
+
+**Options:**
+1. **Keep the picker (Recommended)**: six big targets, no layout change elsewhere on the phone.
+2. **Go back to the compact caps and accept about 31 % wrong taps**: one tap fewer, many mis-taps.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** the picker stands.
+
+**Answer:** question
 
 #### Q110 · May a dimension label step off its line so a gizmo ring does not cross its digits?
 

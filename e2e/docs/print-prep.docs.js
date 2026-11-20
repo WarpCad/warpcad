@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { snapToView } from '../support/humanInput.js'
 import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
 
 /**
@@ -335,7 +336,7 @@ test.describe('docs media: print prep', () => {
     await startMovie(page, 'print-prep-manual-joint')
 
     await selectWing(page)
-    await press(page, 'gizmo-view-right')
+    await snapToView(page, 'right')
     await page.waitForTimeout(200)
     await press(page, 'op-split')
     await expect(page.getByTestId('split-sheet')).toBeVisible()

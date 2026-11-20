@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { pointer, sceneBodies, sleep, usesTrustedTouch, viewportPoint } from './support/humanInput.js'
+import { snapToView, pointer, sceneBodies, sleep, usesTrustedTouch, viewportPoint } from './support/humanInput.js'
 
 /**
  * The Library icon rail and the compact viewport chrome between laptop and phone width
@@ -182,15 +182,15 @@ test.describe('the Library icon rail at the tablet reference (TODO/ui-084)', () 
       distance: Number(await view.getAttribute('data-camera-distance')),
     })
 
-    await press(page.getByTestId('gizmo-view-top'))
+    await snapToView(page, 'top')
     await expect.poll(async () => (await camera()).elevation).toBeGreaterThan(85)
-    await press(page.getByTestId('gizmo-view-front'))
+    await snapToView(page, 'front')
     await expect.poll(async () => Math.abs((await camera()).elevation)).toBeLessThan(5)
     // Each cap is tapped from a view where it is not hidden behind its opposite at the dial's
     // centre (looking down +X puts −X directly under X, at any width).
     for (const cap of ['right', 'back', 'left', 'bottom']) {
       const before = await camera()
-      await press(page.getByTestId(`gizmo-view-${cap}`))
+      await snapToView(page, cap)
       await expect.poll(async () => JSON.stringify(await camera()), { message: `gizmo-view-${cap}` }).not.toBe(JSON.stringify(before))
     }
     await press(page.getByTestId('gizmo-view-home'))

@@ -5227,3 +5227,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** the readers' complaint → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; src/render/annotateLabelClear.spec.js and e2e/viewport-legibility.e2e.js; pair run webkit-laptop + chromium-phone, 1351 passed, 0 failed → this session.
 **To Add:** none
 ---
+
+## 2026-11-20T07:12:00Z — A view picker for the phone's orientation triad
+
+**Post:** WarpCad's orientation triad shows which way the camera looks and snaps to Top, Front, Right and the rest. On a 390 px phone it is 96 px wide, which puts its six caps about 23 px apart. A fingertip is less precise than that.
+
+I simulated 150 fingertip taps (a seeded Gaussian, sigma 3.5 mm) aimed at the caps: 47 landed on a different one. A bigger triad does not fit beside the Operations toolbar, so on a phone a touch tap on the triad now opens a picker of six 68 by 64 px buttons with Home and Close. The same test gives 2 misses in 150. A mouse click still snaps from the caps directly, and the tablet's 190 px triad is unchanged.
+
+The fix also needed a z-index change: the picker is wider than the space beside the toolbar, and for a while the toolbar covered the "Bottom" button until a hit-test check caught it.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** wrong-cap rate 47 of 150 before, 2 of 150 after → `e2e/orientation-tap.e2e.js` runs this session (chromium-phone before via a throwaway copy of the spec; after on chromium-phone and webkit-phone, seed 134, sigma 3.5 mm); 23 px cap spacing and 22-35 % earlier measurement → `TODO/done/ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md`; tablet dial unchanged → `e2e/orientation-tap.e2e.js` tablet runs green on all touch projects
+**To Add:** `docs/screenshots/orientation-picker.png`
+---

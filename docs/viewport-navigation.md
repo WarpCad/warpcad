@@ -186,7 +186,16 @@ axis:
 touchscreen at tablet width and up, the triad grows to about 190 px with 44 px caps, and the toolbar
 leaves room for it. A tap that falls between two caps goes to the nearer one. For example, on a tablet
 tap `X` near the red spoke: the camera snaps to the Right view and the caption under the triad names it.
-On a phone the triad keeps its small size, and a tap still goes to the nearest cap.
+
+**On a phone, tapping the triad opens a big view picker.** Six caps a finger can tell apart do not fit
+in a 96 px triad, so on a phone the triad stays a small live readout of where the camera looks, and a
+tap on it opens a picker with six large buttons (Top, Front, Right, Bottom, Back, Left) and a `Home`
+button. For example: tap anywhere on the triad, tap **Front**. The picker closes, the camera snaps to the
+front view, and the triad redraws to match. The picker's title line shows the current azimuth and
+elevation; **Close** (or a tap outside it) puts it away without changing the view. With a mouse or a
+keyboard on a narrow window you still click the triad's own caps directly.
+
+![The phone's orientation picker open over the top-right corner: Top, Front and Right on one row, Bottom, Back and Left on the next, with Home and Close below.](./screenshots/orientation-picker.png)
 
 Zoom and the point you are looking at are left alone by a snap — only the
 direction changes — so you can line up a view without losing your place.

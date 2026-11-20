@@ -3590,3 +3590,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** two readers saw digits cut by a ring → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; unit sweep and new e2e on nine projects, pair run webkit-laptop + chromium-phone, 1351 passed, 0 failed → this session; screenshots at 390x844 read by eye.
 **To Add:** none
 ---
+
+## 2026-11-20T07:12:00Z — WarpCad's phone view picker: six big buttons instead of six overlapping caps
+
+**Post:** On a phone, WarpCad's orientation triad had six caps packed into 96 px. With a fingertip's worth of scatter, 47 of 150 simulated taps fired a neighbouring view. Tapping the triad now opens a picker of six big buttons: 2 of 150 miss. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** wrong-cap rate 47 of 150 before, 2 of 150 after → `e2e/orientation-tap.e2e.js` runs this session (chromium-phone before via a throwaway copy of the spec; after on chromium-phone and webkit-phone, seed 134, sigma 3.5 mm); 23 px cap spacing and 22-35 % earlier measurement → `TODO/done/ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md`; tablet dial unchanged → `e2e/orientation-tap.e2e.js` tablet runs green on all touch projects
+**To Add:** `docs/screenshots/orientation-picker.png`
+---

@@ -18,7 +18,7 @@
  * right. Sign flips here are exactly the easy bug, so `src/render/camera.js`'s
  * spec pins every one of these orientations.
  */
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { rightFromSpherical, upFromSpherical, positionFromSpherical } from '../../render/camera.js'
 import { nearestCapView, CAP_RADIUS_FRACTION } from '../../render/orientationHit.js'
 import { usePanelLayoutStore } from '../../stores/panelLayout.js'
@@ -119,6 +119,11 @@ const dialEl = ref(null)
  */
 function onDialClickCapture(event) {
   if (props.disabled || event.detail === 0 || !dialEl.value) return
+  if (touchPicker.value && lastPointerType === 'touch') {
+    event.stopPropagation()
+    pickerOpen.value = !pickerOpen.value
+    return
+  }
   const rect = dialEl.value.getBoundingClientRect()
   const view = nearestCapView(caps.value, rect.width, {
     x: event.clientX - rect.left,
@@ -128,6 +133,74 @@ function onDialClickCapture(event) {
   const hit = event.target instanceof Element ? event.target.closest('[data-view]') : null
   if (hit && hit.getAttribute('data-view') === view) return
   event.stopPropagation()
+  emit('snap', view)
+}
+
+/**
+ * The phone touch picker (`TODO/ui-148`). A 96px dial cannot hold six caps a fingertip can tell apart
+ * (neighbours 23px apart under about 13px of scatter), and a bigger dial does not fit beside the
+ * Operations toolbar. So on a coarse pointer under 600px a touch tap on the compact dial opens a large
+ * 3x2 picker of the six faces (no gaps between cells, so a tap always lands on one), and picking closes
+ * it. A mouse, pen or keyboard click keeps snapping straight from the dial's caps.
+ */
+const TOUCH_PICKER_QUERY = '(pointer: coarse) and (max-width: 599.98px)'
+const touchPicker = ref(false)
+const pickerOpen = ref(false)
+/** The pointer type of the press that precedes a click; a click event does not carry it everywhere. */
+let lastPointerType = ''
+/** @type {MediaQueryList | null} */
+let touchPickerMql = null
+
+function syncTouchPicker() {
+  touchPicker.value = !!touchPickerMql?.matches
+}
+onMounted(() => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+  touchPickerMql = window.matchMedia(TOUCH_PICKER_QUERY)
+  syncTouchPicker()
+  touchPickerMql.addEventListener?.('change', syncTouchPicker)
+})
+onBeforeUnmount(() => {
+  touchPickerMql?.removeEventListener?.('change', syncTouchPicker)
+  document.removeEventListener('pointerdown', onOutsidePointerDown, true)
+})
+watch([touchPicker, () => props.disabled], ([on, off]) => {
+  if (!on || off) pickerOpen.value = false
+})
+watch(pickerOpen, (open) => {
+  if (open) document.addEventListener('pointerdown', onOutsidePointerDown, true)
+  else document.removeEventListener('pointerdown', onOutsidePointerDown, true)
+})
+
+/** @type {import('vue').Ref<HTMLElement | null>} */
+const pickerEl = ref(null)
+
+/** @param {PointerEvent} event */
+function onOutsidePointerDown(event) {
+  if (pickerEl.value && event.target instanceof Node && !pickerEl.value.contains(event.target)) pickerOpen.value = false
+}
+
+/** @param {PointerEvent} event */
+function onDialPointerDown(event) {
+  lastPointerType = event.pointerType
+}
+
+/**
+ * The six faces in the picker's reading order, with the names the picker prints.
+ * @type {ReadonlyArray<{view: string, name: string, label: string}>}
+ */
+const PICKER_FACES = Object.freeze([
+  { view: 'top', name: 'Top', label: 'Z' },
+  { view: 'front', name: 'Front', label: '−Y' },
+  { view: 'right', name: 'Right', label: 'X' },
+  { view: 'bottom', name: 'Bottom', label: '−Z' },
+  { view: 'back', name: 'Back', label: 'Y' },
+  { view: 'left', name: 'Left', label: '−X' },
+])
+
+/** @param {string} view a face name, or 'home' */
+function pick(view) {
+  pickerOpen.value = false
   emit('snap', view)
 }
 
@@ -144,12 +217,17 @@ const orientationLabel = computed(
     :data-azimuth="azimuthDeg.toFixed(2)"
     :data-elevation="elevationDeg.toFixed(2)"
     :data-chrome-tier="chromeTier"
+    :data-touch-picker="touchPicker ? 'true' : 'false'"
+    :data-picker-open="touchPicker && pickerOpen ? 'true' : 'false'"
   >
     <div
       ref="dialEl"
       class="gizmo__dial"
+      data-testid="orientation-dial"
       role="group"
       aria-label="Camera orientation"
+      :title="touchPicker && !disabled ? 'Tap to pick a view' : undefined"
+      @pointerdown.capture="onDialPointerDown"
       @click.capture="onDialClickCapture"
     >
       <svg class="gizmo__svg" viewBox="-50 -50 100 100" aria-hidden="true">
@@ -202,6 +280,36 @@ const orientationLabel = computed(
       Home
     </button>
     <p class="gizmo__caption" data-testid="gizmo-orientation-label">{{ orientationLabel }}</p>
+
+    <div
+      v-if="touchPicker && pickerOpen"
+      ref="pickerEl"
+      class="gizmo__picker"
+      data-testid="gizmo-picker"
+      role="group"
+      aria-label="Pick a view"
+      @keydown.esc="pickerOpen = false"
+    >
+      <p class="gizmo__picker-head" data-testid="gizmo-picker-label">Views · {{ orientationLabel }}</p>
+      <div class="gizmo__picker-grid">
+        <button
+          v-for="face in PICKER_FACES"
+          :key="face.view"
+          type="button"
+          class="gizmo__picker-cell"
+          :data-testid="`gizmo-picker-view-${face.view}`"
+          :aria-label="`${face.name} view`"
+          @click="pick(face.view)"
+        >
+          <span class="gizmo__picker-name">{{ face.name }}</span>
+          <span class="gizmo__picker-axis">{{ face.label }}</span>
+        </button>
+      </div>
+      <div class="gizmo__picker-foot">
+        <button type="button" class="gizmo__picker-home" data-testid="gizmo-picker-home" aria-label="Home view (isometric)" @click="pick('home')">Home</button>
+        <button type="button" class="gizmo__picker-close" data-testid="gizmo-picker-close" aria-label="Close view picker" @click="pickerOpen = false">Close</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -361,6 +469,93 @@ const orientationLabel = computed(
   .gizmo[data-chrome-tier] .gizmo__home {
     min-height: 44px;
   }
+}
+
+/* The phone touch picker (`TODO/ui-148`): an overlay anchored to the gizmo's top-right corner that
+   covers the dial while open. Six 68x64px cells with no gap, so every tap inside lands on a cell. */
+/* While the picker is open the whole gizmo paints above the Operations toolbar it overlaps. */
+.gizmo[data-picker-open='true'] {
+  z-index: calc(var(--z-canvas-overlay) + 4);
+}
+
+.gizmo__picker {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: var(--z-popover);
+  width: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-overlay);
+}
+
+.gizmo__picker-head {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-size-2xs);
+  color: var(--text-3);
+  text-align: center;
+}
+
+.gizmo__picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 68px);
+  grid-auto-rows: 64px;
+}
+
+.gizmo__picker-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: var(--text-size-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.gizmo__picker-cell:active,
+.gizmo__picker-cell:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.gizmo__picker-axis {
+  font: 500 var(--text-size-2xs) / 1 var(--font-mono);
+  color: var(--text-3);
+}
+
+.gizmo__picker-foot {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.gizmo__picker-home,
+.gizmo__picker-close {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: var(--text-size-xs);
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 @media (max-width: 480px) {

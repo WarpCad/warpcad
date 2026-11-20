@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
+import { snapToView } from '../support/humanInput.js'
 import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
 
 /**
@@ -253,9 +254,19 @@ test.describe('docs media: phone and tablet', () => {
     await twoFingerGesture(page, session, [{ x: c.x - 110, y: c.y }, { x: c.x + 110, y: c.y }], [{ x: c.x - 40, y: c.y }, { x: c.x + 40, y: c.y }])
     expect((await camera(page)).dist).toBeGreaterThan(zoomed.dist)
     // Tap the orientation triad's Top cap to snap the view.
-    await tap(page, 'gizmo-view-top')
+    await snapToView(page, 'top')
     await expect(view(page)).toHaveAttribute('data-camera-elevation', '90.00')
     await endMovie(page, 'mobile-pinch-pan', { fps: 8, width: 260 })
+  })
+
+  test('orientation picker still (phone)', async ({ page, viewport }) => {
+    test.skip(!isPhone(viewport), 'the picker is the phone touch layout (TODO/ui-148)')
+    await openApp(page)
+    await loadScene(page, 'two-solids.ndjson', 2)
+    const d = await page.getByTestId('orientation-dial').boundingBox()
+    await page.touchscreen.tap(d.x + d.width / 2, d.y + d.height / 2)
+    await expect(page.getByTestId('gizmo-picker')).toBeVisible()
+    await shot(page, 'orientation-picker.png', { locator: page.getByTestId('viewport') })
   })
 
   test('mobile-subtract', { tag: '@movie' }, async ({ page, viewport }) => {

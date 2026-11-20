@@ -13,6 +13,28 @@ export const isPhone = (info) => info.project.name.endsWith('-phone')
 /** @param {import('@playwright/test').TestInfo} info */
 export const usesTrustedTouch = (info) => info.project.name.startsWith('chromium') && !info.project.name.endsWith('-laptop')
 
+/**
+ * Snap the camera to a standard view through the orientation dial the way the layout offers it
+ * (`TODO/ui-148`): on a touch phone the compact dial opens the six-face picker on a touch tap, so tap
+ * the dial and then the picker cell; everywhere else the dial's own cap is the control.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} view 'top' | 'bottom' | 'front' | 'back' | 'left' | 'right'
+ */
+export async function snapToView(page, view) {
+  const gizmo = page.getByTestId('orientation-gizmo')
+  if ((await gizmo.getAttribute('data-touch-picker')) === 'true') {
+    if (!(await page.getByTestId('gizmo-picker').isVisible())) {
+      const d = await page.getByTestId('orientation-dial').boundingBox()
+      await page.touchscreen.tap(d.x + d.width / 2, d.y + d.height / 2)
+      await expect(page.getByTestId('gizmo-picker')).toBeVisible()
+    }
+    await page.getByTestId(`gizmo-picker-view-${view}`).click()
+    await expect(page.getByTestId('gizmo-picker')).toHaveCount(0)
+  } else {
+    await page.getByTestId(`gizmo-view-${view}`).click()
+  }
+}
+
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const wobble = (n) => (Math.random() - 0.5) * n
 

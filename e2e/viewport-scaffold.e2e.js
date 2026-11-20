@@ -3,6 +3,8 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { snapToView } from './support/humanInput.js'
+
 /**
  * The project's first real app-level spec: it navigates to `/` — the running
  * app, not a Storybook iframe — and drives the viewport scaffold.
@@ -896,7 +898,7 @@ test('taps land on the gizmo and the chrome on touch-capable projects', async ({
   hasTouch,
 }) => {
   test.skip(!hasTouch, `${browserName} project has no touch emulation`)
-  await page.getByTestId('gizmo-view-top').tap()
+  await snapToView(page, 'top')
   await camera(page, 'elevation').toBeCloseTo(90, 1)
 
   await page.getByTestId('nav-zoom-out').tap()

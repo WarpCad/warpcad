@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, split from ui-134 on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20):** the first of the three designs, a collapsed dial that opens to a large picker. On a coarse pointer under 600px a touch tap on the 96px triad opens a 3 by 2 picker of six 68x64px cells (Top, Front, Right, Bottom, Back, Left) plus Home and Close; a mouse, pen or keyboard click still snaps from the dial's caps. Wrong-cap taps at sigma 3.5 mm (seeded, 150 taps, chromium-phone): 47 of 150 (31 %) before, 2 of 150 (1.3 %) after on both chromium-phone and webkit-phone (the e2e asserts at most 3 %). The toolbar, navigation chrome and `ui-043`/`ui-045` budgets are unchanged. The assumed choice is logged as `TODO/OWNER.md` Q111.
 
 ## Problem
 

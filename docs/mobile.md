@@ -29,8 +29,8 @@ wide). **Tablet** means something like an iPad held upright (820 px wide).
    put it away.
 5. **Two-finger drag** slides (pans) the view. **Pinch** zooms in and out. A **one-finger
    drag** orbits.
-6. **Tap the orientation cube** in the top-right corner (the X, Y, Z triad), for example its
-   **Z** cap, to snap the view to a standard direction. **Home** puts the camera back where
+6. **Tap the orientation cube** in the top-right corner (the X, Y, Z triad). A picker of six big
+   buttons opens; tap **Top**, for example, to snap the view to a standard direction. **Home** puts the camera back where
    it started.
 
 ![A finger dragging a Cube out of the Library sheet into the 3D view, where it lands as a body.](./media/mobile-drag-cube.gif)
