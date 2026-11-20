@@ -57,7 +57,11 @@ function startAtCentre() {
   const bottom = Math.min(box.bottom, chipEl.value?.getBoundingClientRect().top ?? box.bottom)
   const x = box.left + box.width / 2
   const middle = (top + Math.max(top, bottom)) / 2
-  const shows = (/** @type {number} */ y) => document.elementFromPoint(x, y) === layer
+  // A point counts only when the layer shows a finger's width of clearance around it, so the ghost
+  // never starts flush against a toolbar's edge (a pixel of rounding would put it underneath).
+  const CLEAR_PX = 16
+  const shows = (/** @type {number} */ y) =>
+    [-CLEAR_PX, 0, CLEAR_PX].every((dy) => [-CLEAR_PX, 0, CLEAR_PX].every((dx) => document.elementFromPoint(x + dx, y + dy) === layer))
   let y = middle
   if (!shows(y)) {
     const STEP_PX = 16
@@ -66,6 +70,7 @@ function startAtCentre() {
     for (let probe = middle - STEP_PX; probe > top && found === null; probe -= STEP_PX) if (shows(probe)) found = probe
     y = found ?? middle
   }
+  y = Math.round(y)
   start.value = { x, y }
   placement.hover(x, y)
 }
