@@ -46,6 +46,7 @@ export const EXAMPLES = Object.freeze({
   create: { op: 'primitive.cylinder', positionMm: [0, 0, 0], params: { diameter: 10, height: 6 }, rationale: 'a 10 mm peg' },
   define_formula: { name: 'overhang', formula: 'group1.part1.width - (group1.part2.width / 2)', unit: 'mm', rationale: 'C overhangs by half of part2' },
   define_variable: { name: 'wall', kind: 'number', value: 2, unit: 'mm' },
+  delete_bodies: { ids: ['cuboid-abcdef-2', 'cuboid-abcdef-3'], rationale: 'discarded first attempt' },
   delete_variable: { name: 'wall', keepValues: true },
   describe_body: { id: 'bool-abcdef-4' },
   describe_scene: {},

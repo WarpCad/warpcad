@@ -40,7 +40,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 
-import { REPEAT_OP, mentionsSeed, nameFamily, repeatRefusal } from '../core/repeat.js'
+import { REPEAT_OP, followersOf as coreFollowersOf, mentionsSeed, nameFamily, repeatRefusal } from '../core/repeat.js'
 import { buildNameIndex, describeRow } from '../core/timelineLabel.js'
 import { useDocumentStore } from './document.js'
 import { useSelectionStore } from './selection.js'
@@ -406,21 +406,13 @@ export const useRepeatStore = defineStore('repeat', () => {
   )
 
   /**
-   * The repeat bodies that would break if `ids` were deleted: each one that follows (or is
-   * aimed at parts of) a body in `ids`, and is not itself being deleted.
+   * The repeat bodies that would break if `ids` were deleted (core's {@link followersOf}).
    *
    * @param {readonly string[]} ids
    * @returns {{ id: string, name: string, follows: string[] }[]}
    */
   function followersOf(ids) {
-    const set = new Set(ids)
-    return documentStore.bodies
-      .filter((body) => body.repeat !== undefined && !set.has(body.id))
-      .map((body) => {
-        const info = /** @type {import('../core/repeat.js').RepeatInfo} */ (body.repeat)
-        return { id: body.id, name: body.name, follows: [info.source, info.seed.id].filter((id) => set.has(id)) }
-      })
-      .filter((follower) => follower.follows.length > 0)
+    return coreFollowersOf(documentStore.bodies, ids)
   }
 
   /**

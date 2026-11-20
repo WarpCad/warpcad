@@ -3,7 +3,7 @@
 Only what is still open. Everything finished is in [TODO/ROADMAP-DONE.md](ROADMAP-DONE.md). This file is the source
 `/run-todos` reads for order, and the table `/fix-todo` edits when a task opens, closes or changes priority.
 
-**Snapshot:** 2026-11-19. Counts are in the [Status summary](#status-summary) at the foot of this file.
+**Snapshot:** 2026-11-20. Counts are in the [Status summary](#status-summary) at the foot of this file.
 
 > **What do I run next?** `/run-todos` runs **two tables, top to bottom: [M19](#m19--native-ios-app-tauri), then
 > [Findings](#findings-open-rows)**. Together they are in the same order as [Next up](#next-up--recommended-todos). M19 rows
@@ -62,6 +62,8 @@ stashes only the failed task's own paths.
 **Decided 2026-11-17 (owner, in `/whats-next`):** commit the 7 uncommitted files (`TODO/BUDGET.md`, `TODO/OWNER.md`, `TODO/VERIFY.md`, `docs/user-library.md`, `docs/webmcp.md`, `chat/bluesky-posts.md`, `chat/linkedin-posts.md`) as bookkeeping with `/commit`, before the runner resumes. Nothing is pushed. Committed the same day (`testing-044` step 0). No reason beyond the recommendation was given.
 
 **Decided 2026-11-19 (owner):** "I want a way to select one of the themes in the ui." Filed as `ui-151` and run first in the Findings queue (closed 2026-11-19: `File ▾ → Appearance…`). The picker already existed at the bottom of the Help sheet, but only once a Help page had loaded, and no e2e spec chose a style.
+
+**Decided 2026-11-20 (owner):** a WebMCP agent reported "WarpCad has no delete" and merged its discarded attempts into a scratch body for the owner to clean up. The app has deleted bodies since `ui-051`, but no AI tool wraps `deleteBodies`. Filed as `ai-051` and run first in the Findings queue; closed 2026-11-20 (`delete_bodies`).
 
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three

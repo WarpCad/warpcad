@@ -240,6 +240,13 @@ still drive a project through the [file route](mcp.md) or, on a dev host, live M
   WarpCad you run yourself with `npm run dev`. On the hosted app, use this switch instead. The sheet
   has a button that takes you to it.
 
+## Deleting what it made
+
+An agent can delete bodies, its own discarded attempts or anything else in the project, with the
+`delete_bodies` tool. Ask it to "try a taller version, and throw the first one away", and it
+removes the first body instead of leaving it behind. The deletion is a **via webmcp** row in
+**History**, and **Undo AI turn** brings the body back where it was. Your own **Undo** is untouched.
+
 ## Not yet
 
 - **Two WarpCad tabs at once.** WebMCP doesn't yet say which tab an agent reaches when two offer the

@@ -555,6 +555,26 @@ function repeatRootOf(document, bodyId) {
 }
 
 /**
+ * The repeat bodies that would break if `ids` were deleted: each one that follows (or is
+ * aimed at parts of) a body in `ids`, and is not itself being deleted. The Inspector's delete
+ * question (`TODO/ui-069`) and the `delete_bodies` tool (`TODO/ai-051`) both ask it.
+ *
+ * @param {ReadonlyArray<{ id: string, name: string, repeat?: RepeatInfo }>} bodies The bodies on screen.
+ * @param {readonly string[]} ids
+ * @returns {{ id: string, name: string, follows: string[] }[]}
+ */
+export function followersOf(bodies, ids) {
+  const set = new Set(ids)
+  return bodies
+    .filter((body) => body.repeat !== undefined && !set.has(body.id))
+    .map((body) => {
+      const info = /** @type {RepeatInfo} */ (body.repeat)
+      return { id: body.id, name: body.name, follows: [info.source, info.seed.id].filter((id) => set.has(id)) }
+    })
+    .filter((follower) => follower.follows.length > 0)
+}
+
+/**
  * Remove one member (decision 7): a **replace** of the repeat record with `target` dropped —
  * one Undo step. Removing the last target deletes the repeat body instead. This is what Delete
  * on a drilled-in member does (`document.removePart` routes here).

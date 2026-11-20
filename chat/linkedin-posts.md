@@ -5347,3 +5347,17 @@ The text lives in one constant. The docs page quotes it, and a unit spec fails i
 **Evidence:** failure modes of the old paragraph → `TODO/done/ui-156` Goal section and docs/webmcp.md; drift spec → `src/ai/mcpPrompts.spec.js`
 **To Add:** none
 ---
+
+## 2026-11-20T22:30:00Z — WarpCad: agents can delete bodies
+
+**Post:** An AI agent driving WarpCad in the browser ended its turn by saying the app has no delete, and that it had merged its discarded attempts into a scratch body for the owner to remove. The app has deleted bodies for a while. The agent's tool list simply had no way to call it.
+
+WarpCad now has a delete_bodies tool on every agent route. Several bodies go in one call as one change, and Undo AI turn restores them. If a Repeat follows a body being deleted, the tool refuses and names the Repeats until the agent says whether to delete them too or leave them broken, the two answers the Delete dialog offers a person.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** agent report, Repeat behaviour → `TODO/done/ai-051-agents-cannot-delete-a-body.md`; one-change, Undo AI turn, repeats options → `src/ai/tools/delete.spec.js` run this session
+**To Add:** none
+---

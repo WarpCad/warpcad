@@ -100,6 +100,7 @@ describe('createToolRegistry', () => {
       'create',
       'define_formula',
       'define_variable',
+      'delete_bodies',
       'delete_variable',
       'describe_body',
       'describe_scene',

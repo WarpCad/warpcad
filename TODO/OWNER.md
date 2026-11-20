@@ -1749,6 +1749,16 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 **Answer:** validation
 
+#### M26 · Claude in Chrome: a discarded attempt is deleted, not hidden
+
+`ai-051` · 5 min · filed 2026-11-20
+
+**Steps:** 1. Chrome with the WebMCP flag on, WarpCad open. 2. In the Claude in Chrome pane ask: "make a 40 mm cube, then change your mind and make a 30 mm cylinder instead, and leave only the cylinder". 3. Look at the viewport and open History.
+
+**Pass if:** One body is left, no scratch body or extra boolean row exists, and the cube's Delete row is marked **via webmcp**. **Undo AI turn** brings it back.
+
+**Answer:** validation
+
 ---
 
 ## 4. Accounts and settings

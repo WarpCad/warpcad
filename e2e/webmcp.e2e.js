@@ -189,6 +189,42 @@ test('a browser agent lists the tools, places a cube and a sphere and unions the
   expect(errors).toEqual([])
 })
 
+test('a browser agent deletes a discarded body with delete_bodies; the Delete row says via webmcp and Undo AI turn brings it back (ai-051)', async ({ page }, testInfo) => {
+  test.setTimeout(90_000)
+  /** @type {string[]} */
+  const errors = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await installFakeWebMcp(page)
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await expect.poll(() => registeredNames(page)).toContain('delete_bodies')
+
+  const first = await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [0, 0, 0] })
+  const second = await agentCall(page, 'create', { op: 'primitive.cuboid', positionMm: [80, 0, 0] })
+  expect(first.ok && second.ok, JSON.stringify([first, second])).toBe(true)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+  const refused = await agentCall(page, 'delete_bodies', { ids: ['no-such-body'] })
+  expect(refused.ok).toBe(false)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+
+  const deleted = await agentCall(page, 'delete_bodies', { ids: [first.applied[0].bodyId], rationale: 'discarded attempt' })
+  expect(deleted.ok, JSON.stringify(deleted)).toBe(true)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+  if (isLaptop(testInfo)) {
+    await openHistory(page)
+    await expect(page.getByTestId('chip-origin').filter({ hasText: 'via webmcp' }).last()).toBeVisible()
+    await expect(page.getByTestId('timeline-panel')).toContainText('Delete')
+    await page.getByTestId('timeline-toggle').click()
+  }
+
+  await clickAssistant(page)
+  await page.getByTestId('ai-undo-turn').click()
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '0')
+  expect(errors).toEqual([])
+})
+
 test('without WebMCP nothing is registered, nothing throws, and there is no Browser agents chip', async ({ page }, testInfo) => {
   /** @type {string[]} */
   const errors = []

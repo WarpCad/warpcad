@@ -3671,3 +3671,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** button, hint line, slot → diff; docs/constant match → `src/ai/mcpPrompts.spec.js` run this session; clipboard copy and switch-off hiding → `e2e/webmcp.e2e.js` run this session on webkit-laptop, chromium-phone, chromium-tablet, firefox-laptop (clipboard read is Chromium-only)
 **To Add:** none
 ---
+
+## 2026-11-20T22:30:00Z — WarpCad: agents can delete bodies
+
+**Post:** A browser agent driving WarpCad told its owner "WarpCad has no delete" and hid its discarded attempts in a scratch body. The app could delete; the agent's tools couldn't. There's now a delete_bodies tool, and Undo AI turn brings the bodies back. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** agent's report and the missing tool → `TODO/done/ai-051-agents-cannot-delete-a-body.md`; tool and Undo AI turn → `src/ai/tools/delete.spec.js` and `e2e/webmcp.e2e.js` run this session
+**To Add:** none
+---
