@@ -9,7 +9,7 @@
  * - on the dependent (the cube): *"Snapped to Raspberry Pi 1 ▸ avjack, which no longer
  *   exists."*
  *
- * Both carry **Re-link…** (`dependents-resolve`; one name with the History row's **Re-link**, `TODO/ui-146`), which reopens the repair dialog on the
+ * Both carry **Re-link…** (`dependents-resolve`; one name, one words and one primary button with the History row's **Re-link**, `TODO/ui-146`, `TODO/ui-154`), which reopens the repair dialog on the
  * breakages against the body whose parts are missing. The banner wraps; at phone width it
  * collapses to one line plus Resolve… (`BaseBanner`'s `truncate`), so it cannot push the Parameters section's first
  * field below the Inspector sheet's peek height.
@@ -51,8 +51,30 @@ const dependentsText = computed(() => {
   const items = `${count} item${count === 1 ? ' refers' : 's refer'}`
   return missing
     ? `${items} to parts this ${variant.value} doesn't have.`
-    : `${count} item${count === 1 ? '' : 's'} built on ${props.body.name} no longer build${count === 1 ? 's' : ''}.`
+    : brokenText(count)
 })
+
+/**
+ * `TODO/ui-154`: the same word as the History row (*broken*), and which step it is, so the box
+ * does not leave the reader to hunt for it: `1 step is broken: Chamfer Top (+Z) 5 mm (step 3), built
+ * on Cube 1.` At most two steps are named; the rest are counted.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function brokenText(count) {
+  const suffix = ` on ${props.body.name}`
+  const named = dependents.value.slice(0, 2).map((breakage) => {
+    const text = timeline.rows.find((row) => row.id === breakage.dependentRecordId)?.text
+    const short = text?.endsWith(suffix) ? text.slice(0, -suffix.length) : text
+    return short ? `${short} (step ${breakage.step})` : `step ${breakage.step}`
+  })
+  const more = count - named.length
+  const list = named.join('; ') + (more > 0 ? ` and ${more} more` : '')
+  // Count, the word *broken* and the step's name come first: the phone's one-line collapse
+  // cuts the end of the sentence, so the end is where `built on Cube 1` goes.
+  return `${count} step${count === 1 ? ' is' : 's are'} broken: ${list}, built on ${props.body.name}.`
+}
 
 /** Past-tense verb per relationship, for the dependent's own sentence. */
 const VERBS = Object.freeze({ Snap: 'Snapped to', Align: 'Aligned to' })
@@ -95,7 +117,7 @@ function resolve(bodyId) {
   <BaseBanner v-if="dependents.length > 0" tone="warn" layout="box" truncate role="status" data-testid="dependents-banner">
     {{ dependentsText }}
     <template #actions>
-      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(body.id)">Re-link…</BaseButton>
+      <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(body.id)">Re-link…</BaseButton>
     </template>
   </BaseBanner>
   <BaseBanner
@@ -109,7 +131,7 @@ function resolve(bodyId) {
   >
     {{ referenceText(reference) }}
     <template #actions>
-      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">Re-link…</BaseButton>
+      <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">Re-link…</BaseButton>
     </template>
   </BaseBanner>
 </template>

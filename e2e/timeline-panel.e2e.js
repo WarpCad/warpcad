@@ -607,7 +607,8 @@ test('TODO/data-006: Re-link points a broken tail row at the body an insert move
   // and it is *offered* the re-link — nothing re-pointed yet.
   await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
   await page.getByTestId('timeline-row-3').click()
-  await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
+  await expect(page.getByTestId('timeline-broken-reason')).toContainText('another step already changed the part it works on')
+  await expect(page.getByTestId('timeline-broken-reason')).not.toContainText('after you rolled back')
   const relink = page.getByTestId('timeline-relink')
   await expect(relink).toBeVisible()
   await expect(relink).toBeEnabled()
@@ -699,9 +700,33 @@ test('TODO/ui-146: a broken step is amber, named Re-link in both routes, and its
   await expect(banner).toBeVisible()
   await expect(banner).toHaveClass(/base-banner--warn/)
   await expect(page.getByTestId('dependents-resolve')).toHaveText('Re-link…')
+  // TODO/ui-154: the same words as the row (broken, and which step), and the same button variant.
+  await expect(banner).toContainText('broken')
+  await expect(banner).toContainText('Chamfer')
+  await expect(page.getByTestId('dependents-resolve')).toHaveClass(/base-button--primary/)
   await banner.evaluate((el) => el.scrollIntoView({ block: 'center' }))
   await page.waitForTimeout(300)
   await page.screenshot({ path: testInfo.outputPath(`broken-inspector-${testInfo.project.name}.png`) })
+
+  // TODO/ui-154: scrolled to its end, nothing in the Inspector sits under the sticky Delete footer.
+  const overlap = await page.evaluate(() => {
+    const sheet = document.querySelector('.inspector__sheet')
+    const del = document.querySelector('[data-testid="inspector-delete"]')?.closest('.delete') ?? null
+    if (!sheet || !del) return { found: false, worst: 0 }
+    sheet.scrollTop = sheet.scrollHeight
+    const top = del.getBoundingClientRect().top
+    let worst = -Infinity
+    for (const el of sheet.querySelectorAll('[data-testid]')) {
+      if (del.contains(el) || el.contains(del)) continue
+      const r = el.getBoundingClientRect()
+      if (r.height === 0) continue
+      worst = Math.max(worst, r.bottom - top)
+    }
+    return { found: true, worst }
+  })
+  expect(overlap.found).toBe(true)
+  expect(overlap.worst).toBeLessThanOrEqual(0.5)
+  await banner.evaluate((el) => el.scrollIntoView({ block: 'center' }))
 
   // Same action as the row's button: one press re-links, with no dialog to read through.
   await page.getByTestId('dependents-resolve').click()

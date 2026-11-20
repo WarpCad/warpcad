@@ -3631,3 +3631,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** tour CLEAR, resize-fit, timeline-relink and boolean-subpart-operand PARTIAL → one fresh Sonnet agent reading frames every 1 s, this session (`TODO/done/docs-039-cold-read-gif-remainders-after-docs-038.md`); 1.5 s hover → `e2e/docs/getting-started.docs.js` diff; first pass shipped 2026-11-19 → `git log` 8e07edfd
 **To Add:** `docs/media/tour.gif`
 ---
+
+## 2026-11-20T15:17:22Z — WarpCad: one name for a broken step
+
+**Post:** In WarpCad a broken step now says the same thing in History and the Inspector: the box reads "1 step is broken: Chamfer Top (+Z) 5 mm (step 3)" and both Re-link buttons are the same blue. A fresh reader still rated "one name, one colour" partial, so the remainders are filed. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** box wording and button variant → `src/components/inspector/DependentsBanner.vue`; cold read (button visibility CLEAR, one name and colour PARTIAL) → one fresh Sonnet agent shown two phone screenshots, this session; remainders → `TODO/FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md`
+**To Add:** `docs/media/timeline-relink.gif`
+---

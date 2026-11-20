@@ -76,13 +76,13 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [Findings](#findings-open-rows) | 8 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 98 | ▶ Ready | `FIND` | [`ui-154`](FIND-ui-154-broken-step-wording-and-button-styling-still-differ-between-history-and-inspector.md) Make a broken step's wording and Re-link button styling match between History and the Inspector (the part of ui-146's cold read still rated partial) | sonnet |
 | 103 | ▶ Ready | `FIND` | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing, instead of downloading nothing silently | sonnet |
 | 105 | ▶ Ready | `FIND` | [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry so a software rasteriser lands it in under 50 ms (real-GPU landing already passes) | sonnet |
 | 106 | ▶ Ready | `FIND` | [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing, and check a 1 s GC after the pack | sonnet |
 | 107 | ▶ Ready | `FIND` | [`ui-152`](FIND-ui-152-viewport-script-and-pointer-gestures-remainder.md) Take the next three slices out of `Viewport.vue`'s script (819 lines) and `pointerGestures.js` (781); the remainder of `ui-144` | sonnet |
 | 108 | ▶ Ready | `FIND` | [`ui-153`](FIND-ui-153-cold-read-chrome-partials-after-ui-145.md) Finish the four cold-read items `ui-145` improved but a fresh reader still rates partial (clearance label in the view, Split caption under Apply, Align strip size, Align and Split at a glance) | sonnet |
 | 109 | ▶ Ready | `FIND` | [`docs-040`](FIND-docs-040-cold-read-gif-remainders-after-docs-039.md) Fix what the docs-039 cold read still rated partial: resize-fit caption lag, relink Re-link press, subpart Subtract press | sonnet |
+| 110 | ▶ Ready | `FIND` | [`ui-155`](FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md) Finish the broken-step cold-read remainders (box truncates before the step number, pill against plain text, reason order, clipped row actions) | sonnet |
 
 ---
 
@@ -158,12 +158,12 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
-| [`ui-154`](FIND-ui-154-broken-step-wording-and-button-styling-still-differ-between-history-and-inspector.md) Make a broken step's wording and Re-link button styling match between History and the Inspector | finding | low | sonnet | ▶ Ready (Next up row 98) |
 | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing | finding | low | sonnet | ▶ Ready (Next up row 103) |
 | [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry (headless landing about 110 ms) | finding | low | sonnet | ▶ Ready (Next up row 105) |
 | [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing; check a 1 s GC after the pack | finding | low | sonnet | ▶ Ready (Next up row 106) |
 | [`ui-152`](FIND-ui-152-viewport-script-and-pointer-gestures-remainder.md) Take the next three slices out of Viewport.vue's script and pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 107) |
 | [`ui-153`](FIND-ui-153-cold-read-chrome-partials-after-ui-145.md) Four cold-read items ui-145 improved but a fresh reader still rates partial | finding | low | sonnet | ▶ Ready (Next up row 108) |
+| [`ui-155`](FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md) Broken-step box and row still partial in a cold read after ui-154 | finding | low | sonnet | ▶ Ready (Next up row 110) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
@@ -334,12 +334,12 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ui-154` | A broken step still says *broken* in History but *no longer builds* in the Inspector, and the two Re-link buttons differ in style (`ui-146`'s cold read: PARTIAL). Filed 2026-11-20 | Finding | — | 12, 15 |
 | `io-039` | Export of a Subtract that left nothing (an STL in inches imported as mm) downloads nothing and shows no error; same at HEAD. Filed 2026-11-18 | Finding | — | 11, 26 |
 | `render-009` | A dense whole-model cut's result lands in about 110 ms headless (non-indexed mesh, 660 k vertices for 220 k triangles on a software rasteriser); real GPU passes 50 ms (filed 2026-11-19 from core-085) | Finding | — | 1, 26, 31 |
 | `core-086` | The whole-model cut still sends every operand triangle each click, and one headless run paused 1 s in a GC after the pack (filed 2026-11-19 from core-085) | Finding | — | 26, 31 |
 | `ui-152` | `Viewport.vue`'s script is still 819 lines and `pointerGestures.js` 781 after `ui-144`'s three slices (filed 2026-11-20 as its remainder) | Finding | — | 1, 4, 6, 7, 9 |
 | `ui-153` | Four cold-read items `ui-145` improved but a fresh reader still rates partial (clearance label, Split caption, Align strip size, Align and Split glyph size). Filed 2026-11-20 | Finding | — | 4, 5 |
+| `ui-155` | The broken-step box and row still read PARTIAL in a cold read after `ui-154` (box truncates before the step number, pill against plain text, reason order, clipped row actions). Filed 2026-11-20 | Finding | — | 12, 15 |
 | `docs-040` | The `docs-039` cold read left resize-fit, timeline-relink and boolean-subpart-operand PARTIAL (caption lag, Re-link and Subtract presses not seen). Filed 2026-11-20 | Finding | — | none |
 
 ---

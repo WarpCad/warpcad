@@ -59,13 +59,22 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-154 — Broken-step wording, button and Inspector scroll end (2026-11-20 15:25)
+
+Scenarios 12 and 15 were driven at laptop and phone (see `TODO/ACCEPTANCE.md`), and `ui-146`'s reproduction was re-run. The cold read (one fresh agent, only the two phone screenshots) rated the repair button visibility CLEAR and "one problem, one name, one colour" PARTIAL again.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Cold read of the broken row and the Inspector box on a 390 px phone after the wording and button change | Moved | `ui-155`: the box truncates before the step number, *broken* is a pill in one place and text in the other, the move sits above the rollback marker, the selected row's actions are clipped. Visibility of the button CLEAR in both screens; no overlap under Delete in the Inspector. |
+| 2 | Should both Re-link buttons be the solid primary button? | Owner | → `TODO/OWNER.md` Q113 (assumed yes). |
+
 ### ui-146 — One name, one amber treatment and a visible Re-link for a broken History step (2026-11-20 06:15)
 
 The row is amber with **Re-link** on the row line, the Inspector's box says **Re-link…**, and the dialog no longer says *Nothing has changed yet* after the break. Driven at laptop 1440x900 Chromium with real mouse and keyboard and covered by `e2e/timeline-panel.e2e.js` on all nine projects. What was left was the cold read, run by one fresh agent shown only the phone screenshots (the broken row, the Inspector box) and the original complaints.
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Cold read of the broken row and the Inspector box on a 390 px phone: is it one problem under one name and colour, and is the repair visible without scrolling? | Moved | Fresh agent: the repair button visibility CLEAR (solid blue **Re-link** at the right of the step 3 row, in view); one name and colour PARTIAL (both amber with **Re-link**, but *broken* / *can't be built* against *no longer builds*, a solid against an outlined button, the box does not name the broken step, the reason says *after you rolled back* about a move above the marker). → `FIND-ui-154`. |
+| 1 | Cold read of the broken row and the Inspector box on a 390 px phone: is it one problem under one name and colour, and is the repair visible without scrolling? | Moved (`ui-154`, then `ui-155`) | Fresh agent: the repair button visibility CLEAR (solid blue **Re-link** at the right of the step 3 row, in view); one name and colour PARTIAL (both amber with **Re-link**, but *broken* / *can't be built* against *no longer builds*, a solid against an outlined button, the box does not name the broken step, the reason says *after you rolled back* about a move above the marker). → `FIND-ui-154`. |
 
 ### ui-145 — Cold-read chrome fixes (2026-11-20 05:25)
 

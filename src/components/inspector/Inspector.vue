@@ -1200,6 +1200,9 @@ watch([() => body.value?.id, colorPart], () => {
   gap: var(--space-1);
   min-height: 0;
   padding: var(--space-4h) var(--space-5) var(--space-5h);
+  /* TODO/ui-154: a scrolled-to control is kept clear of the sticky Delete footer (its tap-height
+     button plus its own padding), so nothing a reader is sent to ends up under it. */
+  scroll-padding-bottom: calc(var(--tap) + var(--space-4) + var(--space-5h) + var(--space-4));
   overflow-y: auto;
 }
 

@@ -100,7 +100,7 @@ test.describe('docs media: timeline re-link', () => {
     // Select the broken row: the reason is printed under it.
     await press(page, 'timeline-row-3')
     await caption(page, 'Select step 3: the reason is printed under the row')
-    await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
+    await expect(page.getByTestId('timeline-broken-reason')).toContainText('another step already changed the part it works on')
     await expect(page.getByTestId('timeline-relink')).toBeEnabled()
     await scrollHistoryToEnd(page)
     await page.waitForTimeout(1200)

@@ -32,8 +32,19 @@ describe('userReason (TODO/ui-129)', () => {
       'supersedes "cuboid-k3f5xa-1", which has itself already been superseded by "cuboid-k3f5xa-1-move-k3f5xa-4" — forking a lineage would put two live representations of one body on screen'
     const plain = userReason(`can't be built: ${raw}`)
     expect(plain).not.toMatch(/cuboid-|supersed|lineage/)
-    expect(plain).toMatch(/later step already changed the part/)
+    expect(plain).toMatch(/another step already changed the part/)
     expect(userReason(raw)).toBe(plain)
+  })
+
+  it('does not claim the move came after the rollback (TODO/ui-154)', () => {
+    // The move lands at the marker, so it sits above the rollback marker in History: "after you
+    // rolled back" contradicted the row the reader could see.
+    const plain = userReason(
+      'supersedes "cuboid-k3f5xa-1", which has itself already been superseded by "cuboid-k3f5xa-1-move-k3f5xa-4" — forking a lineage would put two live representations of one body on screen',
+    )
+    expect(plain).not.toMatch(/after you rolled back|a later step/i)
+    expect(plain).toMatch(/while you were rolled back|while rolled back/)
+    expect(plain).toMatch(/Re-link/)
   })
 
   it('returns an unknown message untouched, and never throws or empties', () => {

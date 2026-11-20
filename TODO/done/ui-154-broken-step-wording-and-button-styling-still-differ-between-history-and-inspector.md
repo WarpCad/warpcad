@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-20 from ui-146's cold read
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20).** The Inspector's box now reads *1 step is broken: Chamfer Top (+Z) 5 mm (step 3), built on Cube 1.* (the count, *broken* and the step's name come first, so the phone's one-line collapse keeps them; two steps at most are named, the rest counted). Both Re-link buttons are `variant="primary"`. The reason says *another step already changed the part it works on, for example a move you made while you were rolled back*. The Inspector sheet got `scroll-padding-bottom` equal to the sticky Delete footer instead of the proposed physical bottom padding: the padding made scrolled-to rows land under Delete (`inspector-object-list` failed on five projects), the scroll-padding does not move anything. Two baselines moved with it (`operations-toolbar-phone`, `hardware-bolt-fit`) and the two phone `number-entry-inspector` ones (the old ones were from v1.17.0).
 
 ## Problem
 

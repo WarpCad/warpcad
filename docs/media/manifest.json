@@ -514,9 +514,9 @@
   "timeline-relink.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "light",
-    "specHash": "19147d61948edad17f56c788050f065a95e90eac071b86a058dd70e6454079fd",
-    "bytes": 1908107,
-    "seconds": 22.17
+    "specHash": "27f6d1621beebceeb74fb6fad2361992d37aec7bf471ccc52ef9750e9f4b785b",
+    "bytes": 1698110,
+    "seconds": 19.84
   },
   "window-shrink.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",
@@ -1075,9 +1075,9 @@
   "timeline-relink.dark.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "dark",
-    "specHash": "19147d61948edad17f56c788050f065a95e90eac071b86a058dd70e6454079fd",
-    "bytes": 2172002,
-    "seconds": 22.67
+    "specHash": "27f6d1621beebceeb74fb6fad2361992d37aec7bf471ccc52ef9750e9f4b785b",
+    "bytes": 2019105,
+    "seconds": 20
   },
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",

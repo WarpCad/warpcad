@@ -5291,3 +5291,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** first pass date → `git log` 8e07edfd; verdicts → one fresh Sonnet agent, frames every 1 s, this session; unit 9971 passed and e2e pair chromium-phone + webkit-tablet 1326 passed, 0 failed → `/test` run this session; remainders → `TODO/FIND-docs-040-cold-read-gif-remainders-after-docs-039.md`
 **To Add:** `docs/media/tour.gif`, `docs/media/resize-fit.gif`
 ---
+
+## 2026-11-20T15:17:22Z — A broken step, one word and one button in two places
+
+**Post:** After a body is moved while the History is rolled back, a later step can no longer be built. WarpCad already showed that on the row; the Inspector's box for the same body said something else in a different button style. This change makes them match: the box reads "1 step is broken: Chamfer Top (+Z) 5 mm (step 3), built on Cube 1", both Re-link buttons are the primary blue, and the reason no longer claims the move came after the rollback when it is listed above the marker.
+
+One fix I had to take back: padding the Inspector's scroll area so nothing sits under the sticky Delete button moved scrolled-to rows under it (five projects of an object-list spec failed), so the sheet uses scroll padding instead, which moves nothing. A fresh reader of two phone screenshots rated the button clearly visible but "one name, one colour" still partial (the box truncates before the step number on a phone), which is filed as the next task.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** padding failure and fix → `e2e/inspector-object-list.e2e.js` on five projects red, then green on nine; unit 9972 passed, timeline-panel, object-list and composite-param-edit e2e 454 passed on nine projects, rotating pair chromium-laptop + firefox-phone 1328 passed → `/test` runs this session; cold read → one fresh Sonnet agent, this session; remainders → `TODO/FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md`
+**To Add:** `docs/media/timeline-relink.gif`
+---

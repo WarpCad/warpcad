@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 97 now (Q16-Q112; Q94-Q112 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 98 now (Q16-Q113; Q94-Q113 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q113 · Should both Re-link buttons (History row and Inspector box) be the solid blue primary button?
+
+**Question:** `ui-154` made the Inspector's amber "1 step is broken" box use the same solid blue **Re-link…** button as the History row's **Re-link**, because a fresh reader had rated the solid-against-outlined difference as two names for one repair. Every other Inspector banner button is the plain outlined style, so the broken-step box is now the one place in the Inspector with a solid blue button.
+
+**Background:** Assumed yes. The finding asked for one variant in both places and named primary; the repair is the one action the amber box exists to offer. It is a one-word change (`variant="primary"` in `DependentsBanner.vue`) to undo.
+
+**Options:**
+1. **Keep both primary (Recommended)**: one repair, one look.
+2. **Make both outlined**: quieter, but the row's button was made primary on purpose so a phone user finds it.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** both stay primary.
+
+**Answer:** question
 
 #### Q112 · May the navigation chrome's mode buttons be 44 px tall with 12 px gaps, and the phone's Operations toolbar one column wider?
 
