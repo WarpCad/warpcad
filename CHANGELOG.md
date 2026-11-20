@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.21.0](https://github.com/WarpCad/warpcad/compare/v1.20.0...v1.21.0) (2026-11-20)
+
+### Bug Fixes
+
+* **ui:** finish the five cold-read chrome fixes ui-128 did not take (TODO/ui-145) ([319b1a3](https://github.com/WarpCad/warpcad/commit/319b1a3432bd3e7d5e55d3d83f3024454d18dd67))
+* **ui:** give a broken History step one name, one amber look and a Re-link you can see (TODO/ui-146) ([796ff9b](https://github.com/WarpCad/warpcad/commit/796ff9bee166a8bf80af434302c516beaaf953e2))
+* **ui:** give the navigation chrome's Orbit, Pan, Select and gear buttons a real 44 px height (TODO/ui-149) ([b17fb67](https://github.com/WarpCad/warpcad/commit/b17fb67b5de7e8e819ebf41e97e3bae8451e3311))
+* **ui:** keep a dimension label's digits clear of the gizmo's rings and arms (TODO/ui-147) ([87881f0](https://github.com/WarpCad/warpcad/commit/87881f0f4884983e3278c096eec946f0826a6b44))
+* **ui:** keep the navigation chrome clear of the grid scale readout at 670 px (TODO/ui-149 regression) ([80a5aa5](https://github.com/WarpCad/warpcad/commit/80a5aa58e7fa48e489b2a5f06f25d7a60431e3fe))
+* **ui:** keep the second import's placement start clear of the phone Operations toolbar (TODO/ui-149 regression) ([eb30ec3](https://github.com/WarpCad/warpcad/commit/eb30ec34d5224a26950c0eba1b8d63362aac6afa))
+* **ui:** open a six-button view picker when a fingertip taps the phone's orientation triad (TODO/ui-148) ([1bf5500](https://github.com/WarpCad/warpcad/commit/1bf5500c428a12af27d19f810eb500ad24424348))
+* **ui:** place a Butterfly key by tapping the cut face at the default phone framing (TODO/ui-143) ([234ade6](https://github.com/WarpCad/warpcad/commit/234ade612c30c3f3af623a4af8db333e6563ac3b)), references [#2](https://github.com/WarpCad/warpcad/issues/2) [#3](https://github.com/WarpCad/warpcad/issues/3)
+
 ## [1.20.0](https://github.com/WarpCad/warpcad/compare/v1.19.0...v1.20.0) (2026-11-20)
 
 ### Features
