@@ -25,7 +25,7 @@
  * Rendering is on demand: a frame is scheduled when something actually changes,
  * rather than a permanently-spinning rAF loop burning battery on a static scene.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, reactive, ref, shallowRef, watch } from 'vue'
 import Grid from './Grid.vue'
 import OrientationGizmo from './OrientationGizmo.vue'
 import NavigationChrome from './NavigationChrome.vue'
@@ -39,7 +39,6 @@ import SketchPanelSheet from '../sketch/SketchPanelSheet.vue'
 import ReferenceImageOverlay from '../sketch/ReferenceImageOverlay.vue'
 import ScaleTool from '../sketch/ScaleTool.vue'
 import TraceTool from '../sketch/TraceTool.vue'
-import { registerEscapeYield } from '../../composables/useOverlayStack.js'
 import { useReferenceImageView } from '../../composables/useReferenceImageView.js'
 import { useImageDrop } from '../../composables/useImageDrop.js'
 import { useTheme } from '../../composables/useTheme.js'
@@ -66,10 +65,9 @@ import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { createOrbitCamera } from '../../render/camera.js'
-import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
-import { createViewport } from '../../render/scene.js'
+import { setViewportCapture } from '../../render/offscreenCapture.js'
 import { useViewportOverlays } from '../../composables/useViewportOverlays.js'
-import { registerViewportWatchers } from '../../composables/useViewportWatchers.js'
+import { useViewportLifecycle } from '../../composables/useViewportLifecycle.js'
 import { createContextHandlers } from '../../render/contextHandlers.js'
 import { createContextRecovery } from '../../render/contextRecovery.js'
 import { applyViewVisibility } from '../../render/mesh.js'
@@ -252,12 +250,6 @@ const sketchSnapper = createSketchSnap({
 })
 /** @type {import('../../render/scene.js').Viewport | null} */
 let viewport = null
-/** @type {ResizeObserver | null} */
-let resizeObserver = null
-/** @type {(() => void) | null} */
-let unregisterChainYield = null
-/** @type {(() => void) | null} */
-let stopThemeWatch = null
 let rafId = 0
 let widthPx = 0
 let heightPx = 0
@@ -730,10 +722,7 @@ const contextHandlers = createContextHandlers({
   viewport: () => viewport,
   canvas: () => canvasEl.value,
   recovery: contextRecovery,
-  cancelFrame: () => {
-    if (rafId) cancelAnimationFrame(rafId)
-    rafId = 0
-  },
+  cancelFrame: () => cancelFrame(),
   measure: () => measure(),
   remountCanvas: async () => {
     canvasKey.value += 1
@@ -763,129 +752,72 @@ const onSketchChainKey = createSketchChainKeys({
   },
 })
 
-/** @type {(() => void) | null} */
-let unregisterTarget = null
-/** @type {(() => void)[]} */
-const stopWatchers = []
-
-onMounted(() => {
-  const canvas = canvasEl.value
-  if (!canvas) return
-  // First paint: `useTheme()` (in setup) has already written `<html data-theme>`, so this one read
-  // sees the resolved theme's tokens, and every material and the scene start in those colours.
-  const colors = readCurrentSceneTheme()
-  bodyScene.createMaterials(colors)
-  sketchPreview.createMaterial(colors.bodyGhost)
-  placementGhost.setColor(colors.bodyGhost)
-
-  try {
-    viewport = createViewport(canvas, { fovDeg: orbit.fovDeg, theme: colors })
-    viewport.graph.scene.add(bodiesGroup)
-    referenceImage.attach(viewport.graph.scene)
-    // `TODO/ai-007`: the assistant's capture_view renders this scene offscreen, with its own
-    // camera and meshes, so the user's view is never moved (`src/render/offscreenCapture.js`).
-    setViewportCapture(createOffscreenCapture({ renderer: viewport.renderer, graph: viewport.graph }))
-    // Label the readout from the grid that actually got built, rather than
-    // repeating the spacing constant in a second place.
-    overlay.minorMm = viewport.graph.gridLines.minorMm
-    overlay.majorMm = viewport.graph.gridLines.majorMm
-  } catch (error) {
-    // The chrome, gizmo and readout stay live: the camera model does not need
-    // WebGL, so navigation still works and the failure is visible rather than a
-    // silently blank rectangle.
-    webglError.value = `This browser could not start WebGL: ${String(error)}`
-  }
-  attachContextListeners(canvas)
-
-  unregisterTarget = placement.registerTarget(dropTarget)
-  // `src/composables/useViewportWatchers.js` (`TODO/ui-108`).
-  stopWatchers.push(
-    ...registerViewportWatchers({
-      documentStore,
-      timeline,
-      hiddenPartVisibility,
-      sketchEditor,
-      selection,
-      alignReference,
-      hoverHighlight,
-      repeatSession,
-      colorPreview,
-      presentation: () => props.presentation,
-      sketchDraw,
-      sketchHandler,
-      sketchPreview,
-      sketchSnapper,
-      pointer,
-      referenceImage,
-      syncBodies,
-      frameLoadedContent,
-      aimAtSketch,
-      applySketchBodyVisibility,
-      syncSketchPaths,
-      scheduleRender,
-      applySelectionMaterial,
-      applyHover,
-      applyRepeatOutlines,
-      paintBodies,
-    }),
-  )
-
-  if (typeof ResizeObserver !== 'undefined' && rootEl.value) {
-    resizeObserver = new ResizeObserver(measure)
-    resizeObserver.observe(rootEl.value)
-  }
-  window.addEventListener('keydown', onSketchChainKey)
-  // The Line chain's Escape stays ahead of the overlay stack (`TODO/ui-110`).
-  unregisterChainYield = registerEscapeYield(() => sketchMode.value && sketchEditor.tool === 'line' && sketchEditor.chainLive)
-  window.addEventListener('keydown', pointer.shiftKey)
-  window.addEventListener('keyup', pointer.shiftKey)
-  window.addEventListener('keydown', gizmoDrag.shiftKey)
-  window.addEventListener('keyup', gizmoDrag.shiftKey)
-  window.addEventListener('resize', measure)
-  window.addEventListener('scroll', measure, { passive: true })
-
-  // Follow a theme change, whether the user picked it in Help or the OS flipped it.
-  stopThemeWatch = useTheme().onChange(onThemeChange)
-
-  measure()
-  // A document that already has content (a reload, a loaded file) renders on
-  // mount rather than waiting for the next mutation.
-  syncBodies()
-  if (documentStore.loadRevision > 0 || props.presentation) frameLoadedContent()
-})
-
-onBeforeUnmount(() => {
-  setViewportCapture(null)
-  // The viewport is the only thing that can draw or close the editor, so it must not
-  // outlive it — a draft left open with no surface to finish it on is a stuck mode.
-  sketchEditor.close()
-  sketchPreview.clear()
-  sketchPreview.dispose()
-  referenceImage.dispose()
+function cancelFrame() {
   if (rafId) cancelAnimationFrame(rafId)
   rafId = 0
-  unregisterTarget?.()
-  unregisterTarget = null
-  for (const stop of stopWatchers.splice(0)) stop()
-  resizeObserver?.disconnect()
-  resizeObserver = null
-  window.removeEventListener('keydown', onSketchChainKey)
-  unregisterChainYield?.()
-  window.removeEventListener('keydown', pointer.shiftKey)
-  window.removeEventListener('keyup', pointer.shiftKey)
-  window.removeEventListener('keydown', gizmoDrag.shiftKey)
-  window.removeEventListener('keyup', gizmoDrag.shiftKey)
-  gizmoDrag.clearStall()
-  window.removeEventListener('resize', measure)
-  window.removeEventListener('scroll', measure)
-  stopThemeWatch?.()
-  stopThemeWatch = null
-  detachContextListeners(canvasEl.value)
-  contextRecovery.dispose()
-  bodyScene.dispose()
-  placementGhost.dispose()
-  viewport?.dispose()
-  viewport = null
+}
+
+// The mount and unmount sequence (`TODO/ui-144`): `src/composables/useViewportLifecycle.js`.
+useViewportLifecycle({
+  rootEl,
+  canvasEl,
+  webglError,
+  orbit,
+  overlay,
+  getViewport: () => viewport,
+  setViewport: (value) => {
+    viewport = value
+  },
+  readCurrentSceneTheme,
+  bodyScene,
+  bodiesGroup,
+  sketchPreview,
+  placementGhost,
+  referenceImage,
+  placement,
+  dropTarget,
+  sketchEditor,
+  pointer,
+  gizmoDrag,
+  contextRecovery,
+  attachContextListeners,
+  detachContextListeners,
+  watcherDeps: {
+    documentStore,
+    timeline,
+    hiddenPartVisibility,
+    sketchEditor,
+    selection,
+    alignReference,
+    hoverHighlight,
+    repeatSession,
+    colorPreview,
+    presentation: () => props.presentation,
+    sketchDraw,
+    sketchHandler,
+    sketchPreview,
+    sketchSnapper,
+    pointer,
+    referenceImage,
+    syncBodies,
+    frameLoadedContent,
+    aimAtSketch,
+    applySketchBodyVisibility,
+    syncSketchPaths,
+    scheduleRender,
+    applySelectionMaterial,
+    applyHover,
+    applyRepeatOutlines,
+    paintBodies,
+  },
+  onSketchChainKey,
+  isChainLive: () => sketchMode.value && sketchEditor.tool === 'line' && sketchEditor.chainLive,
+  measure,
+  onThemeChange,
+  syncBodies,
+  cancelFrame,
+  shouldFrameOnMount: () => documentStore.loadRevision > 0 || props.presentation,
+  frameLoadedContent,
 })
 </script>
 
