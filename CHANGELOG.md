@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.20.0](https://github.com/WarpCad/warpcad/compare/v1.19.0...v1.20.0) (2026-11-20)
+
+### Features
+
+* **core:** add modify.offset, an offset that moves every face by one distance (TODO/ai-049) ([dec76a2](https://github.com/WarpCad/warpcad/commit/dec76a2ec69295fde81d91e306de5ee86250229d))
+* **ui:** pick the theme or style from File > Appearance, with or without Help loading (TODO/ui-151) ([01b335f](https://github.com/WarpCad/warpcad/commit/01b335f602d0235e32c190837e72af5b5f4fe313))
+* **ui:** show and edit a variable's Min and Max, refuse out-of-range values before commit (TODO/ui-140) ([74f0873](https://github.com/WarpCad/warpcad/commit/74f087315de8d2cbc1acaf0542d6177cf9db973b)), references [#1](https://github.com/WarpCad/warpcad/issues/1)
+
+### Bug Fixes
+
+* **io:** keep the first device's edit when a second device updates the same gist within a minute (TODO/io-038) ([6b8c40d](https://github.com/WarpCad/warpcad/commit/6b8c40d0b45566226c60dce2997fd0fdeb93cf61))
+* **io:** release the corner that pinches four faces onto one edge in a cut scan export (TODO/io-033) ([b6ed59e](https://github.com/WarpCad/warpcad/commit/b6ed59e3e4c2085d94d3be1ffc869e8a3859aea2))
+* **render:** hide the dimension lines while a rotate-ring drag is moving (TODO/ui-139) ([5308418](https://github.com/WarpCad/warpcad/commit/53084184b45b08dd9f52d1cdc030188249505861)), references [#1](https://github.com/WarpCad/warpcad/issues/1)
+* **render:** make the Objects-list hover tint clearly visible on the default body (TODO/ui-138) ([f76dd84](https://github.com/WarpCad/warpcad/commit/f76dd84ed7b492b520abdbb66e4e0af3f7b17424)), references [#1](https://github.com/WarpCad/warpcad/issues/1)
+* **ui:** keep a group's other parts when the toolbar runs a boolean on one part (TODO/ui-141) ([449de51](https://github.com/WarpCad/warpcad/commit/449de517da0adf65def438b70b732a36fcc0b856))
+* **ui:** show the latest activity row in the Assistant's Half sheet at phone width (TODO/ui-142) ([9734dba](https://github.com/WarpCad/warpcad/commit/9734dba08bad66bdd3f86f50ce0da5acb97b5df8)), references [#2](https://github.com/WarpCad/warpcad/issues/2)
+
+### Performance Improvements
+
+* **core:** start Sentry after the first drawn frame, not during boot (TODO/perf-006) ([0633b2a](https://github.com/WarpCad/warpcad/commit/0633b2abc982c6b99a5956dc1d3703836e48ff8f))
+* **core:** transfer a whole-model cut's operands to the worker instead of cloning them (TODO/core-085) ([c538f29](https://github.com/WarpCad/warpcad/commit/c538f29f333c1cb96cfdf65656004099fdf7ceac))
+
 ## [1.19.0](https://github.com/WarpCad/warpcad/compare/v1.18.0...v1.19.0) (2026-11-19)
 
 ## [1.18.0](https://github.com/WarpCad/warpcad/compare/v1.17.0...v1.18.0) (2026-11-19)
