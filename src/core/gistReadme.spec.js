@@ -522,6 +522,18 @@ describe('gistReadme — variables', () => {
     expect(text.split('\n').filter((line) => line.startsWith('| ')).length).toBe(3)
   })
 
+  it('a Notes column carries each description as one escaped, capped line (TODO/ui-157)', () => {
+    const text = gistReadme(input({ variables: [{ ...VARIABLES[1], description: 'two | walls\n**bold** @someone' }, VARIABLES[3]] }))
+    const row = text.split('\n').find((line) => line.startsWith('| wall'))
+    expect(text).toContain('| Notes |')
+    expect(row).not.toContain('\n')
+    expect(row).toContain('two \\| walls')
+    expect(row).not.toContain('**bold**')
+    expect(row).toContain('&#64;someone')
+    expect(text.split('\n').filter((line) => line.startsWith('| ')).length).toBe(4)
+    expect(gistReadme(input({ variables: [VARIABLES[1]] }))).not.toContain('Notes')
+  })
+
   it('is deterministic and reads only the documented fields of a variable', () => {
     const smuggled = /** @type {any} */ ([{ ...VARIABLES[0], intent: 'INTENT-SENTINEL', id: 'var-1' }])
     const first = gistReadme(input({ variables: smuggled }))

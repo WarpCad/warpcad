@@ -30,6 +30,8 @@ const unit = ref('mm')
 const flag = ref(false)
 const options = ref('')
 const formula = ref('')
+const description = ref('')
+const describing = ref(false)
 
 const preview = computed(() => formulaPreviewLine(commands.previewFormula(formula.value), unit.value))
 const blocked = computed(() => kind.value === 'formula' && !preview.value.ok)
@@ -40,6 +42,7 @@ function submit() {
     /** @type {Record<string, any>} */
     const definition = { kind: 'formula', name: name.value.trim(), formula: formula.value }
     if (unit.value !== '') definition.unit = unit.value
+    if (description.value.trim() !== '') definition.description = description.value.trim()
     emit('submit', definition)
     return
   }
@@ -55,6 +58,7 @@ function submit() {
     definition.options = list
     definition.value = list[0]?.value
   }
+  if (description.value.trim() !== '') definition.description = description.value.trim()
   emit('submit', definition)
 }
 </script>
@@ -84,6 +88,10 @@ function submit() {
         <option value="deg">deg</option>
         <option value="">none</option>
       </select>
+    </label>
+    <button v-if="!describing && description === ''" type="button" class="vadd__link" data-testid="variable-add-describe" @click="describing = true">Add a description</button>
+    <label v-else class="vadd__field">Description (optional)
+      <textarea v-model="description" class="vadd__input vadd__text" rows="2" maxlength="500" placeholder="Why this value" data-testid="variable-add-description" />
     </label>
     <label v-if="kind === 'boolean'" class="vadd__check"><input v-model="flag" type="checkbox" data-testid="variable-add-flag" /> Starts as yes</label>
     <label v-if="kind === 'enum'" class="vadd__field">Choices, comma separated
@@ -128,6 +136,25 @@ function submit() {
   color: var(--text-1);
   font: inherit;
   font-size: var(--text-size-xl);
+}
+
+.vadd__link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--text-size-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.vadd__text {
+  font-family: inherit;
+  font-size: var(--text-size-md);
+  resize: vertical;
 }
 
 .vadd__actions {

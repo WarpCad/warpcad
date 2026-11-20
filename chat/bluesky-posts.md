@@ -3681,3 +3681,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** agent's report and the missing tool → `TODO/done/ai-051-agents-cannot-delete-a-body.md`; tool and Undo AI turn → `src/ai/tools/delete.spec.js` and `e2e/webmcp.e2e.js` run this session
 **To Add:** none
 ---
+
+## 2026-11-20T23:00:00Z — WarpCad: variables get a description
+
+**Post:** An agent-made WarpCad project showed a variable's label as "Wall / thic / kne / ss…", one syllable per line. Two causes: variables had nowhere to say why, so the 80-char label took the reasoning, and the row squeezed the title. Variables now have a description, labels stay short, the row wraps. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** screenshot report and two causes → `TODO/done/ui-157-variable-description-separate-from-short-label.md`; description field, 40-char write cap, Describe step → `src/core/variables.spec.js` run this session; row fixed at three viewports → `e2e/variables.e2e.js` ui-157 test run this session
+**To Add:** docs/screenshots/variable-describe.png
+---

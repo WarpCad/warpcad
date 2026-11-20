@@ -117,6 +117,7 @@ export function describeCall(name, input, result, nameOf) {
     return name === 'bind_param' ? `Bound ${subject} to ${word(input?.name)}` : `Unbound ${subject}`
   }
   if (name === 'rename_variable') return `Renamed ${word(input?.from)} to ${word(input?.to)}`
+  if (name === 'describe_variable') return `Described variable ${word(input?.name)}`
   if (name === 'delete_variable') return `Deleted variable ${word(input?.name)}`
   // `TODO/FIND-core-078`: the formula tools (`evaluate_formula` is a read, above).
   if (name === 'define_formula') return `Calculated ${word(input?.name)}`

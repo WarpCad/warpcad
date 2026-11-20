@@ -67,6 +67,7 @@ import {
   consumersOf,
   defineFormula,
   defineVariable,
+  describeVariable,
   deleteVariable,
   displayFormulaOf,
   evaluateFormulaIn,
@@ -122,13 +123,40 @@ const PATH = {
 }
 
 /** @type {JsonSchema} */
+const LABEL = {
+  type: 'string',
+  description: `Optional short display name, 2–4 words, at most ${VARIABLE_LIMITS.maxNewLabelLength} characters (e.g. "Wall thickness"). No numbers or reasoning; put those in description.`,
+}
+
+/** @type {JsonSchema} */
+const DESCRIPTION = {
+  type: 'string',
+  description: `Optional note on why this value: its source, the arithmetic behind it, what it must clear. At most ${VARIABLE_LIMITS.maxDescriptionLength} characters. Shown under the name in the Variables panel.`,
+}
+
+/**
+ * The refusal for a label written over the new cap, or `undefined` (`TODO/ui-157`). Core still loads
+ * the older 80-character labels; only a label being written is held to the short cap.
+ *
+ * @param {unknown} label
+ * @returns {{ error: string } | undefined}
+ */
+function longLabelRefusal(label) {
+  if (typeof label !== 'string' || label.length <= VARIABLE_LIMITS.maxNewLabelLength) return undefined
+  return {
+    error: `Labels are at most ${VARIABLE_LIMITS.maxNewLabelLength} characters (this one is ${label.length}); put the explanation in description.`,
+  }
+}
+
+/** @type {JsonSchema} */
 const DEFINE_SCHEMA = withRationale(
   objectSchema(
     {
       name: NAME,
       kind: { type: 'string', enum: [...VARIABLE_KINDS], description: 'number, boolean, or enum (a choice from options).' },
       value: VALUE,
-      label: { type: 'string', description: `Optional display name for the Variables panel, at most ${VARIABLE_LIMITS.maxLabelLength} characters.` },
+      label: LABEL,
+      description: DESCRIPTION,
       unit: { type: 'string', enum: [...VARIABLE_UNITS], description: 'Optional, kind number only: "mm" for a length, "deg" for an angle, "" for a plain count.' },
       min: { type: 'number', description: 'Kind number only: the smallest value allowed. Set it on every variable a person is meant to change.' },
       max: { type: 'number', description: 'Kind number only: the largest value allowed. Set it on every variable a person is meant to change.' },
@@ -162,7 +190,8 @@ const DEFINE_FORMULA_SCHEMA = withRationale(
     {
       name: NAME,
       formula: FORMULA,
-      label: { type: 'string', description: `Optional display name for the Variables panel, at most ${VARIABLE_LIMITS.maxLabelLength} characters.` },
+      label: LABEL,
+      description: DESCRIPTION,
       unit: { type: 'string', enum: [...VARIABLE_UNITS], description: 'Optional label for the result: "mm" for a length, "deg" for an angle, "" for a plain count.' },
       min: { type: 'number', description: 'Optional: the smallest value the result may have. A result outside min/max is an error, never clamped.' },
       max: { type: 'number', description: 'Optional: the largest value the result may have.' },
@@ -368,6 +397,8 @@ function createDefineVariableTool() {
     transports: ['ai', 'mcp'],
     run: (ctx, input) => {
       const { rationale, ...definition } = input
+      const long = longLabelRefusal(definition.label)
+      if (long) return long
       const hit = ctx.turn.canAppend(1)
       if (hit) return hit
       const tx = transactionOf(ctx, rationale)
@@ -441,6 +472,8 @@ function createDefineFormulaTool() {
     transports: ['ai', 'mcp'],
     run: (ctx, input) => {
       const { rationale, ...definition } = input
+      const long = longLabelRefusal(definition.label)
+      if (long) return long
       const hit = ctx.turn.canAppend(1)
       if (hit) return hit
       const tx = transactionOf(ctx, rationale)
@@ -595,6 +628,33 @@ function createRenameVariableTool() {
 }
 
 /** @returns {Tool} */
+function createDescribeVariableTool() {
+  return {
+    name: 'describe_variable',
+    description:
+      'Set a variable’s short label and its description, without redefining it — e.g. { "name": "wall", "label": "Wall thickness", "description": "4 × 0.4 mm nozzle passes = 1.6 mm" }. ' +
+      `A label is a short name (at most ${VARIABLE_LIMITS.maxNewLabelLength} characters); the reasoning goes in description. An empty string clears a field, and a field you leave out stays as it is. ` +
+      'Use it to split an over-long label on an existing variable.',
+    inputSchema: withRationale(objectSchema({ name: NAME, label: LABEL, description: DESCRIPTION }, ['name'])),
+    transports: ['ai', 'mcp'],
+    run: (ctx, input) => {
+      const { name, label, description } = input
+      if (label === undefined && description === undefined) {
+        return { error: 'Give a label, a description, or both. Use an empty string to clear one.' }
+      }
+      const long = longLabelRefusal(label)
+      if (long) return long
+      const tx = transactionOf(ctx, input.rationale)
+      const patch = { ...(label === undefined ? {} : { label }), ...(description === undefined ? {} : { description }) }
+      const done = attempt(ctx.document, () => describeVariable(ctx.document, name, patch, tx))
+      if ('refused' in done) return done.refused
+      const variable = /** @type {Variable} */ (variableNamed(ctx.document, name))
+      return { variable: variableSummary(ctx.document, variable) }
+    },
+  }
+}
+
+/** @returns {Tool} */
 function createDeleteVariableTool() {
   return {
     name: 'delete_variable',
@@ -622,8 +682,8 @@ function createDeleteVariableTool() {
 }
 
 /**
- * The ten project-variable tools: the seven of `TODO/ai-014` and the three formula tools of
- * `TODO/FIND-core-078`.
+ * The eleven project-variable tools: the seven of `TODO/ai-014`, the three formula tools of
+ * `TODO/FIND-core-078` and `describe_variable` (`TODO/ui-157`).
  *
  * @returns {Tool[]}
  */
@@ -638,6 +698,7 @@ export function createVariableTools() {
     createBindParamTool(),
     createUnbindParamTool(),
     createRenameVariableTool(),
+    createDescribeVariableTool(),
     createDeleteVariableTool(),
   ]
 }

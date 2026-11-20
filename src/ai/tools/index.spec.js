@@ -105,6 +105,7 @@ describe('createToolRegistry', () => {
       'describe_body',
       'describe_scene',
       'describe_step',
+      'describe_variable',
       'evaluate_formula',
       'get_timeline',
       'list_ops',

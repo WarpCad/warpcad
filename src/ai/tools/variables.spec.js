@@ -24,6 +24,7 @@ const VARIABLE_TOOLS = Object.freeze([
   'define_formula',
   'define_variable',
   'delete_variable',
+  'describe_variable',
   'evaluate_formula',
   'list_variables',
   'rename_variable',
@@ -340,6 +341,48 @@ describe('bind_param and unbind_param', () => {
     expect(result.unbound).toEqual({ id: 'pi-1', path: 'model', value: 5 })
     expect(document.recordOf('pi-1')?.params?.model).toBe(5)
     expect(run(document, 'unbind_param', { id: 'pi-1', path: 'model' }).error).toMatch(/not bound/)
+  })
+})
+
+describe('description and describe_variable (TODO/ui-157)', () => {
+  it('define_variable and define_formula carry a description, and list_variables returns it', () => {
+    const document = createDocument()
+    run(document, 'define_variable', { name: 'wall', kind: 'number', value: 1.6, label: 'Wall thickness', description: '4 × 0.4 mm passes' })
+    run(document, 'define_formula', { name: 'twice', formula: 'wall * 2', description: 'two walls' })
+    const listed = run(document, 'list_variables', {}).variables
+    expect(listed.find((/** @type {any} */ v) => v.name === 'wall')).toMatchObject({ label: 'Wall thickness', description: '4 × 0.4 mm passes' })
+    expect(listed.find((/** @type {any} */ v) => v.name === 'twice')).toMatchObject({ description: 'two walls' })
+  })
+
+  it('a label over 40 characters is refused where it is written, pointing at description', () => {
+    const document = createDocument()
+    const long = 'Wall thickness (4 × 0.4 mm passes = 1.6)'.padEnd(41, '.')
+    for (const [name, input] of /** @type {const} */ ([
+      ['define_variable', { name: 'wall', kind: 'number', value: 1, label: long }],
+      ['define_formula', { name: 'f', formula: '1 + 1', label: long }],
+    ])) {
+      expect(run(document, name, input).error).toMatch(/at most 40 characters.*description/)
+    }
+    expect(variablesOf(document)).toHaveLength(0)
+  })
+
+  it('the label and description schema text names the 40-character cap and the purpose', () => {
+    const schema = /** @type {any} */ (tools.toolsFor('ai').find((tool) => tool.name === 'define_variable')).inputSchema
+    expect(schema.properties.label.description).toMatch(/at most 40 characters/)
+    expect(schema.properties.description.description).toMatch(/why this value/i)
+  })
+
+  it('describe_variable sets, clears and leaves fields; refuses an unknown name and a long label', () => {
+    const document = createDocument()
+    run(document, 'define_variable', { name: 'wall', kind: 'number', value: 1.6, label: 'Wall' })
+    const set = run(document, 'describe_variable', { name: 'wall', description: 'why' })
+    expect(set.variable).toMatchObject({ label: 'Wall', description: 'why' })
+    run(document, 'describe_variable', { name: 'wall', label: '' })
+    expect(variablesOf(document)[0].label).toBeUndefined()
+    expect(variablesOf(document)[0].description).toBe('why')
+    expect(run(document, 'describe_variable', { name: 'nope', label: 'x' }).error).toMatch(/"nope"/)
+    expect(run(document, 'describe_variable', { name: 'wall', label: 'y'.repeat(41) }).error).toMatch(/at most 40 characters.*description/)
+    expect(run(document, 'describe_variable', { name: 'wall' }).error).toMatch(/label, a description, or both/)
   })
 })
 

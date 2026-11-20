@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 99 now (Q16-Q114; Q94-Q114 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 100 now (Q16-Q115; Q94-Q115 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q115 · Is it acceptable that an older WarpCad build refuses a variable that has a description?
+
+**Question:** `ui-157` added an optional `description` to `var.define` and `var.derive` records. A build from before it checks each variable record's keys against a fixed list, so it flags a record carrying `description` as malformed and does not define that variable (anything bound to it then shows as broken). Files only carry `description` once someone writes one with the new build, and the installed app updates itself, but a file shared with someone on an old cached build would open with those variables missing. Keep the addition as it is, or bump the project-file version (`data-011`) so an old build refuses the whole file by name instead?
+
+**Background:** Assumed keep as is. A version bump would make every new build's files unreadable by older builds even when no variable has a description, which costs more than the narrow case it protects. The behaviour is recorded in `docs/decisions/project-variables.md`.
+
+**Options:**
+1. **Keep as is (Recommended)**: description is opt-in; an old build shows the affected variables as missing.
+2. **Bump the project-file version**: an old build refuses the file clearly, for every file.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** it stays as is.
+
+**Answer:** question
 
 #### Q114 · Is the amber "is empty" note plus the existing refusal enough for an emptied Subtract in Export?
 

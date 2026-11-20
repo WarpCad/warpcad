@@ -179,5 +179,19 @@ nothing when the value would break a dependent, returning the breakages instead,
 panel does before its repair dialog. `var.define` does not appear in `list_ops`,
 because it is not a registry op. `get_timeline` already shows each definition as a
 `Define <name>` row.
+## Addendum: `description` and the 40-character label (`TODO/ui-157`)
+
+`var.define` and `var.derive` take an optional `description`: plain text, at most 500 characters,
+never resolved, bound or folded. A label written through `define_variable`, `define_formula`,
+`describe_variable` or the Variables panel is held to 40 characters; the core validator still
+accepts 80 so projects written before this load unchanged. `describeVariable` is the one command
+behind the panel's editor and the `describe_variable` tool, one Undo step named `Describe <name>`.
+
+**Older builds.** A build from before this change checks a variable record's keys against a fixed
+list (`variableDefinitionError`, `formulaDefinitionError`), so it flags a record with `description`
+as malformed and does not define that variable; bindings to it then show as broken. Nothing else in
+the file is affected. This was accepted rather than bumping the project-file version, because a
+bump would make every new file unreadable to old builds, including files with no description
+(owner question Q115 in `TODO/OWNER.md`).
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

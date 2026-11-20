@@ -38,6 +38,7 @@ import {
   displayFormulaOf,
   evaluateFormulaIn,
   isFormula,
+  describeVariable,
   renameVariable,
   setFormula,
   setFormulaRevision,
@@ -140,6 +141,7 @@ function summaryOf(variable, next, parameters, parts) {
  *   formulaValues: () => Map<string, number>,
  *   formulaChanges: (before: ReadonlyMap<string, number>) => string[],
  *   variesNoteOf: (recordId: string, path: string) => string,
+ *   describe: (name: string, patch: { label?: string, description?: string }) => void,
  *   rename: (from: string, to: string) => void,
  *   remove: (name: string, options?: { keepValues?: boolean }) => void,
  *   bind: (recordId: string, path: string, name: string) => void,
@@ -359,6 +361,11 @@ export function useVariableCommands() {
         if (hit !== undefined) return hit.note
       }
       return ''
+    },
+
+    /** Set or clear a variable's label and description (`TODO/ui-157`): one Undo step, `Describe <name>`. */
+    describe(name, patch) {
+      run((document, tx) => describeVariable(document, name, patch, tx))
     },
 
     rename(from, to) {

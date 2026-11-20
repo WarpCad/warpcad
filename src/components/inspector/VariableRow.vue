@@ -3,7 +3,10 @@
 /**
  * One variable in the Variables section (`TODO/ui-059`): its name, an inline value editor
  * matching its kind (`NumberField`, checkbox, native dropdown), how many
- * parameters read it, and an overflow for **Rename** and **Delete**.
+ * parameters read it, and an overflow for **Rename**, **Edit label and description…** and **Delete**.
+ *
+ * The title is the short label (or the name), with the identifier and the usage text on a wrapping
+ * line below and the description under that, clamped to two lines with More / Less (`TODO/ui-157`).
  *
  * A value that would break something is *held* and handed to the repair dialog by the
  * panel; this row shows it pending until the dialog decides. Every refusal is core's own
@@ -23,6 +26,7 @@ import NumberField from '../controls/NumberField.vue'
 import { variableRangeEditProblem, variableRangeProblem } from '../../core/variables.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useVariablesUiStore } from '../../stores/variablesUi.js'
+import VariableDescribeForm from './VariableDescribeForm.vue'
 import VariableFormulaView from './VariableFormulaView.vue'
 import BaseButton from '../controls/BaseButton.vue'
 import ListRow from '../display/ListRow.vue'
@@ -34,7 +38,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['set', 'range', 'rename', 'remove'])
+const emit = defineEmits(['set', 'range', 'rename', 'remove', 'describe'])
 
 const ui = useVariablesUiStore()
 const repairDialog = useRepairDialogStore()
@@ -42,6 +46,15 @@ const root = ref(/** @type {HTMLElement | null} */ (null))
 const menu = ref(false)
 const renaming = ref(false)
 const newName = ref('')
+const describing = ref(false)
+const expanded = ref(false)
+
+/** A description this long is clamped to two lines with a More toggle. */
+const LONG_DESCRIPTION = 110
+const longDescription = computed(() => {
+  const text = variable.value.description ?? ''
+  return text.length > LONG_DESCRIPTION || text.split('\n').length > 2
+})
 
 const variable = computed(() => props.row.variable)
 
@@ -135,6 +148,20 @@ function onFlag(event) {
   emit('set', variable.value.name, /** @type {HTMLInputElement} */ (event.target).checked)
 }
 
+function startDescribe() {
+  menu.value = false
+  describing.value = true
+}
+
+/**
+ * @param {{ label?: string, description?: string }} patch
+ * @param {(text: string) => void} fail
+ * @param {() => void} done
+ */
+function onDescribeSave(patch, fail, done) {
+  emit('describe', variable.value.name, patch, fail, done)
+}
+
 function startRename() {
   menu.value = false
   newName.value = variable.value.name
@@ -160,12 +187,20 @@ function commitRename() {
   >
     <p v-if="lit" class="vrow__editing" role="status" :data-testid="`variable-editing-${variable.name}`">Editing {{ variable.name }}</p>
     <ListRow class="vrow__head">
-      <span class="vrow__name" data-testid="variable-name">{{ variable.label ? `${variable.label} · ` : '' }}{{ variable.name }}</span>
+      <span class="vrow__title" :data-testid="variable.label ? 'variable-title' : 'variable-name'">{{ variable.label || variable.name }}</span>
       <template #trailing>
-        <span class="vrow__used" :data-testid="`variable-used-${variable.name}`">{{ usedText }}</span>
         <button type="button" class="vrow__more" :aria-expanded="menu" :aria-label="`${variable.name} actions`" :data-testid="`variable-menu-${variable.name}`" @click="menu = !menu">⋯</button>
       </template>
     </ListRow>
+    <p class="vrow__meta">
+      <code v-if="variable.label" class="vrow__name" data-testid="variable-name">{{ variable.name }}</code>
+      <span class="vrow__used" :data-testid="`variable-used-${variable.name}`">{{ usedText }}</span>
+    </p>
+    <div v-if="variable.description && !describing" class="vrow__about">
+      <p class="vrow__description" :class="{ 'vrow__description--clamped': longDescription && !expanded }" :data-testid="`variable-description-${variable.name}`">{{ variable.description }}</p>
+      <button v-if="longDescription" type="button" class="vrow__toggle" :aria-expanded="expanded" :data-testid="`variable-description-toggle-${variable.name}`" @click="expanded = !expanded">{{ expanded ? 'Less' : 'More' }}</button>
+    </div>
+    <VariableDescribeForm v-if="describing" :name="variable.name" :label="variable.label ?? ''" :description="variable.description ?? ''" @save="onDescribeSave" @cancel="describing = false" />
     <VariableFormulaView v-if="row.formula !== undefined" :row="row" />
     <div v-else class="vrow__edit">
       <label v-if="variable.kind === 'boolean'" class="vrow__check">
@@ -197,6 +232,7 @@ function commitRename() {
     </div>
     <div v-if="menu" class="vrow__menu" role="menu">
       <BaseButton narrow role="menuitem" :data-testid="`variable-rename-${variable.name}`" @click="startRename">Rename</BaseButton>
+      <BaseButton narrow role="menuitem" :data-testid="`variable-describe-${variable.name}`" @click="startDescribe">Edit label and description…</BaseButton>
       <BaseButton narrow role="menuitem" :data-testid="`variable-delete-${variable.name}`" @click="menu = false; emit('remove', variable.name)">Delete</BaseButton>
     </div>
   </li>
@@ -250,13 +286,85 @@ function commitRename() {
   overflow-wrap: anywhere;
 }
 
+/* The title takes the row's width minus the ⋯ button, and breaks between words (`TODO/ui-157`). */
+.vrow__title {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-1);
+  overflow-wrap: break-word;
+}
+
+/* The identifier and the usage text share one line that wraps, so neither squeezes the title. */
+.vrow__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-size-xs);
+  color: var(--text-3);
+}
+
+.vrow__meta .vrow__name {
+  flex: 0 1 auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-regular);
+  color: var(--text-2);
+}
+
 .vrow__used {
   font-size: var(--text-size-xs);
   color: var(--text-3);
-  white-space: nowrap;
 }
 
-.vrow__more,
+.vrow__about {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.vrow__description {
+  margin: 0;
+  font-size: var(--text-size-sm);
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.vrow__description--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.vrow__toggle {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--text-size-sm);
+  cursor: pointer;
+}
+
+.vrow__more {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: var(--text-size-xl);
+  cursor: pointer;
+}
 
 .vrow__input {
   flex: 1;

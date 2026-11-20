@@ -22,11 +22,33 @@ sheet has two tabs, **Inspector** and **Variables**), so there is no new panel t
 | **+** | Adds a variable by hand: a name, a kind (**Number**, **Yes / no**, **Choice** or **Formula**), a starting value, and for a choice the options as a comma-separated list such as `4, 5`. A **Formula** is calculated instead; see [Formulas](#formulas). |
 | The value | Edits the variable in place: a number box, a checkbox, or a dropdown, to match its kind. A number is **millimetres** (or **degrees** for an angle) — the same units the Inspector's own fields use. |
 | **used by N** | How many fields and conditions currently read it, including the ones that read it through a formula. *read by 1 formula* is added when a formula uses it. |
-| **⋯** | **Rename** (every field bound to it follows, in one step) and **Delete**. |
+| **⋯** | **Rename** (every field bound to it follows, in one step), **Edit label and description…** and **Delete**. |
 
 Names are letters, digits and underscores, starting with a letter or underscore, up to 40
 characters, and case matters: `wall` and `Wall` are different variables. If you type
 something that is not allowed, the panel says why and nothing changes.
+
+## Label and description
+
+A variable has a **name** (`wall`, the identifier that fields and formulas use), an optional
+short **label** (up to 40 characters, such as *Wall thickness*), and an optional **description**
+(up to 500 characters) for the reasoning behind the value. The row shows the label as its title,
+the name under it in small type, then the description, cut to two lines with **More** / **Less**
+when it is longer.
+
+![The wall row with the inline editor open: a Label box holding Wall thickness, a Description box holding the nozzle-pass note, and Save and Cancel buttons.](./screenshots/variable-describe.png)
+
+1. Open **Variables** (on a phone, the **Variables** tab of the sheet) and find the **wall** row.
+2. Tap **⋯ → Edit label and description…**.
+3. Type `Wall thickness` as the **Label** and `4 × 0.4 mm nozzle passes = 1.6 mm` as the
+   **Description**, then tap **Save** (Enter in the Label box saves too, Escape cancels).
+4. The row now reads **Wall thickness**, with `wall` under it and the description below that.
+   Press Undo (⌘Z / Ctrl+Z) and both go back, as one step named *Describe wall*.
+
+A label over 40 characters is refused under the box, with a pointer to Description. The **+**
+form has an optional **Description** too, behind an **Add a description** link. An AI agent sets
+the same two fields with `define_variable`, `define_formula` and `describe_variable`. A shared
+gist's README lists each description in a **Notes** column.
 
 ## Binding a field to a variable
 

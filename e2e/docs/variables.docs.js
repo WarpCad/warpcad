@@ -45,6 +45,21 @@ test.describe('docs media: variables', () => {
     await expect(page.getByTestId('inspector-condition-text')).toContainText('piModel is Pi 4')
   }
 
+  /**
+   * Give a variable a short label and a description through its ⋯ menu.
+   *
+   * @param {import('@playwright/test').Page} page
+   * @param {string} name
+   * @param {{ label: string, description: string, save?: boolean }} text
+   */
+  async function describeVariable(page, name, { label, description, save = true }) {
+    await page.getByTestId(`variable-menu-${name}`).click()
+    await page.getByTestId(`variable-describe-${name}`).click()
+    await page.getByTestId(`variable-label-input-${name}`).fill(label)
+    await page.getByTestId(`variable-description-input-${name}`).fill(description)
+    if (save) await page.getByTestId(`variable-describe-save-${name}`).click()
+  }
+
   test('variables-panel still', async ({ page }) => {
     await openScene(page)
     await select(page, 'pi-1')
@@ -58,7 +73,27 @@ test.describe('docs media: variables', () => {
       useSelectionStore().clear()
     })
     await expect(page.getByTestId('variable-row-piModel')).toBeVisible()
+    await describeVariable(page, 'piModel', { label: 'Pi model', description: 'Which Raspberry Pi the case is built around.' })
+    await expect(page.getByTestId('variable-title')).toHaveText('Pi model')
     await shot(page, 'variables-panel.png', { locator: page.getByTestId('inspector-variables') })
+  })
+
+  test('variable-describe still', async ({ page }) => {
+    await openScene(page)
+    await select(page, 'cube-1')
+    await page.getByTestId('param-bind-size-x').click()
+    await page.getByTestId('param-bind-new').click()
+    await page.getByTestId('param-bind-new-name').fill('wall')
+    await page.getByTestId('param-bind-new-create').click()
+    await expect(page.getByTestId('param-chip-size-x')).toHaveAttribute('data-variable', 'wall')
+    await page.getByTestId('inspector-breadcrumb-root').click()
+    await page.evaluate(async () => {
+      const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
+      useSelectionStore().clear()
+    })
+    await describeVariable(page, 'wall', { label: 'Wall thickness', description: '4 × 0.4 mm nozzle passes = 1.6 mm', save: false })
+    await expect(page.getByTestId('variable-describe-form-wall')).toBeVisible()
+    await shot(page, 'variable-describe.png', { locator: page.getByTestId('variable-row-wall') })
   })
 
   test('variable-range-refused still', async ({ page }) => {

@@ -65,6 +65,8 @@ stashes only the failed task's own paths.
 
 **Decided 2026-11-20 (owner):** a WebMCP agent reported "WarpCad has no delete" and merged its discarded attempts into a scratch body for the owner to clean up. The app has deleted bodies since `ui-051`, but no AI tool wraps `deleteBodies`. Filed as `ai-051` and run first in the Findings queue; closed 2026-11-20 (`delete_bodies`).
 
+**Decided 2026-11-20 (owner):** an agent-made project's Variables panel shows labels like "Wall thickness (4 × 0.4 mm passes = 1.6)" broken one syllable per line. "Variables need a description as well as a name, so that the names can be smaller." Filed as `ui-157` and run first in the Findings queue; closed 2026-11-20 (`description` field, `describe_variable`, short labels, a row that no longer squeezes its title).
+
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed

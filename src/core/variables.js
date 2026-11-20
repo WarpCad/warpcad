@@ -124,6 +124,9 @@ export const VARIABLE_UNITS = Object.freeze(/** @type {const} */ (['mm', 'deg', 
 export const VARIABLE_LIMITS = Object.freeze({
   maxNameLength: 40,
   maxLabelLength: 80,
+  /** Labels are checked at 80 on load so old projects open; new writes are held to this (`TODO/ui-157`). */
+  maxNewLabelLength: 40,
+  maxDescriptionLength: 500,
   maxOptions: 100,
   maxOptionLabelLength: 80,
   maxVariables: 500,
@@ -155,6 +158,7 @@ const MAX_WALK_DEPTH = 32
  * @property {'number' | 'boolean' | 'enum'} kind
  * @property {number | boolean | string} [value]
  * @property {string} [label]
+ * @property {string} [description] Why this value: plain text, shown under the name.
  * @property {'mm' | 'deg' | ''} [unit]
  * @property {number} [min]
  * @property {number} [max]
@@ -336,7 +340,9 @@ export function variableDefinitionError(definition) {
       return `variable "${definition.name}": its label is longer than ${VARIABLE_LIMITS.maxLabelLength} characters`
     }
   }
-  const allowed = new Set(['name', 'kind', 'value', 'label'])
+  const descriptionProblem = descriptionError(definition.description, `variable "${definition.name}"`)
+  if (descriptionProblem !== null) return descriptionProblem
+  const allowed = new Set(['name', 'kind', 'value', 'label', 'description'])
   if (kind === 'number') {
     for (const key of ['unit', 'min', 'max']) allowed.add(key)
     if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -435,9 +441,28 @@ export function formulaDefinitionError(definition) {
   if (definition.min !== undefined && definition.max !== undefined && definition.min > definition.max) {
     return `formula "${name}": min ${definition.min} is above max ${definition.max}`
   }
-  const allowed = new Set(['name', 'formula', 'label', 'unit', 'min', 'max'])
+  const descriptionProblem = descriptionError(definition.description, `formula "${name}"`)
+  if (descriptionProblem !== null) return descriptionProblem
+  const allowed = new Set(['name', 'formula', 'label', 'description', 'unit', 'min', 'max'])
   const stranger = Object.keys(definition).find((key) => !allowed.has(key))
   if (stranger !== undefined) return `formula "${name}" has an unknown field ${JSON.stringify(stranger.slice(0, 40))}`
+  return null
+}
+
+/**
+ * Why a `description` cannot be kept, or `null`. Optional plain text, at most
+ * {@link VARIABLE_LIMITS}.maxDescriptionLength characters; it never resolves or binds (`TODO/ui-157`).
+ *
+ * @param {unknown} description
+ * @param {string} subject How the message names the variable, e.g. `variable "wall"`.
+ * @returns {string | null}
+ */
+function descriptionError(description, subject) {
+  if (description === undefined) return null
+  if (typeof description !== 'string') return `${subject}: its description must be text`
+  if (description.length > VARIABLE_LIMITS.maxDescriptionLength) {
+    return `${subject}: its description is longer than ${VARIABLE_LIMITS.maxDescriptionLength} characters`
+  }
   return null
 }
 
@@ -1505,7 +1530,7 @@ function labelled(transaction, label) {
  * Define a new variable — one appended `var.define` record, one Undo step.
  *
  * @param {WarpDocument} document
- * @param {{ name: string, kind: 'number' | 'boolean' | 'enum', value: number | boolean | string, label?: string, unit?: 'mm' | 'deg' | '', min?: number, max?: number, options?: readonly VariableOption[] }} definition
+ * @param {{ name: string, kind: 'number' | 'boolean' | 'enum', value: number | boolean | string, label?: string, description?: string, unit?: 'mm' | 'deg' | '', min?: number, max?: number, options?: readonly VariableOption[] }} definition
  * @param {TransactionOptions} transaction
  * @returns {{ record: OpRecord, scene: import('./replay.js').Scene }}
  * @throws {VariableError} For a malformed definition or a name already taken.
@@ -1658,6 +1683,42 @@ export function setVariableRangeRevision(document, name, patch) {
   if (problem !== null) throw new VariableError(problem)
   if (Object.is(record.params?.min, params.min) && Object.is(record.params?.max, params.max)) return null
   return { id: variable.id, record: { ...record, params } }
+}
+
+/**
+ * Set, change or clear a variable's label and description — a `reviseRecords` on its one definition
+ * record, one Undo step labelled `Describe <name>` (`TODO/ui-157`). A new label is held to
+ * {@link VARIABLE_LIMITS}.maxNewLabelLength; an old, longer one still loads.
+ *
+ * @param {WarpDocument} document
+ * @param {string} name
+ * @param {{ label?: string, description?: string }} patch A key left out stays; `''` clears it.
+ * @param {TransactionOptions} transaction
+ * @returns {{ scene: import('./replay.js').Scene }}
+ * @throws {VariableError} For an unknown variable or a label or description over its limit.
+ */
+export function describeVariable(document, name, patch, transaction) {
+  const variable = requireVariable(document, name)
+  const record = requireRecord(document, variable.id)
+  const params = { ...record.params }
+  for (const key of /** @type {const} */ (['label', 'description'])) {
+    const next = patch[key]
+    if (next === undefined) continue
+    if (typeof next !== 'string') throw new VariableError(`the ${key} must be text`)
+    if (key === 'label' && next.length > VARIABLE_LIMITS.maxNewLabelLength && next !== record.params?.label) {
+      throw new VariableError(
+        `labels are at most ${VARIABLE_LIMITS.maxNewLabelLength} characters (this one is ${next.length}); put the explanation in the description`,
+      )
+    }
+    if (next === '') delete params[key]
+    else params[key] = next
+  }
+  const problem = isFormula(variable) ? formulaDefinitionError(params) : variableDefinitionError(params)
+  if (problem !== null) throw new VariableError(problem)
+  if (record.params?.label === params.label && record.params?.description === params.description) {
+    return { scene: document.scene }
+  }
+  return document.reviseRecords([{ id: variable.id, record: { ...record, params } }], labelled(transaction, `Describe ${name}`))
 }
 
 /**
@@ -1969,6 +2030,7 @@ function rewriteFormulaText(text, rewrite) {
  * @property {string} name
  * @property {string} formula
  * @property {string} [label]
+ * @property {string} [description]
  * @property {'mm' | 'deg' | ''} [unit]
  * @property {number} [min]
  * @property {number} [max]

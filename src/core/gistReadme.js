@@ -98,6 +98,7 @@ const UNNAMED = '(unnamed)'
  * @property {string} [unit] A number's unit: `mm`, `deg` or `''`.
  * @property {number} [min]
  * @property {number} [max]
+ * @property {string} [description] Why the value is what it is (`TODO/ui-157`); the **Notes** column.
  * @property {string} [formula] A calculated variable's formula as a person reads it
  *   (`TODO/FIND-core-078`) — shown as a code span, so it can never inject Markdown.
  * @property {readonly { value: unknown, label: string }[]} [options] An enum's choices.
@@ -399,12 +400,20 @@ function variablesSection(variables) {
     value: cell(variableValueText(variable)),
     range: cell(variableRangeText(variable)),
     formula: typeof variable.formula === 'string' ? codeCell(variable.formula) : '—',
+    notes: cell(variable.description ?? ''),
   }))
   const ranged = rows.some((row) => row.range !== '—')
   const calculated = listed.some((variable) => typeof variable.formula === 'string')
-  /** @type {('name' | 'value' | 'range' | 'formula')[]} */
-  const columns = ['name', 'value', ...(ranged ? /** @type {const} */ (['range']) : []), ...(calculated ? /** @type {const} */ (['formula']) : [])]
-  const headings = { name: 'Name', value: 'Value', range: 'Range', formula: 'Formula' }
+  const noted = rows.some((row) => row.notes !== '—')
+  /** @type {('name' | 'value' | 'range' | 'formula' | 'notes')[]} */
+  const columns = [
+    'name',
+    'value',
+    ...(ranged ? /** @type {const} */ (['range']) : []),
+    ...(calculated ? /** @type {const} */ (['formula']) : []),
+    ...(noted ? /** @type {const} */ (['notes']) : []),
+  ]
+  const headings = { name: 'Name', value: 'Value', range: 'Range', formula: 'Formula', notes: 'Notes' }
   const lines = [
     '## Variables',
     '',

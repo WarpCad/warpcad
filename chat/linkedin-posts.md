@@ -5361,3 +5361,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** agent report, Repeat behaviour → `TODO/done/ai-051-agents-cannot-delete-a-body.md`; one-change, Undo AI turn, repeats options → `src/ai/tools/delete.spec.js` run this session
 **To Add:** none
 ---
+
+## 2026-11-20T23:00:00Z — WarpCad: variables get a description
+
+**Post:** An AI agent defined a project's variables in WarpCad and put each one's reasoning into its label: "Wall thickness (4 × 0.4 mm passes = 1.6)". The Variables panel then broke that label one syllable per line, because the row gave the title whatever width the usage text left over.
+
+Variables now carry an optional description (up to 500 characters) beside a short label, held to 40 characters when written. The row's title gets the full width, the identifier and usage text wrap beneath it, and the description sits below with a More / Less toggle. Each variable's ⋯ menu has Edit label and description…, one undoable step, and agents get a describe_variable tool to repair projects like this one.
+
+A file with a description opens fine in this build; an older build will not define that variable, which is recorded in the project's decision notes. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** label example and layout cause → `TODO/done/ui-157-variable-description-separate-from-short-label.md`; 500/40 limits and one undo step → `src/core/variables.spec.js` run this session; old-build refusal → `docs/decisions/project-variables.md` addendum and `src/core/variables.js` allowed-key sets
+**To Add:** docs/screenshots/variable-describe.png
+---

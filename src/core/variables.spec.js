@@ -26,8 +26,10 @@ import {
   defineFormula,
   defineVariable,
   deleteVariable,
+  describeVariable,
   displayFormulaOf,
   evaluateFormulaIn,
+  formulaDefinitionError,
   formulaReadsOf,
   readVariables,
   renameVariable,
@@ -1552,6 +1554,49 @@ describe('variable range (TODO/ui-140)', () => {
     document.undo()
     expect(variablesOf(document)[0].min).toBeUndefined()
     expect(variablesOf(document)[0].max).toBeUndefined()
+  })
+
+  it('description is optional text of at most 500 characters on both ops, and older records load unchanged (TODO/ui-157)', () => {
+    expect(variableDefinitionError(wallVar({ description: 'x'.repeat(500) }))).toBeNull()
+    expect(variableDefinitionError(wallVar({ description: 'x'.repeat(501) }))).toMatch(/description is longer than 500/)
+    expect(variableDefinitionError(wallVar({ description: 5 }))).toMatch(/description must be text/)
+    expect(variableDefinitionError(wallVar())).toBeNull()
+    expect(formulaDefinitionError({ name: 'f', formula: '1 + 1', description: 'two' })).toBeNull()
+    expect(formulaDefinitionError({ name: 'f', formula: '1 + 1', description: 'x'.repeat(501) })).toMatch(/description is longer than 500/)
+    // An 81-character label in a stored record still loads: the 40-character cap is for writes.
+    const document = createDocument()
+    document.append(varRecord({ ...wallVar(), label: 'x'.repeat(80) }), LOCAL)
+    expect(variablesOf(document)[0].label).toHaveLength(80)
+  })
+
+  it('describeVariable sets, clears and leaves fields as told, as one undoable "Describe" step', () => {
+    const document = createDocument()
+    defineVariable(document, wallVar({ label: 'Wall' }), LOCAL)
+    describeVariable(document, 'wall', { description: '4 × 0.4 mm passes' }, LOCAL)
+    expect(variablesOf(document)[0]).toMatchObject({ label: 'Wall', description: '4 × 0.4 mm passes' })
+    describeVariable(document, 'wall', { label: 'Wall thickness' }, LOCAL)
+    expect(variablesOf(document)[0]).toMatchObject({ label: 'Wall thickness', description: '4 × 0.4 mm passes' })
+    describeVariable(document, 'wall', { label: '', description: '' }, LOCAL)
+    expect(variablesOf(document)[0].label).toBeUndefined()
+    expect(variablesOf(document)[0].description).toBeUndefined()
+    document.undo()
+    expect(variablesOf(document)[0]).toMatchObject({ label: 'Wall thickness', description: '4 × 0.4 mm passes' })
+    document.undo()
+    expect(variablesOf(document)[0]).toMatchObject({ label: 'Wall', description: '4 × 0.4 mm passes' })
+    document.undo()
+    expect(variablesOf(document)[0].description).toBeUndefined()
+  })
+
+  it('describeVariable refuses a new label over 40 characters, but keeps an old long one that is unchanged', () => {
+    const document = createDocument()
+    document.append(varRecord({ ...wallVar(), label: 'x'.repeat(80) }), LOCAL)
+    expect(() => describeVariable(document, 'wall', { label: 'y'.repeat(41) }, LOCAL)).toThrow(/at most 40 characters.*description/)
+    expect(() => describeVariable(document, 'nope', { label: 'a' }, LOCAL)).toThrow(VariableError)
+    expect(() => describeVariable(document, 'wall', { description: 'z'.repeat(501) }, LOCAL)).toThrow(/500/)
+    describeVariable(document, 'wall', { label: 'x'.repeat(80), description: 'kept' }, LOCAL)
+    expect(variablesOf(document)[0]).toMatchObject({ description: 'kept' })
+    describeVariable(document, 'wall', { label: 'Wall' }, LOCAL)
+    expect(variablesOf(document)[0].label).toBe('Wall')
   })
 
   it('setVariableRange refuses min above max, a value left outside, a non-number, and changes nothing', () => {

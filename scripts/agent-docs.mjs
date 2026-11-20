@@ -49,6 +49,7 @@ export const EXAMPLES = Object.freeze({
   delete_bodies: { ids: ['cuboid-abcdef-2', 'cuboid-abcdef-3'], rationale: 'discarded first attempt' },
   delete_variable: { name: 'wall', keepValues: true },
   describe_body: { id: 'bool-abcdef-4' },
+  describe_variable: { name: 'wall', label: 'Wall thickness', description: '4 × 0.4 mm nozzle passes = 1.6 mm' },
   describe_scene: {},
   describe_step: { id: 'group-abcdef-4', part: 'Pin' },
   evaluate_formula: { formula: 'Base.max.z - Lid.min.z', at: 'cuboid-abcdef-5' },

@@ -559,3 +559,75 @@ test('Edit variable on a chip lights the target row with an "Editing" header and
   await expect(row).toHaveAttribute('data-focused', 'false', { timeout: 4000 })
   await expect(page.getByTestId('variable-editing-width')).toHaveCount(0)
 })
+
+test('a long label is split into a short label and a description; the title stays on one line, Undo restores both, a reload keeps them (ui-157)', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/')
+  await expect(page.getByTestId('app-root')).toBeVisible()
+  // A body on the grid, so the phone sheet offers its Variables view as it does in real use.
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.3 })
+  await closeLibrary(page)
+  await expectBodyCount(page, 1)
+  // The shape an agent wrote: reasoning packed into an 80-character label (core still loads those).
+  const LONG = 'Wall thickness (4 × 0.4 mm passes = 1.6)'
+  await page.evaluate(async (label) => {
+    const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+    const { VARIABLE_OP } = await window.__e2eImport('/src/core/variables.js')
+    const store = useDocumentStore()
+    store.raw.append({ id: 'var-wall', op: VARIABLE_OP, params: { name: 'wall', kind: 'number', value: 1.6, unit: 'mm', label } }, { origin: 'local' })
+    store.refresh()
+  }, LONG)
+  await showVariables(page)
+  const row = page.getByTestId('variable-row-wall')
+  const title = row.getByTestId('variable-title')
+  await expect(title).toContainText('Wall thickness')
+  // The sliver regression: the title gets the row's width, so it is a few lines at most, never one syllable per line.
+  const longHeight = (await title.boundingBox()).height
+
+  await page.getByTestId('variable-menu-wall').click()
+  await page.getByTestId('variable-describe-wall').click()
+  await page.getByTestId('variable-label-input-wall').fill('x'.repeat(41))
+  await page.getByTestId('variable-describe-save-wall').click()
+  await expect(page.getByTestId('variable-describe-error-wall')).toContainText('at most 40 characters')
+  await page.getByTestId('variable-label-input-wall').fill('Wall thickness')
+  const long = '4 × 0.4 mm nozzle passes = 1.6 mm. '.repeat(5).trim()
+  await page.getByTestId('variable-description-input-wall').fill(long)
+  await page.getByTestId('variable-label-input-wall').press('Enter')
+
+  await expect(title).toHaveText('Wall thickness')
+  await expect(row.getByTestId('variable-name')).toHaveText('wall')
+  const description = page.getByTestId('variable-description-wall')
+  await expect(description).toContainText('4 × 0.4 mm nozzle passes')
+  const lineHeight = await title.evaluate((el) => parseFloat(getComputedStyle(el).lineHeight) || 20)
+  expect((await title.boundingBox()).height).toBeLessThanOrEqual(lineHeight * 1.6)
+  expect(longHeight).toBeGreaterThan(0)
+
+  // More / Less shows the whole description and clamps it again.
+  const clamped = (await description.boundingBox()).height
+  await page.getByTestId('variable-description-toggle-wall').click()
+  expect((await description.boundingBox()).height).toBeGreaterThan(clamped)
+  await page.getByTestId('variable-description-toggle-wall').click()
+  expect((await description.boundingBox()).height).toBeLessThanOrEqual(clamped + 1)
+  await noHorizontalScroll(page)
+  mkdirSync(SNAPSHOT_DIR, { recursive: true })
+  await row.screenshot({ path: join(SNAPSHOT_DIR, `describe-row-${testInfo.project.name}.png`) })
+
+  // One Undo step restores the label and the description together; Redo brings both back.
+  await page.getByTestId('undo-button').click()
+  await expect(page.getByTestId('variable-description-wall')).toHaveCount(0)
+  await expect(page.getByTestId('variable-title')).toContainText('Wall thickness (4 × 0.4 mm passes = 1.6)')
+  await page.getByTestId('redo-button').click()
+  await expect(page.getByTestId('variable-title')).toHaveText('Wall thickness')
+  await expect(page.getByTestId('variable-description-wall')).toContainText('nozzle passes')
+
+  // A save and reload keeps both.
+  await expect(page.getByTestId('save-status-text')).toHaveText(/^Saved · \d\d:\d\d$/)
+  await page.reload()
+  await expect(page.getByTestId('app-root')).toBeVisible()
+  await expectBodyCount(page, 1)
+  await showVariables(page)
+  await expect(page.getByTestId('variable-row-wall').getByTestId('variable-title')).toHaveText('Wall thickness')
+  await expect(page.getByTestId('variable-description-wall')).toContainText('nozzle passes')
+})
