@@ -612,6 +612,28 @@ describe('exportBodies — refusals, by name', () => {
     }
   })
 
+  it('refuses a Subtract the cutter swallowed whole, by the body name, and never returns bytes (io-039)', () => {
+    // A real kernel result: a 3 mm part inside a 20 mm cutter leaves polygons: [] — a body that
+    // is still listed in Objects but has no volume.
+    const swallowed = modeling.booleans.subtract(
+      primitives.cuboid({ size: [3, 3, 3], center: [0, 0, 1.5] }),
+      primitives.cuboid({ size: [20, 20, 20], center: [0, 0, 1.5] })
+    )
+    expect(swallowed.polygons).toHaveLength(0)
+    for (const format of /** @type {const} */ (['stl', 'obj'])) {
+      let caught
+      try {
+        exportBodies([body('Subtract 1', swallowed)], format)
+      } catch (error) {
+        caught = error
+      }
+      expect(caught).toBeInstanceOf(ExportError)
+      expect(/** @type {ExportError} */ (caught).code).toBe('empty-geometry')
+      expect(/** @type {ExportError} */ (caught).bodyName).toBe('Subtract 1')
+      expect(/** @type {ExportError} */ (caught).message).toContain('"Subtract 1"')
+    }
+  })
+
   it('names the body when its geometry cannot be reduced to a solid', () => {
     // A group with no visible parts makes combine() throw; the user needs to be told
     // WHICH body, not shown the kernel's internal message alone.

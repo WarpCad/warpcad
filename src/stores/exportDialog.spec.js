@@ -382,6 +382,44 @@ describe('refusals are shown by name, never a silent empty download', () => {
     expect(downloads).toHaveLength(0)
   })
 
+  describe('a Subtract that left nothing (TODO/io-039)', () => {
+    /** One cube swallowed by a bigger one: a body in the scene with no volume. */
+    function swallowedScene() {
+      const made = setup({ seed: 'none' })
+      made.documentStore.append({ id: 'small', op: 'primitive.cuboid', name: 'Part', params: { size: [3, 3, 3] } })
+      made.documentStore.append({ id: 'big', op: 'primitive.cuboid', name: 'Big', params: { size: [40, 40, 40] } })
+      made.documentStore.append({
+        id: 'cut',
+        op: 'boolean.subtract',
+        name: 'Subtract 1',
+        target: 'small',
+        operands: ['big'],
+        consumes: ['small', 'big'],
+      })
+      return made
+    }
+
+    it('says so before the press: emptyNote names the body, and a healthy scene has no note', () => {
+      const { dialog } = swallowedScene()
+      dialog.open()
+      expect(dialog.emptyNote).toContain('"Subtract 1"')
+      expect(dialog.emptyNote).toMatch(/empty|nothing left/i)
+      const healthy = setup()
+      healthy.dialog.open()
+      expect(healthy.dialog.emptyNote).toBe('')
+    })
+
+    it('pressing Export names the body in error, keeps the popover open and downloads nothing', async () => {
+      const { dialog, downloads } = swallowedScene()
+      dialog.open()
+      await dialog.commit()
+      expect(dialog.error).toContain('"Subtract 1"')
+      expect(dialog.error).toMatch(/no triangles/)
+      expect(dialog.isOpen).toBe(true)
+      expect(downloads).toHaveLength(0)
+    })
+  })
+
   it('an unexpected failure is reported too, not swallowed', async () => {
     const { dialog, downloads } = setup()
     setExportDependencies({

@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 98 now (Q16-Q113; Q94-Q113 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 99 now (Q16-Q114; Q94-Q114 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q114 · Is the amber "is empty" note plus the existing refusal enough for an emptied Subtract in Export?
+
+**Question:** `io-039` could not reproduce a silent Export on a Subtract the cutter swallowed whole (a 32k scan or a box, imported as mm, nine projects): the red refusal *Cannot export "Subtract 1": it has no triangles* already shows and nothing downloads. So it added an amber line when the panel opens, *"Subtract 1" is empty — nothing is left of it, so it cannot be exported*, and left Export enabled so pressing it gives the red line. Keep that?
+
+**Background:** Assumed yes. The finding's expected result was either a note or a refusal, and both now exist. If you still see a silent press, send the exact steps and file: the path this drive did not hit is then the real bug. Q91 asks the related question of a toast at Subtract time.
+
+**Options:**
+1. **Keep note plus refusal (Recommended)**: it says so before and after the press.
+2. **Also dim Export when a body is empty**: stricter, but then the reason has to be the dimmed button's.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** both lines stay.
+
+**Answer:** question
 
 #### Q113 · Should both Re-link buttons (History row and Inspector box) be the solid blue primary button?
 

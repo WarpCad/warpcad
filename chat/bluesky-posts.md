@@ -3641,3 +3641,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** box wording and button variant → `src/components/inspector/DependentsBanner.vue`; cold read (button visibility CLEAR, one name and colour PARTIAL) → one fresh Sonnet agent shown two phone screenshots, this session; remainders → `TODO/FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md`
 **To Add:** `docs/media/timeline-relink.gif`
 ---
+
+## 2026-11-20T16:25:00Z — WarpCad: Export says a cut left nothing
+
+**Post:** In WarpCad, if a Subtract's cutter swallows the whole part, File > Export now says so up front: "Subtract 1" is empty, nothing is left of it. I could not reproduce the silent press that was reported (it already refused in words), so this pins that with tests and adds the early note. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** refusal and note on a 32,320-triangle scan swallowed by a Cube → `e2e/export-ui.e2e.js` "io-039" on nine projects; full unit 9975 passed; pair webkit-phone + firefox-tablet 1267 passed → `/test` runs this session
+**To Add:** none
+---

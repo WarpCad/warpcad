@@ -5306,3 +5306,16 @@ Built with Claude Code, reviewed by me.
 **Evidence:** padding failure and fix → `e2e/inspector-object-list.e2e.js` on five projects red, then green on nine; unit 9972 passed, timeline-panel, object-list and composite-param-edit e2e 454 passed on nine projects, rotating pair chromium-laptop + firefox-phone 1328 passed → `/test` runs this session; cold read → one fresh Sonnet agent, this session; remainders → `TODO/FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md`
 **To Add:** `docs/media/timeline-relink.gif`
 ---
+
+## 2026-11-20T16:25:00Z — An export that says the part is empty before you press
+
+**Post:** A report said that exporting the result of a Subtract that left nothing downloaded nothing and showed no error. I drove it on the current build with a 32,320-triangle scan imported as millimetres and a Cube dropped over it, on nine browser and viewport projects: the red refusal naming "Subtract 1" already showed and no file was written. I could not find the silent path, so the unit and end-to-end specs now pin the refusal, and the Export panel gains the other half of what the report asked for: an amber line, shown as soon as the panel opens, saying the body is empty. Pressing Export still gives the refusal. If the silence comes back, the steps in the docs and the owner question say what to send.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** could-not-reproduce → `e2e/export-ui.e2e.js` "io-039" passes with and without the note on nine projects, and a node probe of a 96,600-triangle scan swallowed by a cube gave `ExportError empty-geometry`, this session; unit 9975 passed; pair webkit-phone + firefox-tablet 1267 passed → `/test` runs this session
+**To Add:** none
+---

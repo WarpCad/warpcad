@@ -297,6 +297,22 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     return `(rolled back — ${later} later step${later === 1 ? '' : 's'} not included)`
   })
 
+  /**
+   * `TODO/io-039`: a body in scope with no volume (a Subtract whose cutter swallowed it whole)
+   * is still listed in Objects, so Export looks available. Say so before the press, naming it;
+   * pressing Export then refuses by the same name (`solidsForExport`). A volume still being
+   * measured (`null`) or one that could not be (`NaN`) is not called empty.
+   */
+  const emptyNote = computed(() => {
+    if (unavailableReason.value !== '' || scopeProblem.value !== '') return ''
+    const empty = scopeBodies.value.filter((body) => /** @type {{ volumeMm3?: number | null }} */ (body).volumeMm3 === 0)
+    if (empty.length === 0) return ''
+    const names = empty.map((body) => `"${body.name}"`).join(', ')
+    return empty.length === 1
+      ? `${names} is empty — nothing is left of it, so it cannot be exported`
+      : `${names} are empty — nothing is left of them, so they cannot be exported`
+  })
+
   const canExport = computed(
     () => isOpen.value && unavailableReason.value === '' && scopeProblem.value === '' && !exporting.value
   )
@@ -476,6 +492,7 @@ export const useExportDialogStore = defineStore('exportDialog', () => {
     summary,
     wholeBodyNote,
     rollbackNote,
+    emptyNote,
     canExport,
     open,
     close,

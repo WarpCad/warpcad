@@ -154,8 +154,15 @@ is downloaded:
 |---|---|
 | **Nothing to export** | The scene has no bodies (normally the menu item is greyed out before you get here). |
 | **Cannot export "Ghost": it has no triangles** | That body has no surface to write — an empty result of a boolean, say. The message names the body. |
+| **"Subtract 1" is empty — nothing is left of it** (an amber line, shown as soon as you open the panel) | A **Subtract** whose cutter swallowed the whole part leaves a body that is still listed in Objects but has no volume. Pressing **Export** then gives the red refusal above, naming the body. Undo the Subtract, or check the part's **Units** (see below), and export again. |
 | **Cannot export "Hollow One": …** | That body's shape could not be reduced to one solid (a group with every part hidden). Named so you know which one to fix. |
 | **The selection no longer matches anything** | Something you had selected was changed or absorbed by an operation before you exported; reselect and try again. |
+
+**Example.** Import an STL that was drawn in inches without changing **Units**, so it reads as about 3 mm.
+Drop the default **Cube** on it, select both and press **Subtract**. One body, *Subtract 1*, stays in
+Objects. Open **File ▾ → Export…**: the panel says *"Subtract 1" is empty — nothing is left of it, so it
+cannot be exported*. Press **Export** and the red line *Cannot export "Subtract 1": it has no triangles* appears,
+with no file downloaded. **Undo** the Subtract, set the scan's **Units** to *Inches* in the Inspector, and cut again.
 
 ## Checking a file
 

@@ -202,6 +202,9 @@ function sizeLabel(bytes) {
         <p v-if="dialog.rollbackNote" class="export__note export__note--warn" data-testid="export-rollback-note">
           {{ dialog.rollbackNote }}
         </p>
+        <p v-if="dialog.emptyNote" class="export__note export__note--warn" role="status" data-testid="export-empty-note">
+          {{ dialog.emptyNote }}
+        </p>
         <p v-if="blockedText" class="export__note export__note--warn" role="status" data-testid="export-blocked">
           {{ blockedText }}
         </p>

@@ -3,6 +3,11 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { binaryStl } from '../src/io/__fixtures__/stl.js'
+import { lumpyScan } from '../src/core/kernel/__fixtures__/denseMeshes.js'
+import { closeLibrary as closeLibraryRows, isPhone, openLibrary as openLibraryRows, pointer, viewportPoint } from './support/humanInput.js'
+import { importModel, openObjectList } from './support/importModel.js'
+
 /**
  * File ▾ → Export… (`TODO/ui-034`), driven against `/` — the control surface for `io-003`'s
  * STL / OBJ / glTF serialization, per `docs/decisions/interaction-model-qa.md` §12 (confirmed
@@ -1117,4 +1122,60 @@ test('the pending state does not block a refusal: it still appears by name and n
   await expect(page.getByTestId('export-popover')).toBeVisible()
   await expect(page.getByTestId('export-pending')).toHaveCount(0)
   expect(downloaded, 'no file for a refused export').toBe(false)
+})
+
+test('io-039: an imported scan swallowed by a Cube and Subtracted leaves nothing; Export says so by name and downloads nothing', async ({
+  page,
+}, info) => {
+  test.setTimeout(120_000)
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
+  const input = await pointer(page, info)
+  const at = isPhone(info) ? [0.45, 0.34] : [0.4, 0.5]
+
+  // A 32k-triangle scan drawn in inches, left on Units: mm, so it is about 3 mm across. Import and place it.
+  const mesh = lumpyScan({ lon: 160, lat: 102 })
+  const tris = []
+  for (let i = 0; i < mesh.indices.length; i += 3) {
+    tris.push([0, 1, 2].map((k) => [0, 1, 2].map((a) => mesh.positions[3 * mesh.indices[i + k] + a])))
+  }
+  const scan = { name: 'scan.stl', mimeType: 'model/stl', buffer: Buffer.from(binaryStl(tris)) }
+  await importModel(page, input.press, scan)
+  await expect(page.getByTestId('placement-chip')).toBeVisible()
+  const p = await viewportPoint(page, at[0], at[1])
+  await input.placeArmed(p.x, p.y)
+  await expect(page.getByTestId('placement-chip')).toHaveCount(0)
+  const scanId = (await sceneBodies(page)).at(-1).id
+
+  // The default Cuboid on the same spot swallows it; Subtract the cuboid from the scan.
+  await openLibraryRows(page, input.press)
+  await input.dragRow(page.getByTestId('library-row-primitive.cuboid'), p.x, p.y)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '2')
+  await closeLibraryRows(page, input.press)
+  const cubeId = (await sceneBodies(page)).find((b) => b.id !== scanId).id
+  await openObjectList(page, input.press)
+  await input.press(page.getByTestId(`objects-row-${scanId}`))
+  await openObjectList(page, input.press)
+  await input.press(page.getByTestId(`objects-check-${cubeId}`))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '2')
+  await input.press(page.getByTestId('operation-subtract'))
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
+
+  let downloaded = false
+  page.on('download', () => {
+    downloaded = true
+  })
+  await openExportPopover(page)
+  await expect(page.getByTestId('export-summary')).toContainText('Subtract 1')
+  // Before the press: the popover already says the body is empty, by name.
+  await expect(page.getByTestId('export-empty-note')).toContainText('"Subtract 1" is empty')
+  await page.getByTestId('export-commit').click()
+  const alert = page.getByTestId('export-error')
+  await expect(alert).toBeVisible()
+  await expect(alert).toHaveAttribute('role', 'alert')
+  await expect(alert).toContainText('Subtract 1')
+  await expect(alert).toContainText(/empty|no triangles|nothing left/i)
+  await expect(page.getByTestId('export-popover')).toBeVisible()
+  await page.waitForTimeout(300)
+  expect(downloaded, 'no file for a body with no volume').toBe(false)
 })

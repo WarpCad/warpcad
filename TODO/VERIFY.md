@@ -146,7 +146,7 @@ Scenario 26 was driven with a 32k scan on Chromium and WebKit (see `TODO/ACCEPTA
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | A cut dense scan loads in CuraEngine 5.13.0 with no mesh warning | OK | 32k, 96k and 240k cuts via the bench path, and the app's own export (26,822 triangles, 0 open edges); only the 96k `io-033` edge remains. |
-| 2 | Export of a Subtract that left nothing downloads nothing, silently | Moved | → `io-039`. |
+| 2 | Export of a Subtract that left nothing downloads nothing, silently | OK | `io-039` (2026-11-20): did not reproduce at HEAD; the red refusal shows and nothing downloads on nine projects, and the popover now says so before the press (owner question Q114). |
 | 3 | `sketch-primitive.e2e.js:533` fails on webkit-tablet and firefox-laptop at plain HEAD | Moved | → `ui-150`. |
 
 ### sketch-009 — Line close radius for a finger (2026-11-18 17:45)

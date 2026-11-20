@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-18 from the io-032 acceptance drive
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20).** The silence did not reproduce at current `HEAD`: with a 32,320-triangle scan (and a 12-triangle box) imported as mm, a Cuboid dropped on it and **Subtract**, `exportBodies`, the export worker and the popover already refuse with *Cannot export "Subtract 1": it has no triangles* and download nothing, on all nine projects (the kernel's swallowed result is `polygons: []`, which `solidsForExport` has refused since `io-003`). So the unit specs for the refusal and the e2e of the refusal landed as regression cover and passed immediately. What was missing is the other half of the finding's "either": the popover now says so **before** the press. A new `emptyNote` in `stores/exportDialog.js` (a body in scope whose `volumeMm3` is 0) shows an amber line, *"Subtract 1" is empty — nothing is left of it, so it cannot be exported*, on opening **File ▾ → Export…**. `docs/export.md` has the new row and an example. Logged as owner question Q114 (assumed note plus refusal; the original silent case may have come from a path this drive did not hit).
 
 ## Problem
 
