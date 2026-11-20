@@ -78,11 +78,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 97 | ▶ Ready | `FIND` | [`docs-039`](FIND-docs-039-cold-read-gif-remainders-after-docs-038.md) Fix what a fresh cold reader still rated partial after docs-038: resize-fit camera, tour Subtract press, relink History crop, subpart drill-in caption | sonnet |
 | 98 | ▶ Ready | `FIND` | [`ui-154`](FIND-ui-154-broken-step-wording-and-button-styling-still-differ-between-history-and-inspector.md) Make a broken step's wording and Re-link button styling match between History and the Inspector (the part of ui-146's cold read still rated partial) | sonnet |
-| [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing | finding | low | sonnet | ▶ Ready (Next up row 103) |
-| [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry (headless landing about 110 ms) | finding | low | sonnet | ▶ Ready (Next up row 105) |
-| [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing; check a 1 s GC after the pack | finding | low | sonnet | ▶ Ready (Next up row 106) |
-| [`ui-152`](FIND-ui-152-viewport-script-and-pointer-gestures-remainder.md) Take the next three slices out of Viewport.vue's script and pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 107) |
-| [`ui-153`](FIND-ui-153-cold-read-chrome-partials-after-ui-145.md) Four cold-read items ui-145 improved but a fresh reader still rates partial | finding | low | sonnet | ▶ Ready (Next up row 108) |
 | 103 | ▶ Ready | `FIND` | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing, instead of downloading nothing silently | sonnet |
 | 105 | ▶ Ready | `FIND` | [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry so a software rasteriser lands it in under 50 ms (real-GPU landing already passes) | sonnet |
 | 106 | ▶ Ready | `FIND` | [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing, and check a 1 s GC after the pack | sonnet |
@@ -102,9 +97,11 @@ yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the 
 - [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Native dialogs, the Mac app and the iOS Simulator's own screens, with computer use (5 + 19 rows). **Running 2026-11-17** in the Claude desktop app (OWNER.md U2 done); not in the runner's queue
 - [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) iOS Safari checks in the Simulator (34 rows). iOS 27.2 simulators have no Remote Automation switch; `testing-044` installed the iOS 26.0 runtime; `testing-028` (`build-034` #1) opens its Settings › Safari › Advanced and un-holds this row itself if the switch is there
 
----
+**Device checks:**
 
 - [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Verify the `.warpcad` file types on a real iPad and in Safari, then run the owed acceptance scenarios (10, 22, 23, 28). **Held:** a manual run; filed 2026-11-16 to close `io-035` and `io-036`.
+
+---
 
 ## Decided 2026-10-24 and still waiting on you
 
@@ -163,6 +160,11 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
 | [`docs-039`](FIND-docs-039-cold-read-gif-remainders-after-docs-038.md) Fix what a fresh cold reader still rated partial after docs-038: resize-fit camera, tour Subtract press, relink History crop, subpart drill-in caption | finding | low | sonnet | ▶ Ready (Next up row 97) |
 | [`ui-154`](FIND-ui-154-broken-step-wording-and-button-styling-still-differ-between-history-and-inspector.md) Make a broken step's wording and Re-link button styling match between History and the Inspector | finding | low | sonnet | ▶ Ready (Next up row 98) |
+| [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing | finding | low | sonnet | ▶ Ready (Next up row 103) |
+| [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry (headless landing about 110 ms) | finding | low | sonnet | ▶ Ready (Next up row 105) |
+| [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing; check a 1 s GC after the pack | finding | low | sonnet | ▶ Ready (Next up row 106) |
+| [`ui-152`](FIND-ui-152-viewport-script-and-pointer-gestures-remainder.md) Take the next three slices out of Viewport.vue's script and pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 107) |
+| [`ui-153`](FIND-ui-153-cold-read-chrome-partials-after-ui-145.md) Four cold-read items ui-145 improved but a fresh reader still rates partial | finding | low | sonnet | ▶ Ready (Next up row 108) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
@@ -253,9 +255,8 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 > build after the GitHub push, Gate 2). Supersedes the 2026-11-13 hold for these rows only. The runner reads this table before
 > Findings, so these run first. A `/fix-todo` agent works in `warpcad-native` for these and commits there; it never pushes.
 
-| id | Task | Kind | Depends | Acceptance |
-|---|---|---|---|---|
-| `testing-037` | Test the whole app on the iPad from a locally installed build (over the cable; nothing uploaded). **Needs the owner with the iPad**: the agent installs and stops for the pass | Finding | — | 28 (local build) |
+**No local M19 rows are open.** `testing-037`, the last one, was closed by owner decision on 2026-11-16 (partly run; its
+`status:` field still waits on `/fix-todo testing-037` in `warpcad-native`).
 
 **Still held** (a list, so the runner cannot pick them up). Each contacts something outside this Mac, or waits on a row that does:
 
@@ -269,6 +270,7 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 - [`build-040`](../../warpcad-native/TODO/M19-build-040-help-has-no-version-line-on-the-ipad.md) Help has no version line on the iPad (Gate 1 check A2). **Held:** filed 2026-11-16; the owner has not ranked it yet.
 - [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Files does not offer WarpCad for `.ndjson` on the iPad (Gate 1 check C4). **Held:** filed 2026-11-16; same root cause as `io-030`, so it waits for that.
 - [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Live MCP access does not start on the iPad (Gate 1 check F1). **Held:** filed 2026-11-16; needs a device re-check, and F2 to F5 are blocked by it.
+- [`build-041`](../../warpcad-native/TODO/M19-build-041-mac-icon-mark-too-small-in-the-tile.md) The cube mark in the macOS icon reads small in the Dock. **Held:** a native-repo change; the owner has not ranked it yet.
 - [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: sandbox entitlements, hardened runtime, signing, Mac App Store build. **Held:** Decided 2026-11-13: Mac App Store; after the iOS submission.
 - [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing. **Held:** After the iOS submission; needs a Play account.
 - [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store. **Held:** After the iOS submission; needs a Windows machine.
@@ -378,10 +380,10 @@ The four that lacked a row on 2026-10-24 (`ui-079`, `testing-009`, `testing-005`
 
 - Owner steps for `build-016` (Parts 4 and 6), in `TODO/VERIFY.md`.
 - Owner checks for `build-007` (GA) and the M18 close, above.
-- Held rows: the 11 M19 rows that leave this Mac and five findings, in [Held](#held--not-run-by-run-todos).
-- **M19 free-form pass:** `testing-037` (row 74) is the owner's iPad pass on a local build; the loop stops for it.
+- Held rows: the 16 held M19 rows and two findings (`testing-027`, `testing-028`), in [Held](#held--not-run-by-run-todos) and [M19](#m19--native-ios-app-tauri).
+- **iPad checks left over from `testing-037`** (closed 2026-11-16, partly run): the eight unrun checks are `TODO/OWNER.md` items I5, I9–I13, W1 and Z1.
 - **Free-form passes:** none owed. The 2026-10-17 decision records the M5–M10, M12, M16 and M17 passes as done.
-  The next one falls due when the next milestone completes. M19's is `testing-037` on the iPad (row 74), then `testing-011` on the iPad and the iPhone.
+  The next one falls due when the next milestone completes. M19's is `testing-011` on the iPad and the iPhone.
 
 ---
 
