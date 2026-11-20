@@ -51,19 +51,9 @@ import RepeatSheet from './RepeatSheet.vue'
 import ModelImportStatus from './ModelImportStatus.vue'
 import PlacementSession from './PlacementSession.vue'
 import ViewportContextBanner from './ViewportContextBanner.vue'
-import { createCutPlaneAnnotation } from '../../render/cutPlane.js'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
-import {
-  createDimensionAnnotation,
-  createGizmoAnnotation,
-  createDialAnnotation,
-  createRulerAnnotation,
-  createMarqueeRect,
-  createSketchPath,
-  createSnapGuideAnnotations,
-  updateSnapGuideAnnotations,
-} from '../../render/annotate.js'
+import { updateSnapGuideAnnotations } from '../../render/annotate.js'
 import { createGizmoDrag } from '../../render/gizmoDrag.js'
 import { createFrameContent } from '../../render/frameContent.js'
 import { createSketchChainKeys } from '../../render/sketchChainKeys.js'
@@ -78,6 +68,7 @@ import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { createOffscreenCapture, setViewportCapture } from '../../render/offscreenCapture.js'
 import { createViewport } from '../../render/scene.js'
+import { useViewportOverlays } from '../../composables/useViewportOverlays.js'
 import { registerViewportWatchers } from '../../composables/useViewportWatchers.js'
 import { createContextHandlers } from '../../render/contextHandlers.js'
 import { createContextRecovery } from '../../render/contextRecovery.js'
@@ -207,78 +198,27 @@ const canvasKey = ref(0)
 const isDragging = ref(false)
 const ghostVisible = ref(false)
 
-/** Reactive mirror of the camera, refreshed once per rendered frame. */
-const overlay = reactive({
-  azimuthDeg: 0,
-  elevationDeg: 0,
-  distanceMm: 0,
-  /** `x,y,z` in mm — the point the camera orbits and pans around. */
-  target: '0,0,0',
-  mmPerPixel: 0,
-  minorMm: 10,
-  majorMm: 50,
-})
-
 /**
- * The selection overlays' screen geometry (`TODO/ui-011`).
- *
- * Reactive, unlike the render state below it, because two Vue components draw
- * from it — and small enough that this is not the case CLAUDE.md's Performance
- * section forbids. That rule is about deep reactivity walking a multi-megabyte
- * `Float32Array`; this is a fixed ~60 numbers, **allocated once here and mutated
- * in place** by `src/render/annotate.js` from inside the render callback, so a
- * frame writes numbers into an existing structure rather than rebuilding one.
+ * The reactive overlay structures the template and the controllers share (`TODO/ui-144`):
+ * `src/composables/useViewportOverlays.js`. Allocated once, mutated in place.
  */
-const gizmoAnnotation = reactive(createGizmoAnnotation())
-/**
- * The rotate dial (`TODO/ui-064`), drawn while a rotate ring is dragged.
- * Reactive and allocated once, mutated in place by `annotate.js`, for the same
- * reasons as `gizmoAnnotation` just above.
- */
-const dialAnnotation = reactive(createDialAnnotation())
-/**
- * The translate ruler (`TODO/ui-065`), drawn while a translate arm is dragged.
- * Reactive and allocated once, mutated in place, like `dialAnnotation`.
- */
-const rulerAnnotation = reactive(createRulerAnnotation())
-const dimensionAnnotations = reactive([
-  createDimensionAnnotation(),
-  createDimensionAnnotation(),
-  createDimensionAnnotation(),
-])
-
-/**
- * The Split sheet's cut plane (`TODO/io-007`), re-projected every frame like the gizmo so it
- * stays on the body while the camera moves. Reactive for the same reason, and allocated once.
- */
-const cutPlaneAnnotation = reactive(createCutPlaneAnnotation())
+const {
+  overlay,
+  gizmoAnnotation,
+  dialAnnotation,
+  rulerAnnotation,
+  dimensionAnnotations,
+  cutPlaneAnnotation,
+  marqueeRect,
+  snapGuides,
+  sketchPaths,
+  sketchDraftPath,
+  sketchAxis,
+  sketchChain,
+  sketchHandles,
+  sketchSnap,
+} = useViewportOverlays()
 const splitSheet = useSplitSheetStore()
-
-/**
- * The marquee-select rectangle's screen geometry (`TODO/ui-024`).
- *
- * Reactive for the same reason `gizmoAnnotation` above is: `MarqueeSelect.vue`
- * draws straight from it. Unlike the camera-driven overlays, this is written
- * directly from the pointer path (`pointer.move`) rather than only from the
- * render callback — the same precedent `src/stores/transformPreview.js`'s own
- * per-`pointermove` writes already set for this component, and still a
- * handful of numbers, not the multi-megabyte structure CLAUDE.md's
- * Performance rule is actually about.
- */
-const marqueeRect = reactive(createMarqueeRect())
-
-/**
- * The dashed placement guides' screen geometry (`TODO/ui-013`).
- *
- * Reactive for the same reason `marqueeRect` above is, and written from the same
- * place: the pointer path, once per `pointermove` of a placement drag rather
- * than once per rendered frame. That is the right cadence here — a placement
- * drag is the one gesture during which the camera does not move, so a guide only
- * ever needs re-projecting when the pointer does. Two objects of six fields,
- * mutated in place by `src/render/annotate.js`; nothing like the multi-megabyte
- * `Float32Array` CLAUDE.md's Performance rule is actually about.
- */
-const snapGuides = reactive(createSnapGuideAnnotations())
 
 /**
  * Whether the ghost is currently being held in line by a snap — the drag's own
@@ -293,46 +233,6 @@ const snapped = ref(false)
  * top-left slot, and a click picks outlines instead of bodies.
  */
 const sketchMode = computed(() => sketchEditor.active)
-
-/**
- * The draft's outlines as screen paths, the live drag preview, and the revolve axis.
- *
- * Rebuilt only while the editor is open and only when the draft, the camera or the
- * viewport size actually changed (`syncSketchPaths`), never per frame on the ordinary
- * scene — see `annotate.js`'s `updateSketchPath` for the one string it allocates.
- */
-const sketchPaths = reactive(/** @type {any[]} */ ([]))
-const sketchDraftPath = reactive(createSketchPath())
-const sketchAxis = reactive({ visible: false, d: '' })
-/**
- * The live Line chain's on-screen furniture (`TODO/sketch-006`), in viewport pixels: a dot at
- * the last vertex, the first vertex (which pulses when the pointer is within the close
- * tolerance), and the live segment's length in mm. Written by `drawChainLive`, never per frame.
- */
-const sketchChain = reactive({
-  visible: false,
-  lastXPx: 0,
-  lastYPx: 0,
-  firstXPx: 0,
-  firstYPx: 0,
-  showFirst: false,
-  closeNear: false,
-  labelXPx: 0,
-  labelYPx: 0,
-  label: '',
-})
-/**
- * The selected outline's point and midpoint handles, in viewport pixels (`TODO/sketch-002`),
- * for `VertexHandles.vue` to draw. Laid out by `src/render/sketchHandles.js` (`TODO/ui-108`) only
- * when `syncSketchPaths` redraws, never per frame.
- */
-const sketchHandles = reactive({ vertices: /** @type {any[]} */ ([]), midpoints: /** @type {any[]} */ ([]) })
-/**
- * The snap marker (`TODO/sketch-007`), in viewport pixels: where the snapped point is
- * (`x/yPx`), where its marker and label are drawn (`markerX/YPx` — the same point, or lifted
- * above a finger), which tier hit (`kind`) and the word for it. `SketchStrokes.vue` draws it.
- */
-const sketchSnap = reactive({ visible: false, xPx: 0, yPx: 0, markerXPx: 0, markerYPx: 0, lifted: false, kind: '', label: '' })
 
 // --- non-reactive render state -------------------------------------------
 
