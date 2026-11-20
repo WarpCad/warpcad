@@ -222,6 +222,50 @@ export async function setCaption(page, text = null, { at = 'bottom' } = {}) {
 }
 
 /**
+ * A PNG data URL of part of the 3D view, for `showSideBySide`. Take it in an unrecorded pass: a screenshot
+ * during a screencast shrinks the recorded frames (`TODO/docs-038`).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ fx: number, fy: number, fw: number, fh: number }} [area] the clip as fractions of the canvas; the default is the middle, where the solids sit at the default camera
+ * @returns {Promise<string>}
+ */
+export async function scenePicture(page, area = { fx: 0.26, fy: 0.12, fw: 0.46, fh: 0.7 }) {
+  const b = await page.getByTestId('viewport-canvas').boundingBox()
+  const png = await page.screenshot({
+    clip: { x: b.x + b.width * area.fx, y: b.y + b.height * area.fy, width: b.width * area.fw, height: b.height * area.fh },
+  })
+  return `data:image/png;base64,${png.toString('base64')}`
+}
+
+/**
+ * Pictures taken at one camera angle, side by side on a card, each named (`TODO/docs-038`, `TODO/docs-039`). Two
+ * fill the card at 520 px each, three at 340 px. The card ignores the pointer and stays up to the end of the movie.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {...{ src: string, text: string }} figures
+ */
+export async function showSideBySide(page, ...figures) {
+  await page.evaluate((list) => {
+    const card = document.createElement('div')
+    card.id = 'docs-compare'
+    card.style.cssText =
+      'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:18px;padding:16px;border-radius:12px;' +
+      'background:rgba(20,20,24,.96);box-shadow:0 0 0 2px #ffc800;pointer-events:none;z-index:2147483646;'
+    const width = list.length > 2 ? 340 : 520
+    for (const side of list) {
+      const fig = document.createElement('div')
+      fig.style.cssText = `width:${width}px;color:#fff;font:600 ${list.length > 2 ? 22 : 24}px/1.25 system-ui,sans-serif;text-align:center;`
+      const img = document.createElement('img')
+      img.src = side.src
+      img.style.cssText = `width:${width}px;border-radius:8px;display:block;margin-bottom:10px;background:#fff;`
+      fig.append(img, document.createTextNode(side.text))
+      card.appendChild(fig)
+    }
+    document.body.appendChild(card)
+  }, figures)
+}
+
+/**
  * A human-paced drag with the real mouse: interpolated, ease-in-out, so a ghost preview
  * visibly follows the pointer.
  *

@@ -3621,3 +3621,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** wrong-control rate (400 taps per button, seed 149, sigma 3.5 mm, chromium-phone) Orbit 2 %, Pan 7.25 %, Select 4.5 %, gear 1.5 % before; Orbit 0.5 %, Pan 1.25 %, Select 1.5 %, gear 1 % after → `e2e/nav-chrome-tap.e2e.js`; painted heights → `e2e/viewport-scaffold.e2e.js`; toolbar clear of the chrome → `e2e/phone-toolbar-chrome-fit.e2e.js` and `e2e/panel-tiers.e2e.js`, all nine projects; screenshot → `docs/screenshots/nav-chrome-open-phone.png`
 **To Add:** `docs/screenshots/nav-chrome-open-phone.png`
 ---
+
+## 2026-11-20T14:00:00Z — WarpCad's docs movies, second pass after a cold read
+
+**Post:** A fresh reader got one WarpCad docs GIF right on the second try: the tour is now clear frame by frame. Its fix was small: hover on Subtract with a caption for 1.5 s before pressing. The other three still read as partial, so they are filed for another round. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** tour CLEAR, resize-fit, timeline-relink and boolean-subpart-operand PARTIAL → one fresh Sonnet agent reading frames every 1 s, this session (`TODO/done/docs-039-cold-read-gif-remainders-after-docs-038.md`); 1.5 s hover → `e2e/docs/getting-started.docs.js` diff; first pass shipped 2026-11-19 → `git log` 8e07edfd
+**To Add:** `docs/media/tour.gif`
+---

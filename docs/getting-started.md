@@ -1,6 +1,6 @@
 # Getting started in five minutes
 
-![The whole tour in one take: drag a Cube and a Cylinder in, set the Cylinder to 20 mm across, select both, press Subtract (named in a caption), then look down onto the part to see the round hole through it, nudge it with the gizmo and export an STL](./media/tour.gif)
+![The whole tour in one take: drag a Cube and a Cylinder in, set the Cylinder to 20 mm across, select both, hover on Subtract with a caption, press it, look down onto the part to see the round hole through it, then nudge it with the gizmo and export an STL (each step captioned)](./media/tour.gif)
 
 This page walks you from an empty scene to a finished part on disk: a 40 mm cube with a 20 mm
 hole through it, moved to where you want it, saved out as an `.stl` file you can send to a

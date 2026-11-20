@@ -43,7 +43,7 @@ Keep aspect ratio applies the smallest ratio of the three to every axis.
 
 The movie prints the part's size on screen after each Fit, so you can watch Y and Z follow: X 60 Y 40 Z 40, then X 30 Y 20 Z 20.
 
-![Fit twice: first X alone to 60 mm (X 60, Y 40, Z 40), then X to 30 mm with Keep aspect ratio ticked (X 30, Y 20, Z 20)](./media/resize-fit.gif)
+![Fit twice: first X alone to 60 mm (X 60, Y 40, Z 40), then X to 30 mm with Keep aspect ratio ticked (X 30, Y 20, Z 20); the movie ends on the start, the stretched block and the kept block side by side at one camera angle](./media/resize-fit.gif)
 
 ## A worked example: Bisect
 

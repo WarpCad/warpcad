@@ -128,44 +128,44 @@
   "boolean-bolt-hole.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 656055,
-    "seconds": 8.8
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 608053,
+    "seconds": 8.5
   },
   "boolean-intersect.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 579789,
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 601894,
     "seconds": 8.7
   },
   "boolean-subpart-operand.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 1062889,
-    "seconds": 16.1
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 1651774,
+    "seconds": 18.4
   },
   "boolean-subtract.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 684850,
-    "seconds": 9.7
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 707382,
+    "seconds": 9.9
   },
   "boolean-union.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 703563,
-    "seconds": 10
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 701810,
+    "seconds": 9.6
   },
   "boolean-subtract-order.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 1331758,
-    "seconds": 22.01
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 1260761,
+    "seconds": 22.13
   },
   "group-combine.gif": {
     "spec": "e2e/docs/groups.docs.js",
@@ -212,23 +212,23 @@
   "resize-snapped-dependents.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 530228,
-    "seconds": 7
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 349086,
+    "seconds": 6.6
   },
   "resize-enlarge.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 716946,
-    "seconds": 9.9
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 728582,
+    "seconds": 10
   },
   "resize-fit.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 1173250,
-    "seconds": 17
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 1415706,
+    "seconds": 20.4
   },
   "fillet-operation.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -247,16 +247,16 @@
   "bisect-axis.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 686711,
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 658836,
     "seconds": 9.1
   },
   "bisect-angled.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 762568,
-    "seconds": 10.3
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 827762,
+    "seconds": 10.4
   },
   "bom-updates.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -380,9 +380,9 @@
   "tour.gif": {
     "spec": "e2e/docs/getting-started.docs.js",
     "theme": "light",
-    "specHash": "43daeff957bb2edcfd19a9a79f5f8d5820f280e3123554d58cf89da39ca46fbf",
-    "bytes": 2066257,
-    "seconds": 23.63,
+    "specHash": "3b1b824cf5f504903bbcaa8dbd886e45fbdc0b6f8a4104029243c0727b43d7c2",
+    "bytes": 1994984,
+    "seconds": 25.88,
     "maxSeconds": 30
   },
   "sketch-snap.gif": {
@@ -514,9 +514,9 @@
   "timeline-relink.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "light",
-    "specHash": "e1756e48c8d67ed20331f4ae81a84c2e3ec0c9f60aeabc78a1f40ee92c9d107b",
-    "bytes": 1855665,
-    "seconds": 20.5
+    "specHash": "19147d61948edad17f56c788050f065a95e90eac071b86a058dd70e6454079fd",
+    "bytes": 1908107,
+    "seconds": 22.17
   },
   "window-shrink.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",
@@ -570,16 +570,16 @@
   "bisect-angled.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 895004,
-    "seconds": 10.4
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 866549,
+    "seconds": 9.5
   },
   "bisect-axis.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 827718,
-    "seconds": 9.5
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 836300,
+    "seconds": 9.4
   },
   "bom-updates.dark.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -591,44 +591,44 @@
   "boolean-bolt-hole.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 670866,
-    "seconds": 8.1
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 671729,
+    "seconds": 7.1
   },
   "boolean-intersect.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 655465,
-    "seconds": 8.4
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 754687,
+    "seconds": 8.3
   },
   "boolean-subpart-operand.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 1234854,
-    "seconds": 15.3
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 1625814,
+    "seconds": 17.8
   },
   "boolean-subtract-order.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 1509624,
-    "seconds": 21.76
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 1445257,
+    "seconds": 21.38
   },
   "boolean-subtract.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 702865,
-    "seconds": 9.3
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 768518,
+    "seconds": 9.5
   },
   "boolean-union.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
-    "bytes": 735157,
-    "seconds": 9.1
+    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
+    "bytes": 801118,
+    "seconds": 9.7
   },
   "chamfer-operation.dark.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -878,23 +878,23 @@
   "resize-enlarge.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 851473,
-    "seconds": 10
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 826825,
+    "seconds": 9.9
   },
   "resize-fit.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 1296974,
-    "seconds": 17.2
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 1490392,
+    "seconds": 18.2
   },
   "resize-snapped-dependents.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
-    "bytes": 718936,
-    "seconds": 8.2
+    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
+    "bytes": 602363,
+    "seconds": 7.9
   },
   "rpi-mounting-holes.dark.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
@@ -1025,9 +1025,9 @@
   "tour.dark.gif": {
     "spec": "e2e/docs/getting-started.docs.js",
     "theme": "dark",
-    "specHash": "43daeff957bb2edcfd19a9a79f5f8d5820f280e3123554d58cf89da39ca46fbf",
-    "bytes": 2048165,
-    "seconds": 23.26,
+    "specHash": "3b1b824cf5f504903bbcaa8dbd886e45fbdc0b6f8a4104029243c0727b43d7c2",
+    "bytes": 2046142,
+    "seconds": 25.63,
     "maxSeconds": 30
   },
   "undo-param-edit.dark.gif": {
@@ -1075,9 +1075,9 @@
   "timeline-relink.dark.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "dark",
-    "specHash": "e1756e48c8d67ed20331f4ae81a84c2e3ec0c9f60aeabc78a1f40ee92c9d107b",
-    "bytes": 2098754,
-    "seconds": 20.67
+    "specHash": "19147d61948edad17f56c788050f065a95e90eac071b86a058dd70e6454079fd",
+    "bytes": 2172002,
+    "seconds": 22.67
   },
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",

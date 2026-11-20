@@ -5276,3 +5276,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** wrong-control rate (400 taps per button, seed 149, sigma 3.5 mm, chromium-phone) Orbit 2 %, Pan 7.25 %, Select 4.5 %, gear 1.5 % before; Orbit 0.5 %, Pan 1.25 %, Select 1.5 %, gear 1 % after → `e2e/nav-chrome-tap.e2e.js`; painted heights → `e2e/viewport-scaffold.e2e.js`; toolbar clear of the chrome → `e2e/phone-toolbar-chrome-fit.e2e.js` and `e2e/panel-tiers.e2e.js`, all nine projects; screenshot → `docs/screenshots/nav-chrome-open-phone.png`
 **To Add:** `docs/screenshots/nav-chrome-open-phone.png`
 ---
+
+## 2026-11-20T14:00:00Z — A second cold read of WarpCad's docs movies
+
+**Post:** The first re-record of WarpCad's docs GIFs (8e07edfd, 2026-11-19) left four movies short of clear when a fresh agent read them one frame per second. This pass changed what the frames could show: the tour now hovers on Subtract with a caption for 1.5 s before the press and captions the nudge and the export, the resize movie ends on three pictures taken at one camera angle (start, stretched, kept), the relink movie scrolls History to the broken row so its badge and reason read, and the bolt movie captions the drill-in and orbits to the groove.
+
+The second cold read rated the tour clear and the other three partial: a caption still lags the screen in two of them, and the Re-link and Subtract presses fall between samples. Those are filed as the next task. Every movie of the four edited specs was re-recorded with its dark twin, and the unit suite and a two-project end-to-end pair passed.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** first pass date → `git log` 8e07edfd; verdicts → one fresh Sonnet agent, frames every 1 s, this session; unit 9971 passed and e2e pair chromium-phone + webkit-tablet 1326 passed, 0 failed → `/test` run this session; remainders → `TODO/FIND-docs-040-cold-read-gif-remainders-after-docs-039.md`
+**To Add:** `docs/media/tour.gif`, `docs/media/resize-fit.gif`
+---

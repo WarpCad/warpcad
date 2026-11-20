@@ -39,6 +39,17 @@ test.describe('docs media: timeline re-link', () => {
     )
   }
 
+  /**
+   * `TODO/docs-039`: the History list is short and scrolls inside its panel, so the broken row would sit on the panel's
+   * bottom edge. Scroll it to the end (smoothly, so it reads as a move) so the broken row and its reason are in frame.
+   *
+   * @param {import('@playwright/test').Page} page
+   */
+  async function scrollHistoryToEnd(page) {
+    await page.getByTestId('timeline-rows').evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }))
+    await page.waitForTimeout(500)
+  }
+
   /** The bottom of this movie shows the History panel, so its captions sit at the top of the 3D view. */
   const caption = (page, text) => setCaption(page, text, { at: 'top' })
 
@@ -83,14 +94,16 @@ test.describe('docs media: timeline re-link', () => {
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
     await expect(page.getByTestId('timeline-relink')).toBeVisible()
     await caption(page, 'The chamfer (step 3) is now amber and broken, with Re-link on its row')
-    await page.waitForTimeout(1800)
+    await scrollHistoryToEnd(page)
+    await page.waitForTimeout(1100)
 
     // Select the broken row: the reason is printed under it.
     await press(page, 'timeline-row-3')
     await caption(page, 'Select step 3: the reason is printed under the row')
     await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
     await expect(page.getByTestId('timeline-relink')).toBeEnabled()
-    await page.waitForTimeout(1800)
+    await scrollHistoryToEnd(page)
+    await page.waitForTimeout(1200)
     await caption(page, 'Press Re-link')
     await press(page, 'timeline-relink')
     await expect(page.getByTestId('timeline-relink')).toHaveCount(0)

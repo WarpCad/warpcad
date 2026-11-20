@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-19 from the docs-038 cold read
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-20).** Edited all four specs and re-recorded every movie of them with dark twins (tour 2, timeline-relink 2, booleans 12, resize-bisect 10 GIFs) through a scoped moviesDir; `docs:gifs` and `docs:media` were not run. resize-fit ends on a three-up card (start, stretched, kept) taken at one camera in an unrecorded pass, with `scenePicture` and `showSideBySide` moved into `e2e/docs/support.js`. The tour hovers on Subtract with its caption before pressing and captions Nudge and Export. timeline-relink scrolls the History list so the broken row, badge and reason are in frame. boolean-subpart-operand captions the two drill-in clicks and orbits round to the groove. Cold read (one fresh agent): tour CLEAR; resize-fit, timeline-relink and boolean-subpart-operand PARTIAL. Remainders are filed as `docs-040`.
 
 ## Problem
 

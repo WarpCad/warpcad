@@ -171,7 +171,7 @@ The same idea with a bolt: click the bolt twice to reach its shaft (the `thread`
 the bolt out of the selection, add the cube, then add the bolt back. The toolbar names
 `Bolt 1 › thread`, and Subtract cuts a groove the size of the shaft only:
 
-![Drilling into a bolt's shaft, making it the second operand and subtracting it from a cube: a caption says the cube is the base and only the shaft is cut out, and the result is a groove the shape of the shaft](./media/boolean-subpart-operand.gif)
+![Drilling into a bolt's shaft, making it the second operand and subtracting it from a cube: captions name the two clicks that reach the shaft and say the cube is the base and only the shaft is cut out, and the view then orbits round to show the groove the shaft left](./media/boolean-subpart-operand.gif)
 
 ### A worked example: an Ethernet port opening
 

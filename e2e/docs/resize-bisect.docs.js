@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { openApp, loadScene, startMovie, endMovie, shot, settle, setCaption } from './support.js'
+import { openApp, loadScene, startMovie, endMovie, shot, settle, setCaption, scenePicture, showSideBySide } from './support.js'
 
 /**
  * Docs media for `docs/resize-bisect.md` (`TODO/docs-013`): Enlarge, Fit (with and without
@@ -157,6 +157,40 @@ test.describe('docs media: resize and bisect', () => {
   })
 
   test('resize-fit', { tag: '@movie' }, async ({ page }) => {
+    // `TODO/docs-039`: a screenshot taken while the screencast runs shrinks the recorded frames, so the three pictures
+    // for the closing card (start, stretched, kept) are taken first, in a context that is not recorded. They share one
+    // camera, which is what lets a reader compare the three sizes.
+    const { baseURL, colorScheme, deviceScaleFactor } = test.info().project.use
+    const prepContext = await page.context().browser().newContext({ baseURL, colorScheme, deviceScaleFactor, viewport: page.viewportSize() })
+    const prep = await prepContext.newPage()
+    await openOne(prep)
+    const prepBefore = (await bodies(prep))['cube-1']
+    const xyz = (size) => `X ${Math.round(size[0])}  Y ${Math.round(size[1])}  Z ${Math.round(size[2])}`
+    const area = { fx: 0.2, fy: 0.08, fw: 0.56, fh: 0.8 }
+    const deselect = async () => {
+      await clickAt(prep, { x: 1050, y: 800 })
+      await expect(viewport(prep)).toHaveAttribute('data-selected-count', '0')
+    }
+    await selectOne(prep, CUBE_FRONT, 'cube-1')
+    await deselect()
+    const pictureStart = await scenePicture(prep, area)
+    await selectOne(prep, CUBE_FRONT, 'cube-1')
+    await openPopover(prep, 'operation-fit', 'modify.fit')
+    await typeInto(prep, 'resize-fit-x', '60')
+    await press(prep, 'resize-commit')
+    const prepStretched = await afterChange(prep, 'cube-1', prepBefore)
+    await deselect()
+    const pictureStretched = await scenePicture(prep, area)
+    await selectOne(prep, CUBE_FRONT, 'cube-1')
+    await openPopover(prep, 'operation-fit', 'modify.fit')
+    await typeInto(prep, 'resize-fit-x', '30')
+    await prep.getByTestId('resize-fit-keep-aspect').check()
+    await press(prep, 'resize-commit')
+    const prepKept = await afterChange(prep, 'cube-1', prepStretched)
+    await deselect()
+    const pictureKept = await scenePicture(prep, area)
+    await prepContext.close()
+
     await openOne(page)
     const before = (await bodies(page))['cube-1']
     /** The caption reads the kernel's own measurement, so X, Y and Z on screen are the real sizes (`TODO/docs-038`). */
@@ -193,7 +227,18 @@ test.describe('docs media: resize and bisect', () => {
     expect(kept.size[1]).toBeCloseTo(20, 1)
     expect(kept.size[2]).toBeCloseTo(20, 1)
     await sizeCaption('Fit X to 30, Keep aspect on: Y and Z follow', kept.size)
-    await page.waitForTimeout(2600)
+    await page.waitForTimeout(1800)
+    // Deselect, then the three results at one camera angle, so Y and Z can be read against each other.
+    await clickAt(page, { x: 1050, y: 800 })
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
+    await setCaption(page)
+    await showSideBySide(
+      page,
+      { src: pictureStart, text: `Start: ${xyz(prepBefore.size)}` },
+      { src: pictureStretched, text: `Fit X to 60, aspect off: ${xyz(prepStretched.size)}` },
+      { src: pictureKept, text: `Fit X to 30, aspect on: ${xyz(prepKept.size)}` },
+    )
+    await page.waitForTimeout(3600)
     await endMovie(page, 'resize-fit', { fps: 10, width: 640 })
   })
 

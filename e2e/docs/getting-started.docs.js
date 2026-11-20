@@ -158,10 +158,16 @@ test.describe('docs media: getting started tour', () => {
 
     // Step 3: Subtract. One body remains, with a hole through it.
     if (dwell) {
+      // `TODO/docs-039`: hover on the button with its caption up long enough to land on a sampled frame, then press.
+      await glideTo(page, await centreOf(page.getByTestId('operation-subtract')), dwell)
       await setCaption(page, 'Press Subtract: the cylinder is cut out of the cube')
-      await page.waitForTimeout(1200)
+      await page.waitForTimeout(1500)
     }
     await press(page, 'operation-subtract', dwell)
+    if (dwell) {
+      await setCaption(page, 'Subtract pressed')
+      await page.waitForTimeout(400)
+    }
     await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
     const [result] = await bodies(page)
     expect(result.op).toBe('boolean.subtract')
@@ -174,10 +180,10 @@ test.describe('docs media: getting started tour', () => {
       for (const [testId, times] of [['nav-step-up', 2], ['nav-zoom-in', 2]]) {
         for (let i = 0; i < times; i++) {
           await page.getByTestId(testId).click()
-          await page.waitForTimeout(300)
+          await page.waitForTimeout(250)
         }
       }
-      await page.waitForTimeout(2200)
+      await page.waitForTimeout(1600)
       await setCaption(page)
     }
     if (upTo === 3) return {}
@@ -192,6 +198,10 @@ test.describe('docs media: getting started tour', () => {
     const len = Math.hypot(from.x - centre.x, from.y - centre.y) || 1
     const to = { x: from.x + ((from.x - centre.x) / len) * 90, y: from.y + ((from.y - centre.y) / len) * 90 }
     await glideTo(page, from, dwell)
+    if (dwell) {
+      await setCaption(page, 'Drag the red X arrow to nudge the part along X')
+      await page.waitForTimeout(800)
+    }
     await page.mouse.down()
     const steps = dwell ? 30 : 8
     for (let i = 1; i <= steps; i++) {
@@ -205,9 +215,15 @@ test.describe('docs media: getting started tour', () => {
     const endX = Number((await x.inputValue()).trim())
     expect(Math.abs(endX - startX)).toBeGreaterThan(5)
     await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
+    if (dwell) {
+      await setCaption(page, `Moved: Position X is now ${endX} mm`)
+      await page.waitForTimeout(700)
+      await setCaption(page)
+    }
     if (upTo === 4) return {}
 
     // Step 5: File > Export, STL, Export. A real download carries the body's name.
+    if (dwell) await setCaption(page, 'File, Export: save the part as an STL')
     await press(page, 'file-menu-button', dwell)
     await expect(page.getByTestId('file-menu')).toBeVisible()
     if (dwell) await page.waitForTimeout(300)
@@ -225,6 +241,10 @@ test.describe('docs media: getting started tour', () => {
       await expect(page.getByTestId('export-popover')).toHaveCount(0)
       await expect(page.getByTestId('save-status')).toContainText('Exported subtract-1.stl')
       hooks.onDownload(download)
+      if (dwell) {
+        await setCaption(page, 'subtract-1.stl is saved to Downloads')
+        await page.waitForTimeout(1000)
+      }
     }
     return {}
   }
@@ -269,8 +289,8 @@ test.describe('docs media: getting started tour', () => {
     await startMovie(page, 'tour')
     let download = null
     await tour(page, 5, 500, { onDownload: (d) => (download = d) })
-    await page.waitForTimeout(800)
-    await endMovie(page, 'tour', { fps: 8, width: 520, maxSeconds: 30 })
+    await page.waitForTimeout(300)
+    await endMovie(page, 'tour', { fps: 8, width: 520, maxSeconds: 30, trim: 0.5 })
     expect(download).not.toBeNull()
     await settle(page)
   })

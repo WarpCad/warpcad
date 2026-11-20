@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { openApp, loadScene, startMovie, endMovie, shot, settle, setCaption } from './support.js'
+import { openApp, loadScene, startMovie, endMovie, shot, settle, setCaption, scenePicture, showSideBySide } from './support.js'
 
 /**
  * Docs media for `docs/booleans.md` (`TODO/docs-011`): the Operations toolbar's
@@ -25,6 +25,7 @@ test.describe('docs media: booleans', () => {
   const PLATE_AT = { fx: 0.386, fy: 0.55 } // plate-and-cylinder: the plate's top
   const PLATE_CYL = { fx: 0.602, fy: 0.524 }
   const BOLT_CUBE = { fx: 0.355, fy: 0.533 } // cube-and-bolt: the cube's left face
+  const ORBIT_STEPS = 4 // boolean-subpart-operand: orbit steps that bring the groove into view
   const BOLT_SHAFT = { fx: 0.63, fy: 0.5 } // the bolt's shaft, beside the cube
 
   /** @param {import('@playwright/test').Page} page */
@@ -102,39 +103,6 @@ test.describe('docs media: booleans', () => {
     expect(list[0].volume).toBeGreaterThan(0)
     await settle(page)
     return list[0]
-  }
-
-  /** A PNG data URL of the scene's middle (where the solids sit at the default camera), for the side-by-side card. */
-  const scenePicture = async (page) => {
-    const b = await page.getByTestId('viewport-canvas').boundingBox()
-    const png = await page.screenshot({
-      clip: { x: b.x + b.width * 0.26, y: b.y + b.height * 0.12, width: b.width * 0.46, height: b.height * 0.7 },
-    })
-    return `data:image/png;base64,${png.toString('base64')}`
-  }
-
-  /** Two results at the same camera angle, side by side, each named (`TODO/docs-038`). */
-  const showSideBySide = async (page, left, right) => {
-    await page.evaluate(
-      ({ left, right }) => {
-        const card = document.createElement('div')
-        card.id = 'docs-compare'
-        card.style.cssText =
-          'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:18px;padding:16px;border-radius:12px;' +
-          'background:rgba(20,20,24,.96);box-shadow:0 0 0 2px #ffc800;pointer-events:none;z-index:2147483646;'
-        for (const side of [left, right]) {
-          const fig = document.createElement('div')
-          fig.style.cssText = 'width:520px;color:#fff;font:600 24px/1.25 system-ui,sans-serif;text-align:center;'
-          const img = document.createElement('img')
-          img.src = side.src
-          img.style.cssText = 'width:520px;border-radius:8px;display:block;margin-bottom:10px;background:#fff;'
-          fig.append(img, document.createTextNode(side.text))
-          card.appendChild(fig)
-        }
-        document.body.appendChild(card)
-      },
-      { left, right },
-    )
   }
 
   /** Open History and assert the last row names both operands (core-036). */
@@ -294,10 +262,15 @@ test.describe('docs media: booleans', () => {
     await openScene(page, 'cube-and-bolt.ndjson')
     await startMovie(page, 'boolean-subpart-operand')
     // Click the bolt twice: the whole bolt, then its shaft (the `thread` part).
+    await setCaption(page, 'Click the bolt: the whole bolt is selected')
     await click(page, BOLT_SHAFT)
     await expect(viewport(page)).toHaveAttribute('data-selected-id', 'bolt-1')
+    await page.waitForTimeout(1200)
+    await setCaption(page, 'Click it again to reach its shaft (the thread part)')
     await click(page, BOLT_SHAFT)
     await expect(page.getByTestId('inspector-breadcrumb-part')).toHaveText('thread')
+    await page.waitForTimeout(1400)
+    await setCaption(page, 'Shift-click to swap: the cube first, then the shaft')
     // Subtract needs the cube first: toggle the bolt out, add the cube, add the bolt back.
     await click(page, BOLT_SHAFT, { shift: true })
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
@@ -314,10 +287,16 @@ test.describe('docs media: booleans', () => {
     await setCaption(page, "Result: a groove the shape of the shaft; the head was not used")
     await click(page, { fx: 0.9, fy: 0.6 })
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
+    // `TODO/docs-039`: the groove is on the cube's far side at the default angle, so orbit round to it.
+    for (let i = 0; i < ORBIT_STEPS; i++) {
+      await page.getByTestId('nav-step-right').click()
+      await page.waitForTimeout(300)
+    }
+    await page.waitForTimeout(1000)
     // Only the shaft was cut out: a groove, far less than the whole bolt's head-and-shaft envelope.
     expect(result.volume).toBeLessThan(64000)
     expect(result.volume).toBeGreaterThan(64000 - 3000)
-    await page.waitForTimeout(2500)
+    await page.waitForTimeout(1200)
     await endMovie(page, 'boolean-subpart-operand', { fps: 10, width: 640 })
   })
 
