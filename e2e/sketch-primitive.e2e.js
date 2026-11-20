@@ -535,7 +535,10 @@ test('the Sketch toolbar never meets the orientation gizmo, at any width (ui-020
   const bar = await page.getByTestId('sketch-toolbar').boundingBox()
   const gizmo = await page.getByTestId('orientation-gizmo').boundingBox()
   if (!bar || !gizmo) throw new Error('missing toolbar or gizmo')
-  expect(bar.x + bar.width <= gizmo.x || gizmo.x + gizmo.width <= bar.x || bar.y + bar.height <= gizmo.y).toBe(true)
+  expect(
+    bar.x + bar.width <= gizmo.x || gizmo.x + gizmo.width <= bar.x || bar.y + bar.height <= gizmo.y,
+    `the Sketch toolbar meets the orientation gizmo: toolbar ${JSON.stringify(bar)}, gizmo ${JSON.stringify(gizmo)}`,
+  ).toBe(true)
   // Done and Cancel are always on screen, with a panel open too (ui-046).
   await page.getByTestId('sketch-extrude-toggle').click()
   await expect(page.getByTestId('sketch-done')).toBeInViewport()

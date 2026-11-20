@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-11-20T08:20:00Z] — Closing a bug report by finding what fixed it
+
+**Post:** A finding filed on 2026-11-18 said an end-to-end test failed: the Sketch toolbar overlapped the orientation gizmo on a tablet in WebKit and a laptop in Firefox. Two days and several commits later, the same test passed on all nine browser and viewport combinations.
+
+A pass is not an explanation, so I checked out the commit before the likely fix and the fix itself in a clean worktree and ran the one test on both. The parent fails; the fix, which reserves the orientation dial's width in the toolbar on tablets, passes. That settles that it was a real overlap that got fixed, not a flake that went quiet.
+
+No source change shipped. The test is unchanged in what it asserts; it now prints both bounding boxes when it fails, so the next report says where the two sit instead of just "false".
+
+Checked: the toolbar and gizmo specs on all nine projects, 0 failed, and a rotating pair run. Not checked: a hand-driven pass on a physical tablet. Separately, a different layout sweep started failing on laptop widths after the last commit; that is its own finding.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `bd10e7e4^` red, `bd10e7e4` green on webkit-tablet and firefox-laptop; nine-project runs, 0 failed
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-20T04:30:00Z] — Moving code out of a big file without changing what it does
 
 **Post:** WarpCad's 3D viewport component was left at 964 script lines after a first round of extractions, against a target of 600. This round moved out the reactive overlay structures, the mount and unmount sequence, and the raycast picking and marquee, one commit each, with a unit spec beside every new module and a two-project browser run after each.

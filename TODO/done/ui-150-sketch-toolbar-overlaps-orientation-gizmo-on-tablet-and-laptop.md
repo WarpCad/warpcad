@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-18 from the io-032 e2e run
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20):** no source change. By the time the finding was picked up the spec passed on all nine projects at `b17fb67b`. A clean-worktree boundary test found the fixing commit: `bd10e7e4` ("reserve the orientation dial's width in the sketch toolbar on tablets", 2026-11-19) fails the spec on its parent and passes on it (webkit-tablet, firefox-laptop, chromium-tablet), so the breakage was the tablet dial growing to 190 px in `ui-134` while the sketch toolbar reserved too little. The spec was not loosened; it now prints both bounding boxes in its failure message. Separate, found while verifying: `nav-chrome-scale-readout.e2e.js` (ui-124 sweep) fails on the three laptop projects since `b17fb67b` (ui-149).
 
 ## Problem
 

@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-11-20T08:20:00Z] — A bug report that had already fixed itself
+
+**Post:** A WarpCad e2e test said the Sketch toolbar overlapped the orientation gizmo on two browser/viewport combos. By the time I picked it up it passed on all nine. Instead of calling it flaky, I replayed the commit before and after a tablet layout fix: fails on the parent, passes on the fix. Closed with a better failure message and no new code. #CAD
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** spec green on 9 of 9 projects at HEAD; `bd10e7e4^` fails on webkit-tablet and firefox-laptop, `bd10e7e4` passes → clean-worktree runs this session
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-20T04:30:00Z] — A refactor that only half hit its target
 
 **Post:** Second pass at shrinking WarpCad's viewport component: three more pieces moved out (overlay state, mount/unmount, raycast picking), no behaviour change, nine browser/viewport combos green. The script went 964 to 819 lines. The target was 600, so I filed the rest as a new finding instead of calling it done. #CAD
