@@ -436,7 +436,7 @@ describe('the 1.5K output budget: measured, paged with limit/offset, never cut s
     let guard = 0
     while (offset < total && guard < 200) {
       guard += 1
-      const page = await fake.call('list_ops', offset === 0 ? {} : { offset })
+      const page = await fake.call('list_ops', offset === 0 ? { detail: 'full' } : { detail: 'full', offset })
       expect(page.ok).toBe(true)
       const size = JSON.stringify(page).length
       if (page.page.shown > 1) expect(size).toBeLessThanOrEqual(OUTPUT_BUDGET)

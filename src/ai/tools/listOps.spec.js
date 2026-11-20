@@ -11,6 +11,19 @@ const tools = createToolRegistry()
 const listOps = (input = {}) => tools.run(makeContext({ document: createDocument({ replica: 'abcdef' }), origin: 'mcp' }), 'list_ops', input)
 const size = (/** @type {unknown} */ value) => JSON.stringify(value).length
 
+describe('list_ops (TODO/ai-050)', () => {
+  it('lists primitive.* first among the create ops, and detail: names is names only', () => {
+    const full = listOps()
+    const firstOther = full.create.findIndex((/** @type {any} */ row) => !row.op.startsWith('primitive.'))
+    expect(firstOther).toBeGreaterThan(0)
+    expect(full.create.slice(firstOther).some((/** @type {any} */ row) => row.op.startsWith('primitive.'))).toBe(false)
+    const names = listOps({ detail: 'names' })
+    expect(names.create).toContain('primitive.sphere')
+    expect(names.create.every((/** @type {unknown} */ n) => typeof n === 'string')).toBe(true)
+    expect(names.operate.length).toBeGreaterThan(0)
+  })
+})
+
 describe('list_ops (TODO/ai-030)', () => {
   it('with no input (or detail: full) returns the whole catalogue, unchanged', () => {
     const full = listOps()

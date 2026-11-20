@@ -84,6 +84,11 @@ test('a browser agent lists the tools, places a cube and a sphere and unions the
   const names = await registeredNames(page)
   for (const name of ['create', 'operate', 'apply_records', 'describe_scene', 'get_selection', 'select', 'list_ops']) expect(names).toContain(name)
   expect(names).not.toContain('capture_view')
+  // ai-050: a bare list_ops names every op on page one, so an agent cannot conclude primitive.sphere is missing.
+  const bare = await agentCall(page, 'list_ops', {})
+  expect(bare.ok, JSON.stringify(bare)).toBe(true)
+  expect(bare.create).toContain('primitive.sphere')
+  expect(bare.page).toBeUndefined()
   // ai-030: the cheap path — a summary is every op with param names only, and one op can be asked for in full.
   const summary = await agentCall(page, 'list_ops', { detail: 'summary' })
   expect(summary.ok, JSON.stringify(summary)).toBe(true)

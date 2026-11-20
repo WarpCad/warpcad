@@ -202,6 +202,8 @@ export function schemaFor(definition) {
 export function splitPaging(name, input) {
   if (PAGED_TOOLS[name] === undefined || typeof input !== 'object' || input === null || Array.isArray(input)) return { input, paging: {} }
   const { limit, offset, ...rest } = /** @type {Record<string, unknown>} */ (input)
+  // A bare list_ops answers "which ops exist" on one page: names only. Parameters are one more call away.
+  if (name === 'list_ops' && Object.keys(input).length === 0) return { input: { detail: 'names' }, paging: {} }
   /** @type {Paging} */
   const paging = {}
   if (limit !== undefined) {
@@ -300,8 +302,10 @@ function pageList(name, value, paging) {
   /** @param {number} shown */
   const build = (shown) => {
     const page = { offset, shown, total }
-    const more = offset + shown < total ? { more: `${total - offset - shown} more. Call ${name} with offset: ${offset + shown} for the rest.` } : {}
-    return { ...windowOf(value, fields, offset, shown), page: { ...page, ...more } }
+    const more = offset + shown < total ? { more: `Showing ${shown} of ${total}. This list is NOT complete: ${total - offset - shown} more. Call ${name} with offset: ${offset + shown} for the rest.` } : {}
+    const incomplete = more.more === undefined ? {} : { incomplete: true }
+    // The paging note leads, so a skimming agent reads "NOT complete" before the list.
+    return { ok: value.ok, ...incomplete, page: { ...page, ...more }, ...windowOf(value, fields, offset, shown) }
   }
   if (!asked && sizeOf(value) <= OUTPUT_BUDGET) return value
   return build(largestFitting(room, build))

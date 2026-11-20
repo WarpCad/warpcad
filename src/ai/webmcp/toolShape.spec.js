@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 
+import { createDocument } from '../../core/document.js'
+import { makeContext } from '../tools/__fixtures__/context.js'
 import { createToolRegistry } from '../tools/index.js'
-import { OUTPUT_BUDGET, aliasNavigatorModelContext, annotationsFor, modelContextApiOf, modelContextOf, requestFor, toToolResult, toWebMcpTool } from './toolShape.js'
+import { OUTPUT_BUDGET, aliasNavigatorModelContext, annotationsFor, modelContextApiOf, modelContextOf, requestFor, splitPaging, toToolResult, toWebMcpTool } from './toolShape.js'
 
 /**
  * `toolShape.js` is the one place that knows WebMCP's registration shape (Decision 13, "Honest
@@ -145,5 +147,31 @@ describe('aliasNavigatorModelContext (ai-024)', () => {
     const frozen = Object.freeze({})
     expect(aliasNavigatorModelContext({ document: { modelContext: api }, navigator: frozen })).toBe(false)
     expect(aliasNavigatorModelContext(undefined)).toBe(false)
+  })
+})
+
+describe('list_ops over WebMCP (TODO/ai-050)', () => {
+  const registry = createToolRegistry()
+  const run = (/** @type {unknown} */ raw, /** @type {string} */ name = 'list_ops') => {
+    const { input, paging } = splitPaging(name, raw)
+    return toToolResult(name, registry.run(makeContext({ document: createDocument({ replica: 'abcdef' }), origin: 'mcp' }), name, input), paging)
+  }
+
+  it('a bare call lists every op name on page one, under budget, including primitive.sphere', () => {
+    const result = run({})
+    expect(result.ok).toBe(true)
+    expect(result.page).toBeUndefined()
+    expect(result.incomplete).toBeUndefined()
+    expect(result.create).toContain('primitive.sphere')
+    expect(JSON.stringify(result).length).toBeLessThanOrEqual(OUTPUT_BUDGET)
+  })
+
+  it('a paged result leads with incomplete and a NOT-complete note, before the list', () => {
+    const result = run({ detail: 'summary' })
+    expect(result.incomplete).toBe(true)
+    expect(result.page.more).toMatch(/NOT complete/)
+    expect(Object.keys(result).indexOf('page')).toBeLessThan(Object.keys(result).indexOf('create'))
+    expect(result.create[0].op).toBe('primitive.cone')
+    expect(result.create.map((/** @type {any} */ row) => row.op)).toContain('primitive.sphere')
   })
 })

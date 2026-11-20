@@ -659,7 +659,7 @@ List what can be made and what can be done: create ops (place from nothing) and 
 
 | Parameter | Type | Required | What it is |
 |---|---|---|---|
-| `detail` | "summary" \| "full" | no | summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults. |
+| `detail` | "names" \| "summary" \| "full" | no | names: just the op names. summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults. |
 | `ops` | array of string | no | Only these ops, in full, in this order (at most 20), e.g. \["primitive.cylinder", "boolean.subtract"\]. |
 | `kind` | "create" \| "operate" | no | Only the create ops, or only the operate ops. |
 | `limit` | integer | no | WebMCP only: return at most this many items. |
@@ -673,8 +673,8 @@ Input schema:
   "properties": {
     "detail": {
       "type": "string",
-      "enum": ["summary","full"],
-      "description": "summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults."
+      "enum": ["names","summary","full"],
+      "description": "names: just the op names. summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults."
     },
     "ops": {
       "type": "array",

@@ -5319,3 +5319,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** could-not-reproduce → `e2e/export-ui.e2e.js` "io-039" passes with and without the note on nine projects, and a node probe of a 96,600-triangle scan swallowed by a cube gave `ExportError empty-geometry`, this session; unit 9975 passed; pair webkit-phone + firefox-tablet 1267 passed → `/test` runs this session
 **To Add:** none
 ---
+
+## 2026-11-20T20:30:00Z — WarpCad: a browser agent can see every op on the first page
+
+**Post:** Claude in Chrome was asked to put a sphere on a cube in WarpCad and said the app only had a cuboid and a cone. The list of ops is paged, the first page happened to end at those two, and the agent took it as the whole catalogue.
+
+A bare list_ops call over WebMCP now returns every op name on a single page, with primitives first. Parameters are one more call away. A page that is only part of the list now starts with incomplete: true and a "NOT complete" note, before the list itself.
+
+The spec for this runs on Chromium, WebKit and Firefox. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `list_ops` first-page sizes and the `primitive.cuboid`-ending page → TODO/done/ai-050 file; new specs `toolShape.spec.js`, `listOps.spec.js`, `webmcp.e2e.js` (E2E_DEV=1, chromium-laptop, webkit-tablet, firefox-laptop passed); full unit 9978 passed and pair e2e 1308 passed (this session)
+**To Add:** none
+---

@@ -91,7 +91,9 @@ Assistant panel says so, and the choice lasts until you close the tab.
   viewport, isn't offered here. An agent asks `describe_scene` or `measure` instead.
 - **Long answers come in pages.** Lists such as `describe_scene`, `get_timeline` and `list_ops` come
   back a page at a time, and each page says how to ask for the next (`offset`, and optionally
-  `limit`).
+  `limit`). A page that isn't the whole list starts with `incomplete: true`. A bare `list_ops`
+  call is the exception: it returns every op name on one page, so you can see which ops exist
+  before asking for parameters (`{ ops: ["primitive.sphere"] }`).
 - **With no API key**, the Assistant panel says *A browser agent can drive this project. The box
   below needs an API key; to use your agent, ask it in its own panel.* The message box is greyed
   out and repeats the same sentence. Type your request in the agent's panel (its side panel or
@@ -159,6 +161,37 @@ Work through these in order. Each one takes a few seconds.
    in the Console, starting *WarpCad WebMCP:*, when the page loads and whenever it changes.
    `api=none` means the browser doesn't offer WebMCP. `visible=no` means the tab is hidden.
    `failed=[…]` names the tools the browser refused.
+5. **If the agent lists the tools but says it can't call them**, it found them through a page
+   script and doesn't know it can call them the same way. Claude in Chrome does this: it reports
+   every WarpCad tool by name, then says it has no bridge to call them. Tell it to call them through
+   its JavaScript tool, as in [Using Claude in Chrome](#using-claude-in-chrome) below.
+
+### Using Claude in Chrome
+
+Claude in Chrome doesn't add a page's WebMCP tools to its own list of tools. It can still call
+them, by running a short script in the WarpCad tab with its JavaScript tool. Ask it in so many
+words, or it will tell you it can't.
+
+1. Open WarpCad in Chrome with the WebMCP flag on, keep its tab in front, and check that the
+   Assistant header reads **Browser agents · on**.
+2. Open the Claude in Chrome pane and paste this, with your own request at the end:
+
+   > Use your JavaScript tool to call WarpCad's WebMCP tools directly. Run
+   > `const tools = await document.modelContext.getTools()` to read each tool's `inputSchema`. Call
+   > a tool by passing the tool object from that list, not its name, and the arguments as a plain
+   > object, not a JSON string:
+   > `await document.modelContext.executeTool(tools.find(t => t.name === 'create'), {...})`.
+   > It resolves to a JSON string; parse it. Lists such as `list_ops` come back a page at a time: if
+   > a result has `incomplete: true` or `page.more`, call again with the `offset` it names before you decide an op doesn't
+   > exist. Call `record_prompt` first with my request, then: add a 40 mm cube and put a 20 mm
+   > sphere on top of it.
+
+3. The cube and sphere appear in the viewport, and **History** marks each row **via webmcp**.
+   **Undo AI turn** takes both back in one step.
+
+For an agent that calls WarpCad's tools as ordinary tool calls, with no script in between, use
+Claude Code: on a project file, or in [live mode](mcp.md#live-mode-an-mcp-agent-edits-the-project-you-have-open)
+on a copy you run yourself.
 
 ### Which agents are known to work
 
@@ -172,7 +205,10 @@ Checked on 2026-10-17, Chrome with the WebMCP flag on, against the hosted app:
   also offers the same object as `navigator.modelContext` whenever the browser doesn't provide one,
   so that probe succeeds. With that alias set by hand it added ten 10 mm cubes at 20 mm spacing
   through the tools, and one **Undo AI turn** took all ten back. (Reminder for agents: `getTools()`
-  returns a promise, so `await` it.)
+  returns a promise, so `await` it.) On 2026-11-20 it listed every tool but said it couldn't call
+  them until asked to use its JavaScript tool. Asked that way, it placed a 40 mm cube with a 20 mm
+  sphere on top. Chrome's `executeTool` took the tool object and a plain-object argument; a tool
+  name or a JSON string threw a type error. See [Using Claude in Chrome](#using-claude-in-chrome).
 - **Google's Model Context Tool Inspector** reads the same object, so it is the way to confirm
   what WarpCad offers.
 

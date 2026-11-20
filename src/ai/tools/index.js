@@ -240,7 +240,9 @@ export const WEBMCP_WITHHELD = Object.freeze(['capture_view'])
  * @returns {Tool}
  */
 function createListOpsTool(ops) {
-  const create = creatableOps(ops).map((op) => {
+  // primitive.* first: the most common request ("a cube", "a sphere") must be on the first page an agent reads.
+  const primitivesFirst = (/** @type {string} */ a, /** @type {string} */ b) => Number(b.startsWith('primitive.')) - Number(a.startsWith('primitive.'))
+  const create = [...creatableOps(ops)].sort(primitivesFirst).map((op) => {
     const entry = ops[op]
     const { schema, defaults } = paramsSchemaFor(op, ops)
     return { op, label: entry.ui?.label ?? op, kind: entry.kind, operandCount: entry.operandCount, params: schema, defaults }
@@ -272,12 +274,18 @@ function createListOpsTool(ops) {
       params: paramNames({ params }),
     })),
   })
+  /** Op names only: small enough that a whole catalogue fits on one WebMCP page. */
+  const names = Object.freeze({
+    create: create.map((entry) => entry.op),
+    operate: operate.map((entry) => entry.op),
+    note: 'Op names only. Ask { ops: ["primitive.sphere", ...] } for parameters, or { detail: "summary" } for every op with its param names.',
+  })
   const known = [...create, ...operate].map((entry) => entry.op)
   const inputSchema = objectSchema({
     detail: {
       type: 'string',
-      enum: ['summary', 'full'],
-      description: 'summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults.',
+      enum: ['names', 'summary', 'full'],
+      description: 'names: just the op names. summary: every op with its param names only (about a seventh of the size). full (the default): schemas and defaults.',
     },
     ops: {
       type: 'array',
@@ -319,6 +327,7 @@ function createListOpsTool(ops) {
       }
       /** @type {Record<string, any[]>} */
       const source = detail === 'summary' ? summary : full
+      if (detail === 'names') return kind === undefined ? names : { [kind]: names[/** @type {'create' | 'operate'} */ (kind)] }
       if (kind !== undefined) return { [kind]: source[kind] }
       return { create: source.create, operate: source.operate }
     },

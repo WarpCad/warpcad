@@ -3651,3 +3651,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** refusal and note on a 32,320-triangle scan swallowed by a Cube → `e2e/export-ui.e2e.js` "io-039" on nine projects; full unit 9975 passed; pair webkit-phone + firefox-tablet 1267 passed → `/test` runs this session
 **To Add:** none
 ---
+
+## 2026-11-20T20:30:00Z — WarpCad: a browser agent can see every op on the first page
+
+**Post:** A browser agent told me WarpCad only had a cuboid and a cone. It had read page one of a paged list and stopped. A bare list_ops over WebMCP now returns every op name on one page, spheres included, and a partial page opens with "NOT complete". Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `list_ops` first-page sizes and the `primitive.cuboid`-ending page → TODO/done/ai-050 file; new specs `toolShape.spec.js`, `listOps.spec.js`, `webmcp.e2e.js` (E2E_DEV=1, chromium-laptop, webkit-tablet, firefox-laptop passed); full unit 9978 passed and pair e2e 1308 passed (this session)
+**To Add:** none
+---
