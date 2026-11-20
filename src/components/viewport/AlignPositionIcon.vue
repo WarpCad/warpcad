@@ -57,6 +57,9 @@ const geometry = computed(() => {
     blockX,
     targetX: point ? CENTRE : TARGET_MIN,
     targetWidth: point ? 0 : TARGET_MAX - TARGET_MIN,
+    // The landmark the block's face meets (`TODO/ui-145`): drawn heavy so "inside" (an edge) and "half"
+    // (the centre) differ by more than the few pixels of block offset. None for centred or a point target.
+    contact: anchor === null || point ? null : anchor[0],
   }
 })
 </script>
@@ -84,6 +87,16 @@ const geometry = computed(() => {
       stroke="var(--role-target)"
       stroke-width="1"
       :stroke-dasharray="pointTarget ? undefined : '2 1.5'"
+    />
+    <line
+      v-if="geometry.contact !== null"
+      data-part="contact"
+      :x1="geometry.contact"
+      :x2="geometry.contact"
+      y1="3"
+      y2="21"
+      stroke="var(--role-target)"
+      stroke-width="3"
     />
     <rect data-part="moving" :x="geometry.blockX" y="8" :width="BLOCK" height="8" fill="var(--role-moving)" />
   </svg>

@@ -542,6 +542,10 @@ there and greyed out. It simply is not there.
   its own colour**. A bolt's `tap` reads as a soft red envelope around its gray head and
   silver thread. Turn it off and the overlay disappears; the shape itself is completely
   unaffected either way.
+- **A shown clearance says so on the shape's row.** The translucent envelope stays drawn after
+  you deselect the shape, so its row in the **Objects** list carries a red-dotted line, *clearance
+  on · tap to hide*. Tap that line (a full-width tap target) and the overlay goes away, which is the
+  same switch as the **Show hidden parts** toggle, without having to select the shape first.
 - **None of this changes your project.** Pointing at a piece, the toggle, and opening or
   closing any list write nothing to the project and add no step to **History**, so there
   is nothing to Undo. The toggle stays on for that one shape until you turn it off
@@ -562,6 +566,8 @@ there and greyed out. It simply is not there.
    turn on **Show hidden parts** instead.
 3. Tap **tap** in the list. The breadcrumb reads `Objects ▸ Bolt / screw 1 ▸ tap`, and the bolt
    is now addressed at just that piece.
+   Select something else: the translucent red body stays, and the bolt's row in **Objects**
+   reads *clearance on · tap to hide*, so it never looks like a stray object. Tap that line to hide it.
 4. Drag a **Cube** in to stand in for a case wall and select it. Tap **Objects** in the
    breadcrumb (or the **Objects** bar at the top of the Inspector) to open the list, tap
    ▸ on *Bolt / screw 1*, and tap the small box on its **tap** row so it lands second. Press

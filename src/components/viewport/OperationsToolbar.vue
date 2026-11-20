@@ -546,7 +546,7 @@ function run(op) {
 const ALIGN_OPERATION = Object.freeze({
   op: 'align',
   label: 'Align',
-  glyph: '⇔',
+  glyph: '⇤',
   hint: 'Line the first-picked solid up with the second, or with the origin',
 })
 
@@ -1230,7 +1230,7 @@ function commitResize() {
 const SPLIT_OPERATION = Object.freeze({
   op: 'modify.splitWithJoint',
   label: 'Split',
-  glyph: '⫽',
+  glyph: '◫',
   hint: 'Cut into two printable pieces with a joint',
 })
 
@@ -2724,6 +2724,19 @@ onBeforeUnmount(() => closeGroup())
     min-width: var(--tap-compact);
     padding: 0 var(--space-3);
     font-size: var(--text-size-xs);
+  }
+
+  /* Align and Split are the two the cold read found under tap size (`TODO/ui-145`). Only these two grow,
+     and only in the icons tier here: the groups tier shows them as full-width pop-out rows. The extra 6px
+     of height is taken out of the row again with a -3px block margin, so the toolbar's total height (the
+     `ui-043` budget against the navigation chrome) does not move; each button's hit area reaches 1px into
+     the 2px row gap and the row beside it, and is still 44px tall. */
+  .ops:not([data-ops-tier='labels']) .ops__btn[data-op='align'],
+  .ops:not([data-ops-tier='labels']) .ops__btn[data-op='modify.splitWithJoint'] {
+    min-height: var(--tap);
+    min-width: var(--tap);
+    margin-block: calc((var(--tap-compact) - var(--tap)) / 2);
+    align-self: center;
   }
 
   /*

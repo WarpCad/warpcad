@@ -50,8 +50,16 @@ other buttons stay under their own boxes. Tap it and a list opens:
 Once bound, the field shows a **chip** with the variable's name, and its value read-only
 beside it, in place of the editor. You cannot type into it, by design. Tap the chip:
 
-- **Edit variable** — jumps to that variable's row in the Variables section.
+- **Edit variable** — jumps to that variable's row in the Variables section, and lights it: the
+  row gets an accent border and an *Editing width* line (with your variable's name) at its top for
+  about a second and a half, then both fade. On a phone the Variables view comes up in the sheet
+  and the row is scrolled into it, so you can see which one you landed on.
 - **Unbind** — puts the field back to the number it has right now. Nothing jumps.
+
+For example: place a **Cube**, tap the link button beside its **Width**, choose **New variable**,
+name it `width` and create it. The field is now a chip reading `width`. Tap the chip, then **Edit
+variable**. The sheet switches to **Variables**, the `width` row gets the accent border and
+*Editing width*, and you can type a new value straight into it.
 
 A field that cannot be bound has no link button at all, rather than a dimmed one. When the
 whole step cannot take a variable (a rotate step, say), each field's label says why when you

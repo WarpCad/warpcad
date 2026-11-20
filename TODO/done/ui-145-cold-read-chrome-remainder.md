@@ -6,8 +6,11 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, split from ui-128 on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20).** All five items. Edit variable lights the row (accent border, *Editing <name>* line) for 1.5 s; a shown clearance gets a *clearance on · tap to hide* line under the body's Objects row, which is also the switch; the connector kind row has a caption naming the pressed kind; Align strips mark the touched face with a heavy bar (not "full width": equal widths make inside, half and centre coincide); Align is `⇤` and Split `◫` (Mirror stays `⇋`), 44 px in the group pop-out and, at phone width, a 44 px button whose -3px block margin keeps the toolbar's height inside the `ui-043` budget. The cold read rated Edit variable clear and the other four partial: `ui-153`.
+
 
 ## Problem
 

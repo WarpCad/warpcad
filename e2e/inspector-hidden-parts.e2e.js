@@ -231,3 +231,30 @@ test('the toggle row and each part row are full-size tap targets, and nothing ov
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(0)
 })
+
+test('a shown clearance on a deselected Bolt says so on its Objects row, and the chip turns it off (ui-145 item 6)', async ({ page }) => {
+  const bolt = await placeAndSelectBolt(page)
+  await page.getByTestId('inspector-hidden-parts-toggle').check()
+  // Nothing says "clearance" on the row while the toggle is off; with it on and the bolt still selected
+  // the chip is already there, so the cue never depends on the selection.
+  await page.evaluate(async () => {
+    const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
+    useSelectionStore().clear()
+  })
+  await showInspector(page)
+  const list = page.getByTestId('object-list')
+  if (!(await list.isVisible())) await page.getByTestId('inspector-objects-header').click()
+  await expect(list).toBeVisible()
+  const chip = page.getByTestId(`objects-clearance-${bolt.id}`)
+  await expect(chip).toBeVisible()
+  await expect(chip).toContainText('clearance on')
+  expect((await chip.boundingBox())?.height ?? 0, 'chip tap height').toBeGreaterThanOrEqual(43.5)
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(0)
+
+  await chip.click()
+  await expect(chip).toHaveCount(0)
+  // The same switch the Inspector's toggle drives: select the bolt and it reads off.
+  await page.getByTestId(`objects-row-${bolt.id}`).click()
+  await expect(page.getByTestId('inspector-hidden-parts-toggle')).not.toBeChecked()
+})

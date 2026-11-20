@@ -93,3 +93,31 @@ describe('AlignPositionIcon (TODO/ui-086)', () => {
     expect(d.block).not.toEqual(a.block)
   })
 })
+
+describe('AlignPositionIcon (TODO/ui-145 item 8)', () => {
+  /** @param {number} position */
+  const contact = (position) => {
+    const wrapper = mount(AlignPositionIcon, { props: { position } })
+    const line = wrapper.find('[data-part="contact"]')
+    return line.exists() ? Number(line.attributes('x1')) : null
+  }
+
+  it('marks the face the block touches with a heavy line, so inside − and half − differ by more than a sliver', () => {
+    const t = extents(0).target
+    const centre = (t[0] + t[1]) / 2
+    expect(contact(0)).toBeCloseTo(t[0], 6)
+    expect(contact(1)).toBeCloseTo(t[0], 6)
+    expect(contact(2)).toBeCloseTo(centre, 6)
+    expect(contact(3)).toBeNull() // centre: nothing is touched
+    expect(contact(4)).toBeCloseTo(centre, 6)
+    expect(contact(5)).toBeCloseTo(t[1], 6)
+    expect(contact(6)).toBeCloseTo(t[1], 6)
+    // The heavy line is much thicker than the target's outline, and it is what tells the pairs apart.
+    const stroke = Number(mount(AlignPositionIcon, { props: { position: 1 } }).get('[data-part="contact"]').attributes('stroke-width'))
+    expect(stroke).toBeGreaterThanOrEqual(3)
+  })
+
+  it('draws no contact line against World origin, where the centre line is the touched landmark', () => {
+    expect(mount(AlignPositionIcon, { props: { position: 1, pointTarget: true } }).find('[data-part="contact"]').exists()).toBe(false)
+  })
+})

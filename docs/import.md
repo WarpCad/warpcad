@@ -104,7 +104,7 @@ Millimetres, Z up.
 4. **Click the board once**: all of it is selected, and the Inspector shows the whole model's
    size. **Click again on the large 24 × 16 mm module** (the ESP-12): the breadcrumb reads
    `feather 1 ▸ Part 22`, and the Inspector shows that part's own size, 24 × 16 × 2.95 mm.
-5. Hold **Shift** and click the Cube, then press **⇔ Align**. The popover's top line reads
+5. Hold **Shift** and click the Cube, then press **⇤ Align**. The popover's top line reads
    **Aligning feather 1 › Part 22 to Cube 1**. The board is the shape you picked first, so it
    moves, and the part you addressed is the one measured. Tap the button you want, say
    **X center**. To move the **Cube** against the part instead, pick the Cube first, then

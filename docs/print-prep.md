@@ -59,6 +59,9 @@ reassemble, place them yourself. With the wing split at offset 150:
    ring for a screw boss, a ring with a dot for a dowel, a hollow stadium for a tenon, a hollow disc with one half filled for a magnet. Red patches on the plane are where nothing
    fits. Picking **Dowel** adds a **Dowels are** list (**Printed**, **Steel pin**, **1.75 mm
    filament**); bought dowels show under the pieces as **You'll also need**.
+   On a phone the kind buttons show only their pictures, so the line under the row names the
+   pressed one: press the ring with a dot and it reads *Dowel · a hole for a bought dowel*; press the
+   plain ring and it reads *Screw boss · a ring boss that takes a screw*.
 3. Press **Screw boss**, then **tap the plane** where you want one. It appears as a ring if it
    fits. A tap where it does not fit is turned back, and the sheet says why, for example
    *placement 2 (screwBoss at y = 19.7, z = 6 mm): its socket and 1.2-2 mm wall would break out of

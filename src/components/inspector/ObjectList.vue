@@ -50,6 +50,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import EyeToggle from './EyeToggle.vue'
 
 import { useDocumentStore } from '../../stores/document.js'
+import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
 import { useObjectListStore } from '../../stores/objectList.js'
 import { useSelectionStore } from '../../stores/selection.js'
@@ -75,6 +76,18 @@ const selection = useSelectionStore()
 const timeline = useTimelineStore()
 const documentStore = useDocumentStore()
 const hover = useHoverHighlightStore()
+const hiddenPartVisibility = useHiddenPartVisibilityStore()
+
+/**
+ * Whether a body row has its hidden parts (a bolt's tap clearance) drawn translucent right now
+ * (`TODO/ui-145`): the red ghost on the canvas is otherwise unexplained once the body is deselected.
+ *
+ * @param {{ id: string, parts: { hidden: boolean }[] }} row
+ * @returns {boolean}
+ */
+function clearanceOn(row) {
+  return hiddenPartVisibility.isShown(row.id) && row.parts.some((part) => part.hidden)
+}
 
 const rootEl = ref(/** @type {HTMLElement | null} */ (null))
 
@@ -417,6 +430,20 @@ watch(
             <span v-else-if="anyExpandable" class="row__chevron-spacer" aria-hidden="true"></span>
           </template>
         </ListRow>
+
+        <!-- TODO/ui-145: a shown clearance stays drawn after the body is deselected, so the row says
+             so, and the chip is the switch that turns it off from here. -->
+        <button
+          v-if="clearanceOn(row)"
+          type="button"
+          class="row__clearance"
+          :title="`Hide the clearance parts drawn on ${row.name}`"
+          :data-testid="`objects-clearance-${row.id}`"
+          @click="hiddenPartVisibility.hide(row.id)"
+        >
+          <span class="row__clearance-dot" aria-hidden="true"></span>
+          clearance on · tap to hide
+        </button>
 
         <ul
           v-if="row.expanded"
@@ -887,6 +914,37 @@ watch(
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+.row__clearance {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 var(--space-5);
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  font-size: var(--text-size-sm);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.row__clearance:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.row__clearance-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  opacity: 0.6;
 }
 
 .row__body:disabled,

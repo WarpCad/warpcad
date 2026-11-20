@@ -503,6 +503,9 @@ test('Place connectors: drag a seeded marker, switch its kind, Apply, and the pi
   await expect(markers.first()).toHaveAttribute('data-selected', 'true')
   await page.getByTestId('split-connector-kind-screwBoss').click()
   await expect(markers.first()).toHaveAttribute('data-kind', 'screwBoss')
+  // ui-145 item 7: the icon-only row names the pressed kind under it, and follows the press.
+  const kindCaption = page.getByTestId('split-connector-kind-caption')
+  await expect(kindCaption).toContainText('Screw boss')
   expect(await markerFace(markers.first())).toEqual(dragged)
 
   // A drag to a spot with no room goes red, then snaps back with the reason.
@@ -568,6 +571,7 @@ test('Place connectors: a tap drops the picked kind, × removes it, and Apply ne
 
   // Pick Wedge, tap the face.
   await page.getByTestId('split-connector-kind-wedge').click()
+  await expect(page.getByTestId('split-connector-kind-caption')).toContainText('Wedge')
   const tap = await faceToClient(page, -8, 6)
   await page.mouse.click(tap.x, tap.y)
   await expect(markers).toHaveCount(1)

@@ -56,6 +56,17 @@ watch(
 )
 onBeforeUnmount(() => overlays.setOpen('split-sheet', false))
 
+/** One short phrase per connector kind, shown under the kind row beside its name (`TODO/ui-145`). */
+const CONNECTOR_BLURBS = Object.freeze({
+  pins: 'a printed round post and hole',
+  wedge: 'a printed diamond key',
+  screwBoss: 'a ring boss that takes a screw',
+  dowel: 'a hole for a bought dowel',
+  butterfly: 'a bow-tie key across the seam',
+  tenon: 'a printed slot and tab',
+  magnet: 'a pocket for a bought magnet',
+})
+
 /** Whether the Magnet size field shows: for the Magnets joint, or while placing magnets by hand. */
 const showMagnetSize = computed(
   () =>
@@ -346,6 +357,10 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
           <span class="split__kind-label">{{ CONNECTOR_LABELS[kind] }}</span>
         </button>
       </div>
+      <!-- TODO/ui-145: icon-only on a phone, so the pressed kind is named under the row. -->
+      <p v-if="sheet.manual" class="split__kind-caption" role="status" data-testid="split-connector-kind-caption">
+        <strong>{{ CONNECTOR_LABELS[sheet.connectorKind] }}</strong> · {{ CONNECTOR_BLURBS[sheet.connectorKind] }}
+      </p>
       <p
         v-if="sheet.manual"
         class="split__hint"
@@ -666,6 +681,13 @@ body :global(.sheet.split) {
   stroke-width: 3;
 }
 
+.split__kind-caption {
+  margin: 0;
+  font-size: var(--text-size-sm);
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
 .split__hint {
   margin: 0;
   font-size: var(--text-size-sm);
@@ -687,6 +709,7 @@ body :global(.sheet.split) {
   .split > .split__toggle,
   .split > .split__kinds,
   .split > .split__hint,
+  .split > .split__kind-caption,
   .split > .split__pieces,
   .split > .split__problem,
   .split > .split__warning,

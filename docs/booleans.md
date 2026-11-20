@@ -22,7 +22,7 @@ you press anything.
 | **− Subtract** | Removes every solid you selected *after* the first one from that first one. |
 | **∩ Intersect** | Keeps only the volume that all the selected solids share, and discards the rest. |
 | **⊞ Group** | Combines the selected solids into one selectable body, keeping each one's own geometry intact — see [Combining shapes into a group](groups.md). |
-| **⇔ Align** | Moves one selected solid to a precise position against the other — flush against a side, or centred — or onto the origin, without combining or discarding either one. See [Precise placement: Align](snap-align.md). |
+| **⇤ Align** | Moves one selected solid to a precise position against the other — flush against a side, or centred — or onto the origin, without combining or discarding either one. See [Precise placement: Align](snap-align.md). |
 
 ## You need at least two shapes selected
 

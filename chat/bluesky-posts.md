@@ -3550,3 +3550,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** server close took 3.9 s and 5.6 s on two of 36 runs against 0 to 1 ms on the rest → this session; 36 of 36 on nine projects, pair chromium-tablet + webkit-laptop green → this session.
 **To Add:** none
 ---
+
+## 2026-11-20T05:25:00Z — Five small chrome fixes, and a fresh reader's verdict on them
+
+**Post:** WarpCad: "Edit variable" now lights the row it jumps to, a shown bolt clearance says so on its row, the connector kind row names the pressed kind, and Align and Split have glyphs of their own. A fresh reader found one clear and four only partly better, so those got a follow-up. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pair chromium-laptop + firefox-phone, 1323 passed, 0 failed; new specs on nine projects → this session; cold-read verdicts → TODO/VERIFY.md ui-145.
+**To Add:** none
+---

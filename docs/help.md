@@ -16,7 +16,7 @@ There are three ways in, and they all open the same **Help** sheet:
 
 1. Place a Cube and a Cylinder, then click the Cube and Shift-click the Cylinder. Both are
    selected.
-2. Press **⇔ Align** on the Operations toolbar. The Align pop-up opens.
+2. Press **⇤ Align** on the Operations toolbar. The Align pop-up opens.
 3. Set **Snap** to *Inside* and type `7` in **Offset**, so there is something of yours in the pop-up.
 4. Press the **?** in the pop-up's top-right corner.
 

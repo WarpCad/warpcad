@@ -59,6 +59,18 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-145 — Cold-read chrome fixes (2026-11-20 05:25)
+
+One fresh agent was shown only phone screenshots of the five changed controls and the item descriptions (no code, no docs). It rated Edit variable CLEAR and the other four PARTIAL; the partials are filed as `ui-153`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Does a first-time reader know which row *Edit variable* landed on? | OK | CLEAR: the "Editing width" line and the accent border tell them. It suggested testing with 3 or more variables. |
+| 2 | Does a first-time reader understand the translucent red body on a deselected bolt? | Moved | PARTIAL: the Objects line *clearance on · tap to hide* explains it, but the body has no label in the view and "clearance" is jargon. → `ui-153`. |
+| 3 | Can the Split sheet's kind row be read on a phone? | Moved | PARTIAL: the caption names the pressed kind, but it sits low in the scrolling sheet and the hint line goes partly behind the Cancel/Apply bar. → `ui-153`. |
+| 4 | Can *inside −* and *half −* be told apart in the Align popover? | Moved | PARTIAL: the heavy contact bar helps; the icons are small in their cells and *half* is unexplained. → `ui-153`. |
+| 5 | Are Align and Split distinct from Mirror and big enough? | Moved | PARTIAL: glyphs `⇤`, `◫`, `⇋` read as three different shapes; the reader still saw them as small and icon-only (44 px with a -3px block margin to hold the toolbar's height). → `ui-153`. |
+
 ### io-038 — Update gist from a second device within a minute (2026-11-19 20:05)
 
 Driven only against the fake gist API (`staleBy`, `e2e/gist-share.e2e.js` case 11, all three engines), never real GitHub: agents may not touch it. The unknown is whether GitHub's authenticated `GET /gists/<id>` is served from the 60 s cache; the fix is correct either way (the write's `parent` check merges and rewrites), but only the real run says which path fires.
@@ -852,7 +864,7 @@ a test print.
 |---|---|---|---|
 | 1 | Print `plank-tenon-x2.stl` flat on the owner's printer at 0.2 mm clearance: does the chamfered side print clean without supports, and does the tenon go into both mortises with a push fit (not slop, not a hammer)? | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` X3. |
 | 2 | Glue a real 6 × 3 mm magnet into a pocket: does it sit flush with the cut face, and do the pieces attract with the `assembly.txt` mark-out / mark-in rule? | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` X4. |
-| 3 | At 390 px the Place connectors kind row is seven icon-only buttons (Post, Wedge, Screw boss, Dowel, Butterfly, Tenon, Magnet). Is each one recognisable from its glyph on a real phone, or does it need a label? | Moved | 2026-11-17 (`testing-044`): `FIND-ui-128` item 7 covers it (a caption under the row naming the pressed kind); added to ui-128's Testing for re-check. → `ui-128`. Earlier notes: 2026-11-14 (`testing-029` panel): Cold-read half (emulated 390x844): A: unclear, Screw boss and Dowel (ring, ring with dot) swapped in the guess, Magnet loose. B: unclear, ring vs ring with dot and half disc not guessable. Both want the pressed kind named beside the row. Filed `FIND-ui-128`. The real-phone half stays Open. | 2026-11-19 (`ui-143`, rechecked): the row is still icon-only with no caption (screenshot at 390x844, Butterfly pressed and highlighted); unchanged, still `ui-128`.
+| 3 | At 390 px the Place connectors kind row is seven icon-only buttons (Post, Wedge, Screw boss, Dowel, Butterfly, Tenon, Magnet). Is each one recognisable from its glyph on a real phone, or does it need a label? | OK | 2026-11-17 (`testing-044`): `FIND-ui-128` item 7 covers it (a caption under the row naming the pressed kind); added to ui-128's Testing for re-check. → `ui-128`. Earlier notes: 2026-11-14 (`testing-029` panel): Cold-read half (emulated 390x844): A: unclear, Screw boss and Dowel (ring, ring with dot) swapped in the guess, Magnet loose. B: unclear, ring vs ring with dot and half disc not guessable. Both want the pressed kind named beside the row. Filed `FIND-ui-128`. The real-phone half stays Open. | 2026-11-19 (`ui-143`, rechecked): the row is still icon-only with no caption (screenshot at 390x844, Butterfly pressed and highlighted); unchanged, still `ui-128`. 2026-11-20 (`ui-145`): a caption under the row now names the pressed kind; a fresh-reader cold read rated it PARTIAL (caption low in the sheet), → `ui-153`.
 
 ### core-075 stage 2 — Butterfly keys (2026-10-27 13:43)
 
@@ -1796,7 +1808,7 @@ Scenario 16 covers the reflect, original-untouched and selection behaviour. What
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | The ⇋ glyph on the Mirror button reads as "mirror" next to ⤢ ⇱ ✂ (the toolbar-fit half is answered, see Notes) | Moved | 2026-11-17 (`testing-044`): `FIND-ui-128` item 9 covers Mirror ⇋ as a near-duplicate of Align ⇔; added to ui-128's Testing for re-check. → `ui-128`. Earlier notes: 2026-11-14 (`testing-029` panel): Glyph half, panel disagrees. A: unclear (guessed 'swap or exchange'). B: guessed Mirror correctly but it is a near-duplicate of Align ⇔. For the owner. Fit half unchanged (OK, see above). 2026-11-13 (`FIND-testing-021`): the fit half is OK. At 390x844 the Operations toolbar is a 4-column icon grid 182 px wide and 180 px tall (since `ui-082`'s groups tier), with Mirror in the last row; with one Cube selected and with none, the page has no horizontal scroll and nothing is clipped. Whether the glyph reads as mirror stays with `FIND-testing-029`. |
+| 1 | The ⇋ glyph on the Mirror button reads as "mirror" next to ⤢ ⇱ ✂ (the toolbar-fit half is answered, see Notes) | OK | 2026-11-17 (`testing-044`): `FIND-ui-128` item 9 covers Mirror ⇋ as a near-duplicate of Align ⇔; added to ui-128's Testing for re-check. → `ui-128`. Earlier notes: 2026-11-14 (`testing-029` panel): Glyph half, panel disagrees. A: unclear (guessed 'swap or exchange'). B: guessed Mirror correctly but it is a near-duplicate of Align ⇔. For the owner. Fit half unchanged (OK, see above). 2026-11-13 (`FIND-testing-021`): the fit half is OK. At 390x844 the Operations toolbar is a 4-column icon grid 182 px wide and 180 px tall (since `ui-082`'s groups tier), with Mirror in the last row; with one Cube selected and with none, the page has no horizontal scroll and nothing is clipped. Whether the glyph reads as mirror stays with `FIND-testing-029`. | 2026-11-20 (`ui-145`): Align is now `⇤` and Mirror stays `⇋`; a fresh reader saw them as clearly separate shapes (PARTIAL overall on size and text, → `ui-153`).
 | 2 | Blank plane position on a symmetric shape adds an invisible copy sitting on the original — is the popover hint enough, or should it warn on commit? | Owner | 2026-11-17 (`testing-033`): → `TODO/OWNER.md` Q41. Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
 
 ### ui-038 — Bill-of-Materials panel (2026-10-01 20:48)

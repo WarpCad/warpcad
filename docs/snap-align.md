@@ -2,7 +2,7 @@
 
 **Align** puts a shape at an exact position: against another shape that is already
 sitting in the scene (flush against a side, flush inside it, or centred), or on the
-grid's origin. It is one button on the **Operations toolbar**, **⇔ Align**, next to
+grid's origin. It is one button on the **Operations toolbar**, **⇤ Align**, next to
 [Union, Subtract and Intersect](booleans.md) and [Group](groups.md).
 
 Align is fundamentally different from the toolbar's combining buttons: Union, Subtract,
@@ -17,7 +17,7 @@ works on shapes that are **already** in the scene, any time afterward, no drag r
 
 ## You need 1 or 2 shapes selected
 
-The **⇔ Align** button stays dimmed, with the hint *Select 1 or 2 solids*, unless exactly
+The **⇤ Align** button stays dimmed, with the hint *Select 1 or 2 solids*, unless exactly
 one or exactly two shapes are selected. Zero, or three or more, disables it.
 
 - **One shape:** it can only be aligned to the **World origin**.
@@ -51,7 +51,7 @@ Units are **millimetres**, Z points **up**, and **−** is always the side with 
 
 ## A quick example: a lug against a plate
 
-Select a plate and a lug (the lug first) and press **⇔ Align**. The popover's top line
+Select a plate and a lug (the lug first) and press **⇤ Align**. The popover's top line
 reads `Aligning Lug 1 to Plate 1`. In the **X** row, tap the rightmost **out** button, the one at the **+** end. The line under the grid then reads *X outside +*.
 The lug slides against the plate's +X side and stops flush with it, without
 merging: the plate has not moved, and both are still two separate shapes you can select on
@@ -70,8 +70,8 @@ the line under the grid spells it out in a full sentence. See
 
 1. Drag a **Cube** and a **Cylinder** into the 3D view so they don't overlap.
 2. Click the Cube, then hold **Shift** and click the Cylinder. The Cube is now the one that
-   moves; the toolbar's badge reads `2 selected` and **⇔ Align** lights up.
-3. Click **⇔ Align**. The popover opens with **Target** set to `Second selected (Cylinder 1)`.
+   moves; the toolbar's badge reads `2 selected` and **⇤ Align** lights up.
+3. Click **⇤ Align**. The popover opens with **Target** set to `Second selected (Cylinder 1)`.
 4. Tap **Z center** (the middle button of the **Z** row).
 5. The Cube moves to sit centred on the Cylinder along Z, while its X and Y position stay
    exactly as they were (only the tapped axis moves). The popover is still open: tap
@@ -118,7 +118,7 @@ or [group](groups.md) them first and align the group.
 ### Example: seat a Raspberry Pi on the grid
 
 1. Drag a **Raspberry Pi** from the Library and drop it anywhere.
-2. Click it, then press **⇔ Align** on the Operations toolbar. The popover's top line reads
+2. Click it, then press **⇤ Align** on the Operations toolbar. The popover's top line reads
    `Aligning Raspberry Pi 1 to World origin`.
 3. Set **Measure from** to `mb` (the board itself; every part of the Pi keeps the short name
    its own recipe gave it, the same names the Inspector's Parts list shows).
@@ -162,7 +162,7 @@ To do it, [drill into the part](selection-and-inspector.md) first:
    `usb1`, `usb2`, `gpio`, and so on.)
 4. Hold **Shift** and click the Cube. Two things are now selected, and the board
    is still drilled into that one part.
-5. Click **⇔ Align**. The popover's top line names exactly what it is about to do:
+5. Click **⇤ Align**. The popover's top line names exactly what it is about to do:
    **Aligning Raspberry Pi 1 › ethernet to Cube 1**. That `›` is the
    confirmation you drilled to the depth you meant. (**Measure from** is hidden: the
    part you drilled into is what is measured.)
@@ -219,7 +219,7 @@ sticks out past the one you care about moves the result. Choosing a part changes
 1. Place a **Raspberry Pi 5** and drag a **Cube** in beside it.
 2. Click the Cube, then Shift-click the Pi. (On a phone, tick the Cube's box and then the
    Pi's box in the Objects list.)
-3. Press **⇔ Align**. The top line reads **Aligning Cube 1 to Raspberry Pi 1 (whole object, N parts)**.
+3. Press **⇤ Align**. The top line reads **Aligning Cube 1 to Raspberry Pi 1 (whole object, N parts)**.
 4. Set **Measure to** to **ethernet**. The top line reads **Aligning Cube 1 to Raspberry Pi 1 › ethernet**.
 5. On the **Y** row, tap **outside +**. The Cube's − Y face now sits on the Ethernet jack's
    + Y face, not on the board's.
@@ -243,14 +243,14 @@ board itself against the top of the post. Units are millimetres, with Z pointing
    screen to the selection *at that post*, and the Pi keeps `hole1`: both part rows stay
    ticked, numbered `1` and `2`. (With a keyboard, Shift-clicking the **piMountingPost1**
    row does the same. Shift-clicking the screen's own row would add the *whole* screen.)
-4. Press **⇔ Align**. The top line reads
+4. Press **⇤ Align**. The top line reads
    **Aligning Raspberry Pi 1 › hole1 to Touchscreen 2 1 › piMountingPost1**. Tap **X center**
    and **Y center**. The axis of `hole1` is now on the axis of post 1. The whole
    board moved with it, so the other three holes are on the other three posts too: the
    board's holes are 58 × 49 mm apart, and so are the posts.
 5. Now the height. Press **Escape** to close the popover, then in the Objects list tap the
    Pi's **mb** part (the circuit board itself) and tick **piMountingPost1** on the screen
-   again. Press **⇔ Align**, tap **Z outside +**. The underside of `mb` now sits on the top of the post,
+   again. Press **⇤ Align**, tap **Z outside +**. The underside of `mb` now sits on the top of the post,
    with no gap and no overlap.
 
 Use **mb** for the height, not the hole and not the whole Pi. The hole runs from 3.34 mm
@@ -278,7 +278,7 @@ Units are millimetres, with Z pointing up.
 1. Seat a Pi 5 on a Touchscreen 2's posts, as in
    [Mounting a Raspberry Pi on a screen's posts](#mounting-a-raspberry-pi-on-a-screens-posts).
 2. In the Inspector's **Objects** list, open the Pi's parts and tap **hole1**. Press
-   **⟳ Repeat** in the toolbar, beside **⇔ Align**. The panel reads
+   **⟳ Repeat** in the toolbar, beside **⇤ Align**. The panel reads
    **Repeat on Raspberry Pi 1 › hole1 and 3 more**, with **hole1** to **hole4** ticked
    (**hole1** is the first part and stays ticked). Untick a hole to leave it out; tick another
    part of the Pi to add it.
@@ -289,11 +289,11 @@ Units are millimetres, with Z pointing up.
    Inspector shows `180°` in **Rotation X**. The panel now reads *Recording Bolt / screw 1* and lists
    what you have done.
 4. With the bolt selected, tick the Pi's **hole1** in the Objects list (the check next to
-   its name) and press **⇔ Align**. The top line reads **Aligning Bolt / screw 1 to
+   its name) and press **⇤ Align**. The top line reads **Aligning Bolt / screw 1 to
    Raspberry Pi 1 › hole1**. Tap **X center** and **Y center**. The bolt's axis is now on
    the hole's. Press **Escape** to close the popover (the Repeat panel stays open).
 5. Tap the bolt's row in the Objects list, then tick the Pi's **mb** (the circuit board) and
-   press **⇔ Align** again. Set **Offset** to `-5`, and tap
+   press **⇤ Align** again. Set **Offset** to `-5`, and tap
    **Z inside −**. The bolt's tip now ends 5 mm below the underside of the board, which is
    5 mm inside the post. Press **Escape**.
 6. The panel lists five steps: the drop (*Move*), *Rotate*, two *Align* rows marked **↻**, and
@@ -422,7 +422,7 @@ conditional now.
    dropping it. Drop a Cube next to it.
 2. Select the Cube, then Shift-click the Pi's AV jack (or, in the Inspector's object list,
    tick the Cube and then tick `avjack` under the Pi's ▸) so both are selected, and use
-   **⇔ Align**'s Snap buttons to sit the cube against the jack.
+   **⇤ Align**'s Snap buttons to sit the cube against the jack.
 3. Now select the whole Pi and change **Model** to **Pi 5**. A dialog explains that the
    Pi 5 has no AV jack.
 4. For the Cube's row choose **Detach** and press **Apply**. The Pi becomes a Pi 5 and the
@@ -462,7 +462,10 @@ Top to bottom:
   (*out · in · half · ctr · half · in · out*) sit above the rows, and each button shows a
   small picture: the amber block is the shape that moves, the teal outline is its target,
   and the dashed teal line down the middle is the target's centre. **in** puts the block flush
-  against an edge of the outline; **half** puts a face of the block on the dashed line.
+  against an edge of the outline; **half** puts a face of the block on the dashed line. Against a second shape, the face
+  the block touches is drawn as a heavy teal bar: on the outline's edge for **in** and **out**, on the
+  dashed line for **half**, and absent for **center**, which touches nothing. So **inside −** (bar on
+  the left edge) and **half −** (bar in the middle) read apart at a glance.
   Every button names **where the moving shape ends up** along that axis:
 
   ![The position grid: a − to + rule, the column header, and three rows of seven icon buttons for X, Y and Z](./screenshots/align-positions.png)

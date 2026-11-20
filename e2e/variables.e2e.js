@@ -517,3 +517,45 @@ test('a variable bound to a Cube size: Min refuses a smaller Value under the fie
   await expect(page.getByTestId('variable-value-error-width')).toHaveCount(0)
   await noHorizontalScroll(page)
 })
+
+test('Edit variable on a chip lights the target row with an "Editing" header and an accent border for about 1.5 s (ui-145 item 4)', async ({ page }) => {
+  await openLibrary(page)
+  await dragRowIntoViewport(page, { op: 'primitive.cuboid', fx: 0.5, fy: 0.3 })
+  await closeLibrary(page)
+  await expectBodyCount(page, 1)
+  await showInspectorView(page)
+  await page.getByTestId('param-bind-size-x').click()
+  await page.getByTestId('param-bind-new').click()
+  await page.getByTestId('param-bind-new-name').fill('width')
+  await page.getByTestId('param-bind-new-create').click()
+  await expect(page.getByTestId('param-chip-size-x')).toHaveAttribute('data-variable', 'width')
+
+  await page.getByTestId('param-chip-size-x').getByTestId('param-chip-toggle').click()
+  const menu = page.getByTestId('param-chip-menu')
+  await expect(menu).toBeVisible()
+  // The menu sits inside the sheet, never clipped by its edge.
+  const sheet = await page.getByTestId('inspector').boundingBox()
+  const menuBox = await menu.boundingBox()
+  expect(menuBox.x).toBeGreaterThanOrEqual(sheet.x - 1)
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(sheet.x + sheet.width + 1)
+  await page.getByTestId('param-chip-edit').click()
+
+  const row = page.getByTestId('variable-row-width')
+  await expect(row).toBeVisible()
+  await expect(row).toHaveAttribute('data-focused', 'true')
+  await expect(page.getByTestId('variable-editing-width')).toHaveText('Editing width')
+  const border = await row.evaluate((el) => getComputedStyle(el).borderTopColor)
+  const accent = await page.evaluate(() => {
+    const probe = document.createElement('i')
+    probe.style.color = 'var(--accent)'
+    document.body.appendChild(probe)
+    const color = getComputedStyle(probe).color
+    probe.remove()
+    return color
+  })
+  expect(border).toBe(accent)
+  await noHorizontalScroll(page)
+  // It fades by itself.
+  await expect(row).toHaveAttribute('data-focused', 'false', { timeout: 4000 })
+  await expect(page.getByTestId('variable-editing-width')).toHaveCount(0)
+})

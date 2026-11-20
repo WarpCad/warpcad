@@ -145,7 +145,8 @@ const emit = defineEmits({
   align-items: center;
   gap: var(--space-4);
   width: 100%;
-  min-height: var(--tap-compact);
+  /* A full tap target (`TODO/ui-145`): this list is a vertical pop-out, not a budgeted row. */
+  min-height: var(--tap);
   padding: var(--space-2) var(--space-4h);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);

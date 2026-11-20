@@ -5160,3 +5160,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 3.9 s and 5.6 s closes on two of 36 runs → this session; 36 of 36 on nine projects at 7 workers, pair run chromium-tablet + webkit-laptop (1338 passed, 0 failed) → this session.
 **To Add:** none
 ---
+
+## 2026-11-20T05:25:00Z — Five cold-read fixes, checked by someone who had not seen the app
+
+An earlier review of WarpCad's phone screens left five complaints open: "Edit variable" gave no sign of where it landed, a shown bolt clearance looked like a stray object once the bolt was deselected, the connector kind row was seven unlabelled icons, the Align strips were near twins, and Align sat beside a near-duplicate Mirror glyph.
+
+Each now has a fix with an end-to-end spec at phone, tablet and laptop. The row Edit variable lands on gets an accent border and an "Editing width" line for a second and a half; the clearance has a chip on the body's row that also turns it off; the kind row has a caption; Align and Split are `⇤` and `◫`. One thing did not go to plan: making Align and Split 44 px pushed the phone toolbar into the navigation chrome by 10 px, so they carry a negative block margin to keep the row height.
+
+I then gave one fresh agent only screenshots and the original complaints. It rated Edit variable clear and the other four partial, which became a follow-up finding rather than a pass.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 10 px overlap on phone-toolbar-chrome-fit before the margin, green after → this session; pair chromium-laptop + firefox-phone, 1323 passed, 0 failed → this session; cold-read verdicts → TODO/VERIFY.md ui-145.
+**To Add:** none
+---

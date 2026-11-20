@@ -17,7 +17,7 @@
  * A **formula** row (`TODO/FIND-core-078`) shows its value read-only and its formula as text
  * below, which edits on tap — `VariableFormulaView.vue`. Its **⋯** is the same Rename and Delete.
  */
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import NumberField from '../controls/NumberField.vue'
 import { variableRangeEditProblem, variableRangeProblem } from '../../core/variables.js'
@@ -61,17 +61,30 @@ const usedText = computed(() => {
   return `used by ${props.row.parameters}${formulas > 0 ? ` · read by ${formulas} formula${formulas === 1 ? '' : 's'}` : ''}`
 })
 
-// "Edit variable" on a chip scrolls here and lights the row until the next interaction.
+/** How long "Edit variable" keeps the row lit (`TODO/ui-145`). */
+const HIGHLIGHT_MS = 1500
+/** True while the row is lit: an accent border and an "Editing <name>" header. */
+const lit = ref(false)
+let litTimer = 0
+
+// "Edit variable" on a chip scrolls here and lights the row for 1.5 s.
 watch(
   () => ui.focusName,
   async (name) => {
     if (name !== variable.value.name) return
+    lit.value = true
+    window.clearTimeout(litTimer)
+    litTimer = window.setTimeout(() => {
+      lit.value = false
+    }, HIGHLIGHT_MS)
     await nextTick()
     root.value?.scrollIntoView?.({ block: 'nearest' })
     ui.focusName = ''
   },
   { immediate: true },
 )
+
+onBeforeUnmount(() => window.clearTimeout(litTimer))
 
 /** The plain refusal shown under the field it belongs to: `value`, `min` or `max` (`TODO/ui-140`). */
 const refusal = ref(/** @type {{ field: 'value' | 'min' | 'max', text: string } | null} */ (null))
@@ -143,7 +156,9 @@ function commitRename() {
     :data-kind="row.formula !== undefined ? 'formula' : variable.kind"
     :data-value="String(variable.value)"
     :data-pending="held !== undefined ? 'true' : 'false'"
+    :data-focused="lit ? 'true' : 'false'"
   >
+    <p v-if="lit" class="vrow__editing" role="status" :data-testid="`variable-editing-${variable.name}`">Editing {{ variable.name }}</p>
     <ListRow class="vrow__head">
       <span class="vrow__name" data-testid="variable-name">{{ variable.label ? `${variable.label} · ` : '' }}{{ variable.name }}</span>
       <template #trailing>
@@ -195,6 +210,21 @@ function commitRename() {
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--border);
   list-style: none;
+}
+
+.vrow[data-focused='true'] {
+  /* "Edit variable" landed here: the border is inset so the row does not shift (TODO/ui-145). */
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding-right: var(--space-3);
+  padding-left: var(--space-3);
+}
+
+.vrow__editing {
+  margin: 0;
+  font-size: var(--text-size-xs);
+  font-weight: var(--weight-medium);
+  color: var(--accent);
 }
 
 .vrow__head,
