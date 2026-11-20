@@ -1113,7 +1113,7 @@ Judgment calls a scripted spec cannot make. The AI pictures were recorded with t
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Watch `ai-wing-airfoil.gif` and `ai-drawing-to-group.gif` cold: does a stranger understand what the Assistant did, and is the *Scripted* badge in `ai-chat-panel.png` explained well enough by the caption in `docs/ai-partner.md`? | OK | 2026-11-19 (`docs-037`): paragraph reworded, both GIFs re-recorded and captioned. Cold read by one fresh Sonnet agent given only the paragraph and frames of both GIFs (every 2 s, no repo access): CLEAR. It read the *Scripted* paragraph as plain (said *Scripted* could be taken for a mode; the *Your own chat will not have one* line covers that), saw the *Connected* line and the *Image sent* notice in the drawing movie, and read the tall tapered panel as the wing. Remaining nit, not fixed: the tailplane and fin are small in the wing frame and nothing on screen labels them; the caption names them and the movie now steps in on Home. |
-| 2 | `timeline-relink.gif` is 8 fps at 600 px to fit the size budget: is the amber `broken` chip and the Re-link press still readable? | Issue | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. At 500 px the amber chip text is ~5 px and on screen about one sampled frame; the chip reads *1 item built on Cube 1 no longer builds* with **Resolve…**, no Re-link press is visible. Filed `FIND-docs-036`. |
+| 2 | `timeline-relink.gif` is 8 fps at 600 px to fit the size budget: is the amber `broken` chip and the Re-link press still readable? | Moved | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. 2026-11-19 (`docs-038`): re-recorded with captions at the top of the 3D view (a caption names the broken step using the panel's own wording, *1 item built on Cube 1 no longer builds*) and `docs/timeline.md` now describes the Inspector box and its Resolve… button. Fresh Sonnet agent: PARTIAL leaning CLEAR. The story is followable from the captions; the History list is cropped at the bottom so the broken badge and reason text are unreadable. → `docs-039`. |
 
 ### build-005 — A reload picks up a new deploy, and an update banner (2026-10-17 11:20 UTC)
 
@@ -1672,7 +1672,7 @@ The tour spec asserts every step's end state, the guard confirms the README and 
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Watch `docs/media/tour.gif` at the size GitHub shows it in `README.md`: is each step (drop, select, Subtract, nudge, export) on screen long enough to follow, and is the hole readable at 640 px wide? | Issue | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. Each step is ~3 s on screen, but neither could see the hole in the result at 640 px and the Subtract press falls between sampled frames. Filed `FIND-docs-036`. |
+| 1 | Watch `docs/media/tour.gif` at the size GitHub shows it in `README.md`: is each step (drop, select, Subtract, nudge, export) on screen long enough to follow, and is the hole readable at 640 px wide? | Moved | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear (hole not visible at 640 px, Subtract press between frames). 2026-11-19 (`docs-038`): tour re-recorded (looks down onto the part and steps in, captions Subtract and the hole). One fresh Sonnet agent, frames every 1 s: PARTIAL. The hole is CLEAR (t=12 to 15) and the other steps follow; the Subtract press still falls between samples, and Nudge and Export have no caption. → `docs-039`. |
 
 ### sketch-007 — Snap new outlines to existing ones (2026-10-03 21:54)
 
@@ -1723,7 +1723,7 @@ The movies and stills are asserted, and scenario 1 plus the `core-021`/`core-022
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | Enlarge and Fit do not carry snapped parts with them: with a lug snapped to a plate's top, Enlarge Z +16 (and Fit Z 24) moved the plate's top to 16 and left the lug at Z 8, buried in the plate; typing the same size in the Inspector's Size field moves the lug up with it (`data-007`). `docs/resize-bisect.md` now says so and points to the Inspector. Decide whether Enlarge/Fit should follow too (a finding to file) or the page note is enough. | Owner | 2026-11-17 (`testing-033`): → `TODO/OWNER.md` Q40. Moved 2026-11-07 to `FIND-testing-033`: an owner decision, gathered with a drafted recommendation. |
-| 2 | Read `resize-fit.gif` and the Fit example cold: Keep aspect ratio applies the smallest ratio to all three axes, so X 60 to 30 takes Y and Z from 40 to 20. Does the second step read as "keeps its proportions", or does it look like Fit ignored the box? | Moved | 2026-11-17 owner (OWNER.md Q14): state the result (X 30, Y 20, Z 20) in the text and re-record the GIF so Y and Z update visibly → `docs-036`. |
+| 2 | Read `resize-fit.gif` and the Fit example cold: Keep aspect ratio applies the smallest ratio to all three axes, so X 60 to 30 takes Y and Z from 40 to 20. Does the second step read as "keeps its proportions", or does it look like Fit ignored the box? | Moved | 2026-11-17 owner (OWNER.md Q14): state the result (X 30, Y 20, Z 20) in the text and re-record the GIF so Y and Z update visibly. 2026-11-19 (`docs-038`): re-recorded with a caption printing the part's X, Y and Z after each Fit. Fresh Sonnet agent: UNCLEAR for "Y and Z visibly change": the captions say so, but the camera reframes between the two Fits so the pixels cannot be compared. → `docs-039`. |
 | 3 | `fillet-vs-chamfer.png` is orbited to about 71 degrees elevation so both rims show. Is the rounded rim on the left readable as a fillet at the size it appears on the page? | OK | 2026-11-14 (`testing-029` panel): A: clear. B: clear. The rounded rim reads as a soft band against the crisp bevel, though only by shading; a tighter crop would help. |
 
 ### docs-012 — Docs media for Group, Snap, Align and Mirror (2026-10-03 14:52)
@@ -1742,7 +1742,7 @@ The movies and stills are asserted, and scenarios 4 and 5 were driven by hand, s
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | Watch `docs/media/boolean-subtract-order.gif` and `boolean-subpart-operand.gif` once as a stranger: is it clear which solid is the base, and that the two orders give different results? | Issue | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. The base is named only in small grey text; the two results are never side by side and unlabelled. Filed `FIND-docs-036`. |
+| 1 | Watch `docs/media/boolean-subtract-order.gif` and `boolean-subpart-operand.gif` once as a stranger: is it clear which solid is the base, and that the two orders give different results? | Moved | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. 2026-11-19 (`docs-038`): both movies now carry a canvas caption naming the base; the order movie ends on a card showing the two results side by side at one camera angle. Fresh Sonnet agent: `boolean-subtract-order` CLEAR (base, cut and the two different results all readable); `boolean-subpart-operand` PARTIAL (base and result clear; the drill-in to the thread part has no caption and the groove is on the far side). → `docs-039`. |
 
 ### sketch-002 — Sketch vertex editing: move, add, delete points, Simplify, Convert to outline (2026-10-03 02:35)
 

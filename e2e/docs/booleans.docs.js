@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
+import { openApp, loadScene, startMovie, endMovie, shot, settle, setCaption } from './support.js'
 
 /**
  * Docs media for `docs/booleans.md` (`TODO/docs-011`): the Operations toolbar's
@@ -66,11 +66,13 @@ test.describe('docs media: booleans', () => {
   }
 
   /** Click the first body, Shift-click the second, assert the count and base/rest roles. */
-  const selectPair = async (page, first, second) => {
+  const selectPair = async (page, first, second, caption) => {
     await click(page, first)
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '1')
     await click(page, second, { shift: true })
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '2')
+    // A movie can name the base on the canvas: the toolbar's small grey text is not readable in a GIF.
+    if (caption) await setCaption(page, caption)
     await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-enabled', 'true')
     await expect(page.locator('[data-selection-role="base"]')).toHaveCount(1)
     await expect(page.locator('[data-selection-role="secondary"]')).toHaveCount(1)
@@ -100,6 +102,39 @@ test.describe('docs media: booleans', () => {
     expect(list[0].volume).toBeGreaterThan(0)
     await settle(page)
     return list[0]
+  }
+
+  /** A PNG data URL of the scene's middle (where the solids sit at the default camera), for the side-by-side card. */
+  const scenePicture = async (page) => {
+    const b = await page.getByTestId('viewport-canvas').boundingBox()
+    const png = await page.screenshot({
+      clip: { x: b.x + b.width * 0.26, y: b.y + b.height * 0.12, width: b.width * 0.46, height: b.height * 0.7 },
+    })
+    return `data:image/png;base64,${png.toString('base64')}`
+  }
+
+  /** Two results at the same camera angle, side by side, each named (`TODO/docs-038`). */
+  const showSideBySide = async (page, left, right) => {
+    await page.evaluate(
+      ({ left, right }) => {
+        const card = document.createElement('div')
+        card.id = 'docs-compare'
+        card.style.cssText =
+          'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:18px;padding:16px;border-radius:12px;' +
+          'background:rgba(20,20,24,.96);box-shadow:0 0 0 2px #ffc800;pointer-events:none;z-index:2147483646;'
+        for (const side of [left, right]) {
+          const fig = document.createElement('div')
+          fig.style.cssText = 'width:520px;color:#fff;font:600 24px/1.25 system-ui,sans-serif;text-align:center;'
+          const img = document.createElement('img')
+          img.src = side.src
+          img.style.cssText = 'width:520px;border-radius:8px;display:block;margin-bottom:10px;background:#fff;'
+          fig.append(img, document.createTextNode(side.text))
+          card.appendChild(fig)
+        }
+        document.body.appendChild(card)
+      },
+      { left, right },
+    )
   }
 
   /** Open History and assert the last row names both operands (core-036). */
@@ -165,26 +200,69 @@ test.describe('docs media: booleans', () => {
   })
 
   test('boolean-subtract-order', { tag: '@movie' }, async ({ page }) => {
+    // A screenshot taken while the screencast runs shrinks the recorded frames, so the two result
+    // pictures for the side-by-side card are taken first, in a pass that is not recorded.
+    // A separate browser context, so the second page does not restore the first one's autosaved project.
+    const { baseURL, colorScheme, deviceScaleFactor } = test.info().project.use
+    const prepContext = await page.context().browser().newContext({ baseURL, colorScheme, deviceScaleFactor, viewport: page.viewportSize() })
+    const prep = await prepContext.newPage()
+    await openScene(prep, 'cube-and-cylinder.ndjson')
+    await selectPair(prep, CUBE_SIDE, CYL_TOP)
+    await press(prep, 'operation-subtract')
+    await expectResult(prep, 'subtract')
+    await click(prep, { fx: 0.9, fy: 0.6 })
+    await expect(viewport(prep)).toHaveAttribute('data-selected-count', '0')
+    const pictureA = await scenePicture(prep)
+    await press(prep, 'undo-button')
+    await expect(viewport(prep)).toHaveAttribute('data-body-count', '2')
+    await click(prep, { fx: 0.9, fy: 0.6 })
+    await expect(viewport(prep)).toHaveAttribute('data-selected-count', '0')
+    await selectPair(prep, CYL_TOP, CUBE_SIDE)
+    await press(prep, 'operation-subtract')
+    await expectResult(prep, 'subtract')
+    await click(prep, { fx: 0.9, fy: 0.6 })
+    await expect(viewport(prep)).toHaveAttribute('data-selected-count', '0')
+    const pictureB = await scenePicture(prep)
+
+    await prepContext.close()
+
     await openScene(page, 'cube-and-cylinder.ndjson')
     await startMovie(page, 'boolean-subtract-order')
-    await selectPair(page, CUBE_SIDE, CYL_TOP)
+    await selectPair(page, CUBE_SIDE, CYL_TOP, 'Cube first: the cube is the base, the cylinder is cut out of it')
+    await page.waitForTimeout(1100)
     await press(page, 'operation-subtract')
     const cubeMinusCylinder = await expectResult(page, 'subtract')
-    await page.waitForTimeout(500)
+    await setCaption(page, 'Result: the cube with a round hole')
+    await click(page, { fx: 0.9, fy: 0.6 }) // empty space: clear the selection so the tint does not hide the hole
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
+    await page.waitForTimeout(1100)
+    await setCaption(page)
     await press(page, 'undo-button')
     await expect(viewport(page)).toHaveAttribute('data-body-count', '2')
-    await click(page, { fx: 0.9, fy: 0.6 }) // empty space: clear the selection
+    await click(page, { fx: 0.9, fy: 0.6 }) // clear any selection the undo restored
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
     // The same two solids, picked the other way round.
-    await selectPair(page, CYL_TOP, CUBE_SIDE)
+    await selectPair(page, CYL_TOP, CUBE_SIDE, 'Cylinder first: the cylinder is the base, the cube is cut out of it')
     await expect(page.getByTestId('operation-operand-base')).toHaveText('Cylinder 1')
+    await page.waitForTimeout(1100)
     await press(page, 'operation-subtract')
     const cylinderMinusCube = await expectResult(page, 'subtract')
+    await setCaption(page, 'Result: only the two ends of the cylinder are left')
+    await click(page, { fx: 0.9, fy: 0.6 })
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
+    await page.waitForTimeout(1100)
     // Order drove the result: these are two different solids, not one recorded twice.
     expect(cylinderMinusCube.bounds).not.toEqual(cubeMinusCylinder.bounds)
     expect(Math.abs(cylinderMinusCube.volume - cubeMinusCylinder.volume)).toBeGreaterThan(1000)
-    await page.waitForTimeout(500)
-    await endMovie(page, 'boolean-subtract-order', { fps: 10, width: 640 })
+    // Both results at the same camera angle, side by side.
+    await setCaption(page)
+    await showSideBySide(
+      page,
+      { src: pictureA, text: 'Cube first: a cube with a hole' },
+      { src: pictureB, text: 'Cylinder first: two cylinder ends' },
+    )
+    await page.waitForTimeout(3000)
+    await endMovie(page, 'boolean-subtract-order', { fps: 8, width: 640 })
   })
 
   test('boolean-intersect', { tag: '@movie' }, async ({ page }) => {
@@ -229,13 +307,17 @@ test.describe('docs media: booleans', () => {
     // The toolbar names the part it is about to use.
     await expect(page.getByTestId('operation-operands')).toHaveAttribute('data-subpart', 'true')
     await expect(page.getByTestId('operation-operand-rest')).toContainText('thread')
-    await page.waitForTimeout(500)
+    await setCaption(page, "The cube is the base: only the bolt's shaft is cut out of it")
+    await page.waitForTimeout(2200)
     await press(page, 'operation-subtract')
     const result = await expectResult(page, 'subtract')
+    await setCaption(page, "Result: a groove the shape of the shaft; the head was not used")
+    await click(page, { fx: 0.9, fy: 0.6 })
+    await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
     // Only the shaft was cut out: a groove, far less than the whole bolt's head-and-shaft envelope.
     expect(result.volume).toBeLessThan(64000)
     expect(result.volume).toBeGreaterThan(64000 - 3000)
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(2500)
     await endMovie(page, 'boolean-subpart-operand', { fps: 10, width: 640 })
   })
 

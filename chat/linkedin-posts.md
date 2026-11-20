@@ -5176,3 +5176,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 10 px overlap on phone-toolbar-chrome-fit before the margin, green after → this session; pair chromium-laptop + firefox-phone, 1323 passed, 0 failed → this session; cold-read verdicts → TODO/VERIFY.md ui-145.
 **To Add:** none
 ---
+
+## 2026-11-20T05:55:00Z — Captions on the canvas beat small text in a GIF
+
+**Post:** Two cold readers could not follow five of WarpCad's help movies. At the size a GIF is shown, the app's own labels are a few pixels tall: the base of a Subtract was named in small grey text, a "broken" chip lasted one sampled frame, and a Fit that shrinks Y and Z read as if nothing happened.
+
+The fix was to stop relying on the app's chrome. A caption helper now pins large text to the 3D view, and each movie says what is happening as it happens. The tour looks down onto the part so the hole shows. The Subtract-order movie names the base each time and ends on the two results side by side at one camera angle; those pictures are taken in an unrecorded pass, because a screenshot during a screen recording shrinks its frames.
+
+A fresh reader then rated the order movie clear and four others still partial: the camera reframes in the Fit movie, the Subtract press falls between samples, a History list is cropped. I filed those rather than call them done. Twenty-six GIFs changed (four specs, light and dark), converted through a scoped folder so no other movie was touched.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the readers' complaints → TODO/VERIFY.md docs-019 #1, docs-020 #2, docs-011 #1, docs-013 #2; 26 GIFs changed and no others → git show --stat this commit; verdicts and remainders → VERIFY rows and TODO/FIND-docs-039.
+**To Add:** none
+---

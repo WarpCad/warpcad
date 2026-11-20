@@ -3560,3 +3560,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** pair chromium-laptop + firefox-phone, 1323 passed, 0 failed; new specs on nine projects → this session; cold-read verdicts → TODO/VERIFY.md ui-145.
 **To Add:** none
 ---
+
+## 2026-11-20T05:55:00Z — WarpCad's docs movies now say what they show
+
+**Post:** Two cold readers could not follow five of WarpCad's help movies: no visible hole, a base named in tiny grey text, Y and Z changes you could not see. I re-recorded them with big on-canvas captions, and the Subtract-order one ends on both results side by side. A fresh reader rated that one clear and still found four partial. Those are filed. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two readers unclear → TODO/VERIFY.md docs-019 #1, docs-020 #2, docs-011 #1, docs-013 #2 (testing-029); 26 GIFs re-recorded, docs-media spec green, pair run green → this session; fresh-agent verdicts → same VERIFY rows and TODO/FIND-docs-039.
+**To Add:** none
+---

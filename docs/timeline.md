@@ -255,7 +255,9 @@ the X arrow. The chamfer, now step 3, turns amber and `broken`. Select that row 
 **Re-link to the moved step**; the amber label goes. Press **Roll forward** on the strip:
 the chamfered cube comes back at its new position, with the sphere.
 
-![Rolling back to the cube, moving it, the chamfer row going amber and broken, Re-link to the moved step, then Roll forward: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
+The movie captions each beat. When the chamfer breaks, the Inspector's amber box also reads *1 item built on Cube 1 no longer builds* with a **Resolve…** button; the row's own `broken` label and the **Re-link to the moved step** button are in the History panel below it.
+
+![Rolling back to the cube, moving it, the chamfer row going amber and broken (captioned), Re-link to the moved step, then Roll forward: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
 
 The button is offered for a step that follows a body which was **moved, resized or
 otherwise edited** while you were rolled back. It covers steps that act on one body

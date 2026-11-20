@@ -115,9 +115,9 @@ that names both shapes:
 
 **Order matters for Subtract.** Here the same cube and cylinder are subtracted twice, picked in
 opposite orders. Cube first leaves the cube with a hole; cylinder first leaves what is left of
-the cylinder, with the cube bitten out of it:
+the cylinder, with the cube bitten out of it. The movie names the base on the canvas each time and ends with the two results side by side at the same camera angle:
 
-![The same cube and cylinder subtracted in both orders, giving two different results](./media/boolean-subtract-order.gif)
+![The same cube and cylinder subtracted in both orders: Cube first gives a cube with a round hole, Cylinder first leaves two cylinder ends; the two results end side by side](./media/boolean-subtract-order.gif)
 
 ## Cutting with just one part of a multi-part shape
 
@@ -171,7 +171,7 @@ The same idea with a bolt: click the bolt twice to reach its shaft (the `thread`
 the bolt out of the selection, add the cube, then add the bolt back. The toolbar names
 `Bolt 1 › thread`, and Subtract cuts a groove the size of the shaft only:
 
-![Drilling into a bolt's shaft, making it the second operand and subtracting it from a cube](./media/boolean-subpart-operand.gif)
+![Drilling into a bolt's shaft, making it the second operand and subtracting it from a cube: a caption says the cube is the base and only the shaft is cut out, and the result is a groove the shape of the shaft](./media/boolean-subpart-operand.gif)
 
 ### A worked example: an Ethernet port opening
 

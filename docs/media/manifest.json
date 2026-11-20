@@ -128,44 +128,44 @@
   "boolean-bolt-hole.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 608691,
-    "seconds": 7.6
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 656055,
+    "seconds": 8.8
   },
   "boolean-intersect.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 637318,
-    "seconds": 8.9
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 579789,
+    "seconds": 8.7
   },
   "boolean-subpart-operand.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 820766,
-    "seconds": 11.7
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 1062889,
+    "seconds": 16.1
   },
   "boolean-subtract.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 762243,
-    "seconds": 10.3
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 684850,
+    "seconds": 9.7
   },
   "boolean-union.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 774187,
-    "seconds": 10.3
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 703563,
+    "seconds": 10
   },
   "boolean-subtract-order.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 1146836,
-    "seconds": 14.1
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 1331758,
+    "seconds": 22.01
   },
   "group-combine.gif": {
     "spec": "e2e/docs/groups.docs.js",
@@ -212,23 +212,23 @@
   "resize-snapped-dependents.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 617886,
-    "seconds": 8.2
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 530228,
+    "seconds": 7
   },
   "resize-enlarge.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 1070507,
-    "seconds": 12.9
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 716946,
+    "seconds": 9.9
   },
   "resize-fit.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 1151750,
-    "seconds": 16.2
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 1173250,
+    "seconds": 17
   },
   "fillet-operation.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -247,16 +247,16 @@
   "bisect-axis.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 995789,
-    "seconds": 12.3
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 686711,
+    "seconds": 9.1
   },
   "bisect-angled.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 1061093,
-    "seconds": 13.6
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 762568,
+    "seconds": 10.3
   },
   "bom-updates.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -380,9 +380,9 @@
   "tour.gif": {
     "spec": "e2e/docs/getting-started.docs.js",
     "theme": "light",
-    "specHash": "9f2665ace1bd53a9e8923698f38df7fbb0b23a71d50d59fa13f08d09cbde6a3b",
-    "bytes": 1734129,
-    "seconds": 23.7,
+    "specHash": "43daeff957bb2edcfd19a9a79f5f8d5820f280e3123554d58cf89da39ca46fbf",
+    "bytes": 2066257,
+    "seconds": 23.63,
     "maxSeconds": 30
   },
   "sketch-snap.gif": {
@@ -514,9 +514,9 @@
   "timeline-relink.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "light",
-    "specHash": "7672053ddcd926612ddfa27c7ec693b632111a79f2755b3750b7fe6e84fb6ecd",
-    "bytes": 1683958,
-    "seconds": 20.26
+    "specHash": "116755c2822e4e026daff00e4eb4495ccd2c6402f00730e088dfe2913d47eeb6",
+    "bytes": 1732877,
+    "seconds": 20.5
   },
   "window-shrink.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",
@@ -570,16 +570,16 @@
   "bisect-angled.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 1056089,
-    "seconds": 12
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 895004,
+    "seconds": 10.4
   },
   "bisect-axis.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 813884,
-    "seconds": 11
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 827718,
+    "seconds": 9.5
   },
   "bom-updates.dark.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -591,44 +591,44 @@
   "boolean-bolt-hole.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 791476,
-    "seconds": 8.2
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 670866,
+    "seconds": 8.1
   },
   "boolean-intersect.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 640331,
-    "seconds": 8.6
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 655465,
+    "seconds": 8.4
   },
   "boolean-subpart-operand.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 1206992,
-    "seconds": 12.5
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 1234854,
+    "seconds": 15.3
   },
   "boolean-subtract-order.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 1307973,
-    "seconds": 15.9
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 1509624,
+    "seconds": 21.76
   },
   "boolean-subtract.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 824315,
-    "seconds": 10.4
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 702865,
+    "seconds": 9.3
   },
   "boolean-union.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "1b2ee039d334460d9981c4ad1eaff85226f0407c12d9d6ac52baabf4b27a9def",
-    "bytes": 749675,
-    "seconds": 10.3
+    "specHash": "6a10278421037638d2c2ba2610e691b54c82a0a1453e8a15e37aac5cd9ead21f",
+    "bytes": 735157,
+    "seconds": 9.1
   },
   "chamfer-operation.dark.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -878,23 +878,23 @@
   "resize-enlarge.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 1187908,
-    "seconds": 12.3
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 851473,
+    "seconds": 10
   },
   "resize-fit.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 1267628,
-    "seconds": 14.9
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 1296974,
+    "seconds": 17.2
   },
   "resize-snapped-dependents.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "5a1a2ed3073ea0830edaa27227ecab7f1e916992a75d6b0f0088fe1d9bd48183",
-    "bytes": 657372,
-    "seconds": 7.7
+    "specHash": "38b8f35021bd52cc58ce03dea39369628772cb2079f6ff9a2decb0e9bad7e663",
+    "bytes": 718936,
+    "seconds": 8.2
   },
   "rpi-mounting-holes.dark.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
@@ -1025,9 +1025,9 @@
   "tour.dark.gif": {
     "spec": "e2e/docs/getting-started.docs.js",
     "theme": "dark",
-    "specHash": "9f2665ace1bd53a9e8923698f38df7fbb0b23a71d50d59fa13f08d09cbde6a3b",
-    "bytes": 2213687,
-    "seconds": 24.4,
+    "specHash": "43daeff957bb2edcfd19a9a79f5f8d5820f280e3123554d58cf89da39ca46fbf",
+    "bytes": 2048165,
+    "seconds": 23.26,
     "maxSeconds": 30
   },
   "undo-param-edit.dark.gif": {
@@ -1075,9 +1075,9 @@
   "timeline-relink.dark.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "dark",
-    "specHash": "7672053ddcd926612ddfa27c7ec693b632111a79f2755b3750b7fe6e84fb6ecd",
-    "bytes": 1808798,
-    "seconds": 20.63
+    "specHash": "116755c2822e4e026daff00e4eb4495ccd2c6402f00730e088dfe2913d47eeb6",
+    "bytes": 2070077,
+    "seconds": 20.5
   },
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",

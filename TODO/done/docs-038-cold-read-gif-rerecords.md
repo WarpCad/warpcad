@@ -6,8 +6,11 @@ priority: low
 model: sonnet
 milestone: none — Findings table, split from docs-036 on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+
+> **Shipped (2026-11-19).** All four specs gained large on-canvas captions (`setCaption` in `e2e/docs/support.js`) and every movie of those specs was re-recorded with its dark twin through a scoped moviesDir (tour 2, timeline-relink 2, booleans 12, resize-bisect 10 GIFs); `docs:gifs` and `docs:media` were not run. The tour looks down onto the part and steps in to show the hole; the relink movie captions each beat in the panel's own words; the Subtract-order movie names the base each time and ends on the two results side by side (pictures taken in an unrecorded pass, because a screenshot during a screencast shrinks its frames); resize-fit prints X, Y and Z after each Fit. Cold read (one fresh agent): `boolean-subtract-order` CLEAR, tour, timeline-relink and `boolean-subpart-operand` PARTIAL, resize-fit UNCLEAR. The remainders are filed as `docs-039`.
 
 ## Problem
 

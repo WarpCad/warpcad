@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
+import { openApp, loadScene, startMovie, endMovie, shot, settle, setCaption } from './support.js'
 
 /**
  * Docs media for `docs/resize-bisect.md` (`TODO/docs-013`): Enlarge, Fit (with and without
@@ -159,8 +159,12 @@ test.describe('docs media: resize and bisect', () => {
   test('resize-fit', { tag: '@movie' }, async ({ page }) => {
     await openOne(page)
     const before = (await bodies(page))['cube-1']
+    /** The caption reads the kernel's own measurement, so X, Y and Z on screen are the real sizes (`TODO/docs-038`). */
+    const sizeCaption = (lead, size) => setCaption(page, `${lead}: X ${Math.round(size[0])}  Y ${Math.round(size[1])}  Z ${Math.round(size[2])} mm`)
     await startMovie(page, 'resize-fit')
     await selectOne(page, CUBE_FRONT, 'cube-1')
+    await sizeCaption('Start', before.size)
+    await page.waitForTimeout(1400)
     // 1. Without keep-aspect: each axis goes to exactly the size typed, so only the X stretch shows.
     let popover = await openPopover(page, 'operation-fit', 'modify.fit')
     await expect(page.getByTestId('resize-fit-keep-aspect')).not.toBeChecked()
@@ -171,6 +175,8 @@ test.describe('docs media: resize and bisect', () => {
     expect(stretched.size[0]).toBeCloseTo(60, 1)
     expect(stretched.size[1]).toBeCloseTo(40, 1)
     expect(stretched.size[2]).toBeCloseTo(40, 1)
+    await sizeCaption('Fit X to 60, Keep aspect off: only X changes', stretched.size)
+    await page.waitForTimeout(2200)
     // 2. With keep-aspect: ask for X = 30 and the other two axes take the same ratio
     // (the smallest, 30/60), so the 60 x 40 x 40 block keeps its proportions.
     popover = await openPopover(page, 'operation-fit', 'modify.fit')
@@ -186,7 +192,8 @@ test.describe('docs media: resize and bisect', () => {
     expect(kept.size[0]).toBeCloseTo(30, 1)
     expect(kept.size[1]).toBeCloseTo(20, 1)
     expect(kept.size[2]).toBeCloseTo(20, 1)
-    await page.waitForTimeout(400)
+    await sizeCaption('Fit X to 30, Keep aspect on: Y and Z follow', kept.size)
+    await page.waitForTimeout(2600)
     await endMovie(page, 'resize-fit', { fps: 10, width: 640 })
   })
 

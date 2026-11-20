@@ -41,7 +41,9 @@ factor, so the shape keeps its proportions. In the example, the cube is 40 mm on
 60 leaves Y and Z at 40. Then X 60 → 30 with **Keep aspect ratio** makes Y and Z 40 → 20, because
 Keep aspect ratio applies the smallest ratio of the three to every axis.
 
-![Fit twice: first X alone to 60 mm, then X to 30 mm with Keep aspect ratio ticked](./media/resize-fit.gif)
+The movie prints the part's size on screen after each Fit, so you can watch Y and Z follow: X 60 Y 40 Z 40, then X 30 Y 20 Z 20.
+
+![Fit twice: first X alone to 60 mm (X 60, Y 40, Z 40), then X to 30 mm with Keep aspect ratio ticked (X 30, Y 20, Z 20)](./media/resize-fit.gif)
 
 ## A worked example: Bisect
 

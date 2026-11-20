@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { openApp, startMovie, endMovie, shot, settle } from './support.js'
+import { openApp, startMovie, endMovie, shot, settle, setCaption } from './support.js'
 
 /**
  * Docs media for `docs/getting-started.md` and the README hero (`TODO/docs-019`): the whole
@@ -157,7 +157,10 @@ test.describe('docs media: getting started tour', () => {
     if (upTo === 2) return {}
 
     // Step 3: Subtract. One body remains, with a hole through it.
-    if (dwell) await page.waitForTimeout(500)
+    if (dwell) {
+      await setCaption(page, 'Press Subtract: the cylinder is cut out of the cube')
+      await page.waitForTimeout(1200)
+    }
     await press(page, 'operation-subtract', dwell)
     await expect(viewport(page)).toHaveAttribute('data-body-count', '1')
     const [result] = await bodies(page)
@@ -165,6 +168,18 @@ test.describe('docs media: getting started tour', () => {
     expect(result.volume).toBeLessThan(CUBE_VOLUME - 1000)
     expect(result.volume).toBeCloseTo(CUBE_VOLUME - HOLE_VOLUME, -3)
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '1')
+    if (dwell) {
+      // `TODO/docs-038`: look down onto the part and step in, so the hole is plain at GIF size, then hold on it.
+      await setCaption(page, 'One solid, with a round hole through it')
+      for (const [testId, times] of [['nav-step-up', 2], ['nav-zoom-in', 2]]) {
+        for (let i = 0; i < times; i++) {
+          await page.getByTestId(testId).click()
+          await page.waitForTimeout(300)
+        }
+      }
+      await page.waitForTimeout(2200)
+      await setCaption(page)
+    }
     if (upTo === 3) return {}
 
     // Step 4: nudge the result along X with the gizmo.
@@ -200,7 +215,7 @@ test.describe('docs media: getting started tour', () => {
     await expect(page.getByTestId('export-popover')).toBeVisible()
     await expect(page.getByTestId('export-format-stl')).toBeChecked()
     await expect(page.getByTestId('export-summary')).toContainText('subtract-1.stl')
-    if (dwell) await page.waitForTimeout(700)
+    if (dwell) await page.waitForTimeout(400)
     if (hooks.onDownload) {
       const downloadEvent = page.waitForEvent('download')
       await press(page, 'export-commit', dwell)
@@ -253,9 +268,9 @@ test.describe('docs media: getting started tour', () => {
     await expect(viewport(page)).toHaveAttribute('data-body-count', '0')
     await startMovie(page, 'tour')
     let download = null
-    await tour(page, 5, 650, { onDownload: (d) => (download = d) })
-    await page.waitForTimeout(1200)
-    await endMovie(page, 'tour', { fps: 10, width: 528, maxSeconds: 30 })
+    await tour(page, 5, 500, { onDownload: (d) => (download = d) })
+    await page.waitForTimeout(800)
+    await endMovie(page, 'tour', { fps: 8, width: 520, maxSeconds: 30 })
     expect(download).not.toBeNull()
     await settle(page)
   })

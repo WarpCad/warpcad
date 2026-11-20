@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { endMovie, humanDrag, openApp, startMovie } from './support.js'
+import { endMovie, humanDrag, openApp, setCaption, startMovie } from './support.js'
 
 /**
  * Docs movie for "When the move was yours: Re-link to the moved step" in `docs/timeline.md`
@@ -39,6 +39,9 @@ test.describe('docs media: timeline re-link', () => {
     )
   }
 
+  /** The bottom of this movie shows the History panel, so its captions sit at the top of the 3D view. */
+  const caption = (page, text) => setCaption(page, text, { at: 'top' })
+
   test('timeline-relink', { tag: '@movie' }, async ({ page }) => {
     await openApp(page)
     const viewport = page.getByTestId('viewport')
@@ -55,8 +58,11 @@ test.describe('docs media: timeline re-link', () => {
     await expect(page.getByTestId('fillet-chamfer-popover')).toBeHidden()
     await dropFromLibrary(page, 'primitive.sphere', { fx: 0.7, fy: 0.5 })
     await expect(viewport).toHaveAttribute('data-body-count', '2')
+    await caption(page, 'A cube with a chamfer on its top, and a sphere')
+    await page.waitForTimeout(700)
 
     // Roll back to the bare cube, so the chamfer is inactive tail.
+    await caption(page, 'Roll back to step 1, the bare cube')
     await press(page, 'timeline-toggle')
     await expect(page.getByTestId('timeline-panel')).toBeVisible()
     await press(page, 'timeline-row-1')
@@ -64,6 +70,7 @@ test.describe('docs media: timeline re-link', () => {
     await expect(page.getByTestId('timeline-row-2')).toHaveAttribute('data-active', 'false')
 
     // Move the cube while rolled back: the chamfer now points at a superseded step.
+    await caption(page, 'Move the cube: Position X = 60')
     const cubeRow = page.locator('[data-testid^="objects-row-"]', { hasText: 'Cube 1' }).first()
     await cubeRow.click()
     const field = page.getByTestId('inspector-position-x')
@@ -74,25 +81,33 @@ test.describe('docs media: timeline re-link', () => {
     await page.keyboard.type('60', { delay: 200 })
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
+    await caption(page, 'The chamfer (step 3) is now broken: 1 item built on Cube 1 no longer builds')
+    await page.waitForTimeout(1800)
 
     // Select the broken row: the reason and the offered button.
     await press(page, 'timeline-row-3')
+    await caption(page, 'Select step 3: the reason is printed and Re-link to the moved step is offered')
     await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
     await expect(page.getByTestId('timeline-relink')).toBeEnabled()
-    await page.waitForTimeout(900)
+    await page.waitForTimeout(1800)
+    await caption(page, 'Press Re-link to the moved step')
     await press(page, 'timeline-relink')
     await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)
-    await page.waitForTimeout(500)
+    await caption(page, 'The broken label is gone')
+    await page.waitForTimeout(900)
 
     // Roll forward: chamfered cube (moved) and sphere are both back.
+    await caption(page, 'Roll forward: the moved, chamfered cube and the sphere are back')
     await press(page, 'timeline-roll-forward')
     await expect(page.getByTestId('timeline-rollback-strip')).toHaveCount(0)
     await expect(viewport).toHaveAttribute('data-body-count', '2')
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)
     const cube = page.locator('[data-testid="scene-bodies"] li', { hasText: 'Cube 1' }).first()
     await expect(cube).toHaveAttribute('data-body-center', /^60(\.0+)?,/)
-    await page.waitForTimeout(1200)
-    await endMovie(page, 'timeline-relink', { fps: 8, width: 500 })
+    await page.waitForTimeout(900)
+    await setCaption(page) // the caption would hide the part: end on the result itself
+    await page.waitForTimeout(1300)
+    await endMovie(page, 'timeline-relink', { fps: 6, width: 560 })
   })
 })

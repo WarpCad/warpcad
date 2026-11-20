@@ -185,8 +185,40 @@ export async function endMovie(page, name, gif = {}) {
   await page.waitForTimeout(300)
   await page.screencast.stop()
   await page.evaluate(() => document.getElementById('docs-cursor')?.remove())
+  await setCaption(page)
   const spec = test.info().file.replace(`${process.cwd()}/`, '')
   writeFileSync(join(MOVIES_DIR, `${name}.json`), JSON.stringify({ name, spec, theme: themeSuffix() ? 'dark' : 'light', trim: 0, ...gif }))
+}
+
+/**
+ * Show (or, with no text, remove) a large caption pinned to the bottom of the 3D view (clear of the toolbars above it). A movie uses it to
+ * name what the small on-screen text cannot at GIF size (`TODO/docs-038`): which solid is the base, what
+ * a part's size now reads. Docs runs only; the overlay ignores the pointer and is removed by `endMovie`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string | null} [text]
+ * @param {{ at?: 'bottom' | 'top' }} [options] `top` sits just under the toolbars, for a movie whose bottom edge shows a panel
+ */
+export async function setCaption(page, text = null, { at = 'bottom' } = {}) {
+  await page.evaluate(([t, where]) => {
+    let el = document.getElementById('docs-caption')
+    if (!t) {
+      el?.remove()
+      return
+    }
+    if (!el) {
+      el = document.createElement('div')
+      el.id = 'docs-caption'
+      el.style.cssText =
+        'position:fixed;left:42%;transform:translateX(-50%);max-width:46vw;padding:10px 20px;border-radius:10px;' +
+        'background:rgba(20,20,24,.92);color:#fff;font:600 26px/1.3 system-ui,sans-serif;text-align:center;' +
+        'box-shadow:0 0 0 2px #ffc800;pointer-events:none;z-index:2147483646;'
+      document.body.appendChild(el)
+    }
+    el.style.bottom = where === 'top' ? 'auto' : '64px'
+    el.style.top = where === 'top' ? '270px' : 'auto'
+    el.textContent = t
+  }, [text, at])
 }
 
 /**
