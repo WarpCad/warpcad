@@ -75,7 +75,10 @@ test.describe('nav chrome vs scale readout (TODO/ui-124)', () => {
       const m = await boxes(page)
       for (let i = 0; i < IDS.length; i++) {
         for (let j = i + 1; j < IDS.length; j++) {
-          expect(intersects(m[IDS[i]], m[IDS[j]]), `${IDS[i]} over ${IDS[j]} at ${width}px`).toBe(false)
+          expect(
+            intersects(m[IDS[i]], m[IDS[j]]),
+            `${IDS[i]} over ${IDS[j]} at ${width}px: ${IDS[i]} ${JSON.stringify(m[IDS[i]])}, ${IDS[j]} ${JSON.stringify(m[IDS[j]])}`,
+          ).toBe(false)
         }
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), `sideways scroll at ${width}px`).toBe(false)
