@@ -5244,3 +5244,18 @@ Built with Claude Code, reviewed by me.
 **Evidence:** wrong-cap rate 47 of 150 before, 2 of 150 after → `e2e/orientation-tap.e2e.js` runs this session (chromium-phone before via a throwaway copy of the spec; after on chromium-phone and webkit-phone, seed 134, sigma 3.5 mm); 23 px cap spacing and 22-35 % earlier measurement → `TODO/done/ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md`; tablet dial unchanged → `e2e/orientation-tap.e2e.js` tablet runs green on all touch projects
 **To Add:** `docs/screenshots/orientation-picker.png`
 ---
+
+## 2026-11-20T08:05:00Z — Real 44 px buttons, and finding the 14 px somewhere else
+
+**Post:** WarpCad's Orbit, Pan and Select buttons sit in a small cluster at the bottom of a phone screen. They were 30 px tall, and an earlier fix gave them an invisible hit area that reached further, which turns "hit nothing" taps into hits but cannot stop a tap spilling onto the neighbouring button. I simulated 400 fingertip taps per button (a seeded Gaussian, sigma 3.5 mm): the middle button sent 7 % of them to a neighbour, against a target of 2 %.
+
+Real height was the answer, but 14 px more cluster height collided with two other budgets, one of which keeps the Operations toolbar clear of the cluster to the pixel. The 14 px came back from the toolbar itself: on a phone the compact orientation gizmo needs a 150 px reserve, not the 184 px the toolbar assumed, so its buttons now wrap five to a row and it loses a whole row. The buttons are now 44 px tall with 12 px between them (6 px still left the middle one at 3.75 %), and the worst button sends 1.5 % of taps to a neighbour.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** wrong-control rate (400 taps per button, seed 149, sigma 3.5 mm, chromium-phone) Orbit 2 %, Pan 7.25 %, Select 4.5 %, gear 1.5 % before; Orbit 0.5 %, Pan 1.25 %, Select 1.5 %, gear 1 % after → `e2e/nav-chrome-tap.e2e.js`; painted heights → `e2e/viewport-scaffold.e2e.js`; toolbar clear of the chrome → `e2e/phone-toolbar-chrome-fit.e2e.js` and `e2e/panel-tiers.e2e.js`, all nine projects; screenshot → `docs/screenshots/nav-chrome-open-phone.png`
+**To Add:** `docs/screenshots/nav-chrome-open-phone.png`
+---

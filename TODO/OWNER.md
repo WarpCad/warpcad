@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 96 now (Q16-Q111; Q94-Q111 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 97 now (Q16-Q112; Q94-Q112 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q112 · May the navigation chrome's mode buttons be 44 px tall with 12 px gaps, and the phone's Operations toolbar one column wider?
+
+**Question:** `ui-149` makes Orbit, Pan, Select and the gear a real 44 px tall with 12 px between them, so a fingertip scattered around one fires a different control on 0.5 to 1.5 % of taps (it was 1.5 to 7 %; the aim is 2 %). The chrome is 14 px taller and about 20 px wider at 390 px (178 by 211, was 164 by 189 to 196). To keep the Operations toolbar clear of it (`ui-043`), the toolbar at phone width now reserves 150 px for the 106 px gizmo instead of 184 px, so it is 216 px wide with five buttons to a row and three rows instead of four. The `ui-084` pad limits moved from 166 by 196 to 179 by 212. Keep that?
+
+**Background:** Assumed yes. The finding authorised moving the `ui-084` limits and asked for the height to be found elsewhere; the toolbar's extra width still ends about 50 px short of the gizmo. A 6 px gap left the middle buttons at 3.75 to 4.75 % wrong, so 12 px was needed.
+
+**Options:**
+1. **Keep the 44 px row and the wider toolbar (Recommended)**: meets the 2 % aim with every budget green.
+2. **Go back to 30 px buttons with the invisible hit area**: shorter cluster, 4 to 8 % wrong taps.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** the 44 px row stands.
+
+**Answer:** question
 
 #### Q111 · On a phone, should a tap on the orientation triad open a big view picker?
 

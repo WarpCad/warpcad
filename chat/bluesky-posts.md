@@ -3600,3 +3600,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** wrong-cap rate 47 of 150 before, 2 of 150 after → `e2e/orientation-tap.e2e.js` runs this session (chromium-phone before via a throwaway copy of the spec; after on chromium-phone and webkit-phone, seed 134, sigma 3.5 mm); 23 px cap spacing and 22-35 % earlier measurement → `TODO/done/ui-148-phone-orientation-caps-overlap-and-miss-on-touch.md`; tablet dial unchanged → `e2e/orientation-tap.e2e.js` tablet runs green on all touch projects
 **To Add:** `docs/screenshots/orientation-picker.png`
 ---
+
+## 2026-11-20T08:05:00Z — WarpCad's phone mode buttons: 44 px tall, 12 px apart
+
+**Post:** WarpCad's Orbit, Pan and Select buttons were 30 px tall on a phone. With simulated fingertip scatter, 4 to 7 % of taps on the middle button fired its neighbour. Now they are 44 px tall with 12 px gaps: 1.5 % at worst. The 14 px came from the toolbar above, not the sheets below. #CAD #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** wrong-control rate (400 taps per button, seed 149, sigma 3.5 mm, chromium-phone) Orbit 2 %, Pan 7.25 %, Select 4.5 %, gear 1.5 % before; Orbit 0.5 %, Pan 1.25 %, Select 1.5 %, gear 1 % after → `e2e/nav-chrome-tap.e2e.js`; painted heights → `e2e/viewport-scaffold.e2e.js`; toolbar clear of the chrome → `e2e/phone-toolbar-chrome-fit.e2e.js` and `e2e/panel-tiers.e2e.js`, all nine projects; screenshot → `docs/screenshots/nav-chrome-open-phone.png`
+**To Add:** `docs/screenshots/nav-chrome-open-phone.png`
+---

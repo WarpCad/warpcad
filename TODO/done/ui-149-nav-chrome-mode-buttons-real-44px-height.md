@@ -6,8 +6,12 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, split from ui-135 on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+## What shipped (2026-11-20)
+
+The mode row is a real 44 px tall (`--tap`) at every width, the invisible `::before` hit extension is gone, and the gaps are 12 px (not 6): at 6 px with real height the middle button still sent 3.75 % and Select 4.75 % of scatter taps onto a neighbour, and 12 px took every control to 1.5 % or less (Orbit 0.5 %, Pan 1.25 %, Select 1.5 %, gear 1 %, 400 taps each, sigma 13.2 px, Chromium 390x844). The 14 px of height `ui-043` needed came from the Operations toolbar rather than the chrome: at 390 px the compact gizmo is 106 px wide, so its reserve is 150 px, not the full tier's 184 px, and the toolbar wraps five buttons to a row (216 px wide, three rows instead of four, 40 px shorter). The `ui-084` limits moved to what is now measured: pad 178 tall (budget 179) and 211 wide (budget 212), the phone toolbar 216 wide. New spec `e2e/nav-chrome-tap.e2e.js` holds the scatter at 2 %; `viewport-scaffold.e2e.js` asserts the painted heights.
 
 ## Problem
 

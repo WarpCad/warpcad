@@ -105,8 +105,9 @@ test.describe('the panel tiers, swept across widths (TODO/ui-084)', () => {
       if (expected.chromeTier === 'compact') {
         expect(m.gizmo?.width ?? 999, `compact gizmo width ${at}`).toBeLessThanOrEqual(108)
         expect(m.gizmo?.height ?? 999, `compact gizmo height ${at}`).toBeLessThanOrEqual(142)
-        expect(m.nav?.height ?? 999, `compact pad height ${at}`).toBeLessThanOrEqual(166)
-        expect(m.nav?.width ?? 999, `compact pad width ${at}`).toBeLessThanOrEqual(196)
+        // `TODO/ui-149`: 166 and 196 before the mode row became a real 44px tall (measured 178) with 12px gaps (measured 211).
+        expect(m.nav?.height ?? 999, `compact pad height ${at}`).toBeLessThanOrEqual(179)
+        expect(m.nav?.width ?? 999, `compact pad width ${at}`).toBeLessThanOrEqual(212)
       } else {
         expect(m.gizmo?.width ?? 0, `full gizmo width ${at}`).toBeGreaterThanOrEqual(128)
         expect(m.nav?.height ?? 0, `full pad height ${at}`).toBeGreaterThanOrEqual(186)
@@ -740,13 +741,15 @@ test.describe('snapshots at the three reference viewports (TODO/ui-084)', () => 
       expect(m.rail).toBe(null)
       expect(m.gizmo?.width ?? 0).toBeCloseTo(106, 0)
       expect(m.gizmo?.height ?? 0).toBeCloseTo(138, 0)
-      expect(m.nav?.height ?? 0).toBeCloseTo(164, 0)
-      expect(m.nav?.width ?? 0).toBeGreaterThan(188)
-      expect(m.nav?.width ?? 0).toBeLessThan(196)
+      // `TODO/ui-149`: 164 x 189-196 before the mode row went to a real 44px height with 12px gaps
+      // (14px taller, ~20px wider; `ui-043`'s 14px came back from the Operations toolbar instead).
+      expect(m.nav?.height ?? 0).toBeCloseTo(178, 0)
+      expect(m.nav?.width ?? 0).toBeGreaterThan(205)
+      expect(m.nav?.width ?? 0).toBeLessThan(217)
       expect(m.library?.height ?? 0).toBeCloseTo(45, 0)
       expect(m.library?.width ?? 0).toBeCloseTo(390, 0)
-      // The toolbar keeps the 184px gizmo reserve at phone width: 390 − 24 − 184.
-      expect(m.toolbar?.width ?? 0).toBeCloseTo(182, 0)
+      // `TODO/ui-149`: the toolbar's reserve at phone width is the compact gizmo's 150px, not 184px: 390 − 24 − 150.
+      expect(m.toolbar?.width ?? 0).toBeCloseTo(216, 0)
       // Phone keeps its rows of icons; it never adopts the group launchers (`TODO/ui-082`).
       await expect(page.getByTestId('operations-toolbar')).toHaveAttribute('data-ops-tier', 'icons')
       await expect(page.locator('[data-testid^="ops-group-"]')).toHaveCount(0)

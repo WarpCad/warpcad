@@ -2698,6 +2698,21 @@ onBeforeUnmount(() => closeGroup())
   }
 
   /*
+   * `TODO/ui-149`: the navigation chrome's mode row is a real 44px tall now (14px taller than the
+   * 30px it was), and `ui-043` budgets this toolbar against the chrome to the pixel. The 14px comes
+   * from here: at 390px the compact gizmo (106px, 8px in from the right edge) needs a 150px reserve,
+   * not the full tier's 184px, so the buttons wrap five to a row (216px wide) instead of four. The
+   * 15 icon buttons then fit in three rows instead of four, a 40px saving, and the toolbar still ends
+   * about 50px short of the gizmo's left edge. Phone widths only (the 480px the chrome's own compact
+   * form uses): the tablet's pane keeps the `--layout-gizmo-reserve` rules above.
+   */
+  @media (max-width: 480px) {
+    .ops:not([data-ops-tier='labels']) {
+      max-width: calc(100% - 24px - 150px);
+    }
+  }
+
+  /*
    * The badge's disabled-state legend swaps to its short form here
    * (`TODO/ui-043`) — see `DISABLED_HINT_SHORT`'s own script-block comment. Since
    * `TODO/ui-079` that swap is the icons tier's rule (above), which phone is always in.

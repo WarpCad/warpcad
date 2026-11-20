@@ -937,12 +937,14 @@ test('the overlays stay on screen and tappable, and the page never scrolls sidew
   }
   // TODO/ui-135: the mode row is full tap size too, with 6 px between neighbours (the cluster's width is budgeted, ui-084).
   const modeBoxes = []
-  for (const id of ['nav-mode-orbit', 'nav-mode-pan', 'nav-settings-gear']) {
+  for (const id of ['nav-mode-orbit', 'nav-mode-pan', 'nav-mode-select', 'nav-settings-gear']) {
     const box = await page.getByTestId(id).boundingBox()
     expect(box?.width ?? 0, id).toBeGreaterThanOrEqual(36)
     modeBoxes.push(box)
-    // The hit area is 40+ px tall even though the painted button is shorter: a point 19 px above and
-    // below the centre still lands on this button.
+    // TODO/ui-149: the painted button is a real 44 px tall (ui-135's invisible hit extension could not
+    // stop a scattered tap spilling onto a neighbour), and a point 19 px above and below the centre
+    // lands on it.
+    expect(box?.height ?? 0, `${id} painted height`).toBeGreaterThanOrEqual(44 - 0.5)
     for (const dy of [-19, 19]) {
       const hit = await page.evaluate(
         ({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'),
