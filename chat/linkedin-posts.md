@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-11-20T04:30:00Z] — Moving code out of a big file without changing what it does
+
+**Post:** WarpCad's 3D viewport component was left at 964 script lines after a first round of extractions, against a target of 600. This round moved out the reactive overlay structures, the mount and unmount sequence, and the raycast picking and marquee, one commit each, with a unit spec beside every new module and a two-project browser run after each.
+
+The method is deliberately boring: move the function verbatim, diff it against the original, change nothing else. The one signature that changed is the marquee finisher, which now takes the press point as arguments instead of reading a closure.
+
+It did not reach the target. The script is 819 lines now, and what is left is mostly wiring: about twenty controller constructors and their dependencies, not template bindings. So I wrote that down and filed the next three slices as their own finding, rather than forcing the number or leaving the old one marked open.
+
+Checked: the full matrix of three engines by three viewports, 6180 passed, 0 failed. Not checked: any hand-driven pass on a real touch device.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #SoftwareEngineering #Refactoring #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** full e2e matrix green on the final tree; unit 9960 passed; per-module specs → `src/composables/useViewportOverlays.spec.js`, `useViewportLifecycle.spec.js`, `src/render/picking.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-10-15T09:10:00Z] — When the label says + and the record says −
 
 **Post:** I merged WarpCad's Snap, Align and Align-to-origin into one Align popover. The interesting part was a sign. The kernel's snap key `outside+` means "my + face meets the target's − face", so the body ends up on the target's − side. Put that on a button called "+ side" and it does the opposite of what it says.

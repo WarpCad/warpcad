@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 as the remainder of ui-108
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (closed 2026-11-20).** Three extractions, each its own no-behaviour-change commit with a unit spec and a rotating
+> pair run: slice 1 `src/composables/useViewportOverlays.js` (`cad3ea05`); 2 `src/composables/useViewportLifecycle.js`
+> (`e202d8ab`); 3 `src/render/picking.js` (`749642d8`), whose `finishMarquee` takes the press point as arguments. The target was
+> **not** met: the script is 819 lines (964 before) and `pointerGestures.js` is 781 (963). What is left is controller
+> dependency wiring (about twenty `createX({...})` blocks), about 75 import lines, the gizmo handlers and the theme helpers, not
+> template bindings. Further slices, if wanted: the Set scale and Auto-trace taps and the sketch hover out of `pointerGestures.js`,
+> a gizmo-handlers composable, and grouping the sketch controllers into one factory. Filed as `ui-152`. Closed with the nine-project matrix green.
 
 ## Problem
 

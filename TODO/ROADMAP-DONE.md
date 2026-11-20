@@ -1049,6 +1049,7 @@ boolean-intersect volume ≈ 0 test with a wrong-phase negative control, not by 
 | ✅ `core-044` | Mesh maths (centre distance, phase, signed ratio, compatibility) and `gear.pair` | Creation | `core-041` | 1, 3, 10 |
 | ✅ `core-045` | Straight bevel gear — pitch cone, Tredgold teeth, replaces V1's faked bevel | Creation | `core-041` | 1, 3, 10 |
 | ✅ `ui-108` | `Viewport.vue`'s interaction logic moved into render controllers and composables over seven slices (overlay sync, sketch path sync, sketch keys, load framing, Library drop target, WebGL context handling, watchers), each with unit specs and no behaviour change. It no longer imports three.js, but its script is 964 lines against the under-600 target; the remainder is `ui-144` | Finding | — | 1, 3, 4, 6, 7, 9, 16, 26 |
+| ✅ `ui-144` | Finished the `ui-108` remainder in three slices: the reactive overlay structures (`useViewportOverlays`), the mount and unmount sequence (`useViewportLifecycle`) and raycast picking with the marquee (`render/picking.js`), each with a unit spec and no behaviour change. `Viewport.vue`'s script went from 964 to 819 lines (the under-600 target was not reached; what is left is controller wiring) and `pointerGestures.js` from 963 to 781 | Finding | — | 1, 4, 6, 7, 9 |
 | ✅ `testing-033` | Part 1: 76 of the 79 parked product decisions drafted with a recommendation as `TODO/OWNER.md` questions Q18-Q93 in seven groups, their 77 VERIFY rows set to `Owner`; three settled by evidence (`ui-124`, `ui-075`, and a `TROUBLESHOOTING.md` entry). Asking is `/owner questions` | Finding | — | none |
 | `core-046` | Bevel-pair and crossed-axis placement; the `drive-wheel` four-gear train without fudge offsets | Creation | `core-044`, `core-045` | 1, 3, 10 |
 | `core-047` | Worm and worm wheel (reuses `extrudeHelical`), self-locking readout | Creation | `core-042`, `core-044` | 1, 3, 9, 10 |
@@ -1510,5 +1511,6 @@ convention going forward.
 | `ui-151` | 2026-11-19 22:05 | ~45m (RED run, extract and ungate, the sheet, nine-project spec, docs and media through a scoped GIF encode, six stills and six Help baselines refreshed, pair run chromium-phone + webkit-tablet, light and dark style hand drive) |
 | `ui-142` | 2026-11-19 22:45 | ~45m (RED run on six projects, sheet heights, viewport inset, nine-project dev spec, pair run chromium-laptop + firefox-phone, one docs still refreshed, three scenarios by spec) |
 | `ui-143` | 2026-11-20 03:30 | ~1h (RED on chromium-phone, handle-tap fix, late-seeding race in the new spec, nine-project run of both print-prep specs, pair run firefox-phone + chromium-tablet) |
+| `ui-144` | 2026-11-20 04:20 | ~1h (three extractions with a unit spec each, a pair run after each, the nine-project matrix at the end; the script target of 600 not reached) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

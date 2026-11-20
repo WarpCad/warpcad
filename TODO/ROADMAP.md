@@ -76,7 +76,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [Findings](#findings-open-rows) | 13 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 94 | ▶ Ready | `FIND` | [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking `Viewport.vue`'s script and split `pointerGestures.js` (the remainder of `ui-108`) | sonnet |
 | 95 | ▶ Ready | `FIND` | [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) Find why `pwa-update`'s drag test timed out in its hook once in the full matrix | sonnet |
 | 96 | ▶ Ready | `FIND` | [`ui-145`](FIND-ui-145-cold-read-chrome-remainder.md) Finish the cold-read chrome fixes `ui-128` did not take: Edit variable highlight, clearance chip, connector kind caption, Align strips, Align and Split glyphs | sonnet |
 | 97 | ▶ Ready | `FIND` | [`docs-038`](FIND-docs-038-cold-read-gif-rerecords.md) Re-record the five docs movies two cold readers could not follow: tour, timeline-relink, the two Subtract-order movies, resize-fit | sonnet |
@@ -88,10 +87,12 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing | finding | low | sonnet | ▶ Ready (Next up row 103) |
 | [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry (headless landing about 110 ms) | finding | low | sonnet | ▶ Ready (Next up row 105) |
 | [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing; check a 1 s GC after the pack | finding | low | sonnet | ▶ Ready (Next up row 106) |
+| [`ui-152`](FIND-ui-152-viewport-script-and-pointer-gestures-remainder.md) Take the next three slices out of Viewport.vue's script and pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 107) |
 | 102 | ▶ Ready | `FIND` | [`ui-150`](FIND-ui-150-sketch-toolbar-overlaps-orientation-gizmo-on-tablet-and-laptop.md) Stop the Sketch toolbar overlapping the orientation gizmo on webkit-tablet and firefox-laptop (pre-existing e2e failure found during io-032) | sonnet |
 | 103 | ▶ Ready | `FIND` | [`io-039`](FIND-io-039-export-of-an-empty-subtract-result-downloads-nothing-silently.md) Say so when Export is pressed on a Subtract that left nothing, instead of downloading nothing silently | sonnet |
 | 105 | ▶ Ready | `FIND` | [`render-009`](FIND-render-009-dense-result-draws-slowly-on-a-software-rasteriser.md) Draw a dense whole-model cut's result as indexed geometry so a software rasteriser lands it in under 50 ms (real-GPU landing already passes) | sonnet |
 | 106 | ▶ Ready | `FIND` | [`core-086`](FIND-core-086-send-less-to-the-worker-and-avoid-a-gc-pause-after-the-pack.md) Keep dense operands in the worker so the click sends nothing, and check a 1 s GC after the pack | sonnet |
+| 107 | ▶ Ready | `FIND` | [`ui-152`](FIND-ui-152-viewport-script-and-pointer-gestures-remainder.md) Take the next three slices out of `Viewport.vue`'s script (819 lines) and `pointerGestures.js` (781); the remainder of `ui-144` | sonnet |
 
 ---
 
@@ -165,7 +166,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
-| [`ui-144`](FIND-ui-144-viewport-vue-script-still-over-600-lines.md) Finish shrinking Viewport.vue's script and split pointerGestures.js | finding | low | sonnet | ▶ Ready (Next up row 94) |
 | [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) pwa-update drag test timed out in its hook once in the full matrix | finding | low | sonnet | ▶ Ready (Next up row 95) |
 | [`ui-145`](FIND-ui-145-cold-read-chrome-remainder.md) Finish the cold-read chrome fixes ui-128 did not take | finding | medium | sonnet | ▶ Ready (Next up row 96) |
 | [`docs-038`](FIND-docs-038-cold-read-gif-rerecords.md) Re-record the five docs movies two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 97) |
@@ -342,7 +342,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ui-144` | Finish shrinking Viewport.vue's script (964 lines after slice 7) and split pointerGestures.js (filed 2026-11-17 as the remainder of ui-108) | Finding | — | 1, 4, 6, 7, 9 |
 | `testing-046` | pwa-update's drag test timed out in its hook once in the 2026-11-17 full matrix; not reproduced (filed from the ui-108 close-out) | Finding | — | none |
 | `ui-145` | Five cold-read chrome fixes split from `ui-128` (Edit variable highlight, clearance chip, connector kind caption, Align strips, Align and Split glyphs). Filed 2026-11-18 | Finding | — | 4, 5 |
 | `docs-038` | Re-record tour, timeline-relink, the two Subtract-order movies and resize-fit, split from `docs-036`. Filed 2026-11-18 | Finding | — | none |
@@ -354,6 +353,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | `io-039` | Export of a Subtract that left nothing (an STL in inches imported as mm) downloads nothing and shows no error; same at HEAD. Filed 2026-11-18 | Finding | — | 11, 26 |
 | `render-009` | A dense whole-model cut's result lands in about 110 ms headless (non-indexed mesh, 660 k vertices for 220 k triangles on a software rasteriser); real GPU passes 50 ms (filed 2026-11-19 from core-085) | Finding | — | 1, 26, 31 |
 | `core-086` | The whole-model cut still sends every operand triangle each click, and one headless run paused 1 s in a GC after the pack (filed 2026-11-19 from core-085) | Finding | — | 26, 31 |
+| `ui-152` | `Viewport.vue`'s script is still 819 lines and `pointerGestures.js` 781 after `ui-144`'s three slices (filed 2026-11-20 as its remainder) | Finding | — | 1, 4, 6, 7, 9 |
 
 ---
 

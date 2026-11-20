@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-11-20T04:30:00Z] — A refactor that only half hit its target
+
+**Post:** Second pass at shrinking WarpCad's viewport component: three more pieces moved out (overlay state, mount/unmount, raycast picking), no behaviour change, nine browser/viewport combos green. The script went 964 to 819 lines. The target was 600, so I filed the rest as a new finding instead of calling it done. #CAD
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Refactoring #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `npm run test:e2e:full` 6180 passed, 0 failed; a unit spec beside each new module → `src/composables/useViewportOverlays.spec.js`, `useViewportLifecycle.spec.js`, `src/render/picking.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-10-15T09:10:00Z] — Three ways to place a shape became one
 
 **Post:** WarpCad had three ways to put a shape exactly where you mean: Snap, Align, and an Align-to-origin row buried in the Inspector. Two UIs, and I kept reaching for the worse one. They are now one Align button with a Target (the other shape, or the origin), per-axis taps that commit on the spot, and a Snap row. #CAD
