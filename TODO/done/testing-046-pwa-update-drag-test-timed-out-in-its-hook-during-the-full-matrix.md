@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from the ui-108 close-out full-matrix run
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (closed 2026-11-20).** The timed-out run's project was not recoverable (the report is gone). Timing `site.close()`
+> across the nine projects showed it can block for 3.9 s and 5.6 s on the browser's open connections (`server.close()` waits for every
+> connection; Playwright closes the page after `afterEach`). With no bound, a connection that never ends would hold the hook to the 180 s
+> budget. **The 180 s hang itself was not reproduced**; this unbounded wait is the one measured, and the only unbounded step. Fix in
+> `e2e/pwa-update.e2e.js`: `closeServer` (idle connections at once, the rest after 500 ms, 10 s cap) and `bounded` around server start (20 s),
+> with both hooks naming the stage and the project in their error. No assertion changed. 36 of 36 on nine projects at 7 workers.
+> `TROUBLESHOOTING.md` has the entry.
 
 ## Problem
 

@@ -3540,3 +3540,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** ten taps near the edge at 2.27 px/mm placed nothing → VERIFY.md core-075 stage 2 #2; red then green at 390x844 with no zoom, and 153 of 153 print-prep specs on nine projects → this session.
 **To Add:** none
 ---
+
+## 2026-11-20T04:35:00Z — A test that hung for three minutes once, and the wait that had no limit
+
+**Post:** One end-to-end test timed out in its cleanup hook once in 6,000 runs and never again. Timing the cleanup across every browser showed why: closing a test server waits for the browser's open connections, up to 5 s, with no limit at all. Now it closes them itself and fails in seconds, naming the browser. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** server close took 3.9 s and 5.6 s on two of 36 runs against 0 to 1 ms on the rest → this session; 36 of 36 on nine projects, pair chromium-tablet + webkit-laptop green → this session.
+**To Add:** none
+---

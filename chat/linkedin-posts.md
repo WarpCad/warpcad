@@ -5144,3 +5144,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** no marker after ten edge taps at 2.27 px/mm → VERIFY.md core-075 stage 2 #2; 153 of 153 print-prep specs on nine projects, pair run firefox-phone + chromium-tablet → this session.
 **To Add:** none
 ---
+
+## 2026-11-20T04:35:00Z — The flaky test that was an unbounded wait
+
+One of WarpCad's update tests timed out in its cleanup hook once in a 5,930-test run. Alone it passed 36 of 36, so the easy answer was "flaky". I did not take it.
+
+I timed the one call in the hook that talks to the outside world, closing the test's local server, across all nine browser and viewport projects. Two of 36 runs took 3.9 s and 5.6 s; the rest took a millisecond. Closing a Node HTTP server waits for every open connection, and Playwright keeps the page alive until after the hook, so the browser's own connections hold it up. Node's 5 s keep-alive timeout is the 5.6 s. A connection that never ended would sit there until the whole 180 s test budget ran out.
+
+The 180 s hang itself did not reproduce, and I say so in the record. What the fix does is remove the only unbounded wait: idle connections close at once, the rest after half a second, and both hooks now fail in seconds with the stage and the project name. No assertion changed.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 3.9 s and 5.6 s closes on two of 36 runs → this session; 36 of 36 on nine projects at 7 workers, pair run chromium-tablet + webkit-laptop (1338 passed, 0 failed) → this session.
+**To Add:** none
+---

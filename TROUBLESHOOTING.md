@@ -519,6 +519,16 @@ Accepted as flakes for `ui-077` (`TODO/done/ui-077-show-version-in-header.md`). 
 
 **Steps taken to resolve:** moved the cast onto the assignment's right side; the spec then ran.
 
+### 2026-11-20 — A Playwright `afterEach` that calls `server.close()` waits on the browser's open connections
+
+**What happened:** `e2e/pwa-update.e2e.js` failed once in a full matrix with "Test timeout of 180000ms exceeded while running afterEach hook" (`testing-046`). Alone, on all nine projects, it passed 36 of 36, so it looked unreproducible. Timing the hook's `server.close()` across the nine projects showed 3.9 s and 5.6 s on two of 36 runs, against 0 to 1 ms on the rest.
+
+**Why it happened:** `http.Server#close()` does not resolve until every connection has ended. Playwright tears the `page` fixture down after the `afterEach` hooks, so the browser is still alive and still holds connections to the test's server (a worker or speculative connection). The 5.6 s case is Node's 5 s keep-alive timeout. A connection that never ends would hold the hook for the rest of the test's 180 s budget, which is the shape of the original failure. The hook also shares that budget with the test body.
+
+**Fix / Prevention:** in a spec that starts its own server, close it with `server.closeIdleConnections()`, then `server.closeAllConnections()` after a short grace, and race the close against a labelled timeout (`closeServer` and `bounded` in `e2e/pwa-update.e2e.js`). Hooks that name the project in their error make the next occurrence traceable from a console log. The 180 s hang itself was not reproduced; the unbounded wait is measured, and it is the only unbounded step in the hook.
+
+**Steps taken to resolve:** timed `close()` with a temporary probe (removed), replaced it with the bounded close, reran the spec on nine projects at 7 workers (36 of 36 in 26.6 s, against 31 s before).
+
 <!-- Template for new entries:
 
 ### YYYY-MM-DD — [Short title describing the discovery]

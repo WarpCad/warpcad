@@ -76,7 +76,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | [Findings](#findings-open-rows) | 13 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 95 | ▶ Ready | `FIND` | [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) Find why `pwa-update`'s drag test timed out in its hook once in the full matrix | sonnet |
 | 96 | ▶ Ready | `FIND` | [`ui-145`](FIND-ui-145-cold-read-chrome-remainder.md) Finish the cold-read chrome fixes `ui-128` did not take: Edit variable highlight, clearance chip, connector kind caption, Align strips, Align and Split glyphs | sonnet |
 | 97 | ▶ Ready | `FIND` | [`docs-038`](FIND-docs-038-cold-read-gif-rerecords.md) Re-record the five docs movies two cold readers could not follow: tour, timeline-relink, the two Subtract-order movies, resize-fit | sonnet |
 | 98 | ▶ Ready | `FIND` | [`ui-146`](FIND-ui-146-broken-history-row-one-name-and-visible-repair.md) Give a broken History step one name, one amber treatment and a repair button visible without scrolling | sonnet |
@@ -166,7 +165,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
-| [`testing-046`](FIND-testing-046-pwa-update-drag-test-timed-out-in-its-hook-during-the-full-matrix.md) pwa-update drag test timed out in its hook once in the full matrix | finding | low | sonnet | ▶ Ready (Next up row 95) |
 | [`ui-145`](FIND-ui-145-cold-read-chrome-remainder.md) Finish the cold-read chrome fixes ui-128 did not take | finding | medium | sonnet | ▶ Ready (Next up row 96) |
 | [`docs-038`](FIND-docs-038-cold-read-gif-rerecords.md) Re-record the five docs movies two cold readers could not follow | finding | low | sonnet | ▶ Ready (Next up row 97) |
 | [`ui-146`](FIND-ui-146-broken-history-row-one-name-and-visible-repair.md) Give a broken History step one name, one amber treatment and a visible repair button | finding | medium | sonnet | ▶ Ready (Next up row 98) |
@@ -342,7 +340,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `testing-046` | pwa-update's drag test timed out in its hook once in the 2026-11-17 full matrix; not reproduced (filed from the ui-108 close-out) | Finding | — | none |
 | `ui-145` | Five cold-read chrome fixes split from `ui-128` (Edit variable highlight, clearance chip, connector kind caption, Align strips, Align and Split glyphs). Filed 2026-11-18 | Finding | — | 4, 5 |
 | `docs-038` | Re-record tour, timeline-relink, the two Subtract-order movies and resize-fit, split from `docs-036`. Filed 2026-11-18 | Finding | — | none |
 | `ui-146` | The broken History row's layout half from `ui-129`: one name, one amber treatment, the repair button visible without scrolling. Filed 2026-11-18 | Finding | — | 12, 15 |

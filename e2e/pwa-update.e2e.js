@@ -87,8 +87,44 @@ async function serveDeploys(roots) {
     deployB: () => {
       root = roots.b
     },
-    close: () => new Promise((resolve) => server.close(() => resolve(undefined))),
+    close: () => closeServer(server),
   }
+}
+
+/**
+ * Reject with a message naming what was being waited on, so a stuck hook fails in seconds and says
+ * where, not after the whole test budget (`TODO/testing-046`).
+ *
+ * @template T
+ * @param {string} what
+ * @param {number} ms
+ * @param {Promise<T>} work
+ * @returns {Promise<T>}
+ */
+function bounded(what, ms, work) {
+  /** @type {ReturnType<typeof setTimeout>} */
+  let timer
+  const limit = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`pwa-update hook: ${what} took longer than ${ms} ms`)), ms)
+  })
+  return Promise.race([work, limit]).finally(() => clearTimeout(timer))
+}
+
+/**
+ * Stop a test server without waiting on the browser. `server.close()` alone waits for every open
+ * connection, and the page (still open during `afterEach`) keeps some alive: measured at 3.9 s and
+ * 5.6 s (the 5 s keep-alive timeout) in one nine-project run, and with no limit of its own a
+ * connection that never ends would hold the hook until the 180 s test timeout. Idle connections go
+ * at once, the rest after a short grace.
+ *
+ * @param {import('node:http').Server} server
+ * @returns {Promise<void>}
+ */
+function closeServer(server) {
+  const closed = new Promise((resolve) => server.close(() => resolve(undefined)))
+  server.closeIdleConnections()
+  const grace = setTimeout(() => server.closeAllConnections(), 500)
+  return bounded('closing the deploy server', 10_000, closed).finally(() => clearTimeout(grace))
 }
 
 /** @param {import('@playwright/test').Page} page */
@@ -189,16 +225,26 @@ test.describe('App update (production build, two deploys)', () => {
   /** @type {Awaited<ReturnType<typeof serveDeploys>>} */
   let site
 
-  test.beforeEach(async () => {
-    work = mkdtempSync(join(tmpdir(), 'warpcad-deploys-'))
-    stampedCopy(join(work, 'a'), BUILD_A)
-    stampedCopy(join(work, 'b'), BUILD_B)
-    site = await serveDeploys({ a: join(work, 'a'), b: join(work, 'b') })
+  test.beforeEach(async ({}, testInfo) => {
+    // A stuck stage fails in seconds and names itself and the project, not after 180 s (testing-046).
+    try {
+      work = mkdtempSync(join(tmpdir(), 'warpcad-deploys-'))
+      stampedCopy(join(work, 'a'), BUILD_A)
+      stampedCopy(join(work, 'b'), BUILD_B)
+      site = await bounded('starting the deploy server', 20_000, serveDeploys({ a: join(work, 'a'), b: join(work, 'b') }))
+    } catch (error) {
+      throw new Error(`[${testInfo.project.name}] ${error instanceof Error ? error.message : error}`, { cause: error })
+    }
   })
 
-  test.afterEach(async () => {
-    await site.close()
-    rmSync(work, { recursive: true, force: true })
+  test.afterEach(async ({}, testInfo) => {
+    try {
+      await site?.close()
+    } catch (error) {
+      throw new Error(`[${testInfo.project.name}] ${error instanceof Error ? error.message : error}`, { cause: error })
+    } finally {
+      if (work) rmSync(work, { recursive: true, force: true })
+    }
   })
 
   test('an open tab is told, Reload applies it, the project is intact, Help shows the new build', async ({ page }) => {
