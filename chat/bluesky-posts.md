@@ -3519,3 +3519,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** transcript 26 px (0 px with a body selected) at 390x844 in Half → VERIFY.md ai-014 #2; row inside the transcript, at least 40 px, on nine engine-viewport projects → e2e/ai-half-sheet.e2e.js, this session.
 **To Add:** none
 ---
+
+## 2026-11-20T03:35:00Z — A Butterfly key can be placed on a small cut face without zooming first
+
+**Post:** On a phone, tapping the cut face to drop a Butterfly key did nothing until you pinched in, and said nothing about why. The plane's own drag handle covered the whole small face and swallowed the tap. A tap on it now places the key; a drag still moves the plane. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** ten taps near the edge at 2.27 px/mm placed nothing → VERIFY.md core-075 stage 2 #2; red then green at 390x844 with no zoom, and 153 of 153 print-prep specs on nine projects → this session.
+**To Add:** none
+---

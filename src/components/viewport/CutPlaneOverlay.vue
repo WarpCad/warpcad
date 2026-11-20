@@ -159,7 +159,7 @@ function onFaceUp(event) {
 }
 
 /** The drag in progress: where it began and the offset it began at. Plain, not reactive. */
-const drag = { pointerId: -1, lastX: 0, lastY: 0, startOffsetMm: 0, travelMm: 0 }
+const drag = { pointerId: -1, lastX: 0, lastY: 0, startOffsetMm: 0, travelMm: 0, downX: 0, downY: 0, downAt: 0 }
 
 /** @param {PointerEvent} event */
 function onDown(event) {
@@ -171,6 +171,9 @@ function onDown(event) {
   drag.lastY = event.clientY
   drag.startOffsetMm = sheet.offsetMm
   drag.travelMm = 0
+  drag.downX = event.clientX
+  drag.downY = event.clientY
+  drag.downAt = event.timeStamp
   const target = /** @type {Element} */ (event.currentTarget)
   try {
     target.setPointerCapture(event.pointerId)
@@ -204,6 +207,20 @@ function advance(event) {
 function onUp(event) {
   if (event.pointerId !== drag.pointerId) return
   drag.pointerId = -1
+  // A tap on the handle while placing connectors (`TODO/ui-143`): at the default framing the
+  // handle covers most of a small cut face, so a tap that did not drag it places a marker at
+  // the tapped face position, exactly as a tap on the plane beside it does. A drag still moves
+  // the plane.
+  if (event.type !== 'pointercancel' && usable.value && sheet.offsetMm === drag.startOffsetMm) {
+    if (Math.hypot(event.clientX - drag.downX, event.clientY - drag.downY) <= 8 && event.timeStamp - drag.downAt <= 600) {
+      const at = faceAt(event.clientX, event.clientY)
+      if (at) {
+        sheet.selectMarker(null)
+        void sheet.addMarker(tenth(at.uMm), tenth(at.vMm))
+      }
+      return
+    }
+  }
   // A cancelled pointer (the browser took the touch over) carries no position: keep the offset
   // the drag had reached rather than computing a move from coordinates it does not have.
   if (event.type === 'pointercancel') return
@@ -263,6 +280,7 @@ function onUp(event) {
         :y="marker.y"
         :state="marker.state"
         :dragging="marker.dragging"
+        :side="marker.side ?? ''"
         :selected="sheet.selectedMarkerId === marker.id"
         @select="sheet.selectMarker($event)"
         @drag-start="onMarkerDragStart"

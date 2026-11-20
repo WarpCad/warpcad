@@ -392,6 +392,53 @@ test('a hand-placed Butterfly snaps to the cut-face outline and lands as a key p
   await expect(page.getByTestId('inspector-parts')).toContainText('Plank key 1')
 })
 
+test('a Butterfly tapped near the top edge at the default framing, with no zoom, places a marker (TODO/ui-143)', async ({ page }) => {
+  await seedPlank(page)
+  await page.getByTestId('gizmo-view-right').click()
+  await page.getByTestId('op-split').click()
+  await expect(page.getByTestId('split-sheet')).toBeVisible()
+  await page.getByTestId('split-offset').fill('150')
+  await page.getByTestId('split-manual-joints').check()
+  await expect(page.getByTestId('split-manual-hint')).toHaveAttribute('data-face-view', 'usable')
+  await waitForStablePlane(page)
+  // No wheel zoom, no pinch: the framing the person gets. The cut face is small here.
+  const scale = await page.evaluate(() =>
+    Number(document.querySelector('[data-testid="cut-plane"]')?.getAttribute('data-face-u')?.split(',')[0])
+  )
+  expect(scale, 'the default framing, not a zoomed one').toBeLessThan(3.5)
+
+  // The automatic search seeds markers after the box is ticked (the zoom loop in the sibling spec
+  // gives it time); wait for the count to hold still before clearing them, or one lands late.
+  let last = -1
+  let held = 0
+  await expect
+    .poll(async () => {
+      const now = await page.getByTestId('connector-marker').count()
+      held = now === last ? held + 1 : 0
+      last = now
+      return held
+    }, { intervals: [200], timeout: 15000 })
+    .toBeGreaterThanOrEqual(8)
+
+  const markers = page.getByTestId('connector-marker')
+  while ((await markers.count()) > 0) {
+    const box = await markers.first().locator('.marker__hit').boundingBox()
+    if (!box) throw new Error('marker has no box')
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(markers.first()).toHaveAttribute('data-selected', 'true')
+    await page.getByTestId('connector-marker-remove').first().dispatchEvent('pointerdown', { button: 0 })
+  }
+
+  await page.getByTestId('split-connector-kind-butterfly').click()
+  await expect(page.getByTestId('split-connector-kind-butterfly')).toHaveAttribute('aria-checked', 'true')
+  const tap = await faceToClient(page, -6, 9)
+  await page.mouse.click(tap.x, tap.y)
+  await expect(markers).toHaveCount(1)
+  await expect(markers.first()).toHaveAttribute('data-kind', 'butterfly')
+  await expect(markers.first()).toHaveAttribute('data-v-mm', '12.00')
+  await expect(page.getByTestId('split-key-fit')).toContainText(/Butterfly key × 1/)
+})
+
 test('Tenons (stage 3): key rows before Apply, key parts after, and Print pieces writes one tenon file', async ({ page }) => {
   await seedPlank(page)
   await page.getByTestId('op-split').click()

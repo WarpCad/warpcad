@@ -843,6 +843,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | ✅ `ui-138` | Strengthened the Objects-list hover tint: `HOVER_HIGHLIGHT_INTENSITY` 0.45 to 0.9, so the default body moves dE00 14.6 light / 18.9 dark against its unhovered self (was 5-8) and stays 43-48 from the selected amber; new `e2e/objects-hover-tint.e2e.js` measures it | Finding | — | 6 |
+| ✅ `ui-143` | A tap on the cut plane's offset handle now places a connector marker when Place connectors is on (a drag still moves the plane), so a Butterfly key can be placed at the default 390 px framing without zooming; the bowtie turns for a left or right edge | S |
 | ✅ `ui-142` | Gave the Assistant's phone Half sheet a readable transcript: Half 50dvh and Tall 68dvh at 480 px and under, the connection line folded in Half (a failure still shows); the activity row and Undo AI turn show without Tall; one e2e spec on nine projects | Finding | — | 17, 24, 25 |
 | ✅ `ui-139` | Hid the three dimension lines while a rotate-ring drag is moving (`overlaySync.js`), back on release at the turned bounds; translate drags keep them; two e2e tests and a unit spec; sentence added to `selection-and-inspector.md` | Finding | — | 4 |
 | ✅ `ui-140` | Showed Min and Max under each number variable's Value in the Variables panel (blank is unbounded), refused an out-of-range Value, a Min above the Max, or a limit the value already breaks under its own field in plain words before commit, via new core `setVariableRange` (one Undo step); unit, e2e on phone/tablet/laptop, docs page and still | S |
@@ -1508,5 +1509,6 @@ convention going forward.
 | `core-085` | 2026-11-19 21:25 | ~1h25m (Opus half: RED tests, transferable transport, slices, bench; Sonnet half: pair run firefox-tablet + chromium-laptop, import-3mf on three engines, phone pending-line drive, records, two follow-up findings) |
 | `ui-151` | 2026-11-19 22:05 | ~45m (RED run, extract and ungate, the sheet, nine-project spec, docs and media through a scoped GIF encode, six stills and six Help baselines refreshed, pair run chromium-phone + webkit-tablet, light and dark style hand drive) |
 | `ui-142` | 2026-11-19 22:45 | ~45m (RED run on six projects, sheet heights, viewport inset, nine-project dev spec, pair run chromium-laptop + firefox-phone, one docs still refreshed, three scenarios by spec) |
+| `ui-143` | 2026-11-20 03:30 | ~1h (RED on chromium-phone, handle-tap fix, late-seeding race in the new spec, nine-project run of both print-prep specs, pair run firefox-phone + chromium-tablet) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

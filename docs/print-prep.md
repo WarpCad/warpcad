@@ -230,7 +230,8 @@ A later split refuses a plane that would cut through a key, by the key's name.
    `wing-butterfly-key-x1.stl` and `assembly.txt`.
 5. Print the key, push Wing A and Wing B together along X, then press the key
    into its pocket from the top. To place one yourself, tick **Place connectors by hand**, pick
-   **Butterfly**, and tap near an edge of the cut face: the key snaps to the nearest edge.
+   **Butterfly**, and tap near an edge of the cut face (at phone width too, with no zoom first): the key snaps to the
+   nearest edge and its bowtie turns to lie along it.
 
 ### Try it: a tenon and magnets across the wing
 
@@ -285,7 +286,9 @@ Select a body and the Inspector shows its bounds and a fit badge:
   bore or wall must stay inside both pieces. A **screw boss** is drilled from the far face of piece A
   through to the boss, so it is refused where that bore would leave piece A before reaching it; there is
   no side-access counterbore. The face must be seen squarely (the sheet says when it is not), and
-  the plane's own offset handle sits at its centre, so zoom in before placing near it.
+  the plane's own offset handle sits at its centre: a tap on it places a marker like a tap anywhere else on
+  the face, and only a drag moves the plane. On a phone the whole cut face can be small at first; a tap
+  still places, and you can pinch to zoom for a finer position.
 - **Clearance per side** — the gap left around the joint so it goes together after printing.
   The default 0.2 mm is a starting point, not a measurement of your printer: print a test and
   adjust. Setting 0 shows a warning, because the pieces would not fit together.

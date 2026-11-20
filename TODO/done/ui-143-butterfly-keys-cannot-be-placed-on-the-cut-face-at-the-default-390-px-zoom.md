@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-17 from VERIFY.md core-075 stage 2 #2 (TODO/testing-044)
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20).** The cause was the plane's 22 px offset handle covering the whole small cut face at the default framing, so the tap never reached the face. No pixel tolerance or minimum scale was involved. A tap on the handle (under 8 px of travel, under 600 ms) now places a marker when Place connectors is on; a drag still moves the plane. The Butterfly bowtie turns 90 degrees on a left or right edge. No zoom message was added because placing now works; a kernel refusal already shows its reason in the sheet's notice. Spec: the no-zoom case in `e2e/print-prep-keys.e2e.js`.
 
 ## Problem
 

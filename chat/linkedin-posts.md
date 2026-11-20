@@ -5111,3 +5111,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 26 px and 0 px transcript → VERIFY.md ai-014 #2; red run, row 642 px against a transcript starting at 697 px → this session; green on nine projects, pair webkit-phone + firefox-tablet → this session.
 **To Add:** none
 ---
+
+## 2026-11-20T03:35:00Z — The tap that did nothing: a Butterfly key on a phone-sized cut face
+
+Cold readers could not place a Butterfly key on WarpCad's cut face at 390 px: taps near the edge did nothing and no message said why. I guessed a pixel tolerance. It was the plane's own 22 px drag handle, which at the default framing covers all of a 91 x 27 px face and swallows the tap before the face sees it.
+
+The fix keeps the handle and changes what a tap on it means. Under 8 px of travel and 600 ms, with Place connectors on, it places a marker where you tapped. A drag still moves the plane. The bowtie also turns to lie along a left or right edge.
+
+The test taps at the default framing with no zoom. It failed first with no marker, then passed on chromium, webkit and firefox at phone, tablet and laptop. Writing it exposed a race of its own: the automatic search seeds markers late, so the spec waits for the count to hold still before clearing them.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** no marker after ten edge taps at 2.27 px/mm → VERIFY.md core-075 stage 2 #2; 153 of 153 print-prep specs on nine projects, pair run firefox-phone + chromium-tablet → this session.
+**To Add:** none
+---

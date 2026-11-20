@@ -31,6 +31,8 @@ const props = defineProps({
   /** `'ok'` fits, `'bad'` the kernel refused it, `'pending'` a check is running. */
   state: { type: String, default: 'ok' },
   dragging: { type: Boolean, default: false },
+  /** A butterfly's snapped outline edge; its bowtie turns to lie along it (`TODO/ui-143`). */
+  side: { type: String, default: '' },
 })
 
 const emit = defineEmits(['select', 'drag-start', 'drag', 'drag-end', 'cancel', 'remove'])
@@ -149,6 +151,7 @@ function onContext(event) {
     <path
       v-else-if="kind === 'butterfly'"
       class="marker__glyph marker__glyph--solid"
+      :transform="side.startsWith('u') ? 'rotate(90)' : undefined"
       d="M-9 -7 L0 -2.5 L9 -7 L9 7 L0 2.5 L-9 7 Z"
     />
     <!-- A tenon (TODO/core-075 stage 3) seen end-on: a hollow stadium, its rounded ends telling it
