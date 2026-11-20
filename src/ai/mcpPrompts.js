@@ -172,3 +172,25 @@ export const STARTER_CLAUDE_CODE = `/mcp__${MCP_SERVER_NAME}__start`
 /** What the other-agent button copies: one fixed paragraph, naming the guide resource. */
 export const STARTER_OTHER_AGENT =
   'Use the warpcad MCP server to work on my WarpCad project. Before your first change, read the resource warpcad://guide (WarpCad’s modelling method), then call describe_scene to see what is there, and ask me what to build.'
+
+/**
+ * What **Copy setup for a browser agent** copies (`TODO/ui-156`): the paragraph `docs/webmcp.md`
+ * quotes under *Using Claude in Chrome*, so a browser agent such as Claude in Chrome calls
+ * WarpCad's WebMCP tools through its JavaScript tool. One source: a spec fails if the docs quote
+ * drifts. It is pasted into another agent, so it names no project content. The user types their
+ * request after the last line.
+ */
+export const STARTER_BROWSER_AGENT = [
+  'Setup for driving WarpCad from this browser: paste this first, then type what you want built after the last line.',
+  'Use your JavaScript tool to call WarpCad’s WebMCP tools directly.',
+  'Run `const tools = await document.modelContext.getTools()` to read each tool’s `inputSchema`.',
+  'Call a tool by passing the tool object from that list, not its name, and the arguments as a plain object, not a JSON string:',
+  '`await document.modelContext.executeTool(tools.find(t => t.name === \'create\'), {...})`.',
+  'It resolves to a JSON string; parse it.',
+  'Lists such as `list_ops` come back a page at a time: if a result has `incomplete: true` or `page.more`, call again with the `offset` it names before you decide an op doesn’t exist.',
+  'Call `record_prompt` first with the request below.',
+  'What I want built (my request follows this line):',
+].join(' ')
+
+/** Where the request goes, said beside the button. */
+export const BROWSER_AGENT_SETUP_HINT = 'Paste this into your agent first, then type what you want built after it.'

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { LIVE_SERVER_INSTRUCTIONS } from '../../mcp/liveHttp.js'
@@ -8,6 +9,7 @@ import {
   MCP_SERVER_NAME,
   REQUEST_MAX_CHARS,
   STARTER_CLAUDE_CODE,
+  STARTER_BROWSER_AGENT,
   STARTER_OTHER_AGENT,
   listPrompts,
   promptMessages,
@@ -120,5 +122,28 @@ describe('starters', () => {
   it('are not templates', () => {
     for (const text of [STARTER_CLAUDE_CODE, STARTER_OTHER_AGENT]) expect(text).not.toMatch(/\$\{|undefined/)
     expect(LIVE_SERVER_INSTRUCTIONS.length).toBeGreaterThan(0)
+  })
+})
+
+describe('STARTER_BROWSER_AGENT (ui-156)', () => {
+  it('names the call shape, paging and record_prompt, and ends with the request slot', () => {
+    expect(STARTER_BROWSER_AGENT).toContain('executeTool(tools.find')
+    expect(STARTER_BROWSER_AGENT).toContain('not its name')
+    expect(STARTER_BROWSER_AGENT).toContain('page.more')
+    expect(STARTER_BROWSER_AGENT).toContain('incomplete')
+    expect(STARTER_BROWSER_AGENT).toContain('record_prompt')
+    expect(STARTER_BROWSER_AGENT).toMatch(/what I want built \(my request follows this line\):$/i)
+    expect(STARTER_BROWSER_AGENT).not.toMatch(/\$\{|undefined/)
+  })
+
+  it('is the paragraph docs/webmcp.md quotes', () => {
+    const docs = readFileSync(new URL('../../docs/webmcp.md', import.meta.url), 'utf8')
+    const quoted = docs
+      .split('\n')
+      .filter((line) => line.trimStart().startsWith('>'))
+      .map((line) => line.replace(/^\s*>\s?/, ''))
+      .join(' ')
+    const norm = (/** @type {string} */ t) => t.replace(/\s+/g, ' ').trim()
+    expect(norm(quoted)).toContain(norm(STARTER_BROWSER_AGENT))
   })
 })

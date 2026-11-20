@@ -48,6 +48,7 @@ import HelpButton from '../controls/HelpButton.vue'
 import ConnectionDot from '../display/ConnectionDot.vue'
 import ActivityRow from './ActivityRow.vue'
 import BridgeChip from './BridgeChip.vue'
+import BrowserAgentSetup from './BrowserAgentSetup.vue'
 import WebMcpChip from './WebMcpChip.vue'
 import ConnectButton from './ConnectButton.vue'
 import Composer from './Composer.vue'
@@ -240,6 +241,7 @@ const HEIGHTS = /** @type {const} */ ([
           <HelpButton topic="assistant" class="chat__help" />
         </p>
         <p v-if="chat.webMcpMessage || chat.webMcpFailureText" class="chat__warn" role="status" data-testid="ai-webmcp-message">{{ [chat.webMcpFailureText, chat.webMcpMessage].filter(Boolean).join(' ') }}</p>
+        <BrowserAgentSetup v-if="chat.webMcp === 'on'" />
         <p v-if="assistant.storageNote" class="chat__warn" role="status" data-testid="assistant-storage-note">
           {{ assistant.storageNote }}
         </p>

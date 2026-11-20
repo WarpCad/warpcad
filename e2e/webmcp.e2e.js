@@ -292,3 +292,37 @@ test('a built copy: Live MCP access points at Browser agents and the file route,
   await expect(page.getByTestId('ai-webmcp-switch')).toBeVisible()
   expect(errors).toEqual([])
 })
+
+test('ui-156: Copy setup for a browser agent copies the setup with the request slot last, and goes away when the switch is off', async ({ page, context, browserName }, testInfo) => {
+  await installFakeWebMcp(page)
+  await page.goto('/')
+  await expect(page.getByTestId('viewport')).toBeVisible()
+  await expect.poll(() => registeredNames(page)).toContain('create')
+  await clickAssistant(page)
+  const button = page.getByTestId('ai-webmcp-copy-setup')
+  await expect(button).toBeVisible()
+  await expect(page.getByTestId('ai-webmcp-setup-hint')).toHaveText('Paste this into your agent first, then type what you want built after it.')
+  // Tap size, and no sideways scroll at any viewport.
+  expect((await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await snapshot(page, testInfo, 'copy-setup')
+
+  // The text is selectable on the page, whatever the clipboard does.
+  await page.getByText('Show the text').click()
+  const shown = (await page.getByTestId('ai-webmcp-setup-text').innerText()).trim()
+  expect(shown).toMatch(/executeTool\(tools\.find/)
+  expect(shown).toMatch(/What I want built \(my request follows this line\):$/)
+
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await button.click()
+    await expect(button).toHaveText('Copied')
+    const copied = await page.evaluate(() => navigator.clipboard.readText())
+    expect(copied.replace(/\s+/g, ' ')).toBe(shown.replace(/\s+/g, ' '))
+  }
+
+  // Switch off: the button goes with the tools.
+  await page.getByTestId('ai-webmcp-switch').click()
+  await expect(page.getByTestId('ai-webmcp-switch')).toHaveText('Browser agents · off')
+  await expect(page.getByTestId('ai-webmcp-copy-setup')).toHaveCount(0)
+})

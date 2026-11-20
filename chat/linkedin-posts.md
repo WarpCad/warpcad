@@ -5333,3 +5333,17 @@ The spec for this runs on Chromium, WebKit and Firefox. Built with Claude Code, 
 **Evidence:** `list_ops` first-page sizes and the `primitive.cuboid`-ending page → TODO/done/ai-050 file; new specs `toolShape.spec.js`, `listOps.spec.js`, `webmcp.e2e.js` (E2E_DEV=1, chromium-laptop, webkit-tablet, firefox-laptop passed); full unit 9978 passed and pair e2e 1308 passed (this session)
 **To Add:** none
 ---
+
+## 2026-11-20T21:15:00Z — WarpCad: Copy setup for a browser agent
+
+**Post:** Driving WarpCad from Claude in Chrome used to mean finding a setup paragraph in the docs, copying it, and pasting it before your own request. Without it the agent said it couldn't call the tools, passed `executeTool` the wrong arguments, or stopped after the first page of `list_ops`.
+
+The Assistant now has a "Copy setup for a browser agent" button, shown while the Browser agents switch is on. The line beside it says to paste first and type the request after, and the copied text ends with "What I want built (my request follows this line):" so it reads correctly on its own.
+
+The text lives in one constant. The docs page quotes it, and a unit spec fails if the two differ. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** failure modes of the old paragraph → `TODO/done/ui-156` Goal section and docs/webmcp.md; drift spec → `src/ai/mcpPrompts.spec.js`
+**To Add:** none
+---

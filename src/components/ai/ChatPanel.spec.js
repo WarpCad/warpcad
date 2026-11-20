@@ -112,4 +112,10 @@ describe('ChatPanel with Browser agents and no key (ai-024)', () => {
     expect(header).toMatch(/Browser agents are off/)
     expect(wrapper.find('[data-testid="ai-composer-reason"]').text()).toBe(header)
   })
+
+  it('ui-156: Copy setup for a browser agent shows while the switch is on, and is gone when it is off', () => {
+    expect(mountKeyless({}).find('[data-testid="ai-webmcp-copy-setup"]').exists()).toBe(true)
+    expect(mountKeyless({}).find('[data-testid="ai-webmcp-setup-hint"]').text()).toMatch(/first, then type what you want built after it/)
+    expect(mountKeyless({ webMcp: 'off', webMcpTools: 0 }).find('[data-testid="ai-webmcp-copy-setup"]').exists()).toBe(false)
+  })
 })

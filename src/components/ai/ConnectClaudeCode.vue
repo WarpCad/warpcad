@@ -34,6 +34,7 @@ import { useAssistantStore } from '../../stores/assistant.js'
 import { useHelpStore } from '../../stores/help.js'
 import BaseDialog from '../layout/BaseDialog.vue'
 import NativeMcpAccess from './NativeMcpAccess.vue'
+import BrowserAgentSetup from './BrowserAgentSetup.vue'
 import StarterCopy from './StarterCopy.vue'
 import BaseButton from '../controls/BaseButton.vue'
 
@@ -116,6 +117,7 @@ function close() {
         </BaseButton>
         <BaseButton data-testid="ai-connect-webmcp-help" @click="help.openPage('webmcp')">About browser agents</BaseButton>
       </div>
+      <BrowserAgentSetup v-if="chat.webMcp === 'on'" />
       <p class="connect__text">
         An MCP client can also work on a saved project file; WarpCad merges its changes into the open
         project.

@@ -1739,6 +1739,16 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 
 **Answer:** validation
 
+#### M25 · Claude in Chrome: the copied setup works first time
+
+`ui-156` · 5 min · filed 2026-11-20
+
+**Steps:** 1. Chrome with the WebMCP flag on, WarpCad open, Assistant open. 2. Tap **Copy setup for a browser agent**. 3. In the Claude in Chrome pane, paste, Shift+Enter, type "add a 40 mm cube and put a 20 mm sphere on top of it", send.
+
+**Pass if:** Both bodies land with no correction from you, and History marks both **via webmcp**.
+
+**Answer:** validation
+
 ---
 
 ## 4. Accounts and settings

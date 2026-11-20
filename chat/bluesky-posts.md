@@ -3661,3 +3661,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** `list_ops` first-page sizes and the `primitive.cuboid`-ending page → TODO/done/ai-050 file; new specs `toolShape.spec.js`, `listOps.spec.js`, `webmcp.e2e.js` (E2E_DEV=1, chromium-laptop, webkit-tablet, firefox-laptop passed); full unit 9978 passed and pair e2e 1308 passed (this session)
 **To Add:** none
 ---
+
+## 2026-11-20T21:15:00Z — WarpCad: Copy setup for a browser agent
+
+**Post:** WarpCad's Assistant now has a "Copy setup for a browser agent" button. Paste it into Claude in Chrome first, then type what you want built after it; the copied text ends with a labelled slot for your request. The docs quote the same constant, and a unit spec fails if they drift. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** button, hint line, slot → diff; docs/constant match → `src/ai/mcpPrompts.spec.js` run this session; clipboard copy and switch-off hiding → `e2e/webmcp.e2e.js` run this session on webkit-laptop, chromium-phone, chromium-tablet, firefox-laptop (clipboard read is Chromium-only)
+**To Add:** none
+---
