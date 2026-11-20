@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.23.0](https://github.com/WarpCad/warpcad/compare/v1.22.0...v1.23.0) (2026-11-20)
+
+### Features
+
+* **ai:** add Copy setup for a browser agent to the Assistant (TODO/ui-156) ([8a9a4db](https://github.com/WarpCad/warpcad/commit/8a9a4db2137a19861759690370e4b03cc51f9a03))
+
+### Bug Fixes
+
+* **ai:** list every op name on list_ops' first WebMCP page (TODO/ai-050) ([8506f23](https://github.com/WarpCad/warpcad/commit/8506f2335742d931f1bdf8d23137be458edfc0f6))
+
 ## [1.22.0](https://github.com/WarpCad/warpcad/compare/v1.21.0...v1.22.0) (2026-11-20)
 
 ### Bug Fixes
