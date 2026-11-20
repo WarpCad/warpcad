@@ -432,8 +432,12 @@ test('a dense 3MF as the whole-model cutter: the main thread stays free at the c
   // The landing is the app's share (about 30 ms: unpack, fold, mesh, normals) plus the first frame
   // that draws the result, which a headless software rasteriser takes about 55 ms over on its own
   // (bench/whole-model-cut.mjs: on a real GPU the whole landing is under 50 ms). Before core-085 it
-  // was 98 to 160 ms here; 80 ms allows the rasteriser's frame and fails that.
-  expect(blocked.landingMs, `longest main-thread ${blocked.kind} when the cut landed`).toBeLessThan(LANDING_LIMIT_MS)
+  // was 98 to 160 ms here; 80 ms allows the rasteriser's frame and fails that. Like the click, the
+  // bound rises to the machine's own idle noise plus 20 ms when that is higher: the 2026-11-20 full
+  // run failed webkit-laptop at 85 ms with 68 to 81 ms gaps in the worker's wait, while nothing of
+  // the cut was running. A quiet run keeps the strict 80 and still fails the pre-core-085 98 to 160 ms.
+  const landingLimitMs = Math.max(LANDING_LIMIT_MS, blocked.idleMs + 20)
+  expect(blocked.landingMs, `longest main-thread ${blocked.kind} when the cut landed (idle noise ${blocked.idleMs.toFixed(0)} ms)`).toBeLessThan(landingLimitMs)
   // Pockets were cut, and the cut is one body.
   await expect(page.getByTestId('viewport')).toHaveAttribute('data-body-count', '1')
   expect(Number(await cut.getAttribute('data-body-volume'))).toBeLessThan(64_000 - 100)
