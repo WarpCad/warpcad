@@ -9,7 +9,7 @@
  * - on the dependent (the cube): *"Snapped to Raspberry Pi 1 ▸ avjack, which no longer
  *   exists."*
  *
- * Both carry **Resolve…** (`dependents-resolve`), which reopens the repair dialog on the
+ * Both carry **Re-link…** (`dependents-resolve`; one name with the History row's **Re-link**, `TODO/ui-146`), which reopens the repair dialog on the
  * breakages against the body whose parts are missing. The banner wraps; at phone width it
  * collapses to one line plus Resolve… (`BaseBanner`'s `truncate`), so it cannot push the Parameters section's first
  * field below the Inspector sheet's peek height.
@@ -17,7 +17,9 @@
 import { computed } from 'vue'
 
 import { useParamCommands } from '../../composables/useParamCommands.js'
+import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
+import { useTimelineStore } from '../../stores/timeline.js'
 import BaseButton from '../controls/BaseButton.vue'
 import BaseBanner from '../display/BaseBanner.vue'
 
@@ -30,6 +32,8 @@ const props = defineProps({
 
 const paramCommands = useParamCommands()
 const repairDialog = useRepairDialogStore()
+const timeline = useTimelineStore()
+const timelineCommands = useTimelineCommands()
 
 const dependents = computed(() => props.body.brokenDependents ?? [])
 const references = computed(() => props.body.brokenReferences ?? [])
@@ -64,10 +68,25 @@ function referenceText(reference) {
   return `${lead} ${reference.refBodyName} ▸ ${reference.pieces.join(', ')}, which no longer exists.`
 }
 
-/** @param {string} bodyId The body whose parts the broken rows refer to. */
+/**
+ * **Re-link…**, one name with the History row's **Re-link** (`TODO/ui-146`). When every broken
+ * row has the History offer (a step inserted while rolled back moved the body it builds on),
+ * it is the same action: each row is re-linked on the spot, one Undo step per row, and nothing
+ * opens. Otherwise (parts a Pi variant does not have, a snap to a part that is gone) there is a
+ * real choice per row, so the repair dialog opens.
+ *
+ * @param {string} bodyId The body whose parts the broken rows refer to.
+ */
 function resolve(bodyId) {
   const { edit, breakages } = paramCommands.resolveTargets(bodyId)
   if (breakages.length === 0) return
+  const offered = (/** @type {string} */ id) => timeline.rows.find((row) => row.id === id)?.relinkTo != null
+  if (breakages.every((breakage) => offered(breakage.dependentRecordId))) {
+    for (const breakage of breakages) {
+      if (!timelineCommands.relinkStep(breakage.dependentRecordId).ok) break
+    }
+    return
+  }
   repairDialog.show({ edit, breakages })
 }
 </script>
@@ -76,7 +95,7 @@ function resolve(bodyId) {
   <BaseBanner v-if="dependents.length > 0" tone="warn" layout="box" truncate role="status" data-testid="dependents-banner">
     {{ dependentsText }}
     <template #actions>
-      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(body.id)">Resolve…</BaseButton>
+      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(body.id)">Re-link…</BaseButton>
     </template>
   </BaseBanner>
   <BaseBanner
@@ -90,7 +109,7 @@ function resolve(bodyId) {
   >
     {{ referenceText(reference) }}
     <template #actions>
-      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">Resolve…</BaseButton>
+      <BaseButton narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">Re-link…</BaseButton>
     </template>
   </BaseBanner>
 </template>

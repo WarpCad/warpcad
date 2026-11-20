@@ -409,12 +409,14 @@ is never picked for you, because it changes what the design means.
 On a phone the dialog is a full-height sheet: each Fix dropdown sits full width under its
 row, and Apply/Cancel stay pinned to the bottom.
 
-**Leave broken, then Resolve….** An item left broken still shows where it last was, so you
+**Leave broken, then Re-link….** An item left broken still shows where it last was, so you
 can find it. The Pi's Inspector says *"1 item refers to parts this Pi 5 doesn't have."*,
 the item's own Inspector says *"Snapped to Raspberry Pi 1 ▸ avjack, which no longer
 exists."*, and its History row carries the `broken` label. Both banners have a
-**Resolve…** button that reopens the same dialog, where you can Remap, Detach or make it
-conditional now.
+**Re-link…** button that reopens the same dialog, where you can Remap, Detach or make it
+conditional now. (**Re-link** is the one name for repairing a broken step, here and in History.
+The dialog is only for a choice. When the break is a move you made while rolled back, the
+button re-links on the spot, as the Re-link section of the History page describes.)
 
 ### Worked example: detach a cube from a jack that went away
 

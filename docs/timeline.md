@@ -235,29 +235,37 @@ rounds the edge of), roll-forward is refused with a message naming it, the bound
 where it is, and that row is labelled `broken`. To get past it, either **Suppress** the
 broken row or **Undo** the change that broke it, then press Roll forward again.
 
-### When the move was yours: Re-link to the moved step
+### When the move was yours: Re-link
 
 The most common way a step breaks is one you caused on purpose: you roll back to before a
 step, then **move or resize a body** that the step builds on. Moving a body adds a new step
 that replaces the body's old position, so a later step that was pointing at the old one is
-left pointing at something that no longer exists. That later step gets the `broken` label, and when you select it the line under the row
+left pointing at something that no longer exists. That later step turns amber and gets the `broken` label, and when you select it the line under the row
 reads *This step can't be built because a later step already changed the part it works on, for example a
 move made after you rolled back. Use Re-link to follow the moved part, or edit the earlier step.*
 
-When that is the reason, selecting the broken row also shows a **Re-link to the moved
-step** button. Nothing changes until you press it — WarpCad does not guess that you meant
-the later step to follow the body. Pressing it points the step at the body's new position,
-as one step you can **Undo**.
+When that is the reason, the broken row itself carries a **Re-link** button, on the right of
+the row, so you do not have to select the row or scroll the panel to find it. Nothing changes
+until you press it — WarpCad does not guess that you meant the later step to follow the body.
+Pressing it points the step at the body's new position, as one step you can **Undo**.
+
+The same repair has the same name in the Inspector. Select the body that was moved (the
+cube) and the amber box reads *1 item built on Cube 1 no longer builds*, with a **Re-link…**
+button. For this kind of break it does exactly what the row's **Re-link** does, on the spot,
+with no dialog. (When parts of a Raspberry Pi variant are missing, or a snap points at a part
+that is gone, there is a real choice to make per item, so **Re-link…** opens the repair
+dialog described in the Snap and Align page.)
 
 **Example:** drag a Cube in, chamfer its top edge, drag a Sphere in. Press **History**,
 select row 1 (the cube) and press **Roll back to here**. Select the cube and drag it along
-the X arrow. The chamfer, now step 3, turns amber and `broken`. Select that row and press
-**Re-link to the moved step**; the amber label goes. Press **Roll forward** on the strip:
+the X arrow. The chamfer, now step 3, turns amber and `broken`, with **Re-link** at the right
+of its row. Press **Re-link**; the amber label goes. (Or select the cube and press **Re-link…**
+in the Inspector's amber box: the same result.) Press **Roll forward** on the strip:
 the chamfered cube comes back at its new position, with the sphere.
 
-The movie captions each beat. When the chamfer breaks, the Inspector's amber box also reads *1 item built on Cube 1 no longer builds* with a **Resolve…** button; the row's own `broken` label and the **Re-link to the moved step** button are in the History panel below it.
+The movie captions each beat. When the chamfer breaks, the Inspector's amber box also reads *1 item built on Cube 1 no longer builds* with a **Re-link…** button; the row's own amber `broken` label and its **Re-link** button are in the History panel below it.
 
-![Rolling back to the cube, moving it, the chamfer row going amber and broken (captioned), Re-link to the moved step, then Roll forward: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
+![Rolling back to the cube, moving it, the chamfer row going amber and broken (captioned), Re-link, then Roll forward: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
 
 The button is offered for a step that follows a body which was **moved, resized or
 otherwise edited** while you were rolled back. It covers steps that act on one body

@@ -6,7 +6,7 @@ import { endMovie, humanDrag, openApp, setCaption, startMovie } from './support.
  * Docs movie for "When the move was yours: Re-link to the moved step" in `docs/timeline.md`
  * (`TODO/data-006`, swept by `TODO/docs-020`): the page's own worked example — a Cube, a chamfer
  * on its top face, a Sphere; roll back to the cube; move the cube; the chamfer goes amber and
- * `broken`; Re-link to the moved step; Roll forward. Laptop only, Chromium.
+ * `broken`; Re-link; Roll forward. Laptop only, Chromium.
  *
  * Kept in its own file (not `timeline.docs.js`) so adding it does not re-record the rewind and
  * edit-step movies, whose recordings are keyed to that file's hash. Real mouse, human-paced; the
@@ -81,16 +81,17 @@ test.describe('docs media: timeline re-link', () => {
     await page.keyboard.type('60', { delay: 200 })
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
-    await caption(page, 'The chamfer (step 3) is now broken: 1 item built on Cube 1 no longer builds')
+    await expect(page.getByTestId('timeline-relink')).toBeVisible()
+    await caption(page, 'The chamfer (step 3) is now amber and broken, with Re-link on its row')
     await page.waitForTimeout(1800)
 
-    // Select the broken row: the reason and the offered button.
+    // Select the broken row: the reason is printed under it.
     await press(page, 'timeline-row-3')
-    await caption(page, 'Select step 3: the reason is printed and Re-link to the moved step is offered')
+    await caption(page, 'Select step 3: the reason is printed under the row')
     await expect(page.getByTestId('timeline-broken-reason')).toContainText('a later step already changed the part it works on')
     await expect(page.getByTestId('timeline-relink')).toBeEnabled()
     await page.waitForTimeout(1800)
-    await caption(page, 'Press Re-link to the moved step')
+    await caption(page, 'Press Re-link')
     await press(page, 'timeline-relink')
     await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)

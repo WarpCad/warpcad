@@ -136,8 +136,18 @@ const conditionLabel = computed(() => {
 const title = computed(() => {
   const count = dialog.breakages.length
   const items = `${count} item${count === 1 ? '' : 's'}`
-  return dialog.edit?.record === null ? `${items} need${count === 1 ? 's' : ''} repair` : `This change affects ${items}`
+  return dialog.edit?.record === null ? `Re-link ${items}` : `This change affects ${items}`
 })
+
+/**
+ * `TODO/ui-146`: **Re-link…** reopens this dialog *after* the break (`edit.record === null`), so
+ * "Nothing has changed yet" was wrong there. A held model edit has not been made yet, and says so.
+ */
+const intro = computed(() =>
+  dialog.edit?.record === null
+    ? 'Choose what happens to each item that no longer builds. Nothing changes until you press Apply.'
+    : 'Choose what happens to each item before the change is made. Nothing has changed yet.',
+)
 
 // --- per-row fixes ---------------------------------------------------------------
 
@@ -302,7 +312,7 @@ function apply() {
   >
     <div class="repair" :class="{ 'repair--sheet': isPhone }">
       <p class="repair__intro">
-        Choose what happens to each item before the change is made. Nothing has changed yet.
+        {{ intro }}
       </p>
 
       <ul class="repair__rows">

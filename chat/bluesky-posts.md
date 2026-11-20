@@ -3570,3 +3570,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** two readers unclear → TODO/VERIFY.md docs-019 #1, docs-020 #2, docs-011 #1, docs-013 #2 (testing-029); 26 GIFs re-recorded, docs-media spec green, pair run green → this session; fresh-agent verdicts → same VERIFY rows and TODO/FIND-docs-039.
 **To Add:** none
 ---
+
+## 2026-11-20T06:15:00Z — A broken step in WarpCad now has one amber look and a button you can see
+
+**Post:** Roll WarpCad back, move a part, and a later step breaks. Two readers found it greyed with a red chip, a repair button hidden at the bottom of a tiny panel, and a second box with another name for the same fix. The step is now amber with Re-link on its own row; the Inspector says Re-link too. A fresh reader rated the button clear and the naming still partial. Filed. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two readers' complaints → TODO/VERIFY.md data-006 #1; new specs on nine projects, pair run firefox-laptop + webkit-tablet, 1303 passed, 0 failed → this session; fresh-agent verdict → TODO/VERIFY.md ui-146 #1 and TODO/FIND-ui-154.
+**To Add:** none
+---

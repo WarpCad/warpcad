@@ -5949,7 +5949,7 @@ export function createDocument(options = {}) {
 
     /**
      * `TODO/data-006` (option c): point a broken tail row at the body an active step has
-     * since moved — the row's `Re-link to the moved step` action. Nothing re-points until
+     * since moved — the row's `Re-link` action. Nothing re-points until
      * this is called; a row it could fix stays `broken` until then, with
      * {@link TimelineRow.relinkTo} naming where it would point.
      *

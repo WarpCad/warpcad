@@ -6,8 +6,11 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, split from ui-129 on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-11-20).** A broken row is amber (warn chip, a warm tint over the row, its reason and its buttons; the grey *inactive* chip and the dimming are gone while it is broken). **Re-link** sits on the row line itself, not in the actions bar, and the row scrolls into view when it is offered. The Inspector's **Resolve…** is now **Re-link…**; when every broken row has the History offer it re-links on the spot (one Undo step per row), otherwise it opens the repair dialog, whose title is *Re-link N item(s)* and whose intro no longer says *Nothing has changed yet* after the break. A fresh agent's cold read rated visibility CLEAR and one-name-one-colour PARTIAL; the rest is `ui-154`.
 
 ## Problem
 

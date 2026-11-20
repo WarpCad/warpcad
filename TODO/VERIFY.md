@@ -59,6 +59,14 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-146 — One name, one amber treatment and a visible Re-link for a broken History step (2026-11-20 06:15)
+
+The row is amber with **Re-link** on the row line, the Inspector's box says **Re-link…**, and the dialog no longer says *Nothing has changed yet* after the break. Driven at laptop 1440x900 Chromium with real mouse and keyboard and covered by `e2e/timeline-panel.e2e.js` on all nine projects. What was left was the cold read, run by one fresh agent shown only the phone screenshots (the broken row, the Inspector box) and the original complaints.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Cold read of the broken row and the Inspector box on a 390 px phone: is it one problem under one name and colour, and is the repair visible without scrolling? | Moved | Fresh agent: the repair button visibility CLEAR (solid blue **Re-link** at the right of the step 3 row, in view); one name and colour PARTIAL (both amber with **Re-link**, but *broken* / *can't be built* against *no longer builds*, a solid against an outlined button, the box does not name the broken step, the reason says *after you rolled back* about a move above the marker). → `FIND-ui-154`. |
+
 ### ui-145 — Cold-read chrome fixes (2026-11-20 05:25)
 
 One fresh agent was shown only phone screenshots of the five changed controls and the item descriptions (no code, no docs). It rated Edit variable CLEAR and the other four PARTIAL; the partials are filed as `ui-153`.
@@ -2920,7 +2928,7 @@ three viewports (the 390 px fit is asserted there). What is left is the judgment
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Issue | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. The row is grey with red *inactive* and *broken* chips and internal-id text; the repair is **Re-link to the moved step** (History, clipped in a ~130 px panel) or **Resolve…** (Inspector, amber): two names, two colours. Filed `FIND-ui-129`. |
+| 1 | **Scenario 12 step 10, as an exploring human.** Roll back, move a body a later step uses, and decide whether the amber `broken` row plus **Re-link to the moved step** reads as clear or as clutter. Also whether the button label is understood without the docs. This is the `data-004` check 3 judgment, now with the button in place | Moved | 2026-11-14 (`testing-029` panel): A: unclear. B: unclear. The row is grey with red *inactive* and *broken* chips and internal-id text; the repair is **Re-link to the moved step** (History, clipped in a ~130 px panel) or **Resolve…** (Inspector, amber): two names, two colours. Filed `FIND-ui-129`. 2026-11-20 (`ui-146`): re-read by one fresh agent on phone screenshots: visibility of the repair CLEAR, one name and one colour PARTIAL (wording and button style still differ). → `FIND-ui-154`. |
 
 ### core-063 — Wording of the Repeat sheet for a step you did not make (2026-10-17 21:54)
 

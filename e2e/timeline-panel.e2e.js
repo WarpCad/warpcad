@@ -567,12 +567,14 @@ async function dragGizmoArmX(page, distancePx) {
   await page.waitForTimeout(160)
 }
 
-test('TODO/data-006: Re-link points a broken tail row at the body an insert moved, and it builds', async ({
-  page,
-}, testInfo) => {
-  await seedCubeChamferSphere(page)
+/**
+ * Roll back to the bare cube, move the cube with the gizmo, and leave the chamfer (now step 3) broken.
+ * On a phone the Inspector sheet is used for the pick, then History is reopened.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+async function breakChamferByMovingCube(page) {
   const cubeBefore = await bodyNamed(page, 'Cube 1')
-
   // Roll back to step 1 (the bare cube), so the chamfer (step 2) is inactive tail.
   await openHistory(page)
   await page.getByTestId('timeline-row-1').click()
@@ -592,6 +594,14 @@ test('TODO/data-006: Re-link points a broken tail row at the body an insert move
   const moved = await bodyNamed(page, 'Cube 1')
   expect(moved.bounds).not.toBe(cubeBefore.bounds)
   if (phone) await openHistory(page)
+  return { cubeBefore, moved }
+}
+
+test('TODO/data-006: Re-link points a broken tail row at the body an insert moved, and it builds', async ({
+  page,
+}, testInfo) => {
+  await seedCubeChamferSphere(page)
+  const { cubeBefore, moved } = await breakChamferByMovingCube(page)
 
   // The move landed at the marker as step 2, so the chamfer is now step 3. It is amber,
   // and it is *offered* the re-link — nothing re-pointed yet.
@@ -602,34 +612,18 @@ test('TODO/data-006: Re-link points a broken tail row at the body an insert move
   await expect(relink).toBeVisible()
   await expect(relink).toBeEnabled()
 
-  // It fits beside the other action buttons: inside the viewport horizontally, tall
-  // enough to tap, and overlapping none of its siblings.
+  // TODO/ui-146: the button is named "Re-link", is tap size, and stays inside the viewport.
+  await expect(relink).toHaveText('Re-link')
   const geometry = await page.evaluate(() => {
-    const bar = document.querySelector('[data-testid="timeline-actions"]')
     const own = document.querySelector('[data-testid="timeline-relink"]')
-    if (!bar || !own) throw new Error('missing action bar')
+    if (!own) throw new Error('missing relink')
     const r = own.getBoundingClientRect()
-    const siblings = [...bar.querySelectorAll('button')]
-      .filter((b) => b !== own)
-      .map((b) => b.getBoundingClientRect())
-      .filter((s) => s.width > 0)
-    const overlaps = siblings.some(
-      (s) => r.left < s.right - 0.5 && r.right > s.left + 0.5 && r.top < s.bottom - 0.5 && r.bottom > s.top + 0.5,
-    )
-    return {
-      left: r.left,
-      right: r.right,
-      height: r.height,
-      innerWidth: window.innerWidth,
-      scrollW: document.documentElement.scrollWidth,
-      overlaps,
-    }
+    return { left: r.left, right: r.right, height: r.height, innerWidth: window.innerWidth, scrollW: document.documentElement.scrollWidth }
   })
   expect(geometry.left).toBeGreaterThanOrEqual(0)
   expect(geometry.right).toBeLessThanOrEqual(geometry.innerWidth + 0.5)
   expect(geometry.scrollW).toBeLessThanOrEqual(geometry.innerWidth)
   expect(geometry.height).toBeGreaterThanOrEqual(40)
-  expect(geometry.overlaps).toBe(false)
   await page.screenshot({ path: testInfo.outputPath(`relink-offered-${testInfo.project.name}.png`) })
 
   await relink.click()
@@ -657,4 +651,69 @@ test('TODO/data-006: a row that is not broken, or is active, never shows Re-link
   await page.getByTestId('timeline-row-2').click()
   await expect(page.getByTestId('timeline-actions')).toBeVisible()
   await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
+})
+
+test('TODO/ui-146: a broken step is amber, named Re-link in both routes, and its button needs no scrolling', async ({
+  page,
+}, testInfo) => {
+  await seedCubeChamferSphere(page)
+  await breakChamferByMovingCube(page)
+
+  // One treatment: amber chip, no grey "inactive" chip beside it, the row is not dimmed.
+  const row = page.getByTestId('timeline-row-3')
+  await expect(row.getByTestId('chip-broken')).toHaveClass(/base-chip--warn/)
+  await expect(row.getByTestId('chip-inactive')).toHaveCount(0)
+  await expect(row).toHaveClass(/row--broken/)
+
+  // The repair is on the row line, in view, without selecting the row or scrolling the panel.
+  const relink = page.getByTestId('timeline-relink')
+  await expect(relink).toBeVisible()
+  await expect(relink).toHaveText('Re-link')
+  const measure = () =>
+    page.evaluate(() => {
+      const own = document.querySelector('[data-testid="timeline-relink"]')?.getBoundingClientRect()
+      const list = document.querySelector('[data-testid="timeline-rows"]')?.getBoundingClientRect()
+      if (!own || !list) throw new Error('missing relink or rows')
+      return { top: own.top - list.top, bottom: list.bottom - own.bottom, height: own.height }
+    })
+  // The panel brings the row into view when the step breaks, so poll for it to settle.
+  await expect.poll(async () => (await measure()).bottom).toBeGreaterThanOrEqual(0)
+  expect((await measure()).top).toBeGreaterThanOrEqual(0)
+  expect((await measure()).height).toBeGreaterThanOrEqual(40)
+  // Selecting the row opens its reason and actions; the button stays on screen.
+  await row.click()
+  await expect(relink).toBeVisible()
+  await expect.poll(async () => (await measure()).bottom).toBeGreaterThanOrEqual(0)
+  expect((await measure()).top).toBeGreaterThanOrEqual(0)
+  await page.screenshot({ path: testInfo.outputPath(`broken-row-${testInfo.project.name}.png`) })
+
+  // The Inspector's box for the same problem: the same amber, the same name.
+  const phone = await libraryIsSheet(page)
+  if (phone) {
+    await page.getByTestId('timeline-close').click()
+    // Closing History may hand the sheet slot straight back to the Inspector; open it only if not.
+    if (!(await page.getByTestId('dependents-banner').isVisible())) await page.getByTestId('inspector-tab').click()
+  }
+  // Cube 1 is still the selected body from the move.
+  const banner = page.getByTestId('dependents-banner')
+  await expect(banner).toBeVisible()
+  await expect(banner).toHaveClass(/base-banner--warn/)
+  await expect(page.getByTestId('dependents-resolve')).toHaveText('Re-link…')
+  await banner.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: testInfo.outputPath(`broken-inspector-${testInfo.project.name}.png`) })
+
+  // Same action as the row's button: one press re-links, with no dialog to read through.
+  await page.getByTestId('dependents-resolve').click()
+  await expect(page.getByTestId('repair-dialog')).toHaveCount(0)
+  await expect(banner).toHaveCount(0)
+  // On a phone the Inspector sheet and History take the same slot; wider, History is still open.
+  if (!(await page.getByTestId('timeline-panel').isVisible())) await openHistory(page)
+  await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)
+  await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
+
+  // One Undo step puts the break back.
+  await page.getByTestId('undo-button').click()
+  await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
+  await expect(page.getByTestId('timeline-relink')).toBeVisible()
 })

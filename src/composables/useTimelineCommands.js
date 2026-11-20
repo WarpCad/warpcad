@@ -475,7 +475,7 @@ export function useTimelineCommands() {
 
   /**
    * `TODO/data-006` (option c): point a broken tail row at the body a step inserted
-   * while rolled back has moved — the row's `Re-link to the moved step` button. The
+   * while rolled back has moved — the row's `Re-link` button. The
    * document decides whether the row has that offer (`TimelineRowView.relinkTo`) and
    * refuses one that does not; this only turns that refusal into something renderable.
    *

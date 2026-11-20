@@ -437,7 +437,7 @@ test('Pi 4 + cube snapped to its AV jack → Pi 5: the dialog lists the cube; Ca
   await expect(page.getByTestId('chip-broken')).toHaveCount(0)
 })
 
-test('Leave broken flags the Pi, the cube and the History row; Resolve… reopens the dialog and a Remap clears it', async ({ page }) => {
+test('Leave broken flags the Pi, the cube and the History row; Re-link… reopens the dialog and a Remap clears it', async ({ page }) => {
   await seedPiAndCube(page)
   await snapCubeTo(page, 'avjack')
   await chooseModel(page, '5')
@@ -482,10 +482,14 @@ test('Leave broken flags the Pi, the cube and the History row; Resolve… reopen
   await expect(page.getByTestId('chip-broken')).toHaveCount(1)
   await closeHistory(page)
 
-  // Resolve… from the cube reopens the same dialog; Remap onto a part the Pi 5 has.
+  // Re-link… (TODO/ui-146's one name, was Resolve…) from the cube reopens the same dialog, now saying
+  // the break is already made; Remap onto a part the Pi 5 has.
   await selectFromList(page, 'cube')
+  await expect(page.getByTestId('dependents-resolve')).toHaveText('Re-link…')
   await page.getByTestId('dependents-resolve').click()
   await expect(page.getByTestId('repair-dialog')).toBeVisible()
+  await expect(page.getByTestId('repair-dialog')).not.toContainText('Nothing has changed yet')
+  await expect(page.getByTestId('repair-dialog')).toContainText('Nothing changes until you press Apply')
   const row = page.getByTestId('repair-row')
   await row.getByTestId('repair-fix').selectOption('remap')
   await row.getByTestId('repair-remap').selectOption('ethernet')

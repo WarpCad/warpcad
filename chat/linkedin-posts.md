@@ -5193,3 +5193,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** the readers' complaints → TODO/VERIFY.md docs-019 #1, docs-020 #2, docs-011 #1, docs-013 #2; 26 GIFs changed and no others → git show --stat this commit; verdicts and remainders → VERIFY rows and TODO/FIND-docs-039.
 **To Add:** none
 ---
+
+## 2026-11-20T06:15:00Z — A broken step in WarpCad now has one amber look and a button you can see
+
+**Post:** When a step in WarpCad's History can no longer be built, two fresh readers read it differently on a phone. The row was grey with a red "broken" chip, the Inspector showed an amber box with a different button name for the same repair, and the Re-link button sat at the bottom of a panel about 130 px tall, so you had to scroll to find it.
+
+Now a broken step is amber in both places, and Re-link is on the row itself, scrolled into view when it is offered. The Inspector's Resolve became Re-link, and for this kind of break it does exactly what the row button does, in one Undo step. Making that true meant a second fix: the old dialog only offered "Leave broken" here, so pressing it repaired nothing. The dialog also stopped saying "Nothing has changed yet" after the break had already happened.
+
+A fresh reader looking only at two phone screenshots rated the button's visibility clear and the "one name, one colour" complaint partial: the row says "broken", the box says "no longer builds", and one button is solid while the other is outlined. I filed that rather than call it done.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the readers' complaints → TODO/VERIFY.md data-006 #1; row and Inspector specs on nine projects → e2e/timeline-panel.e2e.js; verdict and remainder → TODO/VERIFY.md ui-146 #1 and TODO/FIND-ui-154.
+**To Add:** none
+---

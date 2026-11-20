@@ -64,6 +64,9 @@ const emit = defineEmits(['select'])
 const timeline = useTimelineStore()
 const commands = useTimelineCommands()
 
+/** @type {import('vue').Ref<HTMLElement | null>} */
+const rootEl = ref(null)
+
 const editing = ref(false)
 /** `TODO/ai-003`: whether this row's intent is expanded. Per row, not persisted. */
 const intentOpen = ref(false)
@@ -99,6 +102,19 @@ const brokenReason = computed(() => {
   const failing = timeline.error?.broken
   return failing && failing.id === props.row.id ? userReason(failing.reason) : null
 })
+
+/**
+ * `TODO/ui-146`: a row that is offered **Re-link** is brought into view when it is offered, so
+ * the button is on screen even when another row's open action bar has pushed it past the fold
+ * of the panel. `nearest` scrolls only as far as needed, and not at all when it already fits.
+ */
+watch(
+  () => props.row.relinkTo !== null,
+  (offered) => {
+    if (offered) void nextTick(() => rootEl.value?.scrollIntoView?.({ block: 'nearest' }))
+  },
+  { immediate: true },
+)
 
 // Selecting a different row closes any form this one had open, so an abandoned
 // edit can never be applied later by a stray Enter.
@@ -173,7 +189,7 @@ function cancel() {
 </script>
 
 <template>
-  <li class="row-wrap">
+  <li ref="rootEl" class="row-wrap" :class="{ 'row-wrap--broken': brokenReason !== null }">
     <div class="row-line">
       <button
         type="button"
@@ -181,7 +197,8 @@ function cancel() {
         :class="{
           'row--selected': selected,
           'row--suppressed': row.suppressed,
-          'row--inactive': !row.active,
+          'row--inactive': !row.active && !brokenReason,
+          'row--broken': brokenReason !== null,
           'row--conditioned-off': row.inactiveBy !== null,
           'row--related': related && !selected,
         }"
@@ -199,7 +216,7 @@ function cancel() {
           <BaseChip v-if="row.suppressed" tone="quiet" size="sm" data-testid="chip-suppressed">
             suppressed
           </BaseChip>
-          <BaseChip v-if="!row.active" tone="quiet" size="sm" data-testid="chip-inactive">inactive</BaseChip>
+          <BaseChip v-if="!row.active && !brokenReason" tone="quiet" size="sm" data-testid="chip-inactive">inactive</BaseChip>
           <!-- A condition (TODO/ui-052): shown whether or not it currently holds, so a row
                that only exists on a Pi 4 says so on a Pi 4 too. While it does not hold the
                row greys like a suppressed one, but carries this chip instead of the
@@ -217,7 +234,7 @@ function cancel() {
           </BaseChip>
           <BaseChip
             v-if="brokenReason"
-            tone="danger"
+            tone="warn"
             size="sm"
             data-testid="chip-broken"
             :title="brokenReason"
@@ -231,6 +248,22 @@ function cancel() {
           <BaseChip v-if="row.origin !== 'local'" size="sm" data-testid="chip-origin">{{ originLabel }}</BaseChip>
         </span>
       </button>
+      <!-- TODO/ui-146 (was data-006's option c, in the actions bar): on the row itself, so a
+           phone user sees it without scrolling the roughly 130 px panel. Only on a broken tail
+           row that broke because a step inserted while rolled back moved the body it builds
+           on. Nothing re-points until this is pressed; a row broken for any other reason
+           never shows it. -->
+      <BaseButton
+        v-if="row.relinkTo !== null"
+        class="row__relink"
+        variant="primary"
+        narrow
+        data-testid="timeline-relink"
+        title="Point this step at the body’s new position, so it can be built again"
+        @click="commands.relinkStep(row.id)"
+      >
+        Re-link
+      </BaseButton>
       <IconButton
         v-if="row.intent !== null"
         class="row__intent-toggle"
@@ -303,18 +336,6 @@ function cancel() {
         @click="commands.rollBackTo(row.id)"
       >
         Roll back to here
-      </BaseButton>
-      <!-- TODO/data-006 (option c): only on a broken tail row that broke because a step
-           inserted while rolled back moved the body it builds on. Nothing re-points until
-           this is pressed; a row broken for any other reason never shows it. -->
-      <BaseButton
-        v-if="row.relinkTo !== null"
-        variant="primary"
-        data-testid="timeline-relink"
-        title="Point this step at the body’s new position, so it can be built again"
-        @click="commands.relinkStep(row.id)"
-      >
-        Re-link to the moved step
       </BaseButton>
     </div>
 
@@ -426,6 +447,25 @@ function cancel() {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
+.row-wrap--broken {
+  /* TODO/ui-146: the one amber treatment, the same as the Inspector's box for the same
+     problem (BaseBanner's warn box), in place of grey-and-red. The tint covers the row, its
+     reason and its buttons. */
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+}
+
+.row--broken,
+.row--broken:hover {
+  border-left-color: var(--warn);
+  background: transparent;
+}
+
+.row__relink {
+  align-self: center;
+  flex: none;
+  margin-right: var(--space-2);
+}
+
 .row--related {
   background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
@@ -495,7 +535,7 @@ function cancel() {
   padding: 0 var(--space-4h) var(--space-3) var(--space-5);
   font-size: var(--text-size-sm);
   line-height: 1.35;
-  color: var(--danger);
+  color: var(--text-1);
   overflow-wrap: anywhere;
 }
 
