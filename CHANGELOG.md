@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.22.0](https://github.com/WarpCad/warpcad/compare/v1.21.0...v1.22.0) (2026-11-20)
+
+### Bug Fixes
+
+* **io:** say so in the Export popover when a body in scope is empty (TODO/io-039) ([0d156af](https://github.com/WarpCad/warpcad/commit/0d156af595f92aefbe8bd2a1eff29da72f429bc1))
+* **io:** say so in the Export popover when a body in scope is empty, code and specs (TODO/io-039) ([3ab6d11](https://github.com/WarpCad/warpcad/commit/3ab6d11a8dd280723e481ba1f63f6c57dd54911f))
+* **ui:** one name, one button and one reason for a broken step in History and the Inspector (TODO/ui-154) ([93ce46c](https://github.com/WarpCad/warpcad/commit/93ce46c5cb77148f59a8893485fca59d40a02ce6))
+
 ## [1.21.0](https://github.com/WarpCad/warpcad/compare/v1.20.0...v1.21.0) (2026-11-20)
 
 ### Bug Fixes
