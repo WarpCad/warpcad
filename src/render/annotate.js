@@ -1806,7 +1806,7 @@ function localToWorld(lxMm, lyMm, lzMm, out) {
  * @returns {number}
  */
 function corner(minMm, maxMm, axis, axisPick, pickA, pickB, component) {
-  const [otherA] = OTHER_AXES[axis]
+  const otherA = OTHER_AXES[axis][0]
   let pick = pickB
   if (component === axis) pick = axisPick
   else if (component === otherA) pick = pickA
@@ -1879,6 +1879,9 @@ function orientedCorner(minMm, maxMm, axis, axisPick, pickA, pickB, out) {
  * @param {number} offsetPx How far clear of the solid to draw the line.
  * @param {number} arrowPx Arrowhead length.
  * @param {DimensionAnnotation} out Mutated in place.
+ * @param {GizmoAnnotation | null} [gizmo] The transform gizmo drawn this frame (`TODO/ui-147`). When
+ *   it is visible, the label is moved off its rotate rings and translate arms; omitted, `null` or
+ *   hidden means there is nothing to avoid and the label sits where `ui-130` left it.
  * @returns {DimensionAnnotation} `out`
  */
 export function updateDimensionAnnotation(
@@ -1889,15 +1892,18 @@ export function updateDimensionAnnotation(
   heightPx,
   offsetPx,
   arrowPx,
-  out
+  out,
+  gizmo = null
 ) {
   const { minMm, maxMm } = boxMm
   out.axis = AXIS_LABELS[axisIndex]
   // Measured off the local box, so it never depends on the camera or on which
   // way the part happens to be turned.
   const lengthMm = maxMm[axisIndex] - minMm[axisIndex]
+  // The label string is rebuilt only when the length changed: formatting it every frame allocated a
+  // string per axis per frame during an orbit (`TODO/ui-147`, CLAUDE.md Performance).
+  if (lengthMm !== out.lengthMm || out.label === '') out.label = formatMm(lengthMm)
   out.lengthMm = lengthMm
-  out.label = formatMm(lengthMm)
   out.frame = loadTurn(boxMm) ? 'local' : 'world'
 
   localToWorld(
@@ -1914,7 +1920,9 @@ export function updateDimensionAnnotation(
 
   let bestScore = -1
   let found = false
-  for (const [pickA, pickB] of EDGE_CORNERS) {
+  for (let edge = 0; edge < EDGE_CORNERS.length; edge += 1) {
+    const pickA = EDGE_CORNERS[edge][0]
+    const pickB = EDGE_CORNERS[edge][1]
     orientedCorner(minMm, maxMm, axisIndex, 0, pickA, pickB, scratchPoint)
     worldToScreen(orbit, scratchPoint.x, scratchPoint.y, scratchPoint.z, widthPx, heightPx, scratchNear)
     orientedCorner(minMm, maxMm, axisIndex, 1, pickA, pickB, scratchPoint)
@@ -1997,6 +2005,9 @@ export function updateDimensionAnnotation(
   out.labelX = (out.x1 + out.x2) / 2 + outX * (arrowPx + 3)
   out.labelY = (out.y1 + out.y2) / 2 + outY * (arrowPx + 3)
   keepLabelInside(out, widthPx, heightPx)
+  if (gizmo !== null && gizmo.visible) {
+    clearLabelOfGizmo(out, gizmo, outX, outY, lineX, lineY, lineLength, arrowPx, widthPx, heightPx)
+  }
   return out
 }
 
@@ -2006,6 +2017,8 @@ export const LABEL_CHAR_PX = 7
 export const LABEL_PAD_PX = 4
 /** Half the label's box height, px. */
 export const LABEL_HALF_HEIGHT_PX = 9
+/** Clearance a label box keeps from a gizmo ring or arm, px: the ring wall's half-width plus a pixel of air. */
+export const GIZMO_CLEAR_PX = 4
 
 /**
  * Pull a dimension label back inside the viewport (`TODO/ui-130`). At phone width a label box crossed
@@ -2022,6 +2035,241 @@ function keepLabelInside(out, widthPx, heightPx) {
   const halfH = LABEL_HALF_HEIGHT_PX
   if (widthPx >= halfW * 2) out.labelX = clamp(out.labelX, halfW, widthPx - halfW)
   if (heightPx >= halfH * 2) out.labelY = clamp(out.labelY, halfH, heightPx - halfH)
+}
+
+/** Extra margin on a ring test, px: the 56-segment polyline sits up to 0.3 px inside the true ellipse at the largest ring. */
+const RING_CHORD_SLACK_PX = 0.3
+/** Segments a ring is sampled at when a label is tested against it (finer than the drawn 28; see {@link RING_SEGMENTS}). */
+const RING_TEST_SEGMENTS = 56
+const RING_TEST_COS = Object.freeze(
+  Array.from({ length: RING_TEST_SEGMENTS + 1 }, (_, index) => Math.cos((index / RING_TEST_SEGMENTS) * 2 * Math.PI))
+)
+const RING_TEST_SIN = Object.freeze(
+  Array.from({ length: RING_TEST_SEGMENTS + 1 }, (_, index) => Math.sin((index / RING_TEST_SEGMENTS) * 2 * Math.PI))
+)
+/** How many positions {@link clearLabelOfGizmo} tries: five slides along the line, each on three sides of it. */
+const LABEL_SLIDE_STEPS = Object.freeze([0, 1, -1, 2, -2])
+/** Radii, px from the dimension line's midpoint, of the last-resort search that {@link clearLabelOfGizmo} runs after the line-hugging candidates. */
+const LABEL_SEARCH_RADII_PX = Object.freeze([20, 36, 52, 68, 84])
+/** Directions per radius in that search: every 30 degrees, starting outward. */
+const LABEL_SEARCH_DIRECTIONS = 12
+const LABEL_SEARCH_COS = Object.freeze(
+  Array.from({ length: LABEL_SEARCH_DIRECTIONS }, (_, index) => Math.cos((index / LABEL_SEARCH_DIRECTIONS) * 2 * Math.PI))
+)
+const LABEL_SEARCH_SIN = Object.freeze(
+  Array.from({ length: LABEL_SEARCH_DIRECTIONS }, (_, index) => Math.sin((index / LABEL_SEARCH_DIRECTIONS) * 2 * Math.PI))
+)
+
+/**
+ * Scratch for {@link clearLabelOfGizmo}: x, y pairs, so a double never crosses a call as an argument
+ * (V8 boxes a double argument into a heap number when the callee is not inlined, once per call).
+ * Three rings, each `RING_TEST_SEGMENTS + 1` points (closed: the first repeated), then three arms of
+ * two points each (hub, tip).
+ */
+const scratchGizmoXY = new Float64Array((3 * (RING_TEST_SEGMENTS + 1) + 3 * 2) * 2)
+/** Where the arm points start in {@link scratchGizmoXY}. */
+const ARM_POINTS_AT = 3 * (RING_TEST_SEGMENTS + 1) * 2
+/** The rectangle a segment is tested against: minX, minY, maxX, maxY. */
+const scratchRect = new Float64Array(4)
+/** The label's half-width and half-height, px, before the clearance. */
+const scratchHalf = new Float64Array(2)
+
+/**
+ * Does the segment between points `from` and `to` of {@link scratchGizmoXY} touch {@link scratchRect}?
+ * Liang-Barsky clipping on array reads, so it allocates nothing. A zero-length segment is a point test.
+ *
+ * @param {number} from Index of the first x in `scratchGizmoXY`.
+ * @param {number} to Index of the second point's x.
+ * @returns {boolean}
+ */
+function segmentMeetsRect(from, to) {
+  const x1 = scratchGizmoXY[from]
+  const y1 = scratchGizmoXY[from + 1]
+  const x2 = scratchGizmoXY[to]
+  const y2 = scratchGizmoXY[to + 1]
+  const minX = scratchRect[0]
+  const minY = scratchRect[1]
+  const maxX = scratchRect[2]
+  const maxY = scratchRect[3]
+  if ((x1 < minX && x2 < minX) || (x1 > maxX && x2 > maxX) || (y1 < minY && y2 < minY) || (y1 > maxY && y2 > maxY)) {
+    return false
+  }
+  let t0 = 0
+  let t1 = 1
+  const dx = x2 - x1
+  if (Math.abs(dx) < 1e-12) {
+    if (x1 < minX || x1 > maxX) return false
+  } else {
+    let ta = (minX - x1) / dx
+    let tb = (maxX - x1) / dx
+    if (ta > tb) {
+      const swap = ta
+      ta = tb
+      tb = swap
+    }
+    if (ta > t0) t0 = ta
+    if (tb < t1) t1 = tb
+    if (t0 > t1) return false
+  }
+  const dy = y2 - y1
+  if (Math.abs(dy) < 1e-12) {
+    if (y1 < minY || y1 > maxY) return false
+  } else {
+    let ta = (minY - y1) / dy
+    let tb = (maxY - y1) / dy
+    if (ta > tb) {
+      const swap = ta
+      ta = tb
+      tb = swap
+    }
+    if (ta > t0) t0 = ta
+    if (tb < t1) t1 = tb
+    if (t0 > t1) return false
+  }
+  return true
+}
+
+/**
+ * How many ring segments and arms the label box at `out.labelX`/`labelY` (half-extents in
+ * {@link scratchHalf}) touches, with {@link scratchGizmoXY} already filled. Zero means clear.
+ *
+ * @param {DimensionAnnotation} out
+ * @param {GizmoAnnotation} gizmo
+ * @returns {number}
+ */
+function gizmoHitsLabel(out, gizmo) {
+  let hits = 0
+  const grow = GIZMO_CLEAR_PX + RING_CHORD_SLACK_PX
+  const minX = out.labelX - scratchHalf[0] - grow
+  const maxX = out.labelX + scratchHalf[0] + grow
+  const minY = out.labelY - scratchHalf[1] - grow
+  const maxY = out.labelY + scratchHalf[1] + grow
+  scratchRect[0] = minX
+  scratchRect[1] = minY
+  scratchRect[2] = maxX
+  scratchRect[3] = maxY
+  for (let r = 0; r < gizmo.rings.length; r += 1) {
+    const ring = gizmo.rings[r]
+    if (!ring.visible) continue
+    // The ellipse lies inside the box of half-extents (hypot(ux, vx), hypot(uy, vy)) around the origin:
+    // a label box that misses that box cannot touch the ring.
+    const extentX = Math.sqrt(ring.ux * ring.ux + ring.vx * ring.vx)
+    const extentY = Math.sqrt(ring.uy * ring.uy + ring.vy * ring.vy)
+    if (
+      maxX < gizmo.originX - extentX ||
+      minX > gizmo.originX + extentX ||
+      maxY < gizmo.originY - extentY ||
+      minY > gizmo.originY + extentY
+    ) {
+      continue
+    }
+    const base = r * (RING_TEST_SEGMENTS + 1) * 2
+    for (let i = 0; i < RING_TEST_SEGMENTS; i += 1) {
+      if (segmentMeetsRect(base + i * 2, base + i * 2 + 2)) hits += 1
+    }
+  }
+  for (let a = 0; a < gizmo.arrows.length; a += 1) {
+    const arrow = gizmo.arrows[a]
+    if (!arrow.visible) continue
+    // The arm is a shaft plus a cone whose half-width is `coneRx`: grow the box by that instead of
+    // building the cone's outline.
+    const armGrow = GIZMO_CLEAR_PX + arrow.coneRx
+    scratchRect[0] = out.labelX - scratchHalf[0] - armGrow
+    scratchRect[1] = out.labelY - scratchHalf[1] - armGrow
+    scratchRect[2] = out.labelX + scratchHalf[0] + armGrow
+    scratchRect[3] = out.labelY + scratchHalf[1] + armGrow
+    if (segmentMeetsRect(ARM_POINTS_AT + a * 4, ARM_POINTS_AT + a * 4 + 2)) hits += 1
+  }
+  return hits
+}
+
+/**
+ * Move a dimension label off the gizmo's rotate rings and translate arms (`TODO/ui-147`). A label whose
+ * `ui-130` position is already clear does not move. Otherwise candidate positions are tried in order: the
+ * label's own side of the line, then the side facing the solid, then further out, each at the line's
+ * midpoint and then slid a quarter of the line (at most 34 px) either way and twice that; then, when the
+ * line offers nothing, a search on rings of 20 to 84 px around the line's midpoint, outward first. The
+ * first clear one wins. When none is clear (a ring larger than the viewport), the candidate that touches
+ * the fewest ring segments and arms wins, earliest on a tie, so the label never jumps without reason.
+ * Every candidate is held inside the viewport first. Only the number moves; the line and arrowheads stay
+ * where they measure. Allocation-free: scalars and preallocated typed arrays only.
+ *
+ * @param {DimensionAnnotation} out Mutated in place; `labelX`/`labelY` hold the `ui-130` position on entry.
+ * @param {GizmoAnnotation} gizmo
+ * @param {number} outX Unit vector from the box toward the dimension line, screen space.
+ * @param {number} outY
+ * @param {number} lineX Unit vector along the dimension line.
+ * @param {number} lineY
+ * @param {number} lineLength Dimension line length, px.
+ * @param {number} arrowPx
+ * @param {number} widthPx
+ * @param {number} heightPx
+ * @returns {void}
+ */
+function clearLabelOfGizmo(out, gizmo, outX, outY, lineX, lineY, lineLength, arrowPx, widthPx, heightPx) {
+  for (let r = 0; r < gizmo.rings.length; r += 1) {
+    const ring = gizmo.rings[r]
+    const base = r * (RING_TEST_SEGMENTS + 1) * 2
+    for (let i = 0; i <= RING_TEST_SEGMENTS; i += 1) {
+      scratchGizmoXY[base + i * 2] = gizmo.originX + ring.ux * RING_TEST_COS[i] + ring.vx * RING_TEST_SIN[i]
+      scratchGizmoXY[base + i * 2 + 1] = gizmo.originY + ring.uy * RING_TEST_COS[i] + ring.vy * RING_TEST_SIN[i]
+    }
+  }
+  for (let a = 0; a < gizmo.arrows.length; a += 1) {
+    const arrow = gizmo.arrows[a]
+    scratchGizmoXY[ARM_POINTS_AT + a * 4] = gizmo.originX
+    scratchGizmoXY[ARM_POINTS_AT + a * 4 + 1] = gizmo.originY
+    scratchGizmoXY[ARM_POINTS_AT + a * 4 + 2] = arrow.tipX
+    scratchGizmoXY[ARM_POINTS_AT + a * 4 + 3] = arrow.tipY
+  }
+  scratchHalf[0] = (out.label.length * LABEL_CHAR_PX) / 2 + LABEL_PAD_PX
+  scratchHalf[1] = LABEL_HALF_HEIGHT_PX
+  let bestHits = gizmoHitsLabel(out, gizmo)
+  if (bestHits === 0) return
+  let bestX = out.labelX
+  let bestY = out.labelY
+
+  const midX = (out.x1 + out.x2) / 2
+  const midY = (out.y1 + out.y2) / 2
+  const step = Math.min(lineLength / 4, 34)
+  const near = arrowPx + 3
+  for (let s = 0; s < LABEL_SLIDE_STEPS.length; s += 1) {
+    const slide = LABEL_SLIDE_STEPS[s] * step
+    for (let side = 0; side < 3; side += 1) {
+      if (s === 0 && side === 0) continue // the position already tested above
+      const away = side === 0 ? near : side === 1 ? -near : near + 2 * scratchHalf[1]
+      out.labelX = midX + lineX * slide + outX * away
+      out.labelY = midY + lineY * slide + outY * away
+      keepLabelInside(out, widthPx, heightPx)
+      const hits = gizmoHitsLabel(out, gizmo)
+      if (hits < bestHits) {
+        bestHits = hits
+        bestX = out.labelX
+        bestY = out.labelY
+        if (hits === 0) return
+      }
+    }
+  }
+  // Nothing along the line is clear: look around it, nearest ring of positions first, outward first.
+  for (let r = 0; r < LABEL_SEARCH_RADII_PX.length; r += 1) {
+    const radius = LABEL_SEARCH_RADII_PX[r]
+    for (let k = 0; k < LABEL_SEARCH_DIRECTIONS; k += 1) {
+      const dirX = outX * LABEL_SEARCH_COS[k] - outY * LABEL_SEARCH_SIN[k]
+      const dirY = outX * LABEL_SEARCH_SIN[k] + outY * LABEL_SEARCH_COS[k]
+      out.labelX = midX + dirX * radius
+      out.labelY = midY + dirY * radius
+      keepLabelInside(out, widthPx, heightPx)
+      const hits = gizmoHitsLabel(out, gizmo)
+      if (hits < bestHits) {
+        bestHits = hits
+        bestX = out.labelX
+        bestY = out.labelY
+        if (hits === 0) return
+      }
+    }
+  }
+  out.labelX = bestX
+  out.labelY = bestY
 }
 
 /**

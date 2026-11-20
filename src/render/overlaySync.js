@@ -238,6 +238,7 @@ export function createOverlaySync(deps) {
         DIMENSION_OFFSET_PX,
         DIMENSION_ARROW_PX,
         dimensionAnnotations[axis],
+        gizmoAnnotation,
       )
     }
   }

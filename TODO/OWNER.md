@@ -86,6 +86,22 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q110 · May a dimension label step off its line so a gizmo ring does not cross its digits?
+
+**Question:** `ui-147` keeps each dimension number ("50 mm", "40 mm") clear of the gizmo's rotate rings and arrows. When a ring would run through the digits, the number moves to the other side of its dimension line, slides along it, or (if nothing along the line is clear) sits up to about 84 px from the line, while the line and arrowheads stay put. A label already clear never moves. Keep a number that can sit a little away from its line, over a number that sits on its line with a ring through it?
+
+**Background:** Assumed yes. The finding offered two routes, moving the label or drawing it above the gizmo layer; moving was taken because a ring drawn under a halo still reads as a cut number. A body that fills the phone screen has rings larger than the viewport, and then the label takes the least-crossed spot and may still be crossed. The number jumps between spots as you orbit, since each spot is chosen fresh per frame.
+
+**Options:**
+1. **Move the number off the ring (Recommended)**: the digits stay readable.
+2. **Keep the number on its line**: a ring may cross it.
+3. **Explain more**
+4. **Defer**
+
+**If deferred:** the number moves off the ring.
+
+**Answer:** question
+
 #### Q109 · Is the dense-model cut done when its 50 ms landing target is met on a real GPU but not headless?
 
 **Question:** `core-085` asked that a whole-model Subtract of two copies of the `5036 RGB Matrix 2.5mm` 3MF never block the main thread for more than 16 ms at the click or 50 ms when the result lands. After the fix, in Chromium with the Mac's GPU, the click reads 14 ms (worst 17) and the landing 47 ms (worst 48), with no Long Tasks at either moment. In headless Chromium, which draws with a software rasteriser, the landing still reads about 110 ms. Most of that is the rasteriser drawing the 220,000-triangle result: a bare WebGL test of the same size takes 79 to 113 ms per frame there. Count the GPU numbers as meeting the target, and file the headless draw cost as its own finding?

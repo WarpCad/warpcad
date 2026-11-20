@@ -65,7 +65,10 @@ everywhere in the app, matching the axis triad in the top-right corner of the 3D
 If you orbit the view, the gizmo and the dimension lines swing round with the shape and
 re-draw themselves from the new angle. The numbers do not change — a 40 mm cube is 40 mm
 from every angle — but which edge each dimension line is drawn against does, so the
-numbers stay clear of the solid instead of disappearing behind it.
+numbers stay clear of the solid instead of disappearing behind it. A number also steps
+aside, to the other side of its line or a little along it, rather than sit under one of the
+gizmo's rings or arrows, so its digits stay readable. Orbit a selected shape and watch the
+"50 mm" label slide off a ring as one swings across it.
 
 ### Once a shape is turned
 

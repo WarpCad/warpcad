@@ -3580,3 +3580,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** two readers' complaints → TODO/VERIFY.md data-006 #1; new specs on nine projects, pair run firefox-laptop + webkit-tablet, 1303 passed, 0 failed → this session; fresh-agent verdict → TODO/VERIFY.md ui-146 #1 and TODO/FIND-ui-154.
 **To Add:** none
 ---
+
+## 2026-11-20T06:40:00Z — WarpCad's dimension numbers now step off the gizmo's rings
+
+**Post:** Select a part in WarpCad and tip it, and a ring or arrow could run straight through the "50 mm" and "40 mm" labels, worst on a phone. The number now moves to the other side of its line, or slides along it, until it is clear. A number already clear never moves. Orbit sweeps on a 390 px screen show none left crossing, bar a part that fills the screen. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** two readers saw digits cut by a ring → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; unit sweep and new e2e on nine projects, pair run webkit-laptop + chromium-phone, 1351 passed, 0 failed → this session; screenshots at 390x844 read by eye.
+**To Add:** none
+---

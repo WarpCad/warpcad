@@ -5210,3 +5210,20 @@ Built with Claude Code, reviewed by me.
 **Evidence:** the readers' complaints → TODO/VERIFY.md data-006 #1; row and Inspector specs on nine projects → e2e/timeline-panel.e2e.js; verdict and remainder → TODO/VERIFY.md ui-146 #1 and TODO/FIND-ui-154.
 **To Add:** none
 ---
+
+## 2026-11-20T06:40:00Z — WarpCad's dimension numbers now step off the gizmo's rings
+
+**Post:** WarpCad draws three dimension numbers around a selected part, and three rotate rings and arrows around its origin. On a part tipped 60 degrees, at phone width, a ring or arrow often ran straight through the digits of "50 mm" or "40 mm". Two readers saw it; the label's halo did not hide it.
+
+The label now tries its own side of the dimension line, the side facing the part, further out, and positions along the line, and finally a search around the line's middle, keeping 4 px clear of every ring and arrow. A label that was already clear does not move, and when nothing is free (a part filling the whole screen) it takes the spot that touches least. I tested it with an orbit sweep on a 390 px viewport, checked against an independent dense sampling of the rings, and with a browser test on nine engine-and-size projects.
+
+The placer runs every frame, so I made it allocation-free. My first version boxed numbers on every call and forced a garbage collection every few thousand frames; moving the work onto typed arrays fixed that, and removed two older per-frame allocations in the same function.
+
+Built with Claude Code, reviewed by me.
+
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Performance
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the readers' complaint → TODO/done/ui-130-small-hardware-labels-and-ring-cue-on-real-screen.md; src/render/annotateLabelClear.spec.js and e2e/viewport-legibility.e2e.js; pair run webkit-laptop + chromium-phone, 1351 passed, 0 failed → this session.
+**To Add:** none
+---

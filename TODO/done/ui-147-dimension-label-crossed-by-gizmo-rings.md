@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, split from ui-130 on 2026-11-18
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-20):** `updateDimensionAnnotation` takes the gizmo as an optional last argument (`overlaySync.js` passes it). A label whose `ui-130` spot is clear does not move; otherwise it tries, in order, the line's outward side, the solid's side, further out, each slid along the line, then 5 rings of 12 positions (20 to 84 px) around the line's midpoint, and takes the first that keeps 4 px clear of every ring (56-segment polyline) and arm; with none free it takes the spot touching the fewest segments. The label was not drawn above the gizmo layer. Everything is scalars and typed arrays; the per-frame label string and edge-pair destructuring allocations were removed too. A ring bigger than the viewport (a body filling the screen) can still cross a label.
 
 ## Problem
 
