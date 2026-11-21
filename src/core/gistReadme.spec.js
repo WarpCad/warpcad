@@ -5,6 +5,7 @@ import { DESCRIPTION_LIMITS } from './description.js'
 import { PROMPT_LIMITS } from './prompt.js'
 import { gistLink } from './gistLink.js'
 import {
+  extraFileNamesOf,
   MAX_LISTED_BODIES,
   MAX_LISTED_PROMPTS,
   MAX_LISTED_VARIABLES,
@@ -592,5 +593,29 @@ describe('gistReadme — never carries instructions or intent', () => {
       instructions: SECRET_INSTRUCTIONS,
     }
     expect(gistReadme(typed)).not.toContain('STANDING-INSTRUCTION-SENTINEL')
+  })
+})
+
+describe('the Files line (io-040)', () => {
+  /** @type {import('./gistReadme.js').GistReadmeFile[]} */
+  const FILES = [
+    { name: 'cable-clip.stl', kind: 'stl' },
+    { name: 'print-notes.md', kind: 'note' },
+  ]
+
+  it('names each extra file and what it is, after the project file line', () => {
+    const readme = gistReadme(input({ files: FILES }))
+    expect(readme).toContain('- Files: cable\\-clip\\.stl (ASCII STL, for printing), print\\-notes\\.md (notes)')
+  })
+
+  it('has no line without extra files', () => {
+    expect(gistReadme(input())).not.toContain('Files:')
+    expect(gistReadme(input({ files: [] }))).not.toContain('Files:')
+  })
+
+  it('extraFileNamesOf reads the names back, and nothing from a README without the line', () => {
+    expect(extraFileNamesOf(gistReadme(input({ files: FILES })))).toEqual(['cable-clip.stl', 'print-notes.md'])
+    expect(extraFileNamesOf(gistReadme(input()))).toEqual([])
+    expect(extraFileNamesOf(null)).toEqual([])
   })
 })

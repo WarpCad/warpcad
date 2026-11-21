@@ -130,6 +130,35 @@ describe('the MCP session and set_description (TODO/io-023)', () => {
   })
 })
 
+describe('the MCP session readies a gist (TODO/io-040)', () => {
+  it('set_project_name and stage_gist_files write the file under the lock, though they touch no row', async () => {
+    const file = join(dir, 'clip.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    await session.call('create', CUBE)
+    expect((await session.call('set_project_name', { name: 'Cable clip' })).error).toBeUndefined()
+    expect((await session.call('stage_gist_files', { files: [{ kind: 'stl' }] })).error).toBeUndefined()
+    const saved = loadProjectText(readFileSync(file, 'utf8'), 'clip.ndjson')
+    expect(saved.name()).toBe('Cable clip')
+    expect(saved.gistExtras()).toEqual([{ kind: 'stl', name: 'cable-clip.stl', ids: [] }])
+    const writers = writeToolNames(createToolRegistry())
+    expect(writers.has('set_project_name')).toBe(true)
+    expect(writers.has('stage_gist_files')).toBe(true)
+    expect(writers.has('get_publish_readiness')).toBe(false)
+  })
+
+  it('get_publish_readiness and a refused stage write nothing', async () => {
+    const file = join(dir, 'clip.ndjson')
+    const session = createProjectSession({ path: file, tools: createToolRegistry() })
+    await session.call('create', CUBE)
+    const before = readFileSync(file, 'utf8')
+    const readiness = await session.call('get_publish_readiness', {})
+    expect(readiness.error).toBeUndefined()
+    expect(readiness.gaps.length).toBeGreaterThan(0)
+    expect((await session.call('stage_gist_files', { files: [{ kind: 'note', name: 'README', text: 'x' }] })).error).toBeDefined()
+    expect(readFileSync(file, 'utf8')).toBe(before)
+  })
+})
+
 describe('the instructions name record_prompt, inside the budget', () => {
   for (const [name, text] of /** @type {const} */ ([
     ['SERVER_INSTRUCTIONS', SERVER_INSTRUCTIONS],

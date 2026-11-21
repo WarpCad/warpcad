@@ -86,6 +86,20 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q116 · Keep the three io-040 assumptions: ASCII STL only, the document's name before the file name, notes published as literal Markdown?
+
+**Question:** `io-040` lets an agent stage a gist's name and extra files. Keep how I resolved the open points?
+
+**Background:** The Gist API takes file content as a JSON string, so a 3MF, a binary STL or a PNG cannot be published (`docs/decisions/gist-storage.md`). I assumed: (1) a staged STL is **ASCII STL** (about 5× the binary size) and there is no 3MF or picture kind; (2) the Name the Share sheet starts from is the typed name, then the gist's own title on Update, then the agent's `set_project_name`, then the saved file name, and it never renames a file; (3) a staged note is published as Markdown with HTML made literal and every `@` broken, so it cannot ping anyone.
+
+**Options:**
+- **Keep them (Recommended):** the smaller, reversible reading, and the same escaping the README uses.
+- **File a follow-up for a picture or 3MF:** needs a git push path or a base64 sidecar; an M-size task.
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
 #### Q115 · Is it acceptable that an older WarpCad build refuses a variable that has a description?
 
 **Question:** `ui-157` added an optional `description` to `var.define` and `var.derive` records. A build from before it checks each variable record's keys against a fixed list, so it flags a record carrying `description` as malformed and does not define that variable (anything bound to it then shows as broken). Files only carry `description` once someone writes one with the new build, and the installed app updates itself, but a file shared with someone on an old cached build would open with those variables missing. Keep the addition as it is, or bump the project-file version (`data-011`) so an old build refuses the whole file by name instead?

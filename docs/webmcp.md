@@ -187,6 +187,7 @@ words, or it will tell you it can't.
    > It resolves to a JSON string; parse it.
    > Lists such as `list_ops` come back a page at a time: if a result has `incomplete: true` or `page.more`, call again with the `offset` it names before you decide an op doesn’t exist.
    > Call `record_prompt` first with the request below.
+   > When the part is finished, leave the project ready for the person to publish as a gist: call set_project_name with a short name a person would recognise, set_description with what the part is and what it is for, and stage_gist_files with the files a person would print with (an STL of the finished bodies, and a note only if print settings or assembly need saying). Then call get_publish_readiness and fix every gap it lists. Last, call record_response with your final message. Never ask the user for a GitHub token and never try to publish: the person reviews it and taps Publish.
    > What I want built (my request follows this line):
 
 3. The cube and sphere appear in the viewport, and **History** marks each row **via webmcp**.

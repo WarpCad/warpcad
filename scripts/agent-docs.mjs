@@ -53,6 +53,7 @@ export const EXAMPLES = Object.freeze({
   describe_scene: {},
   describe_step: { id: 'group-abcdef-4', part: 'Pin' },
   evaluate_formula: { formula: 'Base.max.z - Lid.min.z', at: 'cuboid-abcdef-5' },
+  get_publish_readiness: {},
   get_selection: {},
   get_timeline: {},
   list_ops: { detail: 'summary', kind: 'create' },
@@ -66,8 +67,10 @@ export const EXAMPLES = Object.freeze({
   select: { ids: ['bool-abcdef-4'] },
   set_description: { description: 'A box with a lid for the **bench supply**.' },
   set_formula: { name: 'overhang', formula: 'group1.part1.width - group1.part2.width / 3' },
+  set_project_name: { name: 'Bench supply box' },
   set_params: { id: 'cuboid-abcdef-5', params: [{ name: 'size', value: [30, 20, 40] }], rationale: 'a wider, taller base' },
   set_variable: { name: 'wall', value: 3 },
+  stage_gist_files: { files: [{ kind: 'stl', name: 'bench-supply-box' }, { kind: 'note', name: 'print settings', text: 'PETG, 0.2 mm layers, no supports.' }] },
   unbind_param: { id: 'cuboid-abcdef-5', path: 'size.2' },
 })
 
@@ -251,6 +254,9 @@ export function renderLimits(limits = LIMITS) {
     ['turnMs', 'Wall-clock milliseconds one in-app turn may take.'],
     ['repeatTargets', 'Targets one `repeat` call may name.'],
     ['listOpsIds', 'Op ids one `list_ops` call may ask for with `ops`.'],
+    ['gistExtraFiles', 'Extra files `stage_gist_files` may stage for the next gist publish.'],
+    ['gistNoteChars', 'Characters one staged note may hold.'],
+    ['gistExtraIds', 'Body ids one staged STL may name.'],
   ]
   const lines = ['| Limit | Value | What it caps |', '|---|---|---|']
   for (const [key, what] of rows) lines.push(`| \`${key}\` | ${limits[key].toLocaleString('en-US')} | ${what} |`)

@@ -171,6 +171,33 @@ is only there before the first publish.
 A small **Published** mark appears beside **Share** while the open project is published from
 your account. On a phone it's a dot on the Share button.
 
+### When an agent built it
+
+An assistant that has finished a part can leave the project ready to publish, so you have nothing to
+type. It sets the project's **name** and **description**, stages any extra files a reader would want,
+and checks the result. You still make the last tap: an agent never publishes, and it never asks you
+for a GitHub token.
+
+**Example.** Ask the assistant: *make a 40 mm cable clip and get it ready to share*. When it
+finishes, tap **Share**. The **Name** already reads *Cable clip*, and under **Also include** is
+`cable-clip.stl` (about 240 KB), ticked, with a note such as `print-notes.md` if the assistant wrote
+one. Tap **Publish to a gist**. The note says *Published Cable clip with 3 files. Link copied*. On
+GitHub the gist shows `README.md`, `cable-clip.warpcad` and `cable-clip.stl`, and the README has a
+**Files** line saying what each one is.
+
+![The Share sheet's gist group on a phone with the name Cable clip already filled in and an Also include list holding cable-clip.stl, about 240 KB, ticked.](./screenshots/share-gist-staged-by-agent.png)
+
+- **Also include** lists each staged file with its size and a tick box. Untick a file to leave it out
+  of that publish; nothing is changed in the project, so it's ticked again next time. **Update gist**
+  removes a file it wrote earlier that you unticked or the assistant no longer stages. A file you
+  added yourself on github.com is left alone.
+- A gist holds text only, so an STL is published as **ASCII STL** (bigger than the binary one
+  **Export** writes, about five times). A file over about 1 MB still publishes; GitHub just shows it
+  in full only through its raw link.
+- The **Name** the sheet starts from is the one you typed last, then the gist's own title when you
+  update, then the assistant's name for the project, then the file name you saved it under.
+- If a staged STL's shapes were deleted since, the file is left out and the note names it.
+
 ### What the gist's README says
 
 The README is the project's brief, so a person or a model landing on the gist understands the part

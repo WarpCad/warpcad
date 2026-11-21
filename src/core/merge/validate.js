@@ -25,6 +25,8 @@ import { isReplicaId } from '../replica.js'
 import { SECTION_REGISTER_NAMES, LEGACY_REPLICA, LEGACY_STAMP } from './state.js'
 import { checkAiStepLimit } from '../aiBudget.js'
 import { cleanDescription } from '../description.js'
+import { normalizeGistExtras } from '../gistExtras.js'
+import { cleanProjectName } from '../projectName.js'
 import { normalizeGistField } from '../gistField.js'
 import { PROMPT_LIMITS, validatePromptRecord } from '../prompt.js'
 import { parseKey } from './positionKey.js'
@@ -73,6 +75,10 @@ export const MERGE_LIMITS = Object.freeze({
  *   register, value and stamp, when the file has ever set or cleared it.
  * @property {[string, Stamp]} [description] `TODO/io-023`: the description register, its text
  *   cleaned and capped (`src/core/description.js`), when the file has ever set or cleared it.
+ * @property {[string, Stamp]} [name] `TODO/io-040`: the project's name register, its text cleaned to
+ *   one capped line (`src/core/projectName.js`), when the file has ever set or cleared it.
+ * @property {[import('../gistExtras.js').GistExtra[], Stamp]} [gistExtras] `TODO/io-040`: the staged
+ *   gist files register, normalized (`src/core/gistExtras.js`), when the file has ever set or cleared it.
  * @property {[number, Stamp]} [aiRecordsPerTurn] `TODO/ai-033`: the AI step limit register, when the
  *   file has ever set it and it is valid (`src/core/aiBudget.js`).
  * @property {string} [aiRecordsPerTurnProblem] `TODO/ai-033`: why the file's `aiRecordsPerTurn` was
@@ -294,6 +300,24 @@ export function readMergeSection(raw, recordIds) {
     description = [cleanDescription(raw.description[0]), see(readStamp(raw.description[1], '`description`'))]
   }
 
+  // `TODO/io-040`: `[text, stamp]` and `[list, stamp]`. Untrusted: cleaned and capped as a set would be.
+  /** @type {MergeOverlay['name']} */
+  let name
+  if (raw.name !== undefined) {
+    if (!Array.isArray(raw.name) || raw.name.length !== 2 || typeof raw.name[0] !== 'string') {
+      throw new MergeSectionError('merge: `name` must be [text, stamp]')
+    }
+    name = [cleanProjectName(raw.name[0]), see(readStamp(raw.name[1], '`name`'))]
+  }
+  /** @type {MergeOverlay['gistExtras']} */
+  let gistExtras
+  if (raw.gistExtras !== undefined) {
+    if (!Array.isArray(raw.gistExtras) || raw.gistExtras.length !== 2 || !Array.isArray(raw.gistExtras[0])) {
+      throw new MergeSectionError('merge: `gistExtras` must be [list, stamp]')
+    }
+    gistExtras = [normalizeGistExtras(raw.gistExtras[0]), see(readStamp(raw.gistExtras[1], '`gistExtras`'))]
+  }
+
   // `TODO/ai-033`: `[n, stamp]`. Untrusted, and dropped rather than refused when it is wrong.
   /** @type {MergeOverlay['aiRecordsPerTurn']} */
   let aiRecordsPerTurn
@@ -379,6 +403,8 @@ export function readMergeSection(raw, recordIds) {
     ...(description !== undefined ? { description } : {}),
     ...(aiRecordsPerTurn !== undefined ? { aiRecordsPerTurn } : {}),
     ...(aiRecordsPerTurnProblem !== undefined ? { aiRecordsPerTurnProblem } : {}),
+    ...(name !== undefined ? { name } : {}),
+    ...(gistExtras !== undefined ? { gistExtras } : {}),
     ...(promptsRead !== undefined ? promptsRead : {}),
   }
 }

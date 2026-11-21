@@ -58,6 +58,14 @@ const makePublic = ref(false)
  * variables stay. The project file keeps them all either way.
  */
 const includePrompts = ref(true)
+/**
+ * Staged extra files the person **unticked** for this publish (`TODO/io-040`): by name, in memory
+ * only. Nothing is written back to the document, so the next opening starts with them ticked.
+ */
+const unticked = ref(/** @type {string[]} */ ([]))
+const extraFiles = computed(() => publisher.extraFiles.value)
+/** The names to include, or `undefined` (all) when nothing is unticked. */
+const chosenExtras = computed(() => (unticked.value.length === 0 ? undefined : extraFiles.value.map((file) => file.name).filter((name) => !unticked.value.includes(name))))
 const confirmingStop = ref(false)
 /** The last action's fixed-wording failure, for this opening of the sheet. */
 const errorText = ref('')
@@ -146,6 +154,34 @@ async function showManual(link) {
   manualField.value?.select()
 }
 
+/**
+ * What the toast says about the extra files: ` Cable clip with 3 files` (the project file and the
+ * README count), and any staged file left out (its bodies gone, or it would not build), named so
+ * the person is not surprised on GitHub. Nothing extra: `''`, the toast as it always was.
+ *
+ * @param {{ name?: string, extras?: string[], dropped?: string[] }} result
+ * @returns {string}
+ */
+function filesWords(result) {
+  const count = result.extras?.length ?? 0
+  const left = result.dropped ?? []
+  if (count === 0 && left.length === 0) return ''
+  const words = count === 0 ? '' : ` ${result.name ?? ''} with ${count + 2} files`.replace('  ', ' ')
+  return left.length === 0 ? words : `${words} (left out: ${left.join(', ')})`
+}
+
+/** @param {number} bytes */
+function sizeWords(bytes) {
+  if (bytes >= 1_000_000) return `about ${(bytes / 1_000_000).toFixed(1)} MB`
+  if (bytes >= 1000) return `about ${Math.round(bytes / 1000)} KB`
+  return `${bytes} bytes`
+}
+
+/** @param {string} name */
+function toggleExtra(name) {
+  unticked.value = unticked.value.includes(name) ? unticked.value.filter((entry) => entry !== name) : [...unticked.value, name]
+}
+
 async function publish() {
   if (!publisher.canPublish.value) return
   errorText.value = ''
@@ -153,7 +189,7 @@ async function publish() {
   /** @type {(value: string | null) => void} */
   let deliver = () => {}
   const copied = copyWhenReady(new Promise((resolve) => (deliver = resolve)))
-  const result = await publisher.publish({ public: makePublic.value, name: props.name, prompts: includePrompts.value })
+  const result = await publisher.publish({ public: makePublic.value, name: props.name, prompts: includePrompts.value, extras: chosenExtras.value })
   deliver(result.ok ? result.link : null)
   if (!result.ok) {
     void copied.catch(() => {})
@@ -165,11 +201,12 @@ async function publish() {
     emit('toast', 'Published, but another project is open now, so it is not marked as published here')
     return
   }
+  const withFiles = filesWords(result)
   const readme = result.warning === 'readme' ? '. Its GitHub page is finished on the next update' : ''
   if (landed) {
-    emit('toast', `Published. Link copied${readme}`)
+    emit('toast', `Published${withFiles}. Link copied${readme}`)
   } else {
-    emit('toast', `Published${readme}`)
+    emit('toast', `Published${withFiles}${readme}`)
     await showManual(result.link)
   }
 }
@@ -177,12 +214,12 @@ async function publish() {
 async function update() {
   if (!publisher.canUpdate.value) return
   errorText.value = ''
-  const result = await publisher.update({ name: props.name, prompts: includePrompts.value })
+  const result = await publisher.update({ name: props.name, prompts: includePrompts.value, extras: chosenExtras.value })
   if (!result.ok) {
     errorText.value = result.message
     return
   }
-  emit('toast', result.warning === 'project-changed' ? 'Gist updated, but another project is open now' : 'Gist updated')
+  emit('toast', result.warning === 'project-changed' ? 'Gist updated, but another project is open now' : `Gist updated${filesWords(result)}`)
 }
 
 async function copyLink() {
@@ -307,6 +344,14 @@ async function stop() {
       <p class="share-gist__note" data-testid="share-gist-prompts-note">{{ promptNote }}</p>
     </template>
 
+    <fieldset v-if="gist.connected && extraFiles.length > 0" class="share-gist__extras" data-testid="share-gist-extras">
+      <legend class="share-gist__legend">Also include</legend>
+      <label v-for="file in extraFiles" :key="file.name" class="share-gist__check" :data-testid="`share-gist-extra-${file.name}`">
+        <input type="checkbox" :checked="!unticked.includes(file.name)" :disabled="busy" :data-testid="`share-gist-extra-check-${file.name}`" @change="toggleExtra(file.name)" />
+        <span class="share-gist__extra-name">{{ file.name }} <span class="share-gist__extra-size">{{ sizeWords(file.approxBytes) }}</span></span>
+      </label>
+    </fieldset>
+
     <p v-if="busyText" class="share-gist__busy" role="status" data-testid="share-gist-busy">{{ busyText }}</p>
     <p v-if="errorText" class="share-gist__error" role="alert" data-testid="share-gist-error">{{ errorText }}</p>
     <input
@@ -399,6 +444,32 @@ async function stop() {
   height: 20px;
   margin: 0;
   accent-color: var(--accent);
+}
+
+.share-gist__extras {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.share-gist__legend {
+  padding: 0;
+  font-size: var(--text-size-md);
+  font-weight: var(--weight-bold);
+  color: var(--text-1);
+}
+
+.share-gist__extra-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.share-gist__extra-size {
+  font-size: var(--text-size-sm);
+  color: var(--text-2);
 }
 
 .share-gist__row {

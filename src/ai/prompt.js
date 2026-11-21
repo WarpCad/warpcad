@@ -22,6 +22,11 @@
  *   absent over MCP (no GPU) and when the browser has no working viewport; the prompt says what
  *   to do then, so one prompt is right for every transport.
  *
+ * - **When you are done (`TODO/io-040`).** The one finishing paragraph (`./finishing.js`) closes the
+ *   working method in both the chat prompt and the guide: name, description, staged files, then
+ *   `get_publish_readiness`. Only the guide's copy says `record_response`; the chat's reply is saved
+ *   by the app.
+ *
  * - **Drawings and photos (`ai-008`).** A section of numbered rules: every dimension from the
  *   drawing or the user, never recall (the fixture board does not exist); a dimension table and
  *   chain cross-check before building; scale first with `set_reference_scale`; an unprinted
@@ -42,10 +47,11 @@
  * @module ai/prompt
  */
 
+import { finishingSection } from './finishing.js'
 import { RECORD_RESPONSE_SENTENCE } from './mcpInstructions.js'
 
 /** Bumped on every change to {@link SYSTEM_PROMPT}: `YYYY-MM-DD.n`. */
-export const PROMPT_VERSION = '2026-11-04.1'
+export const PROMPT_VERSION = '2026-11-21.1'
 
 /**
  * What the prompt tells the model to do when scale or intent is genuinely unknown. Pinned by
@@ -146,6 +152,7 @@ export const SYSTEM_PROMPT = [
   SECTIONS.example,
   SECTIONS.printing,
   `${SECTIONS.workingBefore}${SECTIONS.workingError}; after three failures in a row the turn stops.${SECTIONS.workingAfter}\n${CHAT_RESPONSE}`,
+  finishingSection({ recordResponse: false }),
   SECTIONS.ask,
   CHAT_DRAWINGS,
   `${SECTIONS.dataCore}\n${CHAT_DATA_EXCEPTION}\n${CLOSING}`,
@@ -181,6 +188,7 @@ export function guideFor({ live }) {
     SECTIONS.example,
     SECTIONS.printing,
     `${SECTIONS.workingBefore}${SECTIONS.workingError}.${SECTIONS.workingAfter}`,
+    finishingSection({ recordResponse: true }),
     SECTIONS.ask,
     `${SECTIONS.dataCore}\n${GUIDE_DATA_EXCEPTION}`,
     ...(live ? [GUIDE_LIVE] : []),

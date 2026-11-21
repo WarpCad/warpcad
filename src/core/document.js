@@ -352,7 +352,7 @@
  * stamp, a record stamp and stamps for the `suppressed`/`leftBroken` flags — beside the record,
  * never inside it, in a side table by record id (`metaById`), not on the entry objects, so
  * `entries` is exactly what it was for every reader that never merges. Per document:
- * tombstones (`dead`, id → stamp), seven last-writer-wins registers (`TODO/io-017` added `gist`, `TODO/io-023` `description`, `TODO/ai-033` `aiRecordsPerTurn`), a stamp per user-part
+ * tombstones (`dead`, id → stamp), nine last-writer-wins registers (`TODO/io-017` added `gist`, `TODO/io-023` `description`, `TODO/ai-033` `aiRecordsPerTurn`, `TODO/io-040` `name` and `gistExtras`), a stamp per user-part
  * definition and (`TODO/ui-089`) a stamped switch per hidden-or-shown body and part. A log no edit here has stamped — a seed, a loaded file — **derives** it:
  * position keys from row order, every stamp counter 0 under the fixed replica `legacy`, a
  * register only where the value differs from what its absence means. Deterministic, so two
@@ -384,6 +384,7 @@
  * | `setGist` (`TODO/io-017`) | the `gist` register |
  * | `setDescription` (`TODO/io-023`) | the `description` register |
  * | `setAiRecordsPerTurn` (`TODO/ai-033`) | the `aiRecordsPerTurn` register |
+ * | `setName`, `setGistExtras` (`TODO/io-040`) | the `name` and `gistExtras` registers |
  * | `setViewHidden`, `showAll` (`TODO/ui-089`) | the view switch of each body or part whose Hide / Show changed |
  * | user-part adoption (inside the fold of a placement) | the part's definition stamp |
  * | `undo`, `redo`, `batch` | whatever the change they make is: Undo of a placement tombstones its rows, Redo brings them back with a fresh `born` that beats the tombstone, Undo of an edit stamps the old record as a new write |
@@ -446,6 +447,8 @@ import { conditionContextOf, conditionShapeError, describeCondition, evaluateCon
 import { INSTRUCTIONS_MAX_LENGTH, INTENT_MAX_LENGTH, cleanText } from './intent.js'
 import { DEFAULT_BUILD_VOLUME, normalizeBuildVolume } from './buildVolume.js'
 import { cleanDescription } from './description.js'
+import { copyGistExtras, normalizeGistExtras, sameGistExtras } from './gistExtras.js'
+import { cleanProjectName } from './projectName.js'
 import { AI_STEP_LIMIT, isAiStepLimit, normalizeAiStepLimit } from './aiBudget.js'
 import { normalizeGistField, sameGistField } from './gistField.js'
 import {
@@ -896,6 +899,15 @@ export class ReplayRejection extends Error {
  *   (`src/core/description.js`), `''` when there is none.
  * @property {(text: unknown, transaction: TransactionOptions) => void} setDescription `TODO/io-023`:
  *   replace it (cleaned and capped; `''` clears it). A version bump, never an undo step.
+ * @property {() => string} name `TODO/io-040`: the project's name (`src/core/projectName.js`), the
+ *   gist's title and Save's suggestion; `''` when there is none. Not the file name it was saved under.
+ * @property {(text: unknown, transaction: TransactionOptions) => void} setName `TODO/io-040`: replace
+ *   it (one cleaned, capped line; `''` clears it). A version bump, never an undo step.
+ * @property {() => import('./gistExtras.js').GistExtra[]} gistExtras `TODO/io-040`: the extra files
+ *   staged for the next gist publish (`src/core/gistExtras.js`), fresh copies; `[]` when none.
+ *   Names, kinds, body ids and note text — never mesh bytes.
+ * @property {(extras: unknown, transaction: TransactionOptions) => void} setGistExtras `TODO/io-040`:
+ *   replace the staged list (normalized; `[]` clears it). A version bump, never an undo step.
  * @property {() => number} aiRecordsPerTurn `TODO/ai-033`: the project's AI step limit — how many
  *   records one AI turn may append (`src/core/aiBudget.js`); the default until a person sets it.
  *   The **stored** value: transports read the effective one (`src/ai/stepLimitApproval.js`).
@@ -1125,6 +1137,8 @@ const STAMPED_MUTATORS = Object.freeze([
   'setGist',
   'setDescription',
   'setAiRecordsPerTurn',
+  'setName',
+  'setGistExtras',
   'setViewHidden',
   'showAll',
   'importUserPart',
@@ -1843,6 +1857,19 @@ export function createDocument(options = {}) {
    */
   let aiRecordsPerTurn = AI_STEP_LIMIT.default
   /**
+   * `TODO/io-040`: the project's name (`src/core/projectName.js`), `''` when there is none. Project
+   * metadata like {@link description} — outside the fold and both undo stacks, a version bump when it
+   * changes — because it builds nothing. Stored cleaned.
+   * @type {string}
+   */
+  let projectName = ''
+  /**
+   * `TODO/io-040`: the extra files staged for the next gist publish (`src/core/gistExtras.js`).
+   * Project metadata like {@link description}. Stored normalized; replaced, never mutated in place.
+   * @type {import('./gistExtras.js').GistExtra[]}
+   */
+  let gistExtras = []
+  /**
    * `TODO/ai-031`: the prompts agents were given, by id (`src/core/prompt.js`). Project metadata
    * like {@link gist} — outside the fold and both undo stacks, a version bump when it changes —
    * because what was asked is a fact Undo does not take back: undoing a body leaves the prompt
@@ -1945,7 +1972,7 @@ export function createDocument(options = {}) {
    */
   let dead = new Map()
   /** @type {import('./merge/state.js').MergeRegisters} */
-  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null, aiRecordsPerTurn: null }
+  let registers = { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null, aiRecordsPerTurn: null, name: null, gistExtras: null }
   /**
    * The stamp that wrote each user-part definition this project carries, by op.
    * @type {Map<string, import('./replica.js').Stamp>}
@@ -2123,6 +2150,8 @@ export function createDocument(options = {}) {
       gist,
       description,
       aiRecordsPerTurn,
+      projectName,
+      gistExtras,
       partOps: new Set(userParts.keys()),
       meta: metaById,
       dead,
@@ -2222,6 +2251,8 @@ export function createDocument(options = {}) {
     if (!sameGistField(mark.gist, gist)) written.push('gist')
     if (mark.description !== description) written.push('description')
     if (mark.aiRecordsPerTurn !== aiRecordsPerTurn) written.push('aiRecordsPerTurn')
+    if (mark.projectName !== projectName) written.push('name')
+    if (mark.gistExtras !== gistExtras) written.push('gistExtras')
     const newParts = [...userParts.keys()].filter((op) => !mark.partOps.has(op))
     // `TODO/ui-089`: every body or part whose Hide / Show changed, each its own switch.
     const switched =
@@ -2321,6 +2352,8 @@ export function createDocument(options = {}) {
         else if (name === 'buildVolume') registers.buildVolume = [{ ...buildVolume }, stamp]
         else if (name === 'gist') registers.gist = [gist === null ? null : { ...gist }, stamp]
         else if (name === 'aiRecordsPerTurn') registers.aiRecordsPerTurn = [aiRecordsPerTurn, stamp]
+        else if (name === 'name') registers.name = [projectName, stamp]
+        else if (name === 'gistExtras') registers.gistExtras = [copyGistExtras(gistExtras), stamp]
         else registers.description = [description, stamp]
       }
     }
@@ -2370,6 +2403,9 @@ export function createDocument(options = {}) {
       description: description === '' ? null : [description, LEGACY_STAMP],
       // `TODO/ai-033`: likewise; at the default it was never set.
       aiRecordsPerTurn: aiRecordsPerTurn === AI_STEP_LIMIT.default ? null : [aiRecordsPerTurn, LEGACY_STAMP],
+      // `TODO/io-040`: likewise; neither is ever derived from a state-line field.
+      name: projectName === '' ? null : [projectName, LEGACY_STAMP],
+      gistExtras: gistExtras.length === 0 ? null : [copyGistExtras(gistExtras), LEGACY_STAMP],
     }
     partStamps = new Map([...userParts.keys()].map((op) => [op, LEGACY_STAMP]))
     viewStamps = new Map([...viewHidden.keys()].map((key) => [key, [true, LEGACY_STAMP]]))
@@ -2437,6 +2473,8 @@ export function createDocument(options = {}) {
       gist: registers.gist,
       description: registers.description,
       aiRecordsPerTurn: registers.aiRecordsPerTurn ?? null,
+      name: registers.name ?? null,
+      gistExtras: registers.gistExtras ?? null,
     }
     // `TODO/io-017`: the gist travels in the section as value and stamp together.
     if (overlay.gist !== undefined) {
@@ -2452,6 +2490,15 @@ export function createDocument(options = {}) {
     if (overlay.aiRecordsPerTurn !== undefined) {
       aiRecordsPerTurn = overlay.aiRecordsPerTurn[0]
       registers.aiRecordsPerTurn = [aiRecordsPerTurn, overlay.aiRecordsPerTurn[1]]
+    }
+    // `TODO/io-040`: so do the name and the staged gist files.
+    if (overlay.name !== undefined) {
+      projectName = overlay.name[0]
+      registers.name = [projectName, overlay.name[1]]
+    }
+    if (overlay.gistExtras !== undefined) {
+      gistExtras = overlay.gistExtras[0]
+      registers.gistExtras = [copyGistExtras(gistExtras), overlay.gistExtras[1]]
     }
     partStamps = new Map(
       [...partStamps].map(([op, stamp]) => [op, overlay.partStamps.get(op) ?? stamp])
@@ -5316,6 +5363,9 @@ export function createDocument(options = {}) {
       description = ''
       // `TODO/ai-033`: and the AI step limit.
       aiRecordsPerTurn = AI_STEP_LIMIT.default
+      // `TODO/io-040`: and the name and the staged gist files.
+      projectName = ''
+      gistExtras = []
       // `TODO/data-010`: a loaded log is a log no edit here has stamped, so its metadata is
       // derived; `TODO/data-011`: a version-2 file's merge section is laid over that.
       deriveLegacy()
@@ -5444,6 +5494,42 @@ export function createDocument(options = {}) {
       const next = cleanDescription(text)
       if (next === description) return
       description = next
+      document.version += 1
+    },
+
+    name() {
+      return projectName
+    },
+
+    /**
+     * `TODO/io-040`: replace the project's name — the gist's title and Save's suggestion, never a
+     * file on disk. Origin-tagged, cleaned to one capped line (`cleanProjectName`), a version bump so
+     * autosave follows it, and not an undo step for any origin, like the description. Setting the
+     * same name is a no-op; `''` clears it.
+     */
+    setName(text, transaction) {
+      requireOrigin('setName', transaction)
+      const next = cleanProjectName(text)
+      if (next === projectName) return
+      projectName = next
+      document.version += 1
+    },
+
+    gistExtras() {
+      return copyGistExtras(gistExtras)
+    },
+
+    /**
+     * `TODO/io-040`: replace the extra files staged for the next gist publish. Origin-tagged,
+     * normalized (`normalizeGistExtras`: known kinds, slugged names, cleaned notes, capped — never
+     * bytes), a version bump, and not an undo step for any origin. The same list is a no-op; `[]`
+     * clears it.
+     */
+    setGistExtras(extras, transaction) {
+      requireOrigin('setGistExtras', transaction)
+      const next = normalizeGistExtras(extras)
+      if (sameGistExtras(next, gistExtras)) return
+      gistExtras = next
       document.version += 1
     },
 
@@ -6953,6 +7039,8 @@ export function createDocument(options = {}) {
         gist,
         description,
         aiRecordsPerTurn,
+        projectName,
+        gistExtras,
         prompts,
         layer: publishesUserParts ? projectPartsSnapshot() : null,
         projectId,
@@ -7045,6 +7133,9 @@ export function createDocument(options = {}) {
         // `TODO/ai-033`: whichever set of the AI step limit was written last; never set, the default.
         const mergedLimit = merged.registers.aiRecordsPerTurn?.[0]
         aiRecordsPerTurn = isAiStepLimit(mergedLimit) ? mergedLimit : AI_STEP_LIMIT.default
+        // `TODO/io-040`: whichever set or clear of the name, and of the staged files, was written last.
+        projectName = cleanProjectName(merged.registers.name?.[0] ?? '')
+        gistExtras = normalizeGistExtras(merged.registers.gistExtras?.[0] ?? [])
         // `TODO/ai-031`: both sides' prompts, as one grow-only set.
         prompts = merged.prompts ?? new Map()
         stampClock.observe(highestCounter(merged))
@@ -7064,6 +7155,8 @@ export function createDocument(options = {}) {
         gist = previous.gist
         description = previous.description
         aiRecordsPerTurn = previous.aiRecordsPerTurn
+        projectName = previous.projectName
+        gistExtras = previous.gistExtras
         prompts = previous.prompts
         viewHidden = previous.viewHidden
         viewStamps = previous.viewStamps

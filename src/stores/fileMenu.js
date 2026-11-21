@@ -555,7 +555,11 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     return gistTarget.value ? 'update' : 'create'
   })
   /** The dialog's Name pre-fill — `TODO/io-020`'s rule: the project's name, `Untitled` without one. */
-  const gistSaveDefaultName = computed(() => (persistence.projectName.trim() === '' ? DEFAULT_SHARE_NAME : persistence.projectName))
+  const gistSaveDefaultName = computed(() => {
+    void documentStore.version
+    const suggested = toRaw(documentStore.raw).name() || persistence.projectName
+    return suggested.trim() === '' ? DEFAULT_SHARE_NAME : suggested
+  })
   /** GitHub is being talked to: the dialog's Save is disabled and says so. */
   const gistSaveBusy = computed(() => publisher.busy.value)
 
@@ -596,7 +600,10 @@ export const useFileMenuStore = defineStore('fileMenu', () => {
     }
     gistSaveOpen.value = false
     const elsewhere = result.warning === 'project-changed' ? ', but another project is open now' : ''
-    showGistToast(`Saved to gist: ${result.name}${elsewhere}`, result.link)
+    const extras = result.extras?.length ?? 0
+    const files = extras === 0 ? '' : ` with ${extras + 2} files`
+    const left = (result.dropped ?? []).length === 0 ? '' : ` (left out: ${(result.dropped ?? []).join(', ')})`
+    showGistToast(`Saved to gist: ${result.name}${files}${left}${elsewhere}`, result.link)
     return result
   }
 

@@ -36,10 +36,14 @@
 
 import { parseDescription } from './description.js'
 import { gistLink, isGistRawUrl } from './gistLink.js'
+import { PROJECT_NAME_LIMITS } from './projectName.js'
 import { DEFAULT_SHARE_NAME } from './shareLink.js'
 
-/** Longest project name kept, in code points. */
-export const MAX_NAME_CHARS = 120
+/**
+ * Longest project name kept, in code points — the document's name cap (`TODO/io-040`,
+ * `src/core/projectName.js`), so a stored name is never cut again here.
+ */
+export const MAX_NAME_CHARS = PROJECT_NAME_LIMITS.maxLength
 /** Longest body name kept, in code points. */
 export const MAX_BODY_NAME_CHARS = 80
 /** Most body names listed; the rest are counted ("and N more"). */
@@ -75,6 +79,16 @@ const UNNAMED = '(unnamed)'
  *   leaves out the **Open in WarpCad** link (the two-call publish fills it in).
  * @property {string} [rawUrl] The project file's `gist.githubusercontent.com` link.
  * @property {string} [fileName] The project file's name in the gist, for the link text.
+ * @property {readonly GistReadmeFile[]} [files] `TODO/io-040`: the extra files this publish adds
+ *   beside the project file, so a reader knows what each is; none omits the line.
+ */
+
+/**
+ * One extra file as the README's **Files** line names it.
+ *
+ * @typedef {object} GistReadmeFile
+ * @property {string} name Its file name in the gist.
+ * @property {'stl' | 'note'} kind
  */
 
 /**
@@ -454,6 +468,47 @@ function bodiesLine(bodies) {
   return `- ${bodies.length} ${bodies.length === 1 ? 'body' : 'bodies'}: ${list}`
 }
 
+/** What each extra file kind is, in the Files line. */
+const EXTRA_KIND_LABELS = Object.freeze({ stl: 'ASCII STL, for printing', note: 'notes' })
+
+/**
+ * The **Files** line (`TODO/io-040`): each extra file by name and what it is. Names are escaped
+ * like every other piece of project text. Empty when there are none.
+ *
+ * @param {readonly GistReadmeFile[]} files
+ * @returns {string}
+ */
+function extraFilesLine(files) {
+  const listed = files
+    .filter((file) => file !== null && typeof file === 'object' && typeof file.name === 'string' && file.name !== '')
+    .map((file) => {
+      const label = file.kind === 'stl' || file.kind === 'note' ? EXTRA_KIND_LABELS[file.kind] : null
+      const name = escapeMarkdownText(cap(oneLine(file.name), MAX_BODY_NAME_CHARS))
+      return label === null ? name : `${name} (${label})`
+    })
+  return listed.length === 0 ? '' : `- Files: ${listed.join(', ')}`
+}
+
+/**
+ * The extra file names a README's **Files** line lists (`TODO/io-040`): what the last publish
+ * wrote beside the project file, so an Update removes exactly those no longer staged and never a
+ * file a person added on github.com. Names are the slugs `gistExtraFileName` makes, so unescaping
+ * is just the backslashes and the three entities.
+ *
+ * @param {string | null | undefined} readme
+ * @returns {string[]}
+ */
+export function extraFileNamesOf(readme) {
+  if (typeof readme !== 'string') return []
+  const line = readme.split('\n').find((text) => text.startsWith('- Files: '))
+  if (line === undefined) return []
+  return line
+    .slice('- Files: '.length)
+    .split(/\)(?:, |$)/)
+    .map((part) => part.replace(/ \([^)]*$/, '').replace(/\\(.)/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim())
+    .filter((name) => name !== '')
+}
+
 /**
  * Build the gist's `README.md`.
  *
@@ -463,7 +518,7 @@ function bodiesLine(bodies) {
  */
 export function gistReadme(input) {
   // Destructure exactly the documented fields: nothing else on `input` is ever read.
-  const { name, description, bodies, prompts, variables, publishedAt, id, rawUrl, fileName } = input
+  const { name, description, bodies, prompts, variables, publishedAt, id, rawUrl, fileName, files } = input
   const title = cap(oneLine(name), MAX_NAME_CHARS) || DEFAULT_SHARE_NAME
   const list = Array.isArray(bodies) ? bodies : []
 
@@ -480,6 +535,8 @@ export function gistReadme(input) {
     const label = cap(oneLine(fileName), MAX_BODY_NAME_CHARS) || 'project file'
     lines.push(`- Project file: [${escapeMarkdownText(label)}](<${raw}>)`)
   }
+  const filesLine = extraFilesLine(Array.isArray(files) ? files : [])
+  if (filesLine !== '') lines.push(filesLine)
   for (const section of SECTIONS) {
     const sectionLines = section({ prompts, variables, publishedAt })
     if (sectionLines.length > 0) lines.push('', ...sectionLines)

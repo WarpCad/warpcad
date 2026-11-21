@@ -72,6 +72,7 @@ import { exportPrintPieces } from './printPrep.js'
  *   is given.
  * @property {RefoldRequest} [refold] Export at another resolution: fold these records
  *   here instead (`TODO/core-035`).
+ * @property {boolean} [ascii] An STL as text (`TODO/io-040`, the gist's extra files).
  */
 
 /**
@@ -149,7 +150,7 @@ function bodiesAtResolution(refold) {
  * @throws {ExportError} Exactly what the synchronous path throws — `nothing-to-export`,
  *   `evaluation-failed`, `empty-geometry`.
  */
-export function runExportJob({ format, bodies: packed, refold }) {
+export function runExportJob({ format, bodies: packed, refold, ascii }) {
   const bodies = refold ? bodiesAtResolution(refold) : unpackBodies(packed)
   if (format === 'glb') {
     // Validate and prepare here; `src/render/export.js` meshes and serializes.
@@ -161,7 +162,7 @@ export function runExportJob({ format, bodies: packed, refold }) {
       solids: packSolids(prepared),
     }
   }
-  const result = exportBodies(bodies, format)
+  const result = exportBodies(bodies, format, { ascii: ascii === true })
   return {
     kind: 'bytes',
     filename: result.filename,

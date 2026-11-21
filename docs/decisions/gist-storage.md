@@ -204,4 +204,52 @@ write silently dropped B's edit, because the merge's base read was unauthenticat
   answers the gist as it was that many revisions ago, with or without a token, and a read by sha is
   always exact. Case 11 of `e2e/gist-share.e2e.js` uses it.
 
+## An agent leaves the project ready to publish (`TODO/io-040`, 2026-11-21)
+
+The owner asked that, once an agent finishes, **Publish** needs nothing typed: the title, the
+description and any extra files are already staged. A person still taps Publish. No agent tool
+publishes, asks for a token, or flips **Include prompts in the README**.
+
+### Constraints checked first (Step 1)
+
+| Question | Finding | Source |
+|---|---|---|
+| Does the Gist REST API take binary file content? | **No.** `files.<name>.content` is a JSON string ("Content of the file", required on create; "The new content of the file" on update). No encoding field and no binary mode is documented. A JSON string carries Unicode text, not arbitrary bytes, so a ZIP (3MF), a binary STL or a PNG cannot pass through unchanged. Base64 would arrive as a `.3mf` that is not a 3MF. A gist is a git repository and `git push` can carry binary files, but that needs the git protocol, which a static page cannot use. | GitHub REST docs, *Gists* (read 2026-11-21) |
+| When does a file stop coming back inline? | "The API provides up to one megabyte of content for each file"; over that, `truncated: true` and only part of `content` (measured above: a 2 MB file gave about 0.92 MB inline). `raw_url` serves the whole file up to 10 MB; above that only `git_pull_url` (a clone) has it. The files list itself is cut at 300 files. | Same page, and the Step 0 table above |
+| Does WarpCad already write a 3MF? | **No.** `src/core/export.js` writes binary STL (`@jscad/stl-serializer`, `binary: true`) and OBJ. 3MF is import-only (`src/io/meshFormats/`). The same serializer writes ASCII STL with `binary: false`. | Code, 2026-11-21 |
+| How big is an ASCII STL? | About 250 bytes a triangle from that serializer (full-precision numbers, seven lines a facet), against 50 for binary: about 5×. A 4,000-triangle part is about 1 MB, which is GitHub's inline limit. | Measured from `CSGToStla.js`'s facet format |
+| Do the other two agent paths carry finishing steps? | **Partly.** `warpcad://guide` is composed in `src/ai/prompt.js` (`guideFor`, served by `src/ai/mcpPrompts.js`) from the same `SECTIONS.tools` as the in-app prompt, so it already named `set_description`, but nothing told an MCP agent to set a name, stage files or check readiness. The browser-agent setup text (`STARTER_BROWSER_AGENT`, shown by `BrowserAgentSetup.vue`) named only `record_prompt`, so no finishing step at all, not even `record_response`. | Code, 2026-11-21 |
+
+### Consequences
+
+- **Kinds: `stl` and `note`. `3mf` is dropped from `stage_gist_files`'s enum.** The API cannot
+  carry a 3MF, and the app has no 3MF writer anyway. A staged `stl` is published as **ASCII STL**
+  (text, so it goes through `content` byte for byte). Every slicer reads ASCII STL. OBJ is also
+  text and could be a later kind if someone asks for it.
+- **No preview picture** (the task's open question 2: no). A PNG cannot go through the API, and an
+  SVG renderer is not worth building for this task. If one is wanted later, it needs its own
+  follow-up.
+- **Big exports still publish.** An STL over about 1 MB is truncated in the API's inline read, but
+  github.com and `raw_url` show it whole up to 10 MB. Publish sends it anyway and the toast says
+  it is large. `get_publish_readiness` reports each file's `approxBytes`, so the agent sees the
+  size before it hands back.
+- **The staged list is document state, never bytes.** The `gistExtras` register holds
+  `{ kind, name, ids }` for an STL (`ids: []` means every body on screen) and
+  `{ kind, name, text }` for a note. Publish builds the STL from the live timeline at tap time.
+  A mesh is never stored (CLAUDE.md, Architecture). Caps are in code (`GIST_EXTRAS_LIMITS`,
+  `src/core/gistExtras.js`, read by `src/ai/tools/limits.js`): at most 5 files, a note at most
+  20,000 characters, at most 200 body ids a file. File names are slugged the way `gistFileName`
+  slugs the project file, and a name that would collide with `README.md` (in any letter case),
+  the project file or another staged file is refused.
+- **A project name register.** `name`, merged exactly like `description`: a last-writer-wins
+  register written as `merge.name: [text, stamp]`, and `gistExtras` as
+  `merge.gistExtras: [list, stamp]`. Neither goes under `merge.registers`, so an older build
+  ignores both keys and keeps the file. It is cleaned to one line and capped at the README
+  title's 120 characters (`MAX_NAME_CHARS`). It is a suggestion for the gist's title and Save's
+  dialog, and it never renames a file on disk (the task's open question 1: no).
+- **One finishing paragraph** (`src/ai/finishing.js`) is used by the in-app prompt, the MCP guide
+  and the browser-agent setup text: set the name, set the description, stage the files a person
+  would print with, call `get_publish_readiness` and fix what it lists, then record the reply.
+  Never ask for a GitHub token, and never try to publish.
+
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

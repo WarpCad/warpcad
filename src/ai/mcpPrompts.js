@@ -18,6 +18,7 @@
  * recorded in `TODO/VERIFY.md`; if it cuts them, the recipes fall back to "read warpcad://guide".
  */
 
+import { finishingParagraph } from './finishing.js'
 import { RECORD_RESPONSE_SENTENCE } from './mcpInstructions.js'
 import { guideFor } from './prompt.js'
 
@@ -101,7 +102,8 @@ function buildRecipe(live, request) {
     '3. Build with create, operate or apply_records. Pass the request above, as written, as `request` on every write.',
     '4. Before you say it is done, check it: measure, check_printability, and check_clearance for bodies that touch.',
     '5. Reply with the sizes you read back from the result, not the sizes you intended.',
-    `6. ${RECORD_RESPONSE_SENTENCE}`,
+    '6. Leave it ready to publish, as the guide’s “When you are done” says: set_project_name, set_description, stage_gist_files, then get_publish_readiness, and fix what it lists.',
+    `7. ${RECORD_RESPONSE_SENTENCE}`,
   ].join('\n')
 }
 
@@ -178,7 +180,8 @@ export const STARTER_OTHER_AGENT =
  * quotes under *Using Claude in Chrome*, so a browser agent such as Claude in Chrome calls
  * WarpCad's WebMCP tools through its JavaScript tool. One source: a spec fails if the docs quote
  * drifts. It is pasted into another agent, so it names no project content. The user types their
- * request after the last line.
+ * request after the last line. `TODO/io-040`: it carries the shared finishing paragraph
+ * (`./finishing.js`), since a WebMCP agent has no `warpcad://guide` to read.
  */
 export const STARTER_BROWSER_AGENT = [
   'Setup for driving WarpCad from this browser: paste this first, then type what you want built after the last line.',
@@ -189,6 +192,7 @@ export const STARTER_BROWSER_AGENT = [
   'It resolves to a JSON string; parse it.',
   'Lists such as `list_ops` come back a page at a time: if a result has `incomplete: true` or `page.more`, call again with the `offset` it names before you decide an op doesn’t exist.',
   'Call `record_prompt` first with the request below.',
+  finishingParagraph({ recordResponse: true }),
   'What I want built (my request follows this line):',
 ].join(' ')
 

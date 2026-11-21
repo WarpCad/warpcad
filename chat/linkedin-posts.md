@@ -5375,3 +5375,17 @@ A file with a description opens fine in this build; an older build will not defi
 **Evidence:** label example and layout cause → `TODO/done/ui-157-variable-description-separate-from-short-label.md`; 500/40 limits and one undo step → `src/core/variables.spec.js` run this session; old-build refusal → `docs/decisions/project-variables.md` addendum and `src/core/variables.js` allowed-key sets
 **To Add:** docs/screenshots/variable-describe.png
 ---
+
+## 2026-11-21T16:35:00Z — WarpCad: an agent can leave the project ready to publish as a gist
+
+**Post:** WarpCad agents could already write a project's description. They could not set the gist's title, stage a print-ready file, or ask what the gist would contain before handing back, so the person still typed a name and hoped the README was complete.
+
+Three new tools close that, on all three agent paths (MCP, the in-app chat, WebMCP): set_project_name, stage_gist_files (an STL and Markdown notes, up to five files) and a read-only get_publish_readiness that returns the README the next publish would write, the file list and what is blank. In the Share sheet the Name starts from the agent's name and an "Also include" list shows each staged file with a tick box. An agent never publishes: the person makes the tap.
+
+One constraint shaped it: the Gist API takes file content as a JSON string, so there is no 3MF or picture kind, and the STL is published as ASCII STL. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** what was missing and "agent never publishes" → `TODO/done/io-040-agent-leaves-the-project-ready-to-publish-as-a-gist.md`; text-only API, ASCII STL → `docs/decisions/gist-storage.md` (this diff); tools and Also include list → `src/ai/tools/gistExtras.spec.js`, `src/composables/useGistPublish.spec.js` and `e2e/gist-share.e2e.js` case 15, run this session
+**To Add:** docs/screenshots/share-gist-staged-by-agent.png
+---

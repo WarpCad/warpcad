@@ -16,6 +16,8 @@
 import { documentDataBlock } from '../documentData.js'
 import { RECORD_PROMPT_LINE, sharedInstructionLines } from '../mcpInstructions.js'
 import { SET_DESCRIPTION } from '../tools/description.js'
+import { STAGE_GIST_FILES } from '../tools/gistExtras.js'
+import { SET_PROJECT_NAME } from '../tools/projectName.js'
 import { RECORD_PROMPT, RECORD_RESPONSE } from '../tools/prompt.js'
 
 /** The `request` property every write tool with a rationale gains on an MCP transport. */
@@ -31,7 +33,8 @@ export const REQUEST_PROPERTY = Object.freeze({
  * `record_prompt` (`TODO/ai-031`), which writes the prompt and nothing else — so it takes the lock
  * but has no rationale, and so no `request` either (`mcpToolDefinitions` adds that only beside a
  * rationale). `record_response` (`TODO/ai-032`) is the same: it writes the reply under the prompt,
- * and no row; so is `set_description` (`TODO/io-023`), which writes the project's description.
+ * and no row; so is `set_description` (`TODO/io-023`), which writes the project's description, and so
+ * are `set_project_name` and `stage_gist_files` (`TODO/io-040`), which write its name and staged gist files.
  *
  * @param {import('../tools/index.js').ToolRegistry} tools
  * @returns {Set<string>}
@@ -45,6 +48,8 @@ export function writeToolNames(tools) {
           definition.name === RECORD_PROMPT ||
           definition.name === RECORD_RESPONSE ||
           definition.name === SET_DESCRIPTION ||
+          definition.name === SET_PROJECT_NAME ||
+          definition.name === STAGE_GIST_FILES ||
           Object.hasOwn(definition.inputSchema.properties ?? {}, 'rationale')
       )
       .map((definition) => definition.name)

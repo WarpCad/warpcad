@@ -985,3 +985,117 @@ describe('publish — the project brief', () => {
     scope.stop()
   })
 })
+
+describe('an agent leaves the project ready to publish (io-040)', () => {
+  const doc = () => toRaw(useDocumentStore().raw)
+
+  it('the document\'s name titles the gist when the Share sheet has none and the project was never saved', async () => {
+    buildProject()
+    usePersistenceStore().projectName = ''
+    doc().setName('Cable clip', { origin: 'mcp' })
+    const { scope, api } = mount()
+    await api.publish()
+    const created = backend.createGist.mock.calls[0][0]
+    expect(created.description).toBe('Cable clip')
+    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'cable-clip.warpcad'])
+    expect(created.files['README.md']).toContain('# Cable clip')
+    scope.stop()
+  })
+
+  it('precedence: a typed name wins over the document\'s, which wins over the file name', async () => {
+    buildProject()
+    doc().setName('Cable clip', { origin: 'mcp' })
+    const { scope, api } = mount()
+    await api.publish({ name: 'Typed' })
+    expect(backend.createGist.mock.calls[0][0].description).toBe('Typed')
+    scope.stop()
+
+    const again = mount()
+    expect(again.api.suggestedName.value).toBe('Cable clip')
+    doc().setName('', { origin: 'mcp' })
+    useDocumentStore().refresh()
+    expect(again.api.suggestedName.value).toBe('Phone stand')
+    again.scope.stop()
+  })
+
+  it('staged files are built at publish time: an ASCII STL and a note, listed on the README\'s Files line', async () => {
+    buildProject()
+    doc().setName('Cable clip', { origin: 'mcp' })
+    doc().setGistExtras(
+      [
+        { kind: 'stl', name: 'cable-clip.stl', ids: [] },
+        { kind: 'note', name: 'print-notes.md', text: 'Print at 0.2 mm. <b>no</b> @octocat' },
+      ],
+      { origin: 'mcp' }
+    )
+    const { scope, api } = mount()
+    const result = await api.publish()
+    expect(result).toMatchObject({ ok: true, extras: ['cable-clip.stl', 'print-notes.md'] })
+    const created = backend.createGist.mock.calls[0][0]
+    expect(Object.keys(created.files).sort()).toEqual(['README.md', 'cable-clip.stl', 'cable-clip.warpcad', 'print-notes.md'])
+    expect(created.files['cable-clip.stl']).toMatch(/^solid /)
+    expect(created.files['cable-clip.stl']).toContain('facet normal')
+    expect(created.files['print-notes.md']).toBe('Print at 0.2 mm. &lt;b&gt;no&lt;/b&gt; &#64;octocat\n')
+    expect(created.files['README.md']).toContain('- Files: cable\\-clip\\.stl (ASCII STL, for printing), print\\-notes\\.md (notes)')
+    expect(readmeOf(backend.updateGist)).toContain('- Files: cable\\-clip\\.stl')
+    scope.stop()
+  })
+
+  it('an unticked file is left out of that publish only, and nothing is written back to the document', async () => {
+    buildProject()
+    doc().setGistExtras([{ kind: 'stl', name: 'a.stl', ids: [] }, { kind: 'note', name: 'b.md', text: 'hi' }], { origin: 'mcp' })
+    const { scope, api } = mount()
+    const result = await api.publish({ extras: ['b.md'] })
+    expect(result).toMatchObject({ ok: true, extras: ['b.md'] })
+    expect(Object.keys(backend.createGist.mock.calls[0][0].files).sort()).toEqual(['README.md', 'b.md', 'phone-stand.warpcad'])
+    expect(readmeOf(backend.updateGist)).not.toContain('a\\.stl')
+    expect(doc().gistExtras()).toHaveLength(2)
+    scope.stop()
+  })
+
+  it('an STL whose bodies are gone is left out and named; the project and README still publish', async () => {
+    buildProject()
+    const { scope, api } = mount()
+    // A staged id that is not a body on screen (a later step consumed it, or it was deleted).
+    doc().setGistExtras([{ kind: 'stl', name: 'gone.stl', ids: ['no-such-body'] }], { origin: 'mcp' })
+    const result = await api.publish()
+    expect(result).toMatchObject({ ok: true, dropped: ['gone.stl'] })
+    expect(Object.keys(backend.createGist.mock.calls[0][0].files).sort()).toEqual(['README.md', 'phone-stand.warpcad'])
+    scope.stop()
+  })
+
+  it('the Also include list reports name, kind and approximate size, and is empty with nothing staged', async () => {
+    buildProject()
+    const { scope, api } = mount()
+    expect(api.extraFiles.value).toEqual([])
+    doc().setGistExtras([{ kind: 'note', name: 'n.md', text: 'hello' }], { origin: 'mcp' })
+    useDocumentStore().refresh()
+    expect(api.extraFiles.value).toEqual([{ name: 'n.md', kind: 'note', approxBytes: 5 }])
+    scope.stop()
+  })
+
+  it('Update removes an extra the last publish wrote that is no longer staged, and keeps a file a person added', async () => {
+    buildProject()
+    doc().setGistExtras([{ kind: 'note', name: 'old.md', text: 'x' }], { origin: 'mcp' })
+    const { scope, api } = mount()
+    await api.publish()
+    backend.updateGist.mockClear()
+    doc().setGistExtras([], { origin: 'mcp' })
+    backend.readGist.mockResolvedValue({
+      id: ID,
+      description: 'Phone stand',
+      text: '',
+      revision: REV2,
+      updatedAt: null,
+      fileName: 'phone-stand.warpcad',
+      fileNames: ['phone-stand.warpcad', 'README.md', 'old.md', 'mine.md'],
+      extraFiles: ['old.md'],
+    })
+    await api.update()
+    const patched = backend.updateGist.mock.calls[0][0].files
+    expect(patched['old.md']).toBeNull()
+    expect('mine.md' in patched).toBe(false)
+    expect(patched['README.md']).not.toContain('Files:')
+    scope.stop()
+  })
+})

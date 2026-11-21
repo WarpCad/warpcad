@@ -107,6 +107,8 @@ describe('createToolRegistry', () => {
       'describe_step',
       'describe_variable',
       'evaluate_formula',
+      // io-040: what the next gist publish would contain, and what is still blank. Reads only.
+      'get_publish_readiness',
       'get_timeline',
       'list_ops',
       'list_variables',
@@ -122,9 +124,16 @@ describe('createToolRegistry', () => {
       'set_description',
       'set_formula',
       'set_params',
+      // io-040: the project's name, the gist's title.
+      'set_project_name',
       'set_variable',
+      // io-040: the extra files (ASCII STL, a note) the next gist publish carries.
+      'stage_gist_files',
       'unbind_param',
     ])
+    // io-040: WebMCP lists every MCP tool, so an in-browser agent can finish the project too.
+    const webmcp = tools.toolsFor('webmcp').map((tool) => tool.name)
+    for (const name of ['set_project_name', 'stage_gist_files', 'get_publish_readiness']) expect(webmcp).toContain(name)
     // ai-008: the image tools and save_to_library are browser-only too (attachments live in the
     // chat; a library save needs a person to tap Confirm).
     expect(tools.toolsFor('ai').map((tool) => tool.name)).toEqual(

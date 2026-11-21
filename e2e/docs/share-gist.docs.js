@@ -101,6 +101,45 @@ test.describe('docs media: the Share sheet gist group', () => {
   })
 
   /**
+   * `TODO/io-040`: the Share sheet after an agent finished — the Name already filled in and an
+   * **Also include** list with an STL ticked. Staged through the document's own setters, as the agent's
+   * `set_project_name` and `stage_gist_files` tools do (`origin: 'mcp'`).
+   */
+  test('share-gist-staged-by-agent.png: the name and an STL staged by an agent', async ({ page }) => {
+    await routeFakeGitHub(page, fakeGitHub({ tokens: { [TOKEN]: { login: 'janecoder', kind: 'fine-grained', expiry: '2026-11-27 14:05:00 UTC' } } }))
+    await openApp(page)
+    await loadScene(page, 'cube-and-sphere.ndjson', 2)
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.raw.setName('Cable clip', { origin: 'mcp' })
+      store.raw.setGistExtras([{ kind: 'stl', name: 'cable-clip.stl', ids: [] }], { origin: 'mcp' })
+      store.refresh()
+    })
+
+    await page.getByTestId('file-menu-button').click()
+    await page.getByTestId('gist-connect-open').scrollIntoViewIfNeeded()
+    await page.getByTestId('gist-connect-open').click()
+    await page.getByTestId('gist-connect-token').fill(TOKEN)
+    await page.getByTestId('gist-connect-submit').click()
+    await expect(page.getByTestId('gist-connect-status')).toContainText('Connected as janecoder')
+    await page.getByTestId('gist-connect-done').click()
+
+    const button = page.getByTestId('share-open')
+    if (await button.isVisible()) {
+      await button.click()
+    } else {
+      await page.getByTestId('file-menu-button').click()
+      await page.getByTestId('file-share').click()
+    }
+    await expect(page.getByTestId('share-sheet')).toBeVisible()
+    await expect(page.getByTestId('share-name')).toHaveValue('Cable clip')
+    await expect(page.getByTestId('share-gist-extra-check-cable-clip.stl')).toBeChecked()
+    await page.getByTestId('share-gist-extras').scrollIntoViewIfNeeded()
+    await shot(page, 'share-gist-staged-by-agent.png')
+  })
+
+  /**
    * `TODO/io-023`: the README a publish writes, as text — the description, the request and the
    * reply, the variables with a range. Published through the real Share sheet against the fake;
    * the README is then shown in a `<pre>` (GitHub's rendering is GitHub's). The two values that

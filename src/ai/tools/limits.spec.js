@@ -7,6 +7,8 @@ import imageSource from './image.js?raw'
 import librarySource from './library.js?raw'
 import overlaySource from './overlay.js?raw'
 import createSource from './create.js?raw'
+import gistExtrasSource from './gistExtras.js?raw'
+import projectNameSource from './projectName.js?raw'
 import indexSource from './index.js?raw'
 import limitsSource from './limits.js?raw'
 import operateSource from './operate.js?raw'
@@ -16,6 +18,7 @@ import schemaSource from './schema.js?raw'
 import variablesSource from './variables.js?raw'
 import { AI_STEP_LIMIT } from '../../core/aiBudget.js'
 import { createToolRegistry } from './index.js'
+import { GIST_EXTRAS_LIMITS } from '../../core/gistExtras.js'
 import { LIMITS, WRITE_ORIGINS, assertWriteOrigin, createTurn, recordsPerTurnHit } from './limits.js'
 
 describe('LIMITS — the starting caps from ai-001 decision 7', () => {
@@ -28,8 +31,17 @@ describe('LIMITS — the starting caps from ai-001 decision 7', () => {
       turnMs: 10 * 60 * 1000,
       repeatTargets: 64,
       listOpsIds: 20,
+      gistExtraFiles: 5,
+      gistNoteChars: 20_000,
+      gistExtraIds: 200,
     })
     expect(Object.isFrozen(LIMITS)).toBe(true)
+  })
+
+  it('reads the staged gist file caps from core, so the tool and the document enforce one number (TODO/io-040)', () => {
+    expect(LIMITS.gistExtraFiles).toBe(GIST_EXTRAS_LIMITS.maxFiles)
+    expect(LIMITS.gistNoteChars).toBe(GIST_EXTRAS_LIMITS.maxNoteChars)
+    expect(LIMITS.gistExtraIds).toBe(GIST_EXTRAS_LIMITS.maxIdsPerFile)
   })
 
   it('reads recordsPerTurn from the project limit\'s default, so the two are one number (TODO/ai-033)', () => {
@@ -138,7 +150,7 @@ describe('createTurn — the per-turn budget', () => {
 
 describe('no tool can write the project\'s AI step limit (TODO/ai-033)', () => {
   it('no tool module names the setter', () => {
-    for (const source of [batchSource, captureSource, createSource, imageSource, librarySource, overlaySource, indexSource, operateSource, readSource, repeatSource, schemaSource, variablesSource]) {
+    for (const source of [batchSource, captureSource, createSource, imageSource, librarySource, overlaySource, indexSource, operateSource, readSource, repeatSource, schemaSource, variablesSource, gistExtrasSource, projectNameSource]) {
       expect(source).not.toMatch(/setAiRecordsPerTurn|aiRecordsPerTurn/)
     }
   })
@@ -171,6 +183,8 @@ describe('what a tool module can never do (decision 7), checked statically', () 
     'schema.js': schemaSource,
     'repeat.js': repeatSource,
     'variables.js': variablesSource,
+    'gistExtras.js': gistExtrasSource,
+    'projectName.js': projectNameSource,
   }
 
   it('guards every module the registry is built from', () => {

@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### io-040 — An agent leaves the project ready to publish as a gist (2026-11-21 16:30)
+
+Driven against the fake gist API in `e2e/gist-share.e2e.js` case 15 and the unit specs, on every engine the rotating run touched. Two things this task did not settle. A real GitHub gist has not been given an ASCII STL, and the full pair run still shows `import-3mf.e2e.js` "a dense 3MF as the whole-model cutter" (TODO/core-085) over its 80 ms longtask budget (92 and 94 ms) when run beside seven other workers, though it passes alone at 63 ms. That spec and its rasteriser cost are already `TODO/OWNER.md` questions from `core-085`; nothing here touches it.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The Share sheet's **Also include** list and the three-file publish read well at 390 px, 820 px and 1440 px | OK | The docs picture at 390 px was read; case 15 snapshots the group on firefox-tablet and chromium-laptop (all nine baselines written). |
+| 2 | A real GitHub gist accepts and shows an ASCII STL of a finished part, and the README's Files line links the right names | Owner | → `TODO/OWNER.md` Q116 covers the assumptions; the account-bound round trip joins `io-017`'s real-GitHub check. |
+
 ### ui-154 — Broken-step wording, button and Inspector scroll end (2026-11-20 15:25)
 
 Scenarios 12 and 15 were driven at laptop and phone (see `TODO/ACCEPTANCE.md`), and `ui-146`'s reproduction was re-run. The cold read (one fresh agent, only the two phone screenshots) rated the repair button visibility CLEAR and "one problem, one name, one colour" PARTIAL again.

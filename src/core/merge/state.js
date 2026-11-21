@@ -61,6 +61,10 @@
  * @property {Lww<unknown> | null} [aiRecordsPerTurn] `TODO/ai-033`: the project's AI step limit
  *   (`src/core/aiBudget.js`), set only by a person. Like `description`, value and stamp travel
  *   together in the file's `merge.aiRecordsPerTurn`. Absent or `null`: never set, the default.
+ * @property {Lww<unknown> | null} [name] `TODO/io-040`: the project's name (`src/core/projectName.js`),
+ *   `''` once cleared. Like `description`, value and stamp travel together in the file's `merge.name`.
+ * @property {Lww<unknown> | null} [gistExtras] `TODO/io-040`: the extra files staged for the next gist
+ *   publish (`src/core/gistExtras.js`), `[]` once cleared; `merge.gistExtras` in the file.
  */
 
 /**
@@ -100,15 +104,16 @@ export function isLegacyStamp(stamp) {
 }
 
 /** The document-level registers, in their canonical order. */
-export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist', 'description', 'aiRecordsPerTurn'])
+export const REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume', 'gist', 'description', 'aiRecordsPerTurn', 'name', 'gistExtras'])
 
 /**
  * The registers whose **value** is a state-line field and whose stamp alone goes in the file's
  * `merge.registers` map (`section.js`). A released build refuses a name in that map it does not
  * know, so a register added later never goes there: `gist` (`TODO/io-017`) is written as its own
  * `merge.gist` key, value and stamp together, which an older build simply ignores; so is
- * `description` (`TODO/io-023`), as `merge.description`; and `aiRecordsPerTurn` (`TODO/ai-033`), as
- * `merge.aiRecordsPerTurn`.
+ * `description` (`TODO/io-023`), as `merge.description`; `aiRecordsPerTurn` (`TODO/ai-033`), as
+ * `merge.aiRecordsPerTurn`; and `name` and `gistExtras` (`TODO/io-040`), as `merge.name` and
+ * `merge.gistExtras`.
  */
 export const SECTION_REGISTER_NAMES = /** @type {const} */ (['rollbackAfter', 'resolution', 'standingInstructions', 'buildVolume'])
 
@@ -123,7 +128,7 @@ export function emptyMergeState(projectId = null) {
     projectId,
     entries: new Map(),
     dead: new Map(),
-    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null, aiRecordsPerTurn: null },
+    registers: { rollbackAfter: null, resolution: null, standingInstructions: null, buildVolume: null, gist: null, description: null, aiRecordsPerTurn: null, name: null, gistExtras: null },
     parts: new Map(),
     viewHidden: new Map(),
     prompts: new Map(),

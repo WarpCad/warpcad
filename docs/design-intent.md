@@ -41,7 +41,9 @@ publish the project as a gist, it's the text under the title on GitHub (see
 [Publish a project as a gist](sharing.md#publish-a-project-as-a-gist)). Anyone who opens your
 share or gist link sees it in a popup over the model (see
 [Tell people what they are looking at](sharing.md#tell-people-what-they-are-looking-at)). An AI tool connected to
-WarpCad can write it too, with its `set_description` tool. Whoever saves last wins.
+WarpCad can write it too, with its `set_description` tool, and can set the project's name with
+`set_project_name`, which the Share sheet then starts from
+(see [When an agent built it](sharing.md#when-an-agent-built-it)). Whoever saves last wins.
 
 You can format it a little:
 

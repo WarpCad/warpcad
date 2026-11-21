@@ -40,6 +40,7 @@
  */
 
 import { AI_STEP_LIMIT } from '../../core/aiBudget.js'
+import { GIST_EXTRAS_LIMITS } from '../../core/gistExtras.js'
 import { REPEAT_LIMITS } from '../../core/repeat.js'
 
 /**
@@ -58,6 +59,10 @@ import { REPEAT_LIMITS } from '../../core/repeat.js'
  * @property {number} repeatTargets Targets one `repeat` call may name (`TODO/core-061`) — the
  *   document's own limit, read from `src/core/repeat.js` so the two are one number.
  * @property {number} listOpsIds Op ids one `list_ops { ops }` call may ask for (`TODO/ai-030`).
+ * @property {number} gistExtraFiles Extra files `stage_gist_files` may stage for one gist (`TODO/io-040`)
+ *   — read from `src/core/gistExtras.js`, which the document also enforces, so the two are one number.
+ * @property {number} gistNoteChars Longest staged note, in characters (`TODO/io-040`).
+ * @property {number} gistExtraIds Body ids one staged STL may name (`TODO/io-040`).
  */
 
 /** @type {Readonly<Limits>} */
@@ -69,6 +74,9 @@ export const LIMITS = Object.freeze({
   turnMs: 10 * 60 * 1000,
   repeatTargets: REPEAT_LIMITS.maxTargets,
   listOpsIds: 20,
+  gistExtraFiles: GIST_EXTRAS_LIMITS.maxFiles,
+  gistNoteChars: GIST_EXTRAS_LIMITS.maxNoteChars,
+  gistExtraIds: GIST_EXTRAS_LIMITS.maxIdsPerFile,
 })
 
 /**

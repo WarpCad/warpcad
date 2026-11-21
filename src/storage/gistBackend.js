@@ -40,6 +40,7 @@
  */
 
 import { GIST_RAW_HOST, isGistId, isGistRawUrl } from '../core/gistLink.js'
+import { extraFileNamesOf } from '../core/gistReadme.js'
 import { LEGACY_PROJECT_EXTENSIONS, PROJECT_EXTENSION, isProjectFileName } from '../core/projectFile.js'
 import { MAX_DECOMPRESSED_BYTES } from '../core/shareLink.js'
 import { GITHUB_API_ORIGIN, HostedError, classifyGitHubFailure, githubHeaders, isWellFormedToken } from './hostedBackend.js'
@@ -317,6 +318,10 @@ function publishedOf(body, expectedId) {
  * @property {string | null} revision
  * @property {string | null} updatedAt
  * @property {string} fileName The file that was chosen.
+ * @property {string[]} [fileNames] Every file in the gist (`TODO/io-040`: an Update removes the extra
+ *   files it no longer stages).
+ * @property {string[]} [extraFiles] The extra files the last publish wrote, read from the README's
+ *   **Files** line. Only the file names leave this module: README text is untrusted and never returned.
  */
 
 /**
@@ -569,5 +574,20 @@ export async function readGist({ id, token, revision: wanted, fetch: injected })
     revision: at ?? historyAt(body, 0),
     updatedAt: typeof body.updated_at === 'string' ? body.updated_at : null,
     fileName,
+    fileNames: Object.keys(body.files),
+    extraFiles: extraFilesOf(body.files),
   }
+}
+
+/**
+ * The extra file names the README's **Files** line lists (`TODO/io-040`), kept only when each is a
+ * file the gist actually holds, so a README cannot name a file to delete that is not there.
+ *
+ * @param {Record<string, unknown>} files
+ * @returns {string[]}
+ */
+function extraFilesOf(files) {
+  const file = files['README.md']
+  if (!isRecord(file) || file.truncated === true || typeof file.content !== 'string') return []
+  return extraFileNamesOf(file.content).filter((name) => name !== 'README.md' && Object.hasOwn(files, name))
 }

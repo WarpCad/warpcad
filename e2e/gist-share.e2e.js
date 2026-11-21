@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { fakeGitHub, projectFileOf, routeFakeGitHub, watchEscapes } from './support/fakeGistApi.js'
+import { agentCall, installFakeWebMcp, registeredNames } from './support/fakeWebMcp.js'
 import { closeLibrary, isPhone, openLibrary, pointer, sleep, viewportPoint } from './support/humanInput.js'
 
 /**
@@ -48,6 +49,10 @@ import { closeLibrary, isPhone, openLibrary, pointer, sleep, viewportPoint } fro
  *
  * The clipboard is mocked at the boundary: `write` (the `ClipboardItem` path the sheet uses so
  * Safari keeps the tap's activation across the network calls) and `writeText` both record.
+ *
+ * Case 15 (`TODO/io-040`): a browser agent stages a name and an STL over WebMCP; the Share sheet starts
+ * from them, lists the file under **Also include**, publishes three files, and an unticked file is
+ * left out of the next Update (and removed from the gist).
  *
  * Driven by hand (not here): `TODO/ACCEPTANCE.md` scenario 30.
  */
@@ -826,6 +831,59 @@ test.describe('store and share a project as a GitHub gist', () => {
     expect(renamed?.description).toBe('Desk stand')
     expect(Object.keys(renamed?.files ?? {}).sort()).toEqual(['README.md', 'desk-stand.warpcad'])
     expect(renamed?.files['README.md']).toContain('# Desk stand')
+  })
+
+  test('15. an agent stages a name and an STL; the Share sheet starts from them, publishes three files, and an unticked one is left out (io-040)', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const fake = newFake()
+    await installFakeWebMcp(page)
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.append({ id: 'base', op: 'primitive.cuboid', name: 'Clip', params: { size: [10, 10, 2], center: [0, 0, 1] } })
+    })
+    await expectBodyCount(page, 1)
+
+    // Registration is async after load: wait until the finishing tools are there before the agent calls them.
+    await expect.poll(() => registeredNames(page), { timeout: 15_000 }).toEqual(expect.arrayContaining(['set_project_name', 'stage_gist_files', 'get_publish_readiness']))
+    // The agent's finishing steps, over WebMCP: a name, an STL of the scene, then the readiness check.
+    const named = await agentCall(page, 'set_project_name', { name: 'Cable clip' })
+    expect(JSON.stringify(named)).toContain('Cable clip')
+    const staged = await agentCall(page, 'stage_gist_files', { files: [{ kind: 'stl', name: 'cable-clip' }, { kind: 'note', name: 'print-notes', text: 'Print flat, 0.2 mm layers.' }] })
+    expect(JSON.stringify(staged)).toContain('cable-clip.stl')
+    const ready = await agentCall(page, 'get_publish_readiness', {})
+    expect(JSON.stringify(ready)).toContain('Files: cable')
+
+    await openShareSheet(page, input)
+    await expect(page.getByTestId('share-name')).toHaveValue('Cable clip')
+    await tap(input, page.getByTestId('share-gist-connect'))
+    await connectInDialog(page, input, GIST_TOKEN)
+    await expect(page.getByTestId('share-gist-extras')).toBeVisible()
+    await expect(page.getByTestId('share-gist-extra-check-cable-clip.stl')).toBeChecked()
+    await expect(page.getByTestId('share-gist-extra-check-print-notes.md')).toBeChecked()
+    await expect(page.getByTestId('share-gist-extra-cable-clip.stl')).toContainText('cable-clip.stl')
+
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published Cable clip with 4 files. Link copied')
+    const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
+    const id = /** @type {string} */ (copied).slice(-32)
+    const gist = fake.gists.get(id)
+    expect(Object.keys(gist?.files ?? {}).sort()).toEqual(['README.md', 'cable-clip.stl', 'cable-clip.warpcad', 'print-notes.md'])
+    expect(gist?.files['cable-clip.stl']).toMatch(/^solid /)
+    expect(gist?.files['README.md']).toContain('- Files: cable')
+
+    // Untick the STL for this update: the gist drops it, the note stays, the document still stages both.
+    await tap(input, page.getByTestId('share-gist-extra-check-cable-clip.stl'))
+    await expect(page.getByTestId('share-gist-extra-check-cable-clip.stl')).not.toBeChecked()
+    await tap(input, page.getByTestId('share-gist-update'))
+    await expect(page.getByTestId('share-toast')).toContainText('Gist updated')
+    expect(Object.keys(fake.gists.get(id)?.files ?? {}).sort()).toEqual(['README.md', 'cable-clip.warpcad', 'print-notes.md'])
+    expect(fake.gists.get(id)?.files['README.md']).not.toContain('stl (ASCII')
+    await expect(page.getByTestId('share-gist-extras')).toBeVisible()
+    await expect(page.getByTestId('share-gist-group')).toHaveScreenshot('gist-extras.png', { maxDiffPixelRatio: 0.02 })
   })
 
   test('10. the prompts that made the project are in the README under How this was made, until the box is unticked (io-022)', async ({ page }, info) => {

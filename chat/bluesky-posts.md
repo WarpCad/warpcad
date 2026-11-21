@@ -3691,3 +3691,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** screenshot report and two causes → `TODO/done/ui-157-variable-description-separate-from-short-label.md`; description field, 40-char write cap, Describe step → `src/core/variables.spec.js` run this session; row fixed at three viewports → `e2e/variables.e2e.js` ui-157 test run this session
 **To Add:** docs/screenshots/variable-describe.png
 ---
+
+## 2026-11-21T16:35:00Z — WarpCad: an agent can leave the project ready to publish as a gist
+
+**Post:** A WarpCad agent can now finish a part ready to publish: it sets the gist's name, stages an STL and notes, and checks a readiness report. Open Share and the files are already listed under "Also include". A person still taps Publish. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the three gaps and the existing description tool → `TODO/done/io-040-agent-leaves-the-project-ready-to-publish-as-a-gist.md`; three tools on MCP, in-app and WebMCP → `src/ai/tools/index.spec.js` and `e2e/gist-share.e2e.js` case 15, run this session (pair run 1344 passed, 0 failed)
+**To Add:** docs/screenshots/share-gist-staged-by-agent.png
+---

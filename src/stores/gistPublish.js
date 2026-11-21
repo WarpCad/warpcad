@@ -70,15 +70,17 @@
 
 import { computed, toRaw } from 'vue'
 
+import { resolveExportScope } from '../core/export.js'
+import { runExport } from '../core/exportClient.js'
+import { noteFileContent } from '../core/gistExtras.js'
 import { gistFileName, gistLink, gistRawFileUrl } from '../core/gistLink.js'
 import { gistFailureOf, gistMessage, plainGistDescription } from '../core/gistMessages.js'
+import { gistBriefOf, publishReadiness } from '../core/gistReadiness.js'
 import { gistReadme } from '../core/gistReadme.js'
 import { relatedness } from '../core/merge/merge.js'
 import { parseProject, serializeProject } from '../core/project.js'
 import { stripProjectExtension } from '../core/projectFile.js'
-import { responseTextOf } from '../core/prompt.js'
 import { DEFAULT_SHARE_NAME } from '../core/shareLink.js'
-import { displayFormulaOf, isFormula, variablesOf } from '../core/variables.js'
 import { useDocumentStore } from './document.js'
 import { useGistStore } from './gist.js'
 import { mergeStateOfProject, useMergeStore } from './merge.js'
@@ -104,7 +106,9 @@ const README = 'README.md'
  *
  * was not set on the new one. `name` is the gist's title as written (`TODO/io-021`'s toast names it).
  *
- * @typedef {{ ok: true, id: string, link: string, revision: string, name: string, warning?: 'readme' | 'project-changed' }} GistPublishOk
+ * `extras` names the extra files written and `dropped` the staged ones left out (`TODO/io-040`).
+ *
+ * @typedef {{ ok: true, id: string, link: string, revision: string, name: string, warning?: 'readme' | 'project-changed', extras?: string[], dropped?: string[] }} GistPublishOk
  */
 
 /**
@@ -141,6 +145,21 @@ export function createGistPublisher(options = {}) {
     void documentStore.version
     return toRaw(documentStore.raw).prompts().length
   })
+  /**
+   * The staged extra files (`TODO/io-040`) as the Share sheet's **Also include** list shows them:
+   * name, kind and approximate size, from core's `publishReadiness` so the sheet and the agent's
+   * `get_publish_readiness` agree. Empty with nothing staged.
+   */
+  const extraFiles = computed(() => {
+    void documentStore.version
+    const raw = toRaw(documentStore.raw)
+    return raw.gistExtras().length === 0 ? [] : publishReadiness(raw).files
+  })
+  /** The name a publish starts from when nothing is typed: the document's, then the file's (`TODO/io-040`). */
+  const suggestedName = computed(() => {
+    void documentStore.version
+    return toRaw(documentStore.raw).name() || persistence.projectName
+  })
   /** **Publish to a gist** can run: connected, something to publish, not already published here. */
   const canPublish = computed(() => gist.connected && hasBodies.value && !published.value && !busy.value)
   /** **Update gist** can run. */
@@ -156,49 +175,71 @@ export function createGistPublisher(options = {}) {
     documentStore.refresh()
   }
 
-  /** The body names the README lists, in timeline order. */
-  const bodyNames = () => documentStore.bodies.map((body) => body.name)
-
   /**
-   * The prompts the README's **How this was made** section lists (`TODO/io-022`): each prompt's text,
-   * its reply (`TODO/io-023`: `ai-032`'s segments joined by a blank line), and the names of the
-   * bodies it produced, in timeline order. A produced id that is not a body (a sketch step, a
-   * boolean's operand) is not named.
+   * What every README of this project carries besides its name and time (`TODO/io-023`): built by
+   * core's {@link gistBriefOf}, the one the `get_publish_readiness` preview also uses, so the two
+   * cannot drift (`TODO/io-040`).
    *
-   * @returns {import('../core/gistReadme.js').GistReadmePrompt[]}
+   * @param {{ prompts?: boolean }} choice
+   * @param {readonly { name: string, kind: 'stl' | 'note' }[]} [files] The extra files this publish adds.
    */
-  function promptsForReadme() {
-    const bodies = documentStore.bodies
-    return toRaw(documentStore.raw)
-      .prompts()
-      .map((prompt) => {
-        const produced = new Set(prompt.produced)
-        const reply = responseTextOf(prompt)
-        return {
-          text: prompt.text,
-          ...(reply !== '' ? { reply } : {}),
-          bodies: bodies.filter((body) => produced.has(body.id)).map((body) => body.name),
-        }
-      })
+  function briefOf(choice, files = []) {
+    return gistBriefOf(toRaw(documentStore.raw), { prompts: choice.prompts, files })
   }
 
   /**
-   * What every README of this project carries besides its name and time (`TODO/io-023`): the
-   * description and the variables always; the prompts and their replies unless `prompts` is
-   * exactly `false` (the Share sheet's **Include prompts in the README**, unticked).
+   * The staged extra files (`TODO/io-040`) as this publish writes them: each STL built from the
+   * live timeline in the export worker (ASCII, since a gist's file content is text), each note as
+   * Markdown. Built at the tap, never stored. `only` — the Share sheet's unticked ones are left
+   * out for this publish alone (nothing is written back to the document).
    *
-   * @param {{ prompts?: boolean }} choice
-   * @returns {Pick<import('../core/gistReadme.js').GistReadmeInput, 'description' | 'bodies' | 'prompts' | 'variables'>}
+   * An STL whose staged bodies are all gone is left out and named in `dropped`; one that lost some
+   * exports the rest. A file that will not build (an empty body, a failed worker) is `dropped` too:
+   * the project and README still publish.
+   *
+   * @param {{ extras?: readonly string[] }} choice `extras`: the names to include; absent = all staged.
+   * @param {string} projectFile The project file's name in the gist; no extra may take it.
+   * @returns {Promise<{ files: Record<string, string>, included: { name: string, kind: 'stl' | 'note' }[], dropped: string[] }>}
    */
-  function briefOf(choice) {
+  async function buildExtras(choice, projectFile) {
     const raw = toRaw(documentStore.raw)
-    return {
-      description: raw.description(),
-      bodies: bodyNames(),
-      prompts: choice.prompts === false ? [] : promptsForReadme(),
-      // A formula as a person reads it (names, not `#ids`), `TODO/FIND-core-078`.
-      variables: variablesOf(raw).map((variable) => (isFormula(variable) ? { ...variable, formula: displayFormulaOf(raw, variable) } : variable)),
+    /** @type {Record<string, string>} */
+    const files = {}
+    /** @type {{ name: string, kind: 'stl' | 'note' }[]} */
+    const included = []
+    /** @type {string[]} */
+    const dropped = []
+    const live = /** @type {import('../core/export.js').ExportBody[]} */ (/** @type {unknown} */ (raw.bodies()))
+    const wanted = choice.extras === undefined ? null : new Set(choice.extras)
+    for (const extra of raw.gistExtras()) {
+      if (wanted !== null && !wanted.has(extra.name)) continue
+      if (extra.name === README || extra.name === projectFile) {
+        dropped.push(extra.name)
+        continue
+      }
+      if (extra.kind === 'note') {
+        files[extra.name] = noteFileContent(extra.text)
+        included.push({ name: extra.name, kind: 'note' })
+        continue
+      }
+      const here = extra.ids.length === 0 ? live : live.filter((body) => extra.ids.includes(/** @type {any} */ (body).id))
+      if (here.length === 0) {
+        dropped.push(extra.name)
+        continue
+      }
+      try {
+        const { bodies } = resolveExportScope(here, [])
+        const result = await runExport(bodies, 'stl', {
+          ascii: true,
+          loadGltfExporter: () => Promise.reject(new Error('glTF is not a gist file')),
+        })
+        files[extra.name] = new TextDecoder().decode(result.bytes)
+        included.push({ name: extra.name, kind: 'stl' })
+      } catch {
+        dropped.push(extra.name)
+      }
     }
+    return { files, included, dropped }
   }
 
   /** The gist's description: the project's name as one plain line. @param {string} name */
@@ -230,8 +271,10 @@ export function createGistPublisher(options = {}) {
    * **Publish to a gist**: a new gist with the project file and its README, secret unless
    * `public` is exactly `true`.
    *
-   * @param {{ public?: boolean, name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's
-   *   Name, the gist's title; without it the project's own name is used. `prompts: false` leaves the
+   * @param {{ public?: boolean, name?: string, prompts?: boolean, extras?: readonly string[] }} [choice] `name` — the Share sheet's
+   *   Name, the gist's title; without it the document's name (an agent's `set_project_name`), then the
+   *   file name the project was saved under (`TODO/io-040`). `extras` — the staged extra files to
+   *   include, by name; without it all of them. `prompts: false` leaves the
    *   prompts and their replies out of the README (the file keeps them); anything else lists them.
    *   The description and the variables are always in it (`TODO/io-023`).
    * @returns {Promise<GistPublishOk | GistFailure>}
@@ -244,11 +287,17 @@ export function createGistPublisher(options = {}) {
     if (!hasBodies.value) return done(fail('no-bodies', 'publish'))
     const loadAt = documentStore.loadRevision
     const text = serializeProject(toRaw(documentStore.raw))
-    const name = choice.name ?? persistence.projectName
+    const name = choice.name ?? (toRaw(documentStore.raw).name() || persistence.projectName)
     const fileName = gistFileName(name)
     const publishedAt = now()
-    const readme = { name, ...briefOf(choice), publishedAt }
+    const built = await buildExtras(choice, fileName)
+    const readme = { name, ...briefOf(choice, built.included), publishedAt }
     const isPublic = choice.public === true
+    // Only what there is to say: a publish with nothing staged answers exactly as it always did.
+    const outcome = {
+      ...(built.included.length === 0 ? {} : { extras: built.included.map((file) => file.name) }),
+      ...(built.dropped.length === 0 ? {} : { dropped: built.dropped }),
+    }
 
     await gist.start()
     const client = gist.authorized()
@@ -260,7 +309,7 @@ export function createGistPublisher(options = {}) {
     let created
     try {
       created = await client.createGist({
-        files: { [fileName]: text, [README]: gistReadme({ ...readme, id: null }) },
+        files: { [fileName]: text, ...built.files, [README]: gistReadme({ ...readme, id: null }) },
         description: descriptionOf(name),
         public: isPublic,
       })
@@ -270,7 +319,7 @@ export function createGistPublisher(options = {}) {
     gist.rememberRevision(created.id, created.revision)
     const link = gistLink(created.id)
     if (documentStore.loadRevision !== loadAt) {
-      return done({ ok: true, id: created.id, link, revision: created.revision, name, warning: 'project-changed' }, { publishedAt })
+      return done({ ok: true, id: created.id, link, revision: created.revision, name, warning: 'project-changed', ...outcome }, { publishedAt })
     }
     /** @type {GistField} */
     const field = { id: created.id, public: isPublic, lastRevision: created.revision, owner }
@@ -285,14 +334,14 @@ export function createGistPublisher(options = {}) {
       })
       gist.rememberRevision(created.id, patched.revision)
       if (documentStore.loadRevision !== loadAt) {
-        return done({ ok: true, id: created.id, link, revision: patched.revision, name, warning: 'project-changed' }, { publishedAt })
+        return done({ ok: true, id: created.id, link, revision: patched.revision, name, warning: 'project-changed', ...outcome }, { publishedAt })
       }
       setField({ ...field, lastRevision: patched.revision })
       persistence.noteGistSaved(publishedAt)
-      return done({ ok: true, id: created.id, link, revision: patched.revision, name }, { publishedAt })
+      return done({ ok: true, id: created.id, link, revision: patched.revision, name, ...outcome }, { publishedAt })
     } catch {
       if (documentStore.loadRevision === loadAt) persistence.noteGistSaved(publishedAt)
-      return done({ ok: true, id: created.id, link, revision: created.revision, name, warning: 'readme' }, { publishedAt })
+      return done({ ok: true, id: created.id, link, revision: created.revision, name, warning: 'readme', ...outcome }, { publishedAt })
     }
   }
 
@@ -365,9 +414,10 @@ export function createGistPublisher(options = {}) {
    * replaced it. It is remembered, read by its sha, merged, and the merged project written once
    * more. If that cannot finish in this tap, the next **Update gist** merges it first.
    *
-   * @param {{ name?: string, prompts?: boolean }} [choice] `name` — the Share sheet's Name (see
+   * @param {{ name?: string, prompts?: boolean, extras?: readonly string[] }} [choice] `name` — the Share sheet's Name (see
    *   {@link publish}); without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own
-   *   title, and only a gist with none takes the project's name. `prompts` as for {@link publish}.
+   *   title, and only a gist with none takes the document's name, then the project's file name. `prompts` and
+   *   `extras` as for {@link publish}. A staged extra no longer staged is removed from the gist.
    * @returns {Promise<GistPublishOk | GistFailure>}
    */
   async function update(choice = {}) {
@@ -403,11 +453,14 @@ export function createGistPublisher(options = {}) {
       if (merged.conflicted) return done(fail('merge-conflict', 'update'))
     }
 
-    const name = choice.name ?? (plainGistDescription(remote.description) || persistence.projectName)
+    const name =
+      choice.name ?? (plainGistDescription(remote.description) || toRaw(documentStore.raw).name() || persistence.projectName)
     // A gist published before `TODO/io-035` holds `<slug>.ndjson`: an Update under the same name
     // keeps that file (and its raw URL) rather than renaming it to `.warpcad`.
     const slugFile = gistFileName(name)
     const fileName = stripProjectExtension(remote.fileName) === stripProjectExtension(slugFile) ? remote.fileName : slugFile
+    /** The extra files the last publish wrote, from its README's Files line (`gistBackend.readGist`). */
+    const previousExtras = new Set(remote.extraFiles ?? [])
     /** The project file the gist holds now; after a first write, `fileName`. */
     let existingFile = remote.fileName
     const link = gistLink(current.id)
@@ -421,12 +474,14 @@ export function createGistPublisher(options = {}) {
       // Read after the merge: what is published is the merged project.
       const text = serializeProject(toRaw(documentStore.raw))
       const publishedAt = now()
+      const built = await buildExtras(choice, fileName)
       /** @type {Record<string, string | null>} */
       const files = {
         [fileName]: text,
+        ...built.files,
         [README]: gistReadme({
           name,
-          ...briefOf(choice),
+          ...briefOf(choice, built.included),
           publishedAt,
           id: current.id,
           rawUrl: gistRawFileUrl(current.owner, current.id, fileName),
@@ -435,6 +490,12 @@ export function createGistPublisher(options = {}) {
       }
       // A renamed project: remove the old file rather than leave two projects in the gist.
       if (existingFile !== fileName && existingFile !== README) files[existingFile] = null
+      // An extra the last publish wrote that is no longer staged (or was unticked): remove it, the
+      // way a renamed project file is removed, so the gist is exactly what was published.
+      for (const old of previousExtras) {
+        if (old === fileName || old === README || old === existingFile || old in files) continue
+        files[old] = null
+      }
 
       /** @type {import('../storage/gistBackend.js').GistPublished} */
       let updated
@@ -497,5 +558,5 @@ export function createGistPublisher(options = {}) {
     return shortLink.value
   }
 
-  return { gistField, published, busy, canPublish, canUpdate, promptCount, shortLink, pageUrl, publish, update, stop, link }
+  return { gistField, published, busy, canPublish, canUpdate, promptCount, extraFiles, suggestedName, shortLink, pageUrl, publish, update, stop, link }
 }

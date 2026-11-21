@@ -44,10 +44,12 @@
  * @property {BuildVolume} buildVolume
  * @property {string} [description] `TODO/io-023`: the project's description for people.
  * @property {number} [aiRecordsPerTurn] `TODO/ai-033`: the project's AI step limit.
+ * @property {string} [name] `TODO/io-040`: the project's name.
+ * @property {import('./gistExtras.js').GistExtra[]} [gistExtras] `TODO/io-040`: the staged gist files.
  */
 
 /**
- * @typedef {{ resolution?: string, standingInstructions?: string, buildVolume?: BuildVolume, description?: string, aiRecordsPerTurn?: number }} MergeUndoSettings
+ * @typedef {{ resolution?: string, standingInstructions?: string, buildVolume?: BuildVolume, description?: string, aiRecordsPerTurn?: number, name?: string, gistExtras?: import('./gistExtras.js').GistExtra[] }} MergeUndoSettings
  * @typedef {{ ok: true, target: DocumentEntry[], rollbackAt: number | null, settings: MergeUndoSettings } | { ok: false, message: string }} MergeUndoPlan
  */
 
@@ -64,6 +66,8 @@ export function mergeSnapshotOf(raw) {
     buildVolume: raw.buildVolume(),
     description: raw.description(),
     aiRecordsPerTurn: raw.aiRecordsPerTurn(),
+    name: raw.name(),
+    gistExtras: raw.gistExtras(),
   }
 }
 
@@ -207,6 +211,13 @@ export function planMergeUndo(base, merged, current, change) {
   if (change.registers.includes('description') && current.description === merged.description) {
     settings.description = base.description ?? ''
   }
+  // `TODO/io-040`: likewise the name and the staged gist files — an agent's, taken back by Undo AI turn.
+  if (change.registers.includes('name') && current.name === merged.name) {
+    settings.name = base.name ?? ''
+  }
+  if (change.registers.includes('gistExtras') && JSON.stringify(current.gistExtras ?? []) === JSON.stringify(merged.gistExtras ?? [])) {
+    settings.gistExtras = base.gistExtras ?? []
+  }
   if (
     change.registers.includes('aiRecordsPerTurn') &&
     current.aiRecordsPerTurn === merged.aiRecordsPerTurn &&
@@ -235,6 +246,8 @@ export function applyMergeUndo(raw, plan, transaction) {
     if (settings.standingInstructions !== undefined) raw.setStandingInstructions(settings.standingInstructions, transaction)
     if (settings.buildVolume !== undefined) raw.setBuildVolume(settings.buildVolume, transaction)
     if (settings.description !== undefined) raw.setDescription(settings.description, transaction)
+    if (settings.name !== undefined) raw.setName(settings.name, transaction)
+    if (settings.gistExtras !== undefined) raw.setGistExtras(settings.gistExtras, transaction)
     // `TODO/ai-033`: the AI step limit is set only with origin `local`. Only a file merge can have
     // moved it (no agent writes it, so an AI turn's landing never does), and **Undo merge** is the
     // person's own click — so it is put back as theirs. Under an agent's origin it is never

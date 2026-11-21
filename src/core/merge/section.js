@@ -20,6 +20,8 @@
  *   `description: [text, stamp]`, a clear being `['', stamp]`;
  * - the **AI step limit** register (`TODO/ai-033`) likewise: `aiRecordsPerTurn: [n, stamp]`, written
  *   only once a person has set it (a project at the default writes nothing);
+ * - the **name** and the **staged gist files** (`TODO/io-040`) the same way as the description:
+ *   `name: [text, stamp]` (a clear `['', stamp]`) and `gistExtras: [list, stamp]` (a clear `[[], stamp]`);
  * - a **view switch** (`TODO/ui-089`) is written as its stamp alone, under `viewStamps` by body
  *   and part, its value being whether the state line's `viewHidden` lists it. A show is
  *   written too (that is what lets a later show beat an earlier hide after a reload); a hide
@@ -141,6 +143,16 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
   const aiRecordsPerTurn =
     limitRegister === null || typeof limitRegister[0] !== 'number' ? null : [limitRegister[0], encodeStamp(limitRegister[1])]
 
+  // `TODO/io-040`: the name and the staged gist files, the same way as the description.
+  const nameRegister = state.registers.name ?? null
+  /** @type {[string, [number, string]] | null} */
+  const projectName =
+    nameRegister === null ? null : [typeof nameRegister[0] === 'string' ? nameRegister[0] : '', encodeStamp(nameRegister[1])]
+  const extrasRegister = state.registers.gistExtras ?? null
+  /** @type {[unknown[], [number, string]] | null} */
+  const gistExtras =
+    extrasRegister === null ? null : [Array.isArray(extrasRegister[0]) ? extrasRegister[0] : [], encodeStamp(extrasRegister[1])]
+
   /** @type {Record<string, [number, string]>} */
   const partStamps = {}
   for (const op of writtenParts) {
@@ -194,7 +206,9 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
     Object.keys(viewStamps).length === 0 &&
     gist === null &&
     description === null &&
-    aiRecordsPerTurn === null
+    aiRecordsPerTurn === null &&
+    projectName === null &&
+    gistExtras === null
   if (empty) return null
 
   return {
@@ -202,6 +216,8 @@ export function encodeMergeSection(state, entries, clock, writtenParts, writtenV
     ...(gist !== null ? { gist } : {}),
     ...(description !== null ? { description } : {}),
     ...(aiRecordsPerTurn !== null ? { aiRecordsPerTurn } : {}),
+    ...(projectName !== null ? { name: projectName } : {}),
+    ...(gistExtras !== null ? { gistExtras } : {}),
     clock,
     ...(Object.keys(pos).length > 0 ? { pos } : {}),
     ...(Object.keys(stamps).length > 0 ? { stamps } : {}),

@@ -22,7 +22,8 @@
  *    byte-identical, mtime included. "Changed" is a record appended, revised in place or
  *    removed: the project-variable tools (`TODO/ai-014`) revise rows and may remove one — or
  *    the project's prompts changed (`record_prompt`, `TODO/ai-031`; `record_response`, `TODO/ai-032`)
- *    or its description (`set_description`, `TODO/io-023`), which touch no row;
+ *    or its description (`set_description`, `TODO/io-023`), name (`set_project_name`) or staged gist
+ *    files (`stage_gist_files`, both `TODO/io-040`), which touch no row;
  * 3. otherwise serialises, checks the text parses back, re-checks the file has not changed
  *    since step 0 — if it has (the app saved meanwhile), re-reads and re-applies the call, up to
  *    {@link MAX_ATTEMPTS} times, then refuses with nothing written (`TODO/io-010`) — writes a
@@ -171,14 +172,14 @@ export function loadProjectText(text, name, replica) {
 export { writeToolNames }
 
 /**
- * What the project's prompts (`TODO/ai-031`) and description (`TODO/io-023`) say, for noticing that
- * a call changed them — neither touches a row.
+ * What the project's prompts (`TODO/ai-031`), description (`TODO/io-023`), name and staged gist files
+ * (`TODO/io-040`) say, for noticing that a call changed them — none touches a row.
  *
  * @param {WarpDocument} document
  * @returns {string}
  */
 function promptsKey(document) {
-  return JSON.stringify([document.prompts(), document.description()])
+  return JSON.stringify([document.prompts(), document.description(), document.name(), document.gistExtras()])
 }
 
 /**

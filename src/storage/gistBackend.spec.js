@@ -439,6 +439,8 @@ describe('readGist — no token, one fixed file rule, capped', () => {
       revision: REV1,
       updatedAt: '2026-10-28T10:00:00Z',
       fileName: 'phone-stand.ndjson',
+      fileNames: ['phone-stand.ndjson', 'README.md'],
+      extraFiles: [],
     })
     const [call] = fetchImpl.calls
     expect(call.method).toBe('GET')

@@ -153,7 +153,8 @@ async function openSheet() {
   placePopover()
   open.value = true
   if (empty.value) return
-  const fallback = persistence.projectName.trim() === '' ? DEFAULT_SHARE_NAME : persistence.projectName
+  const suggested = toRaw(documentStore.raw).name() || persistence.projectName
+  const fallback = suggested.trim() === '' ? DEFAULT_SHARE_NAME : suggested
   name.value = typedFor === documentStore.loadRevision && typedName.trim() !== '' ? typedName : fallback
   records = projectRecords()
   void rebuildLink()

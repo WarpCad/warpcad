@@ -259,9 +259,14 @@ function toBytes(chunks) {
  *
  * @param {Uint8Array} bytes
  * @param {'stl' | 'obj'} format
+ * @param {boolean} [ascii] The STL is the text form.
  * @returns {number}
  */
-function countWrittenTriangles(bytes, format) {
+function countWrittenTriangles(bytes, format, ascii = false) {
+  if (format === 'stl' && ascii) {
+    // ASCII STL: one `facet normal` line per triangle.
+    return new TextDecoder().decode(bytes).split('facet normal').length - 1
+  }
   if (format === 'stl') {
     // Binary STL: 80-byte header, then a little-endian uint32 triangle count.
     return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(80, true)
@@ -291,10 +296,12 @@ function countWrittenTriangles(bytes, format) {
  *   the selection rule (see {@link resolveExportScope}).
  * @param {ExportFormat} format `'stl'` or `'obj'`. `'glb'` is
  *   `src/render/export.js`'s job and is refused here by name.
+ * @param {{ ascii?: boolean }} [options] `ascii`: write an STL as text, not binary (`TODO/io-040`: a
+ *   gist file is a JSON string, so only the text form can be published).
  * @returns {ExportResult}
  * @throws {ExportError} See {@link solidsForExport}; plus `unsupported-format` for glb.
  */
-export function exportBodies(bodies, format) {
+export function exportBodies(bodies, format, options = {}) {
   const info = formatInfo(format)
   if (format === 'glb') {
     throw new ExportError(
@@ -312,11 +319,11 @@ export function exportBodies(bodies, format) {
 
   const chunks =
     format === 'stl'
-      ? stlSerializer.serialize({ binary: true }, ...solids)
+      ? stlSerializer.serialize({ binary: options.ascii !== true }, ...solids)
       : objSerializer.serialize({ triangulate: true }, ...solids)
   const bytes = toBytes(chunks)
 
-  const triangleCount = countWrittenTriangles(bytes, format)
+  const triangleCount = countWrittenTriangles(bytes, format, options.ascii === true)
   if (triangleCount === 0) {
     throw new ExportError('empty-geometry', 'Cannot export: the result has no triangles, so the file would be empty')
   }

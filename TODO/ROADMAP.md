@@ -67,6 +67,8 @@ stashes only the failed task's own paths.
 
 **Decided 2026-11-20 (owner):** an agent-made project's Variables panel shows labels like "Wall thickness (4 × 0.4 mm passes = 1.6)" broken one syllable per line. "Variables need a description as well as a name, so that the names can be smaller." Filed as `ui-157` and run first in the Findings queue; closed 2026-11-20 (`description` field, `describe_variable`, short labels, a row that no longer squeezes its title).
 
+**Decided 2026-11-21 (owner):** "Is there a way for the agent to set the project description when it's done? If not, make a todo so that as soon as an agent is done creating something, the project is ready to be saved as a gist with any additional files or info already to go." The description already has a tool (`set_description`, all three paths). The rest was filed as `io-040` and shipped 2026-11-21.
+
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed

@@ -38,7 +38,7 @@ import { packError, runExportJob, runPrintPiecesJob } from './exportJob.js'
 const scope = /** @type {any} */ (self)
 
 scope.addEventListener('message', (/** @type {MessageEvent} */ event) => {
-  const { id, format, bodies, refold, mode } = event.data ?? {}
+  const { id, format, bodies, refold, mode, ascii } = event.data ?? {}
   try {
     if (mode === 'print-pieces') {
       const zip = runPrintPiecesJob({ bodies })
@@ -46,7 +46,7 @@ scope.addEventListener('message', (/** @type {MessageEvent} */ event) => {
       return
     }
     // `refold` (TODO/core-035): export at another resolution — the job folds the records.
-    const result = runExportJob({ format, bodies, refold })
+    const result = runExportJob({ format, bodies, refold, ascii })
     // The finished file is a `Uint8Array`, which IS transferable — so the bytes move
     // rather than being copied, and only the (much smaller) glTF solid lists are cloned.
     const transfer = result.kind === 'bytes' && result.bytes ? [result.bytes.buffer] : []

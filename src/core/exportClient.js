@@ -65,6 +65,7 @@ import { packBodies, unpackSolids } from './kernel/transport.js'
  * @property {import('./exportJob.js').RefoldRequest} [refold] Export at another
  *   resolution than the design's (`TODO/core-035`): the worker folds these records and
  *   `bodies` are used only for naming (they are the same bodies, at the design setting).
+ * @property {boolean} [ascii] Write an STL as text (`TODO/io-040`).
  */
 
 /** The name of the error an export rejects with when {@link cancelExport} stopped it. */
@@ -141,12 +142,13 @@ function resolveWorker() {
  * @param {ExportFormat} format
  * @param {readonly ExportBody[]} bodies
  * @param {import('./exportJob.js').RefoldRequest} [refold]
+ * @param {boolean} [ascii]
  * @returns {Promise<import('./exportJob.js').ExportJobResult>}
  */
-function ask(active, format, bodies, refold) {
+function ask(active, format, bodies, refold, ascii) {
   return post(
     active,
-    refold === undefined ? { format, bodies: packBodies(bodies) } : { format, bodies: [], refold }
+    refold === undefined ? { format, bodies: packBodies(bodies), ascii } : { format, bodies: [], refold, ascii }
   )
 }
 
@@ -230,7 +232,7 @@ export async function runExport(bodies, format, options) {
   const active = resolveWorker()
   if (active) {
     try {
-      const job = await ask(active, format, bodies, refold)
+      const job = await ask(active, format, bodies, refold, options.ascii)
       if (job.kind === 'bytes') {
         return {
           bytes: /** @type {Uint8Array} */ (job.bytes),
@@ -258,7 +260,7 @@ export async function runExport(bodies, format, options) {
   // on the main thread, which is what "no worker" means; it is the fallback, never the
   // path a browser with module workers takes.
   if (refold !== undefined) {
-    const job = runExportJob({ format, bodies: [], refold })
+    const job = runExportJob({ format, bodies: [], refold, ascii: options.ascii })
     if (job.kind === 'bytes') {
       return {
         bytes: /** @type {Uint8Array} */ (job.bytes),
@@ -276,7 +278,7 @@ export async function runExport(bodies, format, options) {
     const exporter = await options.loadGltfExporter()
     return await exporter(bodies)
   }
-  return exportBodies(bodies, format)
+  return exportBodies(bodies, format, { ascii: options.ascii === true })
 }
 
 /**

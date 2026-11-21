@@ -40,6 +40,9 @@
  * | `record_prompt` | yes (the prompt only) | MCP and WebMCP (`ai-031`). `{ prompt }`: the user's request, in their words, stored in the project and linked to every record written for it afterwards; echoes `{ id, text, truncated }`. Called once, first. |
  * | `record_response` | yes (the reply only) | MCP and WebMCP (`ai-032`). `{ response }`: the agent's final message, appended as a segment under the bound prompt (`ctx.prompt`); refuses with none bound; echoes `{ promptId, id, text, truncated }`. Called last. |
  * | `set_description` | yes (the description only) | MCP and in-app (`io-023`). `{ description }`: the project's description for people, in a small Markdown subset (no links, images, headings or HTML); replaces it, `''` clears it; echoes `{ text, truncated, previous }`. |
+ * | `set_project_name` | yes (the name only) | MCP and in-app (`io-040`). `{ name }`: the project's name, one line — the gist's title and Save's suggestion, never a file rename; `''` clears it; echoes `{ text, truncated, previous }`. |
+ * | `stage_gist_files` | yes (the staged list only) | MCP and in-app (`io-040`). `{ files: [{ kind: 'stl' \| 'note', ids?, name?, text? }] }`: the extra files the next gist publish carries — an ASCII STL of bodies (no `ids`: every body), a Markdown note. Replaces the list, `[]` clears it; at most 5, names slugged, never `README.md` or the project file. Stores no bytes; echoes `{ staged, previous }`. |
+ * | `get_publish_readiness` | no | `{}` (`io-040`): `{ name, description, readme, files: [{ name, kind, approxBytes, missingIds? }], gaps }` — the README the next publish would write (the same brief and `gistReadme()`), the staged files, and what is blank or weak, as sentences. Never publishes. |
  * | `measure` | no | `{ ids }`: bounds and size (mm), volume (mm³), surface area (mm²), centre of mass; a total for several, overlaps counted once. |
  * | `check_printability` | no | `{ ids, buildVolumeMm?, minWallMm?, nozzleMm? }`: watertight, fits the build volume (and which way round), thinnest wall by sampling, walls under the nozzle — `issues: [{ severity, message, where }]`. Heuristic, and says so. |
  * | `check_clearance` | no | `{ a, b }`: the smallest gap between two bodies and the closest points, or the volume they share when they interpenetrate. |
@@ -114,6 +117,7 @@ import { createClearanceTool } from './clearance.js'
 import { createCopyTool, createCreateTool, creatableOps } from './create.js'
 import { createDeleteBodiesTool } from './delete.js'
 import { createSetDescriptionTool } from './description.js'
+import { createPublishReadinessTool, createStageGistFilesTool } from './gistExtras.js'
 import { createImageTools } from './image.js'
 import { createSetParamsTool } from './params.js'
 import { createSaveToLibraryTool } from './library.js'
@@ -121,6 +125,7 @@ import { LIMITS, assertWriteOrigin } from './limits.js'
 import { createMeasureTool } from './measure.js'
 import { OPERATIONS, createOperateTool, operableOps } from './operate.js'
 import { createPrintabilityTool } from './printability.js'
+import { createSetProjectNameTool } from './projectName.js'
 import { createReadTools } from './read.js'
 import { createRepeatTool } from './repeat.js'
 import { createRecordPromptTool, createRecordResponseTool, knownIds, linkProduced } from './prompt.js'
@@ -416,6 +421,9 @@ export function createToolRegistry(options = {}) {
       createRecordPromptTool(),
       createRecordResponseTool(),
       createSetDescriptionTool(),
+      createSetProjectNameTool(),
+      createStageGistFilesTool(),
+      createPublishReadinessTool(),
       createCaptureTool(),
       ...createImageTools(),
       createSaveToLibraryTool(),

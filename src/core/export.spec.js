@@ -355,6 +355,23 @@ describe('exportBodies — STL', () => {
   })
 })
 
+describe('exportBodies — ASCII STL (io-040, a gist file is text)', () => {
+  it('writes a 10 mm cube as a text STL with 12 facets and the same triangle count', () => {
+    const result = exportBodies([body('Cube 1', cube10())], 'stl', { ascii: true })
+    const text = new TextDecoder().decode(result.bytes)
+    expect(text.startsWith('solid ')).toBe(true)
+    expect(text.split('facet normal').length - 1).toBe(12)
+    expect(result.triangleCount).toBe(12)
+    expect(result.filename).toBe('cube-1.stl')
+  })
+
+  it('binary stays the default', () => {
+    const result = exportBodies([body('Cube 1', cube10())], 'stl')
+    expect(new TextDecoder().decode(result.bytes.slice(0, 5))).not.toBe('solid')
+    expect(result.triangleCount).toBe(12)
+  })
+})
+
 describe('exportBodies — OBJ', () => {
   it('exports a 10 mm cube as a parseable OBJ with 8 shared vertices and 12 triangles', () => {
     const result = exportBodies([body('Cube 1', cube10())], 'obj')
