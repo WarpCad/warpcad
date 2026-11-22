@@ -5417,3 +5417,19 @@ I also profiled two odd stalls I had noted but not chased (a File menu gap and s
 **Evidence:** 6,392 ms before and 60 ms after (median of 8), the 0-of-8 GC counts, and the two non-reproductions → `bench/results/2026-11-22-core-086.md`, from `node bench/evaluation-mainthread.mjs --only whole-model-cut` and a Playwright profiling script run this session; design → `docs/decisions/kernel-evaluation-worker.md` addendum
 **To Add:** none
 ---
+
+## 2026-11-22T16:40:00Z — WarpCad: the viewport component finally fits under 600 lines
+
+**Post:**
+The script of WarpCad's 3D viewport component started at 964 lines, and an earlier cleanup stopped at 819 without reaching the 600-line target. This round moved the Set scale and Auto-trace taps, the sketch hover, the gizmo handlers, the sketch controllers, the theme colours and the context, placement and body wiring into modules of their own, each with unit tests. The script is now 593 lines.
+
+Nothing about the behaviour changed, and the check was the existing end-to-end suite: the nine-engine-and-viewport run passed 6,293 tests. Two runs of one long-task timing test failed under that load and pass when run alone; I did not touch the code it measures.
+
+The pointer gesture file is at 655 lines against a 600-line guide. What is left in it shares the press bookkeeping, so splitting further would mean passing that state around.
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Refactoring #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Viewport.vue script 819 to 593 lines (`awk` between the script tags), pointerGestures.js 781 to 655 (`wc -l`); 10,127 unit tests passing, nine-project e2e matrix 6,293 passed with 2 failures on an untouched longtask-budget test that passes alone → `TODO/done/ui-152-viewport-script-and-pointer-gestures-remainder.md`, `TODO/ACCEPTANCE.md`
+**To Add:** none
+---

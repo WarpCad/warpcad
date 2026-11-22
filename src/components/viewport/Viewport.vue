@@ -1,31 +1,20 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 /**
- * The 3D viewport: a WebGL canvas plus its screen-space overlays.
+ * The 3D viewport: a WebGL canvas plus its screen-space overlays. Three deliberate choices:
  *
- * Three things about the shape of this component are deliberate:
+ * 1. **One camera, two input paths.** Pointer drags and the `NavigationChrome` buttons call the
+ *    *same* `src/render/camera.js` model, so the chrome and the gesture cannot drift apart.
+ * 2. **Nothing hot is reactive.** The orbit camera, the three.js viewport, the decoded meshes and
+ *    the pointer bookkeeping are plain variables (CLAUDE.md's Performance section). The reactive
+ *    overlay state is written at most once per animation frame, from the render callback.
+ * 3. **The viewport is the drop target.** It alone knows its rect, its camera and how to project a
+ *    screen point onto the working plane, so it registers itself with `src/stores/placement.js`
+ *    (TODO/ui-010).
  *
- * 1. **One camera, two input paths.** Pointer drags and the on-screen
- *    `NavigationChrome` buttons call the *same* `src/render/camera.js` model.
- *    There is no second camera state anywhere, which is what stops the
- *    chrome and the gesture drifting apart (TODO/render-001's Proposed fix).
- * 2. **Nothing hot is reactive.** The orbit camera, the three.js viewport, the
- *    decoded meshes and the pointer bookkeeping are plain, non-reactive
- *    variables — CLAUDE.md's Performance section is explicit that Vue's deep
- *    reactivity has no business walking render-path state, and a body's vertex
- *    buffer is exactly the multi-megabyte `Float32Array` it warns about. Pointer
- *    handlers touch numbers only and allocate nothing; the reactive overlay state
- *    (`overlay`) is written at most **once per animation frame**, from inside the
- *    render callback, so a fast drag can't push a DOM update per pointer event.
- * 3. **The viewport is the drop target.** It is the only thing that knows its own
- *    rect, its camera, and how to project a screen point onto the working plane,
- *    so it registers itself with `src/stores/placement.js` rather than exporting
- *    that knowledge for the Library panel to re-derive (TODO/ui-010).
- *
- * Rendering is on demand: a frame is scheduled when something actually changes,
- * rather than a permanently-spinning rAF loop burning battery on a static scene.
+ * Rendering is on demand: a frame is scheduled when something changes, not on a spinning rAF loop.
  */
-import { computed, nextTick, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import Grid from './Grid.vue'
 import OrientationGizmo from './OrientationGizmo.vue'
 import NavigationChrome from './NavigationChrome.vue'
@@ -52,35 +41,29 @@ import PlacementSession from './PlacementSession.vue'
 import ViewportContextBanner from './ViewportContextBanner.vue'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
-import { updateSnapGuideAnnotations } from '../../render/annotate.js'
-import { createGizmoDrag } from '../../render/gizmoDrag.js'
+import { useGizmoHandlers } from '../../composables/useGizmoHandlers.js'
 import { createFrameContent } from '../../render/frameContent.js'
-import { createSketchChainKeys } from '../../render/sketchChainKeys.js'
-import { createSketchPathSync } from '../../render/sketchPathSync.js'
 import { createOverlaySync } from '../../render/overlaySync.js'
 import { useTransformCommands } from '../../composables/useTransformCommands.js'
 import { useSketchEditorCommands } from '../../composables/useSketchEditorCommands.js'
-import { isTextEntry } from '../../composables/textEntry.js'
 import { useTransformPreviewStore } from '../../stores/transformPreview.js'
 import { useColorPreviewStore } from '../../stores/colorPreview.js'
 import { createEvaluationChannel } from '../../core/kernel/evaluationClient.js'
 import { createOrbitCamera } from '../../render/camera.js'
 import { setViewportCapture } from '../../render/offscreenCapture.js'
 import { useViewportOverlays } from '../../composables/useViewportOverlays.js'
+import { useViewportBodies } from '../../composables/useViewportBodies.js'
+import { useViewportContext } from '../../composables/useViewportContext.js'
+import { useViewportPlacement } from '../../composables/useViewportPlacement.js'
 import { useViewportLifecycle } from '../../composables/useViewportLifecycle.js'
-import { createContextHandlers } from '../../render/contextHandlers.js'
-import { createContextRecovery } from '../../render/contextRecovery.js'
 import { applyViewVisibility } from '../../render/mesh.js'
-import { readSceneTheme, sceneThemeOf } from '../../render/theme.js'
-import { announcedColor, announcedPartColors, createBodyCounts, createBodyMeshes } from '../../render/bodyMeshes.js'
-import { createPlacementGhost } from '../../render/placementGhost.js'
-import { createSketchSnap } from '../../render/sketchSnap.js'
-import { createSketchHandles } from '../../render/sketchHandles.js'
-import { createSketchDraw } from '../../render/sketchDraw.js'
+import { sceneThemeOf } from '../../render/theme.js'
+import { createSceneThemeSync } from '../../render/sceneThemeSync.js'
+import { announcedColor, announcedPartColors } from '../../render/bodyMeshes.js'
 import { createCameraNavigation } from '../../render/cameraNavigation.js'
+import { isTextEntry } from '../../composables/textEntry.js'
+import { createSketchControllers } from '../../render/sketchControllers.js'
 import { createPointerGestures } from '../../render/pointerGestures.js'
-import { createSketchPreview } from '../../render/sketchPreview.js'
-import { createViewportDropTarget } from '../../composables/useViewportDropTarget.js'
 import { useDocumentStore } from '../../stores/document.js'
 import { useHiddenPartVisibilityStore } from '../../stores/hiddenPartVisibility.js'
 import { useHoverHighlightStore } from '../../stores/hoverHighlight.js'
@@ -179,22 +162,25 @@ const dragMode = ref('orbit')
 /** The resolved theme's brightness, from the one module that decides it (`TODO/ui-113`): the fallback palette's key. */
 const { scheme: theme } = useTheme()
 const webglError = ref('')
-/**
- * `TODO/render-006`: where the view stands after the browser released its WebGL context, and how
- * many Restore view attempts failed. Drives the banner; `ready` whenever the context is healthy.
- */
-const contextState = ref(/** @type {import('../../render/contextRecovery.js').ContextState} */ ('ready'))
-const contextFailures = ref(0)
-const contextRecovery = createContextRecovery({
-  onChange(state, failures) {
-    contextState.value = state
-    contextFailures.value = failures
-  },
-})
-/** Bumped to give the canvas a fresh element (and so a fresh context) when the old one stays lost. */
-const canvasKey = ref(0)
 const isDragging = ref(false)
-const ghostVisible = ref(false)
+/**
+ * The WebGL context-loss state, handlers and `canvasKey` (`TODO/render-006`, `ui-152`):
+ * `src/composables/useViewportContext.js`. The getters are called later, so they may name things below.
+ */
+const {
+  contextState,
+  contextFailures,
+  contextRecovery,
+  canvasKey,
+  attachContextListeners,
+  detachContextListeners,
+  onRestoreView,
+} = useViewportContext({
+  viewport: () => viewport,
+  canvas: () => canvasEl.value,
+  cancelFrame: () => cancelFrame(),
+  measure: () => measure(),
+})
 
 /**
  * The reactive overlay structures the template and the controllers share (`TODO/ui-144`):
@@ -219,13 +205,6 @@ const {
 const splitSheet = useSplitSheetStore()
 
 /**
- * Whether the ghost is currently being held in line by a snap — the drag's own
- * "this is why the preview jumped" signal, and what an `*.e2e.js` spec asserts
- * mid-gesture instead of pixel-picking the canvas.
- */
-const snapped = ref(false)
-
-/**
  * Whether the sketch editor is open (`TODO/sketch-001`). Read everywhere the old sketch
  * mode was: orbit is suspended, a plain drag draws, the Operations toolbar yields the
  * top-left slot, and a click picks outlines instead of bodies.
@@ -235,19 +214,6 @@ const sketchMode = computed(() => sketchEditor.active)
 // --- non-reactive render state -------------------------------------------
 
 const orbit = createOrbitCamera()
-/**
- * The sketch snap (`TODO/ui-108`, extraction 4a): `src/render/sketchSnap.js`. It writes the
- * reactive `sketchSnap` marker above, which the overlay reads.
- */
-const sketchSnapper = createSketchSnap({
-  orbit,
-  editor: sketchEditor,
-  sliceZ: () => activeSliceZ(),
-  widthPx: () => widthPx,
-  heightPx: () => heightPx,
-  isEditing: () => sketchHandler.drag.active,
-  marker: sketchSnap,
-})
 /** @type {import('../../render/scene.js').Viewport | null} */
 let viewport = null
 let rafId = 0
@@ -263,43 +229,6 @@ let frameCount = 0
  * scrolling container that could move it in between.
  */
 const viewportRect = { left: 0, top: 0, width: 0, height: 0 }
-/**
- * The point handles and their drag (`TODO/ui-108`, extraction 4b): `src/render/sketchHandles.js`.
- * `sketchHandles` above is the reactive layout the overlay reads.
- */
-const sketchHandler = createSketchHandles({
-  orbit,
-  editor: sketchEditor,
-  sliceZ: () => activeSliceZ(),
-  widthPx: () => widthPx,
-  heightPx: () => heightPx,
-  viewport: viewportRect,
-  layout: sketchHandles,
-  projectToSketch: (clientXPx, clientYPx) => pointer.projectToSketch(clientXPx, clientYPx),
-  snap: (pointMm, shiftKey, touch) => sketchSnapper.snap(pointMm, shiftKey, touch),
-  hideSnap: () => sketchSnapper.hide(),
-  isTouchPress: () => pointer.isTouchPress(),
-  requestPreview: () => sketchPreview.request(),
-})
-/**
- * The draw gesture, the Line chain and profile pick and hover (`TODO/ui-108`, extraction 4c):
- * `src/render/sketchDraw.js`. The chain overlay and the draft outline are the reactive objects
- * the component draws.
- */
-const sketchDraw = createSketchDraw({
-  orbit,
-  editor: sketchEditor,
-  sliceZ: () => activeSliceZ(),
-  widthPx: () => widthPx,
-  heightPx: () => heightPx,
-  project: (clientXPx, clientYPx) => pointer.projectToSketch(clientXPx, clientYPx),
-  snap: (pointMm, shiftKey, touch) => sketchSnapper.snap(pointMm, shiftKey, touch),
-  hideSnap: () => sketchSnapper.hide(),
-  isTouchPress: () => pointer.isTouchPress(),
-  scheduleRender: () => scheduleRender(),
-  chain: sketchChain,
-  draft: sketchDraftPath,
-})
 /**
  * The chrome navigation (`TODO/ui-108`, extraction 5a): the direction pad, zoom, standard views, reset,
  * the drag-mode toggle and the wheel. `src/render/cameraNavigation.js`. The drag itself stays here,
@@ -317,14 +246,10 @@ const navigation = createCameraNavigation({
 })
 
 /**
- * The committed bodies, their selection, hover and Repeat-outline twins, and the body
- * materials (`TODO/ui-108`): `src/render/bodyMeshes.js`. The counts it writes are announced as
- * `data-*` attributes, so they live in a `reactive` object this component owns. `bodyMeshes`
- * and `bodiesGroup` are the controller's own map and group, aliased for picking and the gizmo
- * drag preview.
+ * The committed bodies, their selection, hover and Repeat-outline twins, and the body materials
+ * (`TODO/ui-108`, `ui-152`): `src/composables/useViewportBodies.js`.
  */
-const bodyCounts = reactive(createBodyCounts())
-const bodyScene = createBodyMeshes({
+const { bodyCounts, bodyScene, bodiesGroup, bodyMeshes } = useViewportBodies({
   bodies: () => renderSource().bodies(),
   isHiddenShown: (id) => hiddenPartVisibility.isShown(id),
   isSketched: isSketchedBody,
@@ -334,61 +259,32 @@ const bodyScene = createBodyMeshes({
   repeatSession,
   colorPreview,
   scheduleRender,
-  counts: bodyCounts,
 })
-const bodiesGroup = bodyScene.group
-const bodyMeshes = bodyScene.meshes
-const {
-  syncBodies,
-  selectionRole,
-  applySelectionMaterial,
-  applyHover,
-  removeHoverArtifacts,
-  removeRepeatOutlines,
-  applyRepeatOutlines,
-  paintBodies,
-} = bodyScene
+const { syncBodies, selectionRole, applySelectionMaterial, applyHover, applyRepeatOutlines, paintBodies } = bodyScene
 
 /**
- * The gizmo drag (`TODO/ui-012`, `ui-064`, `ui-065`): the preview transform, the dial's and
- * ruler's steps, the speed bands and the stall timer live in `src/render/gizmoDrag.js`
- * (`TODO/ui-108`, extraction 2). The viewport keeps the selection guard before a drag and the
- * `transform.*` commit after it.
+ * The gizmo drag, its template handlers and the toolbar keep-out (`TODO/ui-012`, `ui-131`,
+ * `ui-152`): `src/composables/useGizmoHandlers.js`.
  */
-/**
- * The operations toolbar's box in viewport pixels, for the rotate dial's readout to stay clear of
- * (`TODO/ui-131`). One reused object, refreshed when a gizmo drag begins, so the per-frame path
- * allocates nothing. `active` is false when the toolbar is not mounted.
- */
-const toolbarKeepOut = { active: false, left: 0, top: 0, right: 0, bottom: 0 }
-
-function refreshToolbarKeepOut() {
-  const el = rootEl.value?.querySelector('[data-testid="operations-toolbar"]')
-  if (!el) {
-    toolbarKeepOut.active = false
-    return
-  }
-  const r = el.getBoundingClientRect()
-  toolbarKeepOut.active = r.width > 0 && r.height > 0
-  toolbarKeepOut.left = r.left - viewportRect.left
-  toolbarKeepOut.right = r.right - viewportRect.left
-  toolbarKeepOut.top = r.top - viewportRect.top
-  toolbarKeepOut.bottom = r.bottom - viewportRect.top
-}
-
-const gizmoDrag = createGizmoDrag({
-  meshes: bodyMeshes,
-  preview,
-  gizmo: gizmoAnnotation,
-  dial: dialAnnotation,
-  ruler: rulerAnnotation,
-  orbit,
+const { gizmoDrag, onGizmoHandleDown, onGizmoHandleMove, onGizmoHandleUp, onGizmoHandleClick } = useGizmoHandlers({
+  root: () => rootEl.value,
   viewportRect,
-  widthPx: () => widthPx,
-  heightPx: () => heightPx,
-  keepOut: () => (toolbarKeepOut.active ? toolbarKeepOut : null),
-  scheduleRender,
-  now: () => performance.now(),
+  selected: () => selected.value,
+  transformCommands,
+  syncBodies,
+  pickAt: (clientXPx, clientYPx, additive) => pointer.pickAt(clientXPx, clientYPx, additive),
+  drag: {
+    meshes: bodyMeshes,
+    preview,
+    gizmo: gizmoAnnotation,
+    dial: dialAnnotation,
+    ruler: rulerAnnotation,
+    orbit,
+    widthPx: () => widthPx,
+    heightPx: () => heightPx,
+    scheduleRender,
+    now: () => performance.now(),
+  },
 })
 
 const framesRendered = shallowRef(0)
@@ -469,6 +365,30 @@ const referenceImage = useReferenceImageView({
 const { state: referenceImageState, overlay: referenceOverlay } = referenceImage
 
 /**
+ * The sketch editor's controllers (`TODO/ui-108` extractions 4a to 4c, `ui-152`): the snap, the point
+ * handles, the draw gesture, the extrusion preview, the outline sync and the chain keys.
+ * `src/render/sketchControllers.js`. `pointer` is created next, so the factory reaches it lazily.
+ */
+const { sketchSnapper, sketchHandler, sketchDraw, sketchPreview, syncSketchPaths, onSketchChainKey } =
+  createSketchControllers({
+    orbit,
+    sketchEditor,
+    sliceZ: activeSliceZ,
+    widthPx: () => widthPx,
+    heightPx: () => heightPx,
+    viewportRect,
+    pointer: () => pointer,
+    scheduleRender: () => scheduleRender(),
+    referenceImage,
+    isSketching: () => sketchMode.value,
+    isTextEntry,
+    overlays: { sketchSnap, sketchHandles, sketchChain, sketchDraftPath, sketchPaths, sketchAxis },
+    channel: createEvaluationChannel('sketch-preview'),
+    resolution: () => documentStore.resolution,
+    scene: () => viewport?.graph.scene ?? null,
+  })
+
+/**
  * The pointer gestures (`TODO/ui-108`, extraction 5b): the gesture-kind decision, orbit, pan and
  * pinch, raycast picking, the marquee, the sketch hover and Shift re-snap, and Set scale's and
  * Auto-trace's taps and drags. `src/render/pointerGestures.js`. The canvas's pointer events are
@@ -503,31 +423,6 @@ const pointer = createPointerGestures({
 })
 
 /**
- * The sketch outline sync (`TODO/ui-108`): re-projects the draft's outlines, the revolve axis and
- * the chain when something they depend on changed. `src/render/sketchPathSync.js`.
- */
-const sketchPathSync = createSketchPathSync({
-  orbit,
-  sketchEditor,
-  paths: sketchPaths,
-  axis: sketchAxis,
-  draftPath: sketchDraftPath,
-  chain: sketchChain,
-  handler: sketchHandler,
-  draw: sketchDraw,
-  snapper: sketchSnapper,
-  referenceImage,
-  widthPx: () => widthPx,
-  heightPx: () => heightPx,
-  sliceZ: activeSliceZ,
-})
-
-/** @param {boolean} [force] */
-function syncSketchPaths(force = false) {
-  sketchPathSync.sync(force)
-}
-
-/**
  * Look straight at the active slice in the sketch's own frame.
  *
  * For an unrotated body at Z = 0 this is exactly the old `camera.snapTo('top')`; a
@@ -539,15 +434,6 @@ function aimAtSketch() {
 }
 
 // --- the extrusion preview: built in the worker, superseded, never appended -----------
-
-/** The draft's live extrusion ghost (`TODO/ui-108`, step 6): `src/render/sketchPreview.js`. */
-const sketchPreview = createSketchPreview({
-  editor: sketchEditor,
-  channel: createEvaluationChannel('sketch-preview'),
-  resolution: () => documentStore.resolution,
-  scene: () => viewport?.graph.scene ?? null,
-  scheduleRender: () => scheduleRender(),
-})
 
 /** While an existing sketch is open, its committed mesh hides behind the live preview. */
 function applySketchBodyVisibility() {
@@ -583,115 +469,30 @@ function measure() {
   scheduleRender()
 }
 
-// --- bodies (src/render/bodyMeshes.js, TODO/ui-108) ------------------------
-
-/**
- * The 3D view's colours, read from the theme tokens (`TODO/render-008`). Called on mount and on a
- * theme change only, never from the frame or pointer path: `getComputedStyle` forces a style flush.
- * A token three.js cannot use (or no stylesheet at all) is reported and the fallback for the
- * scheme is drawn instead, never black.
- *
- * @returns {Readonly<import('../../render/theme.js').SceneTheme>}
- */
-function readCurrentSceneTheme() {
-  try {
-    return readSceneTheme(getComputedStyle(document.documentElement), theme.value)
-  } catch (error) {
-    console.error(error)
-    return sceneThemeOf(theme.value)
-  }
-}
-
-/**
- * Recolour the scene's materials for a scene theme: the bodies' (the controller's) and the
- * placement ghost's and sketch preview's, which still live here. A body's user colour is untouched.
- *
- * @param {Readonly<import('../../render/theme.js').SceneTheme>} colors
- */
-function applyMaterialTheme(colors) {
-  placementGhost.setColor(colors.bodyGhost)
-  sketchPreview.setColor(colors.bodyGhost)
-  bodyScene.applyMaterialTheme(colors)
-}
-
-// --- gizmo drag (TODO/ui-012) ---------------------------------------------
-// The drag itself is `src/render/gizmoDrag.js`; these are the template's handlers.
-
-/**
- * @param {import('../../render/gizmoDrag.js').GizmoDownEvent} event
- */
-function onGizmoHandleDown(event) {
-  const body = selected.value.body
-  // Exactly one body, per control 4's precondition. The gizmo is not drawn in
-  // any other state, so this is a guard rather than a branch. Nor on a part or a repeat
-  // body (`TODO/ui-069`), where it is hidden.
-  if (!body || body.subPart || body.moveRefusal) return
-  refreshToolbarKeepOut()
-  gizmoDrag.begin(event, body)
-}
-
-/** @param {{ clientX: number, clientY: number, shiftKey?: boolean, pointerType?: string }} event */
-function onGizmoHandleMove(event) {
-  gizmoDrag.move(event)
-}
-
-/** @param {{ cancelled: boolean }} event */
-function onGizmoHandleUp(event) {
-  // `end` has already dropped the preview, so the record's baked geometry and the object's
-  // own transform are never both applied for a frame.
-  const commit = gizmoDrag.end(event)
-  if (!commit) return
-  if (commit.kind === 'translate') transformCommands.translateBy(commit.bodyId, commit.translate)
-  else transformCommands.rotateBy(commit.bodyId, commit.rotate)
-  syncBodies()
-}
-
-/** @param {{ clientX: number, clientY: number }} event */
-function onGizmoHandleClick(event) {
-  // A press on a handle that never moved: pick what is underneath, so the gizmo
-  // is not a dead zone over the solid it is attached to.
-  pointer.pickAt(event.clientX, event.clientY, false)
-}
-
 // --- drag placement (the drop-target contract) ----------------------------
 
 /**
- * The placement ghost and its drop point (`TODO/ui-108`, extraction 3): the controller lives in
- * `src/render/placementGhost.js`. This component supplies the working-plane projection, the
- * orbit's scale, the document's bodies and the overlay, and keeps the Library's drop-target
- * handlers below.
+ * The placement ghost and the Library's drop target (`TODO/ui-108` extractions 3 and 7, `ui-152`):
+ * `src/composables/useViewportPlacement.js`.
  */
-const placementGhost = createPlacementGhost({
-  scene: () => viewport?.graph.scene ?? null,
-  project: (clientXPx, clientYPx) => pointer.projectToWorkingPlane(clientXPx, clientYPx),
-  mmPerPixel: () => orbit.getMmPerPixel(heightPx),
-  resolution: () => documentStore.resolution,
-  documentVersion: () => documentStore.version,
-  bodies: () => documentStore.raw.bodies(),
-  drawSnapGuides: (guides) => updateSnapGuideAnnotations(orbit, guides, widthPx, heightPx, snapGuides),
-  onSnapChange: (value) => {
-    snapped.value = value
-  },
-  onVisibleChange: (value) => {
-    ghostVisible.value = value
-  },
+const { snapped, ghostVisible, placementGhost, dropTarget } = useViewportPlacement({
+  viewport: () => viewport,
+  pointer: () => pointer,
+  orbit,
+  widthPx: () => widthPx,
+  heightPx: () => heightPx,
+  viewportRect,
+  root: () => rootEl.value,
+  documentStore,
+  snapGuides,
   // The fallback until mount reads the tokens (`onMounted` recolours it).
   color: sceneThemeOf(theme.value).bodyGhost,
-})
-
-/** The Library's drop target (`TODO/ui-108`): `src/composables/useViewportDropTarget.js`. */
-const dropTarget = createViewportDropTarget({
-  root: () => rootEl.value,
-  rect: viewportRect,
-  hasViewport: () => !!viewport,
-  placementGhost,
-  scheduleRender: () => scheduleRender(),
   isPreviewing: () => timeline.previewing,
   isSketching: () => sketchMode.value,
   sketchCommands,
-  documentStore,
   selection,
   syncBodies: () => syncBodies(),
+  scheduleRender: () => scheduleRender(),
 })
 
 // --- chrome + gizmo input (same camera model as the drags above) ----------
@@ -713,44 +514,17 @@ const frameLoadedContent = createFrameContent({
 
 // --- lifecycle ------------------------------------------------------------
 
-/**
- * The WebGL context-lost and restore handlers (`TODO/render-006`, `TODO/ui-108`):
- * `src/render/contextHandlers.js`. **Restore view** gives the canvas a fresh element through
- * `canvasKey` when the old context stays lost.
- */
-const contextHandlers = createContextHandlers({
-  viewport: () => viewport,
-  canvas: () => canvasEl.value,
-  recovery: contextRecovery,
-  cancelFrame: () => cancelFrame(),
-  measure: () => measure(),
-  remountCanvas: async () => {
-    canvasKey.value += 1
-    await nextTick()
-  },
+/** The scene's colours from the theme tokens (`TODO/render-008`, `ui-152`): `src/render/sceneThemeSync.js`. */
+const sceneTheme = createSceneThemeSync({
+  scheme: () => theme.value,
+  getViewport: () => viewport,
+  bodyScene,
+  placementGhost,
+  sketchPreview,
+  scheduleRender: () => scheduleRender(),
 })
-const attachContextListeners = contextHandlers.attach
-const detachContextListeners = contextHandlers.detach
-const onRestoreView = contextHandlers.restoreView
-
-/** One token read per theme change, after `useTheme` has set `<html data-theme>`. */
-function onThemeChange() {
-  const colors = readCurrentSceneTheme()
-  applyMaterialTheme(colors)
-  viewport?.graph.setTheme(colors)
-  scheduleRender()
-}
-
-/** The sketch editor's keys (`TODO/ui-108`): `src/render/sketchChainKeys.js`. */
-const onSketchChainKey = createSketchChainKeys({
-  isSketching: () => sketchMode.value,
-  sketchEditor,
-  isTextEntry,
-  redraw: () => {
-    sketchDraw.drawChain()
-    scheduleRender()
-  },
-})
+const readCurrentSceneTheme = sceneTheme.read
+const onThemeChange = sceneTheme.onThemeChange
 
 function cancelFrame() {
   if (rafId) cancelAnimationFrame(rafId)

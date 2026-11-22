@@ -17,6 +17,8 @@
  */
 import { updateMarqueeRect } from './annotate.js'
 import { createPicking } from './picking.js'
+import { createReferencePhotoTaps } from './referencePhotoTaps.js'
+import { createSketchHover } from './sketchHover.js'
 import { ndcFromClient, projectToSketchPlane, projectToWorkingPlane } from './pick.js'
 
 /** Degrees of orbit per pixel of drag. */
@@ -118,8 +120,6 @@ export function createPointerGestures(deps) {
   const scratchPoint = { x: 0, y: 0, z: 0 }
   /** Scratch for one projected pointer, sketch-local `[x, y]` mm. */
   const scratchSketchMm = [0, 0]
-  /** The last pointer over the canvas, so pressing or releasing Shift can re-snap in place. */
-  const snapPointer = { has: false, xPx: 0, yPx: 0 }
 
   // Pointer bookkeeping. Entries are allocated on pointerdown and mutated in
   // place on move, so pointermove itself allocates nothing.
@@ -197,139 +197,19 @@ export function createPointerGestures(deps) {
     return projectToSketchPlane(orbit, scratchNdc.x, scratchNdc.y, aspect, sketchEditor.frame, deps.sliceZ(), scratchSketchMm)
   }
 
-  // --- the reference photo (TODO/sketch-003) --------------------------------
-
-  /** A Set scale press-and-drag along the ruler: its first point, in image px. */
-  const scaleDrag = { active: false, aPx: /** @type {[number, number] | null} */ (null) }
-
-  /** @returns {boolean} False when the press is not on the photo's plane. */
-  function beginScaleDrag() {
-    const px = referenceImage.clientToImagePx(pressStartClientX, pressStartClientY)
-    if (!px) return false
-    scaleDrag.active = true
-    scaleDrag.aPx = px
-    // A drag defines both points; a tapped first point it replaces is simply forgotten.
-    sketchEditor.scaleAPx = null
-    sketchEditor.scaleBPx = null
-    sketchEditor.addScalePoint(px)
-    return true
-  }
-
-  /**
-   * @param {number} clientXPx
-   * @param {number} clientYPx
-   */
-  function updateScaleDrag(clientXPx, clientYPx) {
-    if (!scaleDrag.active) return
-    referenceImage.trackLiveEnd(clientXPx, clientYPx)
-    scheduleRender()
-  }
-
-  /**
-   * @param {boolean} cancelled
-   * @param {number} clientXPx
-   * @param {number} clientYPx
-   */
-  function endScaleDrag(cancelled, clientXPx, clientYPx) {
-    if (!scaleDrag.active) return
-    scaleDrag.active = false
-    referenceImage.clearLiveEnd()
-    const end = cancelled ? null : referenceImage.clientToImagePx(clientXPx, clientYPx)
-    if (!end || !scaleDrag.aPx) {
-      sketchEditor.scaleAPx = null
-      sketchEditor.scaleBPx = null
-    } else {
-      sketchEditor.setScaleLine(scaleDrag.aPx, end)
-    }
-    scaleDrag.aPx = null
-    referenceImage.syncOverlay()
-    scheduleRender()
-  }
-
-  /**
-   * A tap while Set scale is armed fixes the next point — the first, then the second.
-   *
-   * @param {number} clientXPx
-   * @param {number} clientYPx
-   */
-  function scaleTap(clientXPx, clientYPx) {
-    const px = referenceImage.clientToImagePx(clientXPx, clientYPx)
-    if (!px) return
-    sketchEditor.addScalePoint(px)
-    referenceImage.clearLiveEnd()
-    referenceImage.syncOverlay()
-    scheduleRender()
-  }
-
-  /**
-   * A tap while Auto-trace is armed (`TODO/sketch-004`): trace the region under it, in the
-   * worker. The answer lands in the draft (or the banner says why it did not).
-   *
-   * @param {number} clientXPx
-   * @param {number} clientYPx
-   */
-  function traceTap(clientXPx, clientYPx) {
-    const px = referenceImage.clientToImagePx(clientXPx, clientYPx)
-    // Off the slice's plane altogether: the trace itself reports "Tap on the photo".
-    sketchEditor.traceAt(px ?? [Number.NaN, Number.NaN])
-  }
-
-  // --- the sketch hover (TODO/sketch-007) -----------------------------------
-
-  /**
-   * A mouse over the canvas with a drawing tool armed and nothing pressed: show where a press
-   * would land, so the marker and its label appear *before* the click. The live Line chain's
-   * rubber band does the same in {@link trackChainPointer}.
-   *
-   * @param {number} clientXPx
-   * @param {number} clientYPx
-   * @param {boolean} shiftKey
-   */
-  function hoverSketchSnap(clientXPx, clientYPx, shiftKey) {
-    const tool = sketchEditor.tool
-    if (tool === 'select') {
-      sketchSnapper.hide()
-      return
-    }
-    if (tool === 'line' && sketchEditor.chainLive) return
-    const point = projectToSketch(clientXPx, clientYPx)
-    if (!point) {
-      sketchSnapper.hide()
-      return
-    }
-    sketchSnapper.snap(point, shiftKey, false)
-  }
-
-  /**
-   * Shift pressed or released with the pointer still: re-place the point in hand at once, rather
-   * than waiting for the next move — "hold Shift" should read as instant.
-   *
-   * @param {KeyboardEvent} event
-   */
-  function onSnapShiftKey(event) {
-    if (event.key !== 'Shift' || !deps.isSketching() || !snapPointer.has) return
-    const shiftKey = event.type === 'keydown'
-    if (sketchHandler.drag.active) sketchHandler.updateDrag(snapPointer.xPx, snapPointer.yPx, shiftKey)
-    else if (sketchDraw.drag.active) sketchDraw.update(snapPointer.xPx, snapPointer.yPx, shiftKey)
-    else if (pointers.size === 0) {
-      hoverSketchSnap(snapPointer.xPx, snapPointer.yPx, shiftKey)
-      sketchDraw.trackChain(snapPointer.xPx, snapPointer.yPx, shiftKey)
-    }
-  }
-
-  function clearSketchHover() {
-    snapPointer.has = false
-    if (!sketchDraw.drag.active && !sketchHandler.drag.active) sketchSnapper.hide()
-    if (sketchDraw.live.has && !sketchDraw.drag.active) {
-      sketchDraw.live.has = false
-      sketchDraw.drawChain()
-      scheduleRender()
-    }
-    sketchDraw.forgetHover()
-    sketchHandler.forgetHover()
-    if (sketchEditor.hoverProfileId) sketchEditor.hoverProfileId = ''
-    if (sketchEditor.hoverVertex !== -1) sketchEditor.hoverVertex = -1
-  }
+  /** Set scale's and Auto-trace's taps and drags (`TODO/ui-152`): `src/render/referencePhotoTaps.js`. */
+  const photoTaps = createReferencePhotoTaps({ sketchEditor, referenceImage, scheduleRender })
+  /** The sketch hover and Shift re-snap (`TODO/ui-152`): `src/render/sketchHover.js`. */
+  const hover = createSketchHover({
+    sketchEditor,
+    sketchHandler,
+    sketchDraw,
+    sketchSnapper,
+    isSketching: deps.isSketching,
+    pointerCount: () => pointers.size,
+    projectToSketch,
+    scheduleRender,
+  })
 
   // --- pointer input --------------------------------------------------------
 
@@ -552,7 +432,7 @@ export function createPointerGestures(deps) {
       // A second finger turns a point drag into a pinch: put the point back.
       if (gestureKind === 'sketch-vertex') sketchHandler.endDrag(true)
       // …and a Set scale drag into a pan: the line is abandoned, the tool stays armed.
-      if (gestureKind === 'sketch-scale') endScaleDrag(true, 0, 0)
+      if (gestureKind === 'sketch-scale') photoTaps.endDrag(true, 0, 0)
       gestureKind = ''
       sketchHandler.press.kind = ''
     }
@@ -578,13 +458,11 @@ export function createPointerGestures(deps) {
         return
       }
       if (deps.isSketching() && event.pointerType === 'mouse') {
-        snapPointer.has = true
-        snapPointer.xPx = event.clientX
-        snapPointer.yPx = event.clientY
+        hover.remember(event.clientX, event.clientY)
         sketchDraw.hoverProfile(event.clientX, event.clientY)
         sketchHandler.hover(event.clientX, event.clientY)
         // Where a press would land, snapped (`TODO/sketch-007`).
-        hoverSketchSnap(event.clientX, event.clientY, event.shiftKey)
+        hover.hoverSnap(event.clientX, event.clientY, event.shiftKey)
         // The Line chain's rubber band follows the cursor (`TODO/sketch-006`).
         sketchDraw.trackChain(event.clientX, event.clientY, event.shiftKey)
       }
@@ -622,16 +500,14 @@ export function createPointerGestures(deps) {
         // camera out from under the user.
         if (gestureKind === 'sketch' && !sketchDraw.begin(pressStartClientX, pressStartClientY, pressShiftKey, pressPointerType === 'touch')) gestureKind = ''
         if (gestureKind === 'sketch-vertex' && !sketchHandler.beginDrag(pressStartClientX, pressStartClientY)) gestureKind = ''
-        if (gestureKind === 'sketch-scale' && !beginScaleDrag()) gestureKind = ''
+        if (gestureKind === 'sketch-scale' && !photoTaps.beginDrag(pressStartClientX, pressStartClientY)) gestureKind = ''
       }
       if (gestureKind === 'sketch-scale') {
-        updateScaleDrag(event.clientX, event.clientY)
+        photoTaps.updateDrag(event.clientX, event.clientY)
         return
       }
       if (gestureKind === 'sketch-vertex' || gestureKind === 'sketch') {
-        snapPointer.has = true
-        snapPointer.xPx = event.clientX
-        snapPointer.yPx = event.clientY
+        hover.remember(event.clientX, event.clientY)
       }
       if (gestureKind === 'sketch-vertex') {
         sketchHandler.updateDrag(event.clientX, event.clientY, event.shiftKey)
@@ -700,13 +576,13 @@ export function createPointerGestures(deps) {
     }
 
     if (wasScaleDrag) {
-      endScaleDrag(event.type === 'pointercancel', event.clientX, event.clientY)
+      photoTaps.endDrag(event.type === 'pointercancel', event.clientX, event.clientY)
       return
     }
 
     if (wasTraceWobble) {
       // A finger that wobbled past the tap slop still means "here": trace at the press point.
-      if (event.type !== 'pointercancel') traceTap(pressX, pressY)
+      if (event.type !== 'pointercancel') photoTaps.traceTap(pressX, pressY)
       return
     }
 
@@ -740,12 +616,12 @@ export function createPointerGestures(deps) {
     // here, where there would be nothing to do with it yet.
     if (isClick && deps.isSketching() && sketchEditor.imageTool === 'scale') {
       // Set scale (`TODO/sketch-003`): a tap fixes a ruler mark. Mouse and touch alike, no modifier.
-      if (event.type !== 'pointercancel') scaleTap(event.clientX, event.clientY)
+      if (event.type !== 'pointercancel') photoTaps.scaleTap(event.clientX, event.clientY)
       return
     }
     if (isClick && deps.isSketching() && sketchEditor.imageTool === 'trace') {
       // Auto-trace (`TODO/sketch-004`): a tap traces the part under it. Mouse and touch alike.
-      if (event.type !== 'pointercancel') traceTap(event.clientX, event.clientY)
+      if (event.type !== 'pointercancel') photoTaps.traceTap(event.clientX, event.clientY)
       return
     }
     if (isClick && deps.isSketching() && sketchEditor.tool === 'line') {
@@ -767,15 +643,13 @@ export function createPointerGestures(deps) {
     down: onPointerDown,
     move: onPointerMove,
     up: onPointerUp,
-    leave: clearSketchHover,
-    shiftKey: onSnapShiftKey,
+    leave: hover.clear,
+    shiftKey: hover.onShiftKey,
     pickAt: picking.pickAt,
     projectToWorkingPlane: projectPointer,
     projectToSketch,
     isTouchPress: () => pressPointerType === 'touch',
     gestureKind: () => gestureKind,
-    cancelScaleDrag() {
-      scaleDrag.active = false
-    },
+    cancelScaleDrag: photoTaps.cancelDrag,
   }
 }

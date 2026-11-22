@@ -3721,3 +3721,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** 6,392 ms before, 60 ms after, 8 runs each, two copies of a 25-part 3MF placed side by side → `bench/results/2026-11-22-core-086.md`, from `node bench/evaluation-mainthread.mjs --only whole-model-cut` run this session
 **To Add:** none
 ---
+
+## 2026-11-22T16:40:00Z — WarpCad: the viewport component finally fits under 600 lines
+
+**Post:** WarpCad's 3D viewport component had been a 964-line script that kept resisting cleanup. Three more rounds of pulling controllers into their own modules took it from 819 to 593 lines, each with its own unit tests and no behaviour change. #Refactoring Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Refactoring #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** Viewport.vue script 819 to 593 lines (`awk` between the script tags), pointerGestures.js 781 to 655 (`wc -l`); 10,127 unit tests passing, nine-project e2e matrix 6,293 passed with 2 failures on an untouched longtask-budget test that passes alone → `TODO/done/ui-152-viewport-script-and-pointer-gestures-remainder.md`, `TODO/ACCEPTANCE.md`
+**To Add:** none
+---

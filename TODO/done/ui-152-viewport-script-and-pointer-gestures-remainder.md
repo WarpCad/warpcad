@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-20 as the remainder of ui-144
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-22).** `Viewport.vue`'s script went from 819 to 593 lines (under 600); `pointerGestures.js` from 781 to 655. Extractions: `render/referencePhotoTaps.js`, `render/sketchHover.js` (slice 1); `composables/useGizmoHandlers.js` (slice 2); `render/sketchControllers.js`, `render/sceneThemeSync.js`, `composables/useViewportContext.js`, `useViewportPlacement.js`, `useViewportBodies.js` (slice 3, plus the theme helpers), each with a `.spec.js`. `sketchControllers` takes `isTextEntry` as a dependency because `render/` must not import `composables/`. The file header comment was also shortened (23 to 13 lines) to land under 600. `pointerGestures.js` stays above the roughly 600 guide: what is left is the gesture-kind decision, orbit, pan, pinch and the press, move and release handlers, which share the press bookkeeping and cannot be split without passing it around.
 
 ## Problem
 
