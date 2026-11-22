@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `render-009` | A dense whole-model cut's result is not faster as indexed geometry, so none shipped: a welded mesh (110 k vertices for 220 k triangles) and a flat-shaded material left the landing at a median 144 ms headless (141 before) and 47 ms on the GPU (47 before). A control bench shows SwiftShader's frame follows triangle count (22, 39, 74 ms at 54 k, 109 k, 218 k) and ignores vertex count, so the rasteriser is the floor and the GPU already passes. Kept `bench/raster-triangle-cost.mjs` and the result note | Finding | — | 1, 26, 31 |
 | ✅ `ui-138` | Strengthened the Objects-list hover tint: `HOVER_HIGHLIGHT_INTENSITY` 0.45 to 0.9, so the default body moves dE00 14.6 light / 18.9 dark against its unhovered self (was 5-8) and stays 43-48 from the selected amber; new `e2e/objects-hover-tint.e2e.js` measures it | Finding | — | 6 |
 | ✅ `ui-143` | A tap on the cut plane's offset handle now places a connector marker when Place connectors is on (a drag still moves the plane), so a Butterfly key can be placed at the default 390 px framing without zooming; the bowtie turns for a left or right edge | S |
 | ✅ `ui-142` | Gave the Assistant's phone Half sheet a readable transcript: Half 50dvh and Tall 68dvh at 480 px and under, the connection line folded in Half (a failure still shows); the activity row and Undo AI turn show without Tall; one e2e spec on nine projects | Finding | — | 17, 24, 25 |
@@ -1544,5 +1545,6 @@ convention going forward.
 | `ai-051` | 2026-11-20 22:00 | ~45m (tool, core followersOf, unit spec, webmcp e2e on firefox-phone + chromium-tablet, generated agent docs) |
 | `ui-157` | 2026-11-20 22:50 | ~1h30m |
 | `io-040` | 2026-11-21 16:35 | ~2h40m (Opus half: registers, tools, finishing text, gist-storage research; Sonnet half: publish path, ASCII STL option in the export worker, Share sheet list, docs, e2e case 15 on all nine baselines). Pair run firefox-tablet + chromium-laptop red only on `import-3mf` core-085 longtask budget (92-94 ms beside seven workers, 63 ms alone; untouched code). |
+| `render-009` | 2026-11-22 15:15 | ~40m (Sonnet; built the indexed mesh, measured it as no gain, reverted; kept a control bench). Pair run chromium-tablet + webkit-laptop green (10069 unit, 1361 e2e passed, 0 failed). |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

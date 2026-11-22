@@ -560,7 +560,7 @@ The operands now cross to the worker as transferred typed arrays, packed in 4 ms
 | # | Check | Status | Notes |
 |---|---|---|---|
 | 1 | At the click the main thread stays under 16 ms | OK | 2026-11-19: median 14 ms on the GPU (worst 17), median 20 ms headless on an 18-19 ms frame floor; no Long Task. Before: 208 and 210 ms. |
-| 2 | When the result lands the main thread stays under 50 ms | Moved | The GPU lands at a median 47 ms (worst 48), no Long Task. **Headless it is 137-147 ms and not met** (software rasteriser, non-indexed 660 k-vertex result): → `render-009`. |
+| 2 | When the result lands the main thread stays under 50 ms | N/A | The GPU lands at a median 47 ms (worst 48), no Long Task. **Headless it is 137-147 ms and not met** (software rasteriser, non-indexed 660 k-vertex result). `render-009` (2026-11-22) built the indexed mesh and measured no gain (141 to 144 ms headless, 47 to 47 ms GPU): a software rasteriser's frame follows triangle count, not vertex count (`bench/results/2026-11-22-render-009.md`), so the headless target is declared unreachable and the GPU figure is the one that counts. |
 | 3 | File ▾ menu open and close with two dense models in the scene had a 279 ms gap headless; WebKit showed 47-86 ms gaps 4-16 s into the worker's wait while idle | Moved | Not profiled; may be the rasteriser or WebKit scheduling. Written under "to check before treating these as findings" in `core-086`. |
 | 4 | One of eight headless sliced runs paused 1,022 ms in a full GC right after the pack | Moved | → `core-086`. |
 | 5 | The dense-cut e2e's Cube target and 80 ms landing limit, and whether the GPU numbers close the task | Owner | → `TODO/OWNER.md` Q108 and Q109 (both assumed yes; the task closed on that assumption). |

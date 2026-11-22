@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-19 from TODO/core-085
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-22): no code change; the rasteriser is the floor.** The proposed fix was built and measured
+> (a typed-array weld onto about 110 k vertices, no normal attribute, flat-shaded body material) and reverted: the
+> headless landing stayed at a median 144 ms against 141 ms before, and the GPU landing at 47 ms. A control bench
+> (`bench/raster-triangle-cost.mjs`) shows SwiftShader's frame cost tracks triangle count (22, 39, 74 ms for 54 k,
+> 109 k, 218 k triangles) and ignores the vertex count (an indexed mesh with 6x fewer vertices drew in 72 ms against
+> 74). Nothing short of drawing fewer triangles reaches 50 ms headless, and the GPU, where users are, already passes.
+> What was kept: `bench/raster-triangle-cost.mjs` and `bench/results/2026-11-22-render-009.md`.
 
 ## Problem
 

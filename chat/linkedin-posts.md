@@ -5389,3 +5389,15 @@ One constraint shaped it: the Gist API takes file content as a JSON string, so t
 **Evidence:** what was missing and "agent never publishes" → `TODO/done/io-040-agent-leaves-the-project-ready-to-publish-as-a-gist.md`; text-only API, ASCII STL → `docs/decisions/gist-storage.md` (this diff); tools and Also include list → `src/ai/tools/gistExtras.spec.js`, `src/composables/useGistPublish.spec.js` and `e2e/gist-share.e2e.js` case 15, run this session
 **To Add:** docs/screenshots/share-gist-staged-by-agent.png
 ---
+
+## 2026-11-22T15:20:00Z — WarpCad: a performance idea that measured as no gain, and was dropped
+
+**Post:** A dense cut in WarpCad (two copies of a 25-part, 220,000-triangle board model, Subtract) lands in about 47 ms on a real GPU but 141 ms when a browser draws with a software rasteriser. The obvious fix was to draw it from shared vertices, about 110,000 instead of 660,000, so I built it and measured: 141 ms before, 144 ms after. On the GPU, 47 ms before and after.
+
+A bare three.js control explained it. The software rasteriser's frame follows triangle count, not vertex count: 22, 39 and 74 ms at 54,000, 109,000 and 218,000 triangles, and a mesh with six times fewer vertices drew in 72 ms against 74. So I reverted the change rather than ship shading changes for every body with no measured benefit, and kept the control as a small bench script. Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebGL #Performance #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** the 141 to 144 ms and 47 ms figures and the triangle-count table → `bench/results/2026-11-22-render-009.md`, from `node bench/evaluation-mainthread.mjs --only whole-model-cut` and `node bench/raster-triangle-cost.mjs` run this session; the finding and what shipped → `TODO/done/render-009-dense-result-draws-slowly-on-a-software-rasteriser.md`
+**To Add:** none
+---

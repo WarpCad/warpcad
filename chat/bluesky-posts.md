@@ -3701,3 +3701,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** the three gaps and the existing description tool → `TODO/done/io-040-agent-leaves-the-project-ready-to-publish-as-a-gist.md`; three tools on MCP, in-app and WebMCP → `src/ai/tools/index.spec.js` and `e2e/gist-share.e2e.js` case 15, run this session (pair run 1344 passed, 0 failed)
 **To Add:** docs/screenshots/share-gist-staged-by-agent.png
 ---
+
+## 2026-11-22T15:20:00Z — WarpCad: a speed-up that measured as no speed-up
+
+**Post:** I tried drawing a dense WarpCad cut from shared vertices (110k instead of 660k) to speed up a software rasteriser. 141 ms before, 144 ms after. The rasteriser's frame follows triangle count, not vertex count, so I reverted it and kept the benchmark. #WebGL Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #WebGL #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** before and after, and 22/39/74 ms at 54k/109k/218k triangles → `bench/results/2026-11-22-render-009.md`, from the bench scripts run this session
+**To Add:** none
+---
