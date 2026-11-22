@@ -3711,3 +3711,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** before and after, and 22/39/74 ms at 54k/109k/218k triangles → `bench/results/2026-11-22-render-009.md`, from the bench scripts run this session
 **To Add:** none
 ---
+
+## 2026-11-22T15:50:00Z — WarpCad: the worker remembers what it was already sent
+
+**Post:** A WarpCad cut of two dense 3D models re-sent both to the background worker, which then rebuilt what it had already built to measure them. Now the worker keeps them. Click to result, median of 8 runs: 6.4 s down to 60 ms (models side by side). #Performance Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Performance #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6,392 ms before, 60 ms after, 8 runs each, two copies of a 25-part 3MF placed side by side → `bench/results/2026-11-22-core-086.md`, from `node bench/evaluation-mainthread.mjs --only whole-model-cut` run this session
+**To Add:** none
+---

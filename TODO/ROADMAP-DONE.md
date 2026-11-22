@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `core-086` | A whole-model cut names the operands the worker already holds instead of sending them: the worker keeps what it unpacked for a measure or boolean job in a bounded cache keyed by geometry object, so the click-to-result wait on the RGB Matrix pair fell from a median 6.4 s to 60 ms and the pack and transfer for a held model no longer happen. The two unprofiled observations did not reproduce. | Finding | — | 26, 31 |
 | ✅ `render-009` | A dense whole-model cut's result is not faster as indexed geometry, so none shipped: a welded mesh (110 k vertices for 220 k triangles) and a flat-shaded material left the landing at a median 144 ms headless (141 before) and 47 ms on the GPU (47 before). A control bench shows SwiftShader's frame follows triangle count (22, 39, 74 ms at 54 k, 109 k, 218 k) and ignores vertex count, so the rasteriser is the floor and the GPU already passes. Kept `bench/raster-triangle-cost.mjs` and the result note | Finding | — | 1, 26, 31 |
 | ✅ `ui-138` | Strengthened the Objects-list hover tint: `HOVER_HIGHLIGHT_INTENSITY` 0.45 to 0.9, so the default body moves dE00 14.6 light / 18.9 dark against its unhovered self (was 5-8) and stays 43-48 from the selected amber; new `e2e/objects-hover-tint.e2e.js` measures it | Finding | — | 6 |
 | ✅ `ui-143` | A tap on the cut plane's offset handle now places a connector marker when Place connectors is on (a drag still moves the plane), so a Butterfly key can be placed at the default 390 px framing without zooming; the bowtie turns for a left or right edge | S |
@@ -1546,5 +1547,6 @@ convention going forward.
 | `ui-157` | 2026-11-20 22:50 | ~1h30m |
 | `io-040` | 2026-11-21 16:35 | ~2h40m (Opus half: registers, tools, finishing text, gist-storage research; Sonnet half: publish path, ASCII STL option in the export worker, Share sheet list, docs, e2e case 15 on all nine baselines). Pair run firefox-tablet + chromium-laptop red only on `import-3mf` core-085 longtask budget (92-94 ms beside seven workers, 63 ms alone; untouched code). |
 | `render-009` | 2026-11-22 15:15 | ~40m (Sonnet; built the indexed mesh, measured it as no gain, reverted; kept a control bench). Pair run chromium-tablet + webkit-laptop green (10069 unit, 1361 e2e passed, 0 failed). |
+| `core-086` | 2026-11-22 15:45 | ~35m (Sonnet; the worker cache spike worked and was kept; both unprofiled observations profiled, neither reproduced). Pair run chromium-laptop + firefox-phone green (10086 unit, 1338 e2e passed, 0 failed); import specs 105 passed on all nine projects. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -6,8 +6,19 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-19 from TODO/core-085
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-22): the spike worked and was kept.** The worker keeps what it unpacks for a measure or
+> boolean job in a bounded LRU cache (`createGeometryCache`, `evaluationJob.js`), under a key the page mints per
+> geometry object (`workerGeometryKey`, `evaluationClient.js`); a cut names an operand the worker holds
+> (`{ cached }`) and sends only the rest. Keyed by object identity rather than body id plus revision, which makes
+> invalidation automatic (an edit, Undo or another document yields a new object); opening a document tells the worker
+> to forget. A miss comes back as `missing` and the store resends whole. On the RGB Matrix pair the click-to-result
+> wait fell from a median 6,392 ms to 60 ms; the 1 s GC did not occur in 8 runs before or after (it was 1 of 8 in the
+> `core-085` drive), and the pack for a held operand no longer happens. The landing is unchanged (rasteriser-bound,
+> `render-009`). The two unprofiled observations were profiled and not reproduced (File menu: no gap over 30 ms;
+> WebKit: no gap 4-16 s in), so no finding was filed. See `bench/results/2026-11-22-core-086.md`.
 
 ## Problem
 

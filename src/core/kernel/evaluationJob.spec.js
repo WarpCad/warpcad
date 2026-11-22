@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import modeling from '@jscad/modeling'
 
 import { combine } from './group.js'
 import { evaluate, evaluateOp } from './index.js'
-import { createLatestOnlyQueue, resultTransferables, runEvaluationJob } from './evaluationJob.js'
+import { createGeometryCache, createLatestOnlyQueue, resultTransferables, runEvaluationJob } from './evaluationJob.js'
 import { measureGeometry } from './measure.js'
 import { packGeometry, transferablesOf, unpackGeometry } from './transport.js'
 
@@ -225,6 +225,77 @@ describe('runEvaluationJob — boolean (TODO/core-079: a whole multi-part model 
     const cube = packGeometry(/** @type {any} */ (evaluateOp('primitive.cuboid', { size: [2, 2, 2] })))
     const result = /** @type {any} */ (runEvaluationJob({ kind: 'boolean', op: 'transform.translate', operands: [cube], pieces: [undefined] }))
     expect(result.error).toMatch(/not a boolean/)
+  })
+})
+
+describe('runEvaluationJob — the worker-side geometry cache (TODO/core-086)', () => {
+  const PLATE = { op: 'primitive.cuboid', params: { size: [90, 60, 6], center: [30, 25, 0] } }
+
+  /** @returns {{ plate: any, pi: any }} */
+  function operands() {
+    return { plate: evaluateOp(PLATE.op, PLATE.params), pi: evaluateOp('raspberrypi.bplus', {}) }
+  }
+
+  /** @param {any} job @param {any} [cache] */
+  const run = (job, cache) => /** @type {any} */ (runEvaluationJob(structuredClone(job), cache))
+
+  /** @param {any} result */
+  const polygonsOf = (result) => modeling.geometries.geom3.toPolygons(/** @type {any} */ (unpackGeometry(structuredClone(result.geometry)))).map((polygon) => polygon.vertices)
+
+  it('a hit: an operand the worker already holds is named, not sent, and the cut is the same', () => {
+    const { plate, pi } = operands()
+    const cache = createGeometryCache()
+    const sent = run({ kind: 'boolean', op: 'boolean.subtract', operands: [packGeometry(plate, { planes: true }), packGeometry(pi, { planes: true })], pieces: [undefined, undefined], keys: ['plate', 'pi'] }, cache)
+    expect(sent.error).toBeUndefined()
+    const named = run({ kind: 'boolean', op: 'boolean.subtract', operands: [{ cached: 'plate' }, { cached: 'pi' }], pieces: [undefined, undefined] }, cache)
+    expect(named.missing).toBeUndefined()
+    expect(named.error).toBeUndefined()
+    expect(polygonsOf(named)).toEqual(polygonsOf(sent))
+  })
+
+  it('a measure job leaves its bodies in the cache, so the cut reuses the composite union it already built', () => {
+    const { plate, pi } = operands()
+    const cache = createGeometryCache()
+    run({ kind: 'measure', bodies: [packGeometry(pi, { planes: true })], keys: ['pi'] }, cache)
+    const union = vi.spyOn(modeling.booleans, 'union')
+    try {
+      const cut = run({ kind: 'boolean', op: 'boolean.subtract', operands: [packGeometry(plate, { planes: true }), { cached: 'pi' }], pieces: [undefined, undefined] }, cache)
+      expect(cut.error).toBeUndefined()
+      expect(union).not.toHaveBeenCalled()
+      const here = /** @type {any} */ (evaluate([{ id: 'plate', op: PLATE.op, params: PLATE.params }, { id: 'pi', op: 'raspberrypi.bplus', params: {} }, { id: 'cut', op: 'boolean.subtract', target: 'plate', operands: ['pi'] }]).byId.get('cut'))
+      expect(polygonsOf(cut)).toEqual(modeling.geometries.geom3.toPolygons(here).map((polygon) => polygon.vertices))
+    } finally {
+      union.mockRestore()
+    }
+  })
+
+  it('a miss: an operand the worker does not hold comes back as missing, by key, and nothing is built', () => {
+    const { plate } = operands()
+    const cache = createGeometryCache()
+    const result = run({ kind: 'boolean', op: 'boolean.subtract', operands: [packGeometry(plate, { planes: true }), { cached: 'gone' }], pieces: [undefined, undefined] }, cache)
+    expect(result.missing).toEqual(['gone'])
+    expect(result.geometry).toBeUndefined()
+    expect(result.error).toBeUndefined()
+  })
+
+  it('with no cache at all (the main-thread fallback) a named operand is missing, never an error', () => {
+    const result = run({ kind: 'boolean', op: 'boolean.subtract', operands: [{ cached: 'a' }, { cached: 'b' }], pieces: [undefined, undefined] })
+    expect(result.missing).toEqual(['a', 'b'])
+  })
+
+  it('forgets the least recently used entry past its limit, and a hit counts as use', () => {
+    const cache = createGeometryCache(2)
+    const cube = packGeometry(/** @type {any} */ (evaluateOp('primitive.cuboid', { size: [2, 2, 2] })))
+    const store = (/** @type {string} */ key) => run({ kind: 'measure', bodies: [cube], keys: [key] }, cache)
+    store('a')
+    store('b')
+    expect(cache.get('a')).toBeDefined() // a is now the most recent
+    store('c')
+    expect(cache.get('b')).toBeUndefined()
+    expect(cache.get('a')).toBeDefined()
+    expect(cache.get('c')).toBeDefined()
+    cache.clear()
+    expect(cache.get('a')).toBeUndefined()
   })
 })
 

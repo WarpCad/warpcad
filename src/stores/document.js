@@ -22,7 +22,15 @@ import { RENAME_PART_OP, createDocument } from '../core/document.js'
 import { applyMergeUndo } from '../core/mergeUndo.js'
 import { appendRepeat as appendRepeatRecord, detachRepeat as detachRepeatRecords } from '../core/repeat.js'
 import { DEFAULT_RESOLUTION } from '../core/kernel/tessellation.js'
-import { createEvaluationChannel, evaluationWorkerAvailable } from '../core/kernel/evaluationClient.js'
+import {
+  createEvaluationChannel,
+  evaluationWorkerAvailable,
+  forgetWorkerGeometry,
+  noteWorkerHolds,
+  noteWorkerLost,
+  workerGeometryKey,
+  workerHoldsGeometry,
+} from '../core/kernel/evaluationClient.js'
 import { boundsOf, hardwareOf, hasNamedParts, hiddenNamesOf, isGroup, keyNamesOf, rememberCombined } from '../core/kernel/group.js'
 import { cachedMeasurementOf, measureGeometry, rememberMeasurement } from '../core/kernel/measure.js'
 import { PREBUILT_BOOLEAN_OPS, rememberPrebuiltBoolean } from '../core/kernel/index.js'
@@ -121,17 +129,22 @@ function measurementNow(geometry) {
  * @param {readonly Body[]} list
  * @param {import('../core/kernel/evaluationClient.js').EvaluationChannel} channel
  * @param {() => void} onLanded
+ * @param {boolean} [keep] Have the worker keep what it unpacked, so a cut of these bodies names them
+ *   instead of sending them (`TODO/core-086`). The live scene only: a timeline preview's bodies are
+ *   never cut, and would push the scene's out of the worker's bounded cache.
  */
-function requestMeasurements(list, channel, onLanded) {
+function requestMeasurements(list, channel, onLanded, keep = false) {
   const waiting = list
     .map((body) => body.geometry)
     .filter((geometry) => isGroup(geometry) && !cachedMeasurementOf(geometry))
   if (waiting.length === 0 || !evaluationWorkerAvailable()) return
   // Packed for this one request, so its buffers are handed over rather than copied (TODO/core-085).
-  const job = () => /** @type {const} */ ({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry, { planes: true })) })
+  const keys = keep ? waiting.map((geometry) => workerGeometryKey(geometry)) : undefined
+  const job = () => /** @type {const} */ ({ kind: 'measure', bodies: waiting.map((geometry) => packGeometry(geometry, { planes: true })), ...(keys === undefined ? {} : { keys }) })
   channel.request(job(), { transfer: true, repack: job }).then(
     (outcome) => {
       if (outcome.superseded || outcome.result.kind !== 'measure') return
+      if (keys !== undefined) noteWorkerHolds(keys.filter((_, index) => outcome.result.kind === 'measure' && outcome.result.measurements[index]?.error === undefined))
       outcome.result.measurements.forEach((measured, index) => {
         const geometry = waiting[index]
         // TODO/core-079: the union the worker measured on, kept for a later cut with this body,
@@ -371,7 +384,7 @@ export const useDocumentStore = defineStore('document', () => {
     }
     inactiveBodies.value = raw.inactiveBodies()
     version.value = raw.version
-    requestMeasurements(list, sceneChannel, resummarize)
+    requestMeasurements(list, sceneChannel, resummarize, true)
   }
 
   /**
@@ -449,17 +462,40 @@ export const useDocumentStore = defineStore('document', () => {
     const pieces = refs.map((ref) => ref.pieces)
     pendingOperation.value = { id: String(record.id), op: record.op }
     try {
-      // TODO/core-085: packed as flat typed arrays for this one request, a slice at a time so the
-      // click's task stays inside a frame, and handed over rather than cloned — a dense 3MF pair's
-      // nested arrays cost about 200 ms to post. `repack` is the worker-died fallback, which
-      // builds on this thread anyway.
-      /** @type {import('../core/kernel/transport.js').PackedGeometry[]} */
-      const operands = []
-      for (const value of values) operands.push(await packGeometryInSlices(value, { planes: true, yieldToEventLoop: afterNextPaint }))
-      const job = (/** @type {import('../core/kernel/transport.js').PackedGeometry[]} */ packed) => /** @type {const} */ ({ kind: 'boolean', op: record.op, operands: packed, pieces })
-      const repack = () => job(values.map((value) => packGeometry(value, { planes: true })))
-      const outcome = await operationChannel.request(job(operands), { transfer: true, repack })
+      // TODO/core-086: an operand the worker already holds (a model it measured, or an operand of an
+      // earlier cut) is named, not packed: no pack here, no transfer, no GC of 48 MB of buffers, and
+      // the worker does not unpack it or build its union again. A key names one geometry object, so
+      // an edit, an Undo or another document can only ever produce a key the worker has never seen.
+      const keys = values.map((value) => workerGeometryKey(value))
+      /**
+       * @param {boolean} allowNamed Whether to name what the worker holds; off for the resend after a miss.
+       * @returns {Promise<{ job: import('../core/kernel/evaluationJob.js').BooleanJob, sent: boolean[] }>}
+       */
+      const buildJob = async (allowNamed) => {
+        // TODO/core-085: packed as flat typed arrays for this one request, a slice at a time so the
+        // click's task stays inside a frame, and handed over rather than cloned — a dense 3MF pair's
+        // nested arrays cost about 200 ms to post.
+        /** @type {(import('../core/kernel/transport.js').PackedGeometry | { cached: string })[]} */
+        const operands = []
+        /** @type {boolean[]} */
+        const sent = []
+        for (const [index, value] of values.entries()) {
+          const named = allowNamed && workerHoldsGeometry(keys[index])
+          sent.push(!named)
+          operands.push(named ? { cached: keys[index] } : await packGeometryInSlices(value, { planes: true, yieldToEventLoop: afterNextPaint }))
+        }
+        return { job: { kind: 'boolean', op: record.op, operands, pieces, keys }, sent }
+      }
+      // `repack` is the worker-died fallback, which builds on this thread anyway: always whole.
+      const repack = () => /** @type {const} */ ({ kind: 'boolean', op: record.op, operands: values.map((value) => packGeometry(value, { planes: true })), pieces })
+      let outcome = await operationChannel.request((await buildJob(true)).job, { transfer: true, repack })
+      if (!outcome.superseded && outcome.result.kind === 'boolean' && outcome.result.missing !== undefined) {
+        // The worker dropped what it was believed to hold: say so, and send everything whole, once.
+        noteWorkerLost(outcome.result.missing)
+        outcome = await operationChannel.request((await buildJob(false)).job, { transfer: true, repack })
+      }
       if (!outcome.superseded && outcome.result.kind === 'boolean' && outcome.result.geometry !== undefined) {
+        noteWorkerHolds(keys)
         rememberPrebuiltBoolean(record.op, values, pieces, /** @type {any} */ (unpackGeometry(outcome.result.geometry)))
       }
       return append(record, transaction)
@@ -1061,6 +1097,8 @@ export const useDocumentStore = defineStore('document', () => {
     })
     useSelectionStore().clear()
     loadRevision.value += 1
+    // TODO/core-086: the worker's cache holds the previous document's geometry; nothing in this one names it.
+    forgetWorkerGeometry()
     refresh()
   }
 

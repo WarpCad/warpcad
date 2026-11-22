@@ -85,12 +85,70 @@ export function setEvaluationWorkerFactory(next) {
 }
 
 /**
+ * Which geometry the worker is believed to hold (`TODO/core-086`), so a cut can name an operand
+ * instead of sending it.
+ *
+ * A key names **one geometry object**, never a body id: the fold builds a new object for every
+ * body an edit, an Undo or a different document touches, so a stale key cannot be minted for
+ * changed content. That is the invalidation rule, with no revision counter to keep in step. The
+ * worker may still have dropped an entry (its cache is bounded), which a `missing` answer reports
+ * and the caller repairs by sending the operand whole.
+ *
+ * @type {WeakMap<object, string>}
+ */
+const geometryKeys = new WeakMap()
+let nextGeometryKey = 0
+/** @type {Set<string>} */
+const heldByWorker = new Set()
+
+/**
+ * @param {object} geometry A solid or group the page produced.
+ * @returns {string} Its key, the same every time for the same object.
+ */
+export function workerGeometryKey(geometry) {
+  let key = geometryKeys.get(geometry)
+  if (key === undefined) {
+    key = `g${(nextGeometryKey += 1)}`
+    geometryKeys.set(geometry, key)
+  }
+  return key
+}
+
+/**
+ * @param {string} key
+ * @returns {boolean} Whether the worker was told of this key and has not since been replaced or reset.
+ */
+export function workerHoldsGeometry(key) {
+  return heldByWorker.has(key)
+}
+
+/** @param {Iterable<string>} keys Keys a landed job stored in the worker's cache. */
+export function noteWorkerHolds(keys) {
+  for (const key of keys) heldByWorker.add(key)
+}
+
+/** @param {Iterable<string>} keys Keys the worker reported it no longer holds. */
+export function noteWorkerLost(keys) {
+  for (const key of keys) heldByWorker.delete(key)
+}
+
+/**
+ * A different document was opened: nothing it contains is among what the worker holds, so drop
+ * the ledger and tell a live worker to free its cache. Never starts a worker to say so.
+ */
+export function forgetWorkerGeometry() {
+  heldByWorker.clear()
+  worker?.postMessage({ forget: true })
+}
+
+/**
  * Drop the current worker. Anything still outstanding resolves `superseded`: its caller
  * asks again on its next refresh, and a disposed worker would never answer.
  */
 export function disposeEvaluationWorker() {
   worker?.terminate()
   worker = null
+  heldByWorker.clear()
   for (const request of pending.values()) request.resolve({ superseded: true })
   pending.clear()
 }
@@ -116,6 +174,7 @@ function onWorkerError() {
   workerUnavailable = true
   worker?.terminate()
   worker = null
+  heldByWorker.clear()
   const outstanding = [...pending.values()]
   pending.clear()
   for (const request of outstanding) answerHere(request)

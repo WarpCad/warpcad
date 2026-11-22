@@ -10,6 +10,7 @@
  * ## Protocol
  *
  * In:  `{ id, channel, generation, job }` — see `runEvaluationJob` for `job`.
+ *      `{ forget: true }` — drop the geometry cache (`TODO/core-086`); no answer.
  * Out: `{ id, channel, generation, ok: true, result }` (its packed geometry transferred, `TODO/core-085`),
  *      `{ id, channel, generation, ok: false, error }`, or
  *      `{ id, channel, generation, superseded: true }` for a request that a newer one on
@@ -27,7 +28,7 @@
  * @module core/kernel/evaluation.worker
  */
 
-import { createLatestOnlyQueue, resultTransferables, runEvaluationJob } from './evaluationJob.js'
+import { createGeometryCache, createLatestOnlyQueue, resultTransferables, runEvaluationJob } from './evaluationJob.js'
 
 // `self` inside a worker is a `DedicatedWorkerGlobalScope`; the project's DOM typings
 // describe the window one.
@@ -36,13 +37,15 @@ const scope = /** @type {any} */ (self)
 /** @type {ReturnType<typeof createLatestOnlyQueue<any>>} */
 const queue = createLatestOnlyQueue()
 let draining = false
+/** What the worker keeps between jobs (`TODO/core-086`): operands a later cut names instead of being sent. */
+const cache = createGeometryCache()
 
 function drain() {
   draining = false
   for (let request = queue.take(); request; request = queue.take()) {
     const { id, channel, generation, job } = request
     try {
-      const result = runEvaluationJob(job)
+      const result = runEvaluationJob(job, cache)
       // TODO/core-085: the result's buffers are handed over, not cloned — the main thread's
       // first read of a 220 k-triangle answer cost 80 ms when it was nested arrays.
       scope.postMessage({ id, channel, generation, ok: true, result }, resultTransferables(result))
@@ -53,6 +56,11 @@ function drain() {
 }
 
 scope.addEventListener('message', (/** @type {MessageEvent} */ event) => {
+  // A different document was opened: nothing it names is among what is held (`TODO/core-086`).
+  if (event.data?.forget === true) {
+    cache.clear()
+    return
+  }
   const dropped = queue.enqueue(event.data)
   if (dropped) {
     scope.postMessage({ id: dropped.id, channel: dropped.channel, generation: dropped.generation, superseded: true })

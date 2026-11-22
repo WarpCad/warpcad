@@ -5401,3 +5401,19 @@ A bare three.js control explained it. The software rasteriser's frame follows tr
 **Evidence:** the 141 to 144 ms and 47 ms figures and the triangle-count table → `bench/results/2026-11-22-render-009.md`, from `node bench/evaluation-mainthread.mjs --only whole-model-cut` and `node bench/raster-triangle-cost.mjs` run this session; the finding and what shipped → `TODO/done/render-009-dense-result-draws-slowly-on-a-software-rasteriser.md`
 **To Add:** none
 ---
+
+## 2026-11-22T15:50:00Z — WarpCad: stop sending the worker what it already has
+
+**Post:** When you press Subtract on two dense models in WarpCad, the app used to pack both into typed arrays and send them to a background worker, even though that worker had unpacked the same models, and built their unions, a few seconds earlier to measure them.
+
+The fix was a small cache on the worker side. It keeps what it unpacked, under a key the page gives each geometry object, and the next cut names an operand instead of sending it. Keying by object, not by body id plus a revision counter, means an edit, an Undo or a different document can only ever produce a key the worker has never seen, so a stale answer cannot happen. If the worker dropped an entry, it says so and the app sends the cut again in full.
+
+On two copies of a 25-part, 220,000-triangle board model placed side by side, the wait from click to result fell from a median 6.4 s to 60 ms over 8 runs each. A cut whose models really overlap still pays for the kernel's boolean; this removes the repeated unpack and union, not the boolean. The 1 s garbage-collection pause I had seen once in eight runs did not appear before or after, so I can say the cause is removed for the measured case, not that it is proven gone.
+
+I also profiled two odd stalls I had noted but not chased (a File menu gap and some WebKit timer gaps). Neither reproduced, so neither became a task.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Performance #WebWorkers #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 6,392 ms before and 60 ms after (median of 8), the 0-of-8 GC counts, and the two non-reproductions → `bench/results/2026-11-22-core-086.md`, from `node bench/evaluation-mainthread.mjs --only whole-model-cut` and a Playwright profiling script run this session; design → `docs/decisions/kernel-evaluation-worker.md` addendum
+**To Add:** none
+---

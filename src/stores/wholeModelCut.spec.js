@@ -5,8 +5,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import modeling from '@jscad/modeling'
 
 import { setEvaluationWorkerFactory } from '../core/kernel/evaluationClient.js'
-import { runEvaluationJob } from '../core/kernel/evaluationJob.js'
+import { createGeometryCache, runEvaluationJob } from '../core/kernel/evaluationJob.js'
 import { evaluate, policyFor } from '../core/kernel/index.js'
+import { createDocument } from '../core/document.js'
 import { useDocumentStore } from './document.js'
 
 const { geom3 } = modeling.geometries
@@ -26,6 +27,9 @@ class FakeWorker {
   constructor() {
     this.listeners = { message: [], error: [] }
     this.posted = []
+    // What the real worker keeps between jobs (TODO/core-086), and the "forget" it was told of.
+    this.cache = createGeometryCache()
+    this.forgets = 0
   }
 
   addEventListener(type, listener) {
@@ -39,12 +43,17 @@ class FakeWorker {
   terminate() {}
 
   postMessage(message) {
+    if (message.forget) {
+      this.forgets += 1
+      this.cache.clear()
+      return
+    }
     this.posted.push(structuredClone(message))
   }
 
   answer(index) {
     const message = this.posted[index]
-    const result = structuredClone(runEvaluationJob(message.job))
+    const result = structuredClone(runEvaluationJob(message.job, this.cache))
     for (const listener of this.listeners.message) {
       listener({ data: { id: message.id, channel: message.channel, generation: message.generation, ok: true, result } })
     }
@@ -270,5 +279,119 @@ describe('the whole-model cut runs in the evaluation worker (TODO/core-079)', ()
     await expect(landed).rejects.toThrow(/no part named "no such part"/)
     expect(doc.pendingOperation).toBeNull()
     expect(doc.raw.bodies().some((body) => body.id === 'cut')).toBe(false)
+  })
+})
+
+describe('the worker keeps the operands it has seen, so a repeat cut sends nothing for them (TODO/core-086)', () => {
+  /** @type {FakeWorker} */
+  let worker
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    worker = undefined
+    setEvaluationWorkerFactory(() => (worker = new FakeWorker()))
+  })
+
+  afterEach(() => {
+    setEvaluationWorkerFactory(null)
+    vi.restoreAllMocks()
+  })
+
+  /** The cut the document would have built on this thread. */
+  const cutOf = (doc) => doc.raw.bodies().find((body) => body.id === 'cut').geometry
+  const polygonsOf = (geometry) => geom3.toPolygons(geometry).map((polygon) => polygon.vertices)
+
+  /** A document with the Feather measured by the worker, ready to cut. */
+  async function measured() {
+    const doc = useDocumentStore()
+    doc.appendAll([...featherRecords(), PLATE])
+    worker.answer(0)
+    await flush()
+    return doc
+  }
+
+  /** Press the cut, let the worker answer whatever it is sent, and wait for the landing. */
+  async function cutAndLand(doc, record = CUT) {
+    const posted = worker.posted.length
+    const landed = doc.appendOperation(record, { origin: 'local' })
+    await postedAfter(worker, posted)
+    worker.answer(worker.posted.length - 1)
+    await landed
+    return worker.posted.slice(posted)
+  }
+
+  it('names the measured model instead of sending it, and still cuts exactly what the fold cuts', async () => {
+    const doc = await measured()
+    const expected = expectedCut(doc.raw.resolution())
+    const [job] = (await cutAndLand(doc)).map((message) => message.job)
+    // The plate (a bare solid the worker never measured) is sent; the Feather, which it holds, is named.
+    expect(job.operands[0].kind).toBe('solid')
+    expect(job.operands[1]).toEqual({ cached: expect.any(String) })
+    expect(polygonsOf(cutOf(doc))).toEqual(polygonsOf(expected))
+  })
+
+  it('a model never measured (the worker has not answered yet) is sent whole, as before', async () => {
+    const doc = useDocumentStore()
+    doc.appendAll([...featherRecords(), PLATE])
+    const [job] = (await cutAndLand(doc)).map((message) => message.job)
+    expect(job.operands.every((operand) => operand.cached === undefined)).toBe(true)
+  })
+
+  it('a miss — the worker lost it — resends the operand whole and still lands the cut', async () => {
+    const doc = await measured()
+    worker.cache.clear() // evicted
+    const posted = worker.posted.length
+    const landed = doc.appendOperation(CUT, { origin: 'local' })
+    await postedAfter(worker, posted)
+    expect(worker.posted.at(-1).job.operands[1].cached).toBeDefined()
+    worker.answer(worker.posted.length - 1) // answers: missing
+    await postedAfter(worker, posted + 1)
+    expect(worker.posted.at(-1).job.operands[1].kind).toBe('group')
+    worker.answer(worker.posted.length - 1)
+    await landed
+    expect(polygonsOf(cutOf(doc))).toEqual(polygonsOf(expectedCut(doc.raw.resolution())))
+  })
+
+  it('after a second cut with the same model, the model is still named — it stays held', async () => {
+    const doc = await measured()
+    await cutAndLand(doc, { ...CUT, consumes: ['plate'] })
+    doc.appendAll([{ ...PLATE, id: 'plate2', name: 'Plate 2' }])
+    const [job] = (await cutAndLand(doc, { id: 'cut2', op: 'boolean.subtract', name: 'Cut 2', target: 'plate2', operands: ['feather'], consumes: ['plate2'] })).map((message) => message.job)
+    expect(job.operands[1].cached).toBeDefined()
+  })
+
+  it('after an edit to the model, the edited model is sent, never the stale one the worker holds', async () => {
+    const doc = await measured()
+    const before = featherRecords()
+    const moved = { ...before[1], params: { ...before[1].params, size: [20, 3, 9] } }
+    doc.revise([{ id: 'p1', record: moved }])
+    const edited = [moved, ...before.slice(2)]
+    const { byId } = evaluate([before[0], ...edited, PLATE, CUT], { policy: policyFor(doc.raw.resolution()) })
+    const [job] = (await cutAndLand(doc)).map((message) => message.job)
+    expect(job.operands[1].kind).toBe('group')
+    expect(polygonsOf(cutOf(doc))).toEqual(polygonsOf(byId.get('cut')))
+  })
+
+  it('after Undo of that edit, the cut is the original model\'s, whichever copy the worker holds', async () => {
+    const doc = await measured()
+    const before = featherRecords()
+    doc.revise([{ id: 'p1', record: { ...before[1], params: { ...before[1].params, size: [20, 3, 9] } } }])
+    doc.undo()
+    await cutAndLand(doc)
+    expect(polygonsOf(cutOf(doc))).toEqual(polygonsOf(expectedCut(doc.raw.resolution())))
+  })
+
+  it('after a different document is opened, the worker is told to forget, and the new model is sent whole', async () => {
+    const doc = await measured()
+    await cutAndLand(doc)
+    const other = [...featherRecords()]
+    other[1] = { ...other[1], params: { ...other[1].params, size: [20, 3, 9] } }
+    const entries = createDocument({ resolution: doc.raw.resolution() })
+    for (const record of [...other, PLATE]) entries.append(record, { origin: 'local' })
+    doc.load(entries.entries.map((entry) => ({ ...entry })), null, doc.raw.resolution())
+    expect(worker.forgets).toBe(1)
+    const [job] = (await cutAndLand(doc)).map((message) => message.job)
+    expect(job.operands.every((operand) => operand.cached === undefined)).toBe(true)
+    expect(polygonsOf(cutOf(doc))).toEqual(polygonsOf(evaluate([...other, PLATE, CUT], { policy: policyFor(doc.raw.resolution()) }).byId.get('cut')))
   })
 })

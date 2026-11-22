@@ -113,6 +113,24 @@ a measurement, and it deserves its own task, measurements and acceptance re-driv
   the service worker. Verified running in Chromium and WebKit; Firefox cannot launch in
   this sandbox (`TROUBLESHOOTING.md`).
 
+## Addendum (`TODO/core-086`): the worker keeps the operands it has seen
+
+A whole-model cut sent both models to the worker again though the worker had unpacked them, and built their unions,
+to measure them when they were placed. The worker now keeps what a measure or boolean job unpacks in a bounded
+least-recently-used cache (`createGeometryCache`, 8 entries) under a key the page mints **per geometry object**
+(`workerGeometryKey`), and a cut names an operand the worker holds as `{ cached: key }`. Measured on the 25-part
+3MF pair: the click-to-result wait fell from a median 6.4 s to 60 ms (`bench/results/2026-11-22-core-086.md`).
+
+- **Invalidation is by identity, not by revision.** The fold builds a new object for every body an edit, Undo or a
+  different document touches, so the key of a changed body is one the worker has never seen. Nothing to keep in step.
+  Opening a document sends `{ forget: true }`; a replaced or dead worker clears the main thread's ledger.
+- **A miss is repaired, never an error.** The worker answers `missing: [keys]` for a named operand it dropped, and the
+  store sends the cut again with every operand whole. The main-thread fallback has no cache and is only ever sent
+  whole jobs.
+- **Trust.** Keys are counters minted on the main thread for geometry the page produced. The cache holds solids and
+  groups unpacked from typed arrays, never text from a loaded file.
+- Only the live scene's measure jobs ask the worker to keep bodies; a timeline preview's are never cut.
+
 ## Slice 2 (`TODO/core-030`): Undo/Redo restore instead of re-folding
 
 `core-030` had to choose between two measured candidates for the fold that `core-029` left on

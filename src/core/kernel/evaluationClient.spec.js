@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   createEvaluationChannel,
   evaluationWorkerAvailable,
+  forgetWorkerGeometry,
+  noteWorkerHolds,
   setEvaluationWorkerFactory,
+  workerGeometryKey,
+  workerHoldsGeometry,
 } from './evaluationClient.js'
 import { runEvaluationJob } from './evaluationJob.js'
 import { evaluateOp } from './index.js'
@@ -262,5 +266,51 @@ describe('evaluation client — transfer lists (TODO/core-085)', () => {
     expect(outcome.superseded).toBe(false)
     expect(outcome.result.error).toBeUndefined()
     expect(job.operands[0].polygons.positions.byteLength).toBeGreaterThan(0)
+  })
+})
+
+describe('evaluation client — what the worker holds (TODO/core-086)', () => {
+  it('names a geometry by identity: the same value the same key, any other value a new one', () => {
+    const a = evaluateOp('primitive.cuboid', { size: [1, 1, 1] })
+    const b = evaluateOp('primitive.cuboid', { size: [1, 1, 1] })
+    expect(workerGeometryKey(a)).toBe(workerGeometryKey(a))
+    expect(workerGeometryKey(b)).not.toBe(workerGeometryKey(a))
+  })
+
+  it('believes the worker holds a key only after being told, and never of a key it was not told of', () => {
+    setEvaluationWorkerFactory(() => new FakeWorker())
+    noteWorkerHolds(['k1'])
+    expect(workerHoldsGeometry('k1')).toBe(true)
+    expect(workerHoldsGeometry('k2')).toBe(false)
+  })
+
+  it('forgets every key, and tells the live worker to drop its cache, when asked (a different document opened)', () => {
+    let made
+    setEvaluationWorkerFactory(() => (made = new FakeWorker()))
+    expect(evaluationWorkerAvailable()).toBe(true)
+    noteWorkerHolds(['k1'])
+    forgetWorkerGeometry()
+    expect(workerHoldsGeometry('k1')).toBe(false)
+    expect(made.posted).toEqual([{ forget: true }])
+  })
+
+  it('forgets every key when the worker is replaced or dies, since a new worker holds nothing', () => {
+    setEvaluationWorkerFactory(() => new FakeWorker())
+    noteWorkerHolds(['k1'])
+    setEvaluationWorkerFactory(() => new FakeWorker())
+    expect(workerHoldsGeometry('k1')).toBe(false)
+    let made
+    setEvaluationWorkerFactory(() => (made = new FakeWorker()))
+    expect(evaluationWorkerAvailable()).toBe(true)
+    noteWorkerHolds(['k2'])
+    made.emit('error', {})
+    expect(workerHoldsGeometry('k2')).toBe(false)
+  })
+
+  it('says nothing when there is no worker to tell', () => {
+    setEvaluationWorkerFactory(() => {
+      throw new Error('no worker here')
+    })
+    expect(() => forgetWorkerGeometry()).not.toThrow()
   })
 })
