@@ -1062,6 +1062,49 @@ test.describe('store and share a project as a GitHub gist', () => {
     expect(fake.escaped).toEqual([])
   })
 
+  test('14. the README text limit warns before it cuts, the README says where a reply was left out, and raising the limit restores it (io-041)', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const fake = newFake()
+    await openApp(page, fake)
+    await editorReady(page)
+    const input = await pointer(page, info)
+    // Three long turns: more than the default 6000 characters of requests and replies.
+    await page.evaluate(async () => {
+      const { useDocumentStore } = await window.__e2eImport('/src/stores/document.js')
+      const store = useDocumentStore()
+      store.append({ id: 'base', op: 'primitive.cuboid', name: 'Base', params: { size: [10, 10, 2], center: [0, 0, 1] } })
+      for (const n of [1, 2, 3]) {
+        const prompt = store.raw.recordPrompt({ text: `request ${n} ${'q'.repeat(2000)}`, produced: ['base'] }, { origin: 'mcp' })
+        store.raw.addPromptResponse(prompt.id, `reply ${n} ${'a'.repeat(2000)}`, { origin: 'mcp' })
+      }
+      store.refresh()
+    })
+    await expectBodyCount(page, 1)
+
+    await openShareSheet(page, input)
+    await tap(input, page.getByTestId('share-gist-connect'))
+    await connectInDialog(page, input, GIST_TOKEN)
+    await expect(page.getByTestId('share-gist-prompt-limit')).toHaveValue('6000')
+    await expect(page.getByTestId('share-gist-prompt-limit-note')).toContainText('Over the limit:')
+    await expect(page.getByTestId('share-gist-prompt-limit-note')).toContainText('to show everything.')
+
+    // Publish at the default: the README says where a reply was left out and points at the project file.
+    await tap(input, page.getByTestId('share-gist-publish'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Published. Link copied')
+    const copied = await page.evaluate(() => /** @type {any} */ (window).__copied.at(-1))
+    const id = /** @type {string} */ (copied).slice(-32)
+    expect(fake.gists.get(id)?.files['README.md']).toContain('Reply omitted, see project file.')
+
+    // Raise the limit: the note turns to "fit", and an Update carries every turn whole.
+    await page.getByTestId('share-gist-prompt-limit').fill('20000')
+    await expect(page.getByTestId('share-gist-prompt-limit-note')).toContainText('All 3 requests and replies fit')
+    await tap(input, page.getByTestId('share-gist-update'))
+    await expect(page.getByTestId('share-toast')).toHaveText('Gist updated')
+    const readme = fake.gists.get(id)?.files['README.md'] ?? ''
+    expect(readme).toContain('reply 3 ')
+    expect(readme).not.toContain('Reply omitted, see project file.')
+  })
+
   test('the repository token and the gist token never overwrite each other through the UI', async ({ page }, info) => {
     const fake = newFake()
     await openApp(page, fake)

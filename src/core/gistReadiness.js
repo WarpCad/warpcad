@@ -17,7 +17,7 @@
  * @module core/gistReadiness
  */
 
-import { gistReadme } from './gistReadme.js'
+import { gistReadme, promptBudget, promptBudgetNote } from './gistReadme.js'
 import { toGeom3 } from './kernel/group.js'
 import { responseTextOf } from './prompt.js'
 import { DEFAULT_SHARE_NAME } from './shareLink.js'
@@ -79,15 +79,17 @@ function solidsOf(bodies) {
  * names only the bodies it produced that are on screen, in scene order.
  *
  * @param {WarpDocument} document
- * @param {{ prompts?: boolean, files?: readonly import('./gistReadme.js').GistReadmeFile[] }} choice
+ * @param {{ prompts?: boolean, promptChars?: number, files?: readonly import('./gistReadme.js').GistReadmeFile[] }} choice
  *   `files`: the extra files this publish adds (`TODO/io-040`); the README's **Files** line.
- * @returns {Pick<GistReadmeInput, 'description' | 'bodies' | 'prompts' | 'variables' | 'files'>}
+ *   `promptChars`: the README's request-and-reply limit (`TODO/io-041`); the default when absent.
+ * @returns {Pick<GistReadmeInput, 'description' | 'bodies' | 'prompts' | 'promptChars' | 'variables' | 'files'>}
  */
 export function gistBriefOf(document, choice) {
   const bodies = document.bodies()
   return {
     description: document.description(),
     files: choice.files ?? [],
+    ...(choice.promptChars === undefined ? {} : { promptChars: choice.promptChars }),
     bodies: bodies.map((body) => body.name),
     prompts:
       choice.prompts === false
@@ -153,6 +155,8 @@ function asciiStlBytes(solids) {
  *   `Untitled` unless the person types one or the project has a file name).
  * @property {string} description The project's description for people.
  * @property {string} readme The `README.md` the next publish's first write would carry.
+ * @property {import('./gistReadme.js').PromptBudgetReport & { note: string }} promptBudget `TODO/io-041`: what the README's
+ *   request-and-reply limit would cut, with the one-sentence note; an agent cannot change the limit, the person does.
  * @property {ReadinessFile[]} files The staged extra files, in staged order.
  * @property {string[]} gaps What is blank or weak, each a plain sentence naming the tool to fix it.
  */
@@ -165,6 +169,7 @@ function asciiStlBytes(solids) {
  * @param {Date | number | string} [options.publishedAt] The README's time; now by default.
  * @param {boolean} [options.prompts] `false` previews with **Include prompts in the README**
  *   unticked; it is ticked by default, and only a person can untick it.
+ * @param {number} [options.promptChars] The README's request-and-reply limit (`TODO/io-041`); the Share sheet's value.
  * @returns {PublishReadiness}
  */
 export function publishReadiness(document, options = {}) {
@@ -172,6 +177,7 @@ export function publishReadiness(document, options = {}) {
   const publishedAt = options.publishedAt ?? Date.now()
   const brief = gistBriefOf(document, {
     prompts: options.prompts !== false,
+    promptChars: options.promptChars,
     files: document.gistExtras().map((extra) => ({ name: extra.name, kind: extra.kind })),
   })
   const readme = gistReadme({ name, ...brief, publishedAt, id: null })
@@ -224,5 +230,6 @@ export function publishReadiness(document, options = {}) {
       gaps.push(`${JSON.stringify(extra.name)} is about ${(approxBytes / 1_000_000).toFixed(1)} MB: it will publish, but GitHub's API shows files over 1 MB in full only through their raw link.`)
     }
   }
-  return { name, description: document.description(), readme, files, gaps }
+  const budget = promptBudget(brief.prompts ?? [], options.promptChars)
+  return { name, description: document.description(), readme, promptBudget: { ...budget, note: promptBudgetNote(budget) }, files, gaps }
 }

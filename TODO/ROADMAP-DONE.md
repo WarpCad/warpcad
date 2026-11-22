@@ -842,6 +842,7 @@ as a milestone table.) `io-008` and `data-013` moved to [M16](#m16--next-batch-n
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
+| ✅ `io-041` | The gist README's request-and-reply budget is the person's to set: a **README text limit** field in the Share sheet (default 6,000, 500–60,000, remembered per device) with a live line that says whether anything would be cut, `Reply omitted, see project file.` where a reply is dropped, and the same report in `get_publish_readiness` (`promptBudget`). Closed 2026-11-22 | Finding | — | none |
 | ✅ `core-086` | A whole-model cut names the operands the worker already holds instead of sending them: the worker keeps what it unpacked for a measure or boolean job in a bounded cache keyed by geometry object, so the click-to-result wait on the RGB Matrix pair fell from a median 6.4 s to 60 ms and the pack and transfer for a held model no longer happen. The two unprofiled observations did not reproduce. | Finding | — | 26, 31 |
 | ✅ `render-009` | A dense whole-model cut's result is not faster as indexed geometry, so none shipped: a welded mesh (110 k vertices for 220 k triangles) and a flat-shaded material left the landing at a median 144 ms headless (141 before) and 47 ms on the GPU (47 before). A control bench shows SwiftShader's frame follows triangle count (22, 39, 74 ms at 54 k, 109 k, 218 k) and ignores vertex count, so the rasteriser is the floor and the GPU already passes. Kept `bench/raster-triangle-cost.mjs` and the result note | Finding | — | 1, 26, 31 |
 | ✅ `ui-138` | Strengthened the Objects-list hover tint: `HOVER_HIGHLIGHT_INTENSITY` 0.45 to 0.9, so the default body moves dE00 14.6 light / 18.9 dark against its unhovered self (was 5-8) and stays 43-48 from the selected amber; new `e2e/objects-hover-tint.e2e.js` measures it | Finding | — | 6 |
@@ -1552,5 +1553,6 @@ convention going forward.
 | `ui-152` | 2026-11-22 16:35 | ~1h (Sonnet; eight small extractions with a unit spec each, two rotating pairs, then the nine-project matrix: 6293 passed, 2 failed on `import-3mf` core-085's longtask budget under load, green alone on firefox-laptop; Viewport script 819 to 593 lines, pointerGestures 781 to 655) |
 | `core-086` | 2026-11-22 15:45 | ~35m (Sonnet; the worker cache spike worked and was kept; both unprofiled observations profiled, neither reproduced). Pair run chromium-laptop + firefox-phone green (10086 unit, 1338 e2e passed, 0 failed); import specs 105 passed on all nine projects. |
 | `ui-153` | 2026-11-22 17:45 | ~40m (six specs red first, a style-guard fix, a pair run red on three snapshots then green, docs stills, the cold read) |
+| `io-041` | 2026-11-22 19:45 | ~1h10m (spec first, core report and note, Share sheet field, a typecheck and a style-guard fix, three green verification stages on the pair firefox-laptop + webkit-phone) |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

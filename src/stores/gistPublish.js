@@ -76,7 +76,7 @@ import { noteFileContent } from '../core/gistExtras.js'
 import { gistFileName, gistLink, gistRawFileUrl } from '../core/gistLink.js'
 import { gistFailureOf, gistMessage, plainGistDescription } from '../core/gistMessages.js'
 import { gistBriefOf, publishReadiness } from '../core/gistReadiness.js'
-import { gistReadme } from '../core/gistReadme.js'
+import { gistReadme, promptBudget, promptBudgetNote } from '../core/gistReadme.js'
 import { relatedness } from '../core/merge/merge.js'
 import { parseProject, serializeProject } from '../core/project.js'
 import { stripProjectExtension } from '../core/projectFile.js'
@@ -180,11 +180,25 @@ export function createGistPublisher(options = {}) {
    * core's {@link gistBriefOf}, the one the `get_publish_readiness` preview also uses, so the two
    * cannot drift (`TODO/io-040`).
    *
-   * @param {{ prompts?: boolean }} choice
+   * @param {{ prompts?: boolean, promptChars?: number }} choice `promptChars` (`TODO/io-041`): the README's
+   *   request-and-reply limit, the Share sheet's field; clamped in core, the default when absent.
    * @param {readonly { name: string, kind: 'stl' | 'note' }[]} [files] The extra files this publish adds.
    */
   function briefOf(choice, files = []) {
-    return gistBriefOf(toRaw(documentStore.raw), { prompts: choice.prompts, files })
+    return gistBriefOf(toRaw(documentStore.raw), { prompts: choice.prompts, promptChars: choice.promptChars, files })
+  }
+
+  /**
+   * What the README's limit would cut for the stored prompts (`TODO/io-041`), for the Share sheet's
+   * note under **README text limit**. The same pass that writes the README, so the two agree.
+   *
+   * @param {number} [promptChars] The limit typed in the sheet.
+   * @returns {import('../core/gistReadme.js').PromptBudgetReport & { note: string }}
+   */
+  function promptBudgetFor(promptChars) {
+    void documentStore.version
+    const report = promptBudget(gistBriefOf(toRaw(documentStore.raw), { prompts: true }).prompts ?? [], promptChars)
+    return { ...report, note: promptBudgetNote(report) }
   }
 
   /**
@@ -271,7 +285,7 @@ export function createGistPublisher(options = {}) {
    * **Publish to a gist**: a new gist with the project file and its README, secret unless
    * `public` is exactly `true`.
    *
-   * @param {{ public?: boolean, name?: string, prompts?: boolean, extras?: readonly string[] }} [choice] `name` — the Share sheet's
+   * @param {{ public?: boolean, name?: string, prompts?: boolean, promptChars?: number, extras?: readonly string[] }} [choice] `promptChars` — the README's request-and-reply limit (`TODO/io-041`). `name` — the Share sheet's
    *   Name, the gist's title; without it the document's name (an agent's `set_project_name`), then the
    *   file name the project was saved under (`TODO/io-040`). `extras` — the staged extra files to
    *   include, by name; without it all of them. `prompts: false` leaves the
@@ -414,7 +428,7 @@ export function createGistPublisher(options = {}) {
    * replaced it. It is remembered, read by its sha, merged, and the merged project written once
    * more. If that cannot finish in this tap, the next **Update gist** merges it first.
    *
-   * @param {{ name?: string, prompts?: boolean, extras?: readonly string[] }} [choice] `name` — the Share sheet's Name (see
+   * @param {{ name?: string, prompts?: boolean, promptChars?: number, extras?: readonly string[] }} [choice] `promptChars` (`TODO/io-041`). `name` — the Share sheet's Name (see
    *   {@link publish}); without it (**File ▾ → Save to gist**, `TODO/io-021`) the gist keeps its own
    *   title, and only a gist with none takes the document's name, then the project's file name. `prompts` and
    *   `extras` as for {@link publish}. A staged extra no longer staged is removed from the gist.
@@ -558,5 +572,5 @@ export function createGistPublisher(options = {}) {
     return shortLink.value
   }
 
-  return { gistField, published, busy, canPublish, canUpdate, promptCount, extraFiles, suggestedName, shortLink, pageUrl, publish, update, stop, link }
+  return { gistField, published, busy, canPublish, canUpdate, promptCount, promptBudgetFor, extraFiles, suggestedName, shortLink, pageUrl, publish, update, stop, link }
 }

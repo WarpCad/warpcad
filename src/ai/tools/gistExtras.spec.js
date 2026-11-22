@@ -183,6 +183,21 @@ describe('get_publish_readiness', () => {
     expect(result.gaps.some((/** @type {string} */ gap) => /no description/.test(gap) && /set_description/.test(gap))).toBe(true)
   })
 
+  it('reports what the README limit would cut, so an agent can tell the person (io-041)', () => {
+    const ctx = contextFor()
+    const tools = createToolRegistry()
+    for (const n of [1, 2, 3]) {
+      tools.run(freshTurn(ctx), 'record_prompt', { prompt: `request ${n} ${'q'.repeat(2000)}` })
+      if (n === 1) placeCube(ctx)
+      tools.run(freshTurn(ctx), 'record_response', { response: `reply ${n} ${'a'.repeat(2000)}` })
+    }
+    const result = tools.run(ctx, 'get_publish_readiness', {})
+    expect(result.promptBudget.fits).toBe(false)
+    expect(result.promptBudget.limit).toBe(6000)
+    expect(result.promptBudget.note).toMatch(/^Over the limit: .*Raise the limit to [\d,]+/)
+    expect(result.promptBudget.cutRequests.length + result.promptBudget.droppedReplies.length + result.promptBudget.omittedPrompts).toBeGreaterThan(0)
+  })
+
   it('an empty project says it cannot be published yet', () => {
     const result = createToolRegistry().run(contextFor(), 'get_publish_readiness', {})
     expect(result.gaps.some((/** @type {string} */ gap) => /no bodies/.test(gap))).toBe(true)

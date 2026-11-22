@@ -229,7 +229,16 @@ the requests and the replies out of the README. The description and the variable
 describe the part, not the conversation. The project file still has everything, so the gist's
 file is the same either way.
 
-![The Share sheet on a phone before publishing: Short link with GitHub has Make it public unticked and Publish to a gist, then Include prompts in the README ticked, with the note 1 prompt — the request and the reply — will be in the README, and the line about who can read a secret gist.](./screenshots/gist-prompts.png)
+With the box ticked, **README text limit** sets how many characters of requests and replies the
+README carries in all. It starts at 6,000 and takes 500 to 60,000; WarpCad remembers your number on
+this device. The line under it tells you before you publish whether anything would be cut: *All 3
+requests and replies fit (4,120 of 6,000)*, or *Over the limit: 1 reply is left out, 1 request is
+left out. Raise the limit to 9,400 to show everything.* Where a reply doesn't fit, the README says
+*Reply omitted, see project file.* under that request, and a request left out whole is counted as
+*and N more, see project file*. The project file always keeps every request and reply; only the README
+is shortened.
+
+![The Share sheet on a phone before publishing: Short link with GitHub has Make it public unticked and Publish to a gist, then Include prompts in the README ticked, with the note 1 prompt — the request and the reply — will be in the README, the README text limit field at 6000 characters with the line All 1 request and reply fit, and the line about who can read a secret gist.](./screenshots/gist-prompts.png)
 
 A **public** gist is listed on GitHub for anyone to read, and that includes the requests and the
 replies. Untick the box before you publish a project whose conversation you would not show to
@@ -240,6 +249,12 @@ strangers.
 the agent's answer. Under **Variables** is a table with `inlet_diameter`, its value and
 *40–120 mm*. Untick **Include prompts in the README** and tap **Update gist** to leave the request
 and the answer out; the variables stay.
+
+**Example: a long session.** After three long turns with your agent, open **Share**, connect, and
+read the line under **README text limit**: *Over the limit: 1 request is cut. Raise the limit to
+6,030 to show everything.* Type `9000` in the field. The line turns to *All 3 requests and replies
+fit (6,030 of 9,000).* Tap **Publish to a gist**, and the README's **How this was made** shows all
+three turns whole.
 
 ### Update it, copy the link, or stop sharing
 

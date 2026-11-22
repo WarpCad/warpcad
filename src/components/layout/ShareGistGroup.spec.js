@@ -307,4 +307,63 @@ describe('ShareGistGroup', () => {
     await flush()
     expect(backend.updateGist.mock.calls.at(-1)[0].files['README.md']).toContain('> a fan duct')
   })
+
+  /** `TODO/io-041` — the README text limit: shown with the box ticked, warns before it cuts, and is what Publish sends. */
+  describe('README text limit (io-041)', () => {
+    async function threeLongTurns() {
+      await useGistStore().connect(TOKEN)
+      const documentStore = useDocumentStore()
+      for (const n of [1, 2, 3]) {
+        const id = toRaw(documentStore.raw).recordPrompt({ text: `request ${n} ${'q'.repeat(2000)}`, produced: ['cube-1'] }, { origin: 'mcp' })
+        toRaw(documentStore.raw).addPromptResponse(id?.id ?? id, `reply ${n} ${'a'.repeat(2000)}`, { origin: 'mcp' })
+      }
+      documentStore.refresh()
+      render()
+      await flush()
+    }
+
+    it('shows the field with the box ticked and hides it unticked', async () => {
+      await threeLongTurns()
+      expect(q('share-gist-prompt-limit').value).toBe('6000')
+      q('share-gist-prompts').click()
+      await nextTick()
+      expect(q('share-gist-prompt-limit')).toBeNull()
+      expect(q('share-gist-prompt-limit-note')).toBeNull()
+    })
+
+    it('says what would be cut at the default, then fits when the limit is raised', async () => {
+      await threeLongTurns()
+      expect(q('share-gist-prompt-limit-note').textContent.trim()).toMatch(/^Over the limit: .*Raise the limit to [\d,]+ to show everything\.$/)
+      const input = q('share-gist-prompt-limit')
+      input.value = '20000'
+      input.dispatchEvent(new Event('input'))
+      await nextTick()
+      expect(q('share-gist-prompt-limit-note').textContent.trim()).toMatch(/^All 3 requests and replies fit \([\d,]+ of 20,000\)\.$/)
+    })
+
+    it('publishes with the limit typed, and the README carries the whole third turn', async () => {
+      await threeLongTurns()
+      const input = q('share-gist-prompt-limit')
+      input.value = '20000'
+      input.dispatchEvent(new Event('input'))
+      await nextTick()
+      q('share-gist-publish').click()
+      await flush()
+      const readme = backend.updateGist.mock.calls.at(-1)[0].files['README.md']
+      expect(readme).toContain('reply 3 ')
+      expect(readme).not.toContain('Reply omitted, see project file.')
+    })
+
+    it('publishes with the default limit when the field is blank, and the README says where a reply is omitted', async () => {
+      await threeLongTurns()
+      const input = q('share-gist-prompt-limit')
+      input.value = ''
+      input.dispatchEvent(new Event('input'))
+      await nextTick()
+      q('share-gist-publish').click()
+      await flush()
+      const readme = backend.updateGist.mock.calls.at(-1)[0].files['README.md']
+      expect(readme).toContain('Reply omitted, see project file.')
+    })
+  })
 })

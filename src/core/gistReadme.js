@@ -52,6 +52,12 @@ export const MAX_LISTED_BODIES = 500
 export const MAX_LISTED_PROMPTS = 20
 /** Most characters of prompt text the section carries in all, the cut prompt ending in `…`. */
 export const MAX_PROMPT_CHARS = 6000
+/** `TODO/io-041`: the smallest limit the person may set (a request and a short reply still fit). */
+export const MIN_PROMPT_CHARS = 500
+/** `TODO/io-041`: the largest limit the person may set; a longer README is not one a person reads. */
+export const MAX_PROMPT_CHARS_LIMIT = 60000
+/** `TODO/io-041`: what stands where a reply was left out because the budget ran out. */
+export const REPLY_OMITTED = 'Reply omitted, see project file.'
 /** Most body names listed under one prompt's **Made** line. */
 const MAX_PROMPT_BODIES = 20
 /** Most variables the **Variables** table lists; the rest are counted ("and N more"). */
@@ -72,6 +78,8 @@ const UNNAMED = '(unnamed)'
  * @property {readonly string[]} [bodies] Body names, in timeline order.
  * @property {readonly GistReadmePrompt[]} [prompts] The prompts that made the project, oldest first
  *   (`TODO/io-022`). Blank prompts are left out; none omits the section.
+ * @property {number} [promptChars] `TODO/io-041`: the characters of requests and replies the README
+ *   carries in all; clamped by {@link clampPromptChars}, {@link MAX_PROMPT_CHARS} when absent.
  * @property {readonly GistReadmeVariable[]} [variables] `TODO/io-023`: the project's variables, in
  *   definition order; none omits the section.
  * @property {Date | number | string} publishedAt When this publish happened.
@@ -263,16 +271,42 @@ function descriptionLines(description) {
 }
 
 /**
- * **How this was made** (`TODO/io-022`): each prompt as a block quote, then (`TODO/io-023`) the
- * agent's reply as a second quote headed **Reply**, then the bodies it produced, oldest first.
- * Capped by {@link MAX_LISTED_PROMPTS} and by {@link MAX_PROMPT_CHARS} in all — requests and
- * replies share the one budget; the text that crosses it is cut with `\u2026`, and the prompts
- * after it are counted.
+ * The limit in force (`TODO/io-041`): a finite number, floored at {@link MIN_PROMPT_CHARS} and
+ * capped at {@link MAX_PROMPT_CHARS_LIMIT}; anything that is not a finite number is the default.
+ *
+ * @param {unknown} value
+ * @returns {number}
+ */
+export function clampPromptChars(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return MAX_PROMPT_CHARS
+  return Math.min(MAX_PROMPT_CHARS_LIMIT, Math.max(MIN_PROMPT_CHARS, Math.floor(value)))
+}
+
+/**
+ * What the README's prompt budget would cut (`TODO/io-041`). Request and reply numbers are 1-based,
+ * in the order listed (blank prompts left out).
+ *
+ * @typedef {object} PromptBudgetReport
+ * @property {number} limit The limit in force.
+ * @property {number} count Prompts with text.
+ * @property {number} needed Characters of every request and reply, whole.
+ * @property {boolean} fits Nothing is cut, shortened, dropped or left out.
+ * @property {number[]} cutRequests Requests shortened to fit.
+ * @property {number[]} cutReplies Replies shortened to fit.
+ * @property {number[]} droppedReplies Replies left out entirely, the README saying so.
+ * @property {number} omittedPrompts Prompts left out whole (budget spent, or past the most listed).
+ */
+
+/**
+ * The prompts as the section lays them out, with what that cost. One pass, so the README and the
+ * report (the Share sheet's note, `get_publish_readiness`) cannot disagree.
  *
  * @param {readonly { text: unknown, reply?: unknown, bodies?: readonly unknown[] }[]} prompts
- * @returns {string[]} The section's lines, or none when there is nothing to list.
+ * @param {unknown} [promptChars]
+ * @returns {{ lines: string[], report: PromptBudgetReport }}
  */
-function promptsSection(prompts) {
+function layoutPrompts(prompts, promptChars) {
+  const limit = clampPromptChars(promptChars)
   const usable = prompts
     .map((prompt) => ({
       text: cleanedBlock(typeof prompt?.text === 'string' ? prompt.text : ''),
@@ -280,20 +314,40 @@ function promptsSection(prompts) {
       bodies: Array.isArray(prompt?.bodies) ? prompt.bodies : [],
     }))
     .filter((prompt) => prompt.text !== '')
-  if (usable.length === 0) return []
+  const length = (/** @type {string} */ text) => Array.from(text).length
+  /** @type {PromptBudgetReport} */
+  const report = {
+    limit,
+    count: usable.length,
+    needed: usable.reduce((sum, prompt) => sum + length(prompt.text) + length(prompt.reply), 0),
+    fits: true,
+    cutRequests: [],
+    cutReplies: [],
+    droppedReplies: [],
+    omittedPrompts: 0,
+  }
+  if (usable.length === 0) return { lines: [], report }
 
   /** @type {string[][]} */
   const blocks = [['## How this was made']]
-  let budget = MAX_PROMPT_CHARS
+  let budget = limit
   for (const prompt of usable) {
     if (blocks.length - 1 === MAX_LISTED_PROMPTS || budget <= 0) break
+    const number = blocks.length
     const text = cap(prompt.text, budget)
-    budget -= Array.from(text).length
+    if (length(text) < length(prompt.text)) report.cutRequests.push(number)
+    budget -= length(text)
     const block = quoteLines(text, escapeMention)
-    if (prompt.reply !== '' && budget > 0) {
-      const reply = cap(prompt.reply, budget)
-      budget -= Array.from(reply).length
-      block.push('', '**Reply**', '', ...quoteLines(reply, escapeMention))
+    if (prompt.reply !== '') {
+      if (budget > 0) {
+        const reply = cap(prompt.reply, budget)
+        if (length(reply) < length(prompt.reply)) report.cutReplies.push(number)
+        budget -= length(reply)
+        block.push('', '**Reply**', '', ...quoteLines(reply, escapeMention))
+      } else {
+        report.droppedReplies.push(number)
+        block.push('', '**Reply**', '', `> ${REPLY_OMITTED}`)
+      }
     }
     if (prompt.bodies.length > 0) {
       const names = prompt.bodies.slice(0, MAX_PROMPT_BODIES).map((body) => {
@@ -306,8 +360,9 @@ function promptsSection(prompts) {
     }
     blocks.push(block)
   }
-  const more = usable.length - (blocks.length - 1)
-  if (more > 0) blocks.push([`- and ${more} more`])
+  report.omittedPrompts = usable.length - (blocks.length - 1)
+  if (report.omittedPrompts > 0) blocks.push([`- and ${report.omittedPrompts} more, see project file.`])
+  report.fits = report.cutRequests.length + report.cutReplies.length + report.droppedReplies.length + report.omittedPrompts === 0
 
   /** @type {string[]} */
   const lines = []
@@ -315,7 +370,64 @@ function promptsSection(prompts) {
     if (index > 0) lines.push('')
     lines.push(...block)
   })
-  return lines
+  return { lines, report }
+}
+
+/**
+ * **How this was made** (`TODO/io-022`): each prompt as a block quote, then (`TODO/io-023`) the
+ * agent's reply as a second quote headed **Reply**, then the bodies it produced, oldest first.
+ * Capped by {@link MAX_LISTED_PROMPTS} and by the character limit in all (`TODO/io-041`: the
+ * person's, {@link MAX_PROMPT_CHARS} by default) — requests and replies share the one budget; the
+ * text that crosses it is cut with `\u2026`, a reply the budget cannot reach says
+ * {@link REPLY_OMITTED}, and the prompts after it are counted.
+ *
+ * @param {readonly { text: unknown, reply?: unknown, bodies?: readonly unknown[] }[]} prompts
+ * @param {unknown} [promptChars]
+ * @returns {string[]} The section's lines, or none when there is nothing to list.
+ */
+function promptsSection(prompts, promptChars) {
+  return layoutPrompts(prompts, promptChars).lines
+}
+
+/**
+ * What the prompt budget would cut for these prompts at this limit (`TODO/io-041`), computed by the
+ * same pass that writes the README.
+ *
+ * @param {readonly { text: unknown, reply?: unknown, bodies?: readonly unknown[] }[]} prompts
+ * @param {unknown} [promptChars] The limit; {@link clampPromptChars} applies.
+ * @returns {PromptBudgetReport}
+ */
+export function promptBudget(prompts, promptChars) {
+  return layoutPrompts(Array.isArray(prompts) ? prompts : [], promptChars).report
+}
+
+/**
+ * The report in one sentence for the Share sheet and the agent's readiness answer. Fixed wording
+ * and counts only; never any prompt text.
+ *
+ * @param {PromptBudgetReport} report
+ * @returns {string} `''` when there are no prompts.
+ */
+export function promptBudgetNote(report) {
+  const number = (/** @type {number} */ n) => n.toLocaleString('en-US')
+  const requests = (/** @type {number} */ n) => (n === 1 ? '1 request' : `${n} requests`)
+  const replies = (/** @type {number} */ n) => (n === 1 ? '1 reply' : `${n} replies`)
+  const be = (/** @type {number} */ n) => (n === 1 ? 'is' : 'are')
+  if (report.count === 0) return ''
+  if (report.fits) {
+    const what = report.count === 1 ? '1 request and reply fit' : `${report.count} requests and replies fit`
+    return `All ${what} (${number(report.needed)} of ${number(report.limit)}).`
+  }
+  /** @type {string[]} */
+  const parts = []
+  if (report.cutRequests.length > 0) parts.push(`${requests(report.cutRequests.length)} ${be(report.cutRequests.length)} cut`)
+  if (report.cutReplies.length > 0) parts.push(`${replies(report.cutReplies.length)} ${be(report.cutReplies.length)} cut short`)
+  if (report.droppedReplies.length > 0) parts.push(`${replies(report.droppedReplies.length)} ${be(report.droppedReplies.length)} left out`)
+  if (report.omittedPrompts > 0) parts.push(`${requests(report.omittedPrompts)} ${be(report.omittedPrompts)} left out`)
+  const head = `Over the limit: ${parts.join(', ')}.`
+  if (report.needed > MAX_PROMPT_CHARS_LIMIT) return `${head} Even the largest limit (${number(MAX_PROMPT_CHARS_LIMIT)}) is not enough; the project file has the rest.`
+  if (report.needed <= report.limit) return `${head} Only the first ${MAX_LISTED_PROMPTS} are listed; the project file has the rest.`
+  return `${head} Raise the limit to ${number(report.needed)} to show everything.`
 }
 
 /**
@@ -447,7 +559,7 @@ function variablesSection(variables) {
  * @type {readonly ((input: GistReadmeInput) => string[])[]}
  */
 const SECTIONS = Object.freeze([
-  (input) => promptsSection(Array.isArray(input.prompts) ? input.prompts : []),
+  (input) => promptsSection(Array.isArray(input.prompts) ? input.prompts : [], input.promptChars),
   (input) => variablesSection(Array.isArray(input.variables) ? input.variables : []),
 ])
 
@@ -518,7 +630,7 @@ export function extraFileNamesOf(readme) {
  */
 export function gistReadme(input) {
   // Destructure exactly the documented fields: nothing else on `input` is ever read.
-  const { name, description, bodies, prompts, variables, publishedAt, id, rawUrl, fileName, files } = input
+  const { name, description, bodies, prompts, promptChars, variables, publishedAt, id, rawUrl, fileName, files } = input
   const title = cap(oneLine(name), MAX_NAME_CHARS) || DEFAULT_SHARE_NAME
   const list = Array.isArray(bodies) ? bodies : []
 
@@ -538,7 +650,7 @@ export function gistReadme(input) {
   const filesLine = extraFilesLine(Array.isArray(files) ? files : [])
   if (filesLine !== '') lines.push(filesLine)
   for (const section of SECTIONS) {
-    const sectionLines = section({ prompts, variables, publishedAt })
+    const sectionLines = section({ prompts, promptChars, variables, publishedAt })
     if (sectionLines.length > 0) lines.push('', ...sectionLines)
   }
   lines.push('', FOOTER, '')

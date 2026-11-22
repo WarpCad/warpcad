@@ -25,7 +25,9 @@
  *
  * Feedback that outlives the sheet is a toast, emitted to `ShareSheet.vue` (`toast`).
  */
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+
+import { MAX_PROMPT_CHARS } from '../../core/gistReadme.js'
 
 import { useGistPublish } from '../../composables/useGistPublish.js'
 import { useFileMenuStore } from '../../stores/fileMenu.js'
@@ -58,6 +60,32 @@ const makePublic = ref(false)
  * variables stay. The project file keeps them all either way.
  */
 const includePrompts = ref(true)
+/**
+ * **README text limit** (`TODO/io-041`): the characters of requests and replies the README carries in
+ * all, as typed (a string, so a half-typed number is not clamped under the cursor). Remembered on this
+ * device only, in `localStorage`; the sheet works without it. Core clamps what is sent.
+ */
+const PROMPT_LIMIT_KEY = 'warpcad.gistPromptChars'
+/** @returns {string} */
+function rememberedLimit() {
+  try {
+    const stored = localStorage.getItem(PROMPT_LIMIT_KEY)
+    return stored !== null && /^\d{1,6}$/.test(stored) ? stored : String(MAX_PROMPT_CHARS)
+  } catch {
+    return String(MAX_PROMPT_CHARS)
+  }
+}
+const promptLimitText = ref(rememberedLimit())
+/** The limit as a number, or `undefined` (the default) while the field is blank or not a number. */
+const promptChars = computed(() => (/^\d{1,7}$/.test(promptLimitText.value.trim()) ? Number(promptLimitText.value.trim()) : undefined))
+const promptBudget = computed(() => publisher.promptBudgetFor(promptChars.value))
+watch(promptLimitText, (value) => {
+  try {
+    localStorage.setItem(PROMPT_LIMIT_KEY, value.trim())
+  } catch {
+    /* private window or blocked storage: the limit just is not remembered */
+  }
+})
 /**
  * Staged extra files the person **unticked** for this publish (`TODO/io-040`): by name, in memory
  * only. Nothing is written back to the document, so the next opening starts with them ticked.
@@ -189,7 +217,7 @@ async function publish() {
   /** @type {(value: string | null) => void} */
   let deliver = () => {}
   const copied = copyWhenReady(new Promise((resolve) => (deliver = resolve)))
-  const result = await publisher.publish({ public: makePublic.value, name: props.name, prompts: includePrompts.value, extras: chosenExtras.value })
+  const result = await publisher.publish({ public: makePublic.value, name: props.name, prompts: includePrompts.value, promptChars: promptChars.value, extras: chosenExtras.value })
   deliver(result.ok ? result.link : null)
   if (!result.ok) {
     void copied.catch(() => {})
@@ -214,7 +242,7 @@ async function publish() {
 async function update() {
   if (!publisher.canUpdate.value) return
   errorText.value = ''
-  const result = await publisher.update({ name: props.name, prompts: includePrompts.value, extras: chosenExtras.value })
+  const result = await publisher.update({ name: props.name, prompts: includePrompts.value, promptChars: promptChars.value, extras: chosenExtras.value })
   if (!result.ok) {
     errorText.value = result.message
     return
@@ -342,6 +370,30 @@ async function stop() {
         <span>Include prompts in the README</span>
       </label>
       <p class="share-gist__note" data-testid="share-gist-prompts-note">{{ promptNote }}</p>
+      <template v-if="includePrompts">
+        <label class="share-gist__limit">
+          <span>README text limit</span>
+          <input
+            v-model="promptLimitText"
+            class="share-gist__limit-input"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            data-testid="share-gist-prompt-limit"
+            :disabled="busy"
+            aria-describedby="share-gist-prompt-limit-note"
+          />
+          <span>characters</span>
+        </label>
+        <p
+          id="share-gist-prompt-limit-note"
+          class="share-gist__note"
+          :class="{ 'share-gist__note--warn': !promptBudget.fits }"
+          data-testid="share-gist-prompt-limit-note"
+        >
+          {{ promptBudget.note }}
+        </p>
+      </template>
     </template>
 
     <fieldset v-if="gist.connected && extraFiles.length > 0" class="share-gist__extras" data-testid="share-gist-extras">
@@ -437,6 +489,33 @@ async function stop() {
   font-size: var(--text-size-lg);
   color: var(--text-1);
   cursor: pointer;
+}
+
+.share-gist__limit {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4h);
+  min-height: var(--tap);
+  font-size: var(--text-size-lg);
+  color: var(--text-1);
+}
+
+.share-gist__limit-input {
+  width: 7ch;
+  min-height: var(--tap);
+  padding: 0 var(--space-4h);
+  box-sizing: content-box;
+  font: inherit;
+  text-align: right;
+  color: var(--text-1);
+  background: var(--surface-0);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.share-gist__note--warn {
+  color: var(--text-1);
 }
 
 .share-gist__check input {

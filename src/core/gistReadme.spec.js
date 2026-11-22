@@ -12,6 +12,12 @@ import {
   MAX_BODY_NAME_CHARS,
   MAX_NAME_CHARS,
   MAX_PROMPT_CHARS,
+  MIN_PROMPT_CHARS,
+  MAX_PROMPT_CHARS_LIMIT,
+  clampPromptChars,
+  promptBudget,
+  promptBudgetNote,
+  REPLY_OMITTED,
   escapeMarkdownText,
   formatPublishedAt,
   gistReadme,
@@ -281,7 +287,7 @@ describe('gistReadme — how this was made (the prompts)', () => {
     const prompts = [{ text: long, bodies: [] }, { text: long, bodies: [] }, { text: 'tail', bodies: [] }]
     // Every `> ` line is a prompt's, so the count is the section's alone.
     const text = gistReadme(input({ description: '', prompts }))
-    const sent = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
+    const sent = text.split('\n').filter((line) => line.startsWith('> ') && !line.includes(REPLY_OMITTED)).join('').replace(/[>\s]/g, '')
     expect([...sent].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
     expect(text).not.toContain('> tail')
     expect(text).toContain('- and 1 more')
@@ -290,7 +296,7 @@ describe('gistReadme — how this was made (the prompts)', () => {
   it('stays inside the cap with prompts and replies at their stored cap of 20,000 (ui-092)', () => {
     const whole = { text: 'w'.repeat(PROMPT_LIMITS.maxTextLength), reply: 'r'.repeat(PROMPT_LIMITS.maxResponseLength), bodies: [] }
     const text = gistReadme(input({ description: '', prompts: [whole, whole, { text: 'tail', bodies: [] }] }))
-    const quoted = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
+    const quoted = text.split('\n').filter((line) => line.startsWith('> ') && !line.includes(REPLY_OMITTED)).join('').replace(/[>\s]/g, '')
     expect([...quoted].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
     expect(text).toContain('…')
     expect(text).toContain('- and 2 more')
@@ -403,11 +409,108 @@ describe('gistReadme — the reply', () => {
     const prompt = 'p'.repeat(MAX_PROMPT_CHARS - 100)
     const reply = 'r'.repeat(500)
     const text = gistReadme(input({ description: '', prompts: [{ text: prompt, reply, bodies: [] }, { text: 'tail', bodies: [] }] }))
-    const quoted = text.split('\n').filter((line) => line.startsWith('> ')).join('').replace(/[>\s]/g, '')
+    const quoted = text.split('\n').filter((line) => line.startsWith('> ') && !line.includes(REPLY_OMITTED)).join('').replace(/[>\s]/g, '')
     expect([...quoted].length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
     expect(text).toContain(`> ${'r'.repeat(99)}…`)
     expect(text).not.toContain('> tail')
     expect(text).toContain('- and 1 more')
+  })
+})
+
+/** `TODO/io-041` — the budget is the person's to set, and a cut says so. */
+describe('gistReadme — the prompt budget (io-041)', () => {
+  const turn = (/** @type {number} */ n, /** @type {number} */ size) => ({ text: `request ${n} ` + 'q'.repeat(size), reply: `reply ${n} ` + 'a'.repeat(size), bodies: [] })
+  const three = [turn(1, 2000), turn(2, 2000), turn(3, 2000)]
+  const chars = (/** @type {string} */ text) => [...text].length
+  /** Exactly request 1, its reply and request 2: request 2's reply gets nothing. */
+  const UP_TO_TEXT_2 = chars(three[0].text) + chars(three[0].reply) + chars(three[1].text)
+
+  it("keeps today's README exactly when no limit is given", () => {
+    expect(gistReadme(input({ prompts: three }))).toBe(gistReadme(input({ prompts: three, promptChars: MAX_PROMPT_CHARS })))
+  })
+
+  it('shows every request and reply whole when the limit is raised enough', () => {
+    const text = gistReadme(input({ description: '', prompts: three, promptChars: 20000 }))
+    expect(text).toContain('request 3 ')
+    expect(text).toContain('reply 3 ')
+    expect(text).not.toContain(REPLY_OMITTED)
+    expect(text).not.toContain('…')
+  })
+
+  it('says "Reply omitted, see project file." where a reply is dropped, under its own Reply heading', () => {
+    const text = gistReadme(input({ description: '', prompts: three, promptChars: UP_TO_TEXT_2 }))
+    const lines = text.split('\n')
+    const at = lines.findIndex((line) => line.includes(REPLY_OMITTED))
+    expect(at).toBeGreaterThan(0)
+    expect(lines[at - 2]).toBe('**Reply**')
+    expect(REPLY_OMITTED).toBe('Reply omitted, see project file.')
+  })
+
+  it('points a prompt left out whole at the project file too', () => {
+    const text = gistReadme(input({ description: '', prompts: three, promptChars: 4100 }))
+    expect(text).not.toContain('request 3 ')
+    expect(text).toMatch(/- and 1 more, see project file\./)
+  })
+
+  it('leaves a reply that is only shortened with its … and no omitted line', () => {
+    const text = gistReadme(input({ description: '', prompts: [turn(1, 300)], promptChars: 500 }))
+    expect(text).not.toContain(REPLY_OMITTED)
+  })
+
+  it('clamps the limit and falls back to the default for anything that is not a number', () => {
+    expect(clampPromptChars(undefined)).toBe(MAX_PROMPT_CHARS)
+    expect(clampPromptChars('9000')).toBe(MAX_PROMPT_CHARS)
+    expect(clampPromptChars(Number.NaN)).toBe(MAX_PROMPT_CHARS)
+    expect(clampPromptChars(Infinity)).toBe(MAX_PROMPT_CHARS)
+    expect(clampPromptChars(-5)).toBe(MIN_PROMPT_CHARS)
+    expect(clampPromptChars(0)).toBe(MIN_PROMPT_CHARS)
+    expect(clampPromptChars(1e9)).toBe(MAX_PROMPT_CHARS_LIMIT)
+    expect(clampPromptChars(12000.7)).toBe(12000)
+  })
+
+  it('reports what would be cut, in the same pass as the README', () => {
+    const fits = promptBudget(three, 20000)
+    expect(fits.fits).toBe(true)
+    expect(fits.cutRequests).toEqual([])
+    expect(fits.droppedReplies).toEqual([])
+    expect(fits.omittedPrompts).toBe(0)
+    expect(fits.needed).toBe(three.reduce((sum, p) => sum + [...p.text].length + [...p.reply].length, 0))
+
+    const cut = promptBudget(three, UP_TO_TEXT_2)
+    expect(cut.fits).toBe(false)
+    expect(cut.droppedReplies).toContain(2)
+    expect(cut.omittedPrompts).toBe(1)
+    expect(cut.needed).toBe(fits.needed)
+  })
+
+  it('reports a request cut by the limit, and a reply cut short', () => {
+    const report = promptBudget([turn(1, 3000), turn(2, 10)], 3500)
+    expect(report.cutRequests).toEqual([])
+    expect(report.cutReplies).toEqual([1])
+    expect(promptBudget([turn(1, 3000)], 1000).cutRequests).toEqual([1])
+  })
+
+  it('has nothing to report for no prompts, blank prompts or a blank reply', () => {
+    expect(promptBudget([], 6000)).toMatchObject({ fits: true, needed: 0 })
+    expect(promptBudget([{ text: '  ' }], 6000)).toMatchObject({ fits: true, needed: 0 })
+    expect(promptBudget([{ text: 'x', reply: '' }], 6000)).toMatchObject({ fits: true, needed: 1 })
+  })
+
+  it('counts more than the most listed prompts as cut, though the characters fit', () => {
+    const many = Array.from({ length: MAX_LISTED_PROMPTS + 3 }, (_, i) => ({ text: `p${i}` }))
+    const report = promptBudget(many, 6000)
+    expect(report.fits).toBe(false)
+    expect(report.omittedPrompts).toBe(3)
+  })
+
+  it('words the note from the counts: fits, cuts and the limit that would show everything', () => {
+    expect(promptBudgetNote(promptBudget(three, 20000))).toMatch(/^All 3 requests and replies fit \([\d,]+ of 20,000\)\.$/)
+    const note = promptBudgetNote(promptBudget(three, UP_TO_TEXT_2))
+    expect(note).toMatch(/^Over the limit: /)
+    expect(note).toContain('1 reply is left out')
+    expect(note).toContain('1 request is left out')
+    expect(note).toMatch(/Raise the limit to [\d,]+ to show everything\.$/)
+    expect(promptBudgetNote(promptBudget([turn(1, 20)], 6000))).toMatch(/^All 1 request and reply fit /)
   })
 })
 

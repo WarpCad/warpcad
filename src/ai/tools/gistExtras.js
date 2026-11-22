@@ -85,8 +85,9 @@ export function createPublishReadinessTool() {
     name: GET_PUBLISH_READINESS,
     description:
       'Check what the project’s gist would contain if the person published it now, and what is still blank. Reads only; changes nothing. ' +
-      'Returns { name, description, readme, files: [{ name, kind, approxBytes }], gaps }: the README the publish would write ' +
-      '(with the prompts, which the person may still leave out), the staged extra files with their approximate sizes, and gaps — ' +
+      'Returns { name, description, readme, promptBudget, files: [{ name, kind, approxBytes }], gaps }: the README the publish would write ' +
+      '(with the prompts, which the person may still leave out), promptBudget (whether the README\'s request-and-reply limit would cut anything: ' +
+      'the person sets that limit, you cannot), the staged extra files with their approximate sizes, and gaps — ' +
       'plain sentences such as a missing name or description, a variable with no min/max, or no reply recorded. Fix what it lists before you hand back.',
     inputSchema: objectSchema({}),
     transports: ['ai', 'mcp'],
