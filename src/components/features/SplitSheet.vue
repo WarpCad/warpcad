@@ -28,7 +28,7 @@
  * - **Small screens**: a bottom sheet at phone width, every control a 44 px (`--tap`) target,
  *   16 px inputs so iOS does not zoom on focus.
  */
-import { computed, onBeforeUnmount, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import BaseButton from '../controls/BaseButton.vue'
 import HelpButton from '../controls/HelpButton.vue'
@@ -55,6 +55,24 @@ watch(
   { immediate: true },
 )
 onBeforeUnmount(() => overlays.setOpen('split-sheet', false))
+
+/** The kind row and its caption (`TODO/ui-153`). */
+const kindGroup = ref(/** @type {HTMLElement | null} */ (null))
+
+// Turning "Place connectors by hand" on adds the kind row near the foot of the scrolling phone sheet: scroll
+// the sheet so the row and its caption are at the top, in view and clear of the Apply bar.
+watch(
+  () => sheet.manual,
+  async (manual) => {
+    if (!manual) return
+    await nextTick()
+    const group = kindGroup.value
+    const scroller = /** @type {HTMLElement | null} */ (group?.closest('.sheet') ?? null)
+    if (!group || !scroller || scroller.scrollHeight <= scroller.clientHeight) return
+    const offset = group.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+    scroller.scrollTop += offset - 8
+  },
+)
 
 /** One short phrase per connector kind, shown under the kind row beside its name (`TODO/ui-145`). */
 const CONNECTOR_BLURBS = Object.freeze({
@@ -320,8 +338,10 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
       </label>
       <p v-if="sheet.manualBlocked" class="split__hint" data-testid="split-manual-blocked">{{ sheet.manualBlocked }}</p>
 
+      <!-- TODO/ui-153: the kind row and its caption are one group, pinned to the top of the scrolling phone
+           sheet, so the pressed kind's name is never below the fold or behind the Apply bar. -->
+      <div v-if="sheet.manual" ref="kindGroup" class="split__kind-group" data-testid="split-kind-group">
       <div
-        v-if="sheet.manual"
         class="split__kinds"
         role="radiogroup"
         aria-label="Connector kind"
@@ -358,9 +378,10 @@ const sizeText = (size) => `${size.map((mm) => Number(mm.toFixed(1))).join(' × 
         </button>
       </div>
       <!-- TODO/ui-145: icon-only on a phone, so the pressed kind is named under the row. -->
-      <p v-if="sheet.manual" class="split__kind-caption" role="status" data-testid="split-connector-kind-caption">
+      <p class="split__kind-caption" role="status" data-testid="split-connector-kind-caption">
         <strong>{{ CONNECTOR_LABELS[sheet.connectorKind] }}</strong> · {{ CONNECTOR_BLURBS[sheet.connectorKind] }}
       </p>
+      </div>
       <p
         v-if="sheet.manual"
         class="split__hint"
@@ -634,6 +655,12 @@ body :global(.sheet.split) {
   margin: 0;
 }
 
+.split__kind-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .split__kinds {
   display: flex;
   flex-wrap: wrap;
@@ -707,9 +734,8 @@ body :global(.sheet.split) {
 
   .split > .split__title,
   .split > .split__toggle,
-  .split > .split__kinds,
+  .split > .split__kind-group,
   .split > .split__hint,
-  .split > .split__kind-caption,
   .split > .split__pieces,
   .split > .split__problem,
   .split > .split__warning,
@@ -726,6 +752,17 @@ body :global(.sheet.split) {
      inside, and keeps Apply in reach, rather than burying them (the `io-007` finding, again). */
   body :global(.sheet.split) {
     max-height: 42dvh;
+  }
+
+  /* The kind row and its caption stay at the top of the scrolling sheet (`TODO/ui-153`). */
+  .split > .split__kind-group {
+    position: sticky;
+    top: -12px;
+    z-index: calc(var(--z-panel) + 1);
+    margin: 0 -12px;
+    padding: var(--space-3) var(--space-5);
+    background: var(--surface-glass);
+    backdrop-filter: blur(6px);
   }
 
   .split > .split__actions {

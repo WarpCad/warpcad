@@ -6,8 +6,16 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-20 from ui-145's cold read
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-22).** All four items, each rated better by a fresh reader but still partial (filed as `ui-159`).
+> (1) A pointer-transparent tag over the 3D view, *Red ghost: room kept clear around <body>, not a part*, for as long as any body
+> shows its hidden parts; the Objects row chip now reads *red ghost on · tap to hide*. The tag is a fixed status line in the upper view,
+> not anchored to the body (the smaller change; owner Q117). (2) The kind row and its caption are one group, sticky at the top of the
+> scrolling phone sheet, and turning on **Place connectors by hand** scrolls the sheet to it. (3) The Align icon is drawn 34 px wide in a
+> wider box with a 5-unit block, the rule reads *− low side … high side +*, and the idle caption defines out, in and half. (4) At
+> the icons tier Align and Split get a 2 px edge and a larger glyph. Three stills and two Help baselines follow.
 
 ## Problem
 

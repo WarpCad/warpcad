@@ -368,6 +368,19 @@ describe('AlignPopover (TODO/ui-060, ui-086)', () => {
     })
 
 
+    it('explains the rule ends and the header words in the strip itself (TODO/ui-153)', () => {
+      placeAandB()
+      selection.selectMany(['a', 'b'])
+      const wrapper = mount(AlignPopover)
+      const rule = wrapper.get('[data-testid="align-rule"]').text()
+      expect(rule).toMatch(/− low side/)
+      expect(rule).toMatch(/high side \+/)
+      const idle = wrapper.get('[data-testid="align-caption"]').text()
+      expect(idle).toMatch(/half = .*centre/)
+      expect(idle).toMatch(/in = .*edge/)
+      expect(idle).toMatch(/out = /)
+    })
+
     it('Measure from addresses the moving operand at that part against a second body', async () => {
       placePi()
       placeAandB()

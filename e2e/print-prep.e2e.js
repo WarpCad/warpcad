@@ -549,6 +549,33 @@ test('Place connectors: drag a seeded marker, switch its kind, Apply, and the pi
   expect(record.params.joint).toBeUndefined()
 })
 
+test('Place connectors: the kind caption is in view next to the kind row, clear of the Apply bar (ui-153 item 2)', async ({ page }) => {
+  await openPlacing(page)
+  const rect = async (testid) => {
+    const box = await page.getByTestId(testid).boundingBox()
+    if (!box) throw new Error(`${testid} has no box`)
+    return box
+  }
+  const sheet = await rect('split-sheet')
+  const row = await rect('split-connector-kind')
+  const caption = await rect('split-connector-kind-caption')
+  const apply = await rect('split-apply')
+  // The caption sits directly under the kind row and fully inside the sheet.
+  expect(caption.y, 'caption follows the kind row').toBeGreaterThanOrEqual(row.y + row.height - 1)
+  expect(caption.y - (row.y + row.height), 'caption hugs the kind row').toBeLessThanOrEqual(24)
+  expect(caption.y, 'caption inside the sheet top').toBeGreaterThanOrEqual(sheet.y - 1)
+  // On a phone the Apply bar is sticky over the sheet's foot: the kind row and its caption are above it.
+  if ((page.viewportSize()?.width ?? 1000) <= 640) {
+    expect(row.y + row.height, 'kind row above Apply').toBeLessThanOrEqual(apply.y + 1)
+    expect(caption.y + caption.height, 'caption above Apply').toBeLessThanOrEqual(apply.y + 1)
+  }
+  // Picking another kind keeps the caption where it was and renames it.
+  await page.getByTestId('split-connector-kind-wedge').click()
+  await expect(page.getByTestId('split-connector-kind-caption')).toContainText('Wedge')
+  const after = await rect('split-connector-kind-caption')
+  expect(Math.abs(after.y - caption.y)).toBeLessThanOrEqual(2)
+})
+
 /** @param {import('@playwright/test').Locator} marker */
 async function centreOfMarker(marker) {
   const box = await marker.locator('.marker__hit').boundingBox()

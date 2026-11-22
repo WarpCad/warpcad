@@ -23,13 +23,13 @@ const props = defineProps({
   pointTarget: { type: Boolean, default: false },
 })
 
-/** The target box's x-extent in the 24-unit viewBox, and the moving block's width. */
+/** The target box's x-extent in the 28-unit viewBox (x from -2, so "outside" blocks stay inside it), and the moving block's width. */
 const TARGET_MIN = 4
 const TARGET_MAX = 20
 const CENTRE = (TARGET_MIN + TARGET_MAX) / 2
-// A quarter of the target: wide enough to read, narrow enough that "inside" (flush with an edge)
+// About a third of the target (`TODO/ui-153`: wider, so it reads at a glance); a quarter of the target: wide enough to read, narrow enough that "inside" (flush with an edge)
 // and "half" (touching the centre) sit a block-width apart instead of one pixel (`TODO/ui-088`).
-const BLOCK = 4
+const BLOCK = 5
 
 /**
  * The block's x origin per position, as `[anchor, side]`: which target coordinate it meets
@@ -65,7 +65,7 @@ const geometry = computed(() => {
 </script>
 
 <template>
-  <svg class="align-position-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+  <svg class="align-position-icon" viewBox="-2 0 28 24" width="34" height="29" aria-hidden="true" focusable="false">
     <rect
       v-if="!pointTarget"
       data-part="target"

@@ -127,3 +127,59 @@ test('in the Align popover "inside −" and "half −" mark different faces, far
   const box = await page.getByTestId('align-x-half-minus').boundingBox()
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(43.5)
 })
+
+test('Align and Split show a footprint of their own beside their neighbours, without growing the row (ui-153 item 4)', async ({ page }) => {
+  await placeCube(page)
+  await expect(page.getByTestId('viewport')).toHaveAttribute('data-selected-count', '1')
+  const tier = await page.getByTestId('operations-toolbar').getAttribute('data-ops-tier').catch(() => null)
+  const style = (button) =>
+    button.evaluate((el) => {
+      const css = getComputedStyle(el)
+      const glyph = getComputedStyle(el.querySelector('[aria-hidden="true"]'))
+      return { border: parseFloat(css.borderTopWidth), fill: css.backgroundColor, glyph: parseFloat(glyph.fontSize) }
+    })
+  const align = await reveal(page, 'operation-align', 'arrange')
+  const alignStyle = await style(align)
+  const alignBox = await align.boundingBox()
+  await page.keyboard.press('Escape')
+  const split = await reveal(page, 'op-split', 'shape')
+  const splitStyle = await style(split)
+  await page.keyboard.press('Escape')
+  const repeat = page.getByTestId('op-repeat')
+  const neighbour = (await repeat.isVisible()) ? await style(repeat) : { border: 0, fill: '', glyph: 0 }
+  if (tier === 'icons') {
+    // Icons tier: a heavier edge and a bigger glyph than the 38 px neighbours, so the 44 px square reads.
+    for (const [name, s] of [['Align', alignStyle], ['Split', splitStyle]]) {
+      expect(s.border, `${name} border`).toBeGreaterThanOrEqual(2)
+      expect(s.glyph, `${name} glyph`).toBeGreaterThan(neighbour.glyph)
+    }
+  }
+  expect(alignBox?.height ?? 0).toBeGreaterThanOrEqual(43.5)
+})
+
+test('the Align strips draw their icons in a box big enough to tell "in" from "half" and explain themselves (ui-153 item 3)', async ({ page }) => {
+  await placeCube(page, 0.3, 1)
+  await placeCube(page, 0.7, 2)
+  await page.evaluate(async () => {
+    const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
+    const ids = [...document.querySelectorAll('[data-testid="scene-bodies"] li')].map((li) => li.getAttribute('data-body-id'))
+    useSelectionStore().selectMany(ids, false)
+  })
+  const align = await reveal(page, 'operation-align', 'arrange')
+  await align.click()
+  await expect(page.getByTestId('align-popover')).toBeVisible()
+  const icon = await page.getByTestId('align-x-half-minus').locator('svg').boundingBox()
+  expect(icon?.width ?? 0, 'icon width').toBeGreaterThanOrEqual(30)
+  expect(icon?.height ?? 0, 'icon height').toBeGreaterThanOrEqual(26)
+  const inside = await page.getByTestId('align-x-inside-minus').locator('[data-part="contact"]').boundingBox()
+  const half = await page.getByTestId('align-x-half-minus').locator('[data-part="contact"]').boundingBox()
+  expect(Math.abs((half?.x ?? 0) - (inside?.x ?? 0)) > 0).toBe(true)
+  // The strip's own words: what the rule ends and "half" mean.
+  await expect(page.getByTestId('align-rule')).toContainText('low side')
+  await expect(page.getByTestId('align-rule')).toContainText('high side')
+  await expect(page.getByTestId('align-caption')).toContainText(/half = /)
+  const buttonBox = await page.getByTestId('align-x-half-minus').boundingBox()
+  expect(buttonBox?.height ?? 0).toBeGreaterThanOrEqual(43.5)
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(0)
+})

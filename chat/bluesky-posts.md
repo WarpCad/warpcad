@@ -3731,3 +3731,13 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** Viewport.vue script 819 to 593 lines (`awk` between the script tags), pointerGestures.js 781 to 655 (`wc -l`); 10,127 unit tests passing, nine-project e2e matrix 6,293 passed with 2 failures on an untouched longtask-budget test that passes alone → `TODO/done/ui-152-viewport-script-and-pointer-gestures-remainder.md`, `TODO/ACCEPTANCE.md`
 **To Add:** none
 ---
+
+## 2026-11-22T17:45:00Z — WarpCad: naming the red ghost, and a Split sheet that shows its kind
+
+**Post:** A shown clearance in WarpCad is a red translucent body around a bolt's hole, and a fresh reader took it for a stray object. It now carries a tag in the 3D view saying it is room kept clear, not a part. The Split sheet pins its connector kind to the top on a phone, and the Align pictures got bigger. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** a rotating e2e pair (firefox-phone + chromium-tablet) 1,314 passed, 0 failed; a cold read by a fresh agent still rated all four items partial (filed as `ui-159`) → `TODO/done/ui-153-cold-read-chrome-partials-after-ui-145.md`, `TODO/VERIFY.md`
+**To Add:** none
+---

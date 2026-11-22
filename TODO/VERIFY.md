@@ -59,6 +59,17 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-153 — Cold-read chrome partials after ui-145 (2026-11-22 17:45)
+
+One fresh agent was shown only phone screenshots of the four changed controls and the item descriptions. It rated all four better but still partial (item 4 unclear); the remainders are filed as `ui-159`.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Does a first-time reader understand the translucent red body on a deselected bolt, from the view alone? | Moved | PARTIAL: the tag *Red ghost: room kept clear around Bolt / screw 1, not a part* explains it and "not a part" is plain; "ghost" is jargon, the tag floats unanchored, and the ghost can pass for a red solid bolt. → `ui-159`; anchoring is OWNER.md Q117. |
+| 2 | Can the Split sheet's kind row be read on a phone, with nothing behind Apply? | Moved | PARTIAL: the kind and its caption are named and clear of Apply; the pressed icon's state is weak, the other six are unlabelled, and the sheet title is clipped when scrolled to the row. → `ui-159`. |
+| 3 | Can *in* and *half* be told apart at a glance in the Align popover? | Moved | PARTIAL: out, in and half are defined in the caption; the pictures still need reading, the rule's axis direction and the two *half* columns are unexplained. → `ui-159`. |
+| 4 | Are Align and Split full-size and nameable in the toolbar? | Moved | UNCLEAR: full size with a heavier outline, but not nameable from the glyph, and Split reads as a generic panel icon beside the scissors. → `ui-159`. |
+
 ### io-040 — An agent leaves the project ready to publish as a gist (2026-11-21 16:30)
 
 Driven against the fake gist API in `e2e/gist-share.e2e.js` case 15 and the unit specs, on every engine the rotating run touched. Two things this task did not settle. A real GitHub gist has not been given an ASCII STL, and the full pair run still shows `import-3mf.e2e.js` "a dense 3MF as the whole-model cutter" (TODO/core-085) over its 80 ms longtask budget (92 and 94 ms) when run beside seven other workers, though it passes alone at 63 ms. That spec and its rasteriser cost are already `TODO/OWNER.md` questions from `core-085`; nothing here touches it.

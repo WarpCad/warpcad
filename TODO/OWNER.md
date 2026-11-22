@@ -86,6 +86,20 @@ The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
+#### Q117 · Keep the clearance tag as a fixed line in the upper view, not anchored to the red body?
+
+**Question:** `ui-153` labels a shown clearance (the translucent red body around a bolt's tap hole) with a small tag over the 3D view reading *Red ghost: room kept clear around Bolt / screw 1, not a part*. Keep it as a fixed line near the top of the view, or anchor it to the red body so it follows the body as the camera moves?
+
+**Background:** I assumed the fixed line: it needs no projection maths in the render path and survives a body that is off screen. A cold read said it floats with no tie to the red object (`ui-159`). Anchoring means projecting the hidden parts' centre each frame into the DOM overlay, the same way the dimension lines do, and hiding the tag when the body is out of view. The wording ("ghost") is also queued for plain words in `ui-159`.
+
+**Options:**
+- **Keep the fixed line for now (Recommended):** the smaller, reversible change; `ui-159` revisits wording first.
+- **Anchor it to the body:** an M task with a render-path check.
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
 #### Q116 · Keep the three io-040 assumptions: ASCII STL only, the document's name before the file name, notes published as literal Markdown?
 
 **Question:** `io-040` lets an agent stage a gist's name and extra files. Keep how I resolved the open points?

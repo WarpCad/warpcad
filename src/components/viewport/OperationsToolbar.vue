@@ -2245,6 +2245,21 @@ onBeforeUnmount(() => closeGroup())
   min-width: var(--tap);
 }
 
+/* Their 44px footprint is drawn, not just hit-testable (`TODO/ui-153`): a heavier edge and a bigger glyph
+   than the 38px neighbours, so the larger box reads at a glance. The box stays 44px (border-box), so the row
+   does not grow. */
+.ops[data-ops-tier='icons'] .ops__btn[data-op='align'],
+.ops[data-ops-tier='icons'] .ops__btn[data-op='modify.splitWithJoint'] {
+  border-width: 2px;
+  border-color: var(--text-3);
+  background: var(--surface-1);
+}
+
+.ops[data-ops-tier='icons'] .ops__btn[data-op='align'] .ops__glyph,
+.ops[data-ops-tier='icons'] .ops__btn[data-op='modify.splitWithJoint'] .ops__glyph {
+  font-size: var(--text-size-xl);
+}
+
 .ops:not([data-ops-tier='labels']) .ops__legend-full {
   display: none;
 }

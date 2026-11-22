@@ -34,13 +34,24 @@ describe('AlignPositionIcon (TODO/ui-088)', () => {
     expect(xs[5] - xs[4]).toBeGreaterThanOrEqual(3) // inside + vs half +
   })
 
-  it('uses a 16-wide target and a 4-wide block with the documented x origins', () => {
+  it('uses a 16-wide target and a 5-wide block with the documented x origins (TODO/ui-153)', () => {
     expect(extents(0).target).toEqual([4, 20])
-    const expected = [0, 4, 8, 10, 12, 16, 20]
+    const expected = [-1, 4, 7, 9.5, 12, 15, 20]
     expected.forEach((x, p) => {
       expect(extents(p).block[0]).toBeCloseTo(x, 6)
-      expect(extents(p).block[1] - extents(p).block[0]).toBeCloseTo(4, 6)
+      expect(extents(p).block[1] - extents(p).block[0]).toBeCloseTo(5, 6)
     })
+  })
+
+  it('draws in a box at least 32 px wide, and keeps every block inside the viewBox (TODO/ui-153)', () => {
+    const svg = mount(AlignPositionIcon, { props: { position: 0 } }).get('svg')
+    expect(Number(svg.attributes('width'))).toBeGreaterThanOrEqual(32)
+    const [minX, , width] = (svg.attributes('viewBox') ?? '').split(' ').map(Number)
+    for (let p = 0; p < 7; p += 1) {
+      const [x0, x1] = extents(p).block
+      expect(x0).toBeGreaterThanOrEqual(minX)
+      expect(x1).toBeLessThanOrEqual(minX + width)
+    }
   })
 
   it('never lets the block poke past the target in an inside or half position', () => {

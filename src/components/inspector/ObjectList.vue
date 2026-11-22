@@ -442,7 +442,7 @@ watch(
           @click="hiddenPartVisibility.hide(row.id)"
         >
           <span class="row__clearance-dot" aria-hidden="true"></span>
-          clearance on · tap to hide
+          red ghost on · tap to hide
         </button>
 
         <ul

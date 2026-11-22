@@ -39,6 +39,7 @@ import RepeatSheet from './RepeatSheet.vue'
 import ModelImportStatus from './ModelImportStatus.vue'
 import PlacementSession from './PlacementSession.vue'
 import ViewportContextBanner from './ViewportContextBanner.vue'
+import ClearanceTag from './ClearanceTag.vue'
 import { useSplitSheetStore } from '../../stores/splitSheet.js'
 import { useSelectedBody } from '../../composables/useSelectedBody.js'
 import { useGizmoHandlers } from '../../composables/useGizmoHandlers.js'
@@ -732,6 +733,8 @@ useViewportLifecycle({
       @handle-up="onGizmoHandleUp"
       @handle-click="onGizmoHandleClick"
     />
+    <!-- TODO/ui-153: names the red ghost a shown clearance draws, in the view itself. -->
+    <ClearanceTag v-if="!presentation" />
     <!-- The marquee-select rectangle (TODO/ui-024): drawn only while a
          marquee drag is in progress, above the gizmo/dimension overlays so
          it is never occluded by them mid-drag. -->

@@ -60,8 +60,8 @@ their own.
 ![Clicking the lug, Shift-clicking the plate, pressing Align and tapping X outside +: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
 
 To put the lug against the plate's *−X* side instead, tap the leftmost **out** button, the one at the **−**
-end (*X outside −*). On screen the buttons are headed **out, in, half, ctr, half, in, out**, with a **−** at the
-left end and a **+** at the right end, so *outside +* is the **out** button at the **+** end. Each button is named for **where the moving shape ends up**: *outside −* leaves
+end (*X outside −*). On screen the buttons are headed **out, in, half, ctr, half, in, out**, with *− low side* at the
+left end and *high side +* at the right end, so *outside +* is the **out** button at the **+** end. Each button is named for **where the moving shape ends up**: *outside −* leaves
 it beyond the target's −X side, *outside +* beyond its +X side. Hover or tap a button and
 the line under the grid spells it out in a full sentence. See
 [the popover's fields](#the-popovers-fields).
@@ -460,14 +460,18 @@ Top to bottom:
 - **Center on origin, sit on grid**: enabled only when **Target** is **World origin**. One
   tap, one step. It is the same as tapping **X center**, **Y center** and **Z outside +**.
 - **The position grid**: one row per axis, X, Y and Z, each with seven buttons that read
-  from **−** on the left to **+** on the right. A thin `− … +` rule and a one-line header
+  from **−** on the left to **+** on the right. A thin `− low side … high side +` rule and a one-line header
   (*out · in · half · ctr · half · in · out*) sit above the rows, and each button shows a
   small picture: the amber block is the shape that moves, the teal outline is its target,
   and the dashed teal line down the middle is the target's centre. **in** puts the block flush
   against an edge of the outline; **half** puts a face of the block on the dashed line. Against a second shape, the face
   the block touches is drawn as a heavy teal bar: on the outline's edge for **in** and **out**, on the
   dashed line for **half**, and absent for **center**, which touches nothing. So **inside −** (bar on
-  the left edge) and **half −** (bar in the middle) read apart at a glance.
+  the left edge) and **half −** (bar in the middle) read apart at a glance. The pictures are drawn large
+  (about 34 px wide, on 44 px buttons) with a wide block, and until you tap or hover a button the line
+  under the grid reads *out = beside the target, in = flush with its edge, half = to its centre line*.
+  On a phone and in the tablet pane, where the toolbar shows icons only, **Align** and **Split** have a
+  heavier outline and a bigger glyph than their neighbours, so their full 44 px square shows.
   Every button names **where the moving shape ends up** along that axis:
 
   ![The position grid: a − to + rule, the column header, and three rows of seven icon buttons for X, Y and Z](./screenshots/align-positions.png)

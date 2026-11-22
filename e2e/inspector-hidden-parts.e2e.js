@@ -247,7 +247,7 @@ test('a shown clearance on a deselected Bolt says so on its Objects row, and the
   await expect(list).toBeVisible()
   const chip = page.getByTestId(`objects-clearance-${bolt.id}`)
   await expect(chip).toBeVisible()
-  await expect(chip).toContainText('clearance on')
+  await expect(chip).toContainText('red ghost')
   expect((await chip.boundingBox())?.height ?? 0, 'chip tap height').toBeGreaterThanOrEqual(43.5)
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(0)
@@ -257,4 +257,30 @@ test('a shown clearance on a deselected Bolt says so on its Objects row, and the
   // The same switch the Inspector's toggle drives: select the bolt and it reads off.
   await page.getByTestId(`objects-row-${bolt.id}`).click()
   await expect(page.getByTestId('inspector-hidden-parts-toggle')).not.toBeChecked()
+})
+
+test('a shown clearance is named in the 3D view itself, in plain words, and goes when hidden (ui-153 item 1)', async ({ page }) => {
+  const bolt = await placeAndSelectBolt(page)
+  const tag = page.getByTestId('viewport-clearance-tag')
+  await expect(tag).toHaveCount(0)
+  await page.getByTestId('inspector-hidden-parts-toggle').check()
+  await expect(tag).toBeVisible()
+  await expect(tag).toContainText(/not a part/i)
+  // It sits over the canvas, never over the phone bottom sheet's edge, and never makes the page scroll sideways.
+  const view = await page.getByTestId('viewport').boundingBox()
+  const box = await tag.boundingBox()
+  expect(box && view && box.x >= view.x - 1 && box.x + box.width <= view.x + view.width + 1, 'tag inside the view').toBe(true)
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(0)
+  // Deselect: the red ghost stays drawn, and so does its label.
+  await page.evaluate(async () => {
+    const { useSelectionStore } = await window.__e2eImport('/src/stores/selection.js')
+    useSelectionStore().clear()
+  })
+  await expect(tag).toBeVisible()
+  await page.evaluate(async (id) => {
+    const { useHiddenPartVisibilityStore } = await window.__e2eImport('/src/stores/hiddenPartVisibility.js')
+    useHiddenPartVisibilityStore().hide(id)
+  }, bolt.id)
+  await expect(tag).toHaveCount(0)
 })

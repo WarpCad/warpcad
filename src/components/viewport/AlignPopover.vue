@@ -83,7 +83,8 @@ const POSITIONS = Object.freeze([
   { key: 'outside-plus', header: 'out', name: 'outside +', detail: 'your − face sits on the target’s + face, so you end up beyond its + side', orientation: 'outside-', origin: 'min' },
 ])
 
-const IDLE_CAPTION = 'Tap where the moving body should end up along each axis.'
+const IDLE_CAPTION =
+  'Tap where the moving body should end up along each axis. out = beside the target, in = flush with its edge, half = to its centre line.'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
@@ -374,6 +375,8 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
       :columns="positionColumns"
       label="Align"
       segmented
+      rule-start="− low side"
+      rule-end="high side +"
       :describe="sentence"
       @tap="onPositionTap"
       @preview="onPreview"

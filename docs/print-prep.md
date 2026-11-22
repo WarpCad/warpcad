@@ -60,7 +60,8 @@ reassemble, place them yourself. With the wing split at offset 150:
    fits. Picking **Dowel** adds a **Dowels are** list (**Printed**, **Steel pin**, **1.75 mm
    filament**); bought dowels show under the pieces as **You'll also need**.
    On a phone the kind buttons show only their pictures, so the line under the row names the
-   pressed one: press the ring with a dot and it reads *Dowel · a hole for a bought dowel*; press the
+   pressed one. The row and that line stay together at the top of the sheet, and turning on **Place
+   connectors by hand** scrolls them there, so you never have to scroll down to read which kind is pressed: press the ring with a dot and it reads *Dowel · a hole for a bought dowel*; press the
    plain ring and it reads *Screw boss · a ring boss that takes a screw*.
 3. Press **Screw boss**, then **tap the plane** where you want one. It appears as a ring if it
    fits. A tap where it does not fit is turned back, and the sheet says why, for example

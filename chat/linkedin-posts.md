@@ -5433,3 +5433,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** Viewport.vue script 819 to 593 lines (`awk` between the script tags), pointerGestures.js 781 to 655 (`wc -l`); 10,127 unit tests passing, nine-project e2e matrix 6,293 passed with 2 failures on an untouched longtask-budget test that passes alone → `TODO/done/ui-152-viewport-script-and-pointer-gestures-remainder.md`, `TODO/ACCEPTANCE.md`
 **To Add:** none
 ---
+
+## 2026-11-22T17:45:00Z — WarpCad: four small chrome fixes, and a reader who still wasn't sold
+
+**Post:**
+A translucent red body in WarpCad's 3D view marks the room kept clear around a bolt's hole. Until now only a line in the Objects list said so, and a fresh reader took the body for a stray object. A small tag in the view now says it is room kept clear, not a part.
+
+Three other small things went in with it. On a phone the Split sheet keeps its connector kind and the line naming it at the top, so it no longer sits below the fold behind the Apply bar. The Align pictures are bigger, with a wider block and a rule that reads "low side" to "high side". The Align and Split buttons get a heavier outline so their full size shows.
+
+I asked a fresh reader to look at phone screenshots of the four. All four are better, and all four still came back partial: "ghost" is loose wording, the tag floats rather than pointing at the body, and the toolbar glyphs still don't name themselves. Those are filed as the next task.
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** a rotating e2e pair (firefox-phone + chromium-tablet) 1,314 passed, 0 failed, 10,133 unit tests passing; the cold read's ratings (partial, partial, partial, unclear) → `TODO/VERIFY.md`, `TODO/done/ui-153-cold-read-chrome-partials-after-ui-145.md`
+**To Add:** none
+---

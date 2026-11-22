@@ -36,6 +36,9 @@ const props = defineProps({
   label: { type: String, required: true },
   /** Gap-free strips with shared borders. */
   segmented: { type: Boolean, default: false },
+  /** The words at the two ends of the rule above the strips. */
+  ruleStart: { type: String, default: '−' },
+  ruleEnd: { type: String, default: '+' },
   describe: {
     type: /** @type {import('vue').PropType<((axis: 'x' | 'y' | 'z', key: string) => string) | undefined>} */ (Function),
     default: undefined,
@@ -68,7 +71,7 @@ const hasHeader = () => props.columns.some((column) => column.header)
   >
     <template v-if="hasHeader()">
       <span class="align-grid__rule" aria-hidden="true" data-testid="align-rule" :style="{ gridColumn: `2 / span ${props.columns.length}` }">
-        <span>−</span><span class="align-grid__rule-line" /><span>+</span>
+        <span>{{ props.ruleStart }}</span><span class="align-grid__rule-line" /><span>{{ props.ruleEnd }}</span>
       </span>
       <span aria-hidden="true" data-testid="align-header" class="align-grid__header-row">
         <span />
