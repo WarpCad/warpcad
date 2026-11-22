@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.0](https://github.com/WarpCad/warpcad/compare/v1.23.0...v1.24.0) (2026-11-22)
+
+### Features
+
+* **ai:** add delete_bodies so agents can delete a body (TODO/ai-051) ([bf042a5](https://github.com/WarpCad/warpcad/commit/bf042a52bfa31044e2f48503df1d4f0395405572))
+* **ai:** let an agent leave the project ready to publish as a gist (TODO/io-040) ([abe42cc](https://github.com/WarpCad/warpcad/commit/abe42cc6245b78ac145b82a050d4995afac9d816))
+* **inspector:** give variables a description and keep labels short (TODO/ui-157) ([fc3b659](https://github.com/WarpCad/warpcad/commit/fc3b659cf4f950fd9b5140a7526a569e131a046c))
+
 ## [1.23.0](https://github.com/WarpCad/warpcad/compare/v1.22.0...v1.23.0) (2026-11-20)
 
 ### Features
