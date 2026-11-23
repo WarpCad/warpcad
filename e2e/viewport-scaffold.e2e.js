@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { snapToView } from './support/humanInput.js'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
  * The project's first real app-level spec: it navigates to `/` — the running
@@ -579,78 +579,78 @@ test('a 5-second orbit never calls getComputedStyle (TODO/render-008)', async ({
 })
 
 test('the orientation gizmo snaps the camera to standard views', async ({ page }) => {
-  await page.getByTestId('gizmo-view-top').click()
+  // Through the view cube (`TODO/ui-158`): a face when it shows, Views when it is turned away or edge-on.
+  await snapViaGizmo(page, 'top')
   // Z-up: the top view looks straight down the Z axis.
   await camera(page, 'elevation').toBeCloseTo(90, 1)
   await camera(page, 'azimuth').toBeCloseTo(-90, 1)
 
-  await page.getByTestId('gizmo-view-front').click()
+  await snapViaGizmo(page, 'front')
   await camera(page, 'elevation').toBeCloseTo(0, 1)
   await camera(page, 'azimuth').toBeCloseTo(-90, 1)
 
-  await page.getByTestId('gizmo-view-right').click()
+  await snapViaGizmo(page, 'right')
   await camera(page, 'azimuth').toBeCloseTo(0, 1)
 
-  await page.getByTestId('gizmo-view-bottom').click()
+  await snapViaGizmo(page, 'bottom')
   await camera(page, 'elevation').toBeCloseTo(-90, 1)
 
-  await page.getByTestId('gizmo-view-home').click()
+  await snapViaGizmo(page, 'home')
   await camera(page, 'elevation').toBeCloseTo(35.26, 1)
   await camera(page, 'azimuth').toBeCloseTo(-45, 1)
 })
 
-test('the orientation gizmo dial is a snapshot target for cap/triad visual weight (TODO/ui-025)', async ({
+test('the view cube is a snapshot target for its shading (TODO/ui-025, TODO/ui-158)', async ({
   page,
-  browserName,
 }, testInfo) => {
-  // Purely a look-at-it-yourself artifact, not a pixel diff (same reasoning as
-  // the transform gizmo's `shaded-gizmo-*` snapshot in gizmo-transform.e2e.js):
-  // the caps'/spokes' relative visual weight is a legibility judgment call, not
-  // something a numeric assertion can usefully encode. Chromium-only is
-  // acceptable per the TODO's own Testing section — this is a DOM/SVG overlay,
-  // not WebGL, so there's no cross-engine rendering risk to catch here.
-  test.skip(browserName !== 'chromium', 'DOM/SVG overlay — no cross-engine rendering risk')
+  // A look-at-it-yourself artifact, not a pixel diff (same reasoning as the transform gizmo's
+  // `shaded-gizmo-*` snapshot in gizmo-transform.e2e.js): whether the shaded faces read as a lit
+  // solid is a judgment call. Every engine, because the faces are CSS-transformed DOM and engines
+  // differ on transformed borders and antialiasing.
+  const cube = page.getByTestId('view-cube')
+  await expect(cube).toBeVisible()
 
-  await expect(page.getByTestId('orientation-gizmo')).toBeVisible()
-
-  // Confirm the dial actually holds all six caps plus a visible hub — the
-  // structural check a snapshot alone can't guarantee survived a CSS edit.
-  const dial = page.getByTestId('orientation-gizmo').locator('.gizmo__dial')
-  for (const view of ['right', 'left', 'back', 'front', 'top', 'bottom']) {
-    await expect(page.getByTestId(`gizmo-view-${view}`)).toBeVisible()
+  // The structural check a snapshot alone cannot guarantee survived a CSS edit: at Home exactly the
+  // Top, Front and Right faces paint, each with its own fill.
+  const fills = []
+  for (const view of ['top', 'front', 'right']) {
+    const face = page.getByTestId(`gizmo-view-${view}`)
+    await expect(face).toBeVisible()
+    fills.push(await face.evaluate((el) => getComputedStyle(el).backgroundColor))
   }
-  await expect(dial.locator('.gizmo__hub')).toBeVisible()
-  await expect(dial.locator('.gizmo__spoke')).toHaveCount(6)
+  expect(new Set(fills).size, `face fills ${fills.join(', ')}`).toBe(3)
+  for (const view of ['bottom', 'back', 'left']) await expect(page.getByTestId(`gizmo-view-${view}`)).toBeHidden()
 
   mkdirSync(SNAPSHOT_DIR, { recursive: true })
   const file = join(SNAPSHOT_DIR, `orientation-gizmo-${testInfo.project.name}.png`)
-  await dial.screenshot({ path: file })
+  await cube.screenshot({ path: file })
   await testInfo.attach(`orientation-gizmo-${testInfo.project.name}`, {
     path: file,
     contentType: 'image/png',
   })
 })
 
-test('the gizmo triad re-projects as the camera moves', async ({ page }) => {
-  const xCap = page.getByTestId('gizmo-view-right') // the +X axis cap
-  const zCap = page.getByTestId('gizmo-view-top') // the +Z axis cap
+test('the view cube turns as the camera moves', async ({ page }) => {
+  const right = page.getByTestId('gizmo-view-right') // the +X face
+  const front = page.getByTestId('gizmo-view-front') // the −Y face
 
-  await page.getByTestId('gizmo-view-front').click()
+  await snapViaGizmo(page, 'home')
+  await camera(page, 'azimuth').toBeCloseTo(-45, 1)
+  const atHome = await front.boundingBox()
+
+  // Face-on at Front, the −Y face is the square the cube shows head-on, and +X is edge-on.
+  await snapViaGizmo(page, 'front')
   await camera(page, 'azimuth').toBeCloseTo(-90, 1)
-  const fromFront = { x: await xCap.boundingBox(), z: await zCap.boundingBox() }
+  await expect(right).toBeHidden()
+  const atFront = await front.boundingBox()
+  expect(Math.abs((atFront?.width ?? 0) - (atFront?.height ?? 0)), 'Front is square at Front').toBeLessThan(2)
+  expect(Math.abs((atHome?.width ?? 0) - (atFront?.width ?? 0)), 'Front changed shape from Home').toBeGreaterThan(5)
 
-  // Swinging the camera 90° in azimuth swings +X across the dial…
-  await page.getByTestId('gizmo-view-right').click()
+  // Swinging the camera 90° in azimuth brings +X round to face the viewer and turns −Y away.
+  await snapViaGizmo(page, 'right')
   await camera(page, 'azimuth').toBeCloseTo(0, 1)
-  const fromRight = await xCap.boundingBox()
-  expect(Math.abs((fromFront.x?.x ?? 0) - (fromRight?.x ?? 0))).toBeGreaterThan(10)
-
-  // …and tipping it up to the pole pulls +Z in toward the hub, since it now
-  // points at the viewer rather than up the screen.
-  await page.getByTestId('gizmo-view-top').click()
-  await camera(page, 'elevation').toBeCloseTo(90, 1)
-  const fromTop = await zCap.boundingBox()
-  expect(Math.abs((fromFront.z?.y ?? 0) - (fromTop?.y ?? 0))).toBeGreaterThan(10)
+  await expect(right).toBeVisible()
+  await expect(front).toBeHidden()
 })
 
 test('nav chrome orbits, pans and zooms without a keyboard or a drag', { tag: '@smoke' }, async ({ page }) => {
@@ -837,13 +837,13 @@ test('Shift-clicking a body still selects it additively, without dragging (TODO/
 
 test('drag and the on-screen pad drive the same camera state', async ({ page }) => {
   // One camera model, two input paths — not two parallel implementations.
-  await page.getByTestId('gizmo-view-front').click()
+  await snapViaGizmo(page, 'front')
   await camera(page, 'azimuth').toBeCloseTo(-90, 1)
   await dragCanvas(page, { dx: -37.5, dy: 0 }) // -(-37.5) * 0.4 = +15°
   await camera(page, 'azimuth').toBeCloseTo(-75, 1)
   const dragged = await cameraState(page)
 
-  await page.getByTestId('gizmo-view-front').click()
+  await snapViaGizmo(page, 'front')
   await camera(page, 'azimuth').toBeCloseTo(-90, 1)
   await page.getByTestId('nav-step-right').click() // +15°
   await camera(page, 'azimuth').toBeCloseTo(dragged.azimuth, 1)
@@ -898,7 +898,7 @@ test('taps land on the gizmo and the chrome on touch-capable projects', async ({
   hasTouch,
 }) => {
   test.skip(!hasTouch, `${browserName} project has no touch emulation`)
-  await snapToView(page, 'top')
+  await snapViaGizmo(page, 'top')
   await camera(page, 'elevation').toBeCloseTo(90, 1)
 
   await page.getByTestId('nav-zoom-out').tap()

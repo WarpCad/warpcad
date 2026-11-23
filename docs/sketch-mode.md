@@ -30,7 +30,7 @@ While the sketch editor is open:
 
 - a drag on the grid **draws** with the current tool. On a touch screen, one finger
   draws; two fingers still pan and pinch-zoom;
-- the camera stays square-on to the sketch: the orientation triad's view buttons are
+- the camera stays square-on to the sketch: the view cube's faces and buttons are
   off, and the navigation arrows **pan** rather than orbit;
 - **Undo**, **Redo** and the shape-level **Delete** are off until you tap **Done** or
   **Cancel**, because nothing you've drawn is in the model yet. The whole editing session

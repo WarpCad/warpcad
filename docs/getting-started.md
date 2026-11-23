@@ -107,7 +107,7 @@ toolbars. Its icon is a dark cube in a blue-white flash, with stars streaking ou
 ## Where to go next
 
 - [Placing a shape](primitive-placement.md): every Library item, snap guides, and placing on a phone.
-- [Moving around the 3D view](viewport-navigation.md): orbit, pan, zoom and the orientation triad.
+- [Moving around the 3D view](viewport-navigation.md): orbit, pan, zoom and the view cube.
 - [Combining shapes](booleans.md), [Align](snap-align.md), [Fillet and Chamfer](fillet-chamfer.md): the rest of the Operations toolbar.
 - [Sketch primitives](sketch-mode.md): draw an outline and turn it into a solid.
 - [Sharing a project by link](sharing.md): tap **Share** to send your model to anyone as a link

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
-import { snapToView } from '../support/humanInput.js'
+import { snapViaGizmo } from '../support/snapViaGizmo.js'
 import { openApp, loadScene, startMovie, endMovie, shot, settle } from './support.js'
 
 /**
@@ -124,7 +124,7 @@ test.describe('docs media: print prep', () => {
     }
     const readScale = () =>
       page.evaluate(() => Number(document.querySelector('[data-testid="cut-plane"]')?.getAttribute('data-face-u')?.split(',')[0]))
-    await afterFrames(() => page.getByTestId('gizmo-view-right').click())
+    await afterFrames(() => snapViaGizmo(page, 'right'))
     for (let i = 0; i < 40; i += 1) {
       const scale = await readScale()
       if (scale >= 3.5 && scale <= 5.5) return
@@ -179,7 +179,7 @@ test.describe('docs media: print prep', () => {
     await openApp(page)
     await loadScene(page, 'long-wing.ndjson', 1)
     await selectWing(page)
-    await page.getByTestId('gizmo-view-right').click()
+    await snapViaGizmo(page, 'right')
     await page.getByTestId('op-split').click()
     await expect(page.getByTestId('split-sheet')).toBeVisible()
     await page.getByTestId('split-offset').fill('150')
@@ -336,7 +336,7 @@ test.describe('docs media: print prep', () => {
     await startMovie(page, 'print-prep-manual-joint')
 
     await selectWing(page)
-    await snapToView(page, 'right')
+    await snapViaGizmo(page, 'right')
     await page.waitForTimeout(200)
     await press(page, 'op-split')
     await expect(page.getByTestId('split-sheet')).toBeVisible()

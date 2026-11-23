@@ -34,7 +34,7 @@ The Library's Raspberry Pi and Hardware items descend from the `jscad-raspberryp
 WarpCad is hosted at **https://app.warpcad.com**. Open it in any modern browser, and there is
 nothing to install. The home page, **https://warpcad.com**, links every page here into the app. The pages below cover what each part of the app does.
 
-![The WarpCad window with no model yet: the Library on the left, the 3D view with its grid, navigation pad and orientation triad, and the Operations toolbar.](./screenshots/app-overview.png)
+![The WarpCad window with no model yet: the Library on the left, the 3D view with its grid, navigation pad and view cube, and the Operations toolbar.](./screenshots/app-overview.png)
 
 - [Getting started in five minutes](getting-started.md) — start here: place a Cube and a
   Cylinder, subtract one from the other, nudge the result with the gizmo and export an STL,
@@ -165,11 +165,11 @@ nothing to install. The home page, **https://warpcad.com**, links every page her
   limits and what an error looks like, and how to word the request. Also published as
   `llms.txt` and `llms-full.txt` for a search tool.
 - [Moving around the 3D view](viewport-navigation.md) — orbit, pan, zoom, the
-  orientation triad, touch gestures, and reading size off the grid.
+  view cube, touch gestures, and reading size off the grid.
 - [Using WarpCad on a phone or tablet](mobile.md) — where every control lives at phone and
   tablet width: the Library and Inspector as bottom sheets, the navigation pad that folds behind
   **✥**, the Operations toolbar, the File menu and the sketch sheet; plus the touch gestures
-  (drag a shape in, two-finger pan, pinch, tap the triad).
+  (drag a shape in, two-finger pan, pinch, tap the view cube).
 - [The native apps: iPhone, iPad, Mac, Android and Windows](native-apps.md) — WarpCad as an
   installed app: one section per platform, how it differs from the web app (a bundled copy that
   works offline, its own storage that does not share projects with `app.warpcad.com`, no

@@ -23,6 +23,8 @@ const THEMED = [
   '--text-1', '--text-2', '--text-3', '--accent', '--accent-contrast', '--axis-x', '--axis-y',
   '--snap-guide', '--accent-secondary', '--hover-highlight', '--role-moving', '--role-target',
   '--sketch-stroke', '--danger', '--warn', '--shadow-overlay', '--scrim', '--overlay-drop',
+  '--view-cube-top', '--view-cube-front', '--view-cube-right', '--view-cube-back', '--view-cube-left',
+  '--view-cube-bottom', '--view-cube-edge',
 ]
 
 const SCALES = [
@@ -192,7 +194,7 @@ describe('every var(--x) names something defined', () => {
   })
 
   it('names every script-set or locally defined variable with the --layout- prefix or a local allowlist', () => {
-    const LOCAL = new Set(['--marker-color'])
+    const LOCAL = new Set(['--marker-color', '--face-fill'])
     const tokens = new Set(all.keys())
     const bad = []
     for (const [f, t] of text) {

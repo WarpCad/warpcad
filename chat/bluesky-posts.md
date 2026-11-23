@@ -3741,3 +3741,15 @@ Three files in my iOS app disagreed about crash reporting: the decision said on,
 **Evidence:** a rotating e2e pair (firefox-phone + chromium-tablet) 1,314 passed, 0 failed; a cold read by a fresh agent still rated all four items partial (filed as `ui-159`) → `TODO/done/ui-153-cold-read-chrome-partials-after-ui-145.md`, `TODO/VERIFY.md`
 **To Add:** none
 ---
+
+## 2026-11-23T00:30:00Z — WarpCad: the axis triad is now a shaded view cube
+
+**Post:** WarpCad's orientation gizmo is a solid grey cube again: white on top, darker below, bare in the corner. It turns with the camera; tap a face to snap to that view. Plain DOM, no second WebGL canvas. Tablet taps miss a face 2.7% (Chromium) and 0.7% (WebKit).
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** orientation-tap spec on all nine projects, wrong-face rate from its attached measurement (150 seeded taps per face set): chromium-tablet 2.7%, webkit-tablet 0.7% → this session's run; the gizmo is DOM faces placed by `src/render/viewCube.js` → the diff
+**To Add:** none
+---

@@ -2,6 +2,7 @@
 import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
  * Selection → inspector + dimension lines + gizmo (TODO/ui-011), driven against
@@ -486,7 +487,7 @@ test('the gizmo and dimension lines follow the camera rather than sticking to th
   await expect(page.getByTestId('transform-gizmo')).toHaveCount(1)
   const before = await page.getByTestId('transform-gizmo').getAttribute('data-origin')
 
-  await page.getByTestId('gizmo-view-front').click()
+  await snapViaGizmo(page, 'front')
 
   await expect.poll(async () => page.getByTestId('transform-gizmo').getAttribute('data-origin'))
     .not.toBe(before)

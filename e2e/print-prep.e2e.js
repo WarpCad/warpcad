@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
  * Print prep (`TODO/io-007`), driven against `/`, the running app: build volume and fit
@@ -432,7 +433,7 @@ async function openPlacing(page) {
   await seedWing(page)
   await store(page, (api) => api.selection.select('wing'))
   // Look square at the cut face first: at tablet width the Split sheet sits over the gizmo.
-  await page.getByTestId('gizmo-view-right').click()
+  await snapViaGizmo(page, 'right')
   await page.getByTestId('op-split').click()
   await expect(page.getByTestId('split-sheet')).toBeVisible()
   await page.getByTestId('split-offset').fill('150')

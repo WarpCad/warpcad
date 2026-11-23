@@ -3,12 +3,12 @@
 On a phone, the navigation pad folds behind a **✥** button while a sheet is open; see [Using WarpCad on a phone or tablet](mobile.md#the-navigation-pad-folds-behind-a-button).
 
 WarpCad opens on a single screen: a dark 3D view with a millimetre grid, the
-**orientation triad** in the top-right corner, the **navigation pad** in the
+**view cube** in the top-right corner, the **navigation pad** in the
 bottom-left, and the **scale readout** in the bottom-right. Everything on this
 page works with a mouse, with a finger, or with on-screen buttons alone — you
 never need a keyboard to move the camera.
 
-![The whole WarpCad window with two shapes placed and one selected: Library on the left, navigation pad bottom-left, orientation triad top-right, scale readout bottom-right, Inspector on the right.](./screenshots/app-overview-with-model.png)
+![The whole WarpCad window with two shapes placed and one selected: Library on the left, navigation pad bottom-left, view cube top-right, scale readout bottom-right, Inspector on the right.](./screenshots/app-overview-with-model.png)
 
 ---
 
@@ -45,13 +45,15 @@ Try these in order, with the app open:
    screen, pinch with two fingers.
 
    ![Scrolling the mouse wheel to zoom in, then back out.](./media/nav-zoom.gif)
-4. **Tap `Z` on the orientation triad** in the top-right corner to snap the
+4. **Tap the white top face of the view cube** in the top-right corner to snap the
    camera to the top view — looking straight down the Z axis, with Y running up
-   the screen. Try `−Y` for the front view and `X` for the right view.
+   the screen. The cube turns to show only its top. Now tap the cube's front face
+   for the front view, or its right face for the right view.
 
-   ![Clicking the triad's Z, −Y and X caps in turn, the camera snapping to top, front and right views, then Home.](./media/orientation-gizmo-snap.gif)
-5. **Tap `Home`** under the triad to return to the standard three-quarter
-   (isometric) view.
+   ![Clicking the view cube's top face, then (after Views) the front and right faces, the camera snapping to top, front and right views, then Home.](./media/orientation-gizmo-snap.gif)
+5. **Tap `Home`** under the cube to return to the standard three-quarter
+   (isometric) view. To look from underneath, tap **Views** and choose **Bottom**:
+   the bottom face is hidden whenever the camera is above the grid.
 6. **Read the scale off the bottom-right readout.** Each minor grid line is
    **10 mm** apart and each brighter major line is **50 mm** apart. The bar above
    the legend shows how long a round real-world distance — 100 mm, 200 mm, and
@@ -79,10 +81,10 @@ Pressing the pad's buttons does the same as the gestures above — no mouse drag
 The buttons and the drag gesture are the same controls underneath, so the view
 never ends up in a state you can only reach one way.
 
-In a narrow window (a tablet, or a desktop window under about 860 px) the pad and the triad
-below shrink to a compact form to leave room for the toolbar. Every button is still there:
+In a narrow window (a tablet, or a desktop window under about 860 px) the pad and the view cube
+below keep their size or shrink to a compact form to leave room for the toolbar. Every button is still there:
 
-![The 3D view at tablet width, with the navigation pad and the orientation triad in their compact form.](./screenshots/viewport-chrome-compact.png)
+![The 3D view at tablet width, with the navigation pad and the view cube in their compact form.](./screenshots/viewport-chrome-compact.png)
 
 ### On a phone: the pad folds away while a panel is open
 
@@ -151,51 +153,66 @@ mouse button on a touchscreen to remap.
 
 ![The gear's list open above the navigation pad, with "Shift+Left or Right-drag pans" marked as the current choice.](./screenshots/nav-mouse-mapping.png)
 
-## The orientation triad (top-right)
+## The view cube (top-right)
 
-![The orientation triad: coloured X, Y and Z spokes with a labelled cap on each, and a Home button below.](./screenshots/orientation-gizmo.png)
+![The view cube: a solid grey cube seen corner-on, white on top and darker underneath, with Home and Views buttons below it.](./screenshots/orientation-gizmo.png)
 
-The triad shows which way the camera is currently pointing: the red spoke is the
-X axis, green is Y, and blue is Z. Solid spokes point toward you; dashed ones
-point away. Each spoke's colour is visible right through the button sitting on
-top of it, and pokes a short tail out past the button's edge, so you can read
-the current orientation off the triad itself rather than off the numeric
-"az/el" caption underneath. The buttons for the axes pointing away from you
-are drawn fainter and dashed, so the three axes actually facing you stand out.
+The view cube shows which way the camera is currently pointing. It is a solid,
+unlabelled cube drawn the way the 3D view sees the world: it turns as you orbit
+and stays put when you pan or zoom. At the standard three-quarter view you see
+three faces, lit from above, so the top is white, the front is light grey and the
+right face is a darker grey. Dark edges outline each face, and the small
+`az · el` caption underneath gives the exact azimuth and elevation in degrees.
 
-The axis colours come from the same theme as the rest of the app, so the red X and green Y on the
-triad, on the grid's axis lines and on the dimension lines are always the same colours. In the
-light theme they are deeper reds and greens than in the dark one, so they still read against the
-pale ground. Choose System, Dark or Light in the Help sheet's footer ([Help](help.md)) and watch the triad: the 3D view
-re-colours at once, with nothing to reload.
+The shades come from the same theme as the rest of the app, so the cube follows
+Dark or Light. Choose System, Dark or Light in the Help sheet's footer
+([Help](help.md)) and watch the cube: its shades re-colour at once, with nothing
+to reload.
 
-Each labelled cap is a button, and clicking one moves the camera **onto** that
-axis:
+**Each face you can see is a button.** Click or tap one and the camera moves
+**onto** that face's view, and the cube turns so that face looks straight at you.
+Pointing at a face (or reaching it with the keyboard's Tab key) tints it with the
+accent colour:
 
-| Cap | View you get |
+| Face | View you get |
 |---|---|
-| `Z` | Top — looking straight down the Z axis |
-| `−Z` | Bottom |
-| `X` | Right |
-| `−X` | Left |
-| `Y` | Back |
-| `−Y` | Front |
-| `Home` | Isometric three-quarter view |
+| Top | Looking straight down the Z axis |
+| Bottom | Looking up from underneath |
+| Right | The right side |
+| Left | The left side |
+| Back | The back |
+| Front | The front |
+| `Home` button | Isometric three-quarter view |
 
-**On a touch tablet the triad is bigger, so a fingertip lands on the cap you aimed at.** With a
-touchscreen at tablet width and up, the triad grows to about 190 px with 44 px caps, and the toolbar
-leaves room for it. A tap that falls between two caps goes to the nearer one. For example, on a tablet
-tap `X` near the red spoke: the camera snaps to the Right view and the caption under the triad names it.
+**Views reaches the faces you cannot see.** A cube only shows three faces at a
+time, and when you look straight at one face the others are edge-on and cannot be
+tapped. The **Views** button beside Home opens a grid of all six faces (Top,
+Front, Right, Bottom, Back, Left) plus `Home` and `Close`. Its title line shows
+the current azimuth and elevation. Tapping a view closes the grid and snaps the
+camera; **Close**, or a tap outside the grid, puts it away without changing the
+view.
 
-**On a phone, tapping the triad opens a big view picker.** Six caps a finger can tell apart do not fit
-in a 96 px triad, so on a phone the triad stays a small live readout of where the camera looks, and a
-tap on it opens a picker with six large buttons (Top, Front, Right, Bottom, Back, Left) and a `Home`
-button. For example: tap anywhere on the triad, tap **Front**. The picker closes, the camera snaps to the
-front view, and the triad redraws to match. The picker's title line shows the current azimuth and
-elevation; **Close** (or a tap outside it) puts it away without changing the view. With a mouse or a
-keyboard on a narrow window you still click the triad's own caps directly.
+For example, to look at a part from underneath:
 
-![The phone's orientation picker open over the top-right corner: Top, Front and Right on one row, Bottom, Back and Left on the next, with Home and Close below.](./screenshots/orientation-picker.png)
+1. Tap the cube's **top** face. The camera looks straight down and the cube shows
+   only its top face.
+2. Tap **Views**. The six-view grid opens.
+3. Tap **Bottom**. The grid closes, the camera looks up from underneath, and the
+   caption reads `−45 az · −90 el` style values for the new direction.
+4. Tap **Home** to return to the three-quarter view.
+
+![The Views grid open over the top-right corner: Top, Front and Right on one row, Bottom, Back and Left on the next, with Home and Close below.](./screenshots/orientation-picker.png)
+
+**On a touch tablet the cube is bigger, so a fingertip lands on the face you
+aimed at.** With a touchscreen at tablet width and up, the cube grows to about
+170 px wide, so every face a three-quarter view shows is at least 44 px across,
+and the toolbar leaves room for it. For example, on a tablet tap the white top
+face: the camera snaps to the top view and the caption names it.
+
+**On a phone the cube is small, so use Views when you need to be exact.** Beside
+the Operations toolbar the cube is about 96 px wide. Tapping a face works, but a
+fingertip can land on its neighbour about one time in eight, so for a precise
+choice tap **Views** and pick from the large buttons.
 
 Zoom and the point you are looking at are left alone by a snap — only the
 direction changes — so you can line up a view without losing your place.
@@ -207,7 +224,7 @@ direction changes — so you can line up a view without losing your place.
 | One-finger drag | Orbit, or pan if `Pan` is selected |
 | Two-finger pinch | Zoom in and out |
 | Two-finger drag | Pan, whichever mode is selected |
-| Tap a triad cap or a pad button | Same as clicking it |
+| Tap a cube face or a pad button | Same as clicking it |
 | Tap **✥** (phone, with a panel open) | Opens or folds away the navigation pad |
 
 The 3D view claims your drags, so the page itself never scrolls or bounces while
@@ -222,7 +239,7 @@ distance, so you can judge size without opening any panel.
 ## If the view doesn't appear
 
 If your browser can't start WebGL, the 3D area shows a short message explaining
-that instead of a blank rectangle. The navigation pad and triad keep working —
+that instead of a blank rectangle. The navigation pad and view cube keep working —
 they drive the camera, not the renderer — so the app stays usable while you fix
 the browser setting or move to another device.
 
@@ -263,7 +280,7 @@ navigation pad changes:
 - the `Orbit` / `Pan` / `Select` row and the ⚙ settings are hidden, because a drag
   **draws** instead;
 - the arrows **pan** across the sketch, and zoom works as usual;
-- the orientation triad still shows where you are looking, but its view buttons are off.
+- the view cube still turns to show where you are looking, but its faces, Home and Views are off.
   Snapping to Front mid-sketch would turn the sketch edge-on;
 - on a phone, and on a tablet whose view is just as narrow, the pad folds to the **✥**
   button so the drawing area stays clear. When the Slices or Extrude panel is open, the

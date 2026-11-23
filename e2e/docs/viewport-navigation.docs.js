@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { openApp, loadScene, clickViewportAt, startMovie, endMovie, humanDrag, shot } from './support.js'
+import { snapViaGizmo } from '../support/snapViaGizmo.js'
 
 /**
  * Docs media for `docs/viewport-navigation.md` and the README hero (`TODO/docs-008`).
@@ -141,7 +142,7 @@ test.describe('docs media: viewport navigation', () => {
     await startMovie(page, 'orientation-gizmo-snap')
     const seen = new Set()
     for (const view of ['top', 'front', 'right', 'home']) {
-      await page.getByTestId(`gizmo-view-${view}`).click()
+      await snapViaGizmo(page, view)
       await page.waitForTimeout(900)
       const cam = await camera(page)
       seen.add(`${cam.az}/${cam.el}`)

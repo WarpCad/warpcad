@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 import { withRowSettings } from './support/libraryRow.js'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
  * `TODO/testing-015`: depth-buffer fighting, coplanar cutter holes and overlapping translucent
@@ -350,7 +351,7 @@ async function cameraTarget(page) {
  */
 async function centreOn(page, bounds) {
   await deselect(page)
-  await page.getByTestId('gizmo-view-top').click()
+  await snapViaGizmo(page, 'top')
   await settleCamera(page)
   await openNavChrome(page)
   await page.getByTestId('nav-mode-pan').click()
@@ -407,7 +408,7 @@ function unionBounds(list) {
 async function checkView(page, testInfo, label, { tilt, zooms }) {
   // Every view starts from the top one and tilts with orbit presses, which keep the orbit target
   // `centreOn` set (a gizmo snap to an oblique view recentres on the origin and loses the parts).
-  await page.getByTestId('gizmo-view-top').click()
+  await snapViaGizmo(page, 'top')
   await settleCamera(page)
   await openNavChrome(page)
   for (let i = 0; i < tilt; i++) {

@@ -22,6 +22,11 @@
  * | `.ops` width for the icon row in ≤ 3 lines      | 250      | 250    | 250     |
  * | Orientation gizmo footprint (top-right, 12 in)  | 130×177  | 130×178| 130×179 |
  *
+ * The orientation gizmo rows below measured the axis triad. `TODO/ui-158` replaced it with the shaded
+ * view cube: 96px wide (the 55px-side cube in a 96px box, Home and Views buttons under it), 168px wide
+ * on a coarse pointer at 600px and up. Both stay inside the 184/150px reserves below, which is why those
+ * reserves did not change.
+ *
  * `TODO/ui-084` stage 1 added the viewport chrome, measured the same way (the compact forms are
  * the existing ≤ 480px rules, measured at a 390px and a 470px page):
  *

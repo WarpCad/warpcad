@@ -71,13 +71,13 @@ and a 3D text label are all in the Library:
 ![A row of the basic solids: cube, cylinder, cone, hexagon, triangle, tube and sphere](docs/screenshots/primitive-gallery.png)
 
 Moving around has its own on-screen controls, so a phone doesn't need a keyboard. There is an
-orbit/pan/zoom pad, plus an orientation triad you can tap to snap to a standard view.
+orbit/pan/zoom pad, plus an view cube you can tap to snap to a standard view.
 
 | Orbit | Pan | Zoom |
 |---|---|---|
 | ![Orbiting the view](docs/media/nav-orbit.gif) | ![Panning the view](docs/media/nav-pan.gif) | ![Zooming the view](docs/media/nav-zoom.gif) |
 
-![Clicking the orientation triad to snap the camera to a standard view](docs/media/orientation-gizmo-snap.gif)
+![Clicking the view cube to snap the camera to a standard view](docs/media/orientation-gizmo-snap.gif)
 
 The grid shows minor lines every 10 mm and major lines every 50 mm, with a scale bar, so you can
 read real sizes off it without opening a panel.
@@ -112,7 +112,7 @@ link for the page that explains it, with a step-by-step example.
 | **Help** | Every page here is also inside the app, opens offline, and each tool's **?** jumps straight to its section | [Using the built-in help](docs/help.md) |
 | **Exporting** | STL, OBJ and glTF for the whole scene or just your selection, at a resolution you choose | [Export](docs/export.md), [Resolution](docs/resolution.md) |
 | **Bill of materials** | A running tally of the bolts, nuts, boards and parts you've placed, by size | [Bill of materials](docs/bill-of-materials.md) |
-| **Navigation** | Orbit, pan, zoom, orientation triad, touch gestures | [Moving around the 3D view](docs/viewport-navigation.md) |
+| **Navigation** | Orbit, pan, zoom, view cube, touch gestures | [Moving around the 3D view](docs/viewport-navigation.md) |
 | **Phones and tablets** | Every tool works by touch; panels become sheets at phone width | [Using WarpCad on a phone or tablet](docs/mobile.md) |
 
 The complete list of pages is in [docs/README.md](docs/README.md).

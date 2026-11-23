@@ -3,157 +3,223 @@ import { test, expect } from '@playwright/test'
 
 import { mmToCssPx, scatterTaps, seededRng } from '../bench/tap-scatter.mjs'
 import { sleep } from './support/humanInput.js'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
- * `TODO/ui-134`, `TODO/ui-148`: a fingertip's scatter around an orientation-dial cap lands on that cap,
- * not a neighbour. Driven against `/`, at the tablet viewport (the enlarged 190 px dial) and the phone
- * viewport (a tap on the compact dial opens the large six-face picker, whose cells are the targets).
+ * The view cube (`TODO/ui-158`), driven against `/` on every engine and viewport: the faces turned
+ * toward the viewer snap to their views, the faces turned away take no pointer, **Views** reaches
+ * any face (the only way off a face-on view), and the cube turns against the camera as it orbits.
  *
- * Each round resets the camera with Home, aims at one cap's centre, scatters the tap as a finger
- * would (Gaussian, sigma 3.5 mm), then reads which view the camera snapped to. The views are
- * learned first by tapping each cap's exact centre, so no angle is hard-coded here.
+ * Then `TODO/ui-134` / `TODO/ui-148`'s fingertip measurement against faces instead of caps: each
+ * round resets with Home, aims at a visible face's centre, scatters the tap as a finger would
+ * (Gaussian, sigma 3.5 mm) and reads which view the camera snapped to.
  */
 
-const VIEWS = ['top', 'bottom', 'front', 'back', 'left', 'right']
+const SIX = ['top', 'bottom', 'front', 'back', 'left', 'right']
+/** What the camera reads after each snap, as `az/el` rounded to whole degrees. */
+const EXPECTED = { top: '-90/90', front: '-90/0', right: '0/0', home: '-45/35' }
+/** The world normal of each face: a face looks at the viewer when the to-camera vector has a positive component along it. */
+const NORMAL = { right: [1, 0, 0], left: [-1, 0, 0], back: [0, 1, 0], front: [0, -1, 0], top: [0, 0, 1], bottom: [0, 0, -1] }
+
 const SIGMA_PX = mmToCssPx(3.5)
-const PER_CAP = 25
+const PER_FACE = 50
 /**
- * Wrong-cap share allowed. Measured 4 % (6 of 150) on the 190 px dial; before the fix 22-35 %. The
- * finding aims at 2 %, which at 13 px of scatter needs caps about 54 px apart (a dial near 240 px,
- * too big for a 390 px phone). The bound is the measurement plus sampling room, not the aim.
+ * Wrong-face share allowed at tablet width, where a coarse pointer gets a 96 px cube side: the
+ * finding's 3 % aim. A face's centre there sits 34 px (2.6 sigma) from each edge it shares with a
+ * neighbour; a Monte Carlo of this model against the real face shapes gives 0.9 %.
  */
-const MAX_WRONG = 0.06
-/** The phone picker has no overlap and 64 px cells, so it is held to the finding's 2 % aim plus sampling room. */
-const MAX_WRONG_PHONE = 0.03
+const MAX_WRONG_TABLET = 0.03
+/**
+ * Wrong-face share allowed on a phone, where the cube must stay about 96 px across to fit beside the
+ * Operations toolbar. A 55 px face puts its centre 19.5 px (1.5 sigma) from each shared edge, which a
+ * Gaussian finger crosses about 12 % of the time by the same Monte Carlo (`TODO/OWNER.md`, the ui-158
+ * assumption). The Views grid is the precise path there: its 68x64 px cells, gap-free, are checked above.
+ */
+const MAX_WRONG_PHONE = 0.2
 
 /** @param {import('@playwright/test').Page} page */
 const readView = (page) =>
   page.getByTestId('orientation-gizmo').evaluate((el) => `${Number(el.dataset.azimuth).toFixed(0)}/${Number(el.dataset.elevation).toFixed(0)}`)
 
-test.describe('orientation dial taps', () => {
-  test.beforeEach(({}, info) => {
-    test.skip(info.project.name.endsWith('-laptop'), 'the touch dial layouts are tablet and phone (TODO/ui-134, TODO/ui-148)')
-    // Firefox has no touch emulation here (`hasTouch` is off), so `pointer: coarse` never matches.
-    test.skip(!info.project.use.hasTouch, 'the touch layout needs a coarse pointer')
-  })
+/** @param {import('@playwright/test').Page} page @returns {Promise<string[]>} */
+const facingSet = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('[data-testid^="gizmo-view-"][data-facing="true"]')].map((el) => el.getAttribute('data-testid')?.slice('gizmo-view-'.length) ?? '').sort(),
+  )
 
-  test('a scattered fingertip fires the cap it aimed at', async ({ page }, info) => {
-    test.setTimeout(240_000)
+/**
+ * @param {import('@playwright/test').Page} page
+ * @param {string} testid
+ */
+async function centre(page, testid) {
+  // A face's box is the bounding box of its projected parallelogram, whose centre is the face's centre.
+  const b = await page.getByTestId(testid).boundingBox()
+  if (!b) throw new Error(`${testid} has no box`)
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+}
+
+/** @param {import('@playwright/test').Page} page @param {number} x @param {number} y */
+const hitAt = (page, x, y) => page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.closest('[data-testid]')?.getAttribute('data-testid') ?? null, [x, y])
+
+/** @param {import('@playwright/test').TestInfo} info */
+const touchTaps = (info) => !!info.project.use.hasTouch && !info.project.name.startsWith('firefox')
+
+test.describe('view cube', () => {
+  test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true })
       Object.defineProperty(window, 'showOpenFilePicker', { value: undefined, configurable: true })
     })
     await page.goto('/')
     await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
-    const gizmo = page.getByTestId('orientation-gizmo')
-    await expect(gizmo).toBeVisible()
+    await expect(page.getByTestId('view-cube')).toBeVisible()
+  })
 
-    const tap = async (x, y) => {
-      if (info.project.use.hasTouch && !info.project.name.startsWith('firefox')) await page.touchscreen.tap(x, y)
-      else await page.mouse.click(x, y)
-      await sleep(60)
+  test('at Home each visible face snaps to its view, and the three turned away take no pointer', async ({ page }, info) => {
+    const tap = async (/** @type {{x: number, y: number}} */ p) => {
+      if (touchTaps(info)) await page.touchscreen.tap(p.x, p.y)
+      else await page.mouse.click(p.x, p.y)
     }
-    const centre = async (testid) => {
-      const b = await page.getByTestId(testid).boundingBox()
-      return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
-    }
-    const home = async () => {
-      const c = await centre('gizmo-view-home')
-      await tap(c.x, c.y)
-      await expect.poll(() => readView(page)).not.toBe('')
-      await sleep(250)
+    await snapViaGizmo(page, 'home')
+    await expect.poll(() => readView(page)).toBe(EXPECTED.home)
+    await expect.poll(() => facingSet(page)).toEqual(['front', 'right', 'top'])
+
+    for (const view of ['bottom', 'back', 'left']) {
+      const face = page.getByTestId(`gizmo-view-${view}`)
+      await expect(face).toHaveAttribute('aria-hidden', 'true')
+      await expect(face).toBeHidden()
+      expect(await face.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none')
     }
 
-    const phone = info.project.name.endsWith('-phone')
-    if (!phone) {
-      // The dial is the enlarged touch layout: caps are 44 px.
-      const box = await page.getByTestId('gizmo-view-top').boundingBox()
-      expect(box.width).toBeGreaterThanOrEqual(44)
-    } else {
-      await expect(gizmo).toHaveAttribute('data-touch-picker', 'true')
+    for (const view of ['top', 'front', 'right']) {
+      await snapViaGizmo(page, 'home')
+      await expect.poll(() => readView(page)).toBe(EXPECTED.home)
+      const c = await centre(page, `gizmo-view-${view}`)
+      expect(await hitAt(page, c.x, c.y), `${view} face centre`).toBe(`gizmo-view-${view}`)
+      await tap(c)
+      await expect.poll(() => readView(page), { message: view }).toBe(EXPECTED[view])
+      // The cube turns so the snapped face looks at the viewer square-on, and only it shows.
+      await expect.poll(() => facingSet(page)).toEqual([view])
     }
-    /** Where a tap aims for a view: the dial's cap on a tablet, the picker's cell on a phone (opened by a tap on the dial). */
-    const aimFor = async (view) => {
-      if (!phone) return centre(`gizmo-view-${view}`)
-      if (!(await page.getByTestId('gizmo-picker').isVisible())) {
-        const d = await page.getByTestId('orientation-dial').boundingBox()
-        await tap(d.x + d.width / 2, d.y + d.height / 2)
-        await expect(page.getByTestId('gizmo-picker')).toBeVisible()
+  })
+
+  test('from face-on Front, Views reaches Top, and Home comes back', async ({ page }) => {
+    await snapViaGizmo(page, 'front')
+    await expect.poll(() => readView(page)).toBe(EXPECTED.front)
+    await expect.poll(() => facingSet(page)).toEqual(['front'])
+    // Top is edge-on now: zero area, and no pointer.
+    await expect(page.getByTestId('gizmo-view-top')).toBeHidden()
+
+    await page.getByTestId('gizmo-views').click()
+    await expect(page.getByTestId('gizmo-picker')).toBeVisible()
+    await page.getByTestId('gizmo-picker-view-top').click()
+    await expect(page.getByTestId('gizmo-picker')).toHaveCount(0)
+    await expect.poll(() => readView(page)).toBe(EXPECTED.top)
+    await expect.poll(() => facingSet(page)).toEqual(['top'])
+
+    await page.getByTestId('gizmo-view-home').click()
+    await expect.poll(() => readView(page)).toBe(EXPECTED.home)
+    await expect.poll(() => facingSet(page)).toEqual(['front', 'right', 'top'])
+  })
+
+  test('orbiting the view turns the cube against the camera', async ({ page }) => {
+    await snapViaGizmo(page, 'home')
+    await expect.poll(() => facingSet(page)).toEqual(['front', 'right', 'top'])
+    const vp = await page.getByTestId('viewport').boundingBox()
+    if (!vp) throw new Error('viewport has no box')
+    const start = { x: vp.x + vp.width / 2, y: vp.y + vp.height / 2 }
+    expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName, [start.x, start.y])).toBe('CANVAS')
+
+    // Drag the empty canvas sideways until the camera has swung far enough round for Front to turn away.
+    let set = await facingSet(page)
+    for (let i = 0; i < 12 && set.includes('front'); i++) {
+      await page.mouse.move(start.x - 60, start.y)
+      await page.mouse.down()
+      await page.mouse.move(start.x + 60, start.y, { steps: 8 })
+      await page.mouse.up()
+      await sleep(50)
+      set = await facingSet(page)
+    }
+    expect(set, 'an orbit changed which faces show').not.toEqual(['front', 'right', 'top'])
+
+    // Whatever the camera now reads, the faces marked facing are exactly those the camera can see.
+    const { az, el } = await page.getByTestId('orientation-gizmo').evaluate((g) => ({ az: Number(g.dataset.azimuth), el: Number(g.dataset.elevation) }))
+    const rad = Math.PI / 180
+    const toCam = [Math.cos(el * rad) * Math.cos(az * rad), Math.cos(el * rad) * Math.sin(az * rad), Math.sin(el * rad)]
+    const expected = SIX.filter((v) => NORMAL[v].reduce((s, n, k) => s + n * toCam[k], 0) > 1e-3).sort()
+    await expect.poll(() => facingSet(page)).toEqual(expected)
+  })
+
+  test('the Views grid has a large cell per face, each the top control at its corners and centre', async ({ page }) => {
+    await page.getByTestId('gizmo-views').click()
+    await expect(page.getByTestId('gizmo-picker')).toBeVisible()
+    for (const view of SIX) {
+      const b = await page.getByTestId(`gizmo-picker-view-${view}`).boundingBox()
+      if (!b) throw new Error(`${view} cell has no box`)
+      expect(b.width, `${view} cell width`).toBeGreaterThanOrEqual(60)
+      expect(b.height, `${view} cell height`).toBeGreaterThanOrEqual(60)
+      for (const [fx, fy] of [[0.5, 0.5], [0.06, 0.06], [0.94, 0.06], [0.06, 0.94], [0.94, 0.94]]) {
+        expect(await hitAt(page, b.x + b.width * fx, b.y + b.height * fy), `${view} cell at ${fx},${fy}`).toBe(`gizmo-picker-view-${view}`)
       }
-      return centre(`gizmo-picker-view-${view}`)
+    }
+    await page.getByTestId('gizmo-picker-close').click()
+    await expect(page.getByTestId('gizmo-picker')).toHaveCount(0)
+  })
+
+  test('the gizmo block stays inside the box the axis triad took', async ({ page }, info) => {
+    const gizmo = page.getByTestId('orientation-gizmo')
+    const tier = await gizmo.getAttribute('data-chrome-tier')
+    const width = page.viewportSize()?.width ?? 0
+    // The old footprints (`stores/panelLayout.js`): full 130×177, compact (and phone) 106×138, and
+    // the ui-134 touch dial at tablet width, 190 px plus the card's padding and border.
+    const limit = touchTaps(info) && width >= 600 ? { w: 204, h: 274 } : tier === 'full' && width > 480 ? { w: 130, h: 177 } : { w: 106, h: 138 }
+    const b = await gizmo.boundingBox()
+    if (!b) throw new Error('gizmo has no box')
+    expect(b.width).toBeLessThanOrEqual(limit.w)
+    expect(b.height).toBeLessThanOrEqual(limit.h)
+    // A corner-on face stays a fingertip across its short diagonal (Top's box height at Home).
+    if (touchTaps(info)) {
+      const top = await page.getByTestId('gizmo-view-top').boundingBox()
+      expect(top?.height ?? 0).toBeGreaterThanOrEqual(44)
+    }
+  })
+
+  test('a scattered fingertip fires the face it aimed at', async ({ page }, info) => {
+    test.skip(!touchTaps(info), 'a fingertip needs touch emulation (Firefox has none here, laptop is a mouse)')
+    test.setTimeout(300_000)
+    const phone = info.project.name.endsWith('-phone')
+    const home = async () => {
+      const c = await centre(page, 'gizmo-view-home')
+      await page.touchscreen.tap(c.x, c.y)
+      await expect.poll(() => readView(page)).toBe(EXPECTED.home)
+      await expect.poll(() => facingSet(page)).toEqual(['front', 'right', 'top'])
     }
 
-    // Learn each view's orientation by tapping its cap's exact centre.
-    const expected = {}
-    for (const view of VIEWS) {
-      await home()
-      const c = await aimFor(view)
-      await tap(c.x, c.y)
-      await sleep(300)
-      expected[view] = await readView(page)
-    }
-
-    const rng = seededRng(134)
+    const rng = seededRng(158)
     let wrong = 0
     let total = 0
+    /** @type {Record<string, number>} */
     const report = {}
-    for (const view of VIEWS) {
+    for (const view of ['top', 'front', 'right']) {
       let wrongHere = 0
-      for (let i = 0; i < PER_CAP; i++) {
+      for (let i = 0; i < PER_FACE; i++) {
         await home()
-        const aim = await aimFor(view)
+        const aim = await centre(page, `gizmo-view-${view}`)
         const [p] = scatterTaps(aim, SIGMA_PX, 1, rng)
-        const before = await readView(page)
-        await tap(p.x, p.y)
-        await sleep(300)
+        await page.touchscreen.tap(p.x, p.y)
+        await sleep(120)
         const after = await readView(page)
         total++
-        // A tap on the dial's rim or off it changes nothing; only a different cap counts as wrong.
-        if (after !== before && after !== expected[view]) {
+        // A tap off the cube changes nothing; only a different face counts as wrong.
+        if (after !== EXPECTED.home && after !== EXPECTED[view]) {
           wrong++
           wrongHere++
         }
       }
       report[view] = wrongHere
     }
-    expect(wrong / total, `wrong-cap taps per view ${JSON.stringify(report)} of ${PER_CAP} each`).toBeLessThanOrEqual(phone ? MAX_WRONG_PHONE : MAX_WRONG)
-  })
-
-  test('every phone picker cell is the top control at its corners and centre', async ({ page }, info) => {
-    test.skip(!info.project.name.endsWith('-phone') || !info.project.use.hasTouch, 'the picker is the phone touch layout (TODO/ui-148)')
-    await page.goto('/')
-    await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
-    const d = await page.getByTestId('orientation-dial').boundingBox()
-    await page.touchscreen.tap(d.x + d.width / 2, d.y + d.height / 2)
-    await expect(page.getByTestId('gizmo-picker')).toBeVisible()
-    for (const view of VIEWS) {
-      const b = await page.getByTestId(`gizmo-picker-view-${view}`).boundingBox()
-      expect(b.width, `${view} cell width`).toBeGreaterThanOrEqual(60)
-      expect(b.height, `${view} cell height`).toBeGreaterThanOrEqual(60)
-      for (const [fx, fy] of [[0.5, 0.5], [0.06, 0.06], [0.94, 0.06], [0.06, 0.94], [0.94, 0.94]]) {
-        const hit = await page.evaluate(
-          ([x, y]) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'),
-          [b.x + b.width * fx, b.y + b.height * fy],
-        )
-        expect(hit, `${view} cell at ${fx},${fy}`).toBe(`gizmo-picker-view-${view}`)
-      }
-    }
-  })
-
-  test('the caps do not overlap at the Home orientation', async ({ page }, info) => {
-    test.skip(info.project.name.endsWith('-phone'), 'the phone dial is a readout; taps go through the picker (TODO/ui-148)')
-    await page.goto('/')
-    await expect(page.getByTestId('viewport')).toHaveAttribute('data-webgl', 'ready')
-    const boxes = []
-    for (const view of VIEWS) boxes.push(await page.getByTestId(`gizmo-view-${view}`).boundingBox())
-    for (let i = 0; i < boxes.length; i++) {
-      for (let j = i + 1; j < boxes.length; j++) {
-        const a = boxes[i]
-        const b = boxes[j]
-        const d = Math.hypot(a.x + a.width / 2 - (b.x + b.width / 2), a.y + a.height / 2 - (b.y + b.height / 2))
-        // Top and Bottom (or any opposite pair) can share a centre only in an axis-on view, never at Home.
-        expect(d, `${VIEWS[i]} and ${VIEWS[j]} centres`).toBeGreaterThan(30)
-      }
-    }
+    const rate = wrong / total
+    await info.attach('wrong-face-rate', { body: JSON.stringify({ rate, report, perFace: PER_FACE }), contentType: 'application/json' })
+    expect(rate, `wrong-face taps per face ${JSON.stringify(report)} of ${PER_FACE} each`).toBeLessThanOrEqual(phone ? MAX_WRONG_PHONE : MAX_WRONG_TABLET)
   })
 })

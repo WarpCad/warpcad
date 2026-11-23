@@ -37,6 +37,15 @@
   --cloud-350: #c2cad6;
   --cloud-500: #8c99ab;
 
+  /* The view cube's "lit from above" greys and its edge (`TODO/ui-158`): WarpCad1's
+     `DEFAULT_FACE_COLORS`, the cube the owner asked to bring back. The top face is `--white`. */
+  --pebble-50: #e6e8eb;
+  --pebble-100: #d0d4da;
+  --pebble-200: #b8bcc2;
+  --pebble-400: #9aa0a8;
+  --pebble-600: #6b7078;
+  --pebble-950: #14161a;
+
   /* Palette, hues */
   --navy-950: #06121d;
   --blue-400: #5aa9e6;

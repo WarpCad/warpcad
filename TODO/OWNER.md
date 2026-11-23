@@ -15,8 +15,8 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 100 now (Q16-Q115; Q94-Q115 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
-| [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 19 | 63 min total | closes rows |
+| [2](#2-questions--answer-from-anywhere) | Questions | 106 now (Q16-Q123; Q94-Q123 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
@@ -85,6 +85,102 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q123 · Keep the view cube's testids as `view-cube` and `gizmo-views`, with `orientation-dial` and `data-touch-picker` gone?
+
+**Question:** `ui-158` renamed the gizmo's handles: the cube container is `view-cube`, the new Views button is `gizmo-views`, `orientation-dial` and the `data-touch-picker` attribute are removed, and the picker ids (`gizmo-picker*`) are unchanged. Keep it?
+
+**Background:** Specs and docs media were moved to the new ids in the same commit. Keeping the old `orientation-dial` id on the cube would have been a lie about what it is.
+
+**Options:**
+- **Keep the new ids (Recommended):** nothing changes.
+- **Restore `orientation-dial` on the cube:** a rename across the specs and docs media. An S task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q122 · Keep the cube bare, with no card behind it and a glass background on the caption alone?
+
+**Question:** `ui-158` draws the cube bare in the corner, as WarpCad1 did, and gives the `az · el` caption its own glass background so it stays readable over the grid. Keep it?
+
+**Background:** The triad sat in a glass card. The owner's description of the cube was "bare in the viewport's top-right corner with no card around it", so I followed it.
+
+**Options:**
+- **Keep it bare (Recommended):** nothing changes.
+- **Put the cube back in a glass card:** a CSS change. An S task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q121 · Keep the view cube's colours as `--view-cube-*` tokens in the theme files, over six `--pebble-*` greys in `base.css`?
+
+**Question:** The task said the face shades go in `src/styles/tokens.css`, which does not exist. `ui-158` put six `--pebble-*` greys in `src/styles/base.css` and the `--view-cube-top/front/right/back/left/bottom/edge` tokens in `themes/dark.css` and `light.css`, pinned by `tokens.spec.js`. Keep it?
+
+**Background:** That is where this repo's other colour tokens live, so no new file was invented.
+
+**Options:**
+- **Keep it (Recommended):** nothing changes.
+- **Create `src/styles/tokens.css` and move them:** a file move plus the spec. An S task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q120 · Keep the phone cube taking taps on its faces directly, at about 12 % landing on a neighbour, with Views as the precise path?
+
+**Question:** On a phone the cube is 55 px a side beside the Operations toolbar. The rewritten `e2e/orientation-tap.e2e.js` measured the scattered-tap wrong-face rate at 12.0 % on chromium-phone and 12.7 % on webkit-phone, so its phone bound is 20 %, not the task's 3 %, which is geometrically out of reach at that size. Keep it?
+
+**Background:** `ui-148` instead opened the Views grid on a touch tap of the phone cube, which never misfires but costs a second tap. Tablet (96 px side) is predicted at 0.9 % and measured separately.
+
+**Options:**
+- **Keep direct taps (Recommended):** nothing changes.
+- **Touch tap on the phone cube opens Views:** ui-148's behaviour; an S task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q119 · Keep the view cube at 55 px a side in a 96 px box on a phone and laptop, and 96 px a side in a 168 px box on a coarse pointer 600 px and wider?
+
+**Question:** These are the sizes `ui-158` settled on. The gizmo block stays inside the 184 px (full) and 150 px (compact) reserves the Operations toolbar leaves it. Keep them?
+
+**Background:** 96 px is WarpCad1's cube. The touch size gives a corner-on face a short diagonal above 44 px.
+
+**Options:**
+- **Keep the sizes (Recommended):** nothing changes.
+- **Make the phone cube bigger:** it would crowd the Operations toolbar at 390 px; an M task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
+
+#### Q118 · Keep each cube face a flat 2D `matrix()` button, with an edge-on or turned-away face hidden, instead of a `preserve-3d` solid?
+
+**Question:** `ui-158` places the six faces with `matrix()` from `src/render/viewCube.js` rather than a `preserve-3d` context, and a face with depth at or below 1e-9 gets `visibility: hidden`, `pointer-events: none`, `aria-hidden` and `tabindex=-1`. Keep it?
+
+**Background:** Engines disagree on hit-testing back-facing `preserve-3d` children; the flat form is the same on Chromium, Firefox and WebKit. The look is the same (orthographic, flat shades).
+
+**Options:**
+- **Keep the flat faces (Recommended):** nothing changes.
+- **Rebuild as `preserve-3d`:** engine-specific hit-test work; an M task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
 
 #### Q117 · Keep the clearance tag as a fixed line in the upper view, not anchored to the red body?
 
@@ -1800,6 +1896,16 @@ Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
 **Steps:** 1. Chrome with the WebMCP flag on, WarpCad open. 2. In the Claude in Chrome pane ask: "make a 40 mm cube, then change your mind and make a 30 mm cylinder instead, and leave only the cylinder". 3. Look at the viewport and open History.
 
 **Pass if:** One body is left, no scratch body or extra boolean row exists, and the cube's Delete row is marked **via webmcp**. **Undo AI turn** brings it back.
+
+**Answer:** validation
+
+#### M27 · The view cube is the one you liked (laptop and phone)
+
+`ui-158` #1 · Mac · 3 min · filed 2026-11-22
+
+**Steps:** 1. Run `npm run build && npm run preview` (or use the deployed app) and open it in Chrome at about 1440 px wide. 2. Look at the top-right corner of the 3D view, then open `~/src/WarpCad1/e2e/app-shell.e2e.js-snapshots/app-shell-laptop-laptop-darwin.png` beside it. 3. Narrow the window to about 390 px (or use the phone preset in dev tools) and look again. 4. Click the white top face, then **Home**, then **Views** → **Bottom**.
+
+**Pass if:** It is the cube you liked: solid, unlabelled, about 96 px, lit white on top and darker below with dark edges, bare in the corner, and it turns as you orbit. In Other, say what is off if not (size, shades, edges, the Home and Views buttons under it).
 
 **Answer:** validation
 

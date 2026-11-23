@@ -29,17 +29,20 @@ wide). **Tablet** means something like an iPad held upright (820 px wide).
    put it away.
 5. **Two-finger drag** slides (pans) the view. **Pinch** zooms in and out. A **one-finger
    drag** orbits.
-6. **Tap the orientation cube** in the top-right corner (the X, Y, Z triad). A picker of six big
-   buttons opens; tap **Top**, for example, to snap the view to a standard direction. **Home** puts the camera back where
-   it started.
+6. **Tap a face of the view cube** in the top-right corner (the grey cube, white on top). For
+   example, tap the white top face: the camera snaps to look straight down at the grid, and the cube shows only its top.
+   **Home**, under the cube, puts the camera back where it started. The cube only shows three faces, so to
+   reach the others tap **Views** beside Home: a grid of six big buttons (Top, Front, Right, Bottom, Back, Left) opens,
+   and a tap on one snaps the view and closes the grid. On a phone the cube is small, so use **Views** when you need
+   the exact face.
 
 ![A finger dragging a Cube out of the Library sheet into the 3D view, where it lands as a body.](./media/mobile-drag-cube.gif)
 
-![Two fingers panning the view, then spreading to zoom in and pinching to zoom out, then a tap on the triad snapping to the top view.](./media/mobile-pinch-pan.gif)
+![Two fingers panning the view, then spreading to zoom in and pinching to zoom out, then a tap on the view cube's top face snapping to the top view.](./media/mobile-pinch-pan.gif)
 
 ## The whole screen
 
-![The empty WarpCad window on a phone: a top bar, the Operations toolbar top-left, the orientation triad top-right, the navigation pad bottom-left, and the Library tab along the bottom.](./screenshots/app-overview-phone.png)
+![The empty WarpCad window on a phone: a top bar, the Operations toolbar top-left, the view cube top-right, the navigation pad bottom-left, and the Library tab along the bottom.](./screenshots/app-overview-phone.png)
 
 On a phone:
 
@@ -47,7 +50,7 @@ On a phone:
 |---|---|
 | Top bar | Undo and redo, the **History** button (the three-line icon), the **File** menu and a small status light. |
 | Top-left of the 3D view | The **Operations toolbar** (Union, Subtract and the rest). |
-| Top-right | The **orientation triad** with its **Home** button. |
+| Top-right | The **view cube** with its **Home** and **Views** buttons. |
 | Bottom-left | The **navigation pad** (Orbit / Pan / Select, arrows, zoom). |
 | Bottom-right | The scale readout. |
 | Bottom edge | The **Library** tab, and, once there is something in the scene, the **Objects** or **Inspector** tab above it. |
@@ -68,7 +71,7 @@ Primitives, Hardware, Kit Parts, Raspberry Pi. See
 
 On a tablet the Library shrinks to a column of icons; tap an icon for its settings. See
 [When the window is narrow](primitive-placement.md#when-the-window-is-narrow). The navigation
-pad and the triad also shrink, with every button kept
+pad and the view cube also adapt, with every button kept
 ([compact form](viewport-navigation.md#the-navigation-pad-bottom-left)).
 
 In a window about 640–740 px wide, the Operations toolbar folds into Combine, Arrange and
@@ -228,7 +231,7 @@ the 3D view rather than sit beside it, so the model stays visible behind it.
 | One-finger drag on empty view | Orbits (or pans when **Pan** is chosen). |
 | Two-finger drag | Pans. |
 | Pinch | Zooms. |
-| Tap a triad cap, or **Home** | Snaps the view. |
+| Tap a cube face, **Home**, or **Views** then a view | Snaps the view. |
 | Swipe an Inspector sheet down | Puts it away and clears the selection. |
 
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->

@@ -54,7 +54,7 @@ You do not have to be precise about where you click: anywhere on the shape works
 ## What the colours mean
 
 The gizmo's arrows and the dimension lines use the same colour for the same direction
-everywhere in the app, matching the axis triad in the top-right corner of the 3D view:
+everywhere in the app, matching the axis lines on the grid:
 
 | Colour | Direction | What it measures |
 |---|---|---|

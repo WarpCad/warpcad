@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
  * Split joints that make parts or need parts bought (`TODO/core-075`, stage 1), driven against
@@ -261,7 +262,7 @@ test('Dowels from the grouped Joint list: key rows before Apply, key parts after
 
 test('a hand-placed Dowel of bought steel shows under You’ll also need, and lands in the Bill of materials', async ({ page }) => {
   await seedPlank(page)
-  await page.getByTestId('gizmo-view-right').click()
+  await snapViaGizmo(page, 'right')
   await page.getByTestId('op-split').click()
   await expect(page.getByTestId('split-sheet')).toBeVisible()
   await page.getByTestId('split-offset').fill('150')
@@ -356,7 +357,7 @@ test('Butterfly keys (stage 2): key rows before Apply, key parts after, and Prin
 
 test('a hand-placed Butterfly snaps to the cut-face outline and lands as a key part', async ({ page }) => {
   await seedPlank(page)
-  await page.getByTestId('gizmo-view-right').click()
+  await snapViaGizmo(page, 'right')
   await page.getByTestId('op-split').click()
   await expect(page.getByTestId('split-sheet')).toBeVisible()
   await page.getByTestId('split-offset').fill('150')
@@ -394,7 +395,7 @@ test('a hand-placed Butterfly snaps to the cut-face outline and lands as a key p
 
 test('a Butterfly tapped near the top edge at the default framing, with no zoom, places a marker (TODO/ui-143)', async ({ page }) => {
   await seedPlank(page)
-  await page.getByTestId('gizmo-view-right').click()
+  await snapViaGizmo(page, 'right')
   await page.getByTestId('op-split').click()
   await expect(page.getByTestId('split-sheet')).toBeVisible()
   await page.getByTestId('split-offset').fill('150')
@@ -472,7 +473,7 @@ test('Tenons (stage 3): key rows before Apply, key parts after, and Print pieces
 
 test('a hand-placed Magnet shows under You’ll also need and lands in the Bill of materials', async ({ page }) => {
   await seedPlank(page)
-  await page.getByTestId('gizmo-view-right').click()
+  await snapViaGizmo(page, 'right')
   await page.getByTestId('op-split').click()
   await expect(page.getByTestId('split-sheet')).toBeVisible()
   await page.getByTestId('split-offset').fill('150')

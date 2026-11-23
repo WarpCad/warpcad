@@ -59,6 +59,16 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-158 — The view cube replaces the axis triad (2026-11-23 00:30)
+
+The cube was driven by touch at 820x1180 and 390x844 (acceptance 7 and 9) and measured by the scattered-tap spec on all nine projects. What is left is judgment about looks and the six defaults taken without asking.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Is this the cube the owner liked in WarpCad1 (solid, unlabelled, white on top, bare in the corner), at laptop and phone width? | Owner | → `TODO/OWNER.md` M27. |
+| 2 | Keep the six defaults taken (flat faces, sizes, direct phone taps at about 12 % misfire, token files, test ids, no card)? | Owner | → `TODO/OWNER.md` Q118 to Q123. |
+| 3 | Do the 45 docs stills refreshed in this commit show only the new cube as their change? | OK | They also refreshed drift that was already there (Share button, version label, Inspector rows: the old baselines were stale beyond the 3 % tolerance); each was compared to its old image and the corner differences are the cube. |
+
 ### ui-153 — Cold-read chrome partials after ui-145 (2026-11-22 17:45)
 
 One fresh agent was shown only phone screenshots of the four changed controls and the item descriptions. It rated all four better but still partial (item 4 unclear); the remainders are filed as `ui-159`.

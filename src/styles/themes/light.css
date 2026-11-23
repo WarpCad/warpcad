@@ -32,6 +32,15 @@
     --scene-background: var(--cloud-150);
     --scene-grid-minor: var(--cloud-350);
     --scene-grid-major: var(--cloud-500);
+    /* The view cube (`TODO/ui-158`) keeps the dark theme's shades: it is a lit object, not chrome,
+       and its dark edges outline the white top against the light ground. */
+    --view-cube-top: var(--white);
+    --view-cube-front: var(--pebble-50);
+    --view-cube-right: var(--pebble-100);
+    --view-cube-back: var(--pebble-200);
+    --view-cube-left: var(--pebble-400);
+    --view-cube-bottom: var(--pebble-600);
+    --view-cube-edge: var(--pebble-950);
     --body: var(--denim-500);
     --body-selected: var(--amber-600);
     --body-secondary: var(--teal-600);
@@ -86,6 +95,15 @@
   --scene-background: var(--cloud-150);
   --scene-grid-minor: var(--cloud-350);
   --scene-grid-major: var(--cloud-500);
+  /* The view cube (`TODO/ui-158`) keeps the dark theme's shades: it is a lit object, not chrome,
+     and its dark edges outline the white top against the light ground. */
+  --view-cube-top: var(--white);
+  --view-cube-front: var(--pebble-50);
+  --view-cube-right: var(--pebble-100);
+  --view-cube-back: var(--pebble-200);
+  --view-cube-left: var(--pebble-400);
+  --view-cube-bottom: var(--pebble-600);
+  --view-cube-edge: var(--pebble-950);
   --body: var(--denim-500);
   --body-selected: var(--amber-600);
   --body-secondary: var(--teal-600);

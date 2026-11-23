@@ -5449,3 +5449,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** a rotating e2e pair (firefox-phone + chromium-tablet) 1,314 passed, 0 failed, 10,133 unit tests passing; the cold read's ratings (partial, partial, partial, unclear) → `TODO/VERIFY.md`, `TODO/done/ui-153-cold-read-chrome-partials-after-ui-145.md`
 **To Add:** none
 ---
+
+## 2026-11-23T00:30:00Z — WarpCad: replacing an axis triad with a shaded view cube
+
+**Post:** WarpCad's orientation gizmo used to be an SVG axis triad with six round caps. It is now a solid, unlabelled cube like the one in the second attempt at this project: white on top, darker underneath, dark edges, no card around it. It turns against the camera as you orbit, and tapping a face snaps to that view.
+
+The cube is six ordinary buttons placed with a flat 2D transform computed from the camera's azimuth and elevation, so there is no second WebGL context and nothing redraws until the camera moves. A face that is turned away or edge-on is hidden and takes no taps, because engines disagree on hit-testing back-facing 3D children. A Views button next to Home opens a grid of all six faces, which is how you reach the ones you cannot see, and how you leave a face-on view.
+
+The tap test is the part with a caveat. On a tablet the scattered-fingertip measurement came out at 2.7% wrong-face on Chromium and 0.7% on WebKit. On a phone the cube is 55 px a side beside the toolbar and the same test gives about 12%, so the task's 3% target was not reachable there and the phone bound is 20%, with Views as the precise path.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #WebDev
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** wrong-face rates 2.7% chromium-tablet, 0.7% webkit-tablet, 12.0% chromium-phone, 12.7% webkit-phone → this session's orientation-tap runs; 20% phone bound and 3% tablet bound → `e2e/orientation-tap.e2e.js` constants; 55 px side → `OrientationGizmo.vue`; DOM faces, no WebGL canvas → the diff and `TODO/done/ui-158-switch-orientation-gizmo-to-the-warpcad1-view-cube.md`
+**To Add:** none
+---

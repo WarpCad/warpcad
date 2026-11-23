@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { snapToView, pointer, sceneBodies, sleep, usesTrustedTouch, viewportPoint } from './support/humanInput.js'
+import { pointer, sceneBodies, sleep, usesTrustedTouch, viewportPoint } from './support/humanInput.js'
+import { snapViaGizmo } from './support/snapViaGizmo.js'
 
 /**
  * The Library icon rail and the compact viewport chrome between laptop and phone width
@@ -109,7 +110,7 @@ test.describe('the panel tiers, swept across widths (TODO/ui-084)', () => {
         expect(m.nav?.height ?? 999, `compact pad height ${at}`).toBeLessThanOrEqual(179)
         expect(m.nav?.width ?? 999, `compact pad width ${at}`).toBeLessThanOrEqual(212)
       } else {
-        expect(m.gizmo?.width ?? 0, `full gizmo width ${at}`).toBeGreaterThanOrEqual(128)
+        expect(m.gizmo?.width ?? 0, `full gizmo width ${at}`).toBeGreaterThanOrEqual(96)
         expect(m.nav?.height ?? 0, `full pad height ${at}`).toBeGreaterThanOrEqual(186)
       }
 
@@ -183,15 +184,14 @@ test.describe('the Library icon rail at the tablet reference (TODO/ui-084)', () 
       distance: Number(await view.getAttribute('data-camera-distance')),
     })
 
-    await snapToView(page, 'top')
+    await snapViaGizmo(page, 'top')
     await expect.poll(async () => (await camera()).elevation).toBeGreaterThan(85)
-    await snapToView(page, 'front')
+    await snapViaGizmo(page, 'front')
     await expect.poll(async () => Math.abs((await camera()).elevation)).toBeLessThan(5)
-    // Each cap is tapped from a view where it is not hidden behind its opposite at the dial's
-    // centre (looking down +X puts −X directly under X, at any width).
+    // Each view is reached through the view cube: its face when it shows, Views when it is turned away.
     for (const cap of ['right', 'back', 'left', 'bottom']) {
       const before = await camera()
-      await snapToView(page, cap)
+      await snapViaGizmo(page, cap)
       await expect.poll(async () => JSON.stringify(await camera()), { message: `gizmo-view-${cap}` }).not.toBe(JSON.stringify(before))
     }
     await press(page.getByTestId('gizmo-view-home'))
@@ -741,8 +741,10 @@ test.describe('snapshots at the three reference viewports (TODO/ui-084)', () => 
       expect(m.libraryTier).toBe('sheet')
       expect(m.chromeTier).toBe('full')
       expect(m.rail).toBe(null)
-      expect(m.gizmo?.width ?? 0).toBeCloseTo(106, 0)
-      expect(m.gizmo?.height ?? 0).toBeCloseTo(138, 0)
+      expect(m.gizmo?.width ?? 0).toBeCloseTo(96, 0)
+      // The view cube (`TODO/ui-158`): 96px of cube, the Home and Views row and the caption, 128 to 132px by engine.
+      expect(m.gizmo?.height ?? 0).toBeGreaterThanOrEqual(124)
+      expect(m.gizmo?.height ?? 999).toBeLessThanOrEqual(136)
       // `TODO/ui-149`: 164 x 189-196 before the mode row went to a real 44px height with 12px gaps
       // (14px taller, ~20px wider; `ui-043`'s 14px came back from the Operations toolbar instead).
       expect(m.nav?.height ?? 0).toBeCloseTo(178, 0)

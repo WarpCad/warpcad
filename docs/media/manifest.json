@@ -9,37 +9,37 @@
   "nav-chrome-buttons.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "light",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 859310,
-    "seconds": 5.14
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 863458,
+    "seconds": 5.07
   },
   "nav-zoom.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "light",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1262371,
-    "seconds": 5.8
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 1352479,
+    "seconds": 5.67
   },
   "orientation-gizmo-snap.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "light",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 772622,
-    "seconds": 6.07
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 863782,
+    "seconds": 6.47
   },
   "nav-orbit.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "light",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1184129,
-    "seconds": 5.33
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 1224632,
+    "seconds": 5.41
   },
   "nav-pan.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "light",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1373209,
-    "seconds": 5.91
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 1551828,
+    "seconds": 6.25
   },
   "placement-snap-guides.gif": {
     "spec": "e2e/docs/primitive-placement.docs.js",
@@ -359,23 +359,23 @@
   "mobile-drag-cube.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "theme": "light",
-    "specHash": "0ea9db3b100af8e7db18dd0da1e46dc5c478900cece518fac2aa978288df29df",
-    "bytes": 261433,
-    "seconds": 6.5
+    "specHash": "65b41f526b144a5fd4a7bf820eb702e9e02d306eee3188fd04e815e12b475d16",
+    "bytes": 250595,
+    "seconds": 6.4
   },
   "mobile-subtract.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "theme": "light",
-    "specHash": "0ea9db3b100af8e7db18dd0da1e46dc5c478900cece518fac2aa978288df29df",
-    "bytes": 345092,
-    "seconds": 5.4
+    "specHash": "65b41f526b144a5fd4a7bf820eb702e9e02d306eee3188fd04e815e12b475d16",
+    "bytes": 337601,
+    "seconds": 5.2
   },
   "mobile-pinch-pan.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "theme": "light",
-    "specHash": "0ea9db3b100af8e7db18dd0da1e46dc5c478900cece518fac2aa978288df29df",
-    "bytes": 1455686,
-    "seconds": 8.88
+    "specHash": "65b41f526b144a5fd4a7bf820eb702e9e02d306eee3188fd04e815e12b475d16",
+    "bytes": 1398468,
+    "seconds": 8.26
   },
   "tour.gif": {
     "spec": "e2e/docs/getting-started.docs.js",
@@ -409,9 +409,9 @@
   "print-prep-split.gif": {
     "spec": "e2e/docs/print-prep.docs.js",
     "theme": "light",
-    "specHash": "c1eb36ead4a5e69a858e943fa21fe2d8efc52e72316ce8c42bc6d7b2a6a12f0e",
-    "bytes": 1759390,
-    "seconds": 19.76
+    "specHash": "3a7062e86fe0e239e69715836b7666015f2d50be7ccc0127cc3ce9558b85feb7",
+    "bytes": 1422306,
+    "seconds": 15.76
   },
   "user-library-place.gif": {
     "spec": "e2e/docs/user-library.docs.js",
@@ -479,9 +479,9 @@
   "print-prep-manual-joint.gif": {
     "spec": "e2e/docs/print-prep.docs.js",
     "theme": "light",
-    "specHash": "c1eb36ead4a5e69a858e943fa21fe2d8efc52e72316ce8c42bc6d7b2a6a12f0e",
-    "bytes": 1012225,
-    "seconds": 13.63
+    "specHash": "3a7062e86fe0e239e69715836b7666015f2d50be7ccc0127cc3ce9558b85feb7",
+    "bytes": 1039082,
+    "seconds": 16.13
   },
   "repeat-placement.gif": {
     "spec": "e2e/docs/snap-align.docs.js",
@@ -766,51 +766,51 @@
   "mobile-drag-cube.dark.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "theme": "dark",
-    "specHash": "0ea9db3b100af8e7db18dd0da1e46dc5c478900cece518fac2aa978288df29df",
-    "bytes": 340218,
-    "seconds": 6.7
+    "specHash": "65b41f526b144a5fd4a7bf820eb702e9e02d306eee3188fd04e815e12b475d16",
+    "bytes": 260718,
+    "seconds": 6.4
   },
   "mobile-pinch-pan.dark.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "theme": "dark",
-    "specHash": "0ea9db3b100af8e7db18dd0da1e46dc5c478900cece518fac2aa978288df29df",
-    "bytes": 1479577,
-    "seconds": 8.76
+    "specHash": "65b41f526b144a5fd4a7bf820eb702e9e02d306eee3188fd04e815e12b475d16",
+    "bytes": 1300895,
+    "seconds": 8.26
   },
   "mobile-subtract.dark.gif": {
     "spec": "e2e/docs/mobile.docs.js",
     "theme": "dark",
-    "specHash": "0ea9db3b100af8e7db18dd0da1e46dc5c478900cece518fac2aa978288df29df",
-    "bytes": 372929,
-    "seconds": 5.3
+    "specHash": "65b41f526b144a5fd4a7bf820eb702e9e02d306eee3188fd04e815e12b475d16",
+    "bytes": 355234,
+    "seconds": 5.2
   },
   "nav-chrome-buttons.dark.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "dark",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 807354,
-    "seconds": 5.14
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 893067,
+    "seconds": 5.07
   },
   "nav-orbit.dark.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "dark",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1178986,
-    "seconds": 5.25
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 1277196,
+    "seconds": 5.5
   },
   "nav-pan.dark.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "dark",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1223770,
-    "seconds": 5.83
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 1431299,
+    "seconds": 6.33
   },
   "nav-zoom.dark.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "dark",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 1248924,
-    "seconds": 5.54
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 1428893,
+    "seconds": 6.07
   },
   "open-project.dark.gif": {
     "spec": "e2e/docs/save-load.docs.js",
@@ -822,9 +822,9 @@
   "orientation-gizmo-snap.dark.gif": {
     "spec": "e2e/docs/viewport-navigation.docs.js",
     "theme": "dark",
-    "specHash": "25296c2b88f0d19e1913aa210048daf54b5fee28e26cf0ef2534cab7eb57d9c8",
-    "bytes": 850024,
-    "seconds": 6.8
+    "specHash": "34b783efdde3c467431ab5a7c4c54b640643795c6c78aecd300a684b732e79c8",
+    "bytes": 981079,
+    "seconds": 6.87
   },
   "part-hidden-by-default.dark.gif": {
     "spec": "e2e/docs/selection-inspector.docs.js",
@@ -864,16 +864,16 @@
   "print-prep-manual-joint.dark.gif": {
     "spec": "e2e/docs/print-prep.docs.js",
     "theme": "dark",
-    "specHash": "c1eb36ead4a5e69a858e943fa21fe2d8efc52e72316ce8c42bc6d7b2a6a12f0e",
-    "bytes": 1176726,
-    "seconds": 13.88
+    "specHash": "3a7062e86fe0e239e69715836b7666015f2d50be7ccc0127cc3ce9558b85feb7",
+    "bytes": 1177792,
+    "seconds": 16.13
   },
   "print-prep-split.dark.gif": {
     "spec": "e2e/docs/print-prep.docs.js",
     "theme": "dark",
-    "specHash": "c1eb36ead4a5e69a858e943fa21fe2d8efc52e72316ce8c42bc6d7b2a6a12f0e",
-    "bytes": 1752074,
-    "seconds": 19.13
+    "specHash": "3a7062e86fe0e239e69715836b7666015f2d50be7ccc0127cc3ce9558b85feb7",
+    "bytes": 1446373,
+    "seconds": 16.26
   },
   "resize-enlarge.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",

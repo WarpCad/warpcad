@@ -31,6 +31,15 @@
   --scene-background: var(--slate-925);
   --scene-grid-minor: var(--slate-780);
   --scene-grid-major: var(--slate-600);
+  /* The view cube (`TODO/ui-158`): one fixed shade per face, white on top to dark underneath, so the
+     cube reads as a lit solid from any angle, and dark edges between them. */
+  --view-cube-top: var(--white);
+  --view-cube-front: var(--pebble-50);
+  --view-cube-right: var(--pebble-100);
+  --view-cube-back: var(--pebble-200);
+  --view-cube-left: var(--pebble-400);
+  --view-cube-bottom: var(--pebble-600);
+  --view-cube-edge: var(--pebble-950);
   /* Solid bodies: the default colour (a user colour override always wins over it), the first-picked
      selection, the rest of a multi-selection, the placement ghost, and the object list's hover. */
   --body: var(--denim-300);
