@@ -69,6 +69,8 @@ stashes only the failed task's own paths.
 
 **Decided 2026-11-21 (owner):** "Is there a way for the agent to set the project description when it's done? If not, make a todo so that as soon as an agent is done creating something, the project is ready to be saved as a gist with any additional files or info already to go." The description already has a tool (`set_description`, all three paths). The rest was filed as `io-040` and shipped 2026-11-21.
 
+**Decided 2026-11-22 (owner):** "In the previous attempt at warpcad, I really like the position cube that one made… Write a to do to switch to that one." The cube is the second attempt's (`~/src/WarpCad1`, `render-003`/`render-008`); the first attempt had none. Filed as `ui-158`, moved to the head of Next up by the owner the same day ("make the new todos the next ones"), and shipped 2026-11-22. Built as CSS 3D faces rather than a second WebGL canvas; that choice and its alternative are in the task file.
+
 **Order, and why.** The 2026-11-13 run closed every row from 1 to 35 except `perf-004` (parked on an owner question) and
 `ui-108`; the numbers of the rows that closed are gone. What is left is the three
 follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.md drives filed, in the order they were filed
