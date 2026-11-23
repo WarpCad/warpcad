@@ -118,7 +118,7 @@ The app can let an MCP agent, such as Claude Code on your computer, edit the pro
 open, with nothing else to install. Open **Assistant → Live MCP access…**, choose how long, and
 tap **Enable access**. To reach it from a computer on the same Wi-Fi, turn on **Allow devices on
 this Wi-Fi** and copy the command the sheet shows. It works while WarpCad is open on screen.
-[From the iOS app](mcp.md#from-the-ios-app) gives the steps and says which agents can connect.
+If the switch will not turn on, a red line under it says why (a VPN, cellular data, no Wi-Fi). [From the iOS app](mcp.md#from-the-ios-app) gives the steps, the reasons and what to do about each, and says which agents can connect.
 
 ### Open in WarpCad
 

@@ -407,7 +407,7 @@ Installed with `ios-release.sh --install "Socrates"` and launched by hand (the f
 | E4 | Share sheet: Copy link pastes; Send opens the sheet | OK | PASS (owner). |
 | E5 | GitHub token survives relaunch | OK | PASS (owner). |
 | E6 | Anthropic key survives relaunch (optional, spends tokens) | Deferred | 2026-11-17 (owner-queue triage): API key; parked as OWNER.md Z1. Deferred by owner. |
-| F1 | Live MCP access on: Wi-Fi address, token, `claude mcp add` line | Issue | FAIL (owner): it did not work on Socrates. Needs a TODO. Whether a Local Network prompt appeared was not recorded. |
+| F1 | Live MCP access on: Wi-Fi address, token, `claude mcp add` line | Owner | FAIL (owner): it did not work on Socrates. Filed as `ai-043`, fixed 2026-11-23 (the sheet now says why); the device re-check is `TODO/OWNER.md` I20. Whether a Local Network prompt appeared was not recorded. |
 | F2 | Paste on Mac; 20 mm cylinder lands; Undo removes it | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I9. Not run: blocked by F1. |
 | F3 | `curl` with no token and a wrong token: 401 both | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I10. Not run: blocked by F1. |
 | F4 | Lock 60 s mid-request: agent told the call may not have landed | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I11. Not run: blocked by F1. |
@@ -3079,6 +3079,16 @@ draw their buttons with `BaseButton`. Four looks changed on purpose and are a ju
 | 2 | Toast and banner buttons lost their hover/focus accent border; the shared focus ring replaces it. Visible on a keyboard Tab in Firefox and Safari? | OK | 2026-11-17 (`testing-044` part 2): the offline-ready banner's **OK** (`pwa-offline-ready-dismiss`) reached by keyboard: Chromium and Firefox by Shift+Tab, outline `2px solid rgb(31,111,178)`, offset 2 px, `:focus-visible` true, ring fully inside the banner and not clipped (screenshot read). WebKit's Playwright build skips buttons in the Tab order, as Safari does by default, so focus was set from the keyboard (`:focus-visible` true, same 2 px ring). Real Safari on a device not driven. |
 | 3 | The Assistant's three height buttons and Watch keep square corners and 8 px padding through a parent selector. At 390 px does the header row still wrap the same way? | OK | 2026-11-17 (`testing-044`), headless WebKit at 390x844 (Step limit drive screenshot): the Assistant header is one row: title, a status that is clipped to 'Rea…', Watch (disabled), Fold, Half, Tall (pressed), and the close button; corners square, no wrap and no overflow. Observation, not filed: the status word 'Ready' is clipped to 'Rea…' at 390 px with the live-bridge flag build. |
 | 4 | The Show all toggle on a long reply is now an underlined link. Reads as a link, not a stray label? | OK | 2026-11-17 (`testing-044` part 2): a long reply recorded over the live bridge (`record_prompt` and `record_response`), read in History's Prompts view at 1440x900. The collapsed reply ends in an ellipsis, then **Show all** in accent blue, underlined, no border or fill (computed: `text-decoration: underline`, colour rgb(31,111,178), transparent background, 0 px border), above the *Edit reply* / *Remove reply* buttons. It reads as a link. |
+
+### ai-043 — Live MCP access on the iPad: Wi-Fi refusals, and what the simulator could not show (2026-11-23)
+
+Built `main` plus the `ai-043` tree for the iPad Pro 11-inch (M5) simulator (iOS 27.2, `tauri ios build --target aarch64-sim --debug`), installed it and launched it: it boots to the viewport at v1.25.0. There is no Simulator.app window on this Mac and no `idb`, so no tap reached Assistant → Live MCP access, and the simulator does not model Local Network privacy anyway. Seen: the refusal sentence ("WarpCad will not open its MCP port there") is in the built binary, the embedded web bundle carries `ai-connect-lan-error`, and port 5184 stays closed with access off. Not seen: the sheet on the simulator itself, and any Local Network prompt.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Real iPad on a home Wi-Fi: the sheet shows an address equal to Settings → Wi-Fi, the token and the `claude mcp add` line; whether a Local Network prompt appears (expected none, TN3179). | Owner | `TODO/OWNER.md` I20. The F1 re-check; F2-F5 and the `ai-036` device checks (I9-I12, I14-I18) now wait on it. |
+| 2 | The red reason line at phone, tablet and laptop with the fake native shell: VPN route, bind failure; the switch reads off and no address, token or command shows. | OK | Production build; `e2e/native-mcp-wifi-reason.e2e.js` on all nine engine x viewport projects, screenshots read at the three sizes. |
+| 3 | Should a Wi-Fi address be offered while a VPN holds the default route? | Owner | `TODO/OWNER.md` Q134. Default taken: keep refusing. |
 
 ### mcp-001 — Live MCP: "add a cube and a sphere" blocked by the single-client guard (2026-11-16)
 

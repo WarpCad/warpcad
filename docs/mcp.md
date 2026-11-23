@@ -570,6 +570,49 @@ claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "A
 
 ![The Live MCP access sheet in the iPhone app with 1 hour enabled and Allow devices on this Wi-Fi turned on: the address http://192.168.1.20:5184/mcp, the token, and the Copy address, Copy token, Copy Claude Code command and New token buttons.](./screenshots/native-mcp-sheet.png)
 
+### If the switch will not turn on
+
+**Allow devices on this Wi-Fi** only opens the port on the iPhone or iPad's Wi-Fi address. When
+WarpCad cannot find a Wi-Fi address it can trust, the switch snaps back to off and a red line under
+it says why, in plain words, followed by every address the device has (for example
+`Addresses on this device: en0 192.168.1.20, utun3 10.8.0.2`):
+
+![The Live MCP access sheet in the iPhone app after Allow devices on this Wi-Fi was refused: the switch is off and a red line reads that the device's traffic goes through a VPN (utun3), with the addresses en0 192.168.1.20 and utun3 10.8.0.2.](./screenshots/native-mcp-wifi-refused.png)
+
+Nothing is opened, no token is
+made, and the agent on your computer cannot connect. The reasons:
+
+| The red line says | What it means | What to do |
+|---|---|---|
+| Found no Wi-Fi address | The device has no network. | Join a Wi-Fi network, then turn the switch on again. |
+| Traffic goes through a VPN (`utun3`, `ipsec0` and the like) | A VPN or iCloud Private Relay-style tunnel carries the device's traffic. WarpCad never opens the port on a VPN, even when it has a private address. | Turn the VPN off, then turn the switch on again. |
+| On cellular data (`pdp_ip0`) | The device is not on Wi-Fi. | Join a Wi-Fi network. |
+| A carrier or VPN address (`100.64.0.0/10`) | Carrier-grade NAT, or a VPN such as Tailscale, gave the device this address. Other computers cannot reach it from your Wi-Fi anyway. | Join a home Wi-Fi network, or turn the VPN off. |
+| Not a private Wi-Fi address | The address is public or link-local, so anyone who can reach it could reach WarpCad. | Join a normal home or office Wi-Fi network. |
+| Only an IPv6 address | The network gave the device no IPv4 address, and the switch listens on IPv4. | Use a network that also hands out IPv4, or use the on-device endpoint only. |
+| Could not listen on its Wi-Fi address | The Wi-Fi address was found, but the port was taken or refused. Only this device can connect. | Close the other app using port 5184 or switch Wi-Fi off and on, then turn the switch on again. |
+| Could not open a port | Every port WarpCad tried was taken. The status line says access is off, in the same words. | Close the other app using it, or try again. |
+
+The on-device endpoint (`http://127.0.0.1:5184/mcp`) still works in every case, for an agent on the
+same device. WarpCad lists addresses so you can see which one it saw, but it never chooses another
+network's address for you.
+
+**No Local Network prompt.** WarpCad only listens for connections, which iOS does not count as
+reaching out to your local network, so you should not see a "WarpCad would like to find devices on
+your local network" prompt when you turn the switch on. If one appears, allow it and tell us, since
+that is a case this page does not know about yet.
+
+**Example.** You turn the switch on at the office and read *This device's traffic goes through a VPN
+(utun3)... Addresses on this device: en0 192.168.1.20, utun3 10.8.0.2*:
+
+1. Open Settings and turn the VPN off.
+2. Go back to WarpCad, **Assistant → Live MCP access…** and turn **Allow devices on this Wi-Fi**
+   off and on again.
+3. The red line is gone and the sheet shows `http://192.168.1.20:5184/mcp`, the token and **Copy
+   Claude Code command**.
+4. Compare the address with Settings → Wi-Fi → the (i) next to your network → IP Address. They
+   match.
+
 ### Moving to a different network
 
 1. At home, turn on **Allow devices on this Wi-Fi**, copy the command and run it on your Mac. The

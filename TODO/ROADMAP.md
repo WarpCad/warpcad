@@ -82,10 +82,9 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 3 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 2 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 2 queued (ready) + 1 held + 1 running | The runner's queue: `testing-045`, `ui-164`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
-| 122 | ▶ Ready, ⚠ opus | `M19` | [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Make Live MCP access start, or say why, when the Wi-Fi address is missing (simulator first; F1 re-check to OWNER.md) | ▶ Ready (Next up row 122) |
 | 123 | ▶ Ready, ⚠ opus | `M19` | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token from loopback peers on iOS and Android (default taken; logged as an OWNER.md question) | ▶ Ready (Next up row 123) |
 | 124 | ▶ Ready | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Everything in the device probe that needs no iPad, and the probe build ready for OWNER.md I13 | ▶ Ready (Next up row 124) |
 | 125 | ▶ Ready | `FIND` | [`ui-164`](FIND-ui-164-show-on-a-merge-banner-leaves-the-conflicted-history-row-below-the-fold.md) **Show** on a merge banner leaves the conflicted History row, its reason and Suppress below the fold at 900 px (filed by `testing-043`) | sonnet |
@@ -178,7 +177,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
 | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token for loopback peers on iOS and Android (M19) | finding | medium | opus | Held (native) |
-| [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Live MCP access does not start on the iPad (M19) | finding | medium | sonnet | Held (native) |
 | [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
 | [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
 | [`ui-080`](DEFER-ui-080-threads-library-section-and-inspector.md) Threads section in the Library, drag-to-place, Inspector fields (was M5) | feature | medium | sonnet | Deferred 2026-11-07 |
@@ -243,7 +241,7 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 >
 > **Decided 2026-11-17 (owner, in `/whats-next`):** file the eight unrun iPad checks (D4, E6, F2 to F5, G, H) now as held rows in `warpcad-native`. Superseded by the owner-queue triage below: no row files were written.
 >
-> **2026-11-17 (owner-queue triage):** the eight checks are items in `TODO/OWNER.md` instead of separate row files: H → I5, F2-F5 → I9-I12 (wait on `ai-043`), G → I13 (waits on the probe build), D4 → W1 (overnight), E6 → Z1 (parked, API key). The bookkeeping commit above is `testing-044` step 0.
+> **2026-11-17 (owner-queue triage):** the eight checks are items in `TODO/OWNER.md` instead of separate row files: H → I5, F2-F5 → I9-I12 (wait on I20, the F1 re-check, since `ai-043` closed 2026-11-23), G → I13 (waits on the probe build), D4 → W1 (overnight), E6 → Z1 (parked, API key). The bookkeeping commit above is `testing-044` step 0.
 >
 > **Decided 2026-11-15 (owner):** "Continue adding things, but do not push the native repo yet. Test on this mac or
 > iPad (it should work now)." So the local rows below are back in the runner's queue: Gate 0 of
@@ -258,8 +256,7 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `ai-043` | Live MCP access: a missing Wi-Fi address or failed bind gives a visible reason; simulator first; F1 re-check to OWNER.md | Finding | — | 25, 28 |
-| `ai-042` | Require the MCP token from loopback peers on iOS and Android (default taken, logged in OWNER.md §2) | Finding | `ai-043` | 25 |
+| `ai-042` | Require the MCP token from loopback peers on iOS and Android (default taken, logged in OWNER.md §2) | Finding | `ai-043` (closed 2026-11-23) | 25 |
 | `build-018` | The device probe's agent half: `.ipa` size, wry's process-kill handling, the Claude iOS connector question, the probe build ready for OWNER.md I13 | Feature | — | 10 |
 
 The gated rows below carry a **Run gate** banner in their file: what has to be true before they are queued, and the
@@ -442,7 +439,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 2 queued + 1 held | 2 ready for `/run-todos` (`testing-045`, `ui-164`); `testing-027` held; `testing-028` running in the desktop app. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 3 queued + 10 held | Queued 2026-11-23: `ai-043`, `ai-042`, `build-018` (agent half); `testing-043` closed 2026-11-23. Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 2 queued + 10 held | Queued 2026-11-23: `ai-042`, `build-018` (agent half); `testing-043` and `ai-043` closed 2026-11-23. Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |

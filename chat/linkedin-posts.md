@@ -5587,3 +5587,21 @@ Built with Claude Code, reviewed by me.
 **Evidence:** cube 31% x 36% before, 69% x 79% after → `scripts/icon-svg.test.mjs`; other platforms' icons identical → `git status` after `npm run icons`; Dock captured with the built app → this session; owner re-check pending → `TODO/OWNER.md` M1
 **To Add:** none
 ---
+
+## [2026-11-23T22:30:00Z] — A switch that did nothing, and why it had to say so
+
+On the first iPad test of WarpCad's live agent access, I turned on "Allow devices on this Wi-Fi" and nothing useful happened. I wrote down only "it did not work", which gave the next session nothing to go on.
+
+Reading the code turned up three causes. The switch stayed ticked after the app refused it, because the page's value had not changed, so the page never redrew the box. A rejected request still left the sheet saying access was enabled. And in the native code, a VPN route with a private 10.x address was accepted as Wi-Fi, which an earlier security fix had promised never to do.
+
+Now each refusal has its own reason: a VPN, cellular data, a carrier address, a public one, IPv6 only, or no network. The red line under the switch names it and lists every address the device has, and the switch reads off. The app never picks another network's address for you. Apple's TN3179 says a listener that only accepts connections needs no Local Network prompt, so none is expected; the owner's iPad check will confirm that.
+
+The iPad simulator ran the build but I could not tap it from here, so the sheet itself is checked in the browser with a stand-in for the app, at phone, tablet and laptop sizes.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 84 Rust tests, 10 new → `cargo test`; sheet specs 54 passed on 9 projects → this session's run; simulator booted, not tapped → `TODO/VERIFY.md` ai-043; device re-check → `TODO/OWNER.md` I20
+**To Add:** none
+---

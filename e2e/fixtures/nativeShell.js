@@ -60,7 +60,7 @@ function installInPage(commands, createFs, desktop) {
     for (const listener of listeners.filter((l) => l.event === event)) callbacks.get(listener.handler)?.({ event, id: 0, payload })
   }
   /** The fake MCP host's state (`TODO/ai-026`). */
-  const mcp = { lease: 'off', lan: false, connection: 'idle', token: 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9', expiresAt: /** @type {number | null} */ (null), nextId: 1, surface: /** @type {any} */ (null), rotations: 0 }
+  const mcp = { lease: 'off', lan: false, connection: 'idle', token: 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9', expiresAt: /** @type {number | null} */ (null), nextId: 1, surface: /** @type {any} */ (null), rotations: 0, lanRefusal: /** @type {string | null} */ (null), failAccess: /** @type {string | null} */ (null) }
   /** @type {Array<{ id: number, result: any }>} */
   const replies = []
   const mcpStatus = () => ({
@@ -77,7 +77,7 @@ function installInPage(commands, createFs, desktop) {
       url: on ? 'http://127.0.0.1:5184/mcp' : null,
       lanUrl: on && mcp.lan ? 'http://192.168.1.20:5184/mcp' : null,
       token: on && mcp.lan ? mcp.token : null,
-      lanError: null,
+      lanError: /** @type {string | null} */ (null),
     }
   }
   const internals = {
@@ -96,13 +96,23 @@ function installInPage(commands, createFs, desktop) {
       }
       if (cmd === 'plugin:event|unlisten') return Promise.resolve(null)
       if (cmd === 'mcp_set_access') {
+        // `TODO/ai-043`: the Rust host's `Err` (no port would open) rejects with its words and sends no status.
+        if (mcp.failAccess !== null) {
+          const message = mcp.failAccess
+          mcp.failAccess = null
+          return Promise.reject(message)
+        }
         mcp.lease = args.lease
-        mcp.lan = args.lease !== 'off' && args.lan === true
+        const wantsLan = args.lease !== 'off' && args.lan === true
+        // `TODO/ai-043`: no Wi-Fi address, or it would not bind: the switch stays off and `lanError` says why.
+        mcp.lan = wantsLan && mcp.lanRefusal === null
         if (args.surface) mcp.surface = args.surface
         mcp.expiresAt = args.lease === '15m' ? Date.now() + 15 * 60_000 : args.lease === '1h' ? Date.now() + 60 * 60_000 : null
         if (args.lease === 'off') mcp.connection = 'idle'
         setTimeout(() => emit('warpcad-mcp-host', mcpStatus()), 0)
-        return Promise.resolve(mcpEndpoint())
+        const endpoint = mcpEndpoint()
+        if (wantsLan && mcp.lanRefusal !== null) endpoint.lanError = mcp.lanRefusal
+        return Promise.resolve(endpoint)
       }
       if (cmd === 'mcp_reply') {
         replies.push({ id: args.id, result: args.result })
@@ -150,6 +160,14 @@ function installInPage(commands, createFs, desktop) {
       replies: () => JSON.parse(JSON.stringify(replies)),
       /** @param {string} event @param {unknown} payload */
       emit,
+      /** `TODO/ai-043`: the Wi-Fi switch is refused with `reason` (`null` lets it on again). @param {string | null} reason */
+      refuseLan(reason) {
+        mcp.lanRefusal = reason
+      },
+      /** `TODO/ai-043`: the next `mcp_set_access` rejects with `message`. @param {string} message */
+      failAccess(message) {
+        mcp.failAccess = message
+      },
       /** A client connected (or `'ambiguous'`, two), as the host's status says. @param {'idle' | 'connected' | 'ambiguous'} connection */
       connection(connection) {
         mcp.connection = connection
@@ -334,3 +352,24 @@ export const nativeMcpCall = (page, name, input, request) =>
  * @returns {Promise<Array<{ id: number, result: { content: Array<{ type: string, text?: string }>, isError?: boolean } }>>}
  */
 export const nativeMcpReplies = (page) => page.evaluate(() => /** @type {any} */ (window).__nativeShell.mcp.replies())
+
+/**
+ * `TODO/ai-043`: make **Allow devices on this Wi-Fi** be refused as the Rust host refuses it (no
+ * Wi-Fi address, a VPN route, a bind failure): access stays on for this device, the Wi-Fi half
+ * stays off, and the endpoint's `lanError` is `reason`.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} reason the host's words
+ */
+export const refuseNativeMcpWifi = (page, reason) =>
+  page.evaluate((reason) => /** @type {any} */ (window).__nativeShell.mcp.refuseLan(reason), reason)
+
+/**
+ * `TODO/ai-043`: make the next `mcp_set_access` reject with `message`, as the Rust host's `Err` does
+ * (no port would open). No status follows.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} message
+ */
+export const failNativeMcpAccess = (page, message) =>
+  page.evaluate((message) => /** @type {any} */ (window).__nativeShell.mcp.failAccess(message), message)

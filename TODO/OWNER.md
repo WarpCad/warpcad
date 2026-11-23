@@ -15,10 +15,10 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 116 now (Q16-Q133; Q94-Q133 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 118 now (Q16-Q135; Q94-Q135 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 69 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
-| [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 19 + 11 + 7 | ~47 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
+| [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 20 + 11 + 7 | ~50 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
 | [7](#7-at-the-printer-or-bench) | At the printer or bench | 13 | print time | closes rows |
 | [8](#8-older-device-feel-checks) | Older device feel checks | closed (Q1) | none | — |
@@ -85,6 +85,38 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q135 · Accept `libc` as a direct dependency of warpcad-native (ai-043)?
+
+**Question:** `ai-043` calls `getifaddrs` to name the network interface behind the iPad's default route, so a VPN or cellular route is refused with its name and the sheet can list every address the device has. That needs `libc` as a direct dependency in `warpcad-native/src-tauri/Cargo.toml` (unix targets only). Accept it?
+
+**Background:** `libc` 0.2.191 was already in `Cargo.lock` through `tokio` and others, so no new code ships; it only becomes a direct dependency. Licence MIT OR Apache-2.0, which the deny list allows. It is maintained by the Rust project. The alternative is the `if-addrs` or `network-interface` crates, which wrap the same call and add a new maintainer and a new licence check.
+
+**Options:**
+- **Accept `libc` (Recommended):** no new code in the build, the Rust project maintains it, and the call is about 20 lines.
+- **Use a wrapper crate:** a new dependency to vet for nothing `libc` does not already give.
+- **Explain more**
+- **Defer:** the code stays as shipped; this only records the decision.
+
+**If deferred:** nothing changes; `libc` stays a direct dependency.
+
+**Answer:** question
+
+#### Q134 · Should a Wi-Fi address be offered when a VPN holds the default route (ai-043)?
+
+**Question:** When a VPN (`utun`) or cellular route carries the iPad's default route and the iPad also has a private 10.x or 192.168.x address, `ai-043` refuses **Allow devices on this Wi-Fi**, says why, and lists every address it saw, but never picks another interface's address. Keep refusing, or offer the Wi-Fi address anyway?
+
+**Background:** `ai-036` promised that the port opens on the Wi-Fi address only, never on a VPN or cellular. Before `ai-043` a VPN route with a 10.x address was accepted as Wi-Fi, which broke that promise. Choosing the Wi-Fi interface's address while a VPN holds the default route would work for a home network, but WarpCad cannot tell a real Wi-Fi (`en0`) from a tethered or bridged interface by name alone on every device, and the token crosses the network unencrypted.
+
+**Options:**
+- **Keep refusing (Recommended):** the sheet names the VPN and lists the addresses; turn the VPN off and turn the switch on again. Safest, matches `ai-036`.
+- **Offer the `en0` address when it is private:** convenient with a VPN on; filed as a row, and the unencrypted-token warning gets stronger.
+- **Explain more**
+- **Defer:** the strict rule stays.
+
+**If deferred:** the strict rule stays.
+
+**Answer:** question
 
 #### Q133 · Keep the Gate 1 A2 wording "scroll to the bottom of Help", and the version line showing even when Help cannot load (build-040)?
 
@@ -2135,14 +2167,14 @@ Things only your signed-in accounts can do.
 
 ## 5. Device sessions
 
-### 5a. iPad session (19 checks, ~47 min)
+### 5a. iPad session (20 checks, ~50 min)
 
 **Setup (action):** 1. Plug Socrates in over the cable and unlock it. 2. Say `/owner ipad`. The agent
 installs the current local build (`scripts/ios-release.sh --install "Socrates"`) and writes three test files to
 `~/Desktop/warpcad-ipad-test/`: `x.warpcad`, `y.ndjson`, and `log.ndjson` (three lines of log JSON, not a
 project). 3. AirDrop the folder to the iPad and save it in Files → On My iPad. Answer **Done**.
 
-The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `ai-043` is fixed.
+The Live MCP checks (marked *waits on I20*) come last and are skipped until `I20` passes. `I20` is the device re-check of Gate 1 F1, now that `ai-043` made the sheet say why when the Wi-Fi address is missing.
 
 #### I1 · Save as name.warpcad, keep opening .ndjson
 
@@ -2220,9 +2252,19 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 **Answer:** validation
 
+#### I20 · Live MCP access turns on, or says why, on the iPad (Gate 1 F1 re-check)
+
+`ai-043` #F1 · iPad · 3 min · filed 2026-11-23
+
+**Steps:** 1. Join the iPad to your home Wi-Fi, with any VPN off. Install the build that includes `ai-043`. 2. Open **Assistant → Live MCP access…**, choose **1 hour**, tap **Enable access**. 3. Turn on **Allow devices on this Wi-Fi**. 4. Take a screenshot of the sheet. 5. Note whether iOS showed a Local Network prompt. 6. Open Settings → Wi-Fi, tap the (i) next to your network and read the IP Address. 7. Optional: turn the VPN on and repeat step 3 to read the VPN reason.
+
+**Pass if:** the sheet shows the Wi-Fi address, the token and the `claude mcp add` line, and the address equals the one in Settings → Wi-Fi. If it shows a red reason line instead, the reason names what is wrong (VPN, cellular, carrier address, IPv6 only) and lists the addresses, and the switch is off. Record in the answer whether a Local Network prompt appeared. **Expected: no prompt** (TN3179: a listener that only accepts connections needs no Local Network access). A prompt means the plist needs `NSBonjourServices`; say so.
+
+**Answer:** validation
+
 #### I9 · Live MCP (Gate 1 F2): paste on the Mac, a cylinder lands, Undo removes it
 
-`testing-037` #F2 · iPad · filed 2026-11-16 · **waits on:** ai-043 (Live MCP access on the iPad) is fixed
+`testing-037` #F2 · iPad · filed 2026-11-16 · **waits on:** I20 (Live MCP access turns on, or says why, on the iPad)
 
 **Check:** Paste on Mac; 20 mm cylinder lands; Undo removes it
 
@@ -2232,7 +2274,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I10 · Live MCP (Gate 1 F3): no token and a wrong token both get 401
 
-`testing-037` #F3 · iPad · filed 2026-11-16 · **waits on:** ai-043 is fixed
+`testing-037` #F3 · iPad · filed 2026-11-16 · **waits on:** I20 passes
 
 **Check:** `curl` with no token and a wrong token: 401 both
 
@@ -2242,7 +2284,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I11 · Live MCP (Gate 1 F4): lock the iPad 60 s mid-request
 
-`testing-037` #F4 · iPad · filed 2026-11-16 · **waits on:** ai-043 is fixed
+`testing-037` #F4 · iPad · filed 2026-11-16 · **waits on:** I20 passes
 
 **Check:** Lock 60 s mid-request: agent told the call may not have landed
 
@@ -2252,7 +2294,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I12 · Live MCP (Gate 1 F5): access off, a request from the Mac is refused
 
-`testing-037` #F5 · iPad · filed 2026-11-16 · **waits on:** ai-043 is fixed
+`testing-037` #F5 · iPad · filed 2026-11-16 · **waits on:** I20 passes
 
 **Check:** Access off, ask from Mac: refused
 
@@ -2272,7 +2314,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I14 · The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change
 
-`ai-036` #1 · iPad · filed 2026-11-15 · **waits on:** ai-043 is fixed
+`ai-036` #1 · iPad · filed 2026-11-15 · **waits on:** I20 passes
 
 **Check:** Mac shell (`npm run mac:dev`) or the iPad: enable access, turn on **Allow devices on this Wi-Fi**. From a second computer on that Wi-Fi: `curl -i http://<address>:5184/mcp -X POST -H 'Content-Type: application/json' -d '{}'` gets 401 without the token.
 
@@ -2280,7 +2322,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I15 · The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change
 
-`ai-036` #2 · iPad · filed 2026-11-15 · **waits on:** ai-043 is fixed
+`ai-036` #2 · iPad · filed 2026-11-15 · **waits on:** I20 passes
 
 **Check:** Same, with `-H "Authorization: Bearer <token>"` and a small valid `initialize` body: the request gets past the gate (not 401, not 413).
 
@@ -2288,7 +2330,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I16 · The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change
 
-`ai-036` #3 · iPad · filed 2026-11-15 · **waits on:** ai-043 is fixed
+`ai-036` #3 · iPad · filed 2026-11-15 · **waits on:** I20 passes
 
 **Check:** Same, with the token and a 2 MiB body (`head -c 2097152 /dev/zero \| tr '\0' a`): the reply is `413`. With `-H 'Transfer-Encoding: chunked'` it is `411`.
 
@@ -2296,7 +2338,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I17 · The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change
 
-`ai-036` #4 · iPad · filed 2026-11-15 · **waits on:** ai-043 is fixed
+`ai-036` #4 · iPad · filed 2026-11-15 · **waits on:** I20 passes
 
 **Check:** On the iPad with access and the Wi-Fi switch on, move to a different Wi-Fi network and return to WarpCad: **Allow devices on this Wi-Fi** is off and the sheet says the address changed. The old address no longer answers. Turn it on again: the new address shows and answers.
 
@@ -2304,7 +2346,7 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 #### I18 · The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change
 
-`ai-036` #5 · iPad · filed 2026-11-15 · **waits on:** ai-043 is fixed
+`ai-036` #5 · iPad · filed 2026-11-15 · **waits on:** I20 passes
 
 **Check:** With the Wi-Fi switch on, turn Wi-Fi off on the iPad (cellular on) and return to WarpCad: the switch is off with a message, and the cellular address does not answer.
 

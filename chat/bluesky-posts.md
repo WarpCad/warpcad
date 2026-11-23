@@ -3835,3 +3835,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** cube 31% x 36% of the tile before, 69% x 79% after → `scripts/icon-svg.test.mjs` and the rendered PNG; iOS, Windows and Android icons unchanged → `git status` after `npm run icons`; built app launched and Dock captured beside Chrome and Xcode → this session; owner's own Dock re-check not yet done → `TODO/OWNER.md` M1
 **To Add:** none
 ---
+
+## 2026-11-23T22:30:00Z — WarpCad: the Wi-Fi switch now says why it won't turn on
+
+**Post:** On an iPad, WarpCad's "Allow devices on this Wi-Fi" switch gave no sign of why it did nothing. Now it snaps back to off and a red line names the reason: a VPN, cellular data, a carrier address, IPv6 only, or no network, plus the addresses it saw. One bug was worse: a VPN with a 10.x address was being accepted as Wi-Fi. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 84 Rust tests incl. 10 new for the address choice → `cargo test`; sheet specs on all 9 engine x viewport projects, 54 passed → this session's run; unit 10,223 passed → this session's run; iPad simulator booted the build but could not be tapped, so the sheet was not seen there → `TODO/VERIFY.md` ai-043; real iPad re-check → `TODO/OWNER.md` I20
+**To Add:** none
+---

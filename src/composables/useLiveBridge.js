@@ -84,8 +84,13 @@ function liveHot() {
         chat.nativeMcp = { native: true, lan: endpoint.lanUrl !== '', url: endpoint.url, lanUrl: endpoint.lanUrl, token: endpoint.token, lanError: endpoint.lanError }
       },
       onPaused: () => showPaused(chat),
+      // `TODO/ai-043`: the host refused outright (no port would open), so access is not on: say so
+      // in the status line in the host's words, not "enabled" over a silent failure.
       onError: (message) => {
+        chat.bridge = 'idle'
+        chat.bridgeExpiresAt = null
         chat.bridgeMessage = message
+        chat.nativeMcp = { ...chat.nativeMcp, lan: false, lanUrl: '', token: '', lanError: '' }
       },
     })
   } else if (import.meta.hot) live = /** @type {LiveLink} */ (/** @type {unknown} */ (import.meta.hot))

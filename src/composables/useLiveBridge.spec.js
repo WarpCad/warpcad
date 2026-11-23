@@ -130,6 +130,24 @@ describe('useLiveBridge in the native app', () => {
     expect(chat.nativeMcp).toMatchObject({ lan: true, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://192.168.1.20:5184/mcp', token: 'f00d' })
   })
 
+  it('a host that rejects mcp_set_access leaves the sheet not enabled and says why in its words (TODO/ai-043)', async () => {
+    const { live, chat } = await start()
+    const internals = /** @type {any} */ (globalThis).__TAURI_INTERNALS__
+    const answer = internals.invoke
+    internals.invoke = async (/** @type {string} */ cmd, /** @type {any} */ args) => {
+      if (cmd === 'mcp_set_access' && args.lease !== 'off') {
+        bridge.calls.push({ cmd, args })
+        throw 'WarpCad could not open a port for MCP access.'
+      }
+      return answer(cmd, args)
+    }
+    expect(live.useLiveBridge().setAccess('1h', { lan: true })).toBe(true)
+    await vi.waitFor(() => expect(bridge.calls.filter((c) => c.cmd === 'mcp_set_access').at(-1)?.args.lease).toBe('1h'), { timeout: 10_000 })
+    await vi.waitFor(() => expect(chat.bridgeMessage).toBe('WarpCad could not open a port for MCP access.'))
+    expect(chat.bridge).not.toBe('enabled')
+    expect(chat.nativeMcp).toMatchObject({ lan: false, lanUrl: '', token: '' })
+  })
+
   it('after a return from the background, says MCP was paused for a few seconds, then the host state', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     const { chat } = await (async () => {
