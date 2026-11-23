@@ -6,8 +6,18 @@ priority: high
 model: sonnet
 milestone: none — Findings table, requested by the owner 2026-11-23
 depends: [ui-161]
-status: open
+status: done
 ---
+
+> **Shipped**: as proposed. Tint is `color-mix(... var(--layout-face-axis) 30%, shade)` (the `--layout-` prefix because the
+> token guard allows a component-local variable only with it). `--axis-z` is a new cobalt (`--cobalt-500`/`-600` in `base.css`)
+> in both themes and a literal in each of the six skins. Label ink is `--view-cube-label` (near-black) on five faces and
+> `--view-cube-label-light` (white) on the dark bottom face; `viewCubeContrast.spec.js` checks 4.5:1 on every face in both themes
+> and all six skins, which pushed the Z blue of the blueprint, deco and pixel skins deeper than their palettes' lightest blue.
+> The faces were already upright and unmirrored, so `viewCube.js` only gained `axis` and `axisLabel`; the determinant test pins
+> it. The phone keeps the full face name (8.8 px, fits the 55 px face; asserted at every viewport), so the signed-axis-only
+> fallback was not built. Media: the stills that drifted, plus the viewport-navigation, mobile and print-prep GIF sets were
+> refreshed; the other 31 GIF sets are owner question Q129.
 
 ## Problem
 

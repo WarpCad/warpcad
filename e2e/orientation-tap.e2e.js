@@ -104,6 +104,60 @@ test.describe('view cube', () => {
     }
   })
 
+  test('each face prints its name and signed axis upright, inside its face, after a snap to Top, Front and Right (TODO/ui-162)', async ({ page }) => {
+    const WANT = { top: ['TOP', '+Z'], front: ['FRONT', '−Y'], right: ['RIGHT', '+X'] }
+    for (const [view, [name, axis]] of Object.entries(WANT)) {
+      await snapViaGizmo(page, view)
+      await expect.poll(() => readView(page)).toBe(EXPECTED[view])
+      await expect.poll(() => facingSet(page)).toEqual([view])
+      const face = page.getByTestId(`gizmo-view-${view}`)
+      await expect(face.locator('.gizmo__face-name')).toHaveText(name)
+      await expect(face.locator('.gizmo__face-axis')).toHaveText(axis)
+      // Face-on, the matrix is the identity: an unmirrored label's box is unrotated and the name sits
+      // above the axis. Layout widths ignore the transform, so they say whether the text fits.
+      const m = await face.evaluate((el) => {
+        const side = el.clientWidth
+        const n = /** @type {HTMLElement} */ (el.querySelector('.gizmo__face-name'))
+        const a = /** @type {HTMLElement} */ (el.querySelector('.gizmo__face-axis'))
+        const fr = el.getBoundingClientRect()
+        const nr = n.getBoundingClientRect()
+        const ar = a.getBoundingClientRect()
+        return {
+          side,
+          nameFont: parseFloat(getComputedStyle(n).fontSize),
+          nameWidth: n.scrollWidth,
+          nameAboveAxis: nr.bottom <= ar.top + 1,
+          inside: nr.left >= fr.left - 0.5 && nr.right <= fr.right + 0.5 && ar.left >= fr.left - 0.5 && ar.right <= fr.right + 0.5 && ar.bottom <= fr.bottom + 0.5 && nr.top >= fr.top - 0.5,
+          tall: nr.height > 0 && ar.height > 0,
+        }
+      })
+      expect(m.tall, `${view} label has a box`).toBe(true)
+      expect(m.nameAboveAxis, `${view} name sits above its axis`).toBe(true)
+      expect(m.inside, `${view} label stays inside its face (${JSON.stringify(m)})`).toBe(true)
+      expect(m.nameWidth, `${view} name fits in ${m.side}px at ${m.nameFont}px (${JSON.stringify(m)})`).toBeLessThanOrEqual(m.side - 4)
+      expect(m.nameFont, 'name stays legible').toBeGreaterThanOrEqual(8)
+    }
+  })
+
+  test('a nearly edge-on face keeps its label inside it, and a hidden one takes no tap (TODO/ui-162, TODO/ui-158)', async ({ page }) => {
+    await snapViaGizmo(page, 'front')
+    // Orbit to 85 degrees elevation with nav steps is slow; set the view through the camera hook the
+    // chrome uses: step the elevation up so Top is a thin sliver while Front is still showing.
+    for (let i = 0; i < 5; i++) await page.getByTestId('nav-step-up').click()
+    await expect.poll(() => facingSet(page)).toContain('top')
+    const r = await page.getByTestId('gizmo-view-top').evaluate((el) => {
+      const f = el.getBoundingClientRect()
+      const l = /** @type {HTMLElement} */ (el.querySelector('.gizmo__face-label')).getBoundingClientRect()
+      return { overflow: getComputedStyle(el).overflow, outside: l.top < f.top - 1 || l.bottom > f.bottom + 1 || l.left < f.left - 1 || l.right > f.right + 1 }
+    })
+    expect(r.overflow).toBe('hidden')
+    expect(r.outside, 'label rect within the squashed face').toBe(false)
+    // A face turned away still takes no pointer, label or not.
+    for (const view of ['bottom', 'back', 'left']) {
+      expect(await page.getByTestId(`gizmo-view-${view}`).evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none')
+    }
+  })
+
   test('from face-on Front, Views reaches Top, and Home comes back', async ({ page }) => {
     await snapViaGizmo(page, 'front')
     await expect.poll(() => readView(page)).toBe(EXPECTED.front)

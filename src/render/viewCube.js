@@ -30,6 +30,8 @@ import { positionFromSpherical, rightFromSpherical, upFromSpherical } from './ca
  * @property {ReadonlyArray<number>} u the face's local +x (CSS right) in world
  * @property {ReadonlyArray<number>} w the face's local +y (CSS down) in world
  * @property {string} name the face's short name, as the Views grid prints it
+ * @property {'x' | 'y' | 'z'} axis the world axis the face sits on, which picks its tint (`--axis-x/-y/-z`)
+ * @property {string} axisLabel the signed axis of the camera side, as printed on the face (`+Z`, `−Y`)
  * @property {string} title the face button's title and accessible name
  */
 
@@ -40,12 +42,12 @@ import { positionFromSpherical, rightFromSpherical, upFromSpherical } from './ca
  * @type {ReadonlyArray<CubeFace>}
  */
 export const VIEW_CUBE_FACES = Object.freeze([
-  Object.freeze({ view: 'right', normal: [1, 0, 0], u: [0, 1, 0], w: [0, 0, -1], name: 'Right', title: 'Right view (camera on +X)' }),
-  Object.freeze({ view: 'left', normal: [-1, 0, 0], u: [0, -1, 0], w: [0, 0, -1], name: 'Left', title: 'Left view (camera on −X)' }),
-  Object.freeze({ view: 'back', normal: [0, 1, 0], u: [-1, 0, 0], w: [0, 0, -1], name: 'Back', title: 'Back view (camera on +Y)' }),
-  Object.freeze({ view: 'front', normal: [0, -1, 0], u: [1, 0, 0], w: [0, 0, -1], name: 'Front', title: 'Front view (camera on −Y)' }),
-  Object.freeze({ view: 'top', normal: [0, 0, 1], u: [1, 0, 0], w: [0, -1, 0], name: 'Top', title: 'Top view (looking straight down Z)' }),
-  Object.freeze({ view: 'bottom', normal: [0, 0, -1], u: [1, 0, 0], w: [0, 1, 0], name: 'Bottom', title: 'Bottom view (camera on −Z)' }),
+  Object.freeze({ view: 'right', normal: [1, 0, 0], u: [0, 1, 0], w: [0, 0, -1], name: 'Right', axis: 'x', axisLabel: '+X', title: 'Right view (camera on +X)' }),
+  Object.freeze({ view: 'left', normal: [-1, 0, 0], u: [0, -1, 0], w: [0, 0, -1], name: 'Left', axis: 'x', axisLabel: '−X', title: 'Left view (camera on −X)' }),
+  Object.freeze({ view: 'back', normal: [0, 1, 0], u: [-1, 0, 0], w: [0, 0, -1], name: 'Back', axis: 'y', axisLabel: '+Y', title: 'Back view (camera on +Y)' }),
+  Object.freeze({ view: 'front', normal: [0, -1, 0], u: [1, 0, 0], w: [0, 0, -1], name: 'Front', axis: 'y', axisLabel: '−Y', title: 'Front view (camera on −Y)' }),
+  Object.freeze({ view: 'top', normal: [0, 0, 1], u: [1, 0, 0], w: [0, -1, 0], name: 'Top', axis: 'z', axisLabel: '+Z', title: 'Top view (looking straight down Z)' }),
+  Object.freeze({ view: 'bottom', normal: [0, 0, -1], u: [1, 0, 0], w: [0, 1, 0], name: 'Bottom', axis: 'z', axisLabel: '−Z', title: 'Bottom view (camera on −Z)' }),
 ])
 
 /**

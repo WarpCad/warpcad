@@ -60,6 +60,9 @@
   --green-500: #6aa84f;
   --rust-600: #b04a45;
   --green-600: #4f7f3a;
+  /* The Z axis (`TODO/ui-162`): the third of the red, green and blue the grid and the view cube share. */
+  --cobalt-500: #5b7fd6;
+  --cobalt-600: #3f63b8;
   --brick-400: #d9534f;
   /* Solid-body blues and greys, and the 3D view's light rig (`TODO/render-008`). */
   --denim-300: #9fc0e8;

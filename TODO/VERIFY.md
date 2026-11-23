@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-162 — View cube face labels and axis colours (2026-11-23 18:25)
+
+Names and axis tints went on in one pass at a 30 % tint chosen by the contrast maths and by eye on emulated Chromium and WebKit; whether it looks right in the hand is the owner's call, and 31 GIF sets still show the old cube.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On the iPad, are the face names and axis colours easy to read and is the tint strength right (30 %)? | Owner | Q128 in `TODO/OWNER.md`. |
+| 2 | The docs GIFs outside viewport-navigation, mobile and print-prep still show the unlabelled cube. | Owner | Q129 in `TODO/OWNER.md`; a bulk re-record was refused by the permission check, so it is the owner's call. |
+
 ### ui-161 — Smaller view cube on a tablet (2026-11-23 17:55)
 
 The tablet cube is 64 px (111 px box). Emulated touch measured a 9-11 % wrong-face rate, and Views is the exact path, but only a real iPad shows whether the size feels right in the hand.

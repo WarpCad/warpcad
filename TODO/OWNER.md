@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 110 now (Q16-Q127; Q94-Q127 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 112 now (Q16-Q129; Q94-Q129 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,30 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q129 · Re-record the other 31 docs GIF sets so the labelled cube shows in them (ui-162)?
+
+**Question:** `ui-162` put names and axis colours on the view cube. Every docs GIF is a 960x600 whole-window recording, so the cube is in frame in all 35 movie specs. I re-recorded the three sets that show or exercise the cube (viewport-navigation incl. `orientation-gizmo-snap`, mobile, print-prep), one spec at a time through a scoped moviesDir. The other 31 specs still show the old plain grey cube, and the automatic permission check refused my attempt to re-record them in one batch, so I left them. Re-record them?
+
+**Background:** The cube is about 55 px in a 960 px frame, so the old cube is a small, harmless mismatch beside the new stills. Each spec takes about 20 to 60 seconds to record and encode. `docs:gifs` must not be used: it rewrites every tracked GIF. The scoped script is the recipe in memory `docs:gifs rewrites every GIF` (record with `--grep @movie` on the six docs projects, copy that spec's fresh `.webm`/`.json` into a scratch folder, call `convertMovies({ moviesDir, outDir: 'docs/media', root })`).
+
+**Options:**
+- **Re-record them in a follow-up docs task (Recommended):** file a docs task that runs the scoped recipe spec by spec and commits the GIFs in batches.
+- **Leave them until each spec is next edited:** the old cube lingers in those GIFs.
+- **Explain more**
+- **Defer**
+
+#### Q128 · Keep the cube's face tint at 30 %, the dark label ink and the full face name on a phone (ui-162)?
+
+**Question:** I chose: each face is its lit-from-above grey mixed 30 % toward its axis colour (red X, green Y, blue Z; `--axis-z` is new, a cobalt), the label is near-black ink on every face and white on the dark bottom face, and the phone keeps the full face name above the signed axis (the name measured 8.8 px and fits inside the 55 px face with at least 4 px to spare, asserted at every viewport, so the signed-axis-only fallback was not needed). Three skins (blueprint, deco, pixel) use a deeper blue for Z than their palette's lightest blue, so the white label on the bottom face keeps 4.5:1. Keep these?
+
+**Background:** Contrast is checked in `src/styles/viewCubeContrast.spec.js` for both themes and all six skins (every face at least 4.5:1). A higher tint reads more clearly as colour but pushes the bottom face below 4.5:1 with white ink.
+
+**Options:**
+- **Keep as built (Recommended):** nothing changes.
+- **Stronger tint (40 %):** needs darker bottom-face ink or lighter shades; an S follow-up.
+- **Explain more**
+- **Defer**
 
 #### Q127 · Keep the tablet view cube's Home and Views row under the cube, rather than tucked into the box's corners (ui-161)?
 

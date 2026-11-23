@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-11-23T18:25:00Z] — Putting names and colours on a view cube, and proving the text is readable
+
+**Post:** The owner's note on WarpCad's new view cube was that it looked good but plain, and that nothing on it said which face was Front or which way +X ran. This change prints each face's name over its signed axis (TOP +Z, FRONT −Y, RIGHT +X) and tints the faces red, green and blue, the same colours as the grid's axis lines.
+
+Two details carried the work. The text is small, so a unit spec mixes each face's tint with its lit-from-above grey and checks 4.5:1 contrast against the label ink, in both themes and all six skins; three skins needed a deeper blue to pass on the dark bottom face. And a determinant test pins that each label reads upright and unmirrored at its own view, which was already true, so the cube's geometry only gained two fields.
+
+On a phone the 55 px face holds the full name at 8.8 px, asserted on all nine browser and viewport projects, so the fallback to the axis alone was not needed.
+
+Checked: the cube specs on nine projects, a rotating pair run, and a touch-only drive at tablet and phone width on Chromium and WebKit. Not checked: a real iPad, and 31 of the 35 documentation GIF sets still show the old cube.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Accessibility #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `src/styles/viewCubeContrast.spec.js`; `e2e/orientation-tap.e2e.js` and `e2e/viewport-scaffold.e2e.js` green on 9 of 9 projects
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-20T08:20:00Z] — Closing a bug report by finding what fixed it
 
 **Post:** A finding filed on 2026-11-18 said an end-to-end test failed: the Sketch toolbar overlapped the orientation gizmo on a tablet in WebKit and a laptop in Firefox. Two days and several commits later, the same test passed on all nine browser and viewport combinations.

@@ -45,10 +45,12 @@ Try these in order, with the app open:
    screen, pinch with two fingers.
 
    ![Scrolling the mouse wheel to zoom in, then back out.](./media/nav-zoom.gif)
-4. **Tap the white top face of the view cube** in the top-right corner to snap the
-   camera to the top view — looking straight down the Z axis, with Y running up
-   the screen. The cube turns to show only its top. Now tap the cube's front face
-   for the front view, or its right face for the right view.
+4. **Tap the face marked TOP +Z** (the blue one) on the view cube in the top-right
+   corner to snap the camera to the top view — looking straight down the Z axis,
+   with Y running up the screen. The cube turns to show only its top. Now tap the
+   face marked FRONT −Y for the front view, or the one marked RIGHT +X for the
+   right view. The red face marked RIGHT +X points along the grid's red line, so
+   after tapping it you are looking back toward the origin from the +X side.
 
    ![Clicking the view cube's top face, then (after Views) the front and right faces, the camera snapping to top, front and right views, then Home.](./media/orientation-gizmo-snap.gif)
 5. **Tap `Home`** under the cube to return to the standard three-quarter
@@ -155,14 +157,24 @@ mouse button on a touchscreen to remap.
 
 ## The view cube (top-right)
 
-![The view cube: a solid grey cube seen corner-on, white on top and darker underneath, with Home and Views buttons below it.](./screenshots/orientation-gizmo.png)
+![The view cube: a solid cube seen corner-on, with TOP +Z in blue on top, FRONT −Y in green and RIGHT +X in red below, and Home and Views buttons under it.](./screenshots/orientation-gizmo.png)
 
-The view cube shows which way the camera is currently pointing. It is a solid,
-unlabelled cube drawn the way the 3D view sees the world: it turns as you orbit
-and stays put when you pan or zoom. At the standard three-quarter view you see
-three faces, lit from above, so the top is white, the front is light grey and the
-right face is a darker grey. Dark edges outline each face, and the small
-`az · el` caption underneath gives the exact azimuth and elevation in degrees.
+The view cube shows which way the camera is currently pointing. It is a solid
+cube drawn the way the 3D view sees the world: it turns as you orbit and stays
+put when you pan or zoom. Each face names its view and the signed axis the camera
+sits on when you tap it: **TOP +Z**, **BOTTOM −Z**, **FRONT −Y**, **BACK +Y**,
+**RIGHT +X** and **LEFT −X**. The faces are coloured by axis, the same colours as
+the grid's axis lines: red for X, green for Y, blue for Z. The two faces of one
+axis are the same colour, and the shading is still lit from above, so the top is
+the lightest face and the bottom the darkest. Dark edges outline each face, and
+the small `az · el` caption underneath gives the exact azimuth and elevation in
+degrees.
+
+For example, tap the face marked **TOP +Z** to look straight down at the grid.
+The red face marked **RIGHT +X** points along the grid's red line, so after
+tapping it you are looking back toward the origin from the +X side. On a phone
+the cube is small, but the names still fit; they are also in each face's tooltip
+and screen-reader name.
 
 The shades come from the same theme as the rest of the app, so the cube follows
 Dark or Light. Choose System, Dark or Light in the Help sheet's footer
@@ -207,7 +219,7 @@ For example, to look at a part from underneath:
 is the exact one.** With a touchscreen at tablet width and up, the cube is about
 110 px wide, big enough that every face a three-quarter view shows is at least
 44 px across, and small enough to leave your model in view. For example, on an
-iPad tap the cube's white top face to look straight down. If your tap lands on the
+iPad tap the cube's face marked TOP +Z to look straight down. If your tap lands on the
 neighbouring face, tap **Views** under the cube and choose **Top** from the grid.
 The grid's buttons are large and never miss.
 

@@ -2,6 +2,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 
 import OrientationGizmo from './OrientationGizmo.vue'
@@ -121,5 +123,27 @@ describe('OrientationGizmo (TODO/ui-158)', () => {
     const w = mountAt('home')
     expect(face(w, 'top').attributes('aria-label')).toBe('Top view (looking straight down Z)')
     expect(face(w, 'front').attributes('title')).toBe('Front view (camera on −Y)')
+  })
+
+  it('prints each face\'s name and signed axis, hidden from the reader because the aria-label says it (TODO/ui-162)', () => {
+    const w = mountAt('home')
+    const want = { top: ['TOP', '+Z'], bottom: ['BOTTOM', '−Z'], front: ['FRONT', '−Y'], back: ['BACK', '+Y'], right: ['RIGHT', '+X'], left: ['LEFT', '−X'] }
+    for (const [view, [name, axis]] of Object.entries(want)) {
+      const label = face(w, view).get('.gizmo__face-label')
+      expect(label.attributes('aria-hidden')).toBe('true')
+      expect(label.get('.gizmo__face-name').text()).toBe(name)
+      expect(label.get('.gizmo__face-axis').text()).toBe(axis)
+    }
+  })
+
+  it('tints each face by its axis token (TODO/ui-162)', () => {
+    const w = mountAt('home')
+    const want = { top: 'z', bottom: 'z', front: 'y', back: 'y', right: 'x', left: 'x' }
+    const src = readFileSync(join(process.cwd(), 'src/components/viewport/OrientationGizmo.vue'), 'utf8')
+    for (const [view, axis] of Object.entries(want)) {
+      expect(face(w, view).attributes('data-axis')).toBe(axis)
+      expect(src).toMatch(new RegExp(`\\.gizmo__face--${view}\\s*\\{[^}]*--layout-face-axis:\\s*var\\(--axis-${axis}\\)`))
+    }
+    expect(src).toMatch(/color-mix\(in srgb, var\(--layout-face-axis\) var\(--layout-face-tint\), var\(--layout-face-shade\)\)/)
   })
 })

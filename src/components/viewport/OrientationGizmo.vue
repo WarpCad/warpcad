@@ -7,8 +7,11 @@
  * clicked/tapped to snap to a standard view." The cube turns against the camera as the view orbits,
  * so it always shows the world the way the main view does, and each face turned toward the viewer is
  * a real button that snaps the camera to that face's view. WarpCad1's cube, which the owner asked
- * for: solid, unlabelled, about 96 px, drawn orthographically, with fixed "lit from above" grey
- * shades and dark edges, bare in the corner with no card.
+ * for: solid, about 96 px, drawn orthographically, with fixed "lit from above" grey shades and dark
+ * edges, bare in the corner with no card. Each face now prints its name over its signed axis
+ * (`TOP +Z`, `FRONT −Y`) and is tinted toward its axis colour, red X, green Y, blue Z, the same as the
+ * grid's axis lines (`TODO/ui-162`). The label is a span inside the face button, so the face's own
+ * `matrix()` skews it with the face and nothing extra is written per camera move.
  *
  * It is DOM, not a second WebGL canvas: no extra context (iOS Safari caps them), no always-on frame
  * loop (it redraws only when the camera's azimuth or elevation changes), and each face is an ordinary
@@ -177,8 +180,14 @@ const orientationLabel = computed(() => `${Math.round(props.azimuthDeg)}° az ·
         :disabled="disabled"
         :title="disabled ? LOCKED_TITLE : face.title"
         :aria-label="face.title"
+        :data-axis="face.axis"
         @click="emit('snap', face.view)"
-      />
+      >
+        <span class="gizmo__face-label" aria-hidden="true">
+          <span class="gizmo__face-name">{{ face.name.toUpperCase() }}</span>
+          <span class="gizmo__face-axis">{{ face.axisLabel }}</span>
+        </span>
+      </button>
     </div>
 
     <div class="gizmo__actions">
@@ -278,19 +287,52 @@ const orientationLabel = computed(() => `${Math.round(props.azimuthDeg)}° az ·
   box-sizing: border-box;
   border: 1px solid var(--view-cube-edge);
   border-radius: 0;
+  overflow: hidden;
   background: var(--face-fill);
+  color: var(--view-cube-label);
   transform-origin: 50% 50%;
   appearance: none;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-.gizmo__face--top { --face-fill: var(--view-cube-top); }
-.gizmo__face--front { --face-fill: var(--view-cube-front); }
-.gizmo__face--right { --face-fill: var(--view-cube-right); }
-.gizmo__face--back { --face-fill: var(--view-cube-back); }
-.gizmo__face--left { --face-fill: var(--view-cube-left); }
-.gizmo__face--bottom { --face-fill: var(--view-cube-bottom); }
+/* Each face: its lit-from-above shade, tinted toward its axis colour (`TODO/ui-162`). Opposite faces
+   share an axis, so they read as one axis in two shades, and the top stays the lightest face. */
+.gizmo__face {
+  --layout-face-tint: 30%;
+  --face-fill: color-mix(in srgb, var(--layout-face-axis) var(--layout-face-tint), var(--layout-face-shade));
+}
+
+.gizmo__face--top { --layout-face-axis: var(--axis-z); --layout-face-shade: var(--view-cube-top); }
+.gizmo__face--front { --layout-face-axis: var(--axis-y); --layout-face-shade: var(--view-cube-front); }
+.gizmo__face--right { --layout-face-axis: var(--axis-x); --layout-face-shade: var(--view-cube-right); }
+.gizmo__face--back { --layout-face-axis: var(--axis-y); --layout-face-shade: var(--view-cube-back); }
+.gizmo__face--left { --layout-face-axis: var(--axis-x); --layout-face-shade: var(--view-cube-left); }
+.gizmo__face--bottom { --layout-face-axis: var(--axis-z); --layout-face-shade: var(--view-cube-bottom); color: var(--view-cube-label-light); }
+
+/* The label, in the face's own coordinates so its matrix() skews it. Sized from the cube's side so it
+   scales with the tablet's 64px cube. The face has overflow hidden, so a squashed label near edge-on
+   cannot spill outside it. */
+.gizmo__face-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gizmo__face-name {
+  font: 700 calc(var(--layout-cube-side) * 0.16) / 1.25 var(--font);
+  letter-spacing: 0.02em;
+}
+
+.gizmo__face-axis {
+  font: 700 calc(var(--layout-cube-side) * 0.2) / 1.25 var(--font-mono);
+}
 
 /* Turned away or edge-on: no paint, no pointer. `orient()` also drops it from the tab order and the
    accessibility tree. Not left to `backface-visibility`, which engines hit-test differently. */

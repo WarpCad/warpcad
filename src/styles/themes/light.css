@@ -28,6 +28,7 @@
        WebGL axes and the DOM dimension lines share them (`TODO/render-008`). */
     --axis-x: var(--rust-600);
     --axis-y: var(--green-600);
+    --axis-z: var(--cobalt-600);
 
     --scene-background: var(--cloud-150);
     --scene-grid-minor: var(--cloud-350);
@@ -41,6 +42,8 @@
     --view-cube-left: var(--pebble-400);
     --view-cube-bottom: var(--pebble-600);
     --view-cube-edge: var(--pebble-950);
+    --view-cube-label: var(--pebble-950);
+    --view-cube-label-light: var(--white);
     --body: var(--denim-500);
     --body-selected: var(--amber-600);
     --body-secondary: var(--teal-600);
@@ -91,6 +94,7 @@
      WebGL axes and the DOM dimension lines share them (`TODO/render-008`). */
   --axis-x: var(--rust-600);
   --axis-y: var(--green-600);
+  --axis-z: var(--cobalt-600);
 
   --scene-background: var(--cloud-150);
   --scene-grid-minor: var(--cloud-350);
@@ -104,6 +108,8 @@
   --view-cube-left: var(--pebble-400);
   --view-cube-bottom: var(--pebble-600);
   --view-cube-edge: var(--pebble-950);
+  --view-cube-label: var(--pebble-950);
+  --view-cube-label-light: var(--white);
   --body: var(--denim-500);
   --body-selected: var(--amber-600);
   --body-secondary: var(--teal-600);

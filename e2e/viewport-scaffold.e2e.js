@@ -619,6 +619,17 @@ test('the view cube is a snapshot target for its shading (TODO/ui-025, TODO/ui-1
     fills.push(await face.evaluate((el) => getComputedStyle(el).backgroundColor))
   }
   expect(new Set(fills).size, `face fills ${fills.join(', ')}`).toBe(3)
+  // `TODO/ui-162`: each visible face prints its name and signed axis, and is tinted toward its axis
+  // colour (blue Z on top, green Y at the front, red X on the right).
+  const tint = { top: [2, 'TOP', '+Z'], front: [1, 'FRONT', '−Y'], right: [0, 'RIGHT', '+X'] }
+  for (const [view, [channel, name, axis]] of Object.entries(tint)) {
+    const face = page.getByTestId(`gizmo-view-${view}`)
+    await expect(face).toContainText(name)
+    await expect(face).toContainText(axis)
+    const rgb = await face.evaluate((el) => getComputedStyle(el).backgroundColor.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [])
+    const others = rgb.filter((_, i) => i !== channel)
+    expect(rgb[channel], `${view} fill ${rgb} leans toward its axis`).toBeGreaterThan(Math.max(...others) - 0.001)
+  }
   for (const view of ['bottom', 'back', 'left']) await expect(page.getByTestId(`gizmo-view-${view}`)).toBeHidden()
 
   mkdirSync(SNAPSHOT_DIR, { recursive: true })

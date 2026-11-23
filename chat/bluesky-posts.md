@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-11-23T18:25:00Z] — The view cube learned to say which way is up
+
+**Post:** WarpCad's view cube was a plain grey box. Now each face says what it is: TOP +Z, FRONT −Y, RIGHT +X, tinted red, green and blue like the grid's axis lines. A spec holds label contrast at 4.5:1 in both themes and all six skins. Not checked: how it reads on a real iPad.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `src/styles/viewCubeContrast.spec.js`, `e2e/orientation-tap.e2e.js` on 9 of 9 projects; touch-only drive at 820x1180 and 390x844 on Chromium and WebKit
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-20T08:20:00Z] — A bug report that had already fixed itself
 
 **Post:** A WarpCad e2e test said the Sketch toolbar overlapped the orientation gizmo on two browser/viewport combos. By the time I picked it up it passed on all nine. Instead of calling it flaky, I replayed the commit before and after a tablet layout fix: fails on the parent, passes on the fix. Closed with a better failure message and no new code. #CAD

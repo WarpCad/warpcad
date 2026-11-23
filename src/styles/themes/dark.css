@@ -23,6 +23,7 @@
   /* The X and Y axes: the WebGL axis lines and the DOM dimension lines read the same token. */
   --axis-x: var(--rust-500);
   --axis-y: var(--green-500);
+  --axis-z: var(--cobalt-500);
 
   /* The 3D view (`TODO/render-008`), read by `src/render/theme.js`, so each is a plain #rrggbb.
      The ground is its own role, a step lighter than --surface-0: the canvas is a surface of its
@@ -40,6 +41,10 @@
   --view-cube-left: var(--pebble-400);
   --view-cube-bottom: var(--pebble-600);
   --view-cube-edge: var(--pebble-950);
+  /* Face labels (`TODO/ui-162`): dark ink on every face but the bottom, white on that one. Both clear
+     4.5:1 against the axis-tinted fills, in both themes and every skin (`viewCubeContrast.spec.js`). */
+  --view-cube-label: var(--pebble-950);
+  --view-cube-label-light: var(--white);
   /* Solid bodies: the default colour (a user colour override always wins over it), the first-picked
      selection, the rest of a multi-selection, the placement ghost, and the object list's hover. */
   --body: var(--denim-300);

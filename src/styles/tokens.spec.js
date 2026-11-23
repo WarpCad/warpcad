@@ -3,7 +3,7 @@
 // something defined (this is what would have caught `--tap-target`), that fallbacks are not a second
 // copy of a value, and that the first-paint literals outside CSS equal `--surface-0`.
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { REPO_ROOT, TOKEN_FILES, declarationsOf, readTokenFile, rel, resolveToken, sourceFiles, splitLightMedia, surface0 } from './cssTokens.js'
 import * as breakpoints from './breakpoints.js'
 
@@ -11,7 +11,7 @@ import * as breakpoints from './breakpoints.js'
 const EXISTING_TOKENS = [
   '--layout-safe-top', '--layout-safe-right', '--layout-safe-bottom', '--layout-safe-left',
   '--surface-0', '--surface-1', '--surface-2', '--surface-glass', '--border', '--border-strong',
-  '--text-1', '--text-2', '--text-3', '--accent', '--accent-contrast', '--axis-x', '--axis-y',
+  '--text-1', '--text-2', '--text-3', '--accent', '--accent-contrast', '--axis-x', '--axis-y', '--axis-z',
   '--snap-guide', '--accent-secondary', '--hover-highlight', '--role-moving', '--role-target',
   '--sketch-stroke', '--danger', '--warn', '--radius-sm', '--radius-md', '--radius-lg',
   '--tap', '--tap-compact', '--shadow-overlay', '--font', '--font-mono',
@@ -20,11 +20,11 @@ const EXISTING_TOKENS = [
 /** The colour tokens that differ by theme: both theme files must define every one. */
 const THEMED = [
   '--surface-0', '--surface-1', '--surface-2', '--surface-glass', '--border', '--border-strong',
-  '--text-1', '--text-2', '--text-3', '--accent', '--accent-contrast', '--axis-x', '--axis-y',
+  '--text-1', '--text-2', '--text-3', '--accent', '--accent-contrast', '--axis-x', '--axis-y', '--axis-z',
   '--snap-guide', '--accent-secondary', '--hover-highlight', '--role-moving', '--role-target',
   '--sketch-stroke', '--danger', '--warn', '--shadow-overlay', '--scrim', '--overlay-drop',
   '--view-cube-top', '--view-cube-front', '--view-cube-right', '--view-cube-back', '--view-cube-left',
-  '--view-cube-bottom', '--view-cube-edge',
+  '--view-cube-bottom', '--view-cube-edge', '--view-cube-label', '--view-cube-label-light',
 ]
 
 const SCALES = [
@@ -104,6 +104,16 @@ describe('token files', () => {
     for (const f of ['base.css', 'semantic.css', 'themes/dark.css', 'themes/light.css']) {
       expect(readTokenFile(f).replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/(^|\})\s*(html|body|\*|#app)\b/)
     }
+  })
+})
+
+describe('skins (TODO/ui-162)', () => {
+  const skinFiles = readdirSync(new URL('./skins/', import.meta.url)).filter((f) => f.endsWith('.css') && f !== 'index.css')
+
+  it.each(skinFiles)('skins/%s sets --axis-z wherever it sets --axis-x and --axis-y', (f) => {
+    const decls = declarationsOf(readFileSync(new URL(`./skins/${f}`, import.meta.url), 'utf8'))
+    expect(decls.has('--axis-x') && decls.has('--axis-y')).toBe(true)
+    expect(decls.has('--axis-z')).toBe(true)
   })
 })
 

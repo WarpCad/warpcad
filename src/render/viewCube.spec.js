@@ -161,6 +161,28 @@ describe('faceTransforms', () => {
     }
   })
 
+  it('prints each face label upright and unmirrored at its own view, and at Home for Top, Front and Right (TODO/ui-162)', () => {
+    const out = new Float64Array(36)
+    /** @param {string} view @param {{azimuthDeg: number, elevationDeg: number}} cam */
+    const check = (view, cam) => {
+      faceTransforms(cam.azimuthDeg, cam.elevationDeg, out)
+      const i = FACE_NAMES.indexOf(view) * 6
+      const [a, b, c, d] = out.subarray(i, i + 6)
+      // A positive determinant is no mirror; the label's up (local -y, CSS) must point up the screen.
+      expect(a * d - b * c, `${view} determinant`).toBeGreaterThan(0)
+      expect(-d, `${view} label-up screen y`).toBeLessThan(0)
+      // Its reading direction (local +x) runs left to right.
+      expect(a, `${view} label-right screen x`).toBeGreaterThan(0)
+    }
+    for (const view of SIX) check(view, STANDARD_VIEWS[view])
+    for (const view of ['top', 'front', 'right']) check(view, STANDARD_VIEWS.home)
+  })
+
+  it('gives each face its signed axis and the axis colour it is tinted by (TODO/ui-162)', () => {
+    const got = Object.fromEntries(VIEW_CUBE_FACES.map((f) => [f.view, `${f.axisLabel} ${f.axis}`]))
+    expect(got).toEqual({ top: '+Z z', bottom: '−Z z', front: '−Y y', back: '+Y y', right: '+X x', left: '−X x' })
+  })
+
   it('puts every face corner where the cube matrix projects it', () => {
     const out = new Float64Array(36)
     for (const [az, el] of [[-45, 35.26], [120, -20], [10, 80], [-170, 5]]) {
