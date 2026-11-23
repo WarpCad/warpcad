@@ -2166,6 +2166,8 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 **Check:** iPad, owner present, local build over the cable: the same three files, plus io-034's reproduction (Open in lists WarpCad with the app closed and open)
 
+**Closes:** `io-034` (closed 2026-11-23 on the simulator evidence; the built plist is correct). If WarpCad is not offered in Open in… on Socrates with a current build, reopen `io-034` and compare the installed app's `Info.plist` with `Info.ios.plist`.
+
 **Answer:** validation
 
 #### I4 · iOS declares .warpcad and imports .ndjson

@@ -82,10 +82,9 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 5 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 4 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 1 queued (ready) + 1 held + 1 running | The runner's queue: `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
-| 120 | ▶ Ready | `M19` | [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Confirm the built plist offers WarpCad for `.ndjson` (the device re-check is OWNER.md I3) | ▶ Ready (Next up row 120) |
 | 121 | ▶ Ready | `M19` | [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Write scenario 28, drive scenarios 10, 22 and 23 on the desktop (the iPad steps are OWNER.md I1-I4) | ▶ Ready (Next up row 121) |
 | 122 | ▶ Ready, ⚠ opus | `M19` | [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Make Live MCP access start, or say why, when the Wi-Fi address is missing (simulator first; F1 re-check to OWNER.md) | ▶ Ready (Next up row 122) |
 | 123 | ▶ Ready, ⚠ opus | `M19` | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token from loopback peers on iOS and Android (default taken; logged as an OWNER.md question) | ▶ Ready (Next up row 123) |
@@ -179,7 +178,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
 | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token for loopback peers on iOS and Android (M19) | finding | medium | opus | Held (native) |
 | [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Verify the `.warpcad` file types on a real iPad and in Safari, then scenarios 10, 22, 23, 28 (M19) | finding | medium | sonnet | Held (device) |
-| [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Files does not offer WarpCad for `.ndjson` on the iPad (M19) | finding | medium | sonnet | Held (native) |
 | [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Live MCP access does not start on the iPad (M19) | finding | medium | sonnet | Held (native) |
 | [`core-065`](DEFER-core-065-wood-screw-holes-cite-asme-not-albany.md) Wood-screw hole table cites ASME B18.6.1 instead of Albany County Fasteners' chart (was M18) | finding | high | sonnet | Deferred 2026-11-07 |
 | [`core-074`](DEFER-core-074-thread-geometry-recipes.md) Real helical threads: external and internal thread generator (was M5) | feature | medium | opus | Deferred 2026-11-07 |
@@ -260,7 +258,6 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `io-034` | Confirm the built plist offers WarpCad for `.ndjson`; the device re-check is OWNER.md I3 | Finding | `io-036` ✅ | 28 |
 | `testing-043` | Write scenario 28 into ACCEPTANCE.md; drive 10, 22 and 23 on the desktop; iPad steps are OWNER.md I1-I4 | Finding | — | 10, 22, 23, 28 |
 | `ai-043` | Live MCP access: a missing Wi-Fi address or failed bind gives a visible reason; simulator first; F1 re-check to OWNER.md | Finding | — | 25, 28 |
 | `ai-042` | Require the MCP token from loopback peers on iOS and Android (default taken, logged in OWNER.md §2) | Finding | `ai-043` | 25 |
@@ -445,7 +442,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 1 queued + 1 held | 1 ready for `/run-todos` (`testing-045`); `testing-027` held; `testing-028` running in the desktop app. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 5 queued + 10 held | Queued 2026-11-23: `io-034`, `testing-043`, `ai-043`, `ai-042`, `build-018` (agent half). Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 4 queued + 10 held | Queued 2026-11-23: `testing-043`, `ai-043`, `ai-042`, `build-018` (agent half). Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |

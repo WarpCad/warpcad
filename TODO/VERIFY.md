@@ -59,6 +59,16 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### io-034 — iPad Files does not offer WarpCad for .ndjson (2026-11-23 21:40 UTC)
+
+Verification only, no code change. The current `main` (after `io-036`) was built for the iPad simulator and the built `Info.plist` holds both document types, both type declarations and `LSSupportsOpeningDocumentsInPlace`. The simulator has no Simulator.app window here, so the Open in… sheet could not be tapped; the device check is `TODO/OWNER.md` I3.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Built `.app` `Info.plist` (`plutil -p`): `com.warpcad.project` at `LSHandlerRank` Owner and `org.ndjson.ndjson` at Alternate in `CFBundleDocumentTypes`; the first exported for `warpcad`, the second imported for `ndjson` (conforms to `public.text`, `public.data`) | OK | Seen 2026-11-23, iPad Pro 11-inch (M5) simulator, iOS 27.2. `UISupportsDocumentBrowser` is not set, and neither `io-030` nor `io-036` intended it. |
+| 2 | Simulator: `xcrun simctl openurl` of a `.warpcad` and of a `.ndjson` in the app's Documents launches WarpCad (status bar shows the Files back link) | OK | Launch only. The fixture was not a real project, so the page's import was not judged. Not the Open in… sheet. |
+| 3 | iPad (Socrates), owner present: with a project in Files, Open in… lists WarpCad with the app closed and open | Owner | → `TODO/OWNER.md` I3, which now names `io-034`. Reopen `io-034` only if I3 fails. |
+
 ### build-041 — Enlarge the cube mark in the macOS icon (2026-11-23 20:46 UTC)
 
 The macOS `icon.icns` now draws the cube at about 69% x 79% of the tile with the starburst streaks dimmed. `cargo tauri build --bundles app` was launched and the Dock captured beside Chrome and Xcode (`TODO/owner-media/build-041-dock-after.png`); the owner's judgment of it is the one open row.
