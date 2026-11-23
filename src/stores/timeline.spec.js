@@ -175,7 +175,7 @@ describe('timeline store (TODO/ui-032)', () => {
 
     expect(timeline.rolledBack).toBe(true)
     expect(timeline.rollbackText).toBe('Rolled back to step 2 of 3')
-    expect(timeline.rollbackDetail).toBe('New steps insert here · 1 later step inactive')
+    expect(timeline.rollbackDetail).toBe('Steps inserted here come after step 2 · 1 later step inactive')
     expect(timeline.rows.map((row) => row.active)).toEqual([true, true, false])
   })
 
@@ -184,7 +184,7 @@ describe('timeline store (TODO/ui-032)', () => {
     const timeline = useTimelineStore()
     doc.raw.rollBackTo('cuboid-1', { origin: 'local' })
     doc.refresh()
-    expect(timeline.rollbackDetail).toBe('New steps insert here · 2 later steps inactive')
+    expect(timeline.rollbackDetail).toBe('Steps inserted here come after step 1 · 2 later steps inactive')
   })
 
   it('selects an inactive row without previewing it (§18)', () => {

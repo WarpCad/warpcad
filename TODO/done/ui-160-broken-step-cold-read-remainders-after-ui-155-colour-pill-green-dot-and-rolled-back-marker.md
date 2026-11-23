@@ -6,8 +6,11 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-22 from ui-155's cold read
 depends: []
-status: open
+status: done
 ---
+
+
+> **What shipped (2026-11-23).** The broken chip is solid amber (`BaseChip` `warn` tone, page-colour text) in both places, one swatch. The marker line and the strip's detail share one sentence, `Steps inserted here come after step N` (`timeline.insertText`). The Inspector's box gained a `dependents-why` line in `BaseBanner`'s footer slot, the History row's own reason. Judged and left: the green save dot and the "fits" chip (both true), and the row's `broken`-only chip against "N later steps inactive" (`ui-146`'s one treatment); both asked as OWNER.md Q124. `SaveStatus.vue` is untouched. Cold read: visibility, box meaning and the fix action clear; one colour, rolled-back position and the green items partial for those two reasons.
 
 ## Problem
 

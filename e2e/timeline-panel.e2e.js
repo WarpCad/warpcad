@@ -413,8 +413,10 @@ test('rollback hides the tail, a new drop lands at the marker, and roll forward 
   await expect(page.getByTestId('timeline-marker')).toBeVisible()
   await expect(page.getByTestId('timeline-rollback-text')).toHaveText('Rolled back to step 2 of 3')
   await expect(page.getByTestId('timeline-rollback-detail')).toHaveText(
-    'New steps insert here · 1 later step inactive',
+    'Steps inserted here come after step 2 · 1 later step inactive',
   )
+  // TODO/ui-160: the marker line says the same thing as the strip's detail.
+  await expect(page.getByTestId('timeline-marker')).toHaveText('Steps inserted here come after step 2')
   // §18: nothing is blocked while rolled back.
   await expect(page.getByTestId('undo-button')).toBeEnabled()
 
@@ -763,4 +765,41 @@ test('TODO/ui-146: a broken step is amber, named Re-link in both routes, and its
   await page.getByTestId('undo-button').click()
   await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
   await expect(page.getByTestId('timeline-relink')).toBeVisible()
+})
+
+test('TODO/ui-160: the broken chip is one filled swatch, the box says what broken means, the marker agrees with the strip', async ({
+  page,
+}) => {
+  await seedCubeChamferSphere(page)
+  await breakChamferByMovingCube(page)
+
+  // One swatch: a filled chip (the --warn colour itself, not outline-on-tint), the same in History and the Inspector.
+  const bg = (/** @type {import('@playwright/test').Locator} */ chip) =>
+    chip.evaluate((el) => {
+      const probe = document.createElement('span')
+      probe.style.color = 'var(--warn)'
+      document.body.appendChild(probe)
+      const warn = getComputedStyle(probe).color
+      probe.remove()
+      return { fill: getComputedStyle(el).backgroundColor, warn }
+    })
+  const rowChip = page.getByTestId('timeline-row-3').getByTestId('chip-broken')
+  const rowFill = await bg(rowChip)
+  expect(rowFill.fill).toBe(rowFill.warn)
+
+  const phone = await libraryIsSheet(page)
+  if (phone) {
+    await page.getByTestId('timeline-close').click()
+    if (!(await page.getByTestId('dependents-banner').isVisible())) await page.getByTestId('inspector-tab').click()
+  }
+  const boxChip = page.getByTestId('dependents-broken-chip')
+  await expect(boxChip).toBeVisible()
+  expect((await bg(boxChip)).fill).toBe(rowFill.fill)
+
+  // The box says what broken means, on its own line under the text, on every width.
+  const why = page.getByTestId('dependents-why')
+  await expect(why).toBeVisible()
+  await expect(why).toContainText('Re-link')
+  await expect(why).toContainText('another step already changed the part it works on')
+  await expect(page.getByTestId('dependents-banner-text')).not.toContainText('Re-link points')
 })

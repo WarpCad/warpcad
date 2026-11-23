@@ -59,6 +59,14 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-160 — Broken-step cold-read remainders (2026-11-23 02:45)
+
+A fresh agent shown only the phone History and Inspector screenshots rated the visibility, the box's meaning and the fix action clear, and the one-colour, rolled-back-position and green-item reads partial. The chip fill, the box's why line and the marker wording shipped; the green dot, the fits chip and the `inactive`-versus-`broken` chip were judged and left.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Cold read of the phone screenshots: green dot and fits chip beside the warning read as "all fine"; `2 later steps inactive` beside a step chipped `broken` only | Owner | → `TODO/OWNER.md` Q124 (assumed: keep both). |
+
 ### ui-158 — The view cube replaces the axis triad (2026-11-23 00:30)
 
 The cube was driven by touch at 820x1180 and 390x844 (acceptance 7 and 9) and measured by the scattered-tap spec on all nine projects. What is left is judgment about looks and the six defaults taken without asking.

@@ -3763,3 +3763,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** both specs 49 passed, 1 skipped on firefox-laptop + webkit-phone; the rotating pair 1,340 e2e passed, 0 failed, 10,192 unit tests → `TODO/done/testing-047-align-popover-and-help-from-align-baselines-fifteen-pixels-short-on-firefox-laptop-and-webkit-phone.md`
 **To Add:** none
 ---
+
+## 2026-11-23T02:50:00Z — WarpCad: one amber, not two
+
+**Post:** A broken step in WarpCad showed an amber outlined chip on an amber-tinted row, so a cold reader saw two ambers. The chip is now filled, the same swatch in History and the Inspector, and the Inspector's box says what "broken" means under its text. The green save dot stays: the file is saved. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** pair chromium-phone + webkit-tablet 1,363 e2e passed, 0 failed, 10,192 unit → `TODO/done/ui-160-broken-step-cold-read-remainders-after-ui-155-colour-pill-green-dot-and-rolled-back-marker.md`
+**To Add:** the phone History and Inspector screenshots of a broken step
+---

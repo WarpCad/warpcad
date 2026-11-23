@@ -7,7 +7,7 @@
  *
  * - **`tone`**: `plain` (outline, muted text; the History row's chips), `quiet` (the same, dimmer),
  *   `neutral` (filled `--surface-2`, full-strength text; a header chip that is a button), `accent`
- *   (accent-tinted), `secondary` (the gist chip's second accent), `warn`, `danger`.
+ *   (accent-tinted), `secondary` (the gist chip's second accent), `warn` (solid amber, the broken chip), `danger`.
  * - **`size`**: `sm` (10 px, the History rows), `md` (12 px, content-sized), `lg` (12 px, 28 px tall) and
  *   `tap` (12 px, the 44 px `--tap` target, for a chip that is a button).
  * - **`dot`** adds the leading dot, coloured by **`dotTone`** (`muted | accent | secondary | warn`);
@@ -94,14 +94,18 @@ defineProps({
   color: var(--text-3);
 }
 
-.base-chip--neutral,
-.base-chip--warn {
+.base-chip--neutral {
   background: var(--surface-2);
   color: var(--text-1);
 }
 
+/* `TODO/ui-160`: solid, so it reads as one swatch beside the amber-tinted row and box it sits on, not a
+   second amber outlined on them. The text is the page colour, which contrasts the amber in both themes. */
 .base-chip--warn {
   border-color: var(--warn);
+  background: var(--warn);
+  color: var(--surface-1);
+  font-weight: var(--weight-bold);
 }
 
 .base-chip--accent {

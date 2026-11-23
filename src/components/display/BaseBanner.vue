@@ -131,6 +131,11 @@ defineProps({
   line-height: 1.4;
 }
 
+/* a footer is a second full-width row; the text and the button stay on the first */
+.base-banner--box:has(.base-banner__footer) {
+  flex-wrap: wrap;
+}
+
 .base-banner--box .base-banner__actions {
   flex-shrink: 0;
   margin-left: 0;

@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 106 now (Q16-Q123; Q94-Q123 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 107 now (Q16-Q124; Q94-Q124 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q124 · Keep the green save dot and the green "fits" chip as they are beside a broken step, and keep a broken step chipped `broken` only (not also `inactive`)?
+
+**Question:** `ui-160`'s cold read, shown only the phone screenshots, still rated two items partial: the green dot (the save status, top right) and the green **fits** chip (build volume) sit near the broken warning and read as "all fine", and the strip's "2 later steps inactive" sits beside a step 3 that is chipped `broken` but not `inactive`. I changed neither: the dot says *Saved* and the chip says the part fits, both true, and the row drops its grey `inactive` chip on purpose (`ui-146`: one treatment for one problem). Keep both?
+
+**Background:** The dot has a distinct shape per state for colour-blind users and is the app's one status surface; recolouring it while a step is broken would make it lie about whether the file is saved. The alternative for the row is showing `inactive` beside `broken`, which brings back the two-chip look `ui-146` removed.
+
+**Options:**
+- **Keep both as they are (Recommended):** nothing changes.
+- **Show `inactive` beside `broken` on a rolled-back broken row:** a TimelineRow change and e2e update. An S task.
+- **Explain more**
+- **Defer**
+
+**If deferred:** nothing changes.
+
+**Answer:** question
 
 #### Q123 · Keep the view cube's testids as `view-cube` and `gizmo-views`, with `orientation-dial` and `data-touch-picker` gone?
 

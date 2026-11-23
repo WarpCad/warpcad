@@ -198,10 +198,15 @@ export const useTimelineStore = defineStore('timeline', () => {
     rollbackAt.value === null ? '' : `Rolled back to step ${rollbackAt.value} of ${stepCount.value}`
   )
 
+  /** `TODO/ui-160`: the one sentence for the marker line and the strip's detail, in step numbers. */
+  const insertText = computed(() =>
+    rollbackAt.value === null ? '' : `Steps inserted here come after step ${rollbackAt.value}`
+  )
+
   const rollbackDetail = computed(() => {
     if (rollbackAt.value === null) return ''
     const later = stepCount.value - rollbackAt.value
-    return `New steps insert here · ${later} later step${later === 1 ? '' : 's'} inactive`
+    return `${insertText.value} · ${later} later step${later === 1 ? '' : 's'} inactive`
   })
 
   /**
@@ -407,6 +412,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     endWatch,
     rollbackText,
     rollbackDetail,
+    insertText,
     previewBodies,
     previewDocument,
     setOpen,

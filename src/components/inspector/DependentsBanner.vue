@@ -16,6 +16,7 @@
  */
 import { computed } from 'vue'
 
+import { userReason } from '../../core/userReason.js'
 import { useParamCommands } from '../../composables/useParamCommands.js'
 import { useTimelineCommands } from '../../composables/useTimelineCommands.js'
 import { useRepairDialogStore } from '../../stores/repairDialog.js'
@@ -75,6 +76,19 @@ function brokenText(count) {
   const list = named.join('; ') + (more > 0 ? ` and ${more} more` : '')
   return `${list}, built on ${props.body.name}.`
 }
+
+/**
+ * `TODO/ui-160`: what *broken* means, on its own line under the box's text (the History row prints the
+ * same reason): the plain sentence of the first named step, which says what Re-link does.
+ */
+const why = computed(() => {
+  if (missingParts.value) return ''
+  const id = dependents.value[0]?.dependentRecordId
+  const row = timeline.rows.find((candidate) => candidate.id === id)
+  if (row?.broken) return userReason(row.broken)
+  const failing = timeline.error?.broken
+  return failing && failing.id === id ? userReason(failing.reason) : ''
+})
 
 /** True when the Parts-missing voice applies (the repair dialog is the real choice, not a re-link). */
 const missingParts = computed(() => dependents.value.some((breakage) => breakage.missingPieces.length > 0))
@@ -144,6 +158,9 @@ function resolve(bodyId) {
     <template #actions>
       <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(body.id)">{{ resolveLabel(body.id) }}</BaseButton>
     </template>
+    <template v-if="why" #footer>
+      <span class="banner__why" data-testid="dependents-why">{{ why }}</span>
+    </template>
   </BaseBanner>
   <BaseBanner
     v-for="reference in references"
@@ -164,5 +181,11 @@ function resolve(bodyId) {
 <style scoped>
 .banner__chip {
   margin-right: var(--space-2);
+}
+
+.banner__why {
+  font-size: var(--text-size-sm);
+  line-height: 1.35;
+  color: var(--text-2);
 }
 </style>

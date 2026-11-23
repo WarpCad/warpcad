@@ -114,7 +114,7 @@ simply "the latest model". The amber one is a preview; the blue one, further dow
 page under *Roll back*, says part of the history is switched off. They can show together,
 the preview on top:
 
-![Two strips under the top bar: "Previewing step 1 of 5 — read-only" with a Back to latest button, above "Rolled back to step 2 of 5 / New steps insert here · 3 later steps inactive" with a Roll forward button](./screenshots/timeline-strips.png)
+![Two strips under the top bar: "Previewing step 1 of 5 — read-only" with a Back to latest button, above "Rolled back to step 2 of 5 / Steps inserted here come after step 2 · 3 later steps inactive" with a Roll forward button](./screenshots/timeline-strips.png)
 
 ## Changing a step (Edit)
 
@@ -216,7 +216,7 @@ Select a row and press **Roll back to here**. Everything after that row stops be
 where the boundary is. A strip appears under the top bar:
 
 > Rolled back to step 2 of 3
-> New steps insert here · 1 later step inactive
+> Steps inserted here come after step 2 · 1 later step inactive
 
 **Nothing is blocked while you're rolled back.** The Library, the Operations toolbar, the
 gizmo and the Inspector all keep working. Anything new you do is inserted **at the
@@ -240,10 +240,10 @@ broken row or **Undo** the change that broke it, then press Roll forward again.
 The most common way a step breaks is one you caused on purpose: you roll back to before a
 step, then **move or resize a body** that the step builds on. Moving a body adds a new step
 that replaces the body's old position, so a later step that was pointing at the old one is
-left pointing at something that no longer exists. That later step turns amber and gets the `broken` label, and when you select it the line under the row
+left pointing at something that no longer exists. That later step turns amber and gets a solid amber `broken` label, and when you select it the line under the row
 reads *This step can't be built because another step already changed the part it works on. Re-link points
 this step at the part's new position, or edit the earlier step.* (The move sits above the broken step in the list, at the
-"New steps insert here" marker, because the marker is where your move was added.) With the row selected, its **Edit**,
+"Steps inserted here come after step 2" marker, because the marker is where your move was added; the strip says the same thing.) With the row selected, its **Edit**,
 **Suppress** and **Move** buttons scroll into view in the panel, even on a phone.
 
 When that is the reason, the broken row itself carries a **Re-link** button, on the right of
@@ -252,8 +252,10 @@ until you press it — WarpCad does not guess that you meant the later step to f
 Pressing it points the step at the body's new position, as one step you can **Undo**.
 
 The same repair has the same name in the Inspector. Select the body that was moved (the
-cube) and the amber box shows the same amber `broken` label as the row, then the step's number first: *Step 3: Chamfer
-Top (+Z) 5 mm, built on Cube 1.* On a phone the line is cut at its end, never before the step number. Its button is the same
+cube) and the amber box shows the same solid amber `broken` label as the row (one swatch, not an outline on a tint), then the step's number first: *Step 3: Chamfer
+Top (+Z) 5 mm, built on Cube 1.* On a phone that line is cut at its end, never before the step number. Under it, on its own line, the box says what
+broken means, the same sentence the History row prints: *This step can't be built because another step already changed the part it works on. Re-link points
+this step at the part's new position, or edit the earlier step.* Its button is the same
 blue **Re-link** as the row's, and does exactly what the row's does, on the spot, with no dialog. (When parts of a Raspberry Pi variant are missing, or a snap points at a part
 that is gone, there is a real choice to make per item, so **Re-link…** (with the ellipsis, because a dialog opens) opens the repair
 dialog described in the Snap and Align page.)

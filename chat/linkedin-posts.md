@@ -5481,3 +5481,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 15 px at filing, 19 px at refresh (expected 352x469, received 352x488 on firefox-laptop; 352x440 vs 352x459 on webkit-phone) → the two failing runs; pair 1,340 e2e passed, 0 failed → this session's run; no `src/` change → `git show --stat HEAD`
 **To Add:** none
 ---
+
+## 2026-11-23T02:50:00Z — WarpCad: a cold read that keeps finding the next thing
+
+**Post:** After the last fix, a fresh reader shown only two phone screenshots of a broken step in WarpCad rated one thing partial: "one problem, one name, one colour". The chip was outlined in amber on an amber-tinted row, and on a beige box in the Inspector, so it read as two ambers.
+
+The fix was small. The chip is now a solid fill, one swatch in both places. The Inspector's box was cut off before the reason, so what "broken" means lived only in History; it now carries the same sentence under its text. And the rolled-back strip said "Rolled back to step 2" while the marker said "New steps insert here", so both now say "Steps inserted here come after step 2".
+
+Two things I did not change. The green save dot and the green "fits" chip beside the warning read as "all fine" to the cold reader, but they are true: the project is saved and the part fits. Recolouring them would make them lie. I logged that as a question for the owner rather than deciding it quietly. The second cold read confirmed the box's meaning and the fix action as clear, and left those two as the remaining partials.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #UX
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cold read items 1, 4, 6 clear and 2, 3, 5 partial → the fresh agent's six ratings this session; pair 1,363 e2e passed, 0 failed → this session's run; question filed → `TODO/OWNER.md` Q124
+**To Add:** the phone History and Inspector screenshots of a broken step
+---

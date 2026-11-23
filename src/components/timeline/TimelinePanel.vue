@@ -87,7 +87,7 @@ const relatedIds = computed(() => {
           data-testid="timeline-marker"
           aria-hidden="true"
         >
-          <span class="panel__marker-label">new steps insert here</span>
+          <span class="panel__marker-label">{{ timeline.insertText }}</span>
         </li>
       </template>
     </ol>
