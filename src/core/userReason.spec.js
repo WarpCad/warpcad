@@ -43,8 +43,17 @@ describe('userReason (TODO/ui-129)', () => {
       'supersedes "cuboid-k3f5xa-1", which has itself already been superseded by "cuboid-k3f5xa-1-move-k3f5xa-4" — forking a lineage would put two live representations of one body on screen',
     )
     expect(plain).not.toMatch(/after you rolled back|a later step/i)
-    expect(plain).toMatch(/while you were rolled back|while rolled back/)
     expect(plain).toMatch(/Re-link/)
+  })
+
+  it('says what Re-link does, not where the move happened (TODO/ui-155)', () => {
+    // The move is listed above the broken step and the marker sits right above it, so "a move you made
+    // while you were rolled back" could not be squared with the order on screen.
+    const plain = userReason(
+      'supersedes "cuboid-k3f5xa-1", which has itself already been superseded by "cuboid-k3f5xa-1-move-k3f5xa-4" — forking a lineage would put two live representations of one body on screen',
+    )
+    expect(plain).toMatch(/Re-link points this step at the part's new position/)
+    expect(plain).not.toMatch(/rolled back|while you|a move you made/i)
   })
 
   it('returns an unknown message untouched, and never throws or empties', () => {

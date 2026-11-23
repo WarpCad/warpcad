@@ -6,8 +6,17 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-20 from ui-154's cold read
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-22).** The Inspector box leads with the step number and carries the History row's own `broken` chip
+> (*broken* Step 3: Chamfer Top (+Z) 5 mm, built on Cube 1.), and its button reads **Re-link** where pressing it re-links on the
+> spot and **Re-link…** only where a dialog can open. The reason says what Re-link does (*Re-link points this step at the part's new
+> position, or edit the earlier step*) and no longer says where the move happened. Selecting a row brings the whole of it into view in
+> the list, so on a phone its Edit, Suppress and Move buttons clear the stacked peek bars; on the 220 px tablet dock a row, its reason and
+> a wrapped action bar do not fit at once, so that case still scrolls (asserted on the phone sheet only). Cold read: items 1, 3 and 4 clear,
+> item 2 partial (colour read as two ambers, a green save dot and a "fits" chip beside the warning), filed as `ui-160`. Two Align screenshots
+> were already red on `main`, filed as `testing-047`.
 
 ## Problem
 

@@ -241,8 +241,10 @@ The most common way a step breaks is one you caused on purpose: you roll back to
 step, then **move or resize a body** that the step builds on. Moving a body adds a new step
 that replaces the body's old position, so a later step that was pointing at the old one is
 left pointing at something that no longer exists. That later step turns amber and gets the `broken` label, and when you select it the line under the row
-reads *This step can't be built because another step already changed the part it works on, for example a
-move you made while you were rolled back. Use Re-link to follow the moved part, or edit the earlier step.*
+reads *This step can't be built because another step already changed the part it works on. Re-link points
+this step at the part's new position, or edit the earlier step.* (The move sits above the broken step in the list, at the
+"New steps insert here" marker, because the marker is where your move was added.) With the row selected, its **Edit**,
+**Suppress** and **Move** buttons scroll into view in the panel, even on a phone.
 
 When that is the reason, the broken row itself carries a **Re-link** button, on the right of
 the row, so you do not have to select the row or scroll the panel to find it. Nothing changes
@@ -250,20 +252,20 @@ until you press it — WarpCad does not guess that you meant the later step to f
 Pressing it points the step at the body's new position, as one step you can **Undo**.
 
 The same repair has the same name in the Inspector. Select the body that was moved (the
-cube) and the amber box reads *1 step is broken: Chamfer Top (+Z) 5 mm (step 3), built on Cube 1.*, with a
-**Re-link…** button, the same blue button as the row's. For this kind of break it does exactly what the row's **Re-link** does, on the spot,
-with no dialog. (When parts of a Raspberry Pi variant are missing, or a snap points at a part
-that is gone, there is a real choice to make per item, so **Re-link…** opens the repair
+cube) and the amber box shows the same amber `broken` label as the row, then the step's number first: *Step 3: Chamfer
+Top (+Z) 5 mm, built on Cube 1.* On a phone the line is cut at its end, never before the step number. Its button is the same
+blue **Re-link** as the row's, and does exactly what the row's does, on the spot, with no dialog. (When parts of a Raspberry Pi variant are missing, or a snap points at a part
+that is gone, there is a real choice to make per item, so **Re-link…** (with the ellipsis, because a dialog opens) opens the repair
 dialog described in the Snap and Align page.)
 
 **Example:** drag a Cube in, chamfer its top edge, drag a Sphere in. Press **History**,
 select row 1 (the cube) and press **Roll back to here**. Select the cube and drag it along
 the X arrow. The chamfer, now step 3, turns amber and `broken`, with **Re-link** at the right
-of its row. Press **Re-link**; the amber label goes. (Or select the cube and press **Re-link…**
+of its row. Press **Re-link**; the amber label goes. (Or select the cube and press **Re-link**
 in the Inspector's amber box: the same result.) Press **Roll forward** on the strip:
 the chamfered cube comes back at its new position, with the sphere.
 
-The movie captions each beat. When the chamfer breaks, the Inspector's amber box also reads *1 step is broken* and names the chamfer, with a **Re-link…** button; the row's own amber `broken` label and its **Re-link** button are in the History panel below it.
+The movie captions each beat. When the chamfer breaks, the Inspector's amber box also carries the `broken` label and names step 3, the chamfer, with a **Re-link** button; the row's own amber `broken` label and its **Re-link** button are in the History panel below it.
 
 ![Rolling back to the cube, moving it, the chamfer row going amber and broken (captioned, with the History list scrolled so the row, its badge and its reason are in view), Re-link, then Roll forward: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
 

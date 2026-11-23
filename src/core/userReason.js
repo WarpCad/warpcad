@@ -58,7 +58,7 @@ export function userReason(message) {
 
   // A step that points at a body a later step already replaced.
   if (/which has itself already been superseded by ".*" — forking a lineage would put two live representations of one body on screen$/.test(core)) {
-    return "This step can't be built because another step already changed the part it works on, for example a move you made while you were rolled back. Use Re-link to follow the moved part, or edit the earlier step."
+    return "This step can't be built because another step already changed the part it works on. Re-link points this step at the part's new position, or edit the earlier step."
   }
   return text
 }

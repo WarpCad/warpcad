@@ -9,7 +9,7 @@
  * - on the dependent (the cube): *"Snapped to Raspberry Pi 1 ▸ avjack, which no longer
  *   exists."*
  *
- * Both carry **Re-link…** (`dependents-resolve`; one name, one words and one primary button with the History row's **Re-link**, `TODO/ui-146`, `TODO/ui-154`), which reopens the repair dialog on the
+ * Both carry **Re-link** (or **Re-link…** where a dialog can open; `dependents-resolve`; one name, one words and one primary button with the History row's **Re-link**, `TODO/ui-146`, `TODO/ui-154`), which reopens the repair dialog on the
  * breakages against the body whose parts are missing. The banner wraps; at phone width it
  * collapses to one line plus Resolve… (`BaseBanner`'s `truncate`), so it cannot push the Parameters section's first
  * field below the Inspector sheet's peek height.
@@ -22,6 +22,7 @@ import { useRepairDialogStore } from '../../stores/repairDialog.js'
 import { useTimelineStore } from '../../stores/timeline.js'
 import BaseButton from '../controls/BaseButton.vue'
 import BaseBanner from '../display/BaseBanner.vue'
+import BaseChip from '../display/BaseChip.vue'
 
 const props = defineProps({
   body: {
@@ -47,7 +48,7 @@ const variant = computed(() => {
 
 const dependentsText = computed(() => {
   const count = dependents.value.length
-  const missing = dependents.value.some((breakage) => breakage.missingPieces.length > 0)
+  const missing = missingParts.value
   const items = `${count} item${count === 1 ? ' refers' : 's refer'}`
   return missing
     ? `${items} to parts this ${variant.value} doesn't have.`
@@ -55,9 +56,10 @@ const dependentsText = computed(() => {
 })
 
 /**
- * `TODO/ui-154`: the same word as the History row (*broken*), and which step it is, so the box
- * does not leave the reader to hunt for it: `1 step is broken: Chamfer Top (+Z) 5 mm (step 3), built
- * on Cube 1.` At most two steps are named; the rest are counted.
+ * `TODO/ui-154`, `TODO/ui-155`: which step, led by its number (the number the History row shows), so a
+ * phone's one-line collapse cuts only the tail: `Step 3: Chamfer Top (+Z) 5 mm, built on Cube 1.` The
+ * word *broken* is the chip drawn before it (the History row's own chip). At most two steps are named;
+ * the rest are counted.
  *
  * @param {number} count
  * @returns {string}
@@ -67,14 +69,15 @@ function brokenText(count) {
   const named = dependents.value.slice(0, 2).map((breakage) => {
     const text = timeline.rows.find((row) => row.id === breakage.dependentRecordId)?.text
     const short = text?.endsWith(suffix) ? text.slice(0, -suffix.length) : text
-    return short ? `${short} (step ${breakage.step})` : `step ${breakage.step}`
+    return short ? `Step ${breakage.step}: ${short}` : `Step ${breakage.step}`
   })
   const more = count - named.length
   const list = named.join('; ') + (more > 0 ? ` and ${more} more` : '')
-  // Count, the word *broken* and the step's name come first: the phone's one-line collapse
-  // cuts the end of the sentence, so the end is where `built on Cube 1` goes.
-  return `${count} step${count === 1 ? ' is' : 's are'} broken: ${list}, built on ${props.body.name}.`
+  return `${list}, built on ${props.body.name}.`
 }
+
+/** True when the Parts-missing voice applies (the repair dialog is the real choice, not a re-link). */
+const missingParts = computed(() => dependents.value.some((breakage) => breakage.missingPieces.length > 0))
 
 /** Past-tense verb per relationship, for the dependent's own sentence. */
 const VERBS = Object.freeze({ Snap: 'Snapped to', Align: 'Aligned to' })
@@ -88,6 +91,19 @@ function referenceText(reference) {
   const lead = /** @type {Record<string, string>} */ (VERBS)[verb] ?? 'Uses'
   if (reference.pieces.length === 0) return `${lead} ${reference.refBodyName}: ${reference.reason}`
   return `${lead} ${reference.refBodyName} ▸ ${reference.pieces.join(', ')}, which no longer exists.`
+}
+
+/**
+ * `TODO/ui-155`: **Re-link** when pressing re-links on the spot (the History row's own label), and
+ * **Re-link…** only where a dialog can open, so the ellipsis stays honest.
+ *
+ * @param {string} bodyId
+ * @returns {string}
+ */
+function resolveLabel(bodyId) {
+  const { breakages } = paramCommands.resolveTargets(bodyId)
+  const offered = (/** @type {string} */ id) => timeline.rows.find((row) => row.id === id)?.relinkTo != null
+  return breakages.length > 0 && breakages.every((breakage) => offered(breakage.dependentRecordId)) ? 'Re-link' : 'Re-link…'
 }
 
 /**
@@ -114,10 +130,19 @@ function resolve(bodyId) {
 </script>
 
 <template>
-  <BaseBanner v-if="dependents.length > 0" tone="warn" layout="box" truncate role="status" data-testid="dependents-banner">
+  <BaseBanner
+    v-if="dependents.length > 0"
+    tone="warn"
+    layout="box"
+    truncate
+    role="status"
+    text-testid="dependents-banner-text"
+    data-testid="dependents-banner"
+  >
+    <BaseChip v-if="!missingParts" class="banner__chip" tone="warn" size="sm" data-testid="dependents-broken-chip">broken</BaseChip>
     {{ dependentsText }}
     <template #actions>
-      <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(body.id)">Re-link…</BaseButton>
+      <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(body.id)">{{ resolveLabel(body.id) }}</BaseButton>
     </template>
   </BaseBanner>
   <BaseBanner
@@ -131,7 +156,13 @@ function resolve(bodyId) {
   >
     {{ referenceText(reference) }}
     <template #actions>
-      <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">Re-link…</BaseButton>
+      <BaseButton variant="primary" narrow data-testid="dependents-resolve" @click="resolve(reference.refBodyId)">{{ resolveLabel(reference.refBodyId) }}</BaseButton>
     </template>
   </BaseBanner>
 </template>
+
+<style scoped>
+.banner__chip {
+  margin-right: var(--space-2);
+}
+</style>

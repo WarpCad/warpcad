@@ -608,6 +608,8 @@ test('TODO/data-006: Re-link points a broken tail row at the body an insert move
   await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toBeVisible()
   await page.getByTestId('timeline-row-3').click()
   await expect(page.getByTestId('timeline-broken-reason')).toContainText('another step already changed the part it works on')
+  await expect(page.getByTestId('timeline-broken-reason')).toContainText("Re-link points this step at the part's new position")
+  await expect(page.getByTestId('timeline-broken-reason')).not.toContainText('rolled back')
   await expect(page.getByTestId('timeline-broken-reason')).not.toContainText('after you rolled back')
   const relink = page.getByTestId('timeline-relink')
   await expect(relink).toBeVisible()
@@ -686,6 +688,18 @@ test('TODO/ui-146: a broken step is amber, named Re-link in both routes, and its
   await expect(relink).toBeVisible()
   await expect.poll(async () => (await measure()).bottom).toBeGreaterThanOrEqual(0)
   expect((await measure()).top).toBeGreaterThanOrEqual(0)
+  // TODO/ui-155: on a phone the selected row's own actions are whole inside the sheet, not under the peek bars.
+  const actionsInside = () =>
+    page.evaluate(() => {
+      const bar = document.querySelector('[data-testid="timeline-actions"]')?.getBoundingClientRect()
+      const panel = document.querySelector('[data-testid="timeline-panel"]')?.getBoundingClientRect()
+      const list = document.querySelector('[data-testid="timeline-rows"]')?.getBoundingClientRect()
+      if (!bar || !panel || !list) throw new Error('missing actions, panel or rows')
+      return Math.min(list.bottom, panel.bottom) - bar.bottom
+    })
+  // On the wider dock the 220 px list cannot hold the row, its reason and a wrapped action bar at once, and
+  // nothing covers it: the list scrolls. The sheet's peek bars are the phone's problem.
+  if (await libraryIsSheet(page)) await expect.poll(actionsInside).toBeGreaterThanOrEqual(-0.5)
   await page.screenshot({ path: testInfo.outputPath(`broken-row-${testInfo.project.name}.png`) })
 
   // The Inspector's box for the same problem: the same amber, the same name.
@@ -699,10 +713,18 @@ test('TODO/ui-146: a broken step is amber, named Re-link in both routes, and its
   const banner = page.getByTestId('dependents-banner')
   await expect(banner).toBeVisible()
   await expect(banner).toHaveClass(/base-banner--warn/)
-  await expect(page.getByTestId('dependents-resolve')).toHaveText('Re-link…')
+  // TODO/ui-155: a direct re-link, so the same label as the row's button (no ellipsis: no dialog opens).
+  await expect(page.getByTestId('dependents-resolve')).toHaveText('Re-link')
   // TODO/ui-154: the same words as the row (broken, and which step), and the same button variant.
   await expect(banner).toContainText('broken')
   await expect(banner).toContainText('Chamfer')
+  // TODO/ui-155: one chip, the row's own: same word, same amber. The box leads with the step number, so a
+  // phone's one-line collapse cuts only the tail.
+  await expect(banner.getByTestId('dependents-broken-chip')).toHaveText('broken')
+  await expect(banner.getByTestId('dependents-broken-chip')).toHaveClass(/base-chip--warn/)
+  await expect(page.getByTestId('dependents-banner-text')).toHaveText(
+    /^broken\s*Step 3: Chamfer Top \(\+Z\) 5 mm, built on Cube 1\.\s*$/,
+  )
   await expect(page.getByTestId('dependents-resolve')).toHaveClass(/base-button--primary/)
   await banner.evaluate((el) => el.scrollIntoView({ block: 'center' }))
   await page.waitForTimeout(300)

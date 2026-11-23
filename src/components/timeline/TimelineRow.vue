@@ -116,6 +116,17 @@ watch(
   { immediate: true },
 )
 
+/**
+ * `TODO/ui-155`: selecting a row brings the whole of it (its reason and its action bar) into view
+ * in the sheet's list, so on a phone the buttons are not left half under the stacked peek bars.
+ */
+watch(
+  () => props.selected,
+  (isSelected) => {
+    if (isSelected) void nextTick(() => rootEl.value?.scrollIntoView?.({ block: 'nearest' }))
+  },
+)
+
 // Selecting a different row closes any form this one had open, so an abandoned
 // edit can never be applied later by a stray Enter.
 watch(

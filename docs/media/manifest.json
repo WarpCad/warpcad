@@ -515,8 +515,8 @@
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "light",
     "specHash": "27f6d1621beebceeb74fb6fad2361992d37aec7bf471ccc52ef9750e9f4b785b",
-    "bytes": 1698110,
-    "seconds": 19.84
+    "bytes": 1925187,
+    "seconds": 20.5
   },
   "window-shrink.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",
@@ -1076,8 +1076,8 @@
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "dark",
     "specHash": "27f6d1621beebceeb74fb6fad2361992d37aec7bf471ccc52ef9750e9f4b785b",
-    "bytes": 2019105,
-    "seconds": 20
+    "bytes": 2122965,
+    "seconds": 20.67
   },
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",
