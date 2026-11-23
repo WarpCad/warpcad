@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 107 now (Q16-Q124; Q94-Q124 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 108 now (Q16-Q125; Q94-Q125 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,18 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q125 · Accept `resize-fit.gif` and `timeline-relink.gif` as good enough, after three cold-read passes (docs-039, -040, -041)?
+
+**Question:** `docs-041`'s cold read, shown frames once a second, rated `resize-fit.gif` CLEAR and `timeline-relink.gif` PARTIAL. What is left in the relink movie is mostly presses that fall between one-second samples (the chamfer Apply, the Enter on the typed 60, the Roll forward press), the dimmed grey row after Re-link, a four-frame hold on *Select step 3*, and a static closing hold. Per the stop rule I filed no `docs-042`. Accept both movies as they are?
+
+**Background:** Every press now has its caption and a hovered pointer, and the History panel is enlarged for the reason text; the movie is at its 24 s budget (21.5 s light), so more captions would need other beats cut.
+
+**Options:**
+- **Accept both as they are (Recommended):** nothing changes.
+- **File `docs-042` for the relink remainders:** a caption on the Re-link outcome and visible Enter and Apply presses, at the cost of cutting other beats. An S task.
+- **Explain more**
+- **Defer**
 
 #### Q124 · Keep the green save dot and the green "fits" chip as they are beside a broken step, and keep a broken step chipped `broken` only (not also `inactive`)?
 

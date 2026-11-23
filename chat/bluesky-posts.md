@@ -3783,3 +3783,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 24 GIFs re-recorded, docs-media guard 2/2, unit 10,192 → this session's run; cold read: 1 CLEAR, 2 PARTIAL → the fresh agent's report, remainder filed as `TODO/FIND-docs-041-cold-read-gif-remainders-after-docs-040.md`
 **To Add:** none
 ---
+
+## 2026-11-23T03:30:00Z — WarpCad: press, hover, zoom
+
+**Post:** Two more WarpCad docs movies re-cut. Each toolbar press now has its caption while the pointer rests on the button, the Fit popover and the History panel are enlarged so the small text reads, and the build-up steps are captioned. A fresh reader rated the Fit movie clear. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 12 GIFs re-recorded, docs-media guard, unit and typecheck → this session's run; cold read: Fit CLEAR, relink PARTIAL → the fresh agent's report
+**To Add:** none
+---

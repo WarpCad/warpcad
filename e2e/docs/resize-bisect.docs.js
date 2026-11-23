@@ -43,6 +43,24 @@ test.describe('docs media: resize and bisect', () => {
     await page.waitForTimeout(200)
     await el.click()
   }
+  /** `TODO/docs-041`: glide to a toolbar button, put a caption up, hold so the pointer is seen on it, then press. */
+  const pressWithCaption = async (page, testId, text, hold) => {
+    const el = page.getByTestId(testId)
+    const b = await el.boundingBox()
+    await glideTo(page, { x: b.x + b.width / 2, y: b.y + b.height / 2 })
+    await setCaption(page, text)
+    await page.waitForTimeout(hold)
+    await el.click()
+  }
+  /** `TODO/docs-041`: enlarge (or restore) the popover so its fields read at GIF size; a transform leaves the layout alone. */
+  const zoomPopover = async (page, on) => {
+    await page.getByTestId('resize-popover').evaluate((el, scale) => {
+      el.style.transformOrigin = 'top left'
+      el.style.transition = 'transform 300ms ease'
+      el.style.transform = scale ? 'scale(1.35)' : ''
+    }, on)
+    await page.waitForTimeout(400)
+  }
   const typeInto = async (page, testId, text) => {
     const el = page.getByTestId(testId)
     const b = await el.boundingBox()
@@ -201,10 +219,17 @@ test.describe('docs media: resize and bisect', () => {
     await page.waitForTimeout(1400)
     // 1. Without keep-aspect: each axis goes to exactly the size typed, so only the X stretch shows.
     // `TODO/docs-040`: each caption goes up as its popover opens, so it never lags the screen.
-    await setCaption(page, 'Fit X to 60, Keep aspect off: only X changes')
-    let popover = await openPopover(page, 'operation-fit', 'modify.fit')
+    // `TODO/docs-041`: the toolbar press is captioned and hovered for about a second; the popover is zoomed; the
+    // typing caption goes up only once the value is typed.
+    await pressWithCaption(page, 'operation-fit', 'Press Fit', 1000)
+    let popover = page.getByTestId('resize-popover')
+    await expect(popover).toBeVisible()
+    await expect(popover).toHaveAttribute('data-op', 'modify.fit')
+    await zoomPopover(page, true)
     await expect(page.getByTestId('resize-fit-keep-aspect')).not.toBeChecked()
     await typeInto(page, 'resize-fit-x', '60')
+    await setCaption(page, 'Fit X to 60, Keep aspect off: only X changes')
+    await page.waitForTimeout(700)
     await press(page, 'resize-commit')
     await expect(popover).toHaveCount(0)
     const stretched = await afterChange(page, 'cube-1', before)
@@ -215,17 +240,22 @@ test.describe('docs media: resize and bisect', () => {
     await page.waitForTimeout(1400)
     // The Inspector's Size is the shape's own parameter: Fit is a separate step, so Size keeps reading 40.
     await setCaption(page, "Inspector Size is the shape's own parameter: still 40. Fit is a separate step")
-    await page.waitForTimeout(2400)
+    await page.waitForTimeout(1800)
     // 2. With keep-aspect: ask for X = 30 and the other two axes take the same ratio
     // (the smallest, 30/60), so the 60 x 40 x 40 block keeps its proportions.
-    await setCaption(page, 'Fit X to 30, Keep aspect on: Y and Z follow')
-    popover = await openPopover(page, 'operation-fit', 'modify.fit')
+    await pressWithCaption(page, 'operation-fit', 'Press Fit again', 700)
+    popover = page.getByTestId('resize-popover')
+    await expect(popover).toBeVisible()
+    await zoomPopover(page, true)
     await typeInto(page, 'resize-fit-x', '30')
+    await setCaption(page, 'Fit X to 30, then tick Keep aspect: Y and Z follow')
     await glideTo(page, await page.getByTestId('resize-fit-keep-aspect').evaluate((el) => {
       const b = el.getBoundingClientRect()
       return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
     }))
+    await page.waitForTimeout(900)
     await page.getByTestId('resize-fit-keep-aspect').check()
+    await page.waitForTimeout(600)
     await press(page, 'resize-commit')
     await expect(popover).toHaveCount(0)
     const kept = await afterChange(page, 'cube-1', stretched)
@@ -233,7 +263,7 @@ test.describe('docs media: resize and bisect', () => {
     expect(kept.size[1]).toBeCloseTo(20, 1)
     expect(kept.size[2]).toBeCloseTo(20, 1)
     await sizeCaption('Fit X to 30, aspect on', kept.size)
-    await page.waitForTimeout(1800)
+    await page.waitForTimeout(1200)
     // Deselect, then the three results at one camera angle, so Y and Z can be read against each other.
     await clickAt(page, { x: 1050, y: 800 })
     await expect(viewport(page)).toHaveAttribute('data-selected-count', '0')
@@ -244,7 +274,7 @@ test.describe('docs media: resize and bisect', () => {
       { src: pictureStretched, text: `Fit X to 60, aspect off: ${xyz(prepStretched.size)}` },
       { src: pictureKept, text: `Fit X to 30, aspect on: ${xyz(prepKept.size)}` },
     )
-    await page.waitForTimeout(3600)
+    await page.waitForTimeout(2000)
     await endMovie(page, 'resize-fit', { fps: 10, width: 640 })
   })
 

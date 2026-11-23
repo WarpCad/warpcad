@@ -212,23 +212,23 @@
   "resize-snapped-dependents.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 486393,
-    "seconds": 6.8
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 653436,
+    "seconds": 8.3
   },
   "resize-enlarge.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 752743,
-    "seconds": 10.9
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 754220,
+    "seconds": 11.4
   },
   "resize-fit.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 1364067,
-    "seconds": 20.7
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 1768352,
+    "seconds": 22.1
   },
   "fillet-operation.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -247,16 +247,16 @@
   "bisect-axis.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 634367,
-    "seconds": 8.9
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 692972,
+    "seconds": 10.3
   },
   "bisect-angled.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 733306,
-    "seconds": 9.9
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 787434,
+    "seconds": 11.4
   },
   "bom-updates.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -514,9 +514,9 @@
   "timeline-relink.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "light",
-    "specHash": "19e2ae963deb3e11f46c554b9cd9443336e130a3bccc95b7158a59b7ff99101b",
-    "bytes": 1995691,
-    "seconds": 22.84
+    "specHash": "186876d78beda97bfbadafd088b218c7641ea815623bc9bbe07eb26995ea8637",
+    "bytes": 1979456,
+    "seconds": 21.17
   },
   "window-shrink.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",
@@ -570,16 +570,16 @@
   "bisect-angled.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 854230,
-    "seconds": 9.9
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 853618,
+    "seconds": 10.3
   },
   "bisect-axis.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 757483,
-    "seconds": 8.5
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 786576,
+    "seconds": 8.8
   },
   "bom-updates.dark.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -878,23 +878,23 @@
   "resize-enlarge.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 802883,
-    "seconds": 9.7
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 868712,
+    "seconds": 11.4
   },
   "resize-fit.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 1524735,
-    "seconds": 19.7
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 1685641,
+    "seconds": 21.3
   },
   "resize-snapped-dependents.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
-    "bytes": 506356,
-    "seconds": 6.9
+    "specHash": "fcd85b5d1e3d97a0540834c3b22fe01f22d0dad387408035f6fea7e8ddce9d04",
+    "bytes": 538871,
+    "seconds": 7.5
   },
   "rpi-mounting-holes.dark.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
@@ -1075,9 +1075,9 @@
   "timeline-relink.dark.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "dark",
-    "specHash": "19e2ae963deb3e11f46c554b9cd9443336e130a3bccc95b7158a59b7ff99101b",
-    "bytes": 2073642,
-    "seconds": 20.84
+    "specHash": "186876d78beda97bfbadafd088b218c7641ea815623bc9bbe07eb26995ea8637",
+    "bytes": 2171580,
+    "seconds": 21.17
   },
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",

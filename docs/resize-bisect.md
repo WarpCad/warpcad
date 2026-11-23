@@ -41,7 +41,7 @@ factor, so the shape keeps its proportions. In the example, the cube is 40 mm on
 60 leaves Y and Z at 40. Then X 60 → 30 with **Keep aspect ratio** makes Y and Z 40 → 20, because
 Keep aspect ratio applies the smallest ratio of the three to every axis.
 
-The movie prints the part's size on screen after each Fit, so you can watch Y and Z follow: X 60 Y 40 Z 40, then X 30 Y 20 Z 20. Each caption goes up as its Fit popover opens. A second caption points out that the Inspector's Size fields keep reading 40: Size is the shape's own parameter, and Fit is a separate step in History.
+The movie prints the part's size on screen after each Fit, so you can watch Y and Z follow: X 60 Y 40 Z 40, then X 30 Y 20 Z 20. The pointer rests on the toolbar **Fit** button under a "Press Fit" caption before each press, the popover is enlarged while you type, and each result caption goes up only once the value is typed. A further caption points out that the Inspector's Size fields keep reading 40: Size is the shape's own parameter, and Fit is a separate step in History.
 
 ![Fit twice: first X alone to 60 mm (X 60, Y 40, Z 40), then X to 30 mm with Keep aspect ratio ticked (X 30, Y 20, Z 20); the movie ends on the start, the stretched block and the kept block side by side at one camera angle](./media/resize-fit.gif)
 

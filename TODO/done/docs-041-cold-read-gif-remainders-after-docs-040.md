@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-22 from the docs-040 cold read
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-22).** Re-recorded resize-bisect (5) and timeline-relink with dark twins through a scoped moviesDir. Cold read: resize-fit CLEAR, timeline-relink PARTIAL; per the stop rule the remainder is owner question Q125, not a new finding.
 
 ## Problem
 

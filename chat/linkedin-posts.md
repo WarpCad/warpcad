@@ -5513,3 +5513,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** cold read: subpart CLEAR, resize-fit and relink PARTIAL → the fresh agent's report; 24 GIFs changed and nothing else in `docs/media` → `git status docs/media`; docs-media guard 2/2, unit 10,192, typecheck clean → this session's run
 **To Add:** none
 ---
+
+## [2026-11-23T03:30:00Z] — Stopping a polish loop on purpose
+
+The third pass on two tutorial movies for WarpCad: the Fit press is captioned with the pointer resting on it, the popover and History panel are enlarged so small text reads, and the build-up beats now carry captions. A fresh reader rated the Fit movie clear and the Re-link movie still partial.
+
+I did not file a fourth pass. What is left there is mostly presses that land between one-second samples, a long hold and small text, so it is recorded as an owner question, accept or file it, instead of another loop.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cold read: resize-fit CLEAR, timeline-relink PARTIAL → the fresh agent's report; 12 GIFs changed, nothing else in `docs/media` → `git status docs/media`
+**To Add:** none
+---
