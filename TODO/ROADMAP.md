@@ -82,10 +82,17 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 8 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 1 queued (ready) + 1 held + 1 running | The runner's queue: `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
-| 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
+| 117 | ▶ Ready | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Close the Gate 1 pass: commit the `--debug` install, restore the build-written Xcode files, clear the LiDAR build cache, record the summary | ▶ Ready (Next up row 117) |
+| 118 | ▶ Ready | `M19` | [`build-040`](../../warpcad-native/TODO/M19-build-040-help-has-no-version-line-on-the-ipad.md) Show the version line in Help (fix in `../warpcad`, checked in the iPad simulator) | ▶ Ready (Next up row 118) |
+| 119 | ▶ Ready | `M19` | [`build-041`](../../warpcad-native/TODO/M19-build-041-mac-icon-mark-too-small-in-the-tile.md) Enlarge the cube mark in the macOS icon | ▶ Ready (Next up row 119) |
+| 120 | ▶ Ready | `M19` | [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Confirm the built plist offers WarpCad for `.ndjson` (the device re-check is OWNER.md I3) | ▶ Ready (Next up row 120) |
+| 121 | ▶ Ready | `M19` | [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Write scenario 28, drive scenarios 10, 22 and 23 on the desktop (the iPad steps are OWNER.md I1-I4) | ▶ Ready (Next up row 121) |
+| 122 | ▶ Ready, ⚠ opus | `M19` | [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Make Live MCP access start, or say why, when the Wi-Fi address is missing (simulator first; F1 re-check to OWNER.md) | ▶ Ready (Next up row 122) |
+| 123 | ▶ Ready, ⚠ opus | `M19` | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token from loopback peers on iOS and Android (default taken; logged as an OWNER.md question) | ▶ Ready (Next up row 123) |
+| 124 | ▶ Ready | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Everything in the device probe that needs no iPad, and the probe build ready for OWNER.md I13 | ▶ Ready (Next up row 124) |
 
 ---
 
@@ -102,7 +109,7 @@ yet, to GitHub or to the App Store. The local rows run (owner, 2026-11-15); the 
 
 **Device checks:**
 
-- [`testing-043`](../../warpcad-native/TODO/M19-testing-043-verify-warpcad-file-types-on-device.md) Verify the `.warpcad` file types on a real iPad and in Safari, then run the owed acceptance scenarios (10, 22, 23, 28). **Held:** a manual run; filed 2026-11-16 to close `io-035` and `io-036`.
+- None. `testing-043` was split 2026-11-23: its desktop half is M19 row 121, its iPad half is OWNER.md I1-I4.
 
 ---
 
@@ -168,7 +175,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass (M19) | feature | high | sonnet | Held (native) |
 | [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) Listing, privacy, licence audits; stops before Submit (M19) | feature | high | sonnet | Held (native) |
 | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
-| [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (native) |
+| [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (desktop app, computer use) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
 | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | Closed 2026-11-16 by owner decision: partly run, 8 checks to be filed as rows |
 | [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: entitlements, hardened runtime, signing, notarized or Mac App Store build (M19) | feature | medium | sonnet | Held (native) |
@@ -240,6 +247,8 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 >
 > **Decided 2026-11-17 (owner, in `/whats-next`):** commit the three filed rows (`build-040`, `io-034`, `ai-043`) and the `testing-037` status edit in `warpcad-native`. Leave `scripts/ios-release.sh`, the Xcode project, `Info.plist` and `src-tauri/plugins/` uncommitted: their origin is not yet known. Committed in `warpcad-native` as `725aad7`; those four paths are still uncommitted.
 >
+> **Decided 2026-11-23 (owner):** clean all three. The origins were traced: the `ios-release.sh` `--debug` edit is `testing-037` step 1 (commit it); the `DEVELOPMENT_TEAM` line in `project.pbxproj` and the two `Info.plist` keys were written by a build whose restore trap did not run (restore them, never commit the team ID); `src-tauri/plugins/lidar/.tauri/` is a `probe/io-026` build cache (delete it). `testing-037` (row 117) does it.
+>
 > **Decided 2026-11-17 (owner, in `/whats-next`):** file the eight unrun iPad checks (D4, E6, F2 to F5, G, H) now as held rows in `warpcad-native`. Superseded by the owner-queue triage below: no row files were written.
 >
 > **2026-11-17 (owner-queue triage):** the eight checks are items in `TODO/OWNER.md` instead of separate row files: H → I5, F2-F5 → I9-I12 (wait on `ai-043`), G → I13 (waits on the probe build), D4 → W1 (overnight), E6 → Z1 (parked, API key). The bookkeeping commit above is `testing-044` step 0.
@@ -251,26 +260,41 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 > build after the GitHub push, Gate 2). Supersedes the 2026-11-13 hold for these rows only. The runner reads this table before
 > Findings, so these run first. A `/fix-todo` agent works in `warpcad-native` for these and commits there; it never pushes.
 
-**No local M19 rows are open.** `testing-037`, the last one, was closed by owner decision on 2026-11-16 (partly run; its
-`status:` field still waits on `/fix-todo testing-037` in `warpcad-native`).
+**Local rows, in run order** (re-queued 2026-11-23). Each runs on this Mac and the iOS simulator. Its device check is an
+`OWNER.md` §5a item, so the row finishes without the iPad, and the iPad session is done once, later, for all of them.
+`testing-037` goes first because the rows after it need a clean `warpcad-native` tree.
+
+| id | Task | Kind | Depends | Acceptance |
+|---|---|---|---|---|
+| `testing-037` | Close the Gate 1 pass: commit the `--debug` install and README line, restore the build-written `project.pbxproj` and `Info.plist` (team ID never committed), delete `plugins/lidar/.tauri/`, record the summary | Bookkeeping | — | none |
+| `build-040` | Show the version line in Help; fix in `../warpcad`, checked in the iPad simulator; A2 re-check to OWNER.md | Finding | `build-034` ✅ | 28 |
+| `build-041` | Enlarge the cube mark in the macOS icon; Dock re-check stays OWNER.md M1 | Finding | — | none |
+| `io-034` | Confirm the built plist offers WarpCad for `.ndjson`; the device re-check is OWNER.md I3 | Finding | `io-036` ✅ | 28 |
+| `testing-043` | Write scenario 28 into ACCEPTANCE.md; drive 10, 22 and 23 on the desktop; iPad steps are OWNER.md I1-I4 | Finding | — | 10, 22, 23, 28 |
+| `ai-043` | Live MCP access: a missing Wi-Fi address or failed bind gives a visible reason; simulator first; F1 re-check to OWNER.md | Finding | — | 25, 28 |
+| `ai-042` | Require the MCP token from loopback peers on iOS and Android (default taken, logged in OWNER.md §2) | Finding | `ai-043` | 25 |
+| `build-018` | The device probe's agent half: `.ipa` size, wry's process-kill handling, the Claude iOS connector question, the probe build ready for OWNER.md I13 | Feature | — | 10 |
+
+The gated rows below carry a **Run gate** banner in their file: what has to be true before they are queued, and the
+decisions already taken so they do not stop part-way.
 
 **Still held** (a list, so the runner cannot pick them up). Each contacts something outside this Mac, or waits on a row that does:
 
 - [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build. **Held:** uploads to App Store Connect.
-- [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Measure the app on the iPad; settle the decision record's unknowns. **Held:** needs the device in hand (probe branch `probe/build-018`, runbook `PROBE-build-018.md`).
 - [`testing-011`](../../warpcad-native/TODO/M19-testing-011-acceptance-scenario-28-ios-app.md) Scenario 28 on the device, then the free-form pass. **Held:** needs the device and a human.
 - [`build-020`](../../warpcad-native/TODO/M19-build-020-app-store-submission-readiness.md) Listing, privacy, licence audits; stops before Submit. **Held:** App Store work; waits on `build-019`, `testing-011` and the Part 6 legal gate.
 - [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1). **Held:** needs the device (probe branch `probe/io-026`, runbook `PROBE-io-026.md`).
-- [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views. **Held:** needs a person driving the macOS shell's web view (Playwright cannot) and publishes a real gist.
+- [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views. **Held:** runs in the Claude desktop app with computer use after `testing-028` (Playwright cannot reach the web view); no person needed.
 - [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1). **Held:** waits on `build-019` and publishes a hosted file with the team ID.
-- [`build-040`](../../warpcad-native/TODO/M19-build-040-help-has-no-version-line-on-the-ipad.md) Help has no version line on the iPad (Gate 1 check A2). **Held:** filed 2026-11-16; the owner has not ranked it yet.
-- [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Files does not offer WarpCad for `.ndjson` on the iPad (Gate 1 check C4). **Held:** filed 2026-11-16; same root cause as `io-030`, so it waits for that.
-- [`ai-043`](../../warpcad-native/TODO/M19-ai-043-live-mcp-access-does-not-start-on-the-ipad.md) Live MCP access does not start on the iPad (Gate 1 check F1). **Held:** filed 2026-11-16; needs a device re-check, and F2 to F5 are blocked by it.
-- [`build-041`](../../warpcad-native/TODO/M19-build-041-mac-icon-mark-too-small-in-the-tile.md) The cube mark in the macOS icon reads small in the Dock. **Held:** a native-repo change; the owner has not ranked it yet.
 - [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: sandbox entitlements, hardened runtime, signing, Mac App Store build. **Held:** Decided 2026-11-13: Mac App Store; after the iOS submission.
 - [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing. **Held:** After the iOS submission; needs a Play account.
 - [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store. **Held:** After the iOS submission; needs a Windows machine.
-- [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token for loopback peers on iOS and Android. **Held:** waits on `build-018` item 10 (on a device); split from `ai-036` item 5, 2026-11-15.
+
+**Gated order (2026-11-23).** After the local table above: the owner's iPad session (OWNER.md §5a, all the parked
+device checks in one sitting) → Gate 2, the push (owner says go) → `build-019` → `testing-011` (owner with the iPad and
+iPhone) → `build-020` (ends at Ready to Submit) → 1.1: `build-030`, `io-026` → `build-036`, `build-037`, `build-038`.
+`testing-035` runs whenever the desktop app is free after `testing-028`. Each row's Run gate banner lists what must be
+true before it is queued; the order list below is the 2026-11-08 history.
 
 **Order (reordered 2026-11-08: the owner cannot sign yet, so no device install is possible until the signing gate).**
 
@@ -430,7 +454,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 1 queued + 1 held | 1 ready for `/run-todos` (`testing-045`); `testing-027` held; `testing-028` running in the desktop app. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 8 queued + 10 held | Queued 2026-11-23: `testing-037`, `build-040`, `build-041`, `io-034`, `testing-043`, `ai-043`, `ai-042`, `build-018` (agent half). Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |
