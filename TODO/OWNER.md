@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 114 now (Q16-Q131; Q94-Q131 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 115 now (Q16-Q132; Q94-Q132 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,20 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q132 · Accept the unmaintained `chrono` advisory so `cargo deny check` passes in warpcad-native?
+
+**Question:** `cargo deny check advisories` fails on RUSTSEC-2026-0543 ("chrono is unmaintained", no safe upgrade exists). Add it to `[advisories] ignore` in `warpcad-native/src-tauri/deny.toml` with a reason, so `npm run check` and the pre-push hook go green again?
+
+**Background:** Found 2026-11-23 by `testing-037`. The advisory database moved since the last green run. Two real vulnerabilities in the same run (`cookie` RUSTSEC-2026-0594, `url` RUSTSEC-2026-0592) were fixed by `cargo update -p cookie -p url` (committed). `chrono` is the only one left: it is a "no maintainer" notice, not a vulnerability, and it comes only through `rmcp` (the in-app MCP server), so WarpCad cannot drop it without replacing `rmcp`. Ignoring an advisory is a security-gate decision, so the agent did not make it.
+
+**Options:**
+- **Ignore it with a dated reason and revisit when `rmcp` drops chrono (Recommended):** the gate keeps catching real vulnerabilities.
+- **Replace or patch `rmcp`'s chrono use:** a larger task, filed as a row.
+- **Explain more**
+- **Defer:** `npm run check` stays red on `cargo deny` only; the pre-push hook is unaffected while nothing is pushed.
+
+**Answer:** question
 
 #### Q131 · Re-record the docs GIF sets that show the navigation pad so they show the fold button (ui-163)?
 

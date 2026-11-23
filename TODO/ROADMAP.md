@@ -82,10 +82,9 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
-| [M19](#m19--native-ios-app-tauri) | 8 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
+| [M19](#m19--native-ios-app-tauri) | 7 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
 | [Findings](#findings-open-rows) | 1 queued (ready) + 1 held + 1 running | The runner's queue: `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
-| 117 | ▶ Ready | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Close the Gate 1 pass: commit the `--debug` install, restore the build-written Xcode files, clear the LiDAR build cache, record the summary | ▶ Ready (Next up row 117) |
 | 118 | ▶ Ready | `M19` | [`build-040`](../../warpcad-native/TODO/M19-build-040-help-has-no-version-line-on-the-ipad.md) Show the version line in Help (fix in `../warpcad`, checked in the iPad simulator) | ▶ Ready (Next up row 118) |
 | 119 | ▶ Ready | `M19` | [`build-041`](../../warpcad-native/TODO/M19-build-041-mac-icon-mark-too-small-in-the-tile.md) Enlarge the cube mark in the macOS icon | ▶ Ready (Next up row 119) |
 | 120 | ▶ Ready | `M19` | [`io-034`](../../warpcad-native/TODO/M19-io-034-ipad-files-does-not-offer-warpcad-for-ndjson.md) Confirm the built plist offers WarpCad for `.ndjson` (the device re-check is OWNER.md I3) | ▶ Ready (Next up row 120) |
@@ -177,7 +176,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | [`io-026`](../../warpcad-native/TODO/M19-io-026-lidar-scan-to-mesh-part.md) Scan an object with the iPad Pro's LiDAR into My parts (1.1) (M19) | feature | medium | opus | Held (native) |
 | [`testing-035`](../../warpcad-native/TODO/M19-testing-035-device-checks-from-architecture-audit.md) Check the architecture audit's nine browser assumptions on real web views (M19) | finding | medium | sonnet | Held (desktop app, computer use) |
 | [`build-030`](../../warpcad-native/TODO/M19-build-030-universal-links-open-share-links-in-the-app.md) Share links open in the installed app (universal links; 1.1) (M19) | feature | medium | sonnet | Held (native) |
-| [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build, before any push or upload (M19) | feature | high | sonnet | Closed 2026-11-16 by owner decision: partly run, 8 checks to be filed as rows |
 | [`build-036`](../../warpcad-native/TODO/M19-build-036-macos-distribution.md) Mac app: entitlements, hardened runtime, signing, notarized or Mac App Store build (M19) | feature | medium | sonnet | Held (native) |
 | [`build-037`](../../warpcad-native/TODO/M19-build-037-android-play-store-readiness.md) Android app: manifest, backups, credentials, signing, Play internal testing (M19) | feature | low | sonnet | Held (native) |
 | [`build-038`](../../warpcad-native/TODO/M19-build-038-windows-distribution.md) Windows app: build, sign, test, choose a store (M19) | feature | low | sonnet | Held (native) |
@@ -266,7 +264,6 @@ local build over the cable (`testing-037`), then GitHub, then App Store Connect.
 
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
-| `testing-037` | Close the Gate 1 pass: commit the `--debug` install and README line, restore the build-written `project.pbxproj` and `Info.plist` (team ID never committed), delete `plugins/lidar/.tauri/`, record the summary | Bookkeeping | — | none |
 | `build-040` | Show the version line in Help; fix in `../warpcad`, checked in the iPad simulator; A2 re-check to OWNER.md | Finding | `build-034` ✅ | 28 |
 | `build-041` | Enlarge the cube mark in the macOS icon; Dock re-check stays OWNER.md M1 | Finding | — | none |
 | `io-034` | Confirm the built plist offers WarpCad for `.ndjson`; the device re-check is OWNER.md I3 | Finding | `io-036` ✅ | 28 |
@@ -454,7 +451,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 | Milestone | Open rows | What is left |
 |---|---|---|
 | [Findings](#findings-open-rows) | 1 queued + 1 held | 1 ready for `/run-todos` (`testing-045`); `testing-027` held; `testing-028` running in the desktop app. |
-| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 8 queued + 10 held | Queued 2026-11-23: `testing-037`, `build-040`, `build-041`, `io-034`, `testing-043`, `ai-043`, `ai-042`, `build-018` (agent half). Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
+| [M19 — Native iOS app](#m19--native-ios-app-tauri) | 7 queued + 10 held | Queued 2026-11-23: `build-040`, `build-041`, `io-034`, `testing-043`, `ai-043`, `ai-042`, `build-018` (agent half). Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
 | Deferred | 10 + JSCAD V3 + 2 | Screws, threads and gears (`core-065`, `core-074`, `ui-080`, seven ex-M11 rows); the JSCAD V3 family; `io-025`; `testing-006`. |
