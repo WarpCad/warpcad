@@ -185,7 +185,16 @@ pad is folded.
 
 ![The same screen with ✥ tapped: the full pad open above the sheet.](./screenshots/nav-chrome-open-phone.png)
 
-On a tablet there are no sheets, so the pad is always open. See
+When the sheet closes, the pad returns to the way you left it.
+
+You can also fold the pad yourself, at any width. To clear the lower-left corner of the 3D
+view, tap **⌄** at the bottom-right of the navigation pad, under the **−** button. The pad folds to a single **✥ View**
+button. A one-finger drag still orbits and a pinch still zooms. Tap **✥ View** to bring the
+pad back. WarpCad remembers which way you left it.
+
+![A tablet with the navigation pad folded to the small View button in the lower-left corner.](./screenshots/nav-chrome-folded-tablet.png)
+
+On a tablet there are no sheets, so the pad is open until you fold it. See
 [Moving around the 3D view](viewport-navigation.md) for what each control does.
 
 ## The File menu

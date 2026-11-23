@@ -1,5 +1,20 @@
 # LinkedIn Posts
 
+## [2026-11-23T19:30:00Z] — Letting the user fold away the navigation pad, and the tap test that moved the button
+
+**Post:** The owner's second complaint from the iPad was that WarpCad's orbit controls, about 230 by 190 px in the lower left of the 3D view, took a lot of room and could not be put away. This change adds a fold button to the pad. It shrinks the pad to the single View button the phone already used while a sheet was open, keeps the drag mode, and remembers the choice per device in the settings store. A phone sheet still folds the pad, and closing the sheet returns whatever the user last chose.
+
+The interesting part was where the button went. The brief said top-right. There it sat directly under Select and the gear, and a test written weeks earlier, which scatters 400 fingertip-sized taps around each mode button, showed Select misfiring 3.3% of the time against a 2% bound. Moving the button to the bottom of the zoom column fixed that for the fold but exposed the zoom button above it; the working layout starts that column 8 px lower and makes Zoom in and out 36 px tall, which keeps the pad's height inside the tablet budget another spec guards. Each of the three constraints came from a different older spec, and each failed once on the nine-project run before the layout passed.
+
+Checked: a new three-engine spec for fold, reload and unfold; the nine-project re-runs of the tap, scale-readout, phone-sheet and panel-tier specs; a clean rotating pair run; and a touch-only drive at 820x1180 and 1180x820 on Chromium and WebKit. Not checked: a real iPad, and the documentation GIFs still show the old pad.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/nav-chrome-fold.e2e.js`, `e2e/nav-chrome-tap.e2e.js`, `e2e/panel-tiers.e2e.js`, `e2e/viewport-scaffold.e2e.js`
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-23T18:25:00Z] — Putting names and colours on a view cube, and proving the text is readable
 
 **Post:** The owner's note on WarpCad's new view cube was that it looked good but plain, and that nothing on it said which face was Front or which way +X ran. This change prints each face's name over its signed axis (TOP +Z, FRONT −Y, RIGHT +X) and tints the faces red, green and blue, the same colours as the grid's axis lines.

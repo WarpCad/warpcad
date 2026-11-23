@@ -88,6 +88,24 @@ below keep their size or shrink to a compact form to leave room for the toolbar.
 
 ![The 3D view at tablet width, with the navigation pad and the view cube in their compact form.](./screenshots/viewport-chrome-compact.png)
 
+### Folding the pad away at any width
+
+The pad takes up about 230 by 190 pixels in the lower left of the 3D view. On a touch device
+you may not need it once you know the gestures, so you can put it away.
+
+Example: to clear the lower-left corner of the 3D view, tap **⌄** at the bottom-right of the
+navigation pad, under the **−** button.
+
+1. The pad folds to a single **✥ View** button. The corner is clear, and a tap where the pad
+   used to be now goes to the 3D view.
+2. A one-finger drag still orbits (or pans, in Pan mode) and a pinch still zooms.
+3. Tap **✥ View** to bring the pad back, in the same drag mode you left it in.
+
+WarpCad remembers which way you left it on this device, so a reload opens the pad as you
+folded or unfolded it. The first time you open WarpCad the pad is open.
+
+![The tablet with the navigation pad folded to the single View button in the lower-left corner.](./screenshots/nav-chrome-folded-tablet.png)
+
 ### On a phone: the pad folds away while a panel is open
 
 On a phone, opening a bottom panel (the Inspector, including its object list, or
@@ -110,8 +128,9 @@ somewhere else.
 
 Closing or switching the panel folds the pad again, so the next panel always
 opens with the view clear. You can still move the camera with your fingers while
-the pad is folded (see Touch gestures below). The fold only happens on a phone
-with a panel open. On a tablet or a computer, the pad is always shown in full.
+the pad is folded (see Touch gestures below). This automatic fold only happens on a phone
+with a panel open. When the panel closes, the pad goes back to the way you left it: open, or
+folded if you folded it with **⌄** above.
 
 **Mouse-only shortcuts**, on top of the `Orbit`/`Pan` toggle above:
 
@@ -239,7 +258,7 @@ direction changes — so you can line up a view without losing your place.
 | Two-finger pinch | Zoom in and out |
 | Two-finger drag | Pan, whichever mode is selected |
 | Tap a cube face or a pad button | Same as clicking it |
-| Tap **✥** (phone, with a panel open) | Opens or folds away the navigation pad |
+| Tap **⌄** on the pad, or **✥ View** when it is folded | Folds the navigation pad away, or brings it back (remembered on this device) |
 
 The 3D view claims your drags, so the page itself never scrolls or bounces while
 you are moving the camera.

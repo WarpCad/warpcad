@@ -6,8 +6,14 @@ priority: high
 model: sonnet
 milestone: none — Findings table, requested by the owner 2026-11-23
 depends: []
-status: open
+status: done
 ---
+
+> **What shipped (2026-11-23).** As proposed, with one deliberate difference: the **⌄** fold button sits in the zoom column's
+> *bottom* slot (under **+** and **−**), not the top-right. At the top it sat directly under Select and the gear and took 1.75 %
+> of the taps `ui-149`'s scatter aims at Select (Select went to 3.25 % against the 2 % bound; `e2e/nav-chrome-tap.e2e.js`
+> caught it on the nine-project re-run). At the bottom it shares a row with the folded **✥ View** button. The zoom column also starts 8 px lower and its **+** and **−** are 36 px tall (2 px shorter), so the cluster is no taller (`ui-084`'s compact pad budget of 179 px) and the new column top stays clear of Select (`nav-chrome-tap` 0 failures on nine projects). The fold button is the pad button's size (38 px compact, 44 px full), not a separate 44 px on a coarse pointer. Logged as `TODO/OWNER.md` Q130; the docs GIF follow-up is Q131. `navFolded` (`warpcad.navFolded`, `'1'`/`'0'`) is in
+> `src/stores/settings.js`; `NavigationChrome.vue` folds when `navFolded` or ui-046's raise-without-expand applies.
 
 ## Problem
 

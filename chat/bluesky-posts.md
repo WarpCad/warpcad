@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-11-23T19:30:00Z] — The navigation pad can now get out of the way
+
+**Post:** On an iPad, WarpCad's orbit and zoom pad took a big bite out of the 3D view and there was no way to put it away. It now has a fold button that shrinks it to one View button, remembers the choice, and a one-finger drag still orbits. The catch: my first spot for the button sat under Select and stole 1.75% of the taps aimed at it, so the test I'd written earlier for that caught it. Not checked: a real iPad.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #UX #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/nav-chrome-fold.e2e.js` and `e2e/nav-chrome-tap.e2e.js` on 9 of 9 projects; touch-only drive at 820x1180 and 1180x820 on Chromium and WebKit
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-23T18:25:00Z] — The view cube learned to say which way is up
 
 **Post:** WarpCad's view cube was a plain grey box. Now each face says what it is: TOP +Z, FRONT −Y, RIGHT +X, tinted red, green and blue like the grid's axis lines. A spec holds label contrast at 4.5:1 in both themes and all six skins. Not checked: how it reads on a real iPad.

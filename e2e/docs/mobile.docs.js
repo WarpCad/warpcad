@@ -206,6 +206,16 @@ test.describe('docs media: phone and tablet', () => {
     await shot(page, 'file-menu-phone.png')
   })
 
+  test('tablet: nav chrome folded to the View button (TODO/ui-163)', async ({ page, viewport }) => {
+    test.skip(isPhone(viewport), 'tablet only')
+    await openScene(page, viewport)
+    await expect(page.getByTestId('nav-fold')).toBeVisible()
+    await tap(page, 'nav-fold')
+    await expect(page.getByTestId('nav-expand-toggle')).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByTestId('nav-step-right')).toBeHidden()
+    await shot(page, 'nav-chrome-folded-tablet.png')
+  })
+
   test('phone: the sketch editor sheet', async ({ page, viewport }) => {
     test.skip(!isPhone(viewport), 'phone only')
     await openApp(page)

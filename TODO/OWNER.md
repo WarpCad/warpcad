@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 112 now (Q16-Q129; Q94-Q129 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 114 now (Q16-Q131; Q94-Q131 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,30 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q131 · Re-record the docs GIF sets that show the navigation pad so they show the fold button (ui-163)?
+
+**Question:** `ui-163` added a **⌄** fold button to the open navigation pad (and moved the pad's zoom column 6 px lower to keep it clear of Select). Every docs GIF is a 960x600 whole-window recording, so the pad is in frame in most of the 35 movie specs, and they still show the old pad without the button. I refreshed the 12 stills that frame the pad (plus the new `nav-chrome-folded-tablet` pair) and left every GIF. Re-record them?
+
+**Background:** The button is about 38 px in a 960 px frame, a small mismatch beside the new stills, the same trade as Q129. `docs:gifs` must not be used: it rewrites every tracked GIF. The scoped recipe is in memory `docs:gifs rewrites every GIF`. This can be folded into the same follow-up task as Q129 so the 31 sets are re-recorded once.
+
+**Options:**
+- **Re-record them in the same follow-up docs task as Q129 (Recommended):** one pass for both the labelled cube and the fold button.
+- **Leave them until each spec is next edited:** the old pad lingers in those GIFs.
+- **Explain more**
+- **Defer**
+
+#### Q130 · Keep the fold button at the bottom of the pad's zoom column, with the pad open on a first visit (ui-163)?
+
+**Question:** `ui-163` asked for the fold button at the pad's top-right. I built it in the zoom column's bottom slot instead (under **+** and **−**, on the same row as the folded **✥ View** button), at the pad button's size (38 px compact, 44 px full) rather than a separate 44 px on a coarse pointer, and the pad is open the first time you visit. At the top-right the button sat directly under Select and the gear and caught 7 of 400 scattered taps aimed at Select, which took Select to 3.25 % against `ui-149`'s 2 % bound; the zoom button that took the slot next still caught 4. So the zoom column now starts 8 px lower and its **+** and **−** are 2 px shorter (36 px, the touch floor `viewport-scaffold` asserts), which keeps the pad no taller (`ui-084`'s 179 px budget). Keep this placement and the open-by-default?
+
+**Background:** The folded button is a 48 px square at 820 px wide and 52 px at 1180 (limit 60), measured in the scenario 7 drive. Folding by default on touch devices is the alternative the finding names: the pad is then one tap away on first use and the corner is clear from the start, at the cost of discoverability. A mis-tap on **−** can fold the pad, which costs one tap to undo.
+
+**Options:**
+- **Keep the bottom slot, open on first visit (Recommended):** nothing changes.
+- **Fold by default on a coarse pointer:** a small follow-up that seeds `navFolded` from `(pointer: coarse)` when nothing is stored.
+- **Explain more**
+- **Defer**
 
 #### Q129 · Re-record the other 31 docs GIF sets so the labelled cube shows in them (ui-162)?
 

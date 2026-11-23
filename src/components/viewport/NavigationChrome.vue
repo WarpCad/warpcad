@@ -76,6 +76,11 @@ const props = defineProps({
    * behind), the cluster collapses to one toggle in the corner and expands on a tap.
    * Two-finger pinch/pan and a one-finger drag keep working on the canvas meanwhile,
    * so collapsing costs discoverability for one tap, not the ability to navigate.
+   *
+   * This is the *transient* fold. The user's own, remembered fold (`TODO/ui-163`) is the
+   * `navFolded` setting, which holds at every width and survives a raise, a sketch and a
+   * reload; the cluster is folded when either applies, so closing the sheet returns the pad
+   * to the state the user left it in, not always open.
    */
   raised: { type: Boolean, default: false },
   /**
@@ -120,6 +125,10 @@ function choosePreset(id) {
 // has placed since.
 const expanded = ref(false)
 
+// TODO/ui-163: the user's own fold, remembered on this device. Unlike `expanded` it is not reset
+// by a raise or a sketch; only the fold button and the ✥ View toggle change it.
+const folded = computed(() => settings.navFolded)
+
 watch(
   () => [props.raised, props.sketching, props.sketchSheet],
   () => {
@@ -127,7 +136,24 @@ watch(
   },
 )
 
+/** TODO/ui-163: put the pad away at every width. The ✥ View toggle brings it back. */
+function foldAway() {
+  settings.setNavFolded(true)
+  expanded.value = false
+  settingsOpen.value = false
+}
+
+/** The ✥ toggle's own state: open only when neither the user's fold nor a transient one applies. */
+const open = computed(() => !folded.value && expanded.value)
+
 function toggleExpanded() {
+  // A remembered fold: this tap unfolds it. `expanded` goes true too, so a raise, a sketch or a
+  // narrow canvas that would also fold the pad does not swallow the tap.
+  if (settings.navFolded) {
+    settings.setNavFolded(false)
+    expanded.value = true
+    return
+  }
   expanded.value = !expanded.value
   // The preset popover is anchored to the rows being hidden; it goes with them.
   if (!expanded.value) settingsOpen.value = false
@@ -150,6 +176,7 @@ const STEPS = Object.freeze([
       'chrome--sketching': sketching,
       'chrome--sketch-sheet': sketchSheet,
       'chrome--expanded': expanded,
+      'chrome--folded': folded,
     }"
     data-testid="navigation-chrome"
     :data-drag-mode="dragMode"
@@ -244,8 +271,8 @@ const STEPS = Object.freeze([
         bordered
         size="compact"
         class="chrome__expand"
-        :label="expanded ? 'Hide navigation controls' : 'Show navigation controls'"
-        :aria-expanded="expanded"
+        :label="open ? 'Collapse navigation controls' : 'Show navigation controls'"
+        :aria-expanded="open"
         data-testid="nav-expand-toggle"
         @click="toggleExpanded"
       >
@@ -283,6 +310,19 @@ const STEPS = Object.freeze([
         </IconButton>
         <IconButton bordered class="chrome__btn" label="Zoom out" data-testid="nav-zoom-out" @click="emit('zoom', 'out')">
           −
+        </IconButton>
+        <!-- TODO/ui-163: the fold button takes the zoom column's spare third slot, so no pad or zoom
+             button moves. Bottom, not top: under Select and the gear it took 1.75% of the taps
+             `ui-149` scatters around Select (`nav-chrome-tap.e2e.js`). At the bottom it shares a row
+             with the folded ✥ View button, so a fold and an unfold are two taps in one place. -->
+        <IconButton
+          bordered
+          class="chrome__btn chrome__fold"
+          label="Hide navigation controls"
+          data-testid="nav-fold"
+          @click="foldAway"
+        >
+          <span aria-hidden="true">⌄</span>
         </IconButton>
       </div>
     </div>
@@ -413,6 +453,36 @@ const STEPS = Object.freeze([
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+/* TODO/ui-163: the zoom column is now three buttons tall, as tall as the pad, so its top button sits
+   right under Select and the gear. A fingertip aimed at Select then lands on it (`ui-149`'s scatter,
+   `nav-chrome-tap.e2e.js`: 3.3% with the column flush under the mode row, 2.5% at a 10px clearance,
+   against a 2% bound, and 0 at 14px). So the column starts 8px lower and the Zoom in and out buttons are
+   2px shorter than the pad's (36px, the touch floor `viewport-scaffold.e2e.js` asserts), which pays for it: the column stays exactly the pad's height and the cluster grows by
+   nothing (`ui-084`'s compact pad height budget). The fold button keeps the pad button's full size. */
+.chrome .chrome__zoom {
+  margin-top: var(--space-4);
+  gap: 0;
+}
+
+.chrome .chrome__zoom .chrome__btn:not(.chrome__fold) {
+  height: calc(var(--tap) - 2px);
+}
+
+@media (max-width: 480px) {
+  .chrome .chrome__zoom .chrome__btn:not(.chrome__fold) {
+    height: calc(var(--tap-compact) - 2px);
+  }
+}
+
+.chrome[data-chrome-tier='compact'] .chrome__zoom .chrome__btn:not(.chrome__fold) {
+  height: calc(var(--tap-compact) - 2px);
+}
+
+/* The fold button sits in the zoom column's bottom slot. */
+.chrome .chrome__fold {
+  font-size: var(--text-size-xl);
 }
 
 .chrome .chrome__btn {
@@ -550,6 +620,17 @@ const STEPS = Object.freeze([
       display: none;
     }
   }
+}
+
+/* TODO/ui-163: the user's own fold, at every width. The cluster shrinks to its one ✥ View button. */
+.chrome.chrome--folded .chrome__expand {
+  display: grid;
+}
+
+.chrome.chrome--folded .chrome__body,
+.chrome.chrome--folded .chrome__pad,
+.chrome.chrome--folded .chrome__zoom {
+  display: none;
 }
 
 @media (max-width: 640px) {

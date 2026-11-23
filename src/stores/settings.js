@@ -46,6 +46,9 @@ const EXPORT_FORMAT_KEY = 'warpcad.exportFormat'
 /** The one `ai.model` setting (`TODO/ai-004`); the id list and default live in `ai/models.js`. */
 const AI_MODEL_KEY = 'warpcad.ai.model'
 
+/** Whether the user folded the navigation pad away (`TODO/ui-163`), stored as `'1'` or `'0'`. */
+const NAV_FOLDED_KEY = 'warpcad.navFolded'
+
 /** The theme preference (`TODO/ui-113`): a mode (`'system' | 'dark' | 'light'`) or a style (`'kids'`, `'deco'`, …). */
 const THEME_KEY = 'warpcad.theme'
 
@@ -189,6 +192,24 @@ function writeStoredAiModel(id) {
   }
 }
 
+/** @returns {boolean} The stored fold state; unfolded for anything missing, corrupt or unreadable. */
+function readStoredNavFolded() {
+  try {
+    return localStorage.getItem(NAV_FOLDED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** @param {boolean} folded */
+function writeStoredNavFolded(folded) {
+  try {
+    localStorage.setItem(NAV_FOLDED_KEY, folded ? '1' : '0')
+  } catch {
+    // Remembered for this session in memory; just not across reloads.
+  }
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   /** @type {import('vue').Ref<MouseNavPresetId>} */
   const mouseNavPreset = ref(readStoredMouseNavPreset())
@@ -252,7 +273,24 @@ export const useSettingsStore = defineStore('settings', () => {
     writeStoredTheme(value)
   }
 
+  /** Whether the user folded the navigation pad to its one ✥ View button (`TODO/ui-163`). */
+  const navFolded = ref(readStoredNavFolded())
+
+  /**
+   * Fold or unfold the navigation pad and remember it on this device.
+   *
+   * @param {boolean} folded
+   * @returns {void}
+   */
+  function setNavFolded(folded) {
+    if (typeof folded !== 'boolean') return
+    navFolded.value = folded
+    writeStoredNavFolded(folded)
+  }
+
   return {
+    navFolded,
+    setNavFolded,
     theme,
     setTheme,
     aiModel,

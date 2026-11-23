@@ -162,3 +162,53 @@ describe('exportFormat (TODO/ui-034)', () => {
     expect(settings.exportFormat).toBe('obj')
   })
 })
+
+describe('navFolded (TODO/ui-163)', () => {
+  it('defaults to unfolded, remembers a fold and an unfold under warpcad.navFolded', async () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage())
+    const { useSettingsStore } = await import('./settings.js')
+    const settings = useSettingsStore()
+    expect(settings.navFolded).toBe(false)
+    settings.setNavFolded(true)
+    expect(settings.navFolded).toBe(true)
+    expect(localStorage.getItem('warpcad.navFolded')).toBe('1')
+    settings.setNavFolded(false)
+    expect(settings.navFolded).toBe(false)
+    expect(localStorage.getItem('warpcad.navFolded')).toBe('0')
+  })
+
+  it('round-trips: a stored fold is read back by the next store', async () => {
+    const fake = fakeLocalStorage()
+    fake._seed('warpcad.navFolded', '1')
+    vi.stubGlobal('localStorage', fake)
+    const { useSettingsStore } = await import('./settings.js')
+    expect(useSettingsStore().navFolded).toBe(true)
+  })
+
+  it('a corrupt stored value falls back to unfolded', async () => {
+    const fake = fakeLocalStorage()
+    fake._seed('warpcad.navFolded', 'maybe')
+    vi.stubGlobal('localStorage', fake)
+    const { useSettingsStore } = await import('./settings.js')
+    expect(useSettingsStore().navFolded).toBe(false)
+  })
+
+  it('a throwing localStorage falls back to unfolded and never crashes a write', async () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage({ throwing: true }))
+    const { useSettingsStore } = await import('./settings.js')
+    const settings = useSettingsStore()
+    expect(settings.navFolded).toBe(false)
+    expect(() => settings.setNavFolded(true)).not.toThrow()
+    expect(settings.navFolded).toBe(true)
+  })
+
+  it('ignores a non-boolean argument', async () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage())
+    const { useSettingsStore } = await import('./settings.js')
+    const settings = useSettingsStore()
+    // @ts-expect-error deliberately wrong type
+    settings.setNavFolded('yes')
+    expect(settings.navFolded).toBe(false)
+    expect(localStorage.getItem('warpcad.navFolded')).toBeNull()
+  })
+})

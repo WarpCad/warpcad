@@ -23,9 +23,9 @@ import { test, expect } from '@playwright/test'
  */
 
 /**
- * Unfold the navigation chrome if it is folded behind its phone-only toggle — it
- * collapses while a bottom sheet raises it at ≤640px (`TODO/ui-046`). A no-op
- * everywhere else.
+ * Unfold the navigation chrome if it is folded behind its ✥ View toggle. It folds in two ways: a
+ * bottom sheet raises it at ≤640px (`TODO/ui-046`), and the user can fold it at any width
+ * (`TODO/ui-163`, remembered on the device). A no-op while the pad is open.
  *
  * @param {import('@playwright/test').Page} page
  */
