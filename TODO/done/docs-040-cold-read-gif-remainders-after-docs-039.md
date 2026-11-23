@@ -6,8 +6,10 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-20 from the docs-039 cold read
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped (2026-11-22).** Edited the three specs and re-recorded every movie of them with dark twins (resize-bisect 5, timeline-relink 1, booleans 6; 24 GIFs) through a scoped moviesDir; `docs:gifs` and `docs:media` were not run. Captions now go up as the action starts; Re-link and Subtract are hovered with a caption for 1.5 s before the press; resize-fit says Inspector Size is the shape's own parameter; timeline-relink zooms in on the cube at the end (22.8 s, inside the 24 s budget). Cold read (one fresh agent): boolean-subpart-operand CLEAR; resize-fit and timeline-relink PARTIAL. Remainders are filed as `docs-041`.
 
 ## Problem
 

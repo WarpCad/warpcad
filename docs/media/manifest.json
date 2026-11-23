@@ -128,44 +128,44 @@
   "boolean-bolt-hole.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 608053,
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 656075,
     "seconds": 8.5
   },
   "boolean-intersect.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 601894,
-    "seconds": 8.7
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 696137,
+    "seconds": 8.3
   },
   "boolean-subpart-operand.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 1651774,
-    "seconds": 18.4
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 1592445,
+    "seconds": 20.5
   },
   "boolean-subtract.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 707382,
-    "seconds": 9.9
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 747515,
+    "seconds": 9.7
   },
   "boolean-union.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 701810,
-    "seconds": 9.6
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 739811,
+    "seconds": 9.4
   },
   "boolean-subtract-order.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "light",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 1260761,
-    "seconds": 22.13
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 1332148,
+    "seconds": 20.88
   },
   "group-combine.gif": {
     "spec": "e2e/docs/groups.docs.js",
@@ -212,23 +212,23 @@
   "resize-snapped-dependents.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 349086,
-    "seconds": 6.6
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 486393,
+    "seconds": 6.8
   },
   "resize-enlarge.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 728582,
-    "seconds": 10
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 752743,
+    "seconds": 10.9
   },
   "resize-fit.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 1415706,
-    "seconds": 20.4
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 1364067,
+    "seconds": 20.7
   },
   "fillet-operation.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -247,16 +247,16 @@
   "bisect-axis.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 658836,
-    "seconds": 9.1
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 634367,
+    "seconds": 8.9
   },
   "bisect-angled.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "light",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 827762,
-    "seconds": 10.4
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 733306,
+    "seconds": 9.9
   },
   "bom-updates.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -514,9 +514,9 @@
   "timeline-relink.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "light",
-    "specHash": "27f6d1621beebceeb74fb6fad2361992d37aec7bf471ccc52ef9750e9f4b785b",
-    "bytes": 1781415,
-    "seconds": 20.5
+    "specHash": "19e2ae963deb3e11f46c554b9cd9443336e130a3bccc95b7158a59b7ff99101b",
+    "bytes": 1995691,
+    "seconds": 22.84
   },
   "window-shrink.gif": {
     "spec": "e2e/docs/narrow-window.docs.js",
@@ -570,16 +570,16 @@
   "bisect-angled.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 866549,
-    "seconds": 9.5
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 854230,
+    "seconds": 9.9
   },
   "bisect-axis.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 836300,
-    "seconds": 9.4
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 757483,
+    "seconds": 8.5
   },
   "bom-updates.dark.gif": {
     "spec": "e2e/docs/bill-of-materials.docs.js",
@@ -591,44 +591,44 @@
   "boolean-bolt-hole.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 671729,
-    "seconds": 7.1
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 618756,
+    "seconds": 8.5
   },
   "boolean-intersect.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 754687,
-    "seconds": 8.3
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 666123,
+    "seconds": 8
   },
   "boolean-subpart-operand.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 1625814,
-    "seconds": 17.8
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 1635252,
+    "seconds": 19.6
   },
   "boolean-subtract-order.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 1445257,
-    "seconds": 21.38
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 1460210,
+    "seconds": 20.76
   },
   "boolean-subtract.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 768518,
-    "seconds": 9.5
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 767926,
+    "seconds": 9.3
   },
   "boolean-union.dark.gif": {
     "spec": "e2e/docs/booleans.docs.js",
     "theme": "dark",
-    "specHash": "100b0da041d175ba11cb303f02bd1d1feda11cdc47b1e1297f07fb454d11c16f",
-    "bytes": 801118,
-    "seconds": 9.7
+    "specHash": "d1057f973af78ce78928d95c0f0516016b6ffdf56fb06a9cd99fb9c668e478db",
+    "bytes": 845609,
+    "seconds": 9.1
   },
   "chamfer-operation.dark.gif": {
     "spec": "e2e/docs/fillet-chamfer.docs.js",
@@ -878,23 +878,23 @@
   "resize-enlarge.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 826825,
-    "seconds": 9.9
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 802883,
+    "seconds": 9.7
   },
   "resize-fit.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 1490392,
-    "seconds": 18.2
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 1524735,
+    "seconds": 19.7
   },
   "resize-snapped-dependents.dark.gif": {
     "spec": "e2e/docs/resize-bisect.docs.js",
     "theme": "dark",
-    "specHash": "65d6eeac4eaada8a0ebcf609a16f65549e7e517c5019591d699aa8ce5c1ff330",
-    "bytes": 602363,
-    "seconds": 7.9
+    "specHash": "b6d44ba0f0516c611d8e0fc132bb04c270ff1fbe2516d56f0ce2af44f039f058",
+    "bytes": 506356,
+    "seconds": 6.9
   },
   "rpi-mounting-holes.dark.gif": {
     "spec": "e2e/docs/hardware-library.docs.js",
@@ -1075,9 +1075,9 @@
   "timeline-relink.dark.gif": {
     "spec": "e2e/docs/timeline-relink.docs.js",
     "theme": "dark",
-    "specHash": "27f6d1621beebceeb74fb6fad2361992d37aec7bf471ccc52ef9750e9f4b785b",
-    "bytes": 2099252,
-    "seconds": 20.5
+    "specHash": "19e2ae963deb3e11f46c554b9cd9443336e130a3bccc95b7158a59b7ff99101b",
+    "bytes": 2073642,
+    "seconds": 20.84
   },
   "import-3mf-align.dark.gif": {
     "spec": "e2e/docs/import-3mf.docs.js",

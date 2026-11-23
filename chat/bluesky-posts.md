@@ -3773,3 +3773,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** pair chromium-phone + webkit-tablet 1,363 e2e passed, 0 failed, 10,192 unit → `TODO/done/ui-160-broken-step-cold-read-remainders-after-ui-155-colour-pill-green-dot-and-rolled-back-marker.md`
 **To Add:** the phone History and Inspector screenshots of a broken step
 ---
+
+## 2026-11-23T03:00:00Z — WarpCad: captions that arrive with the click
+
+**Post:** A fresh reader still could not see WarpCad's Subtract button being pressed in a docs movie. The pointer now rests on it with its caption for 1.5 s, then presses. Same for Re-link and the Fit popover. Cold read: the bolt-groove movie is clear, two others still partial. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 24 GIFs re-recorded, docs-media guard 2/2, unit 10,192 → this session's run; cold read: 1 CLEAR, 2 PARTIAL → the fresh agent's report, remainder filed as `TODO/FIND-docs-041-cold-read-gif-remainders-after-docs-040.md`
+**To Add:** none
+---

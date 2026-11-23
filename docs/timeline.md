@@ -267,9 +267,9 @@ of its row. Press **Re-link**; the amber label goes. (Or select the cube and pre
 in the Inspector's amber box: the same result.) Press **Roll forward** on the strip:
 the chamfered cube comes back at its new position, with the sphere.
 
-The movie captions each beat. When the chamfer breaks, the Inspector's amber box also carries the `broken` label and names step 3, the chamfer, with a **Re-link** button; the row's own amber `broken` label and its **Re-link** button are in the History panel below it.
+The movie captions each beat as it starts, and rests the pointer on **Re-link** for a moment before pressing it. When the chamfer breaks, the Inspector's amber box also carries the `broken` label and names step 3, the chamfer, with a **Re-link** button; the row's own amber `broken` label and its **Re-link** button are in the History panel below it.
 
-![Rolling back to the cube, moving it, the chamfer row going amber and broken (captioned, with the History list scrolled so the row, its badge and its reason are in view), Re-link, then Roll forward: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
+![Rolling back to the cube, moving it, the chamfer row going amber and broken (captioned, with the History list scrolled so the row, its badge and its reason are in view), Re-link, the pointer resting on Re-link before the press, then Roll forward and a closer look: the chamfered cube and the sphere are back with the cube at its new place](./media/timeline-relink.gif)
 
 The button is offered for a step that follows a body which was **moved, resized or
 otherwise edited** while you were rolled back. It covers steps that act on one body

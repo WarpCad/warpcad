@@ -5497,3 +5497,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** cold read items 1, 4, 6 clear and 2, 3, 5 partial → the fresh agent's six ratings this session; pair 1,363 e2e passed, 0 failed → this session's run; question filed → `TODO/OWNER.md` Q124
 **To Add:** the phone History and Inspector screenshots of a broken step
 ---
+
+## 2026-11-23T03:00:00Z — WarpCad: put the caption where the click is
+
+**Post:** Three of WarpCad's documentation movies were rated "partial" by a fresh reader who saw only one frame a second. The complaint was specific: the button press fell between two samples, and captions sat over frames where nothing changed.
+
+The fix was timing, not content. Each caption now goes up as the pointer reaches its target, and the pointer rests on the button for about a second and a half before the click, so at least one sampled frame shows cursor-on-button and the next shows the result. One movie also gained a caption saying why a number in the Inspector did not change: it is the shape's own parameter, and the operation is a separate step.
+
+I re-recorded every movie of the three edited scripts (24 GIFs, light and dark) through a scoped folder, not the all-movies command that rewrites every tracked GIF. A new cold read rated one movie clear and two still partial, so those remainders are filed as their own task instead of looping.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Documentation
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cold read: subpart CLEAR, resize-fit and relink PARTIAL → the fresh agent's report; 24 GIFs changed and nothing else in `docs/media` → `git status docs/media`; docs-media guard 2/2, unit 10,192, typecheck clean → this session's run
+**To Add:** none
+---

@@ -95,24 +95,29 @@ test.describe('docs media: timeline re-link', () => {
     await expect(page.getByTestId('timeline-relink')).toBeVisible()
     await caption(page, 'The chamfer (step 3) is now amber and broken, with Re-link on its row')
     await scrollHistoryToEnd(page)
-    await page.waitForTimeout(1100)
+    await page.waitForTimeout(800)
 
-    // Select the broken row: the reason is printed under it.
-    await press(page, 'timeline-row-3')
+    // Select the broken row: the reason is printed under it. `TODO/docs-040`: each caption goes up as its action starts.
     await caption(page, 'Select step 3: the reason is printed under the row')
+    await press(page, 'timeline-row-3')
     await expect(page.getByTestId('timeline-broken-reason')).toContainText('another step already changed the part it works on')
     await expect(page.getByTestId('timeline-relink')).toBeEnabled()
     await scrollHistoryToEnd(page)
-    await page.waitForTimeout(1200)
+    await page.waitForTimeout(700)
+    // `TODO/docs-040`: hover on Re-link with its caption up long enough to land on a sampled frame, then press.
+    const relink = page.getByTestId('timeline-relink')
+    const rb = await relink.boundingBox()
+    await page.mouse.move(rb.x + rb.width / 2, rb.y + rb.height / 2, { steps: 12 })
     await caption(page, 'Press Re-link')
-    await press(page, 'timeline-relink')
+    await page.waitForTimeout(1500)
+    await relink.click()
     await expect(page.getByTestId('timeline-relink')).toHaveCount(0)
     await expect(page.getByTestId('timeline-row-3').getByTestId('chip-broken')).toHaveCount(0)
     await caption(page, 'The broken label is gone')
     await page.waitForTimeout(900)
 
     // Roll forward: chamfered cube (moved) and sphere are both back.
-    await caption(page, 'Roll forward: the moved, chamfered cube and the sphere are back')
+    await caption(page, 'Press Roll forward: the moved, chamfered cube and the sphere are back')
     await press(page, 'timeline-roll-forward')
     await expect(page.getByTestId('timeline-rollback-strip')).toHaveCount(0)
     await expect(viewport).toHaveAttribute('data-body-count', '2')
@@ -121,7 +126,12 @@ test.describe('docs media: timeline re-link', () => {
     await expect(cube).toHaveAttribute('data-body-center', /^60(\.0+)?,/)
     await page.waitForTimeout(900)
     await setCaption(page) // the caption would hide the part: end on the result itself
-    await page.waitForTimeout(1300)
+    // `TODO/docs-040`: step in on the cube so the chamfer is plain at GIF size.
+    for (let i = 0; i < 3; i++) {
+      await page.getByTestId('nav-zoom-in').click()
+      await page.waitForTimeout(250)
+    }
+    await page.waitForTimeout(1500)
     await endMovie(page, 'timeline-relink', { fps: 6, width: 560 })
   })
 })

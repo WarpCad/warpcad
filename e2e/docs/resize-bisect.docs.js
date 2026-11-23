@@ -200,6 +200,8 @@ test.describe('docs media: resize and bisect', () => {
     await sizeCaption('Start', before.size)
     await page.waitForTimeout(1400)
     // 1. Without keep-aspect: each axis goes to exactly the size typed, so only the X stretch shows.
+    // `TODO/docs-040`: each caption goes up as its popover opens, so it never lags the screen.
+    await setCaption(page, 'Fit X to 60, Keep aspect off: only X changes')
     let popover = await openPopover(page, 'operation-fit', 'modify.fit')
     await expect(page.getByTestId('resize-fit-keep-aspect')).not.toBeChecked()
     await typeInto(page, 'resize-fit-x', '60')
@@ -209,10 +211,14 @@ test.describe('docs media: resize and bisect', () => {
     expect(stretched.size[0]).toBeCloseTo(60, 1)
     expect(stretched.size[1]).toBeCloseTo(40, 1)
     expect(stretched.size[2]).toBeCloseTo(40, 1)
-    await sizeCaption('Fit X to 60, Keep aspect off: only X changes', stretched.size)
-    await page.waitForTimeout(2200)
+    await sizeCaption('Fit X to 60, aspect off', stretched.size)
+    await page.waitForTimeout(1400)
+    // The Inspector's Size is the shape's own parameter: Fit is a separate step, so Size keeps reading 40.
+    await setCaption(page, "Inspector Size is the shape's own parameter: still 40. Fit is a separate step")
+    await page.waitForTimeout(2400)
     // 2. With keep-aspect: ask for X = 30 and the other two axes take the same ratio
     // (the smallest, 30/60), so the 60 x 40 x 40 block keeps its proportions.
+    await setCaption(page, 'Fit X to 30, Keep aspect on: Y and Z follow')
     popover = await openPopover(page, 'operation-fit', 'modify.fit')
     await typeInto(page, 'resize-fit-x', '30')
     await glideTo(page, await page.getByTestId('resize-fit-keep-aspect').evaluate((el) => {
@@ -226,7 +232,7 @@ test.describe('docs media: resize and bisect', () => {
     expect(kept.size[0]).toBeCloseTo(30, 1)
     expect(kept.size[1]).toBeCloseTo(20, 1)
     expect(kept.size[2]).toBeCloseTo(20, 1)
-    await sizeCaption('Fit X to 30, Keep aspect on: Y and Z follow', kept.size)
+    await sizeCaption('Fit X to 30, aspect on', kept.size)
     await page.waitForTimeout(1800)
     // Deselect, then the three results at one camera angle, so Y and Z can be read against each other.
     await clickAt(page, { x: 1050, y: 800 })

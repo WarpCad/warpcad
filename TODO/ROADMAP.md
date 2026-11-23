@@ -79,10 +79,10 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 0 queued + 16 held | `testing-037` closed by owner decision 2026-11-16 and `io-035`/`io-036` are done, so the runner has no local native row left. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 2 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`, then `docs-040`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 2 queued (all ready) + 1 held + 1 running | The runner's queue, led by `testing-045`, then `docs-041`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
-| 109 | ▶ Ready | `FIND` | [`docs-040`](FIND-docs-040-cold-read-gif-remainders-after-docs-039.md) Fix what the docs-039 cold read still rated partial: resize-fit caption lag, relink Re-link press, subpart Subtract press | sonnet |
+| 109 | ▶ Ready | `FIND` | [`docs-041`](FIND-docs-041-cold-read-gif-remainders-after-docs-040.md) Fix what the docs-040 cold read still rated partial: resize-fit Fit press and caption order, relink early captions and rollback caption lag | sonnet |
 
 ---
 
@@ -191,7 +191,7 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | `io-013` Import another project's bodies into this one (id remap) | reserved | — | — | 📝 no file yet |
 | `ai-019` Standalone live-bridge host: `mcp/server.js --live` over a loopback WebSocket | reserved | — | — | 📝 no file yet |
 | `ai-018` Relax `ai-012`'s one-writer refusals now that a merge exists | reserved | — | — | 📝 no file yet |
-| [`docs-040`](FIND-docs-040-cold-read-gif-remainders-after-docs-039.md) Fix what the docs-039 cold read still rated partial: resize-fit caption lag, relink Re-link press, subpart Subtract press | finding | low | sonnet | ▶ Ready (Next up row 109) |
+| [`docs-041`](FIND-docs-041-cold-read-gif-remainders-after-docs-040.md) Fix what the docs-040 cold read still rated partial: resize-fit Fit press and caption order, relink early captions and rollback caption lag | finding | low | sonnet | ▶ Ready (Next up row 109) |
 
 ---
 
@@ -328,7 +328,7 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `docs-040` | The `docs-039` cold read left resize-fit, timeline-relink and boolean-subpart-operand PARTIAL (caption lag, Re-link and Subtract presses not seen). Filed 2026-11-20 | Finding | — | none |
+| `docs-041` | The `docs-040` cold read left resize-fit and timeline-relink PARTIAL (Fit press and caption order, uncaptioned build-up, rollback caption lag). Filed 2026-11-22 | Finding | — | none |
 
 ---
 
@@ -428,7 +428,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 2 queued + 1 held | 2 ready for `/run-todos`, `testing-045` first, then `docs-040`; `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 2 queued + 1 held | 2 ready for `/run-todos`, `testing-045` first, then `docs-041`; `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 0 queued + 16 held | `io-030`, `io-035`, `io-036` done; their device checks are `testing-043`. `testing-037` closed by owner decision 2026-11-16 (partly run). Held (they upload, publish, need a device or wait on a row that does): `build-018`–`build-020`, `build-030`, `build-036`–`build-038`, `build-040`, `build-041`, `ai-042`, `ai-043`, `io-026`, `io-034`, `testing-011`, `testing-035`, `testing-043`. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |
