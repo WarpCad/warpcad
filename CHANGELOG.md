@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.26.0](https://github.com/WarpCad/warpcad/compare/v1.25.0...v1.26.0) (2026-11-23)
+
+### Features
+
+* **ui:** let the user fold the navigation pad away at every width (TODO/ui-163) ([21a8530](https://github.com/WarpCad/warpcad/commit/21a853028fddf7807ded5c55b287c5981ab1afad))
+* **ui:** name and colour the view cube's faces by axis (TODO/ui-162) ([ce99e84](https://github.com/WarpCad/warpcad/commit/ce99e849ae1d5ef494d414a88d12f9b5af8d3d35))
+* **ui:** shrink the view cube on a touch tablet to 64 px (TODO/ui-161) ([fe69d50](https://github.com/WarpCad/warpcad/commit/fe69d5078c183fd799d897f0d7df50ec1dc492fa))
+
 ## [1.25.0](https://github.com/WarpCad/warpcad/compare/v1.24.0...v1.25.0) (2026-11-23)
 
 ### Features
