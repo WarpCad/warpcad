@@ -59,6 +59,21 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### testing-043 — Verify the `.warpcad` file types on a real iPad and in Safari, then scenarios 10, 22, 23 and 28 (2026-11-23 21:50 UTC)
+
+The task's desktop half (steps 4-6 and the legacy-name check) was driven on the production build of HEAD `00b85333` (no `src/` change) in Chromium at 1440x900 with a jittered real mouse; the iPad and Safari steps are OWNER.md items I1-I4, which now name this id. Scenario 28 did not exist and is written (`TODO/ACCEPTANCE.md`); `testing-011` still owns its first driven run, so it has no **Last run** line. The File System Access picker was a fake handle over a real folder, so the files on disk are real; downloads and file choosers were the browser's own.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | iPad, Files: `bracket.warpcad` reads "WarpCad project", `log.ndjson` does not (`io-036`) | Owner | → `TODO/OWNER.md` I3. |
+| 2 | iPad, share sheet: Open in WarpCad for an old `.ndjson` project (`io-036`) | Owner | → `TODO/OWNER.md` I3 and I4. Desktop half OK: `cube-and-cylinder.ndjson`, `hostile-intent.ndjson`, `hostile-formula.ndjson` and the owner's `enviro-plus-featherwing.ndjson` (127 steps, scenario 32) open through **File ▾ → Open…**, `hostile-merge.ndjson` is refused by name (scenario 8), and the same bytes renamed `.warpcad` open alike. Scenario 1 names no `.ndjson` fixture; `cube-and-cylinder.ndjson` stood in. |
+| 3 | Safari's picker accepts a `.warpcad` file (`ACCEPT_ATTRIBUTE`, `io-035`) | Owner | → `TODO/OWNER.md` I2. Chromium half OK: the chooser's accept list reads `.warpcad,.ndjson,.json,.txt,text/plain,application/x-ndjson,application/json`. |
+| 4 | Scenario 10 (save, reload, nothing changed), desktop Chrome | OK | Cube + Cylinder unioned, `Saved · 15:30`, reload `Restored your last session` with the same body and three History rows; Save As… suggested `warpcad-project.warpcad`, saved `bracket.warpcad`, chip `Saved to bracket.warpcad · 15:30`; after a Sphere, Open… and Replace gave `Opened bracket.warpcad · 3 steps`, Sphere gone. Spec run on the pair chromium-laptop + firefox-phone (rotation run 120): `save-load-ui`, `merge-file`, `mcp-merge` 82 passed, 10 skipped by platform, 0 failed. |
+| 5 | Scenario 22 (merge a copy), two browser contexts | OK | Steps 1-7 as written: `Merged 1 step from b.warpcad` with **Undo merge**, header Undo unchanged, **Undo merge** took the Sphere out, the conflict banner `… — 1 step conflicted`, the chip's reason as text, **Suppress** cleared it, reload restored. One snag, row 5b. |
+| 5b | Scenario 22 step 6: **Show** puts the conflicted row in view at 900 px height | Issue | The row, its reason and **Suppress** sat 15-68 px below the window edge until the History list was scrolled. Filed `ui-164`. |
+| 6 | Scenario 23 (Claude Code edits the open file), real `claude -p --model haiku` on the subscription | OK | The server was registered for the run only (`--mcp-config`, no change to the owner's registration). Asked *add a 20 mm sphere on top of the cube*, Claude Code wrote a sphere and a rename, so the strip read `Merged 2 steps from Claude Code` (not `1 step`: that is what the agent wrote this time), with **Undo merge**, no dialog, the unsaved move kept, rows marked `via mcp`; **Save** wrote both. Steps 5 (second request) to 8 are covered by `e2e/mcp-merge.e2e.js` (SDK client; asserts `Merged 1 step from Claude Code`), green on the pair; the real-Claude half of those was not driven. |
+| 7 | Scenario 28 (iOS app), on the iPad | Owner | → `TODO/OWNER.md` I4 and I1. Step 9 is I4. |
+
 ### io-034 — iPad Files does not offer WarpCad for .ndjson (2026-11-23 21:40 UTC)
 
 Verification only, no code change. The current `main` (after `io-036`) was built for the iPad simulator and the built `Info.plist` holds both document types, both type declarations and `LSSupportsOpeningDocumentsInPlace`. The simulator has no Simulator.app window here, so the Open in… sheet could not be tapped; the device check is `TODO/OWNER.md` I3.

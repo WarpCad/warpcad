@@ -2150,6 +2150,8 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 **Check:** Acceptance scenario 28 on the iPad: Save in the app, then the file shows as a WarpCad project in Files (needs io-036's device pass too)
 
+**Recorded under:** `testing-043` (VERIFY.md, row 7). Scenario 28 now exists in `TODO/ACCEPTANCE.md` (steps 3 and 9 are this item); `testing-011` writes its first **Last run**. The desktop half (Save As… suggests `warpcad-project.warpcad`, the chip reads `Saved to bracket.warpcad`) was driven 2026-11-23 and is OK; only Files' label **WarpCad project** needs the iPad.
+
 **Answer:** validation
 
 #### I2 · Save as name.warpcad, keep opening .ndjson
@@ -2157,6 +2159,8 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 `io-035` #5 · iPad · filed 2026-11-16
 
 **Check:** iPad Safari (PWA, not the app): Open… can select a `.warpcad` file (ACCEPT_ATTRIBUTE). WebKit's accept list was checked by spec; the greying-out cannot be reproduced in Playwright
+
+**Recorded under:** `testing-043` (VERIFY.md, row 3). On desktop Chromium the Open… chooser's accept list reads `.warpcad,.ndjson,.json,.txt,…` and a `.warpcad` file opens (OK, 2026-11-23); what is left is Safari's own picker greying a `.warpcad` file out or not, which only Safari shows.
 
 **Answer:** validation
 
@@ -2168,6 +2172,8 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 
 **Closes:** `io-034` (closed 2026-11-23 on the simulator evidence; the built plist is correct). If WarpCad is not offered in Open in… on Socrates with a current build, reopen `io-034` and compare the installed app's `Info.plist` with `Info.ios.plist`.
 
+**Recorded under:** `testing-043` (VERIFY.md, rows 1 and 2). The Files app labels (`bracket.warpcad` reads **WarpCad project**, `log.ndjson` does not) and Open in WarpCad from the share sheet for an old `.ndjson` project are the two iPad checks it left. The legacy half on desktop (old `.ndjson` fixtures still open through **Open…**) was driven 2026-11-23 and is OK.
+
 **Answer:** validation
 
 #### I4 · iOS declares .warpcad and imports .ndjson
@@ -2175,6 +2181,8 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 `io-036` #4 · iPad · filed 2026-11-16
 
 **Check:** Acceptance scenario 28 step 9 and the inbound-file steps, on the iPad
+
+**Recorded under:** `testing-043` (VERIFY.md, rows 2 and 7). Step 9 of scenario 28 in `TODO/ACCEPTANCE.md` (written by `testing-043`) is this item: tap `scenario-28.warpcad` in Files and choose **Open in WarpCad**, then an old `.ndjson`, then a plain `log.ndjson`.
 
 **Answer:** validation
 

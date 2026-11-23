@@ -3015,6 +3015,8 @@ the reason**, neither was executed, and the 1st and 4th records still replayed i
 
 **Re-checked**: 2026-10-12 UTC (`data-011`) — **PASS, new standing step 6**, laptop Chromium, driven by hand-written Playwright mouse input (not a spec): `e2e/fixtures/hostile-merge.ndjson` over a three-step project was refused by name (`Couldn't open from-a-stranger.ndjson: project-state: merge: \`clock\` is above 1099511627776, which no clock reaches`) with the History still three rows; a `"version":3` file was refused with the exact *saved by a newer WarpCad* sentence and the project untouched. Zero dialogs, console clean. Not re-driven on Firefox/WebKit or at phone width — the new unit and e2e specs cover the parse path, which is engine-independent.
 
+**Re-checked**: 2026-11-23 UTC (`testing-043`, HEAD 00b85333, production build, Chromium laptop 1440x900, the `<input type=file>` path with a real file chooser) — **PASS for the legacy `.ndjson` fixtures of steps 5-7**: `hostile-intent.ndjson` opened (`Opened hostile-intent.ndjson · 2 steps`); `hostile-merge.ndjson` refused by name (`Couldn't open hostile-merge.ndjson: project-state: merge: `clock` is above 1099511627776, which no clock reaches`) with no body loaded; `hostile-formula.ndjson` opened and listed what it skipped by name (`var-h19`, a 5000-character formula; the `__proto__` variable). The chooser's accept list reads `.warpcad,.ndjson,.json,.txt,…`, and the same bytes renamed `.warpcad` open alike. No page errors. The iPad share-sheet half of the legacy check is OWNER.md I3 and I4.
+
 ### 9. Place a Sketch primitive, draw a solid and a hole, extrude it, and use it
 
 **Rewritten by `TODO/sketch-001` (2026-10-02).** The capability the old scenario 9
@@ -3215,6 +3217,7 @@ shows **Download copy** instead — drive whichever your browser shows, and say 
 
 **Also re-drive**: Not yet hand-driven since ui-063 changed Snap/Align operand naming; drive once at the next milestone check (ui-063). Also, for the Objects header summary: hide a part, wait for `Saved`, reload: the Objects header summary reads the same (`1 hidden · Show all`) and **Show all** brings the part back (`ui-090`, driven by `testing-019` on 2026-11-14, OK).
 
+**Last run**: 2026-11-23 UTC (`testing-043`, HEAD 00b85333 with no `src/` diff, production build via `vite preview`, exploratory Playwright with a jittered real mouse, fresh profile, Chromium laptop 1440x900; the native picker is a fake handle over a real folder, so the file on disk is a real file) — **PASS** for steps 1-7: Cube and an overlapping Cylinder dropped by real Library drags, both selected with the nav chrome's **Select** box-drag, **Union**: one body `Union 1` at 5.75, -14.25, 25; chip `Saved · 15:30` on its own; after a reload `Restored your last session`, the same body and History rows `Cube 1 — placed`, `Cylinder 1 — placed`, `Union Cube 1 + Cylinder 1`. **File ▾** read **Save** and **Save As…**; Save As… suggested `warpcad-project.warpcad` (picker types `.warpcad` then `.ndjson`), saved as `bracket.warpcad` and the chip read `Saved to bracket.warpcad · 15:30` (5 lines on disk); a Sphere dropped (2 bodies); **Open…** (picker offers `.warpcad` and `.ndjson`) on `bracket.warpcad`, **Replace**: the Sphere gone, the union back, chip `Opened bracket.warpcad · 3 steps`. No console or page errors. Hosted half (steps 8-10) not driven. Covering specs on the same tree, rotation run 120 (chromium-laptop + firefox-phone): `save-load-ui`, `merge-file`, `mcp-merge` 82 passed, 10 skipped by platform, 0 failed. Screenshots in the scratchpad `s10-*.png`.
 **Last run**: 2026-11-17 UTC (`ui-108` slice 4, uncommitted tree, production build) — **PASS (by spec)**: `save-load-ui`, `viewport-scaffold` and `object-visibility` green on chromium-laptop, firefox-laptop and webkit-phone (180 passed, 9 skipped by design, 0 failed), plus the full pair firefox-phone + chromium-tablet (1191 passed, 0 failed). Re-driven because the camera framing on a loaded project (reload shows the same scene in view) moved out of `Viewport.vue`; the framing also has 5 unit tests.
 **Last run**: 2026-11-17 UTC (`testing-044`, production build of HEAD via `vite preview`, headless Playwright with the real mouse, Chromium, Firefox and WebKit, laptop for the reload; `e2e/save-load-ui.e2e.js` for the file half, all nine projects) — **PASS**: the Subtract result of scenario 9 survived a browser reload identically on all three engines; `save-load-ui.e2e.js` asserts the Download copy / Save As suggestion is `warpcad-project-<date>.warpcad` and that Open… accepts `.warpcad` and legacy `.ndjson`; 344 passed, 70 skipped by platform, 0 failed over that spec plus `merge-file.e2e.js` and `mcp-merge.e2e.js`. Previously: 2026-11-15 UTC (`io-029`, uncommitted tree, production build) — **PASS (by spec)**: `e2e/native-files.e2e.js` (Save names a file once then saves in place, Open… lists it and reopens it, with the shell reporting `ios` and, new, `macos`: files land in `Documents/WarpCad`, a project loose in Documents is not listed) 63 passed on all nine engine-viewport projects; unit 9572 passed. Not hand-driven: no GUI input is available unattended; the real Mac window and simulator are logged in `TODO/VERIFY.md`.
 **Last run**: 2026-11-14 UTC (`ui-116` stages 1-4a, committed tree, production build) — **PASS (by spec)**: `save-load-ui.e2e.js`, `export-ui.e2e.js`, `resolution.e2e.js` and `overlay-focus.e2e.js` on firefox-laptop + webkit-phone (the File menu's Export and Resolution popovers now sit in `BasePopover`), 0 failed.
@@ -4303,6 +4306,7 @@ the top bar (`merge-toast` / `merge-banner`), **Show** (`merge-banner-show`), **
 
 **Also re-drive**: check by hand (ui-091): merge a copy from a second profile whose description differs; the later edit wins.
 
+**Last run**: 2026-11-23 UTC (`testing-043`, HEAD 00b85333 with no `src/` diff, production build via `vite preview`, exploratory Playwright with a jittered real mouse, two browser contexts, real **Download copy** downloads and real **Open…** / **Merge file…** file choosers, Chromium laptop 1440x900) — **PASS for steps 1-7, with one snag (filed `ui-164`)**: A dropped a Cube and a Cylinder and downloaded `a.warpcad`; B opened it, dropped a Sphere, downloaded `b.warpcad`; A set the Cube's Position X to 60 (header Undo `Move Cube 1`) and merged `b.warpcad`: strip `Merged 1 step from b.warpcad` with **Undo merge**, Sphere in the viewport and as History row 4, Cube still at X 60, header Undo still `Move Cube 1`. **Undo merge**: Sphere gone, Cube move and Cylinder intact, header Undo unchanged, chip `Took the merge from b.warpcad back out`. Conflict: A moved the Cube to X 90, B filleted the Cube's top (radius 5) and downloaded `b2.warpcad`; A merged it: banner `Merged 1 step from b2.warpcad — 1 step conflicted`; **Show** opened History with one red broken chip and the reason `conflicts with step 3 (Move Cube 1)` as text; **Suppress** cleared the chip. A reload gave `Restored your last session`, Cube at X 90, no **Undo merge**, no banner. Snag: at 1440x900 the History sheet shows four rows, and **Show** left the list at the top, so the conflicted row, its reason and **Suppress** sat below the window edge until the list was scrolled (`ui-164`). No console or page errors. Phone and tablet width not re-driven (`merge-file.e2e.js` covers them: green on the pair, rotation run 120). Screenshots in the scratchpad `s22-*.png`.
 **Last run**: 2026-11-18 UTC (`ai-039`, uncommitted tree, production build) — **PASS (by spec)**: `merge-file`, `mcp-merge` (the *via mcp* chip and the conflict banner) and the unit specs for `origin`, `merge` and `tabEndpoint` green on the pair webkit-tablet + firefox-laptop (1209 passed, 0 failed). Not hand-driven.
 **Last run**: 2026-11-17 UTC (`testing-044`, by spec) — **PASS (by spec)**: `e2e/merge-file.e2e.js` green on every project it runs on (344 passed, 0 failed in one run with `save-load-ui.e2e.js` and `mcp-merge.e2e.js`). Previously: 2026-11-14 16:33 UTC (`ui-117`, committed tree `ce2b7b7`, production build via the Playwright preview server, rotating pair chromium-laptop + firefox-phone, run by covering specs, not the `run` skill) — **PASS (by spec)**: `e2e/merge-file.e2e.js` and `e2e/mcp-merge.e2e.js` (the merge toast and the conflict banner on `BaseBanner`, Show, Undo merge), 17 of 22 with 5 skipped by design, no failure.
 **Last run**: 2026-11-03 17:39 UTC (`ui-092` part 4, uncommitted tree) — **PASS (edited and removed requests merge)** at laptop 1440x900 WebKit, two browser contexts, real **Download copy** / **Open…** / **Merge file…** through the browser's download and file chooser: A's two agent requests made three cubes; B opened A's file, its agent added a cube, and B pressed **Remove request** on the second request; A pressed **Edit request** on the first (header Undo `Edit request`) and merged B's file: `Merged 1 step from b.ndjson`, 4 bodies, one row left reading A's edited text with **Edited**, header Undo still `Edit request`. **Undo merge**: 3 bodies, header Undo unchanged — B's removal **stays** (prompts are outside what Undo merge takes back, as with Part 3's grow-only rows; noted, not a failure). Merging A's own older copy (before either edit): `a-old.ndjson has nothing this project doesn't already have`, the edit held and the removed request did not come back. Header Undo / Redo of the edit worked; after a reload the edited row was kept and **Undo merge** was no longer offered. No console or page errors. Not driven: the conflict (step 6), phone width.
@@ -4379,6 +4383,7 @@ Safari for the last step; the e2e's SDK client stands in for Claude Code but is 
 
 **Also re-drive**: drive by hand with the Assistant sheets overlaying the viewport at phone width; both bodies stay visible after closing (ai-029).
 
+**Last run**: 2026-11-23 UTC (`testing-043`, HEAD 00b85333 with no `src/` diff, production build via `vite preview`, Chromium laptop 1440x900; the file handle is a fake over a real file on disk, **the MCP half is a real Claude Code**: `claude -p --model haiku` on the owner's subscription, no API key, with `mcp/server.js <file>` registered for that run only through `--mcp-config`, the same server `npm run mcp:add -- <file>` registers) — **PASS for steps 1-5 as far as Save, with a wording difference**: the app opened `bracket.warpcad` (chip `Opened bracket.warpcad · 1 step`) and the Cube was moved by Position X 30, unsaved (header Undo `Move Bracket`). Claude Code, asked *add a 20 mm sphere on top of the cube*, wrote a sphere and then renamed it, so after the window got focus the strip read `Merged 2 steps from Claude Code` (not `1 step`: the count is what the agent wrote, and this run wrote two) with **Undo merge**, no dialog, the Cube still at X 30, History rows `Sphere 1 — placed via mcp` and `Rename Sphere via mcp`, header Undo still `Move Bracket`. **File ▾ → Save**: chip `Saved to bracket.warpcad · 15:38`, and the file holds both the sphere and the move. Not driven with the real Claude Code: step 5's second request, steps 6 (held drag), 7 (conflict) and 8 (Safari **Merge file…**) are covered by `e2e/mcp-merge.e2e.js` (SDK client stand-in; green on chromium-laptop + firefox-phone, rotation run 120). The exact text `Merged 1 step from Claude Code` is asserted there. Screenshots in the scratchpad `s23-*.png`.
 **Last run**: 2026-11-20 UTC (`ui-157`, uncommitted tree, covered by spec, not hand-driven) — **PASS**: `mcp-merge.e2e.js` and `mcp/server.spec.js` (hostile `description` stays inside `document_data`) green.
 
 **Last run**: 2026-11-15 15:20 UTC (`ai-037`, uncommitted tree) — **PASS for step 1's registration and step 2's refusal**: `npm run dev` now binds `127.0.0.1`; `claude mcp get warpcad` (owner's existing `--dev` registration, read-only) reads Connected; the SDK client stand-in on `http://127.0.0.1:5183/mcp` with no lease got `WarpCad refused apply_records: live MCP access is off. In WarpCad, open Assistant → Live MCP access and explicitly enable it, then retry.` (wording unchanged). `e2e/ai-mcp-agent-pairing.e2e.js` 3 of 3 under `E2E_DEV=1` at chromium-laptop. Steps 3-7 not re-driven (no bridge code changed).
@@ -4603,9 +4608,75 @@ row. After **Undo AI turn** the request stays, reading **No parts left**.
 **Last run**: 2026-10-17 UTC (`ai-024`) — **PASS** on the hosted app (old build) in Chrome with the flag, laptop width, Claude in Chrome as the agent, with `navigator.modelContext` aliased by hand: ten 10 mm cubes along X at 20 mm spacing, ten History/Objects rows, one Undo AI turn left 0 objects. Without the alias the agent found no tools. Not driven: background tab, phone/tablet, the new chip text on a real agent run. The fake-`document.modelContext` e2e (`e2e/webmcp.e2e.js`) passes at three viewports.
 
 
+### 28. The iOS app end to end
+
+Written 2026-11-23 by `testing-043` step 0, from `testing-011`'s Proposed fix and `testing-035` rows 1, 2, 5 and 6.
+`testing-011` owns the first driven run, on the TestFlight build, so there is no **Last run** line yet. The
+scenario can only be passed on a real device: Playwright cannot drive a web view inside an app, so every web-side
+piece of it is already a spec at `/` with a fake Tauri boundary, and this is the part a person must try. Drive it on
+the iPad first (portrait, then landscape for step 2), then on an iPhone if there is one ("the device" below).
+Control names (all in the app's own web view): the Library rows `library-row-primitive.cuboid` and
+`library-row-primitive.sphere`, the navigation chrome (`nav-mode-orbit`, `nav-mode-pan`, `nav-mode-select`,
+`nav-zoom-in`, `nav-zoom-out`, `nav-reset`), the viewport (`viewport`, with `data-body-count`), **File ▾**
+(`file-menu-button`), its **Save** (`file-save`), **Open…** (`file-open`) and **Export** (`file-export`) items, the
+status chip (`save-status`), **Subtract** (`operation-subtract`), the header **Share** (`share-open`) with **Send…**
+(`share-send`) and **Copy link** (`share-copy`), the Assistant (`assistant-button`, `assistant-panel`), its key box
+(`ai-key-input`, `ai-key-save`, `ai-key-status`), **Live MCP access** (`live-mcp-button`, `ai-connect-lease`,
+`ai-connect-enable`) and **Undo AI turn** (`ai-undo-turn`).
+
+**Steps**:
+1. Install from TestFlight and open the app. Watch the launch in dark mode.
+2. Drag a **Cube** and a **Sphere** in from the Library. Orbit, pan and zoom by touch only, including with the
+   on-screen navigation chrome. Tap the view cube. Turn the device to landscape and back.
+3. **File ▾ → Save** as `scenario-28`. Open the Files app and find the file under *On My iPad › WarpCad* (*On My
+   iPhone › WarpCad* on an iPhone). Read how Files labels it.
+4. Switch to another app for 5 minutes, then come back.
+5. Force-quit the app and open it again. Then **File ▾ → Open…**.
+6. Select the Cube and the Sphere and press **Subtract** (the Sphere out of the Cube), then **File ▾ → Export**
+   to STL. Find the file in the Files app under *WarpCad › Exports*.
+7. Open the Assistant, save an API key, send one message. Kill the app, open it again and send another message
+   without typing the key again. **Spends the owner's tokens: mark this step `not driven` unless the owner chose
+   to run it at the start of the sitting** (owner rule, 2026-11-07).
+8. Open **Live MCP access**, choose a lease, turn on **Allow devices on this Wi-Fi** and press **Enable access**. From
+   Claude Code on a Mac on the same network, ask for *a 20 mm cylinder on top of the cube*. Press **Undo AI turn**.
+   Then lock the device for 60 seconds in the middle of a request and record what lands and what the agent is told.
+9. In the Files app, tap `scenario-28.warpcad` and choose **Open in WarpCad**. Then do the same with an old
+   `.ndjson` project file (a copy of `scenario-28` renamed, or one from Mail). Tap a plain log file named `log.ndjson`
+   that is not a project and read what the app says.
+10. In the app, **Share → Copy link**, then paste into Notes. Tap **Send…**. Tap a text field low in a bottom sheet
+    (**To library**, the Inspector at phone width) with the keyboard up. Touch every control that shows something
+    only on hover (the Prompts rows, the intent line, the Library rail): each must be reachable without hover.
+
+**Expect**:
+- Step 1: no white flash before the first frame in dark mode, and the viewport within the cold-start time
+  `build-018` measured on the same device.
+- Step 2: both bodies visible (`data-body-count` 2) and still there after every gesture; the view cube turns the view
+  to the face you tap; nothing needs a keyboard, a right button or a hover.
+- Step 3: the chip reads `Saved to scenario-28.warpcad`; the file is in the app's folder in Files and Files labels
+  it **WarpCad project**; a `log.ndjson` beside it is not labelled that way.
+- Step 4: the view comes back as you left it, both bodies, the selection kept, with no reload and no restore prompt.
+- Step 5: the autosave comes back by itself with both bodies; **Open…** offers `scenario-28`.
+- Step 6: the Sphere is gone from the Cube, one body remains; an STL appears in *WarpCad › Exports*.
+- Step 7: the key is saved once and is not asked for again after a kill and a restart; one answer lands per
+  message.
+- Step 8: the cylinder lands on the cube, **Undo AI turn** removes it and only it, and your own undo stack is
+  unchanged. A request interrupted by the lock either completes after unlocking or the agent is told it did not;
+  it is never silently half-applied.
+- Step 9: WarpCad is offered in **Open in…**, with the app closed and with it open; the project opens with the chip
+  `Opened scenario-28.warpcad · N steps`; the old `.ndjson` opens the same way; the plain log file is refused by
+  name and the open project is untouched.
+- Step 10: **Copy link** says copied and the paste in Notes is the link; **Send…** shows the system share sheet; a
+  field low in a sheet stays above the keyboard; every hover-only control can be reached by touch.
+- Never: a reload that loses edits, a Save that wrote nowhere, a Blob download that does nothing, a Restore that
+  needs the app killed, an MCP write while access is off, an API key typed twice.
+
+**Also re-drive** (same sitting, on the device): scenarios 1, 7, 10 and 25 (`testing-011`). Then the milestone's
+five-minute free-form pass (CLAUDE.md, Verification) on the iPad and the iPhone, with no script; what it finds
+becomes findings, not fixes in the run.
+
 ### 29. Send a project to someone who has never seen WarpCad
 
-Added 2026-10-27 with `TODO/io-016` (Stage 2). Number 28 is reserved by `testing-011`. Control
+Added 2026-10-27 with `TODO/io-016` (Stage 2). Number 28 is the iOS app scenario (written by `testing-043`, driven by `testing-011`). Control
 names: **Share** (`share-open`, left of **File ▾**; **File ▾ → Share…** `file-share` where the
 header has no room for it), the Share sheet (`share-sheet`: `share-name`, **Send…** `share-send`,
 **Copy link** `share-copy`, **Send the file** `share-file`), the *Link copied* toast
@@ -4869,6 +4940,8 @@ merge two Pis and read the suggested prefix; keep one Pi whole with **Hide this 
 **Last run**: 2026-11-05 19:46 UTC (`ui-094`, uncommitted tree, dev server, exploratory scripts with a jittered real pointer) — **PASS** at laptop 1440x900 Chromium, the owner's real file, real mouse. `Group 1` then `Clearances` checked in the Objects list, **Group**, prefix `clearance-` and **Hide these parts**: 5 hidden prefixed parts. `clearance-Screen clearance` reached from the Objects list and renamed `clearance-Screen`: still hidden by default, still drilled in. Undo put the old name back; a second Undo went back past the merge (2 bodies); Redo twice landed the merge and the rename again. Not driven this time: Step 4's cut with the renamed clearance (the rename→Subtract path is in `documentRenamePart.spec.js` and scenario 31's step 10).
 **Last run**: 2026-11-02 21:03 UTC (`core-077`, uncommitted tree) — **PASS (partial)** at laptop 1440x900 Chromium, dev server, the owner's real file opened read-only (not saved): Group 1 and Clearances selected, Group pressed, prefix `clearance-` and **Hide these parts** ticked, Group pressed. Result: one body, Group 1, 50.8 × 22.86 × 11.84 mm, which matches the Hide-on size. The Parts list reads 21 entries: the 16 original parts, then the five `clearance-` parts, each tagged HIDDEN. The Inspector's "3 hidden" is the original file's Pads, Header16 and Header12, already hidden before the merge; the clearance parts are hidden by the merge. Steps 4–5 driven afterwards: the shell (60 × 30 × 20 mm, centred on the board) was the base, and `Group 1 › clearance-Screen clearance` then `clearance-Light clearance` were added as cutters through the Objects list's expander and part checks. Group 1 stayed at 50.8 × 22.86 × 11.84 mm, and the shell became Subtract 5 with visible pockets, the board showing through them. Undo ×8 went back to Group 1 and Clearances; Redo once restored the merge. Colours and hides checked: before the merge Clearances was whole-body red with no hidden parts and Group 1 had Pads, Header16 and Header12 view-hidden; after the seven undos both were back the same (Clearances red, no hidden parts). After Redo the merge had 21 parts with five HIDDEN, and under **Show hidden parts** the five clearances read red. Not checked: the pocket size against the clearance's own bounds (22.7 × 11.8 × 10 mm).
 **Last run**: 2026-11-02 20:10 UTC (`core-076`, uncommitted tree) — **PASS** with the owner's real file on a dev server, real jittered pointer, fresh profiles: Chromium at 1440x900, 820x1180 and 390x844 (trusted CDP touch), 66/66 checks; WebKit at 390x844 touch, 22/22; Firefox at 1440x900, 22/22. Every Done means number held: one body named `Group 1`, 21 parts, 50.8 × 22.86 × 11.84 mm, `clearance-Screen clearance` 22.7 × 11.8 × 10 mm, no part moved, `Pads`/`Header16`/`Header12` hidden, the clearances red under **Show hidden parts**, two cuts each leaving the board, Undo restoring both operands and Redo the merge; Hide unticked gave 21 visible and 50.8 × 32.86 × 21.84 mm. Driven differently, PASS: `Clearances` first (named `Clearances`), a colliding prefix corrected, a moved and rotated group, one hidden whole, a third group, commit straight after a drag, a hidden part from the Objects list at phone width, a Cube before a Pi, two Pis (`Raspberry Pi 2-`, 66 parts), a Pi kept whole with **Hide this part**. **Found and fixed by driving it:** prefixed part rows all truncated to `clearance…`. **Not driven:** a real phone's on-screen keyboard (logged in `TODO/VERIFY.md`).
+
+**Re-checked**: 2026-11-23 UTC (`testing-043`, HEAD 00b85333, production build, Chromium laptop, real file chooser) — **PASS for step 1's open only**: `~/Documents/enviro-plus-featherwing.ndjson` (the legacy extension) opened through **File ▾ → Open…** with the chip `Opened enviro-plus-featherwing.ndjson · 127 steps` and 2 bodies, no page errors. Steps 2-5 not re-driven (nothing they touch changed). The iPad share-sheet half is OWNER.md I3 and I4.
 
 ### 33. Calculate a size from two parts
 
