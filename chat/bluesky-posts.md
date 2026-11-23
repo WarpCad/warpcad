@@ -3815,3 +3815,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 12 GIFs re-recorded, docs-media guard, unit and typecheck → this session's run; cold read: Fit CLEAR, relink PARTIAL → the fresh agent's report
 **To Add:** none
 ---
+
+## 2026-11-23T20:40:00Z — WarpCad: the version line shows even when Help can't load
+
+**Post:** On an iPad, WarpCad's Help showed no version line. It read Help from the network and only drew the version once the page had loaded, so a slow or failed fetch hid it. It now sits under the loading and "needs a connection" messages too. When Help is online it is still at the bottom of the page. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** line shown in 18 of 18 web, native-online and native-offline combinations at phone, tablet and laptop on Chromium and WebKit → this session's drive; unit 10,220 passed, e2e pair chromium-laptop + firefox-phone 1,378 passed, 1 known failure (`import-3mf`) → this session's run; iPad simulator opened Help, the bottom line not read there → `TODO/VERIFY.md` build-040
+**To Add:** none
+---

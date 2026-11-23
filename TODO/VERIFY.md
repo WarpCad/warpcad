@@ -59,6 +59,18 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### build-040 — Help shows the version line in every state (2026-11-23 20:40)
+
+Gate 1 A2 found no version line in Help on Socrates. The line existed but rendered only after the Help page loaded, and below the fold when it did. The fix and its specs are in the commit; these rows are what the specs cannot show.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | Help's version line at phone, tablet and laptop widths, Chromium and WebKit: web (`WarpCad build <commit>`), fake native shell online, fake native shell with Help blocked | OK | 2026-11-23: all 18 combinations showed the line. Native read `WarpCad 1.25.0 (dev) · iOS app 1.25.0`. Online it is below the fold (not in the viewport) at every width; with Help blocked it is on screen. |
+| 2 | The iPad simulator (iPad Pro 11-inch M5, iPadOS 26.0, `npm run ios:dev`) runs the build and opens Help | OK | Header read `v1.25.0 · 134a1ed`; Help opened and loaded its pages. Scrolling to the bottom line could not be driven with synthetic mouse input in the simulator, so the line itself was not seen there. |
+| 3 | The iPad: scroll to the bottom of Help and read the line; then Airplane mode | Owner | → `TODO/OWNER.md` I19. |
+| 4 | Gate 1 A2 reworded to "scroll to the bottom" and the line shown when Help cannot load | Owner | → `TODO/OWNER.md` Q133 (assumption, recommendation first). |
+
+
 ### ui-162 — View cube face labels and axis colours (2026-11-23 18:25)
 
 Names and axis tints went on in one pass at a 30 % tint chosen by the contrast maths and by eye on emulated Chromium and WebKit; whether it looks right in the hand is the owner's call, and 31 GIF sets still show the old cube.
@@ -335,7 +347,7 @@ Installed with `ios-release.sh --install "Socrates"` and launched by hand (the f
 
 | # | Check | Status | Notes |
 |---|---|---|---|
-| A2 | Help version line (`WarpCad <version> (<commit>) · iOS app <version>`) | Issue | No version line in the Help popup on Socrates. The header shows `v1.17.0 · 49bab03` on the simulator. Needs a TODO. |
+| A2 | Help version line (`WarpCad <version> (<commit>) · iOS app <version>`) | Moved | No version line in the Help popup on Socrates. The header shows `v1.17.0 · 49bab03` on the simulator. 2026-11-23: → `build-040` (done); the device re-check is OWNER.md I19. |
 | A3 | Rotate portrait, landscape, upside-down | OK | PASS (owner). |
 | A4 | Split View at half and one-third width | OK | PASS (owner). |
 | A5 | System Light and Dark, in-app Light and Dark styles | OK | PASS (owner). |

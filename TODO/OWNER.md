@@ -15,10 +15,10 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 115 now (Q16-Q132; Q94-Q132 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 116 now (Q16-Q133; Q94-Q133 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
-| [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
+| [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 19 + 11 + 7 | ~47 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
 | [7](#7-at-the-printer-or-bench) | At the printer or bench | 13 | print time | closes rows |
 | [8](#8-older-device-feel-checks) | Older device feel checks | closed (Q1) | none | — |
@@ -85,6 +85,18 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q133 · Keep the Gate 1 A2 wording "scroll to the bottom of Help", and the version line showing even when Help cannot load (build-040)?
+
+**Question:** `build-040`: on Socrates the Help popup showed no version line. Two things could hide it, and I fixed both the smaller way. (1) The line sat below the fold at the bottom of a long page, so I reworded Gate 1 check A2 to "Help → scroll to the bottom → read the version line". (2) Help in the app is fetched from the network, and the line only rendered once the page had loaded, so a failed fetch left the iPad with none. It now shows in every Help state (loading, offline, moved page). I did not move the line into Help ▾ → About or the sheet header. Keep this?
+
+**Background:** Found 2026-11-23 by `build-040`. Driven in Chromium and WebKit at phone, tablet and laptop widths: online the line is below the fold at all three; offline it is on screen. The iPad simulator ran the build and opened Help, but my synthetic scrolling would not reach the bottom there, so the on-device read is `I19`.
+
+**Options:**
+- **Keep it (Recommended):** smallest change, nothing to relearn.
+- **Pin the version line in the Help sheet header:** readable without scrolling; a layout change on every width, filed as a row.
+- **Explain more**
+- **Defer:** the fix stays as shipped.
 
 #### Q132 · Accept the unmaintained `chrono` advisory so `cargo deny check` passes in warpcad-native?
 
@@ -2113,7 +2125,7 @@ Things only your signed-in accounts can do.
 
 ## 5. Device sessions
 
-### 5a. iPad session (18 checks, ~45 min)
+### 5a. iPad session (19 checks, ~47 min)
 
 **Setup (action):** 1. Plug Socrates in over the cable and unlock it. 2. Say `/owner ipad`. The agent
 installs the current local build (`scripts/ios-release.sh --install "Socrates"`) and writes three test files to
@@ -2275,6 +2287,16 @@ The Live MCP checks (marked *waits on ai-043*) come last and are skipped until `
 `ai-036` #5 · iPad · filed 2026-11-15 · **waits on:** ai-043 is fixed
 
 **Check:** With the Wi-Fi switch on, turn Wi-Fi off on the iPad (cellular on) and return to WarpCad: the switch is off with a message, and the cellular address does not answer.
+
+**Answer:** validation
+
+#### I19 · Help shows the version line (Gate 1 A2 re-check)
+
+`build-040` · iPad · 2 min · filed 2026-11-23
+
+**Check:** On Socrates with the build that includes `build-040`: 1. Open WarpCad. 2. Tap **File ▾ → Help and documentation**, or the **?** button. 3. Scroll to the bottom of the page. 4. Read the version line. 5. Switch on Airplane mode, close and reopen Help: the line is still there under "Help needs a connection".
+
+**Pass if:** the line reads `WarpCad <version> (<commit>) · iOS app <version>` in both cases, and the version matches the header's `v<version> · <commit>`.
 
 **Answer:** validation
 

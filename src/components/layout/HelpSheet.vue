@@ -355,8 +355,9 @@ onBeforeUnmount(() => {
             <!-- The theme and style picker (`TODO/ui-113`, `TODO/ui-151`): outside the ready gate, so it is here
                  while the page loads and when it fails, offline included. Same component as File ▾ → Appearance…. -->
             <ThemePicker testid-prefix="help" />
-            <!-- The running build, and a manual check for a newer one (TODO/build-005). -->
-            <div v-if="state === 'ready'" class="help__version" data-testid="help-version-row">
+            <!-- The running build, and a manual check for a newer one (TODO/build-005). Outside the ready gate
+                 (`TODO/build-040`): Help in the native app is fetched, so a failed fetch left the iPad with no version. -->
+            <div class="help__version" data-testid="help-version-row">
               <span data-testid="help-version">{{ update.helpVersionLine }}</span>
               <BaseButton
                 data-testid="pwa-check-update"

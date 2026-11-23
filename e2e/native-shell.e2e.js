@@ -177,6 +177,19 @@ test.describe('Help in the native app (ui-119)', () => {
     await expect(error).toHaveCount(0)
   })
 
+  test('offline, Help still shows the version line: `WarpCad <version> (<commit>) · iOS app <version>` (build-040)', async ({ page }) => {
+    await page.route(isHelpFile, (route) => route.abort('internetdisconnected'))
+    await page.goto('/')
+    await expect(page.getByTestId('viewport')).toBeVisible()
+    await openHelpSheet(page)
+    await expect(page.getByTestId('help-error')).toBeVisible()
+    const version = page.getByTestId('help-version')
+    await expect(version).toBeVisible()
+    await expect(version).toHaveText(new RegExp(`^WarpCad ${escape(RELEASE)} \\(${COMMIT}\\) · iOS app 1\\.13\\.0$`))
+    // It is on screen without scrolling the page content: the row sits inside the sheet's own scroll area.
+    await expect(version).toBeInViewport()
+  })
+
   test('the skew line names both versions when the fetched Help is for another WarpCad', async ({ page, request }) => {
     // The real index, read before the page loads and served from memory: no live `route.fetch()`
     // inside the app's index → page chain. Under the full matrix that one upstream GET has stalled

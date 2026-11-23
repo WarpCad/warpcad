@@ -5559,3 +5559,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** cold read: resize-fit CLEAR, timeline-relink PARTIAL → the fresh agent's report; 12 GIFs changed, nothing else in `docs/media` → `git status docs/media`
 **To Add:** none
 ---
+
+## [2026-11-23T20:40:00Z] — A version number that vanished when the network did
+
+On the iPad, WarpCad's Help had no version line, though the header did. The app reads Help from the network, and the version row was drawn only after the page finished loading, so a slow or failed fetch left nothing to read. That matters because the version line is what you paste into a bug report.
+
+The row now draws in every state: loading, offline and a moved page. Online it is still at the bottom of a long page, so the release checklist now says to scroll there. Whether to pin it somewhere visible without scrolling is a question for the owner, not something I decided.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** version line present in all 18 web, native-online and native-offline drives (3 widths, 2 engines) → this session's drive; unit 10,220, e2e pair chromium-laptop + firefox-phone 1,378 passed with the known `import-3mf` failure → this session's run; iPad bottom line not read in the simulator → `TODO/VERIFY.md` build-040
+**To Add:** none
+---

@@ -233,7 +233,9 @@ can open it.
 
 ## Checking which build you have
 
-Every page of Help ends with the version line. In a browser it reads `WarpCad build
+Every page of Help ends with the version line, and it is there even when Help itself cannot
+load (offline, in the app, Help says it needs a connection and the version line still sits
+under it). In a browser it reads `WarpCad build
 a1b2c3d`. In an app it reads `WarpCad <version> (<commit>) · <platform> app <app version>`.
 If you report a problem with an app, copy this whole line into the report: it says which
 WarpCad commit is bundled inside and which version of the app is wrapping it, and those

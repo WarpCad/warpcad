@@ -226,6 +226,35 @@ describe('HelpSheet with Help from the network (TODO/ui-119)', () => {
     expect(q('help-contents-booleans')).not.toBeNull()
   })
 
+  it('inside the native shell, the version line is in Help while loading, offline and on a moved page (TODO/build-040)', async () => {
+    vi.stubGlobal('__TAURI_INTERNALS__', { invoke: async () => ({ platform: 'ios', version: '1.13.0' }) })
+    const line = /^WarpCad (?:dev|\d+\.\d+\.\d+) \((?:[0-9a-f]{7}|dev)\) · iOS app 1\.13\.0$/
+    const { help } = setup()
+    setHelpFetch(() => new Promise(() => {}))
+    help.open('boolean')
+    await Promise.resolve()
+    expect(q('help-loading')).not.toBeNull()
+    expect(q('help-version')?.textContent).toBeTruthy()
+    // Offline: the sheet says Help needs a connection, and the version is still there.
+    resetHelpCache()
+    setHelpFetch(async () => {
+      throw new TypeError('Load failed')
+    })
+    help.close()
+    help.open('boolean')
+    await flushPromises()
+    expect(q('help-error')).not.toBeNull()
+    expect(q('help-version')?.textContent).toMatch(line)
+    expect(q('help-version-skew')).toBeNull()
+    // A moved page, with the index served.
+    resetHelpCache()
+    setHelpFetch(async (url) => ({ ok: true, json: async () => INDEX, text: async () => JSON.stringify(INDEX) }))
+    help.openPage('missing-page')
+    await flushPromises()
+    expect(q('help-moved')).not.toBeNull()
+    expect(q('help-version')?.textContent).toMatch(line)
+  })
+
   it('shows the skew line when the fetched Help names another WarpCad version, and none when it matches', async () => {
     const { help } = setup()
     setHelpFetch(async (url) => {
