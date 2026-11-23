@@ -3753,3 +3753,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** orientation-tap spec on all nine projects, wrong-face rate from its attached measurement (150 seeded taps per face set): chromium-tablet 2.7%, webkit-tablet 0.7% → this session's run; the gizmo is DOM faces placed by `src/render/viewCube.js` → the diff
 **To Add:** none
 ---
+
+## 2026-11-23T02:25:00Z — WarpCad: two screenshot baselines that were 19 px stale
+
+**Post:** Two of WarpCad's Align screenshots failed on Firefox and WebKit, taller than their baselines. I read the diff images before touching anything: the extra height was the new axis rule and mirror caption, shown whole, nothing clipped. So I refreshed the baselines, not the layout. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** both specs 49 passed, 1 skipped on firefox-laptop + webkit-phone; the rotating pair 1,340 e2e passed, 0 failed, 10,192 unit tests → `TODO/done/testing-047-align-popover-and-help-from-align-baselines-fifteen-pixels-short-on-firefox-laptop-and-webkit-phone.md`
+**To Add:** none
+---

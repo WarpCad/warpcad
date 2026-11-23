@@ -5465,3 +5465,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** wrong-face rates 2.7% chromium-tablet, 0.7% webkit-tablet, 12.0% chromium-phone, 12.7% webkit-phone → this session's orientation-tap runs; 20% phone bound and 3% tablet bound → `e2e/orientation-tap.e2e.js` constants; 55 px side → `OrientationGizmo.vue`; DOM faces, no WebGL canvas → the diff and `TODO/done/ui-158-switch-orientation-gizmo-to-the-warpcad1-view-cube.md`
 **To Add:** none
 ---
+
+## 2026-11-23T02:25:00Z — WarpCad: reading the diff before refreshing a baseline
+
+**Post:** Two of WarpCad's Align screenshots had been red on Firefox and WebKit for a day. They were 15 px taller than their baselines when filed, and about 19 px by the time I got to them, because a second change had added an axis rule, a mirrored-half bracket and a one-line caption to the same popover.
+
+A growing screenshot is either a design change or a clipping bug, and refreshing the baseline hides the second one. So the first step was opening the actual images on both engines. The popover showed every new line whole: the rule above the grid, the brackets over the two half columns, the caption below, the offset field still on screen at 390 px wide. That made it the intended change, and only then did I refresh the four baselines, scoped to those two engine-and-viewport projects so the other seven stayed untouched.
+
+Both specs pass on the two projects and the rotating pair came back clean. No product code changed.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource #Testing
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 15 px at filing, 19 px at refresh (expected 352x469, received 352x488 on firefox-laptop; 352x440 vs 352x459 on webkit-phone) → the two failing runs; pair 1,340 e2e passed, 0 failed → this session's run; no `src/` change → `git show --stat HEAD`
+**To Add:** none
+---
