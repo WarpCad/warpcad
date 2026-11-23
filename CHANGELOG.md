@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.25.0](https://github.com/WarpCad/warpcad/compare/v1.24.0...v1.25.0) (2026-11-23)
+
+### Features
+
+* **io:** set the gist README's prompt limit, warn before it cuts, mark an omitted reply (TODO/io-041) ([ceb30f4](https://github.com/WarpCad/warpcad/commit/ceb30f460fd6829043e50aa6af9a6a09434ee7fe))
+* **viewport:** replace the axis-triad orientation gizmo with the shaded view cube (TODO/ui-158) ([ac295a0](https://github.com/WarpCad/warpcad/commit/ac295a029791b5b14e7713ea3e9a2131c5cde7e1))
+
+### Bug Fixes
+
+* **ui:** broken-step box leads with the step number and the row's chip, one Re-link label, a reason that says what Re-link does, selected row scrolled into view (TODO/ui-155) ([ad36b5f](https://github.com/WarpCad/warpcad/commit/ad36b5fd8a6e63f8f841f3b44a954d2d9ed2b8d6))
+* **ui:** name the red clearance in the view and finish four chrome partials (TODO/ui-153) ([91ef4dc](https://github.com/WarpCad/warpcad/commit/91ef4dc2bc1170faf172e58c868ddab8f0db7849))
+* **ui:** one solid amber broken chip, a why line in the Inspector box, one sentence for the rollback strip and marker (TODO/ui-160) ([8db59de](https://github.com/WarpCad/warpcad/commit/8db59de0c84bffc78c442f925a40589ee096f8da))
+* **ui:** plain red-area wording, strong Split kind state, Align axis rule and mirrored halves, labelled Align and Split (TODO/ui-159) ([4012c70](https://github.com/WarpCad/warpcad/commit/4012c706a78abcfc8508be106f8b27a6e61aaca8))
+
+### Performance Improvements
+
+* **core:** keep a cut's operands in the worker so a repeat cut sends nothing for them (TODO/core-086) ([bb3ffe9](https://github.com/WarpCad/warpcad/commit/bb3ffe98215c53e3da8c7722e71a0d04bf5b7652))
+* **render:** measure indexed result meshes as no gain; keep a triangle-cost control bench (TODO/render-009) ([03c0392](https://github.com/WarpCad/warpcad/commit/03c03929c4df15afa5727c515d4137e932a0e1ae))
+
 ## [1.24.0](https://github.com/WarpCad/warpcad/compare/v1.23.0...v1.24.0) (2026-11-22)
 
 ### Features
