@@ -119,12 +119,16 @@ watch(
 /**
  * `TODO/ui-155`: selecting a row brings the whole of it (its reason and its action bar) into view
  * in the sheet's list, so on a phone the buttons are not left half under the stacked peek bars.
+ * It runs on mount as well (`TODO/ui-164`), for a row that is already selected when History opens.
  */
 watch(
   () => props.selected,
   (isSelected) => {
     if (isSelected) void nextTick(() => rootEl.value?.scrollIntoView?.({ block: 'nearest' }))
   },
+  // `TODO/ui-164`: a row that mounts already selected (the merge banner's Show selects the row and
+  // opens History in the same tick) is brought into view too, not only a row selected afterwards.
+  { immediate: true },
 )
 
 // Selecting a different row closes any form this one had open, so an abandoned

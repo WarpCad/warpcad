@@ -6,8 +6,10 @@ priority: medium
 model: sonnet
 milestone: none — Findings table, filed 2026-11-23 from the `testing-043` drive of scenario 22
 depends: []
-status: open
+status: done
 ---
+
+> **Shipped 2026-11-23.** As proposed: `immediate: true` on the `props.selected` watcher in `TimelineRow.vue`, so a row that mounts selected scrolls into view once (`block: 'nearest'`). No panel change was needed. `e2e/merge-file.e2e.js` now asserts the row, chip, reason and Suppress lie inside the window (RED on laptop and tablet first); `TimelineRowScroll.spec.js` covers the mount. `docs/merging.md` gained "scrolled into view".
 
 ## Problem
 

@@ -293,6 +293,24 @@ test('Merge file… brings the other copy\'s change in beside this one\'s, with 
   }
 })
 
+/**
+ * Asserts each locator's box lies inside the window right now, with no scrolling done for it.
+ * `toBeVisible` does not say this, and a Playwright `click()` scrolls into view by itself.
+ * @param {import('@playwright/test').Page} page
+ * @param {import('@playwright/test').Locator[]} locators
+ */
+async function expectInsideWindow(page, locators) {
+  const size = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
+  for (const locator of locators) {
+    const box = await locator.boundingBox()
+    expect(box, 'the element has a box').not.toBeNull()
+    if (!box) continue
+    expect(box.y, 'top edge at or below the top of the window').toBeGreaterThanOrEqual(0)
+    expect(box.y + box.height, 'bottom edge at or above the bottom of the window').toBeLessThanOrEqual(size.h + 0.5)
+    expect(box.x + box.width).toBeLessThanOrEqual(size.w + 0.5)
+  }
+}
+
 test('a move-versus-fillet conflict: the banner, Show, the chip and its reason, fixed by Suppress (TODO/ui-062)', async ({
   page,
   browser,
@@ -330,6 +348,9 @@ test('a move-versus-fillet conflict: the banner, Show, the chip and its reason, 
     const reason = page.getByTestId('timeline-broken-reason')
     await expect(reason).toBeVisible()
     await expect(reason).toHaveText('conflicts with step 2 (Move Cube 1)')
+    // `TODO/ui-164`: not only Playwright-visible (its click scrolls on its own), but already
+    // inside the window as Show leaves it: the row, its chip, its reason and Suppress.
+    await expectInsideWindow(page, [row, row.getByTestId('chip-broken'), reason, page.getByTestId('timeline-suppress')])
     await expect(row.getByTestId('chip-broken')).toHaveAttribute('title', 'conflicts with step 2 (Move Cube 1)')
     // The banner stays until dismissed.
     await expect(banner).toBeVisible()

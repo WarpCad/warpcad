@@ -80,7 +80,7 @@ you close it: **Merged 4 steps from bracket-copy.warpcad — 2 steps conflicted*
 ### Fixing a conflicted step
 
 1. Press **Show** on the yellow strip. History opens (on a phone, as the sheet at the bottom of
-   the screen) with the first conflicted step selected and its reason underneath.
+   the screen) with the first conflicted step selected, scrolled into view, and its reason underneath.
 2. Use that step's own buttons:
    - **Suppress** switches it off. It stops trying to build, and the chip goes away.
    - **Edit** changes its numbers. This only helps if the conflict is about a value.

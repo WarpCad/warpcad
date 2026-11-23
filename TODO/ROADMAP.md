@@ -83,11 +83,10 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | # | State | Milestone | Task | Model |
 |---|---|---|---|---|
 | [M19](#m19--native-ios-app-tauri) | 2 queued (ready) + 10 held | Re-queued 2026-11-23: the local native rows, each with its device check parked in OWNER.md so it finishes without the iPad. Never push `warpcad-native`; nothing to App Store Connect. |
-| [Findings](#findings-open-rows) | 2 queued (ready) + 1 held + 1 running | The runner's queue: `testing-045`, `ui-164`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
+| [Findings](#findings-open-rows) | 1 queued (ready) + 1 held + 1 running | The runner's queue: `testing-045`. Running in the desktop app: `testing-028`. Held: `testing-027` (unblocks itself if `testing-028` finds the iOS 26.0 switch: `build-034` #1, handed over from `testing-044`). |
 | 81 | ▶ Ready | `FIND` | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub, with the owner's `gh` login (OWNER.md U1) | sonnet |
 | 123 | ▶ Ready, ⚠ opus | `M19` | [`ai-042`](../../warpcad-native/TODO/M19-ai-042-mcp-loopback-token-on-mobile.md) Require the MCP token from loopback peers on iOS and Android (default taken; logged as an OWNER.md question) | ▶ Ready (Next up row 123) |
 | 124 | ▶ Ready | `M19` | [`build-018`](../../warpcad-native/TODO/M19-build-018-tauri-ios-device-probe.md) Everything in the device probe that needs no iPad, and the probe build ready for OWNER.md I13 | ▶ Ready (Next up row 124) |
-| 125 | ▶ Ready | `FIND` | [`ui-164`](FIND-ui-164-show-on-a-merge-banner-leaves-the-conflicted-history-row-below-the-fold.md) **Show** on a merge banner leaves the conflicted History row, its reason and Suppress below the fold at 900 px (filed by `testing-043`) | sonnet |
 
 ---
 
@@ -163,7 +162,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
-| [`ui-164`](FIND-ui-164-show-on-a-merge-banner-leaves-the-conflicted-history-row-below-the-fold.md) **Show** on a merge banner leaves the conflicted History row below the fold | finding | medium | sonnet | ▶ Ready (Next up row 125) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
 | [`build-019`](../../warpcad-native/TODO/M19-build-019-ios-signing-and-testflight.md) Signing and a TestFlight build (M19) | feature | high | sonnet | Held (native) |
@@ -338,7 +336,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ui-164` | **Show** on a merge banner opens History but leaves the conflicted row, its reason and Suppress below the fold at 900 px (found driving scenario 22, `testing-043`); scroll the selected row into view on mount | Finding | — | 22, 23 |
 
 ---
 
@@ -438,7 +435,7 @@ One line per milestone. Closed milestones are listed in [ROADMAP-DONE.md](ROADMA
 
 | Milestone | Open rows | What is left |
 |---|---|---|
-| [Findings](#findings-open-rows) | 2 queued + 1 held | 2 ready for `/run-todos` (`testing-045`, `ui-164`); `testing-027` held; `testing-028` running in the desktop app. |
+| [Findings](#findings-open-rows) | 1 queued + 1 held | 1 ready for `/run-todos` (`testing-045`); `testing-027` held; `testing-028` running in the desktop app. |
 | [M19 — Native iOS app](#m19--native-ios-app-tauri) | 2 queued + 10 held | Queued 2026-11-23: `ai-042`, `build-018` (agent half); `testing-043` and `ai-043` closed 2026-11-23. Held behind a Run gate (push, upload, publish, or a store account or machine): `build-019`, `testing-011`, `build-020`, `build-030`, `io-026`, `build-036`–`build-038`; `testing-035` waits for the desktop app. |
 | [M18 — Launch](#m18--launch-owner-steps-only) | owner steps | GA checks and the close check. `core-065` deferred. |
 | [M15 — Mergeable project file](#m15--a-mergeable-project-file-reserved-rows) | 4 reserved | `data-012`, `io-013`, `ai-018`, `ai-019`. No task files yet. |

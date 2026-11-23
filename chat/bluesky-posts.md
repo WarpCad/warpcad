@@ -1,5 +1,16 @@
 # BlueSky Posts
 
+## [2026-11-23T22:48:00Z] — The Show button opened History but left the answer off screen
+
+**Post:** WarpCad's merge banner says "1 step conflicted" and has a Show button. Show did open History on the right row, but the row, its red chip and its Suppress button sat below the fold at 900 px high. The test passed anyway, because Playwright scrolls a target into view before it clicks. The fix is one option on an existing watcher, and the test now checks the boxes are inside the window. Not checked: a real iPad.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #Testing #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/merge-file.e2e.js` and `e2e/timeline-panel.e2e.js` on 9 of 9 projects, `src/components/timeline/TimelineRowScroll.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-23T19:30:00Z] — The navigation pad can now get out of the way
 
 **Post:** On an iPad, WarpCad's orbit and zoom pad took a big bite out of the 3D view and there was no way to put it away. It now has a fold button that shrinks it to one View button, remembers the choice, and a one-finger drag still orbits. The catch: my first spot for the button sat under Select and stole 1.75% of the taps aimed at it, so the test I'd written earlier for that caught it. Not checked: a real iPad.

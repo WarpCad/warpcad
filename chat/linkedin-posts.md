@@ -1,5 +1,22 @@
 # LinkedIn Posts
 
+## [2026-11-23T22:48:00Z] — A passing test that could not see the button was off screen
+
+**Post:** Driving WarpCad by hand to check the merge flow, I pressed Show on the "1 step conflicted" banner. History opened with the right step selected, but the list had not scrolled: the step's red chip, its reason and its Suppress button were below the bottom of a 900 px window. The end-to-end test for exactly this flow was green.
+
+The reason is small and general. Playwright's click() scrolls the target into view before it clicks, and toBeVisible() only asks whether the element has a box, so neither notices a control that a person would have to scroll to. The cause in the app was just as small: the row scrolled itself into view when it became selected, but Show selects the row and opens the panel in the same tick, so the row was already selected when it appeared and the watcher never fired. Running it on mount as well fixed it.
+
+The new test reads each element's bounding box and requires it to sit inside the window with nothing scrolled for it. It failed on laptop and tablet before the fix and passes on all three viewports after. A component spec covers a row that mounts selected and one selected later.
+
+Checked: the merge and History specs on nine browser and viewport projects, and a clean rotating pair run (Chromium laptop and Firefox phone). Not checked: a real iPad.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](<repo-url>) | [Docs](<docs-url>) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #Testing #Playwright #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** `e2e/merge-file.e2e.js`, `e2e/timeline-panel.e2e.js`, `src/components/timeline/TimelineRowScroll.spec.js`
+**To Add:** repo URL once public, docs site URL once it exists
+
 ## [2026-11-23T19:30:00Z] — Letting the user fold away the navigation pad, and the tap test that moved the button
 
 **Post:** The owner's second complaint from the iPad was that WarpCad's orbit controls, about 230 by 190 px in the lower left of the 3D view, took a lot of room and could not be put away. This change adds a fold button to the pad. It shrinks the pad to the single View button the phone already used while a sheet was open, keeps the drag mode, and remembers the choice per device in the settings store. A phone sheet still folds the pad, and closing the sheet returns whatever the user last chose.
