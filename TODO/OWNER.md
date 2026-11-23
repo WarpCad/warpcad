@@ -186,10 +186,10 @@ All fifteen written questions were answered 2026-11-17 (see **Answered**).
 
 **Question:** `ui-153` labels a shown clearance (the translucent red body around a bolt's tap hole) with a small tag over the 3D view reading *Red ghost: room kept clear around Bolt / screw 1, not a part*. Keep it as a fixed line near the top of the view, or anchor it to the red body so it follows the body as the camera moves?
 
-**Background:** I assumed the fixed line: it needs no projection maths in the render path and survives a body that is off screen. A cold read said it floats with no tie to the red object (`ui-159`). Anchoring means projecting the hidden parts' centre each frame into the DOM overlay, the same way the dimension lines do, and hiding the tag when the body is out of view. The wording ("ghost") is also queued for plain words in `ui-159`.
+**Background:** I assumed the fixed line: it needs no projection maths in the render path and survives a body that is off screen. A cold read said it floats with no tie to the red object (`ui-159`). Anchoring means projecting the hidden parts' centre each frame into the DOM overlay, the same way the dimension lines do, and hiding the tag when the body is out of view. `ui-159` (2026-11-23) took the recommended default again: the wording is now *Red area: space kept free around Bolt / screw 1, not a real part* and the tag is still a fixed line. A fresh cold read rated it PARTIAL: the words are plain but nothing ties the tag to the red shape, and "space kept free" is still a little loose.
 
 **Options:**
-- **Keep the fixed line for now (Recommended):** the smaller, reversible change; `ui-159` revisits wording first.
+- **Keep the fixed line for now (Recommended):** the smaller, reversible change; the wording is done (`ui-159`).
 - **Anchor it to the body:** an M task with a render-path check.
 
 **If deferred:** nothing changes.

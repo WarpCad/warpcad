@@ -3,7 +3,7 @@
 /**
  * The tag over the 3D view that names a shown clearance (`TODO/ui-153`, from `ui-145`'s cold read): the
  * translucent red body a body's **Show hidden parts** draws (a bolt's tap hole, a Pi's connector room)
- * is a keep-out zone, not a part, and the Objects row says so far from where the eye is. This says it
+ * is a keep-out zone, not a part (`TODO/ui-159`: worded as "red area", no "ghost"; it stays a fixed line, owner Q117), and the Objects row says so far from where the eye is. This says it
  * in the view, in plain words, for as long as any body shows its hidden parts, selected or not.
  *
  * A status line, not a control: the switch that turns the ghost off stays on the Objects row and in the
@@ -28,7 +28,7 @@ const subject = computed(() => (names.value.length === 1 ? names.value[0] : `${n
 <template>
   <p v-if="names.length > 0" class="clearance-tag" role="status" data-testid="viewport-clearance-tag">
     <span class="clearance-tag__dot" aria-hidden="true"></span>
-    <span>Red ghost: room kept clear around {{ subject }}, not a part</span>
+    <span>Red area: space kept free around {{ subject }}, not a real part</span>
   </p>
 </template>
 

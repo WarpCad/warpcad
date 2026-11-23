@@ -76,12 +76,12 @@ watch(
 
 /** One short phrase per connector kind, shown under the kind row beside its name (`TODO/ui-145`). */
 const CONNECTOR_BLURBS = Object.freeze({
-  pins: 'a printed round post and hole',
-  wedge: 'a printed diamond key',
+  pins: 'a round post and matching hole',
+  wedge: 'a diamond-shaped key',
   screwBoss: 'a ring boss that takes a screw',
   dowel: 'a hole for a bought dowel',
   butterfly: 'a bow-tie key across the seam',
-  tenon: 'a printed slot and tab',
+  tenon: 'a slot and tab',
   magnet: 'a pocket for a bought magnet',
 })
 
@@ -523,6 +523,7 @@ body :global(.sheet.split) {
 }
 
 .split__head {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -689,7 +690,28 @@ body :global(.sheet.split) {
 
 .split__kind[data-active='true'] {
   border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: var(--weight-bold);
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.split__kind[data-active='true'] .split__glyph--solid {
+  fill: currentColor;
+}
+
+.split__kind[data-active='true'] .split__glyph--ring {
+  stroke: currentColor;
+}
+
+/* Tablet and laptop: the short name sits under each glyph (`TODO/ui-159`). Phone hides it (the caption names the pressed kind). */
+@media (min-width: 641px) {
+  .split__kind {
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-size-xs);
+  }
 }
 
 .split__kind-glyph {
@@ -732,6 +754,7 @@ body :global(.sheet.split) {
     gap: var(--space-3) var(--space-4h);
   }
 
+  .split > .split__head,
   .split > .split__title,
   .split > .split__toggle,
   .split > .split__kind-group,
@@ -754,10 +777,23 @@ body :global(.sheet.split) {
     max-height: 42dvh;
   }
 
-  /* The kind row and its caption stay at the top of the scrolling sheet (`TODO/ui-153`). */
-  .split > .split__kind-group {
+  /* The title line stays pinned above the kind group, so scrolling to the kind row never clips it (`TODO/ui-159`). */
+  .split > .split__head {
+    /* A fixed height (36px) so the kind group below can pin exactly under it. */
+    min-height: 36px;
     position: sticky;
     top: -12px;
+    z-index: calc(var(--z-panel) + 2);
+    margin: 0 -12px;
+    padding: 0 var(--space-5);
+    background: var(--surface-glass);
+    backdrop-filter: blur(6px);
+  }
+
+  /* The kind row and its caption stay at the top of the scrolling sheet (`TODO/ui-153`), under the title. */
+  .split > .split__kind-group {
+    position: sticky;
+    top: 24px; /* -12px sheet padding + the 36px title line */
     z-index: calc(var(--z-panel) + 1);
     margin: 0 -12px;
     padding: var(--space-3) var(--space-5);

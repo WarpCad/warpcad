@@ -8,7 +8,7 @@ every piece as its own STL**, already laid flat. Three things work together:
 - **Split…** in the Operations toolbar, which cuts one selected shape along a plane;
 - **File ▾ → Export… → Print pieces**, which writes a zip with one STL per piece.
 
-On a phone, **Split…** and **Export…** are in the same places as on a laptop (see
+On a phone, **Align** and **Split** carry a one-word label under their picture in the toolbar. **Split…** and **Export…** are in the same places as on a laptop (see
 [Using WarpCad on a phone or tablet](mobile.md)); the Split sheet opens as a bottom sheet.
 
 ## Try it: split a 300 mm wing and export two pieces
@@ -59,10 +59,11 @@ reassemble, place them yourself. With the wing split at offset 150:
    ring for a screw boss, a ring with a dot for a dowel, a hollow stadium for a tenon, a hollow disc with one half filled for a magnet. Red patches on the plane are where nothing
    fits. Picking **Dowel** adds a **Dowels are** list (**Printed**, **Steel pin**, **1.75 mm
    filament**); bought dowels show under the pieces as **You'll also need**.
-   On a phone the kind buttons show only their pictures, so the line under the row names the
-   pressed one. The row and that line stay together at the top of the sheet, and turning on **Place
+   The pressed kind is a solid, filled button. On a tablet or laptop each button carries its short
+   name under its picture; on a phone the buttons show only their pictures, so the line under the row names the
+   pressed one. The sheet's title stays pinned above the row. The row and that line stay together at the top of the sheet, and turning on **Place
    connectors by hand** scrolls them there, so you never have to scroll down to read which kind is pressed: press the ring with a dot and it reads *Dowel · a hole for a bought dowel*; press the
-   plain ring and it reads *Screw boss · a ring boss that takes a screw*.
+   plain ring and it reads *Screw boss · a ring boss that takes a screw*. The wording does not assume a printer: *Post · a round post and matching hole*.
 3. Press **Screw boss**, then **tap the plane** where you want one. It appears as a ring if it
    fits. A tap where it does not fit is turned back, and the sheet says why, for example
    *placement 2 (screwBoss at y = 19.7, z = 6 mm): its socket and 1.2-2 mm wall would break out of

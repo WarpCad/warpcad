@@ -317,6 +317,36 @@ test('Operations toolbar and navigation chrome never intersect, every control st
   }
 })
 
+test('Align and Split carry a one-word label under the glyph in the icons tier, and it fits the row (TODO/ui-159 item 4)', async ({
+  page,
+}) => {
+  await seedScene(page)
+  const cubeId = await bodyIdByName(page, 'Cube 1')
+  const boltId = await bodyIdByName(page, 'Bolt 1')
+  await selectCount(page, 1, [cubeId, boltId])
+  const tier = await page.getByTestId('operations-toolbar').getAttribute('data-ops-tier')
+  test.skip(tier === 'groups', 'the groups tier shows Align and Split as full-width pop-out rows, already named')
+  for (const [testId, word] of [
+    ['operation-align', 'Align'],
+    ['op-split', 'Split'],
+  ]) {
+    const button = page.getByTestId(testId)
+    const label = button.locator('.ops__label')
+    await expect(label, `${testId} label visible`).toBeVisible()
+    await expect(label).toHaveText(word)
+    const buttonBox = await button.boundingBox()
+    const labelBox = await label.boundingBox()
+    const glyphBox = await button.locator('.ops__glyph').boundingBox()
+    expect(buttonBox && labelBox && glyphBox).toBeTruthy()
+    // Inside the button, never spilling into a neighbour or the row below.
+    expect(labelBox.x, `${testId} label inside left`).toBeGreaterThanOrEqual(buttonBox.x - 0.5)
+    expect(labelBox.x + labelBox.width, `${testId} label inside right`).toBeLessThanOrEqual(buttonBox.x + buttonBox.width + 0.5)
+    expect(labelBox.y + labelBox.height, `${testId} label inside bottom`).toBeLessThanOrEqual(buttonBox.y + buttonBox.height + 0.5)
+    if (tier === 'icons') expect(labelBox.y, `${testId} label under the glyph`).toBeGreaterThanOrEqual(glyphBox.y + glyphBox.height - 2)
+  }
+  await assertNoOverlapAndReachable(page, 'align/split labelled')
+})
+
 test('a taller object list (a composite expanded, TODO/ui-042, in the Inspector since ui-049) does not reintroduce the overlap (TODO/ui-043)', async ({
   page,
 }) => {

@@ -6,8 +6,11 @@ priority: low
 model: sonnet
 milestone: none — Findings table, filed 2026-11-22 from ui-153's cold read
 depends: []
-status: open
+status: done
 ---
+
+
+> **Shipped 2026-11-23.** All four items, with one default taken: the red tag is still a fixed line (owner Q117, recommended default), now worded *Red area: space kept free around X, not a real part*, with the Objects row *red area on · tap to hide*. Split kind buttons: filled pressed state, short name under each from 641 px up, captions with no printer assumption, the title line pinned above the kind group on the phone sheet. Align: the rule reads *− toward −X −Y −Z … toward +X +Y +Z +* and the two *half* headers are bracketed in the accent colour. Toolbar: Align and Split carry a one-word label in the icons tier. A fresh cold read rated the tag, the Align strips and the toolbar PARTIAL (tag untied to the red shape; strip text small) and the Split row CLEAR. The Split and Align GIFs were not re-made (stills were).
 
 ## Problem
 

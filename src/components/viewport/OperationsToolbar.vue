@@ -2255,9 +2255,25 @@ onBeforeUnmount(() => closeGroup())
   background: var(--surface-1);
 }
 
+/* A one-word name under each (`TODO/ui-159`): the glyph alone did not say Align or Split. */
+.ops[data-ops-tier='icons'] .ops__btn[data-op='align'],
+.ops[data-ops-tier='icons'] .ops__btn[data-op='modify.splitWithJoint'] {
+  flex-direction: column;
+  gap: 0;
+  padding: 0 var(--space-1);
+}
+
+.ops[data-ops-tier='icons'] .ops__btn[data-op='align'] .ops__label,
+.ops[data-ops-tier='icons'] .ops__btn[data-op='modify.splitWithJoint'] .ops__label {
+  display: block;
+  font-size: var(--text-size-2xs);
+  line-height: 1;
+}
+
 .ops[data-ops-tier='icons'] .ops__btn[data-op='align'] .ops__glyph,
 .ops[data-ops-tier='icons'] .ops__btn[data-op='modify.splitWithJoint'] .ops__glyph {
   font-size: var(--text-size-xl);
+  line-height: 1;
 }
 
 .ops:not([data-ops-tier='labels']) .ops__legend-full {

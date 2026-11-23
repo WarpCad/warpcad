@@ -16,6 +16,8 @@
  * - **`header`** on any column adds a thin direction rule (`−` … `+`) and a column-header row
  *   as the grid's *first rows*, in the same CSS grid as the buttons so each word sits over its
  *   column and cannot drift. Both are `aria-hidden`.
+ * - **`mirror`** on a column marks it as one of a mirrored pair (the Align popover's two *half* columns): its header is
+ *   bracketed in the accent colour (`TODO/ui-159`).
  * - **`segmented`** removes the gaps and shares the borders, one strip per axis.
  * - The default slot (`#default="{ column }"`) replaces a button's text, for an icon.
  *
@@ -29,7 +31,7 @@ const AXES = /** @type {const} */ (['x', 'y', 'z'])
 
 const props = defineProps({
   columns: {
-    type: /** @type {import('vue').PropType<Array<{ key: string, label?: string, header?: string, title?: string, disabled?: boolean }>>} */ (Array),
+    type: /** @type {import('vue').PropType<Array<{ key: string, label?: string, header?: string, mirror?: boolean, title?: string, disabled?: boolean }>>} */ (Array),
     required: true,
   },
   /** What the grid is, for assistive tech ("Align to", "Snap"). */
@@ -75,7 +77,13 @@ const hasHeader = () => props.columns.some((column) => column.header)
       </span>
       <span aria-hidden="true" data-testid="align-header" class="align-grid__header-row">
         <span />
-        <span v-for="column in props.columns" :key="column.key" class="align-grid__header">{{ column.header }}</span>
+        <span
+          v-for="(column, index) in props.columns"
+          :key="column.key"
+          class="align-grid__header"
+          :class="{ 'align-grid__header--mirror': column.mirror, 'align-grid__header--mirror-first': column.mirror && !props.columns.slice(0, index).some((other) => other.mirror) }"
+          :data-mirror="column.mirror ? 'true' : undefined"
+        >{{ column.header }}</span>
       </span>
     </template>
     <template v-for="axis in AXES" :key="axis">
@@ -137,6 +145,20 @@ const hasHeader = () => props.columns.some((column) => column.header)
   font-size: var(--text-size-2xs);
   line-height: 1;
   text-align: center;
+}
+
+.align-grid__header--mirror {
+  padding-top: var(--space-1);
+  border-top: 2px solid var(--accent);
+  color: var(--text-1);
+}
+
+.align-grid__header--mirror-first {
+  border-left: 2px solid var(--accent);
+}
+
+.align-grid__header--mirror:not(.align-grid__header--mirror-first) {
+  border-right: 2px solid var(--accent);
 }
 
 .align-grid__rule {

@@ -175,8 +175,8 @@ test('the Align strips draw their icons in a box big enough to tell "in" from "h
   const half = await page.getByTestId('align-x-half-minus').locator('[data-part="contact"]').boundingBox()
   expect(Math.abs((half?.x ?? 0) - (inside?.x ?? 0)) > 0).toBe(true)
   // The strip's own words: what the rule ends and "half" mean.
-  await expect(page.getByTestId('align-rule')).toContainText('low side')
-  await expect(page.getByTestId('align-rule')).toContainText('high side')
+  await expect(page.getByTestId('align-rule')).toContainText('toward −X') // ui-159: the rule names the axis direction
+  await expect(page.getByTestId('align-rule')).toContainText('toward +X')
   await expect(page.getByTestId('align-caption')).toContainText(/half = /)
   const buttonBox = await page.getByTestId('align-x-half-minus').boundingBox()
   expect(buttonBox?.height ?? 0).toBeGreaterThanOrEqual(43.5)

@@ -247,7 +247,8 @@ test('a shown clearance on a deselected Bolt says so on its Objects row, and the
   await expect(list).toBeVisible()
   const chip = page.getByTestId(`objects-clearance-${bolt.id}`)
   await expect(chip).toBeVisible()
-  await expect(chip).toContainText('red ghost')
+  await expect(chip).toContainText('red area')
+  await expect(chip).not.toContainText(/ghost/i) // ui-159: plain words
   expect((await chip.boundingBox())?.height ?? 0, 'chip tap height').toBeGreaterThanOrEqual(43.5)
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(0)
@@ -265,7 +266,10 @@ test('a shown clearance is named in the 3D view itself, in plain words, and goes
   await expect(tag).toHaveCount(0)
   await page.getByTestId('inspector-hidden-parts-toggle').check()
   await expect(tag).toBeVisible()
-  await expect(tag).toContainText(/not a part/i)
+  await expect(tag).toContainText(/not a real part/i)
+  // ui-159 item 1: plain words (no "ghost", no "room kept clear"), naming the body.
+  await expect(tag).toContainText(/Red area: space kept free around Bolt/)
+  await expect(tag).not.toContainText(/ghost|room kept clear/i)
   // It sits over the canvas, never over the phone bottom sheet's edge, and never makes the page scroll sideways.
   const view = await page.getByTestId('viewport').boundingBox()
   const box = await tag.boundingBox()

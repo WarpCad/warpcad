@@ -754,6 +754,21 @@ test('the in and half buttons draw visibly different icons, with a centre line t
   await expect(page.getByTestId('align-x-half-minus').locator('[data-part="centre"]')).toHaveCount(1)
 })
 
+test('the rule names the axis direction and the two half columns are marked as mirrors (TODO/ui-159 item 3)', async ({ page }) => {
+  await placeCubeAndCylinder(page)
+  await selectCubeThenCylinder(page)
+  await page.getByTestId('operation-align').click()
+  await expect(page.getByTestId('align-popover')).toBeVisible()
+  const rule = page.getByTestId('align-rule')
+  await expect(rule).toContainText('toward −X')
+  await expect(rule).toContainText('toward +X')
+  const headers = page.getByTestId('align-header').locator('span.align-grid__header')
+  await expect(headers.nth(2)).toHaveAttribute('data-mirror', 'true')
+  await expect(headers.nth(4)).toHaveAttribute('data-mirror', 'true')
+  for (const index of [0, 1, 3, 5, 6]) await expect(headers.nth(index)).not.toHaveAttribute('data-mirror', 'true')
+  await expect(page.getByTestId('align-caption')).toContainText(/mirror/i)
+})
+
 test('World origin: outside + on Z sits the Cube on the grid (TODO/ui-086)', async ({ page }) => {
   const [cube] = await placeCubeAndCylinder(page)
   await selectCubeThenCylinder(page)

@@ -569,8 +569,8 @@ there and greyed out. It simply is not there.
    turn on **Show hidden parts** instead.
 3. Tap **tap** in the list. The breadcrumb reads `Objects ▸ Bolt / screw 1 ▸ tap`, and the bolt
    is now addressed at just that piece.
-   Select something else: the translucent red body stays. A small tag over the 3D view reads *Red ghost:
-   room kept clear around Bolt / screw 1, not a part*, and the bolt's row in **Objects** reads *red ghost
+   Select something else: the translucent red body stays. A small tag over the 3D view reads *Red area:
+   space kept free around Bolt / screw 1, not a real part*, and the bolt's row in **Objects** reads *red area
    on · tap to hide*, so it never looks like a stray object. Tap that line to hide it, and the tag goes too.
 4. Drag a **Cube** in to stand in for a case wall and select it. Tap **Objects** in the
    breadcrumb (or the **Objects** bar at the top of the Inspector) to open the list, tap

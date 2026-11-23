@@ -577,6 +577,42 @@ test('Place connectors: the kind caption is in view next to the kind row, clear 
   expect(Math.abs(after.y - caption.y)).toBeLessThanOrEqual(2)
 })
 
+test('Place connectors: a strong pressed state, a name under each kind on tablet and laptop, no 3D-printing assumption, and the title stays in view (ui-159 item 2)', async ({
+  page,
+}) => {
+  await openPlacing(page)
+  const width = page.viewportSize()?.width ?? 1000
+  const wedge = page.getByTestId('split-connector-kind-wedge')
+  const pins = page.getByTestId('split-connector-kind-pins')
+  await expect(pins).toHaveAttribute('data-active', 'true')
+  // The pressed kind is a filled button; the others stay plain (not just a slightly bolder outline).
+  const fill = (locator) => locator.evaluate((el) => getComputedStyle(el).backgroundColor)
+  expect(await fill(pins), 'pressed kind fill differs from an idle one').not.toBe(await fill(wedge))
+  // The caption does not assume a printer.
+  await expect(page.getByTestId('split-connector-kind-caption')).not.toContainText(/printed/i)
+  // Above phone width every kind carries its short name under the glyph.
+  if (width > 640) {
+    for (const kind of ['pins', 'wedge', 'dowel', 'magnet']) {
+      const button = page.getByTestId(`split-connector-kind-${kind}`)
+      const glyph = await button.locator('.split__kind-glyph').boundingBox()
+      const label = await button.locator('.split__kind-label').boundingBox()
+      expect(glyph && label, `${kind} has glyph and label`).toBeTruthy()
+      expect(label.y, `${kind} name sits under its glyph`).toBeGreaterThanOrEqual(glyph.y + glyph.height - 1)
+    }
+  }
+  // The sheet's own title line is not clipped behind anything once the sheet is scrolled to the kind row.
+  const title = page.getByTestId('split-sheet').locator('.split__title')
+  const sheet = await page.getByTestId('split-sheet').boundingBox()
+  const box = await title.boundingBox()
+  expect(box && sheet && box.y >= sheet.y - 1, 'title inside the sheet top').toBe(true)
+  const clear = await title.evaluate((el) => {
+    const rect = el.getBoundingClientRect()
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    return hit !== null && (el === hit || el.contains(hit) || hit.contains(el))
+  })
+  expect(clear, 'nothing covers the title').toBe(true)
+})
+
 /** @param {import('@playwright/test').Locator} marker */
 async function centreOfMarker(marker) {
   const box = await marker.locator('.marker__hit').boundingBox()

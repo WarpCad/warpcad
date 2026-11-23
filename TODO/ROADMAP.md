@@ -84,7 +84,6 @@ follow-ups the closed theme chain filed (36–38), then the findings the VERIFY.
 | 74 | Closed 2026-11-16 by owner decision (partly run; not in the runner's queue) | `M19` | [`testing-037`](../../warpcad-native/TODO/M19-testing-037-ipad-pass-on-a-locally-installed-build.md) Test the whole app on the iPad from a locally installed build (**owner with the iPad**) | sonnet |
 | 109 | ▶ Ready | `FIND` | [`docs-040`](FIND-docs-040-cold-read-gif-remainders-after-docs-039.md) Fix what the docs-039 cold read still rated partial: resize-fit caption lag, relink Re-link press, subpart Subtract press | sonnet |
 | 110 | ▶ Ready | `FIND` | [`ui-155`](FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md) Finish the broken-step cold-read remainders (box truncates before the step number, pill against plain text, reason order, clipped row actions) | sonnet |
-| 112 | ▶ Ready | `FIND` | [`ui-159`](FIND-ui-159-cold-read-remainders-after-ui-153-red-ghost-wording-kind-row-labels-align-pictures-toolbar-names.md) Finish what the `ui-153` cold read still rated partial (red ghost wording and anchor, Split kind labels, Align rule and pictures, Align and Split names) | sonnet |
 
 ---
 
@@ -160,7 +159,6 @@ Every open task, with where it stands. Only the rows marked ▶ or ⏳ are in th
 | Task | Kind | Priority | Model | State |
 |---|---|---|---|---|
 | [`testing-045`](FIND-testing-045-drive-github-gist-and-repo-checks.md) Gist and hosted-save checks against real GitHub (7 of 9 rows settled; `io-011`, `io-035` #4 left) | finding | medium | sonnet | ▶ Ready (Next up row 81) |
-| [`ui-159`](FIND-ui-159-cold-read-remainders-after-ui-153-red-ghost-wording-kind-row-labels-align-pictures-toolbar-names.md) Four chrome items a cold read still rates partial after ui-153 | finding | low | sonnet | ▶ Ready (Next up row 112) |
 | [`ui-155`](FIND-ui-155-broken-step-box-still-partial-in-cold-read-truncation-step-number-and-the-move-above-the-marker.md) Broken-step box and row still partial in a cold read after ui-154 | finding | low | sonnet | ▶ Ready (Next up row 110) |
 | [`testing-027`](FIND-testing-027-verify-ios-safari-checks-in-the-simulator.md) Drive the VERIFY.md iOS Safari behaviour checks in the iOS Simulator | finding | high | sonnet | Held (owner first) |
 | [`testing-028`](FIND-testing-028-verify-native-dialog-checks-with-computer-use.md) Drive the VERIFY.md checks blocked on native OS dialogs and private windows, with computer use | finding | medium | sonnet | Running 2026-11-17 in the desktop app |
@@ -332,7 +330,6 @@ The four reserved rows below have no task file yet. Each becomes its own `/fix-t
 | id | Task | Kind | Depends | Acceptance |
 |---|---|---|---|---|
 | `testing-045` | Gist and hosted-save checks against real GitHub (9 VERIFY.md rows), with the owner's `gh` login: secret gists and a private `warpcad-scratch` repo, all deleted after. Un-held 2026-11-17 by OWNER.md U1 | Finding | — | none |
-| `ui-159` | Four chrome items `ui-153`'s cold read still rates partial (red ghost wording and anchor, Split kind labels, Align rule and pictures, Align and Split names). Filed 2026-11-22 | Finding | — | 4, 5 |
 | `ui-155` | The broken-step box and row still read PARTIAL in a cold read after `ui-154` (box truncates before the step number, pill against plain text, reason order, clipped row actions). Filed 2026-11-20 | Finding | — | 12, 15 |
 | `docs-040` | The `docs-039` cold read left resize-fit, timeline-relink and boolean-subpart-operand PARTIAL (caption lag, Re-link and Subtract presses not seen). Filed 2026-11-20 | Finding | — | none |
 

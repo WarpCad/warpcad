@@ -2,7 +2,7 @@
 
 **Align** puts a shape at an exact position: against another shape that is already
 sitting in the scene (flush against a side, flush inside it, or centred), or on the
-grid's origin. It is one button on the **Operations toolbar**, **⇤ Align**, next to
+grid's origin. It is one button on the **Operations toolbar**, **⇤ Align** (named under its icon on a phone), next to
 [Union, Subtract and Intersect](booleans.md) and [Group](groups.md).
 
 Align is fundamentally different from the toolbar's combining buttons: Union, Subtract,
@@ -60,8 +60,8 @@ their own.
 ![Clicking the lug, Shift-clicking the plate, pressing Align and tapping X outside +: the lug slides across until its face meets the plate's side](./media/snap-operation.gif)
 
 To put the lug against the plate's *−X* side instead, tap the leftmost **out** button, the one at the **−**
-end (*X outside −*). On screen the buttons are headed **out, in, half, ctr, half, in, out**, with *− low side* at the
-left end and *high side +* at the right end, so *outside +* is the **out** button at the **+** end. Each button is named for **where the moving shape ends up**: *outside −* leaves
+end (*X outside −*). On screen the buttons are headed **out, in, half, ctr, half, in, out**, with *− toward −X −Y −Z* at the
+left end and *toward +X +Y +Z +* at the right end (the rule names the direction on each axis' own row), and the two **half** headers bracketed in the accent colour because the two **half** columns mirror each other (one covers the target's − half, the other its + half), so *outside +* is the **out** button at the **+** end. Each button is named for **where the moving shape ends up**: *outside −* leaves
 it beyond the target's −X side, *outside +* beyond its +X side. Hover or tap a button and
 the line under the grid spells it out in a full sentence. See
 [the popover's fields](#the-popovers-fields).
@@ -460,7 +460,7 @@ Top to bottom:
 - **Center on origin, sit on grid**: enabled only when **Target** is **World origin**. One
   tap, one step. It is the same as tapping **X center**, **Y center** and **Z outside +**.
 - **The position grid**: one row per axis, X, Y and Z, each with seven buttons that read
-  from **−** on the left to **+** on the right. A thin `− low side … high side +` rule and a one-line header
+  from **−** on the left to **+** on the right. A thin `− toward −X −Y −Z … toward +X +Y +Z +` rule and a one-line header
   (*out · in · half · ctr · half · in · out*) sit above the rows, and each button shows a
   small picture: the amber block is the shape that moves, the teal outline is its target,
   and the dashed teal line down the middle is the target's centre. **in** puts the block flush

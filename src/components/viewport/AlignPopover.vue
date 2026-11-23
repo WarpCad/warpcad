@@ -84,7 +84,7 @@ const POSITIONS = Object.freeze([
 ])
 
 const IDLE_CAPTION =
-  'Tap where the moving body should end up along each axis. out = beside the target, in = flush with its edge, half = to its centre line.'
+  'Tap where the moving body should end up along each axis. out = beside the target, in = flush with its edge, half = to its centre line (the two halves mirror).'
 
 const documentStore = useDocumentStore()
 const selection = useSelectionStore()
@@ -322,7 +322,8 @@ function onDrop() {
 }
 
 /** The seven columns the grid draws, one per position. */
-const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
+// The two *half* columns mirror each other about the centre (`TODO/ui-159`).
+const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header, mirror: header === 'half' }))
 
 </script>
 
@@ -375,8 +376,8 @@ const positionColumns = POSITIONS.map(({ key, header }) => ({ key, header }))
       :columns="positionColumns"
       label="Align"
       segmented
-      rule-start="− low side"
-      rule-end="high side +"
+      rule-start="− toward −X −Y −Z"
+      rule-end="toward +X +Y +Z +"
       :describe="sentence"
       @tap="onPositionTap"
       @preview="onPreview"

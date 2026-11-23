@@ -373,8 +373,8 @@ describe('AlignPopover (TODO/ui-060, ui-086)', () => {
       selection.selectMany(['a', 'b'])
       const wrapper = mount(AlignPopover)
       const rule = wrapper.get('[data-testid="align-rule"]').text()
-      expect(rule).toMatch(/− low side/)
-      expect(rule).toMatch(/high side \+/)
+      expect(rule).toMatch(/− toward −X/) // ui-159: the axis is named
+      expect(rule).toMatch(/toward \+X .*\+$/)
       const idle = wrapper.get('[data-testid="align-caption"]').text()
       expect(idle).toMatch(/half = .*centre/)
       expect(idle).toMatch(/in = .*edge/)
