@@ -24,11 +24,12 @@ const NORMAL = { right: [1, 0, 0], left: [-1, 0, 0], back: [0, 1, 0], front: [0,
 const SIGMA_PX = mmToCssPx(3.5)
 const PER_FACE = 50
 /**
- * Wrong-face share allowed at tablet width, where a coarse pointer gets a 96 px cube side: the
- * finding's 3 % aim. A face's centre there sits 34 px (2.6 sigma) from each edge it shares with a
- * neighbour; a Monte Carlo of this model against the real face shapes gives 0.9 %.
+ * Wrong-face share allowed at tablet width, where a coarse pointer gets a 64 px cube side
+ * (`TODO/ui-161`, down from 96 px). It is the phone's bound: a face is the quick target and **Views**
+ * is the exact path (its cells are 68x64 px and never miss), so a fingertip that lands on the
+ * neighbouring face costs one more tap, not a dead end.
  */
-const MAX_WRONG_TABLET = 0.03
+const MAX_WRONG_TABLET = 0.2
 /**
  * Wrong-face share allowed on a phone, where the cube must stay about 96 px across to fit beside the
  * Operations toolbar. A 55 px face puts its centre 19.5 px (1.5 sigma) from each shared edge, which a
@@ -172,7 +173,7 @@ test.describe('view cube', () => {
     const width = page.viewportSize()?.width ?? 0
     // The old footprints (`stores/panelLayout.js`): full 130×177, compact (and phone) 106×138, and
     // the ui-134 touch dial at tablet width, 190 px plus the card's padding and border.
-    const limit = touchTaps(info) && width >= 600 ? { w: 204, h: 274 } : tier === 'full' && width > 480 ? { w: 130, h: 177 } : { w: 106, h: 138 }
+    const limit = touchTaps(info) && width >= 600 ? { w: 130, h: 180 } : tier === 'full' && width > 480 ? { w: 130, h: 177 } : { w: 106, h: 138 }
     const b = await gizmo.boundingBox()
     if (!b) throw new Error('gizmo has no box')
     expect(b.width).toBeLessThanOrEqual(limit.w)
@@ -181,6 +182,23 @@ test.describe('view cube', () => {
     if (touchTaps(info)) {
       const top = await page.getByTestId('gizmo-view-top').boundingBox()
       expect(top?.height ?? 0).toBeGreaterThanOrEqual(44)
+    }
+  })
+
+  test('on a landscape iPad the gizmo block stays small and clear of the Operations toolbar (ui-161)', async ({ page }, info) => {
+    test.skip(!info.project.name.endsWith('-tablet'), 'the landscape iPad case runs in the tablet project')
+    await page.setViewportSize({ width: 1180, height: 820 })
+    const gizmo = page.getByTestId('orientation-gizmo')
+    await expect(gizmo).toBeVisible()
+    await sleep(300)
+    const b = await gizmo.boundingBox()
+    if (!b) throw new Error('gizmo has no box')
+    expect(b.width, 'gizmo block width').toBeLessThanOrEqual(130)
+    expect(b.height, 'gizmo block height').toBeLessThanOrEqual(180)
+    const t = await page.getByTestId('operations-toolbar').boundingBox()
+    if (t) {
+      const meets = b.x < t.x + t.width && t.x < b.x + b.width && b.y < t.y + t.height && t.y < b.y + b.height
+      expect(meets, 'the gizmo meets the Operations toolbar').toBe(false)
     }
   })
 

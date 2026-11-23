@@ -33,8 +33,8 @@ wide). **Tablet** means something like an iPad held upright (820 px wide).
    example, tap the white top face: the camera snaps to look straight down at the grid, and the cube shows only its top.
    **Home**, under the cube, puts the camera back where it started. The cube only shows three faces, so to
    reach the others tap **Views** beside Home: a grid of six big buttons (Top, Front, Right, Bottom, Back, Left) opens,
-   and a tap on one snaps the view and closes the grid. On a phone the cube is small, so use **Views** when you need
-   the exact face.
+   and a tap on one snaps the view and closes the grid. On a phone or a tablet the cube is small, so a tap can land on the neighbouring face: use **Views** when you need
+   the exact face. For example, on an iPad tap the white top face; if it lands next door, tap **Views** and choose **Top**.
 
 ![A finger dragging a Cube out of the Library sheet into the 3D view, where it lands as a body.](./media/mobile-drag-cube.gif)
 

@@ -82,7 +82,7 @@ The buttons and the drag gesture are the same controls underneath, so the view
 never ends up in a state you can only reach one way.
 
 In a narrow window (a tablet, or a desktop window under about 860 px) the pad and the view cube
-below keep their size or shrink to a compact form to leave room for the toolbar. Every button is still there:
+below keep their size or shrink to a compact form to leave room for the toolbar. On a touch tablet the cube is about 110 px wide: tap a face for a quick snap, or **Views** for the exact one. Every button is still there:
 
 ![The 3D view at tablet width, with the navigation pad and the view cube in their compact form.](./screenshots/viewport-chrome-compact.png)
 
@@ -203,11 +203,13 @@ For example, to look at a part from underneath:
 
 ![The Views grid open over the top-right corner: Top, Front and Right on one row, Bottom, Back and Left on the next, with Home and Close below.](./screenshots/orientation-picker.png)
 
-**On a touch tablet the cube is bigger, so a fingertip lands on the face you
-aimed at.** With a touchscreen at tablet width and up, the cube grows to about
-170 px wide, so every face a three-quarter view shows is at least 44 px across,
-and the toolbar leaves room for it. For example, on a tablet tap the white top
-face: the camera snaps to the top view and the caption names it.
+**On a touch tablet the cube is compact; a face is the quick target and Views
+is the exact one.** With a touchscreen at tablet width and up, the cube is about
+110 px wide, big enough that every face a three-quarter view shows is at least
+44 px across, and small enough to leave your model in view. For example, on an
+iPad tap the cube's white top face to look straight down. If your tap lands on the
+neighbouring face, tap **Views** under the cube and choose **Top** from the grid.
+The grid's buttons are large and never miss.
 
 **On a phone the cube is small, so use Views when you need to be exact.** Beside
 the Operations toolbar the cube is about 96 px wide. Tapping a face works, but a

@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 108 now (Q16-Q125; Q94-Q125 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 110 now (Q16-Q127; Q94-Q127 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 18 + 11 + 7 | ~45 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,30 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q127 · Keep the tablet view cube's Home and Views row under the cube, rather than tucked into the box's corners (ui-161)?
+
+**Question:** `ui-161` shrank the touch-tablet cube to a 64 px side in a 111 px box, so the whole block (cube, Home, Views, caption) is about 111 x 159 px portrait and 111 x 175 px landscape. I assumed the Home and Views buttons stay in a row under the box at the 44 px tap height, because corner placement could overlap a face at some orientation and I did not build it. Keep that?
+
+**Background:** The box is √3 x the side so the cube's silhouette fits at any angle; its empty corners are small beside two 44 px buttons. Moving the row into the corners would save roughly 50 px of height and risk a face under a button. Measured at 1180x820 the block does not meet the Operations toolbar.
+
+**Options:**
+- **Keep the row under the box (Recommended):** nothing changes.
+- **File a task to try the corners:** an S task, with a face-overlap check at every orientation.
+- **Explain more**
+- **Defer**
+
+#### Q126 · Keep 20 % as the tablet's allowed wrong-face share for a scattered fingertip tap (ui-161)?
+
+**Question:** `ui-161` relaxed the tablet scattered-tap bound in `e2e/orientation-tap.e2e.js` from 3 % to the phone's 20 %, because Views is the exact path. Measured on the 64 px cube: 11.3 % on chromium-tablet and 9.3 % on webkit-tablet. Keep the 20 % bound, or set a tighter one such as 15 %?
+
+**Background:** The phone's 55 px cube misfires about 12 % and is accepted. A tighter bound leaves less noise margin on a loaded run and flags a regression sooner.
+
+**Options:**
+- **Keep 20 % (Recommended):** matches the phone and the finding's proposal.
+- **Tighten to 15 %:** closer to the measurement, less headroom.
+- **Explain more**
+- **Defer**
 
 #### Q125 · Accept `resize-fit.gif` and `timeline-relink.gif` as good enough, after three cold-read passes (docs-039, -040, -041)?
 

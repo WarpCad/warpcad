@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ui-161 — Smaller view cube on a tablet (2026-11-23 17:55)
+
+The tablet cube is 64 px (111 px box). Emulated touch measured a 9-11 % wrong-face rate, and Views is the exact path, but only a real iPad shows whether the size feels right in the hand.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | On an iPad in Safari, landscape, tap each face of the cube and Views: is the cube small enough to leave the model clear, and are face taps not too error-prone? | Owner | Answer Q126 and Q127 in `TODO/OWNER.md` after trying it. |
+| 2 | The light `docs-tablet` stills (`viewport-chrome-compact.png` and others) still showed the pre-ui-158 axis triad and passed their drift check unchanged; regenerated with `--update-snapshots=all` on the scoped docs files. | OK | Seven light tablet stills changed; the dark ones too. Why the check tolerated the stale light baselines was not investigated. |
+
 ### ui-160 — Broken-step cold-read remainders (2026-11-23 02:45)
 
 A fresh agent shown only the phone History and Inspector screenshots rated the visibility, the box's meaning and the fix action clear, and the one-colour, rolled-back-position and green-item reads partial. The chip fill, the box's why line and the marker wording shipped; the green dot, the fits chip and the `inactive`-versus-`broken` chip were judged and left.

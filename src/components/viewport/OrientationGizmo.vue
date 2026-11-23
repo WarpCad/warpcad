@@ -379,14 +379,16 @@ const orientationLabel = computed(() => `${Math.round(props.azimuthDeg)}° az ·
   }
 }
 
-/* Touch layout at tablet width and up (`TODO/ui-134`'s room, where the triad's dial was 190px): a
-   96px side, so a fingertip (about 13px of scatter) aimed at a face's centre lands on that face, not
-   a neighbour, 99 times in 100 (the centre sits 34px from each shared edge). Keyed like the compact
-   rules so it wins. Not on a phone: 390px cannot hold this beside the Operations toolbar. */
+/* Touch layout at tablet width and up (`TODO/ui-134`'s room, where the triad's dial was 190px), sized
+   down by `TODO/ui-161`: a 64px side in a 111px box (√3 × 64). A corner-on face's short diagonal
+   (0.816 × 64, about 52px) stays above the 44px tap floor. A face is the quick target; the Views grid
+   (68x64px cells) is the exact one, so the 96px side that made a face a 99-in-100 target is gone. The
+   Home and Views row stays under the box at the full tap height. Keyed like the compact rules so it
+   wins. Not on a phone, which keeps its 55px cube. */
 @media (pointer: coarse) and (min-width: 600px) {
   .gizmo[data-chrome-tier] {
-    --layout-cube-side: 96px;
-    --layout-cube-box: 168px;
+    --layout-cube-side: 64px;
+    --layout-cube-box: 111px;
     --layout-gizmo-btn-height: var(--tap);
   }
 }
