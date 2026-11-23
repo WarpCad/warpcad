@@ -16,7 +16,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
 | [2](#2-questions--answer-from-anywhere) | Questions | 116 now (Q16-Q133; Q94-Q133 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
-| [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 20 | 66 min total | closes rows |
+| [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 69 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 19 + 11 + 7 | ~47 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
@@ -1784,6 +1784,16 @@ All fifteen written questions were answered 2026-11-17 (see **Answered**).
 ## 3. Quick checks at the Mac
 
 Each takes 1-5 minutes at this Mac or in a desktop browser. Any order.
+
+#### M1 · macOS Dock tile: the cube fills the icon
+
+`build-023` #3 · Mac · 3 min · filed 2026-11-17 · re-opened 2026-11-23 for `build-041`
+
+**Steps:** 1. In Terminal: `cd ~/src/@WarpCad/warpcad-native && open src-tauri/target/release/bundle/macos/WarpCad.app` (built 2026-11-23 from the new icon; if the folder is gone, run `cargo tauri build --bundles app` first). 2. Look at the Dock tile beside Finder, Chrome and Xcode, then press Cmd-Tab and look at the app switcher. 3. Compare with the failing shot `TODO/owner-media/build-023-3-dock.png` and the agent's new one `TODO/owner-media/build-041-dock-after.png`. If the Dock still shows the old icon, run `killall Dock`.
+
+**Pass if:** The cube fills most of the tile (about three quarters of its height) and reads at the same weight as the neighbours' marks, with a calm glow and no busy starburst. In Other, say what is off if not (cube too big or too small, glow too dim, streaks).
+
+**Answer:** validation
 
 #### M2 · Claude Code attaches the WarpCad guide
 

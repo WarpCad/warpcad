@@ -59,6 +59,15 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### build-041 — Enlarge the cube mark in the macOS icon (2026-11-23 20:46 UTC)
+
+The macOS `icon.icns` now draws the cube at about 69% x 79% of the tile with the starburst streaks dimmed. `cargo tauri build --bundles app` was launched and the Dock captured beside Chrome and Xcode (`TODO/owner-media/build-041-dock-after.png`); the owner's judgment of it is the one open row.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The built app's Dock tile, beside Finder, Chrome and Xcode, shows the cube at stock-icon weight | OK | 2026-11-23 agent, this Mac: the cube fills the tile and matches Xcode's hammer in weight in the Dock (auto-hide Dock revealed with the pointer). |
+| 2 | Same, as the owner sees it, plus the Cmd-Tab switcher | Owner | → `TODO/OWNER.md` M1 (also closes `build-023` #3). |
+
 ### build-040 — Help shows the version line in every state (2026-11-23 20:40)
 
 Gate 1 A2 found no version line in Help on Socrates. The line existed but rendered only after the Help page loaded, and below the fold when it did. The fix and its specs are in the commit; these rows are what the specs cannot show.
@@ -650,7 +659,7 @@ Built by generator `npm run icons` in `warpcad-native`. Nothing was run on a sim
 |---|---|---|---|
 | 1 | iPhone and iPad home screen: the WarpCad mark is full-bleed with no ring or pre-rounded corners | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I7. |
 | 2 | Launch screen is `#10131a` with no white frame, on iPhone and iPad | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I8. |
-| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Issue | 2026-11-17 owner, Mac: fail. The Dock tile is the stock size, but the cube mark inside fills about a third of it and floats in a dark starburst, so it reads small next to Chrome and Xcode. Screenshot `TODO/owner-media/build-023-3-dock.png`. Filed as warpcad-native `TODO/M19-build-041`. Was M1. |
+| 3 | macOS Dock and app switcher: the rounded tile sits in Apple's grid at a size comparable to stock apps | Owner | 2026-11-17 owner, Mac: fail (the cube filled about a third of the tile; screenshot `TODO/owner-media/build-023-3-dock.png`). Fixed by `build-041` on 2026-11-23, re-check → `TODO/OWNER.md` M1. |
 | 4 | Windows taskbar and Start menu show the tile | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` Z9. |
 
 ### ui-097 — Align target part (2026-11-06 19:03 UTC)

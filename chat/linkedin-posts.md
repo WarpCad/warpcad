@@ -5573,3 +5573,17 @@ Built with Claude Code, reviewed by me.
 **Evidence:** version line present in all 18 web, native-online and native-offline drives (3 widths, 2 engines) → this session's drive; unit 10,220, e2e pair chromium-laptop + firefox-phone 1,378 passed with the known `import-3mf` failure → this session's run; iPad bottom line not read in the simulator → `TODO/VERIFY.md` build-040
 **To Add:** none
 ---
+
+## [2026-11-23T20:47:00Z] — An app icon that was the right size and still looked small
+
+When I checked WarpCad's Dock icon on a Mac, it sat at the stock tile size and Apple's rounded shape, but it read small beside Chrome and Xcode. The cube mark inside filled only about a third of the tile and floated in a dark starburst, so the tile was mostly empty.
+
+The fix is in the icon generator, for the Mac icon only. The cube is scaled up so it spans about 69% of the tile's width and 79% of its height, and the speed-line streaks behind it are dimmed so the cube carries the icon. A small unit test pins the cube's share of the tile, so a later edit to the web favicon cannot quietly shrink it again. The iOS, Windows and Android icons come out byte-identical. I built the app, launched it and captured the Dock next to Chrome and Xcode. Whether it passes the owner's eye is still a check on their Mac.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cube 31% x 36% before, 69% x 79% after → `scripts/icon-svg.test.mjs`; other platforms' icons identical → `git status` after `npm run icons`; Dock captured with the built app → this session; owner re-check pending → `TODO/OWNER.md` M1
+**To Add:** none
+---

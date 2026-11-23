@@ -3825,3 +3825,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** line shown in 18 of 18 web, native-online and native-offline combinations at phone, tablet and laptop on Chromium and WebKit → this session's drive; unit 10,220 passed, e2e pair chromium-laptop + firefox-phone 1,378 passed, 1 known failure (`import-3mf`) → this session's run; iPad simulator opened Help, the bottom line not read there → `TODO/VERIFY.md` build-040
 **To Add:** none
 ---
+
+## 2026-11-23T20:47:00Z — WarpCad: the Mac icon's cube is no longer lost in its tile
+
+**Post:** On the Mac, WarpCad's Dock icon read small next to Chrome and Xcode. The tile was the right size, but the cube inside filled about a third of it. The cube now fills roughly three quarters of the tile, with the starburst turned down. Only the Mac icon changed. #CAD Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #CAD #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** cube 31% x 36% of the tile before, 69% x 79% after → `scripts/icon-svg.test.mjs` and the rendered PNG; iOS, Windows and Android icons unchanged → `git status` after `npm run icons`; built app launched and Dock captured beside Chrome and Xcode → this session; owner's own Dock re-check not yet done → `TODO/OWNER.md` M1
+**To Add:** none
+---
