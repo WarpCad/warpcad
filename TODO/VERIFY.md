@@ -59,6 +59,19 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### build-018 — Device probe, agent half: sizes, wry, the Claude iOS connector, the probe build (2026-11-24 00:24 UTC)
+
+The Mac-side half of Gate 1 G. Each number and reading is in `docs/decisions/native-mobile-shell.md` Question 8, "Measured on device", with its method. Only what a person must do on the iPad is left, and it is one item.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | `.ipa` from `main` builds signed for development (no upload) and measures 6,734,510 B; the web bundle sits inside the binary (2,002,752 B), `help/img` is absent | OK | Built twice on this Mac (`aarch64` device and `aarch64-sim`, the second with a stub web page to split web from native). |
+| 2 | wry 0.57.1 does nothing itself on `webViewWebContentProcessDidTerminate`; only `build-033` reloads | OK | Read from the source in `~/.cargo/registry`; no double reload. A real kill has not been seen: that is I13 step 7. |
+| 3 | The Claude iOS app cannot reach a server on the phone | OK | Anthropic's custom-connector help page, read 2026-11-23. The choice that follows is OWNER.md Q137. |
+| 4 | `probe/build-018` (`1f8ad1f`, rebased onto `main` in a worktree) builds, and `npm run ios:install` takes it | OK | The install run built the `.ipa` and stopped at `devicectl` on a deliberately wrong device name, so the iPad was not touched. `ios:release -- --check` refuses it on purpose (branch, probe text). On `main` it also refuses, wrongly: `build-042`. |
+| 5 | The simulator launch of `main` draws the app and logs no CSP line | OK | iPad Pro 11-inch (M5) simulator, iPadOS 27.2. Weak: WKWebView's console is not in the unified log, and no taps were possible (no Simulator window here). |
+| 6 | The device numbers: installed size, cold start, memory, context loss, persistence, `ws://`, picker, Blob download, iCloud, Files, reachability, CSP; scenario 10 on the device | Owner | → `TODO/OWNER.md` I13. |
+
 ### ai-042 — MCP token for loopback peers on iOS and Android (2026-11-24 00:10)
 
 The host now refuses a loopback request without the token under the mobile rule, and the sheet shows the token beside `127.0.0.1:5184`. Real sockets in `host_tests.rs` prove the 401, the 200 with the token, `New token` ending the old one and the 413 cap with a valid token; nine projects of `native-mcp-loopback-token.e2e.js` prove the sheet. What none of that shows is another app on a real iPad reaching the port.
@@ -423,7 +436,7 @@ Installed with `ios-release.sh --install "Socrates"` and launched by hand (the f
 | F3 | `curl` with no token and a wrong token: 401 both | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I10. Not run: blocked by F1. |
 | F4 | Lock 60 s mid-request: agent told the call may not have landed | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I11. Not run: blocked by F1. |
 | F5 | Access off, ask from Mac: refused | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I12. Not run: blocked by F1. |
-| G | Measurements (`probe/build-018`) | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I13. Not run: needs the probe build. |
+| G | Measurements (`probe/build-018`) | Owner | → `TODO/OWNER.md` I13, rewritten 2026-11-23 with the probe build ready (commit `1f8ad1f`). The Mac half is in Question 8 \"Measured on device\". |
 | H | Five-minute free-form pass | Owner | 2026-11-17 (owner-queue triage): → `TODO/OWNER.md` I5. Deferred by owner. |
 
 Simulator notes (iPad Pro 11-inch M5, synthetic taps, not hardware): tapping a second object in the viewport replaces the selection instead of adding to it; adding a second object worked through the Objects list checkbox. Confirm that is intended. The cube was brown when selected and blue-grey after, with its colour swatch reading "Default"; not yet confirmed as selection tint. The second Library button placed a cylinder, not a sphere, so the sphere was not checked in the simulator.

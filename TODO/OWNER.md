@@ -15,7 +15,7 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 119 now (Q16-Q136; Q94-Q136 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 120 now (Q16-Q137; Q94-Q137 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 69 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
 | [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 21 + 11 + 7 | ~53 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q137 · Which agents is Live MCP access for on an iPhone or iPad, now that the Claude iPhone app cannot reach it (build-018)?
+
+**Question:** Anthropic's own help page says the Claude iOS app calls a custom connector from Anthropic's servers, so a server on the phone, or on a LAN address, cannot be reached from it. Assumed we keep the shipped design and say so plainly: Live MCP access is for Claude Code and Claude Desktop on a Mac or PC on the same Wi-Fi, and for the macOS build of the same shell. Keep that, or add a way for the Claude iPhone app to reach WarpCad?
+
+**Background:** Read 2026-11-23 at <https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp>: the connection "originates from Anthropic's servers, not from your machine's network interface", "true across every Claude client, including ... the mobile apps", the server must be "reachable over the public internet from Anthropic's IP ranges", and URLs on a port other than 443 are not supported. Nothing in `ai-026` or `io-014` changes: `ai-026` was built for the Mac clients and `docs/mcp.md` does not claim the iPhone app works. The only route for the Claude iPhone app would be an outbound relay that WarpCad connects to and Claude calls over HTTPS, which means a hosted service (the reserved row `ai-019` is a local WebSocket host, not that). `build-018`'s Question 8 table, item 10, holds the record.
+
+**Options:**
+- **Keep LAN agents on a Mac and the macOS build; do not build a relay (Recommended):** nothing new to host, secure or pay for, and the docs already say which agents work. A "Claude app" user on a Mac can use the macOS build of the shell.
+- **Plan an outbound relay for the Claude iPhone app:** a hosted service with accounts and a security review; a new decision record and several rows.
+- **Explain more**
+- **Defer:** the shipped design stays.
+
+**If deferred:** the shipped design stays and the docs keep saying no agent is known to run on a phone.
+
+**Answer:** question
 
 #### Q136 · Keep requiring the MCP token from apps on the phone or tablet itself (ai-042)?
 
@@ -2320,13 +2336,31 @@ The Live MCP checks (marked *waits on I20*) come last and are skipped until `I20
 
 #### I13 · Device measurements (Gate 1 G) from the probe build
 
-`testing-037` #G · iPad · filed 2026-11-16 · **waits on:** the runner builds `probe/build-018` and installs it
+`build-018` · iPad · 40 min, plus a 24 h gap for step 8 · filed 2026-11-16, rewritten 2026-11-23 · **waits on:** nothing (the probe build is ready; the Mac-side half is in `native-mobile-shell.md` "Measured on device")
 
-**Check:** Measurements (`probe/build-018`)
+The agent has already done sizes (Mac build), wry's handling of a killed web view, the Claude iOS connector question and a simulator launch. What is left needs the iPad. **Probe build: branch `probe/build-018`, commit `1f8ad1f5f948ad5926d9709613d8598ba92fc063`** (`1f8ad1f`, on top of `main` `99566ae`; it builds and `ios:install` accepts it). Never merge it. Its runbook is `PROBE-build-018.md` in that checkout. The probe writes `probe-build-018.log` into the app's Documents folder, which also answers item 9.
 
-**Already known:** Not run: needs the probe build.
+**Steps:**
+1. Plug Socrates in over the cable and unlock it. In Terminal: `cd /Users/johncole/src/@WarpCad/warpcad-native && git worktree add ../warpcad-native-probe probe/build-018 && cd ../warpcad-native-probe && git rev-parse HEAD` (it prints `1f8ad1f5f948ad5926d9709613d8598ba92fc063`).
+2. **Release build, for the numbers that only a release build gives (items 1 to 3):** `npm run ios:install -- "Socrates"`. Note the iPadOS version (Settings > General > About).
+3. Item 1: Settings > General > iPad Storage > WarpCad: write down the app size. (The `.ipa` is 6,734,510 B and the unpacked `.app` 12,512 KiB; the installed size is the new number.)
+4. Item 2: force-quit WarpCad, open it from the Home Screen (not Xcode), then in Files > On My iPad > WarpCad open `probe-build-018.log` and read the `first-frame perf.now=` line. Repeat five times and write all five. (Each launch appends; read the new last line.)
+5. Item 3: in Xcode choose Debug > Attach to Process > WarpCad, then the Debug navigator > Memory gauge. Note the app and the WebContent process with an empty scene, then after you drag in the parts scenario 3 names. If attaching is not possible on a release build, say so; do not guess a number.
+6. **Debug build, for the inspector (items 4 to 11):** `npm run ios:install -- "Socrates" --debug`. On the iPad: Settings > Safari > Advanced > Web Inspector on. On the Mac: Safari > Develop > Socrates > WarpCad.
+7. Item 4: place two bodies. Send WarpCad to the background (Home) for 1 min, return; then 5 min; then 15 min. After each, read the new lines in the log: `visibility`, `webglcontextlost`, `WEB CONTENT PROCESS TERMINATED` (the shell then reloads once, `build-033`), `script start` (a reload). Write what fired and whether the scene came back or the app was blank.
+8. Item 5: save a project in the app (that is acceptance scenario 10: it must come back after the relaunch), force-quit, relaunch: is it there? Read the `storage.persist()=` line in the log. Come back after 24 h, relaunch and check once more.
+9. Item 6: on the Mac run `npm run dev` in `warpcad` and find the Mac's LAN address. In the inspector console run `__probe.ws('<mac LAN address>', 5173)`. Write whether the log says `ws OPEN` or `ws ERROR`, and whether iPadOS showed a **Local Network** prompt. (The probe branch lets the CSP through, so this is WebKit's and ATS's answer. The shipped `main` build would be refused by its own `connect-src` first.)
+10. Item 7: in the app tap **File > Open**: does the document picker open and return the file? In the inspector run `__probe.download()`: write whether anything happened (a sheet, a file, nothing).
+11. Item 8: save a copy of any `.ndjson` into iCloud Drive. In the app **File > Open** that file, edit, force-quit, relaunch, then **Save**. Write whether the save reaches the iCloud file or fails, and the path shown.
+12. Item 9: Files > On My iPad: is there a **WarpCad** folder, and is `probe-build-018.log` in it?
+13. Item 10: the log shows `listener: bound 0.0.0.0:5199` after launch. Write the iPad's Wi-Fi address (Settings > Wi-Fi > i). From the Mac Terminal: `curl http://<ipad address>:5199`. On the iPad, in Safari: `http://127.0.0.1:5199`. Repeat both with WarpCad in the background for 10 s, 60 s and 5 min. Also try the Claude Desktop app on the Mac as a connector client only if you want: its custom connectors need a public HTTPS address (see the decision record), so expect no. Write whether any of this raised a **Local Network** prompt on first listen.
+14. Item 11: in the inspector console and the log, list every `CSP violation` line.
+15. Put the main build back so the probe is not what stays on the iPad: `cd /Users/johncole/src/@WarpCad/warpcad-native && npm run ios:install -- "Socrates"`. Then remove the checkout: `git worktree remove ../warpcad-native-probe`.
+16. Give the agent the numbers (type them in **Other**, or paste `probe-build-018.log`). It writes them into `native-mobile-shell.md` "Measured on device" in the cells that read "waits on OWNER.md I13", amends `io-014` or `ai-026` or files a finding if a result contradicts them, and closes this item.
 
-**Answer:** validation
+**Pass if:** every item 1 to 11 has a value or a stated reason it could not be taken, and acceptance scenario 10 (save and reload) passed on the device. A surprising value is still a pass here; it is a finding for the agent to file.
+
+**Answer:** action
 
 #### I14 · The in-app MCP listener binds one Wi-Fi address, caps requests and does not follow a network change
 
