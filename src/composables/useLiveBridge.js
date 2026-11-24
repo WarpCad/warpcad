@@ -81,7 +81,7 @@ function liveHot() {
     live = createNativeLink({
       surface: pageSurface,
       onEndpoint: (endpoint) => {
-        chat.nativeMcp = { native: true, lan: endpoint.lanUrl !== '', url: endpoint.url, lanUrl: endpoint.lanUrl, token: endpoint.token, lanError: endpoint.lanError }
+        chat.nativeMcp = { native: true, lan: endpoint.lanUrl !== '', url: endpoint.url, lanUrl: endpoint.lanUrl, token: endpoint.token, lanError: endpoint.lanError, loopbackNeedsToken: endpoint.loopbackNeedsToken }
       },
       onPaused: () => showPaused(chat),
       // `TODO/ai-043`: the host refused outright (no port would open), so access is not on: say so
@@ -232,7 +232,7 @@ export function useLiveBridge() {
   async function rotateToken() {
     if (!nativeLiveHost()) return false
     const endpoint = await rotateNativeToken()
-    chat.nativeMcp = { ...chat.nativeMcp, url: endpoint.url, lanUrl: endpoint.lanUrl, token: endpoint.token, lanError: endpoint.lanError }
+    chat.nativeMcp = { ...chat.nativeMcp, url: endpoint.url, lanUrl: endpoint.lanUrl, token: endpoint.token, lanError: endpoint.lanError, loopbackNeedsToken: endpoint.loopbackNeedsToken }
     return true
   }
 

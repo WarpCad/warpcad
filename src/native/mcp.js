@@ -56,8 +56,11 @@ export const MCP_COMMANDS = Object.freeze({ setAccess: 'mcp_set_access', reply: 
  * @property {number | null} port the listening port, `null` while closed
  * @property {string} url the loopback address, `http://127.0.0.1:<port>/mcp`
  * @property {string} lanUrl the Wi-Fi address while **Allow devices on this Wi-Fi** is on
- * @property {string} token the bearer token while it is on
+ * @property {string} token the bearer token while the Wi-Fi switch is on, and while listening when
+ *   `loopbackNeedsToken`
  * @property {string} lanError why the switch could not be turned on
+ * @property {boolean} loopbackNeedsToken a client on this device's loopback address needs the token
+ *   too (`TODO/ai-042`: the host says so on iOS and Android)
  */
 
 const defaultGlobal = () => /** @type {EventGlobal} */ (/** @type {unknown} */ (globalThis))
@@ -92,6 +95,7 @@ function readEndpoint(answer) {
     lanUrl: text(raw?.lanUrl),
     token: text(raw?.token),
     lanError: text(raw?.lanError),
+    loopbackNeedsToken: raw?.loopbackNeedsToken === true,
   }
 }
 
@@ -137,7 +141,30 @@ export async function rotateNativeToken(global = defaultGlobal()) {
  */
 export function claudeCodeCommand({ lanUrl, token }) {
   if (!lanUrl || !token) return ''
-  return `claude mcp add --transport http warpcad ${lanUrl} --header "Authorization: Bearer ${token}"`
+  return mcpAddLine(lanUrl, token)
+}
+
+/**
+ * The line for this device's loopback address (`TODO/ai-042`): with the token's `Authorization`
+ * header when the host requires it from loopback (iOS and Android), else without one. `''` while
+ * the server is closed, or while a required token has not arrived.
+ *
+ * @param {{ url: string, token: string, loopbackNeedsToken: boolean }} endpoint
+ * @returns {string}
+ */
+export function loopbackClaudeCodeCommand({ url, token, loopbackNeedsToken }) {
+  if (!url) return ''
+  if (!loopbackNeedsToken) return mcpAddLine(url, '')
+  return token ? mcpAddLine(url, token) : ''
+}
+
+/**
+ * @param {string} url
+ * @param {string} token `''` for no header
+ */
+function mcpAddLine(url, token) {
+  const line = `claude mcp add --transport http warpcad ${url}`
+  return token ? `${line} --header "Authorization: Bearer ${token}"` : line
 }
 
 /**

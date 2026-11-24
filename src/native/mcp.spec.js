@@ -8,6 +8,7 @@ import {
   NATIVE_MCP_EVENT,
   NATIVE_MCP_PAUSED_EVENT,
   claudeCodeCommand,
+  loopbackClaudeCodeCommand,
   createNativeLink,
   listenNative,
   setNativeAccess,
@@ -69,7 +70,7 @@ describe('the native MCP host commands (ai-026)', () => {
     const bridge = fakeBridge({ mcp_set_access: { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://192.168.1.20:5184/mcp', token: 'ab', lanError: null } })
     const endpoint = await setNativeAccess({ lease: '1h', lan: true, surface: { instructions: 'i', tools: [], writers: [] } }, bridge.global)
     expect(bridge.calls[0]).toEqual({ cmd: 'mcp_set_access', args: { lease: '1h', lan: true, surface: { instructions: 'i', tools: [], writers: [] } } })
-    expect(endpoint).toEqual({ port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://192.168.1.20:5184/mcp', token: 'ab', lanError: '' })
+    expect(endpoint).toEqual({ port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://192.168.1.20:5184/mcp', token: 'ab', lanError: '', loopbackNeedsToken: false })
   })
 
   it('builds the ready-to-paste Claude Code command for the Wi-Fi address and token', () => {
@@ -77,6 +78,27 @@ describe('the native MCP host commands (ai-026)', () => {
       'claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "Authorization: Bearer abc123"'
     )
     expect(claudeCodeCommand({ lanUrl: '', token: '' })).toBe('')
+  })
+
+  // TODO/ai-042: on iOS and Android a loopback client needs the token too, and the host says so.
+  it('reads loopbackNeedsToken as true only when the host sends exactly true', async () => {
+    const on = fakeBridge({ mcp_set_access: { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: null, token: 'ab', lanError: null, loopbackNeedsToken: true } })
+    expect(await setNativeAccess({ lease: '1h', lan: false }, on.global)).toEqual({ port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: 'ab', lanError: '', loopbackNeedsToken: true })
+    for (const sent of ['true', 1, null, undefined]) {
+      const bridge = fakeBridge({ mcp_set_access: { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: null, token: null, lanError: null, loopbackNeedsToken: sent } })
+      expect((await setNativeAccess({ lease: '1h', lan: false }, bridge.global)).loopbackNeedsToken, String(sent)).toBe(false)
+    }
+  })
+
+  it('builds the loopback Claude Code command with the token header when the host requires it, and without it otherwise', () => {
+    const url = 'http://127.0.0.1:5184/mcp'
+    expect(loopbackClaudeCodeCommand({ url, token: 'abc123', loopbackNeedsToken: true })).toBe(
+      'claude mcp add --transport http warpcad http://127.0.0.1:5184/mcp --header "Authorization: Bearer abc123"'
+    )
+    expect(loopbackClaudeCodeCommand({ url, token: '', loopbackNeedsToken: false })).toBe('claude mcp add --transport http warpcad http://127.0.0.1:5184/mcp')
+    // Required but not there yet: no line rather than one that would be refused.
+    expect(loopbackClaudeCodeCommand({ url, token: '', loopbackNeedsToken: true })).toBe('')
+    expect(loopbackClaudeCodeCommand({ url: '', token: 'abc123', loopbackNeedsToken: true })).toBe('')
   })
 })
 
@@ -100,7 +122,7 @@ describe('createNativeLink: the live bridge’s second transport', () => {
     link.send('warpcad:bridge', { type: 'access', lease: '15m', lan: true })
     await flush()
     expect(bridge.calls.at(-1)).toEqual({ cmd: 'mcp_set_access', args: { lease: '15m', lan: true, surface } })
-    expect(endpoints).toEqual([{ port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: '' }])
+    expect(endpoints).toEqual([{ port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: '', loopbackNeedsToken: false }])
   })
 
   it('answers a call with mcp_reply, the result already wrapped as an MCP tool result', async () => {
@@ -144,8 +166,8 @@ describe('createNativeLink: the live bridge’s second transport', () => {
     bridge.emit(NATIVE_MCP_ENDPOINT_EVENT, { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://10.0.0.7:5184/mcp', token: 'ab', lanError: null })
     bridge.emit(NATIVE_MCP_ENDPOINT_EVENT, { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: null, token: null, lanError: 'gone' })
     expect(endpoints).toEqual([
-      { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://10.0.0.7:5184/mcp', token: 'ab', lanError: '' },
-      { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: 'gone' },
+      { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://10.0.0.7:5184/mcp', token: 'ab', lanError: '', loopbackNeedsToken: false },
+      { port: 5184, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: 'gone', loopbackNeedsToken: false },
     ])
   })
 })

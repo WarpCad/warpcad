@@ -3856,3 +3856,13 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 84 Rust tests incl. 10 new for the address choice → `cargo test`; sheet specs on all 9 engine x viewport projects, 54 passed → this session's run; unit 10,223 passed → this session's run; iPad simulator booted the build but could not be tapped, so the sheet was not seen there → `TODO/VERIFY.md` ai-043; real iPad re-check → `TODO/OWNER.md` I20
 **To Add:** none
 ---
+
+## 2026-11-24T00:10:00Z — WarpCad: other apps on a phone now need the token to reach the MCP port
+
+**Post:** WarpCad's live agent access listens on 127.0.0.1 so Claude Code can edit the open project. On a phone, any other app can reach that address too. On iOS and Android it now asks for the access token, like a Wi-Fi device. Macs unchanged. #OpenSource Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 92 Rust tests incl. loopback 401 without and 200 with the token, and 413 over 1 MiB with it → `cargo test`; sheet specs 75 passed, 6 Chromium-only skips on 9 projects → this session's run; unit 10,231 passed → this session's run; on-iPad check not done → `TODO/OWNER.md` I21
+**To Add:** none
+---

@@ -13,6 +13,11 @@
  *   under the switch as an error (`ai-connect-lan-error`, `TODO/ai-043`), and the switch reads what
  *   the host answered, not the tap.
  *
+ * `TODO/ai-042`: on iOS and Android the host requires the token from a client on this device's
+ * loopback address too, and says so (`loopbackNeedsToken`). While it listens, the sheet then shows
+ * the token beside the loopback address (`ai-connect-loopback-row`), with **Copy token** and a
+ * `claude mcp add` line that carries the `Authorization` header. On a Mac or PC it shows nothing new.
+ *
  * The address and token are the server's, never project text. They wrap rather than scroll.
  * The server is plain HTTP, so the sheet says the token crosses the Wi-Fi unencrypted
  * (`ai-connect-lan-unencrypted`, `TODO/ai-036`), before the switch is turned on. If the device
@@ -21,7 +26,7 @@
 import { computed, ref, watch } from 'vue'
 
 import { useLiveBridge } from '../../composables/useLiveBridge.js'
-import { claudeCodeCommand } from '../../native/mcp.js'
+import { claudeCodeCommand, loopbackClaudeCodeCommand } from '../../native/mcp.js'
 import { useAiChatStore } from '../../stores/aiChat.js'
 import StarterCopy from './StarterCopy.vue'
 
@@ -36,6 +41,9 @@ const chat = useAiChatStore()
 const bridge = useLiveBridge()
 const shown = computed(() => chat.nativeMcp.lan && chat.nativeMcp.lanUrl !== '')
 const command = computed(() => claudeCodeCommand(chat.nativeMcp))
+/** `TODO/ai-042`: a loopback client needs the token, and there is one to show. */
+const loopbackShown = computed(() => chat.nativeMcp.loopbackNeedsToken && chat.nativeMcp.url !== '' && chat.nativeMcp.token !== '')
+const loopbackCommand = computed(() => loopbackClaudeCodeCommand(chat.nativeMcp))
 
 /**
  * The switch's position while the host has not answered a tap, else `null`. Without it a refused
@@ -59,33 +67,49 @@ function toggle(event) {
 </script>
 
 <template>
-  <div class="lan" data-testid="ai-connect-lan-row">
-    <label class="lan__switch">
-      <input type="checkbox" role="switch" class="lan__input" data-testid="ai-connect-lan" :checked="checked" :disabled="!enabled" @change="toggle($event)" />
-      <span>Allow devices on this Wi-Fi</span>
-    </label>
-    <p v-if="chat.nativeMcp.lanError" class="lan__error" role="alert" data-testid="ai-connect-lan-error">{{ chat.nativeMcp.lanError }}</p>
-    <p class="lan__note">Lets an agent on another computer on this Wi-Fi connect, with the token below. Off by default.</p>
-    <p class="lan__note" data-testid="ai-connect-lan-unencrypted">The address and token are sent unencrypted, so turn this on only on a network you trust: at home, not a café or conference.</p>
-    <template v-if="shown">
+  <div class="native">
+    <div v-if="loopbackShown" class="lan" data-testid="ai-connect-loopback-row">
+      <p class="lan__note">An app on this device needs this token too: on a phone or tablet any other app could reach this address.</p>
       <dl class="lan__values">
         <dt>Address</dt>
-        <dd><code data-testid="ai-connect-lan-url">{{ chat.nativeMcp.lanUrl }}</code></dd>
+        <dd><code data-testid="ai-connect-loopback-url">{{ chat.nativeMcp.url }}</code></dd>
         <dt>Token</dt>
-        <dd><code data-testid="ai-connect-token">{{ chat.nativeMcp.token }}</code></dd>
+        <dd><code data-testid="ai-connect-loopback-token">{{ chat.nativeMcp.token }}</code></dd>
       </dl>
       <div class="lan__buttons">
-        <StarterCopy :text="chat.nativeMcp.lanUrl" label="Copy address" testid="ai-connect-copy-url" />
-        <StarterCopy :text="chat.nativeMcp.token" label="Copy token" testid="ai-connect-copy-token" />
-        <StarterCopy :text="command" label="Copy Claude Code command" testid="ai-connect-copy-cmd" />
-        <button type="button" class="lan__button" data-testid="ai-connect-rotate" @click="bridge.rotateToken()">New token</button>
+        <StarterCopy :text="chat.nativeMcp.token" label="Copy token" testid="ai-connect-copy-loopback-token" />
+        <StarterCopy :text="loopbackCommand" label="Copy Claude Code command" testid="ai-connect-copy-loopback-cmd" />
       </div>
-      <p class="lan__note">New token ends every connected session.</p>
-    </template>
+    </div>
+    <div class="lan" data-testid="ai-connect-lan-row">
+      <label class="lan__switch">
+        <input type="checkbox" role="switch" class="lan__input" data-testid="ai-connect-lan" :checked="checked" :disabled="!enabled" @change="toggle($event)" />
+        <span>Allow devices on this Wi-Fi</span>
+      </label>
+      <p v-if="chat.nativeMcp.lanError" class="lan__error" role="alert" data-testid="ai-connect-lan-error">{{ chat.nativeMcp.lanError }}</p>
+      <p class="lan__note">Lets an agent on another computer on this Wi-Fi connect, with the token below. Off by default.</p>
+      <p class="lan__note" data-testid="ai-connect-lan-unencrypted">The address and token are sent unencrypted, so turn this on only on a network you trust: at home, not a café or conference.</p>
+      <template v-if="shown">
+        <dl class="lan__values">
+          <dt>Address</dt>
+          <dd><code data-testid="ai-connect-lan-url">{{ chat.nativeMcp.lanUrl }}</code></dd>
+          <dt>Token</dt>
+          <dd><code data-testid="ai-connect-token">{{ chat.nativeMcp.token }}</code></dd>
+        </dl>
+        <div class="lan__buttons">
+          <StarterCopy :text="chat.nativeMcp.lanUrl" label="Copy address" testid="ai-connect-copy-url" />
+          <StarterCopy :text="chat.nativeMcp.token" label="Copy token" testid="ai-connect-copy-token" />
+          <StarterCopy :text="command" label="Copy Claude Code command" testid="ai-connect-copy-cmd" />
+          <button type="button" class="lan__button" data-testid="ai-connect-rotate" @click="bridge.rotateToken()">New token</button>
+        </div>
+        <p class="lan__note">New token ends every connected session.</p>
+      </template>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.native,
 .lan {
   display: flex;
   flex-direction: column;

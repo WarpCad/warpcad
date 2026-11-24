@@ -992,9 +992,19 @@ kept, and so are `mcp/bridge.js`'s off, expired and ambiguous sentences and the 
    *No TLS.* A self-signed certificate would need the user to disable verification in the client, which
    teaches the wrong habit; the sheet and `docs/mcp.md` say the token is unencrypted and to use a trusted
    network instead.
-   *Deferred (`ai-036` item 5, filed as `ai-042`).* On iOS and Android loopback still needs no token. Requiring
-   it under `cfg(mobile)` waits on `build-018` item 10, which records whether any legitimate loopback client
-   exists on a phone.
+   *Loopback on iOS and Android (`ai-036` item 5, built as `ai-042`, 2026-11-23).* On a Mac or Windows PC a
+   loopback peer needs no token, because Claude Code runs on that computer and connects to loopback. On iOS and
+   Android **every** peer, loopback included, must send `Authorization: Bearer <token>` (401 and
+   `WWW-Authenticate: Bearer` otherwise), because any other app on the device can reach `127.0.0.1:5184` and
+   no legitimate loopback client on a phone or tablet is known. The rule is a runtime `LoopbackPolicy`
+   chosen from `cfg!(mobile)` in one place, so a desktop test can check both. With no token held the check
+   fails closed (refused, never open). The host generates the token as soon as it listens under the mobile rule,
+   not only when the Wi-Fi switch is on, and reports `loopbackNeedsToken` so the sheet shows the token and a
+   **Copy Claude Code command** beside the loopback address. The Origin, Host and 1 MiB body checks still
+   run first, and the cap still applies once the token passes. **Assumption, to be kept or reversed by the
+   owner (`TODO/OWNER.md` §2):** no legitimate loopback client exists on a phone or tablet. If one turns up it
+   connects by sending the token the sheet shows, so the choice is reversible. The by-hand check on an iPad
+   waits on the device session in `TODO/OWNER.md` §5a.
 5. **No Bonjour**, no fork per remote turn, no background execution, no outbound relay (`ai-019`).
 
 **Agents.** Built for the agents known to work: an MCP client on the same Mac (the Mac app, at

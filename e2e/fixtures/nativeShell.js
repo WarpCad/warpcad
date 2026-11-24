@@ -70,14 +70,20 @@ function installInPage(commands, createFs, desktop) {
     connection: mcp.lease === 'off' ? 'idle' : mcp.connection,
     reason: mcp.lease === 'off' ? 'Live MCP access is off.' : '',
   })
+  /**
+   * `TODO/ai-042`: as the Rust host's `LoopbackPolicy`, a loopback client needs the token on iOS and
+   * Android, not on a Mac or PC. The host says so, and then shows the token whenever it listens.
+   */
+  const loopbackNeedsToken = !desktop
   const mcpEndpoint = () => {
     const on = mcp.lease !== 'off'
     return {
       port: on ? 5184 : null,
       url: on ? 'http://127.0.0.1:5184/mcp' : null,
       lanUrl: on && mcp.lan ? 'http://192.168.1.20:5184/mcp' : null,
-      token: on && mcp.lan ? mcp.token : null,
+      token: on && (mcp.lan || loopbackNeedsToken) ? mcp.token : null,
       lanError: /** @type {string | null} */ (null),
+      loopbackNeedsToken,
     }
   }
   const internals = {

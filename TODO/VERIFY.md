@@ -59,6 +59,17 @@ left `Open` for "whoever drives it by hand". `/fix-todo` drives what it can befo
 
 ## Queue
 
+### ai-042 — MCP token for loopback peers on iOS and Android (2026-11-24 00:10)
+
+The host now refuses a loopback request without the token under the mobile rule, and the sheet shows the token beside `127.0.0.1:5184`. Real sockets in `host_tests.rs` prove the 401, the 200 with the token, `New token` ending the old one and the 413 cap with a valid token; nine projects of `native-mcp-loopback-token.e2e.js` prove the sheet. What none of that shows is another app on a real iPad reaching the port.
+
+| # | Check | Status | Notes |
+|---|---|---|---|
+| 1 | The sheet's loopback row at phone width: address, token and both Copy buttons wrap and stay at tap size, above the Wi-Fi switch, in light and dark. | OK | `docs/screenshots/native-mcp-sheet.png` and `.dark.png` regenerated and looked at (390 px, iOS fake shell): no horizontal scroll, buttons full width. |
+| 2 | The mobile rule on real sockets: loopback with no token 401, wrong token 401, right token 200, a request over 1 MiB with the right token 413, the desktop rule unchanged. | OK | `cargo test` in `warpcad-native`, 92 passed. |
+| 3 | On an iPad, another app that makes an HTTP request gets 401 without the token and success with it. | Owner | `TODO/OWNER.md` I21 (waits on I20). |
+| 4 | Is requiring the token on a phone or tablet right, given no legitimate loopback client is known? | Owner | `TODO/OWNER.md` Q136. Default taken: keep it. |
+
 ### testing-043 — Verify the `.warpcad` file types on a real iPad and in Safari, then scenarios 10, 22, 23 and 28 (2026-11-23 21:50 UTC)
 
 The task's desktop half (steps 4-6 and the legacy-name check) was driven on the production build of HEAD `00b85333` (no `src/` change) in Chromium at 1440x900 with a jittered real mouse; the iPad and Safari steps are OWNER.md items I1-I4, which now name this id. Scenario 28 did not exist and is written (`TODO/ACCEPTANCE.md`); `testing-011` still owns its first driven run, so it has no **Last run** line. The File System Access picker was a fake handle over a real folder, so the files on disk are real; downloads and file choosers were the browser's own.

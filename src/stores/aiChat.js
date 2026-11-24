@@ -116,7 +116,7 @@ export const useAiChatStore = defineStore('aiChat', () => {
    * the app; the rest is what the host last said: its addresses, the Wi-Fi token while **Allow
    * devices on this Wi-Fi** is on, and why that switch could not turn on. Not document state.
    */
-  const nativeMcp = ref({ native: false, lan: false, url: '', lanUrl: '', token: '', lanError: '' })
+  const nativeMcp = ref({ native: false, lan: false, url: '', lanUrl: '', token: '', lanError: '', loopbackNeedsToken: false })
   /** An MCP call is running in this tab (held briefly after, so it can be seen). */
   const bridgeWorking = ref(false)
   /** Landed MCP groups that **Undo AI turn** can still take back. */

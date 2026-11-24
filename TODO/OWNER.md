@@ -15,10 +15,10 @@ and goes straight to the next. It never waits for you to say "next". Type `stop`
 |---|---|---|---|---|
 | [0](#0-the-runner-does-these--nothing-for-you) | The runner does these | 79 rows | none | runs first in `/run-todos` |
 | [1](#1-unblockers--a-minute-each-then-the-runner-takes-over) | Unblockers | 0 | done 2026-11-17 | 39 more rows the runner can then drive |
-| [2](#2-questions--answer-from-anywhere) | Questions | 118 now (Q16-Q135; Q94-Q135 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
+| [2](#2-questions--answer-from-anywhere) | Questions | 119 now (Q16-Q136; Q94-Q136 sit above the groups), in 7 groups | ~1 min each | the follow-up work each answer files |
 | [3](#3-quick-checks-at-the-mac) | Quick checks at the Mac | 21 | 69 min total | closes rows |
 | [4](#4-accounts-and-settings) | Accounts and settings | 7 | 48 min total | closes rows |
-| [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 20 + 11 + 7 | ~50 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
+| [5](#5-device-sessions) | Device sessions: iPad, iPhone, either | 21 + 11 + 7 | ~53 + 25 + 15 min | Gate 1 follow-ups, file types, Live MCP |
 | [6](#6-start-now-check-later) | Start now, check later | 6 | a few minutes, days apart | closes rows |
 | [7](#7-at-the-printer-or-bench) | At the printer or bench | 13 | print time | closes rows |
 | [8](#8-older-device-feel-checks) | Older device feel checks | closed (Q1) | none | — |
@@ -85,6 +85,22 @@ All five answered 2026-11-17 (see **Answered**). New ones go here.
 The 76 decisions from `testing-033` were drafted 2026-11-17 and sit below Q17 in 7 groups (`### Q-group:`), each with the recommendation first. Each group offers **Accept all recommendations**.
 
 All fifteen written questions were answered 2026-11-17 (see **Answered**).
+
+#### Q136 · Keep requiring the MCP token from apps on the phone or tablet itself (ai-042)?
+
+**Question:** Assumed no legitimate loopback client on a phone or tablet, so the token is required there; keep it? On iOS and Android, `ai-042` makes the in-app MCP server refuse a request to `127.0.0.1:5184` that does not carry the token (401), and the sheet shows the token and a **Copy Claude Code command** beside that address. On a Mac or PC nothing changed: loopback still needs no token.
+
+**Background:** Any other app on the device can reach `127.0.0.1:5184` while Live MCP access is on, and nobody has found an agent that legitimately connects over loopback on a phone or tablet (`build-018` item 10 would have recorded one; it has not been answered). Requiring the token is reversible: a legitimate client, if one turns up, connects by sending the token the sheet shows. The Wi-Fi token was already required.
+
+**Options:**
+- **Keep the token required (Recommended):** closes the hole for other apps on the device, and costs a legitimate client one header.
+- **Trust loopback on mobile again:** simpler for an on-device agent, but any app on the device could edit the open project while access is on.
+- **Explain more**
+- **Defer:** the token stays required.
+
+**If deferred:** the token stays required.
+
+**Answer:** question
 
 #### Q135 · Accept `libc` as a direct dependency of warpcad-native (ai-043)?
 
@@ -2167,7 +2183,7 @@ Things only your signed-in accounts can do.
 
 ## 5. Device sessions
 
-### 5a. iPad session (20 checks, ~50 min)
+### 5a. iPad session (21 checks, ~53 min)
 
 **Setup (action):** 1. Plug Socrates in over the cable and unlock it. 2. Say `/owner ipad`. The agent
 installs the current local build (`scripts/ios-release.sh --install "Socrates"`) and writes three test files to
@@ -2349,6 +2365,16 @@ The Live MCP checks (marked *waits on I20*) come last and are skipped until `I20
 `ai-036` #5 · iPad · filed 2026-11-15 · **waits on:** I20 passes
 
 **Check:** With the Wi-Fi switch on, turn Wi-Fi off on the iPad (cellular on) and return to WarpCad: the switch is off with a message, and the cellular address does not answer.
+
+**Answer:** validation
+
+#### I21 · Another app on the iPad needs the token to reach the MCP loopback address
+
+`ai-042` #1 · iPad · 3 min · filed 2026-11-23 · **waits on:** I20 passes
+
+**Steps:** 1. With Live MCP access on (**1 hour**) and **Allow devices on this Wi-Fi** off, open **Assistant → Live MCP access…**. The sheet shows `http://127.0.0.1:5184/mcp`, a token, **Copy token** and **Copy Claude Code command** under the line *An app on this device needs this token too*. 2. Switch to another app on the iPad that can make an HTTP request (an HTTP client app, or Shortcuts with **Get Contents of URL**). 3. POST to `http://127.0.0.1:5184/mcp` with no `Authorization` header. Note the status. 4. Repeat with the header `Authorization: Bearer <the token>` (paste it with **Copy token**) and a JSON-RPC `initialize` body. Note the status. 5. Return to WarpCad and tap **Enable access** again or turn access off. Repeat step 3: nothing answers.
+
+**Pass if:** step 3 is `401` with *Refused: this WarpCad server needs its access token*, step 4 is `200` with an `mcp-session-id` header, and step 5 gets no answer. Record any app that could connect without the token.
 
 **Answer:** validation
 

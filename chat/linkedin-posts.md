@@ -5622,3 +5622,19 @@ Built with Claude Code, reviewed by me.
 **Evidence:** 84 Rust tests, 10 new → `cargo test`; sheet specs 54 passed on 9 projects → this session's run; simulator booted, not tapped → `TODO/VERIFY.md` ai-043; device re-check → `TODO/OWNER.md` I20
 **To Add:** none
 ---
+
+## [2026-11-24T00:10:00Z] — Who else on the phone can reach a local port
+
+WarpCad's native app can serve an MCP endpoint, so an agent such as Claude Code can edit the project you have open. It listens on 127.0.0.1, and until now it trusted anything that connected from there with no token. That is right on a Mac, where Claude Code runs on the same computer. On an iPhone, iPad or Android phone, any other installed app can open that address too, and no agent is known to legitimately connect that way.
+
+So on iOS and Android the server now wants the same bearer token from every caller, loopback included, and answers 401 without it. The rule is one runtime value chosen from the build target in a single place, so the desktop tests can check both rules. With no token held it refuses rather than lets the request through. The token is made as soon as the server listens, and the sheet shows it beside the on-device address with a button that copies the whole `claude mcp add` line. The 1 MiB request cap still applies after the token passes.
+
+This is a default, not a measured answer: nobody has run another app against it on a real iPad yet. It is logged as an owner question and a by-hand check, and a legitimate client that turns up only needs to send the header.
+
+Built with Claude Code, reviewed by me.
+**Links:** [Repo](https://github.com/WarpCad/warpcad) | [Docs](https://app.warpcad.com/help/) | [jwc.dev](https://jwc.dev)
+**Hashtags:** #OpenSource #MCP
+**Disclosure:** Built with Claude Code, reviewed by me.
+**Evidence:** 92 Rust tests incl. loopback 401 without and 200 with the token, 413 over 1 MiB with it, no token held refuses → `cargo test`; sheet specs 75 passed on 9 projects → this session's run; device check → `TODO/OWNER.md` I21, question Q136
+**To Add:** none
+---

@@ -8,6 +8,7 @@ import { nextTick } from 'vue'
 
 import { useAiChatStore } from '../../stores/aiChat.js'
 import NativeMcpAccess from './NativeMcpAccess.vue'
+import StarterCopy from './StarterCopy.vue'
 
 enableAutoUnmount(afterEach)
 
@@ -23,7 +24,7 @@ beforeEach(() => {
 /** @param {Partial<ReturnType<typeof useAiChatStore>['nativeMcp']>} nativeMcp */
 function mountSheet(nativeMcp = {}) {
   const chat = useAiChatStore()
-  chat.nativeMcp = { native: true, lan: false, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: '', ...nativeMcp }
+  chat.nativeMcp = { native: true, lan: false, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: '', lanError: '', loopbackNeedsToken: false, ...nativeMcp }
   return mount(NativeMcpAccess, { props: { enabled: true, lease: 'unlimited' } })
 }
 
@@ -66,5 +67,42 @@ describe('Allow devices on this Wi-Fi', () => {
     chat.nativeMcp = { ...chat.nativeMcp, lan: false, lanUrl: '', token: '', lanError: 'WarpCad found no Wi-Fi address on this device.' }
     await nextTick()
     expect(/** @type {HTMLInputElement} */ (input.element).checked).toBe(false)
+  })
+})
+
+/**
+ * `TODO/ai-042`: on iOS and Android the host requires the token from a loopback client too. The
+ * sheet then shows the token beside this device's loopback address, with a `claude mcp add` line
+ * that carries the header, even while the Wi-Fi switch is off. On a Mac nothing changes.
+ */
+describe('the token on this device (loopback)', () => {
+  const TOKEN = 'cd'.repeat(32)
+  /** @param {any} wrapper @param {string} testid */
+  const copied = (wrapper, testid) => wrapper.findAllComponents(StarterCopy).find((c) => c.props('testid') === testid)?.props('text')
+
+  it('shows the loopback address, the token and a command with the Authorization header when the host requires it', () => {
+    const wrapper = mountSheet({ loopbackNeedsToken: true, token: TOKEN })
+    const row = wrapper.find('[data-testid="ai-connect-loopback-row"]')
+    expect(row.exists()).toBe(true)
+    expect(row.find('[data-testid="ai-connect-loopback-url"]').text()).toBe('http://127.0.0.1:5184/mcp')
+    expect(row.find('[data-testid="ai-connect-loopback-token"]').text()).toBe(TOKEN)
+    expect(row.text()).toMatch(/needs this token/)
+    expect(copied(wrapper, 'ai-connect-copy-loopback-token')).toBe(TOKEN)
+    expect(copied(wrapper, 'ai-connect-copy-loopback-cmd')).toBe(`claude mcp add --transport http warpcad http://127.0.0.1:5184/mcp --header "Authorization: Bearer ${TOKEN}"`)
+    // The Wi-Fi half is still off: its address, token and command stay hidden.
+    for (const id of ['ai-connect-lan-url', 'ai-connect-token', 'ai-connect-copy-cmd']) {
+      expect(wrapper.find(`[data-testid="${id}"]`).exists(), id).toBe(false)
+    }
+  })
+
+  it('shows nothing new when the host trusts loopback (Mac and Windows)', () => {
+    const wrapper = mountSheet({ loopbackNeedsToken: false, lan: true, lanUrl: 'http://192.168.1.20:5184/mcp', token: TOKEN })
+    expect(wrapper.find('[data-testid="ai-connect-loopback-row"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="ai-connect-token"]').text()).toBe(TOKEN)
+  })
+
+  it('shows nothing while the server is closed, even under the mobile rule', () => {
+    const wrapper = mountSheet({ loopbackNeedsToken: true, url: '', token: '' })
+    expect(wrapper.find('[data-testid="ai-connect-loopback-row"]').exists()).toBe(false)
   })
 })

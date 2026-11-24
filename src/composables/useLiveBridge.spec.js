@@ -44,7 +44,7 @@ function installBridge() {
   const emit = (/** @type {string} */ event, /** @type {unknown} */ payload) => {
     for (const id of listeners.get(event) ?? []) callbacks.get(id)?.({ event, id: 0, payload })
   }
-  return { calls, emit }
+  return { calls, emit, endpoint }
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -128,6 +128,17 @@ describe('useLiveBridge in the native app', () => {
     expect(access?.args.surface.tools.length).toBeGreaterThan(0)
     expect(access?.args.surface.writers).toContain('create')
     expect(chat.nativeMcp).toMatchObject({ lan: true, url: 'http://127.0.0.1:5184/mcp', lanUrl: 'http://192.168.1.20:5184/mcp', token: 'f00d' })
+  })
+
+  it('the sheet hears when a loopback client needs the token too, on enable and on New token (TODO/ai-042)', async () => {
+    Object.assign(bridge.endpoint, { lanUrl: null, loopbackNeedsToken: true })
+    const { live, chat } = await start()
+    expect(live.useLiveBridge().setAccess('1h', { lan: false })).toBe(true)
+    await vi.waitFor(() => expect(chat.nativeMcp.loopbackNeedsToken).toBe(true), { timeout: 10_000 })
+    expect(chat.nativeMcp).toMatchObject({ lan: false, url: 'http://127.0.0.1:5184/mcp', lanUrl: '', token: 'f00d' })
+    chat.nativeMcp = { ...chat.nativeMcp, loopbackNeedsToken: false }
+    expect(await live.useLiveBridge().rotateToken()).toBe(true)
+    expect(chat.nativeMcp.loopbackNeedsToken).toBe(true)
   })
 
   it('a host that rejects mcp_set_access leaves the sheet not enabled and says why in its words (TODO/ai-043)', async () => {

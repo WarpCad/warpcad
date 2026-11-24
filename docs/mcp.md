@@ -553,7 +553,7 @@ above.
 |---|---|
 | Claude Code on a Mac or PC on the same Wi-Fi as your iPhone or iPad | Yes. Turn on **Allow devices on this Wi-Fi** and use the command the sheet copies (it carries the token). |
 | An MCP client on the same Mac as the WarpCad Mac app, such as Claude Code | Yes, at `http://127.0.0.1:5184/mcp`, with no token. |
-| An agent running on the iPhone or iPad itself | Not known yet. It hasn't been checked on a device, so don't rely on it. This page will say once it has been. |
+| An agent or app running on the iPhone, iPad or an Android phone itself | Only with the token. On those devices the on-device address `http://127.0.0.1:5184/mcp` refuses a request that has no token (401), because any other app on the device could otherwise reach it. The sheet shows the token and **Copy Claude Code command** beside that address. No agent is known to run on a phone or tablet yet, so this has not been tried on a device. |
 
 ### Try it: add a cube from your Mac
 
@@ -568,7 +568,30 @@ The command looks like this, with your phone's address and its token:
 claude mcp add --transport http warpcad http://192.168.1.20:5184/mcp --header "Authorization: Bearer <token>"
 ```
 
-![The Live MCP access sheet in the iPhone app with 1 hour enabled and Allow devices on this Wi-Fi turned on: the address http://192.168.1.20:5184/mcp, the token, and the Copy address, Copy token, Copy Claude Code command and New token buttons.](./screenshots/native-mcp-sheet.png)
+![The Live MCP access sheet in the iPhone app with 1 hour enabled: first the on-device address http://127.0.0.1:5184/mcp with the token and Copy token and Copy Claude Code command buttons, then Allow devices on this Wi-Fi turned on, with the address http://192.168.1.20:5184/mcp, the token, and the Copy address, Copy token, Copy Claude Code command and New token buttons.](./screenshots/native-mcp-sheet.png)
+
+### Using the on-device address (iPhone, iPad, Android)
+
+Under **Live MCP access**, while access is on, the sheet shows the on-device address and the token even with
+**Allow devices on this Wi-Fi** off. A request to that address needs the token, the same as one from another
+computer. On a Mac the on-device address needs no token.
+
+1. Tap **Assistant → Live MCP access…**, choose **1 hour** and tap **Enable access**.
+2. Under the status line, find the row that says *An app on this device needs this token too*. It shows
+   `http://127.0.0.1:5184/mcp` and a 64-character token.
+3. Tap **Copy Claude Code command** to get a line with the token in it, or **Copy token** to paste the token
+   into the client yourself.
+4. In the client on the device, add the address with the header `Authorization: Bearer <token>`. The command
+   looks like this:
+
+```sh
+claude mcp add --transport http warpcad http://127.0.0.1:5184/mcp --header "Authorization: Bearer <token>"
+```
+
+5. Without the header the client gets `401` and the message *Refused: this WarpCad server needs its access
+   token*. Tap **New token** under the Wi-Fi switch (while it is on) to end every session and make a new one.
+
+The token is made when access turns on and lasts until you turn access off or close the app.
 
 ### If the switch will not turn on
 
@@ -577,7 +600,7 @@ WarpCad cannot find a Wi-Fi address it can trust, the switch snaps back to off a
 it says why, in plain words, followed by every address the device has (for example
 `Addresses on this device: en0 192.168.1.20, utun3 10.8.0.2`):
 
-![The Live MCP access sheet in the iPhone app after Allow devices on this Wi-Fi was refused: the switch is off and a red line reads that the device's traffic goes through a VPN (utun3), with the addresses en0 192.168.1.20 and utun3 10.8.0.2.](./screenshots/native-mcp-wifi-refused.png)
+![The Live MCP access sheet in the iPhone app after Allow devices on this Wi-Fi was refused: the on-device address and token still show above it, the switch is off and a red line reads that the device's traffic goes through a VPN (utun3), with the addresses en0 192.168.1.20 and utun3 10.8.0.2.](./screenshots/native-mcp-wifi-refused.png)
 
 Nothing is opened, no token is
 made, and the agent on your computer cannot connect. The reasons:
@@ -594,7 +617,7 @@ made, and the agent on your computer cannot connect. The reasons:
 | Could not open a port | Every port WarpCad tried was taken. The status line says access is off, in the same words. | Close the other app using it, or try again. |
 
 The on-device endpoint (`http://127.0.0.1:5184/mcp`) still works in every case, for an agent on the
-same device. WarpCad lists addresses so you can see which one it saw, but it never chooses another
+same device, with the token on a phone or tablet. WarpCad lists addresses so you can see which one it saw, but it never chooses another
 network's address for you.
 
 **No Local Network prompt.** WarpCad only listens for connections, which iOS does not count as
