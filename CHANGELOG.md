@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.27.0](https://github.com/WarpCad/warpcad/compare/v1.26.0...v1.27.0) (2026-11-24)
+
+### Features
+
+* **ai:** the Live MCP sheet shows the token for the on-device address on iOS and Android (TODO/ai-042) ([c55ae2b](https://github.com/WarpCad/warpcad/commit/c55ae2b079a08a51ff8b7f4e89043c92ff79dbaa))
+
+### Bug Fixes
+
+* **ui:** Show on a merge banner scrolls the conflicted History row into view (TODO/ui-164) ([a4892a4](https://github.com/WarpCad/warpcad/commit/a4892a494cc72107f01ff088680893ef81fc6a24))
+* **ui:** show the version line in Help while it loads or cannot load (TODO/build-040) ([85dab95](https://github.com/WarpCad/warpcad/commit/85dab95972eadeac86ae3dfca688db86ab37632f))
+* **ui:** the Wi-Fi switch follows the host and shows why it was refused (TODO/ai-043) ([476d90c](https://github.com/WarpCad/warpcad/commit/476d90ccba854e192e8ea231b0b902822cae4726))
+
 ## [1.26.0](https://github.com/WarpCad/warpcad/compare/v1.25.0...v1.26.0) (2026-11-23)
 
 ### Features
